@@ -1,0 +1,15 @@
+{
+  "name": "community-tools",
+  "owner": {
+    "name": "example"
+  },
+  "plugins": [
+    {
+      "name": "deploy-helper",
+      "source": {
+        "source": "github",
+        "repo": "example/deploy-helper"
+      }
+    }
+  ]
+}

@@ -305,6 +305,26 @@ export function printReport(result, opts = {}) {
     w("");
   }
 
+  // Agent configuration (penthera agents)
+  if (result.agents) {
+    const a = result.agents;
+    const inv = a.inventory || {};
+    const gradeColor = { A: c.green, B: c.green, C: c.yellow, D: c.red, F: c.bgRed }[a.grade] || ((s) => s);
+    w(`  ${c.dim(line())}`);
+    w(`  ${c.bold("Agent Config")}${a.home ? c.dim("  repo + home") : c.dim("  repo")}`);
+    w("");
+    w(`  Grade      ${gradeColor(` ${a.grade} `)} ${c.dim(`(${a.score}/100)`)}`);
+    w(`  Found      ${inv.skills || 0} skills · ${inv.mcpServers || 0} MCP servers · ${inv.hooks || 0} hooks · ${inv.plugins || 0} plugins · ${inv.instructionFiles || 0} rule files`);
+    if (a.lock) {
+      const l = a.lock;
+      const status = l.status === "pinned" ? c.green(`pinned ${l.entries} entries → ${l.path}`)
+        : l.status === "checked" ? (l.changed || l.added ? c.yellow(`${l.changed} changed · ${l.added} new · ${l.removed} removed`) : c.green(`all ${l.entries} entries match`))
+        : l.status === "corrupt" ? c.red("corrupt") : c.dim("none (run with --pin)");
+      w(`  Lock       ${status}`);
+    }
+    w("");
+  }
+
   // Findings
   if (result.findings && result.findings.length > 0) {
     w(`  ${c.dim(line())}`);

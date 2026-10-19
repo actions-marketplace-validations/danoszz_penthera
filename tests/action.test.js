@@ -31,9 +31,12 @@ function fakeApi(comments = []) {
 describe("action.yml", () => {
   const action = readYaml("action.yml");
 
-  it("is a composite action named Penthera with marketplace branding", () => {
-    expect(action.name).toBe("Penthera");
-    expect(action.description).toBeTruthy();
+  it("is a composite action with a Marketplace-valid name, description and branding", () => {
+    // "Penthera" alone is taken by an existing GitHub organization, and the
+    // Marketplace rejects descriptions of 125 characters or more.
+    expect(action.name).toBe("Penthera Security Review");
+    expect(action.description.length).toBeGreaterThan(0);
+    expect(action.description.length).toBeLessThan(125);
     expect(action.runs.using).toBe("composite");
     expect(action.branding).toEqual({ icon: "shield", color: "blue" });
   });

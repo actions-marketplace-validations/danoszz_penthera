@@ -692,7 +692,7 @@ reporting and the AI-BOM: [docs/compliance-cra.md](docs/compliance-cra.md).
 
 ```yaml
 # Scan a staging URL on a schedule and upload results to GitHub Security.
-- run: npx penthera@1.4.0 "$PENTEST_URL" --profile standard --sarif reports/scan.sarif
+- run: npx penthera@1.5.0 "$PENTEST_URL" --profile standard --sarif reports/scan.sarif
 - uses: github/codeql-action/upload-sarif@v4
   with:
     sarif_file: reports/scan.sarif

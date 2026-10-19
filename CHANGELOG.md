@@ -4,6 +4,13 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-10-19
+
+Blocks problems at commit time, adds license policy, and extends the EU
+evidence to the Cyber Resilience Act. The GitHub Action is now ready for the
+Marketplace as "Penthera Security Review". Penthera also has a clearer
+problem statement: open-source security for the apps and AI systems you ship.
+
 ### Added
 
 - **`penthera hook install|uninstall|run`**: a pre-commit hook that checks

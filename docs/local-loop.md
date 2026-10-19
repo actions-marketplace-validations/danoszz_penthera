@@ -2,8 +2,128 @@
 
 Penthera v1.4 adds a loop that runs entirely on your machine: scan, fix on a
 local branch, verify, learn, repeat. Nothing in it talks to a Penthera server,
-because there isn't one. This page covers the part that makes the loop improve
-over time: the local learning store.
+because there isn't one. This page covers the loop itself (`penthera agent
+--loop`) and the part that makes it improve over time: the local learning store.
+
+## The agent loop
+
+```bash
+penthera agent --loop --repo . --url http://localhost:3000 -o reports/loop.json
+penthera agent --loop --repo . --run-tests          # also run the project's test script
+penthera agent --loop --repo . --auto low           # auto-apply only recipes memory has proven
+```
+
+One iteration:
+
+1. **Scan** the repo (white-box scan plus the fix recipes' static probes) and,
+   with `--url`, the running app.
+2. **Triage**: drop findings suppressed in memory or `penthera.suppress.json`,
+   and rank the rest with memory (severity always first).
+3. **Plan**: a deterministic recipe first. The local model is asked only with
+   `--fix-model <name>`, and only for findings no recipe matches.
+4. **Patch** on a local branch `penthera/fix-<yyyymmdd-hhmm>`, created from the
+   current HEAD when the run starts.
+5. **Verify**: re-scan. A fix passes when the findings it targeted are gone from
+   the repo scan, no new finding appeared, and, with `--run-tests`, the
+   project's `test` script exits 0 (`node --run test`).
+6. **Learn**: `scan`, `fix_applied` and `fix_verified` or `fix_failed` go to
+   memory.
+7. **Commit** each verified fix on its own, with a message that lists the
+   findings, the recipe, and how it was verified. A fix that fails is reverted
+   (`git checkout` of the files it changed; files it created are removed).
+
+Plans are applied one at a time and re-planned against the tree after each
+fix, since two recipes can touch the same file. The loop repeats until nothing
+fixable is left, `--max-iterations` (default 5) is reached, or you stop it.
+A fix you decline (`n`) or that fails verification is not proposed again in
+the same run; `s` skips it until the next iteration.
+
+A live URL serves the code it was started with, so a fix to response headers
+shows up in the URL scan only after the app restarts. The loop counts those as
+`liveRemaining` in the fix's `verify` block, not as a failure; the repo scan
+decides whether the fix landed.
+
+### What it guarantees
+
+Each of these has a test in `tests/agent.test.js`.
+
+- **No remote operations.** All git goes through `src/agent/git.js`, an
+  allow-list of local subcommands (`rev-parse`, `symbolic-ref`, `status`,
+  `diff`, `log`, `show-ref`, `checkout`, `add`, `commit`, `config --get`).
+  `push`, `fetch`, `pull`, `remote`, `clone`, `ls-remote`, `submodule` and
+  everything else are refused before a process starts, as are URL arguments
+  and `-c` overrides. Every call also runs with `protocol.allow=never` and
+  `GIT_NO_LAZY_FETCH=1`, so no transport can work. The loop never runs `gh`
+  and never opens a pull request.
+- **The repo's hooks never run.** Git runs with `core.hooksPath=/dev/null`,
+  `core.fsmonitor=false` and `commit --no-verify`: a scanned repo can ship hooks
+  that run anything.
+- **Network.** The whole run is one W1 egress context with `--offline` always
+  on: the URL target is the only host. Loopback is added only when
+  `--fix-model` is set, and the model client then accepts only
+  `http://127.0.0.1:11434`.
+- **Clean start.** A dirty tree (untracked files included), a detached HEAD, a
+  repo without commits, or a directory that is not a git repo is refused.
+  `--allow-dirty` lets the loop start anyway, but it never patches a file that
+  had uncommitted changes.
+- **Approval.** Every diff is shown, secrets masked, with
+  `[y]es / [n]o / [s]kip / [q]uit`. When input runs out (piped stdin), the
+  answer is `n`. `--auto low` applies a diff without asking only when it comes
+  from a recipe (not the model), its confidence is not `needs-human-review`,
+  memory's chain verifies, and memory shows that recipe with at least 3
+  verified fixes and no failures for this framework.
+- **Interruption.** The first Ctrl-C lets the fix in flight finish: it is
+  verified and committed, or reverted. The loop then stops on the fix branch,
+  which holds only verified commits. A second Ctrl-C reverts the fix in flight
+  at once and exits.
+
+`--run-tests` runs the project's own code, so it can do anything that code
+does, including network calls. It is off by default for that reason.
+
+### The loopRun object
+
+`-o <file>` writes `{ "loopRun": { ... } }`. W6's report timeline renders it.
+Every step carries `startedAt` and `durationMs`.
+
+```js
+{
+  schema: "penthera.loopRun/1",
+  id, startedAt, finishedAt, durationMs,
+  target: { repo, url },
+  branch: { base, baseSha, fix },            // base is null on a detached HEAD
+  options: { maxIterations, auto: "off" | "low", runTests, fixModel, offline: true, allowDirty },
+  stopReason: "no-fixable-findings" | "declined-or-failed-left" | "max-iterations"
+            | "user-quit" | "interrupted" | "error",
+  error,                                     // message when stopReason is "error"
+  findings: { initial, final },              // non-info, unsuppressed
+  totals: { iterations, planned, applied, verified, failed, declined, skipped, commits: [sha] },
+  memory: { projectId, chain: "ok" | "broken", eventsAppended },
+  iterations: [{
+    n, startedAt, durationMs,
+    findings: { total, suppressed, fixable },
+    steps: [{ step: "scan" | "triage" | "plan", startedAt, durationMs }],
+    fixes: [{
+      planId, recipe, title, framework, source: "recipe" | "local-model", confidence,
+      files, findings: [{ fid, title, severity, category }],
+      memory: { verified, failed } | null,   // recipe history when the plan was ranked
+      decision: "approved" | "auto" | "declined" | "skipped" | "quit" | "obsolete",
+      status: "verified" | "failed" | "not-applied",
+      reason, commit,
+      verify: { targetedRemaining, newFindings, liveRemaining, tests: { ok, exitCode, durationMs } | null } | null,
+      testOutput,                            // tail of the test output, only when tests failed
+      steps: [{ step: "approve" | "patch" | "learn" | "verify" | "commit" | "revert", startedAt, durationMs }],
+    }],
+  }],
+}
+```
+
+`obsolete` means an earlier fix in the same iteration already covered the plan.
+The same object, without `testOutput` and with finding ids in place of finding
+objects, is appended to memory as a `loop_run` event.
+
+Exit codes: `0` nothing fixable left, `1` fixable findings remain (declined,
+failed, or out of iterations), `2` the loop could not start (dirty tree,
+detached HEAD, bad options), `130` interrupted.
 
 ## The learning store
 
@@ -54,6 +174,7 @@ keys sorted. The first line's `prev` is derived from the project id.
 | `fix_applied` | finding id, recipe id, framework, category, diff SHA-256 |
 | `fix_verified` / `fix_failed` | finding id (recipe and framework are joined from `fix_applied`) |
 | `fp_suppressed` | finding id, reason, actor, optional expiry |
+| `loop_run` | one `penthera agent --loop` run: the [loopRun](#the-looprun-object) without test output, finding ids only |
 
 From these, `penthera memory show` derives four views: recipe success rate per
 framework, active suppressions, probe ranking by yield per stack, and median

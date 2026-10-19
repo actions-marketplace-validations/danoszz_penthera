@@ -59,6 +59,7 @@ const HELP = `
     $ penthera deps [path]           What your npm dependencies can do (offline)
     $ penthera memory show|verify|forget  Local learning store (never leaves the machine)
     $ penthera fix --plan            Plan local fix recipes (penthera fix --help)
+    $ penthera agent --loop          Scan, fix, verify, learn; local commits only (--help)
 
   ${dim("Scan modes")}
         --profile <name>        quick | standard | deep (default: standard)
@@ -152,6 +153,11 @@ export async function run() {
   if (process.argv[2] === "fix") {
     const { runFix } = await import("./cli/fix.js");
     return runFix(process.argv.slice(3));
+  }
+
+  if (process.argv[2] === "agent") {
+    const { runAgent } = await import("./cli/agent.js");
+    process.exit(await runAgent(process.argv.slice(3)));
   }
 
   let parsed;

@@ -338,6 +338,16 @@ How it stays safe:
 
 No recipe for a finding? `--fix-model <name>` can ask a model running in [Ollama](https://ollama.com) on `127.0.0.1:11434`, and nowhere else. It is off by default and only used when no recipe matches. Its diffs are labelled `needs-human-review`.
 
+### The local loop: `penthera agent --loop`
+
+`penthera agent --loop` runs scan → fix → verify → learn on your machine until nothing fixable is left (or `--max-iterations`, default 5):
+
+```bash
+penthera agent --loop --repo . --url http://localhost:3000 -o reports/loop.json
+```
+
+It shows each diff and asks `y/n/skip/quit`, applies it on a local branch `penthera/fix-<yyyymmdd-hhmm>`, re-scans (plus your tests with `--run-tests`), commits the fix if it verified and reverts it if not, and records the outcome in [local memory](docs/local-loop.md). It refuses a dirty tree or a detached HEAD, runs only an allow-list of local git commands with your repo's hooks disabled, contacts only the `--url` host, and never pushes or opens a pull request. `--auto low` applies without asking only recipes that memory shows verified 3+ times with no failures on your framework. Details and the `loopRun` JSON: [docs/local-loop.md](docs/local-loop.md#the-agent-loop).
+
 ---
 
 ## Dependency risk: what can your packages do?

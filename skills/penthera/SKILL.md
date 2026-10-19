@@ -69,7 +69,7 @@ All examples below use `penthera`; substitute `node bin/penthera.js` when needed
 | Scan repo only (secrets, routes) | `penthera --repo . -o reports/repo-scan.json` |
 | Is this dependency safe? / what changed in my deps? | `penthera deps` or `penthera deps --base origin/main` (see **Dependency risk scan**) |
 | URL + source combined | `penthera <url> --repo . -o reports/scan.json --sarif reports/scan.sarif` |
-| Scan and fix my app | Run a scan, then **Workflow 4** (apply fixes from [references/remediation.md](references/remediation.md), re-scan to verify) |
+| Scan and fix my app | **Workflow 4**: `penthera agent --loop` (scan, fix, verify, commit locally), then hand-fix what is left from [references/remediation.md](references/remediation.md) |
 | Compare to previous scan | `penthera <url> -o reports/scan.json --baseline reports/previous.json` |
 | Authenticated endpoints | Add `--auth-cookie` or `--auth-bearer` / `PENTHERA_*` env |
 | macOS machine audit | `penthera --machine` |
@@ -146,27 +146,22 @@ penthera https://staging.example.com --profile standard \
 
 **Triggers:** "scan and fix", "find and fix security issues", "harden my app", "fix the security headers", "apply security best practices"
 
-The detect -> fix -> verify loop. Penthera detects; you (the agent) fix the user's code using the playbook; Penthera re-scans to prove it is resolved.
+The detect -> fix -> verify loop, run by `penthera agent --loop` on the user's machine: it scans, plans a fix, shows the diff, applies it on a local branch, re-scans to verify, commits verified fixes, reverts failed ones, and records the outcome in local memory. It never pushes or opens a pull request.
 
 1. Confirm authorization (gate above). Read the **Fix-mode gate** below first.
-2. Scan and read the findings:
+2. Make sure the repo is a clean git tree on a branch (the loop refuses otherwise). If it is dirty, ask the user to commit or stash; pass `--allow-dirty` only if they ask.
+3. **Run the loop in the user's terminal**, because it asks for approval on every diff (`y` apply, `n` not this run, `s` skip, `q` quit):
 
 ```bash
 mkdir -p reports
-penthera <url> --repo . --profile standard -o reports/scan.json
+penthera agent --loop --repo . --url <url> -o reports/loop.json   # --url is optional
 ```
 
-3. **Try the fix recipes first.** For headers, cookie flags, CORS wildcards, login rate limits and hardcoded secrets, Penthera writes the diff itself, deterministically:
-
-```bash
-penthera fix --plan --repo . -o reports/scan.json   # or omit -o for a fresh repo scan
-```
-
-   Show the user each plan's diff and owner actions. After they approve one, run `penthera fix --apply <id> --repo . --yes` (`--yes` stands in for the y/N prompt, so pass it only after the user has said yes in chat). Plans change after each apply, so run `--plan` again before the next one. Applying refuses a dirty tree: let the user commit (or pass `--allow-dirty` only if they ask). Use `--json` to read plans programmatically; secrets are masked there.
-4. For findings without a recipe, detect the framework (`package.json` / imports: `next`, `express`, `fastify`, `hono`; `requirements.txt`: `fastapi`, `flask`), look the finding up by `category` in [references/remediation.md](references/remediation.md), **highest severity first**, and propose the framework-specific fix **as a diff**.
-5. Apply each fix only after the user approves it. Never add `--fix-model` unless the user asks for it: it sends code to a local Ollama model, and its diffs are `needs-human-review`.
-6. **Re-scan to verify**: `penthera <url> --repo . -o reports/scan-after.json --baseline reports/scan.json`. A fix is done only when its finding no longer appears.
-7. Report what is resolved and what remains.
+   Add `--run-tests` if the project has a test script the user wants to gate fixes on. Use `--auto low` only if the user asks: it auto-applies recipes that memory shows verified 3+ times with no failures on this framework. Never add `--fix-model` unless the user asks for it: it sends code to a local Ollama model, and its diffs are `needs-human-review`. If you cannot run an interactive terminal, ask the user to run the command themselves; do not pipe `y` answers in on their behalf.
+4. Read `reports/loop.json` (`loopRun`): per fix, `status` (`verified`, `failed`, `not-applied`), `reason`, `commit`, and `verify`. Relay each recipe's owner actions shown in the diff prompt; `secret-to-env` always includes "rotate this secret".
+5. For findings the loop could not fix (no recipe, declined, or failed), detect the framework (`package.json` / imports: `next`, `express`, `fastify`, `hono`; `requirements.txt`: `fastapi`, `flask`), look the finding up by `category` in [references/remediation.md](references/remediation.md), **highest severity first**, and propose the framework-specific fix **as a diff**. Apply it only after the user approves it.
+6. **Re-scan to verify** against the live app after it restarts: `penthera <url> --repo . -o reports/scan-after.json`. A fix is done only when its finding no longer appears. Fixes to response headers show up in the URL scan only after a restart (`liveRemaining` in the loopRun).
+7. Report what is resolved, what remains, and the fix branch (`loopRun.branch.fix`) for the user to review with `git log --stat <base>..<branch>`. Pushing or merging it is the user's call.
 
 To build secure-by-default so issues never appear, use [references/secure-defaults.md](references/secure-defaults.md).
 
@@ -177,7 +172,7 @@ Applying fixes **modifies the user's code**. Before editing:
 - Show the diff for each fix and get explicit approval. Never blind-apply.
 - Start with critical and high severity findings.
 - Re-scan after each fix (or batch) to confirm it actually resolved the finding.
-- Never apply fixes against a production system; work in the repo or a branch.
+- Never apply fixes against a production system; work in the repo or a branch. `penthera agent --loop` creates the branch for you.
 - Rotating an exposed secret and renewing a TLS certificate are **user actions**, not code edits, flag them clearly rather than attempting them.
 - Relay every plan's `ownerActions` to the user. `secret-to-env` always includes "rotate this secret": moving it to an env var does not make it safe again.
 
@@ -300,10 +295,10 @@ Actions:
 User: "Scan my localhost:3000 and fix what you find"
 
 Actions:
-1. Confirm localhost, authorization satisfied. Run a standard scan with `--repo .`.
-2. Detect the framework (e.g. Next.js from `package.json`).
-3. For each finding, highest severity first, propose the fix from [references/remediation.md](references/remediation.md) as a diff; apply on approval.
-4. Re-scan with `--baseline` to confirm each finding is resolved; report what is fixed and what remains.
+1. Confirm localhost, authorization satisfied, and a clean git tree.
+2. Ask the user to run `penthera agent --loop --repo . --url http://localhost:3000 -o reports/loop.json` and approve each diff.
+3. Read `reports/loop.json`: report verified commits, failed and declined fixes, and the fix branch.
+4. For what is left, highest severity first, propose the fix from [references/remediation.md](references/remediation.md) as a diff; apply on approval, then re-scan.
 
 ## Do not use this skill for
 

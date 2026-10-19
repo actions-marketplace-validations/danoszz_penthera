@@ -81,6 +81,26 @@ describe("loop timeline", () => {
     expect(t).toMatchObject({ verifiedCount: 1, failedCount: 1, openCount: 1 });
   });
 
+  it("reads the penthera.loopRun/1 shape from penthera agent", () => {
+    const loopRun = {
+      schema: "penthera.loopRun/1",
+      iterations: [
+        { n: 1, durationMs: 30_000, fixes: [
+          { recipe: "security-headers", status: "verified", findings: [{ fid: "aa", title: "Missing CSP" }, { fid: "bb", title: "Missing HSTS" }] },
+          { recipe: "cookie-flags", status: "failed", findings: [{ fid: "cc", title: "Cookie flags" }] },
+          { recipe: "cors-allowlist", status: "not-applied", findings: [{ fid: "dd", title: "CORS *" }] },
+        ] },
+        { n: 2, durationMs: 10_000, fixes: [{ recipe: "cookie-flags", status: "verified", findings: [{ fid: "cc", title: "Cookie flags" }] }] },
+      ],
+    };
+    const t = buildTimeline({ loopRun, findings: [] });
+    const by = Object.fromEntries(t.entries.map((e) => [e.fid, e]));
+    expect(by.aa).toMatchObject({ title: "Missing CSP", recipe: "security-headers", found: "iteration 1", verified: "iteration 1", timeToFixMs: 30_000 });
+    expect(by.cc).toMatchObject({ fixed: "iteration 2", verified: "iteration 2", failed: null, timeToFixMs: 40_000 });
+    expect(by.dd).toMatchObject({ fixed: null, verified: null });
+    expect(t).toMatchObject({ verifiedCount: 3, failedCount: 0, openCount: 1 });
+  });
+
   it("falls back to memory fix events", () => {
     const events = [
       { ts: "2026-10-01T00:00:00.000Z", type: "scan", data: { counts: { critical: 1, total: 1 }, ids: ["aa"] } },

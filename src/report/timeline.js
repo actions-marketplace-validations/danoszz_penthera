@@ -2,9 +2,12 @@
  * Loop timeline: found → fixed → verified per finding, with time-to-fix.
  *
  * Two sources, in this order:
- *   result.loopRun          an agent loop run (`penthera agent`):
+ *   result.loopRun          an agent loop run (`penthera agent`), either
  *                           { iterations: [{ n, found:[fid], fixed:[{fid, recipe}],
  *                             verified:[fid], failed:[fid], ms }] }
+ *                           or the penthera.loopRun/1 shape
+ *                           { iterations: [{ n, durationMs, fixes: [{ recipe,
+ *                             status, findings: [{ fid, title }] }] }] }
  *   result.memory.history   fix events from the local learning store (--memory)
  *
  * Returns null when neither has anything to show.
@@ -28,6 +31,28 @@ function titles(result) {
   return map;
 }
 
+/** penthera.loopRun/1 iteration → the found/fixed/verified/failed lists. */
+function normalizeIteration(it, names) {
+  if (!Array.isArray(it?.fixes)) return it;
+  const found = [];
+  const fixed = [];
+  const verified = [];
+  const failed = [];
+  for (const fx of it.fixes) {
+    const applied = fx?.status === "verified" || fx?.status === "failed";
+    for (const f of list(fx?.findings)) {
+      const fid = fidOf(f);
+      if (!fid) continue;
+      if (typeof f.title === "string" && !names.has(fid)) names.set(fid, f.title);
+      found.push(fid);
+      if (applied) fixed.push({ fid, recipe: typeof fx.recipe === "string" ? fx.recipe : null });
+      if (fx.status === "verified") verified.push(fid);
+      if (fx.status === "failed") failed.push(fid);
+    }
+  }
+  return { n: it.n, ms: Number.isFinite(it.ms) ? it.ms : it.durationMs, found, fixed, verified, failed };
+}
+
 function fromLoop(loopRun, names) {
   const its = list(loopRun?.iterations);
   if (!its.length) return null;
@@ -37,7 +62,7 @@ function fromLoop(loopRun, names) {
     return rows.get(fid);
   };
   let elapsed = 0;
-  its.forEach((it, i) => {
+  its.map((x) => normalizeIteration(x, names)).forEach((it, i) => {
     const n = Number.isInteger(it?.n) ? it.n : i + 1;
     const startMs = elapsed;
     elapsed += Number.isFinite(it?.ms) && it.ms > 0 ? it.ms : 0;

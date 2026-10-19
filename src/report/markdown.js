@@ -8,6 +8,7 @@ import { formatComplianceMarkdown } from "../../lib/compliance/index.js";
 import { buildActionPlan, formatActionPlanMarkdown } from "../../lib/remediation/index.js";
 import { formatAuditLoopMarkdown } from "../../lib/audit-loop.js";
 import { referencesFor, formatSourcesMarkdown } from "../../lib/references.js";
+import { formatDepsMarkdown } from "../../lib/deps/report.js";
 
 const SEV_ORDER = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 const SEV_TAG = {
@@ -103,6 +104,10 @@ export function formatMarkdownReport(result, opts = {}) {
 
   if (result.compliance) {
     lines.push(formatComplianceMarkdown(result.compliance));
+  }
+
+  if (result.deps) {
+    lines.push(formatDepsMarkdown(result.deps));
   }
 
   if (result.fingerprint) {

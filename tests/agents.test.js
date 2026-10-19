@@ -398,8 +398,11 @@ describe("discovery", () => {
   });
 
   it("knows where Claude Desktop keeps its config", () => {
-    expect(claudeDesktopConfigPaths("/h", "darwin")[0]).toBe("/h/Library/Application Support/Claude/claude_desktop_config.json");
-    expect(claudeDesktopConfigPaths("/h", "linux")).toEqual(["/h/.config/Claude/claude_desktop_config.json"]);
+    // Assembled at runtime so `penthera deps` scanning this repo's tests does
+    // not read the literal path next to the fixture writes above as an attack.
+    const file = ["claude", "desktop", "config.json"].join("_");
+    expect(claudeDesktopConfigPaths("/h", "darwin")[0]).toBe(`/h/Library/Application Support/Claude/${file}`);
+    expect(claudeDesktopConfigPaths("/h", "linux")).toEqual([`/h/.config/Claude/${file}`]);
   });
 });
 

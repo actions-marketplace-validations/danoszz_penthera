@@ -120,6 +120,7 @@ Prefer the terminal? Run `penthera` with no arguments for a guided wizard.
 | **Combined** | `penthera https://staging.app --repo .` | Black-box and white-box in one run |
 | **Interactive** | `penthera` *(no args)* | Guided wizard (URL plus optional repo scan, Markdown report) |
 | **Machine audit** | `penthera --machine` | macOS checks (keyloggers, persistence, rootkits) |
+| **Dependencies** | `penthera deps` | What each npm package can do (install scripts, shell, network, env, eval, native, obfuscation), capability diff on upgrades, typosquats. Offline |
 
 Pick a profile, or add individual flags for more depth:
 
@@ -308,6 +309,55 @@ Penthera does not just report problems. It closes the loop: ask your agent to fi
 ```
 
 Fixes come from a [remediation playbook](skills/penthera/references/remediation.md) covering Next.js, Express, Fastify, Hono, and FastAPI. They are always shown as diffs for your approval and verified by a re-scan; nothing is applied blindly, and nothing touches production. To build secure-by-default in the first place, see [secure defaults](skills/penthera/references/secure-defaults.md).
+
+---
+
+## Dependency risk: what can your packages do?
+
+A lockfile change is code you did not write, about to run with your app's access
+to files, network, environment and CI secrets. `penthera deps` reads
+`package-lock.json`, statically scans every installed package, and tells you
+what each one *can do*, and which packages are new or gained capabilities in an
+upgrade.
+
+```bash
+penthera deps                          # every package in node_modules
+penthera deps --base origin/main       # capability diff vs the lockfile on main
+penthera deps --diff ../base-checkout  # diff vs another installed tree (or an old package-lock.json)
+penthera deps --pr-comment deps.md     # short Markdown diff for a PR comment
+```
+
+```
+  ▲ net-helper 1.0.0 → 1.1.0  + network, whole environment
+      node_modules/net-helper/index.js:3  const https = require('https');
+      node_modules/net-helper/index.js:5  const body = JSON.stringify(process.env);
+```
+
+| Capability | Detected from |
+|---|---|
+| Install scripts | `preinstall` / `install` / `postinstall`, and `binding.gyp` (npm runs `node-gyp` implicitly). Flagged as risky when the hook pipes a download to a shell or runs a file with network or decoding code |
+| Shell, network, dynamic code | `child_process`; `http`/`https`/`net`/`dgram`/`tls`/`http2`, `fetch`, `WebSocket`; `eval`, `new Function`, `vm` |
+| Environment | `process.env` reads, and bulk access (`JSON.stringify(process.env)`, enumeration). Serialising the environment next to network code is reported as likely exfiltration |
+| Files, modules, native | Writes near home-directory or system paths; computed `require()`/`import()`; `.node` addons and `binding.gyp` |
+| Obfuscation | Obfuscator identifiers (`_0x…`), `\x`-escape density, encoded blobs that are decoded and run (embedded WebAssembly and ANSI colour codes are recognised and ignored) |
+| Attack indicators | Writes to `~/.claude`, `~/.cursor`, `.mcp.json` or the Claude Desktop config; running the `claude`, `gemini` or `q` CLIs (the s1ngularity pattern); GitHub token harvesting |
+| Typosquats | Edit distance, separator and suffix tricks against ~7,800 popular npm names, vendored in the package and refreshed at release time |
+
+Every capability carries `file:line` evidence. It is a regex-and-tokenizer pass,
+not a full parser: deterministic, never executes package code, and fast enough
+for every PR (0.4 s for Penthera's own 61 packages, 5 to 16 s for real app
+trees of 500 to 1,700 packages). A capability is what code
+*can* do, not proof that it is malicious; the findings carry honest confidence
+labels (`potential` for obfuscation and typosquats).
+
+**Offline by default.** Old versions for the diff come from the base tree's
+`node_modules` or from npm's local cache (`~/.npm/_cacache`), looked up by the
+lockfile's integrity hash and verified byte for byte. `--online` is the only
+network use: it asks the npm registry for publish dates, publisher changes and
+deprecations, and fetches old tarballs the cache does not have (verified the
+same way). Copy
+[`docs/examples/github-actions-deps.yml`](docs/examples/github-actions-deps.yml)
+to comment the capability diff on every PR that changes the lockfile.
 
 ---
 

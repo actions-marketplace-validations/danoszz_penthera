@@ -121,6 +121,8 @@ live once a maintainer approves it with 2FA. **Do not run `npm publish` locally.
    - `.claude-plugin/plugin.json` (`version`)
    - `.claude-plugin/marketplace.json` (`metadata.version`)
 2. Move the `[Unreleased]` notes in `CHANGELOG.md` under the new version.
+   Refresh the typosquat list with `npm run refresh:popular` and commit
+   `lib/deps/popular-packages.json` if it changed (the only time it is fetched).
 3. Merge to `main` through a PR so CI runs.
 4. Tag the merge commit and push the tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
 5. Approve the staged version with 2FA: npmjs.com → penthera → Staged Packages →

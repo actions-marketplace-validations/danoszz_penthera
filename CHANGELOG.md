@@ -4,6 +4,10 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-10-19
+
+Hardening and reach. An independent 360 review found three high-severity bugs, two of them reproduced; all are fixed with regression tests, and the open code-scanning alerts went from 18 to the 2 that need a second maintainer. `penthera deps` now covers Python, `penthera ui` adds a local dashboard (black or white, in the project blue), and every release passes an internal audit first. 1.5.0 was never published to npm; this release includes it.
+
 ### Security
 
 - Cleared the open code-scanning alerts. The community-template regex guard
@@ -13,6 +17,59 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   that accepts any case and junk in closing tags. Release workflow: read-only
   top-level token, hash-verified npm, no dependency cache. Docker base image
   pinned by digest. fast-check property tests fuzz the untrusted-input parsers.
+
+Fixes from an independent 360 review of `main`. The first three were
+reproduced; each fix has a regression test that fails without it.
+
+- **High: tar desync hid install scripts from the install firewall and
+  `penthera deps`.** A GNU base-256 size field parsed as 0, the reader lost its
+  place, and 512 zero bytes then read as end-of-archive, so `package.json` and
+  everything after it went unscanned and the package looked clean. The tar
+  reader now handles base-256 sizes and pax `size=`, checks every header
+  checksum and fails closed on any anomaly (malformed size, truncation, data
+  after the end marker). A package whose archive or `package.json` cannot be
+  read is reported as "could not be scanned" (high) and always needs approval
+  in `penthera install`; a lockfile `hasInstallScript` that the scan cannot
+  find is a high finding and is always denied (except the known benign case
+  of a package that ships only prebuilt `.node` binaries, like fsevents 2.x)
+- **High: `applyDiff` wrote through a dangling symlink out of the repo.** Every
+  path component is now `lstat`-ed and any symlink is refused; creates use
+  `O_CREAT|O_EXCL|O_NOFOLLOW`
+- **High: `.GIT/` bypassed the `.git` guard on case-insensitive file systems.**
+  Any path segment that is `.git` in any case, at any depth (plus HFS+ and
+  NTFS aliases such as `.git.` and `GIT~1`), is refused, and fix diffs may no
+  longer touch `.gitmodules`
+- PR comments escape HTML, Markdown links and images, `@` mentions, `#` refs
+  and bare URLs in package names, versions, paths and snippets from the
+  lockfile, keep code spans on one line, and cap each field at 200 characters
+- `penthera evidence verify` no longer passes a signed bundle whose signer was
+  not checked: a signature only verifies against `--allowed-signers`, and a
+  manifest that declares a signature with no `.sig` fails. Unsigned bundles
+  pass with an UNSIGNED warning; new `--require-signature` fails them
+- `penthera install` refuses git, hosted-git and tarball-URL specs, and lockfile
+  entries resolved outside the configured registries, unless
+  `--allow-non-registry` is passed. `npm cache add` runs with `--ignore-scripts`
+- `penthera install` applies with `npm ci`, so npm installs exactly the
+  reviewed lockfile and cannot re-resolve before scripts run
+- `penthera deps` now honours `--audience`, `--report-template`, `--evidence`
+  (with `--sign-key`) and `--baseline`, and rejects scan-only flags such as
+  `--memory` with a clear error instead of ignoring them
+- Gzip and tar size limits are enforced while unpacking (`maxOutputLength` on
+  gunzip, per-file and total caps in the tar reader)
+- The pre-commit hook reads `penthera.policy.json` and `penthera.suppress.json`
+  from the git index, warns when an unstaged copy is being ignored, and never
+  follows a staged symlink in agent config out of the repo
+- `--base` refs are validated (no leading `-`, a plain ref charset) and passed
+  after `--end-of-options`, in `penthera deps` and in the GitHub Action's fetch
+- `git status` and friends on a scanned repo (fix apply, evidence bundle git
+  info, `--base` reads) run with `core.fsmonitor=false`, no hooks and no
+  transports
+- The Action only edits marker comments posted by `github-actions[bot]`
+- `--offline` no longer makes DNS TXT/MX lookups for SPF/DMARC
+- Report citations now cover `dependency-risk`, `license`, `agent-config` and
+  the machine-audit categories; `license` findings get their own remediation
+- Docs: `docs/plan.md` lists only what v1.5.0 shipped; top-level `--help`
+  lists `penthera hook`
 
 ### Added
 
@@ -84,61 +141,6 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   placeholder (`apiKey: "${key}"`, `{{ api_key }}`) as a hardcoded secret.
 - `penthera-scan --help` and `--version` exit 0 instead of starting the wizard.
 - The example workflows in `docs/examples/` pin actions by commit SHA.
-
-### Security
-
-Fixes from an independent 360 review of `main`. The first three were
-reproduced; each fix has a regression test that fails without it.
-
-- **High: tar desync hid install scripts from the install firewall and
-  `penthera deps`.** A GNU base-256 size field parsed as 0, the reader lost its
-  place, and 512 zero bytes then read as end-of-archive, so `package.json` and
-  everything after it went unscanned and the package looked clean. The tar
-  reader now handles base-256 sizes and pax `size=`, checks every header
-  checksum and fails closed on any anomaly (malformed size, truncation, data
-  after the end marker). A package whose archive or `package.json` cannot be
-  read is reported as "could not be scanned" (high) and always needs approval
-  in `penthera install`; a lockfile `hasInstallScript` that the scan cannot
-  find is a high finding and is always denied (except the known benign case
-  of a package that ships only prebuilt `.node` binaries, like fsevents 2.x)
-- **High: `applyDiff` wrote through a dangling symlink out of the repo.** Every
-  path component is now `lstat`-ed and any symlink is refused; creates use
-  `O_CREAT|O_EXCL|O_NOFOLLOW`
-- **High: `.GIT/` bypassed the `.git` guard on case-insensitive file systems.**
-  Any path segment that is `.git` in any case, at any depth (plus HFS+ and
-  NTFS aliases such as `.git.` and `GIT~1`), is refused, and fix diffs may no
-  longer touch `.gitmodules`
-- PR comments escape HTML, Markdown links and images, `@` mentions, `#` refs
-  and bare URLs in package names, versions, paths and snippets from the
-  lockfile, keep code spans on one line, and cap each field at 200 characters
-- `penthera evidence verify` no longer passes a signed bundle whose signer was
-  not checked: a signature only verifies against `--allowed-signers`, and a
-  manifest that declares a signature with no `.sig` fails. Unsigned bundles
-  pass with an UNSIGNED warning; new `--require-signature` fails them
-- `penthera install` refuses git, hosted-git and tarball-URL specs, and lockfile
-  entries resolved outside the configured registries, unless
-  `--allow-non-registry` is passed. `npm cache add` runs with `--ignore-scripts`
-- `penthera install` applies with `npm ci`, so npm installs exactly the
-  reviewed lockfile and cannot re-resolve before scripts run
-- `penthera deps` now honours `--audience`, `--report-template`, `--evidence`
-  (with `--sign-key`) and `--baseline`, and rejects scan-only flags such as
-  `--memory` with a clear error instead of ignoring them
-- Gzip and tar size limits are enforced while unpacking (`maxOutputLength` on
-  gunzip, per-file and total caps in the tar reader)
-- The pre-commit hook reads `penthera.policy.json` and `penthera.suppress.json`
-  from the git index, warns when an unstaged copy is being ignored, and never
-  follows a staged symlink in agent config out of the repo
-- `--base` refs are validated (no leading `-`, a plain ref charset) and passed
-  after `--end-of-options`, in `penthera deps` and in the GitHub Action's fetch
-- `git status` and friends on a scanned repo (fix apply, evidence bundle git
-  info, `--base` reads) run with `core.fsmonitor=false`, no hooks and no
-  transports
-- The Action only edits marker comments posted by `github-actions[bot]`
-- `--offline` no longer makes DNS TXT/MX lookups for SPF/DMARC
-- Report citations now cover `dependency-risk`, `license`, `agent-config` and
-  the machine-audit categories; `license` findings get their own remediation
-- Docs: `docs/plan.md` lists only what v1.5.0 shipped; top-level `--help`
-  lists `penthera hook`
 
 ### Docs
 

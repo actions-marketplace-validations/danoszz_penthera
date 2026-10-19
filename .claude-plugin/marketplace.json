@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "The routine work of a security team, on your own machine",
-    "version": "1.4.0"
+    "version": "1.5.0"
   },
   "plugins": [
     {

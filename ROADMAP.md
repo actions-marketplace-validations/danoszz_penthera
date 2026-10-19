@@ -57,7 +57,7 @@ The engineering detail, order of work, and acceptance criteria are in the
 | PR-comment GitHub Action | Comments the dependency capability diff on every PR that changes a lockfile, and uploads SARIF |
 | Custom reports and evidence bundle | Templates per audience, a found → fixed → verified timeline, and a SHA-256 manifest you can sign with a local SSH key |
 
-### v1.5.0 "AI apps and compliance" (in progress)
+### v1.5.x "AI apps and compliance" (partly shipped in 1.5.0)
 
 | Feature | Why |
 |---------|-----|

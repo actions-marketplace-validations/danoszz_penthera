@@ -1,6 +1,6 @@
 {
   "name": "penthera",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "type": "module",
   "description": "The routine work of a security team, on your own machine: audits your app, dependencies, and AI tooling (skills, MCP, hooks), fixes and verifies, and writes the evidence. Offline, deterministic, free.",
   "repository": {

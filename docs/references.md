@@ -1,78 +1,119 @@
 # References
 
-The research and standards Penthera's methodology and findings cite. The BibTeX source is [references.bib](references.bib); this page is generated from it by `node scripts/build-references.mjs`.
+The research and standards that Penthera's [methodology](METHODOLOGY.md) and per-finding sources cite, in APA 7th edition style, grouped by topic and sorted alphabetically by first author within each group. The BibTeX source is [references.bib](references.bib); this page is generated from it by `node scripts/build-references.mjs`, and a test fails if the two drift or if a citation in METHODOLOGY.md does not resolve to an entry here.
 
-Every entry was checked against the publisher or standards body (Crossref DOI metadata, USENIX, NDSS, arXiv, the RFC Editor, OWASP, MITRE, OASIS, the EU Publications Office) on 2026-10-19. Entries that could not be verified were left out. How each one is used is described in [METHODOLOGY.md](METHODOLOGY.md).
+Every entry was checked against the publisher or standards body (Crossref DOI metadata, USENIX, NDSS, arXiv, the RFC Editor, OWASP, MITRE, OASIS, the EU Publications Office) on 2026-10-19. Entries that could not be verified were left out, and so were fields (pages, volume, issue, editors) that the publisher's metadata does not record. Each entry has an anchor named after its BibTeX key, for example [`#bau2010state`](#bau2010state), which is also the key reports and SARIF use.
 
 ## Black-box scanning and benchmarking
 
-- `bau2010state`: Bau, Jason; Bursztein, Elie; Gupta, Divij; Mitchell, John (2010). *State of the Art: Automated Black-Box Web Application Vulnerability Testing*. 2010 IEEE Symposium on Security and Privacy. <https://doi.org/10.1109/SP.2010.27>
-- `doupe2010johnny`: Doupé, Adam; Cova, Marco; Vigna, Giovanni (2010). *Why Johnny Can't Pentest: An Analysis of Black-Box Web Vulnerability Scanners*. Detection of Intrusions and Malware, and Vulnerability Assessment (DIMVA 2010). <https://doi.org/10.1007/978-3-642-14215-4_7>
-- `antunes2010benchmarking`: Antunes, Nuno; Vieira, Marco (2010). *Benchmarking Vulnerability Detection Tools for Web Services*. 2010 IEEE International Conference on Web Services (ICWS). <https://doi.org/10.1109/ICWS.2010.76>
-- `antunes2015assessing`: Antunes, Nuno; Vieira, Marco (2015). *Assessing and Comparing Vulnerability Detection Tools for Web Services: Benchmarking Approach and Examples*. IEEE Transactions on Services Computing. <https://doi.org/10.1109/TSC.2014.2310221>
-- `owaspbenchmark`: OWASP Foundation. *OWASP Benchmark Project*. OWASP project page (v1.2; project leader Dave Wichers). <https://owasp.org/www-project-benchmark/>
+<a id="antunes2010benchmarking"></a>Antunes, N., & Vieira, M. (2010). Benchmarking vulnerability detection tools for web services. In *2010 IEEE International Conference on Web Services (ICWS)* (pp. 203–210). IEEE. <https://doi.org/10.1109/ICWS.2010.76>
+
+<a id="antunes2015assessing"></a>Antunes, N., & Vieira, M. (2015). Assessing and comparing vulnerability detection tools for web services: Benchmarking approach and examples. *IEEE Transactions on Services Computing*, *8*(2), 269–283. <https://doi.org/10.1109/TSC.2014.2310221>
+
+<a id="bau2010state"></a>Bau, J., Bursztein, E., Gupta, D., & Mitchell, J. (2010). State of the art: Automated black-box web application vulnerability testing. In *2010 IEEE Symposium on Security and Privacy* (pp. 332–345). IEEE. <https://doi.org/10.1109/SP.2010.27>
+
+<a id="doupe2010johnny"></a>Doupé, A., Cova, M., & Vigna, G. (2010). Why Johnny can't pentest: An analysis of black-box web vulnerability scanners. In C. Kreibich & M. Jahnke (Eds.), *Detection of Intrusions and Malware, and Vulnerability Assessment (DIMVA 2010)* (pp. 111–131). Springer. <https://doi.org/10.1007/978-3-642-14215-4_7>
+
+<a id="owaspbenchmark"></a>OWASP Foundation. (n.d.-a). *OWASP Benchmark project* (Version 1.2). Retrieved October 19, 2026, from <https://owasp.org/www-project-benchmark/>
 
 ## Security design principles
 
-- `saltzer1975protection`: Saltzer, J. H.; Schroeder, M. D. (1975). *The Protection of Information in Computer Systems*. Proceedings of the IEEE. <https://doi.org/10.1109/PROC.1975.9939>
+<a id="saltzer1975protection"></a>Saltzer, J. H., & Schroeder, M. D. (1975). The protection of information in computer systems. *Proceedings of the IEEE*, *63*(9), 1278–1308. <https://doi.org/10.1109/PROC.1975.9939>
 
 ## Threat modeling
 
-- `shostack2014threat`: Shostack, Adam (2014). *Threat Modeling: Designing for Security*. Wiley. <https://www.wiley-vch.de/de/fachgebiete/computer-und-informatik/threat-modeling-978-1-118-80999-0>
-- `kohnfelder1999threats`: Kohnfelder, Loren; Garg, Praerit (1999). *The Threats to Our Products*. Microsoft internal Interface journal, 1 April 1999; copy hosted by Adam Shostack. <https://shostack.org/files/microsoft/The-Threats-To-Our-Products.docx>
+<a id="kohnfelder1999threats"></a>Kohnfelder, L., & Garg, P. (1999). *The threats to our products* [Internal publication]. Microsoft. Retrieved October 19, 2026, from <https://shostack.org/files/microsoft/The-Threats-To-Our-Products.docx>
+
+<a id="shostack2014threat"></a>Shostack, A. (2014). *Threat modeling: Designing for security*. Wiley. <https://www.wiley-vch.de/de/fachgebiete/computer-und-informatik/threat-modeling-978-1-118-80999-0>
 
 ## Software supply chain
 
-- `ladisa2023sok`: Ladisa, Piergiorgio; Plate, Henrik; Martinez, Matias; Barais, Olivier (2023). *SoK: Taxonomy of Attacks on Open-Source Software Supply Chains*. 2023 IEEE Symposium on Security and Privacy (SP). <https://doi.org/10.1109/SP46215.2023.10179304>
-- `ohm2020backstabber`: Ohm, Marc; Plate, Henrik; Sykosch, Arnold; Meier, Michael (2020). *Backstabber's Knife Collection: A Review of Open Source Software Supply Chain Attacks*. Detection of Intrusions and Malware, and Vulnerability Assessment (DIMVA 2020). <https://doi.org/10.1007/978-3-030-52683-2_2>
-- `zimmermann2019small`: Zimmermann, Markus; Staicu, Cristian-Alexandru; Tenny, Cam; Pradel, Michael (2019). *Small World with High Risks: A Study of Security Threats in the npm Ecosystem*. 28th USENIX Security Symposium (USENIX Security 19). <https://www.usenix.org/conference/usenixsecurity19/presentation/zimmerman>
-- `lauinger2017thou`: Lauinger, Tobias; Chaabane, Abdelberi; Arshad, Sajjad; Robertson, William; Wilson, Christo; Kirda, Engin (2017). *Thou Shalt Not Depend on Me: Analysing the Use of Outdated JavaScript Libraries on the Web*. Network and Distributed System Security Symposium (NDSS 2017). <https://doi.org/10.14722/ndss.2017.23414>
-- `thompson1984reflections`: Thompson, Ken (1984). *Reflections on Trusting Trust*. Communications of the ACM. <https://doi.org/10.1145/358198.358210>
-- `torresarias2019intoto`: Torres-Arias, Santiago; Afzali, Hammad; Kuppusamy, Trishank Karthik; Curtmola, Reza; Cappos, Justin (2019). *in-toto: Providing farm-to-table guarantees for bits and bytes*. 28th USENIX Security Symposium (USENIX Security 19). <https://www.usenix.org/conference/usenixsecurity19/presentation/torres-arias>
-- `samuel2010survivable`: Samuel, Justin; Mathewson, Nick; Cappos, Justin; Dingledine, Roger (2010). *Survivable Key Compromise in Software Update Systems*. Proceedings of the 17th ACM Conference on Computer and Communications Security (CCS '10). <https://doi.org/10.1145/1866307.1866315>
+<a id="ladisa2023sok"></a>Ladisa, P., Plate, H., Martinez, M., & Barais, O. (2023). SoK: Taxonomy of attacks on open-source software supply chains. In *2023 IEEE Symposium on Security and Privacy (SP)* (pp. 1509–1526). IEEE. <https://doi.org/10.1109/SP46215.2023.10179304>
+
+<a id="lauinger2017thou"></a>Lauinger, T., Chaabane, A., Arshad, S., Robertson, W., Wilson, C., & Kirda, E. (2017). Thou shalt not depend on me: Analysing the use of outdated JavaScript libraries on the web. In *Proceedings 2017 Network and Distributed System Security Symposium*. Internet Society. <https://doi.org/10.14722/ndss.2017.23414>
+
+<a id="ohm2020backstabber"></a>Ohm, M., Plate, H., Sykosch, A., & Meier, M. (2020). Backstabber's knife collection: A review of open source software supply chain attacks. In C. Maurice, L. Bilge, G. Stringhini, & N. Neves (Eds.), *Detection of Intrusions and Malware, and Vulnerability Assessment (DIMVA 2020)* (pp. 23–43). Springer. <https://doi.org/10.1007/978-3-030-52683-2_2>
+
+<a id="samuel2010survivable"></a>Samuel, J., Mathewson, N., Cappos, J., & Dingledine, R. (2010). Survivable key compromise in software update systems. In *Proceedings of the 17th ACM Conference on Computer and Communications Security (CCS '10)* (pp. 61–72). ACM. <https://doi.org/10.1145/1866307.1866315>
+
+<a id="thompson1984reflections"></a>Thompson, K. (1984). Reflections on trusting trust. *Communications of the ACM*, *27*(8), 761–763. <https://doi.org/10.1145/358198.358210>
+
+<a id="torresarias2019intoto"></a>Torres-Arias, S., Afzali, H., Kuppusamy, T. K., Curtmola, R., & Cappos, J. (2019). in-toto: Providing farm-to-table guarantees for bits and bytes. In *28th USENIX Security Symposium (USENIX Security 19)* (pp. 1393–1410). USENIX Association. <https://www.usenix.org/conference/usenixsecurity19/presentation/torres-arias>
+
+<a id="zimmermann2019small"></a>Zimmermann, M., Staicu, C.-A., Tenny, C., & Pradel, M. (2019). Small world with high risks: A study of security threats in the npm ecosystem. In *28th USENIX Security Symposium (USENIX Security 19)* (pp. 995–1010). USENIX Association. <https://www.usenix.org/conference/usenixsecurity19/presentation/zimmerman>
 
 ## Secret leakage
 
-- `meli2019bad`: Meli, Michael; McNiece, Matthew R.; Reaves, Bradley (2019). *How Bad Can It Git? Characterizing Secret Leakage in Public GitHub Repositories*. Network and Distributed System Security Symposium (NDSS 2019). <https://doi.org/10.14722/ndss.2019.23418>
-- `basak2023secretbench`: Basak, Setu Kumar; Neil, Lorenzo; Reaves, Bradley; Williams, Laurie (2023). *SecretBench: A Dataset of Software Secrets*. 2023 IEEE/ACM 20th International Conference on Mining Software Repositories (MSR). <https://doi.org/10.1109/MSR59073.2023.00053>
+<a id="basak2023secretbench"></a>Basak, S. K., Neil, L., Reaves, B., & Williams, L. (2023). SecretBench: A dataset of software secrets. In *2023 IEEE/ACM 20th International Conference on Mining Software Repositories (MSR)* (pp. 347–351). IEEE. <https://doi.org/10.1109/MSR59073.2023.00053>
+
+<a id="meli2019bad"></a>Meli, M., McNiece, M. R., & Reaves, B. (2019). How bad can it Git? Characterizing secret leakage in public GitHub repositories. In *Proceedings 2019 Network and Distributed System Security Symposium*. Internet Society. <https://doi.org/10.14722/ndss.2019.23418>
 
 ## Web application security
 
-- `weichselbaum2016csp`: Weichselbaum, Lukas; Spagnuolo, Michele; Lekies, Sebastian; Janc, Artur (2016). *CSP Is Dead, Long Live CSP! On the Insecurity of Whitelists and the Future of Content Security Policy*. Proceedings of the 2016 ACM SIGSAC Conference on Computer and Communications Security (CCS '16). <https://doi.org/10.1145/2976749.2978363>
-- `kocher1996timing`: Kocher, Paul C. (1996). *Timing Attacks on Implementations of Diffie-Hellman, RSA, DSS, and Other Systems*. Advances in Cryptology - CRYPTO '96. <https://doi.org/10.1007/3-540-68697-5_9>
-- `crosby2009opportunities`: Crosby, Scott A.; Wallach, Dan S.; Riedi, Rudolf H. (2009). *Opportunities and Limits of Remote Timing Attacks*. ACM Transactions on Information and System Security. <https://doi.org/10.1145/1455526.1455530>
-- `lekies2013flows`: Lekies, Sebastian; Stock, Ben; Johns, Martin (2013). *25 Million Flows Later: Large-scale Detection of DOM-based XSS*. Proceedings of the 2013 ACM SIGSAC Conference on Computer and Communications Security (CCS '13). <https://doi.org/10.1145/2508859.2516703>
-- `stock2014precise`: Stock, Ben; Lekies, Sebastian; Mueller, Tobias; Spiegel, Patrick; Johns, Martin (2014). *Precise Client-side Protection against DOM-based Cross-Site Scripting*. 23rd USENIX Security Symposium (USENIX Security 14). <https://www.usenix.org/conference/usenixsecurity14/technical-sessions/presentation/stock>
-- `barth2008robust`: Barth, Adam; Jackson, Collin; Mitchell, John C. (2008). *Robust Defenses for Cross-Site Request Forgery*. Proceedings of the 15th ACM Conference on Computer and Communications Security (CCS '08). <https://doi.org/10.1145/1455770.1455782>
-- `fett2016comprehensive`: Fett, Daniel; Küsters, Ralf; Schmitz, Guido (2016). *A Comprehensive Formal Security Analysis of OAuth 2.0*. Proceedings of the 2016 ACM SIGSAC Conference on Computer and Communications Security (CCS '16). <https://doi.org/10.1145/2976749.2978385>
-- `hodges2012rfc6797`: Hodges, J.; Jackson, C.; Barth, A. (2012). *HTTP Strict Transport Security (HSTS)*. RFC 6797, Proposed Standard, RFC Editor. <https://doi.org/10.17487/RFC6797>
-- `jones2015rfc7519`: Jones, M.; Bradley, J.; Sakimura, N. (2015). *JSON Web Token (JWT)*. RFC 7519, Proposed Standard, RFC Editor. <https://doi.org/10.17487/RFC7519>
-- `sakimura2015rfc7636`: Sakimura, N.; Bradley, J.; Agarwal, N. (2015). *Proof Key for Code Exchange by OAuth Public Clients*. RFC 7636, Proposed Standard, RFC Editor. <https://doi.org/10.17487/RFC7636>
-- `lodderstedt2025rfc9700`: Lodderstedt, T.; Bradley, J.; Labunets, A.; Fett, D. (2025). *Best Current Practice for OAuth 2.0 Security*. RFC 9700, BCP 240, RFC Editor. <https://doi.org/10.17487/RFC9700>
-- `chen2018cors`: Chen, Jianjun; Jiang, Jian; Duan, Haixin; Wan, Tao; Chen, Shuo; Paxson, Vern; Yang, Min (2018). *We Still Don't Have Secure Cross-Domain Requests: an Empirical Study of CORS*. 27th USENIX Security Symposium (USENIX Security 18). <https://www.usenix.org/conference/usenixsecurity18/presentation/chen-jianjun>
-- `sheffer2020rfc8725`: Sheffer, Y.; Hardt, D.; Jones, M. (2020). *JSON Web Token Best Current Practices*. RFC 8725, BCP 225, RFC Editor. <https://doi.org/10.17487/RFC8725>
-- `owasp2023api`: OWASP Foundation (2023). *OWASP Top 10 API Security Risks - 2023*. OWASP API Security Project. <https://owasp.org/API-Security/editions/2023/en/0x11-t10/>
-- `kitterman2014rfc7208`: Kitterman, S. (2014). *Sender Policy Framework (SPF) for Authorizing Use of Domains in Email, Version 1*. RFC 7208, Proposed Standard, RFC Editor. <https://doi.org/10.17487/RFC7208>
-- `kucherawy2015rfc7489`: Kucherawy, M.; Zwicky, E. (2015). *Domain-based Message Authentication, Reporting, and Conformance (DMARC)*. RFC 7489, Informational, RFC Editor. <https://doi.org/10.17487/RFC7489>
-- `owasp2021top10`: OWASP Foundation (2021). *OWASP Top 10:2021*. OWASP Foundation. <https://top10.owasp.org/2021>
-- `owasp2025top10`: OWASP Foundation (2025). *OWASP Top 10:2025*. OWASP Foundation. <https://top10.owasp.org/2025>
-- `owaspwstg42`: OWASP Foundation. *OWASP Web Security Testing Guide, Version 4.2*. OWASP Foundation. <https://wstg.owasp.org/v4.2/>
+<a id="barth2008robust"></a>Barth, A., Jackson, C., & Mitchell, J. C. (2008). Robust defenses for cross-site request forgery. In *Proceedings of the 15th ACM Conference on Computer and Communications Security (CCS '08)* (pp. 75–88). ACM. <https://doi.org/10.1145/1455770.1455782>
+
+<a id="chen2018cors"></a>Chen, J., Jiang, J., Duan, H., Wan, T., Chen, S., Paxson, V., & Yang, M. (2018). We still don't have secure cross-domain requests: An empirical study of CORS. In *27th USENIX Security Symposium (USENIX Security 18)* (pp. 1079–1093). USENIX Association. <https://www.usenix.org/conference/usenixsecurity18/presentation/chen-jianjun>
+
+<a id="crosby2009opportunities"></a>Crosby, S. A., Wallach, D. S., & Riedi, R. H. (2009). Opportunities and limits of remote timing attacks. *ACM Transactions on Information and System Security*, *12*(3), 1–29. <https://doi.org/10.1145/1455526.1455530>
+
+<a id="fett2016comprehensive"></a>Fett, D., Küsters, R., & Schmitz, G. (2016). A comprehensive formal security analysis of OAuth 2.0. In *Proceedings of the 2016 ACM SIGSAC Conference on Computer and Communications Security (CCS '16)* (pp. 1204–1215). ACM. <https://doi.org/10.1145/2976749.2978385>
+
+<a id="hodges2012rfc6797"></a>Hodges, J., Jackson, C., & Barth, A. (2012). *HTTP strict transport security (HSTS)* (RFC 6797). RFC Editor. <https://doi.org/10.17487/RFC6797>
+
+<a id="jones2015rfc7519"></a>Jones, M., Bradley, J., & Sakimura, N. (2015). *JSON web token (JWT)* (RFC 7519). RFC Editor. <https://doi.org/10.17487/RFC7519>
+
+<a id="kitterman2014rfc7208"></a>Kitterman, S. (2014). *Sender policy framework (SPF) for authorizing use of domains in email, version 1* (RFC 7208). RFC Editor. <https://doi.org/10.17487/RFC7208>
+
+<a id="kocher1996timing"></a>Kocher, P. C. (1996). Timing attacks on implementations of Diffie-Hellman, RSA, DSS, and other systems. In N. Koblitz (Ed.), *Advances in Cryptology – CRYPTO '96* (pp. 104–113). Springer. <https://doi.org/10.1007/3-540-68697-5_9>
+
+<a id="kucherawy2015rfc7489"></a>Kucherawy, M., & Zwicky, E. (2015). *Domain-based message authentication, reporting, and conformance (DMARC)* (RFC 7489). RFC Editor. <https://doi.org/10.17487/RFC7489>
+
+<a id="lekies2013flows"></a>Lekies, S., Stock, B., & Johns, M. (2013). 25 million flows later: Large-scale detection of DOM-based XSS. In *Proceedings of the 2013 ACM SIGSAC Conference on Computer and Communications Security (CCS '13)* (pp. 1193–1204). ACM. <https://doi.org/10.1145/2508859.2516703>
+
+<a id="lodderstedt2025rfc9700"></a>Lodderstedt, T., Bradley, J., Labunets, A., & Fett, D. (2025). *Best current practice for OAuth 2.0 security* (RFC 9700, BCP 240). RFC Editor. <https://doi.org/10.17487/RFC9700>
+
+<a id="owaspwstg42"></a>OWASP Foundation. (n.d.-b). *OWASP Web Security Testing Guide, version 4.2*. Retrieved October 19, 2026, from <https://wstg.owasp.org/v4.2/>
+
+<a id="owasp2021top10"></a>OWASP Foundation. (2021). *OWASP Top 10:2021*. Retrieved October 19, 2026, from <https://top10.owasp.org/2021>
+
+<a id="owasp2023api"></a>OWASP Foundation. (2023). *OWASP Top 10 API security risks – 2023*. OWASP API Security Project. Retrieved October 19, 2026, from <https://owasp.org/API-Security/editions/2023/en/0x11-t10/>
+
+<a id="owasp2025top10"></a>OWASP Foundation. (2025c). *OWASP Top 10:2025*. Retrieved October 19, 2026, from <https://top10.owasp.org/2025>
+
+<a id="sakimura2015rfc7636"></a>Sakimura, N., Bradley, J., & Agarwal, N. (2015). *Proof key for code exchange by OAuth public clients* (RFC 7636). RFC Editor. <https://doi.org/10.17487/RFC7636>
+
+<a id="sheffer2020rfc8725"></a>Sheffer, Y., Hardt, D., & Jones, M. (2020). *JSON web token best current practices* (RFC 8725, BCP 225). RFC Editor. <https://doi.org/10.17487/RFC8725>
+
+<a id="stock2014precise"></a>Stock, B., Lekies, S., Mueller, T., Spiegel, P., & Johns, M. (2014). Precise client-side protection against DOM-based cross-site scripting. In *23rd USENIX Security Symposium (USENIX Security 14)* (pp. 655–670). USENIX Association. <https://www.usenix.org/conference/usenixsecurity14/technical-sessions/presentation/stock>
+
+<a id="weichselbaum2016csp"></a>Weichselbaum, L., Spagnuolo, M., Lekies, S., & Janc, A. (2016). CSP is dead, long live CSP! On the insecurity of whitelists and the future of Content Security Policy. In *Proceedings of the 2016 ACM SIGSAC Conference on Computer and Communications Security (CCS '16)* (pp. 1376–1387). ACM. <https://doi.org/10.1145/2976749.2978363>
 
 ## LLM and agent security
 
-- `greshake2023signed`: Greshake, Kai; Abdelnabi, Sahar; Mishra, Shailesh; Endres, Christoph; Holz, Thorsten; Fritz, Mario (2023). *Not What You've Signed Up For: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection*. Proceedings of the 16th ACM Workshop on Artificial Intelligence and Security (AISec '23). <https://doi.org/10.1145/3605764.3623985>
-- `spracklen2025package`: Spracklen, Joseph; Wijewickrama, Raveen; Sakib, A H M Nazmus; Maiti, Anindya; Viswanath, Bimal; Jadliwala, Murtuza (2025). *We Have a Package for You! A Comprehensive Analysis of Package Hallucinations by Code Generating LLMs*. 34th USENIX Security Symposium (USENIX Security 25). <https://www.usenix.org/conference/usenixsecurity25/presentation/spracklen>
-- `perez2022ignore`: Perez, Fábio; Ribeiro, Ian (2022). *Ignore Previous Prompt: Attack Techniques For Language Models*. NeurIPS 2022 ML Safety Workshop; arXiv:2211.09527. <https://doi.org/10.48550/arXiv.2211.09527>
-- `liu2023prompt`: Liu, Yi; Deng, Gelei; Li, Yuekang; Wang, Kailong; Wang, Zihao; Wang, Xiaofeng; Zhang, Tianwei; Liu, Yepang; Wang, Haoyu; Zheng, Yan; Zhang, Leo Yu; Liu, Yang (2023). *Prompt Injection attack against LLM-integrated Applications*. arXiv preprint arXiv:2306.05499. <https://doi.org/10.48550/arXiv.2306.05499>
-- `owasp2024llmtop10`: OWASP Foundation (2024). *OWASP Top 10 for LLM Applications 2025*. OWASP Gen AI Security Project, published 17 November 2024. <https://genai.owasp.org/resource/owasp-top-10-for-llm-applications-2025/>
-- `owasp2025agentic`: OWASP Foundation (2025). *OWASP Top 10 for Agentic Applications for 2026*. OWASP Gen AI Security Project, published 9 December 2025. <https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/>
-- `owasp2025mcptop10`: OWASP Foundation (2025). *OWASP MCP Top 10*. OWASP project page (beta, living document; items MCP01:2025-MCP10:2025; project lead Vandana Verma Sehgal). <https://owasp.org/www-project-mcp-top-10/>
-- `mitreatlas`: The MITRE Corporation. *MITRE ATLAS: Adversarial Threat Landscape for AI Systems*. Knowledge base of adversary tactics and techniques against AI systems. <https://atlas.mitre.org/>
+<a id="greshake2023signed"></a>Greshake, K., Abdelnabi, S., Mishra, S., Endres, C., Holz, T., & Fritz, M. (2023). Not what you've signed up for: Compromising real-world LLM-integrated applications with indirect prompt injection. In *Proceedings of the 16th ACM Workshop on Artificial Intelligence and Security (AISec '23)* (pp. 79–90). ACM. <https://doi.org/10.1145/3605764.3623985>
+
+<a id="liu2023prompt"></a>Liu, Y., Deng, G., Li, Y., Wang, K., Wang, Z., Wang, X., Zhang, T., Liu, Y., Wang, H., Zheng, Y., Zhang, L. Y., & Liu, Y. (2023). *Prompt injection attack against LLM-integrated applications* [Preprint]. arXiv. <https://doi.org/10.48550/arXiv.2306.05499>
+
+<a id="mitreatlas"></a>The MITRE Corporation. (n.d.-b). *MITRE ATLAS: Adversarial Threat Landscape for AI Systems*. Retrieved October 19, 2026, from <https://atlas.mitre.org/>
+
+<a id="owasp2024llmtop10"></a>OWASP Foundation. (2024, November 17). *OWASP Top 10 for LLM applications 2025*. OWASP Gen AI Security Project. Retrieved October 19, 2026, from <https://genai.owasp.org/resource/owasp-top-10-for-llm-applications-2025/>
+
+<a id="owasp2025mcptop10"></a>OWASP Foundation. (2025a). *OWASP MCP Top 10* [Beta]. Retrieved October 19, 2026, from <https://owasp.org/www-project-mcp-top-10/>
+
+<a id="owasp2025agentic"></a>OWASP Foundation. (2025b, December 9). *OWASP Top 10 for agentic applications for 2026*. OWASP Gen AI Security Project. Retrieved October 19, 2026, from <https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/>
+
+<a id="perez2022ignore"></a>Perez, F., & Ribeiro, I. (2022). *Ignore previous prompt: Attack techniques for language models* [Preprint]. arXiv. <https://doi.org/10.48550/arXiv.2211.09527>
+
+<a id="spracklen2025package"></a>Spracklen, J., Wijewickrama, R., Sakib, A. H. M. N., Maiti, A., Viswanath, B., & Jadliwala, M. (2025). We have a package for you! A comprehensive analysis of package hallucinations by code generating LLMs. In *34th USENIX Security Symposium (USENIX Security 25)* (pp. 3687–3706). USENIX Association. <https://www.usenix.org/conference/usenixsecurity25/presentation/spracklen>
 
 ## Standards and regulation
 
-- `scarfone2008sp800115`: Scarfone, K. A.; Souppaya, M. P.; Cody, A.; Orebaugh, A. D. (2008). *Technical Guide to Information Security Testing and Assessment*. National Institute of Standards and Technology. <https://doi.org/10.6028/NIST.SP.800-115>
-- `oasis2023sarif`: Fanning, Michael C.; Golding, Laurence J. (2023). *Static Analysis Results Interchange Format (SARIF) Version 2.1.0 Plus Errata 01*. OASIS Standard incorporating Approved Errata, 28 August 2023. <https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/sarif-v2.1.0-errata01-os-complete.html>
-- `eu2022nis2`: European Parliament; Council of the European Union (2022). *Directive (EU) 2022/2555 of the European Parliament and of the Council of 14 December 2022 on measures for a high common level of cybersecurity across the Union, amending Regulation (EU) No 910/2014 and Directive (EU) 2018/1972, and repealing Directive (EU) 2016/1148 (NIS 2 Directive)*. Official Journal of the European Union, L 333, 27.12.2022, p. 80. <https://eur-lex.europa.eu/eli/dir/2022/2555/oj>
-- `mitrecwe`: The MITRE Corporation. *CWE: Common Weakness Enumeration*. Community-developed list of software and hardware weakness types, sponsored by CISA. <https://cwe.mitre.org/>
-- `spdxlicenselist`: SPDX Workgroup, The Linux Foundation. *SPDX License List*. Standardized short identifiers for open source licenses, used by package manifests and SBOMs. <https://spdx.org/licenses/>
+<a id="eu2022nis2"></a>European Parliament and Council of the European Union. (2022). *Directive (EU) 2022/2555 of the European Parliament and of the Council of 14 December 2022 on measures for a high common level of cybersecurity across the Union, amending Regulation (EU) No 910/2014 and Directive (EU) 2018/1972, and repealing Directive (EU) 2016/1148 (NIS 2 Directive)*. Official Journal of the European Union, L 333, 27.12.2022, p. 80. Retrieved October 19, 2026, from <https://eur-lex.europa.eu/eli/dir/2022/2555/oj>
+
+<a id="oasis2023sarif"></a>Fanning, M. C., & Golding, L. J. (2023, August 28). *Static Analysis Results Interchange Format (SARIF) version 2.1.0 plus errata 01* [OASIS Standard incorporating Approved Errata]. OASIS. Retrieved October 19, 2026, from <https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/sarif-v2.1.0-errata01-os-complete.html>
+
+<a id="mitrecwe"></a>The MITRE Corporation. (n.d.-a). *CWE: Common Weakness Enumeration*. Retrieved October 19, 2026, from <https://cwe.mitre.org/>
+
+<a id="scarfone2008sp800115"></a>Scarfone, K. A., Souppaya, M. P., Cody, A., & Orebaugh, A. D. (2008). *Technical guide to information security testing and assessment* (NIST Special Publication 800-115). National Institute of Standards and Technology. <https://doi.org/10.6028/NIST.SP.800-115>
+
+<a id="spdxlicenselist"></a>SPDX Workgroup, The Linux Foundation. (n.d.). *SPDX License List*. Retrieved October 19, 2026, from <https://spdx.org/licenses/>

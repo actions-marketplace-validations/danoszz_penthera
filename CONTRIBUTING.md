@@ -147,6 +147,7 @@ live once a maintainer approves it with 2FA. **Do not run `npm publish` locally.
    - `.claude-plugin/plugin.json` (`version`)
    - `.claude-plugin/marketplace.json` (`metadata.version`)
    - `CITATION.cff` (`version`)
+   - `docs/METHODOLOGY.md` (the "How to cite" block)
 2. Move the `[Unreleased]` notes in `CHANGELOG.md` under the new version.
    Refresh the typosquat list with `npm run refresh:popular` and commit
    `lib/deps/popular-packages.json` if it changed (the only time it is fetched).

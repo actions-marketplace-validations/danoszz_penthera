@@ -21,6 +21,23 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   the themes, `--demo` and every security property are unchanged. New
   `GET /api/env` reads the branch through the agent's hardened git runner.
 
+### Docs
+
+- README rewritten in the voice of "Penthera: Cyber Security Agent". The
+  dashboard screenshots now sit directly under the demo GIF; "Get started" leads
+  with one command (`npx penthera`); features are grouped as before you deploy,
+  what you build with, and after you ship; and a new "Research and
+  methodology" section gives the method, the benchmark numbers, and how to cite
+  Penthera. About 12 KB, down from 19 KB.
+- `docs/references.md` is rendered in APA 7th edition style from
+  `docs/references.bib`, sorted by first author within each topic, with an
+  anchor per BibTeX key. Editors for the three Springer proceedings and the NDSS
+  proceedings titles were added from Crossref. A test covers the formatter.
+- `docs/METHODOLOGY.md` uses APA in-text citations, opens with an abstract and
+  a "How to cite" block that mirrors `CITATION.cff`, and now cites every
+  reference. A test fails if a citation does not resolve or a reference is
+  never cited, and the internal audit checks the "How to cite" version.
+
 ## [1.6.1] - 2026-10-19
 
 The GitHub Action gets its Marketplace name. Nothing else changes.

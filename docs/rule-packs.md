@@ -166,8 +166,11 @@ backtrack. In practice they finish in milliseconds; quadratic patterns take
 seconds. Regexes from packs added with `--rules` also see at most 1 MB of input
 per match.
 
-The older, narrower check for `--templates` YAML (`NESTED_QUANTIFIER`, v1.1.1)
-moved into the same module unchanged, so existing user templates keep working.
+The older, narrower check for `--templates` YAML (v1.1.1) moved into the same
+module as `hasNestedQuantifier()`. It used to be a regex, which CodeQL flagged as
+polynomial on the pattern string it inspects. It is now a linear scan that
+refuses everything the old regex refused, plus nesting it missed (`((a+))+`), so
+existing user templates keep working.
 
 ## Bundled packs
 

@@ -13,7 +13,7 @@ import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { createHash } from "node:crypto";
 import { spawnSync, execFileSync } from "node:child_process";
-import { checkRegex, compileSafe, NESTED_QUANTIFIER, MAX_LENGTH } from "../lib/rules/regex-guard.js";
+import { checkRegex, compileSafe, hasNestedQuantifier, MAX_LENGTH } from "../lib/rules/regex-guard.js";
 import { verifySignature, verifyWithSigners, parseAllowedSigners, parseSignature } from "../lib/rules/sshsig.js";
 import {
   verifyPack, addRulePack, resetRulePacks, activePacks, rulesOf, loadSigners, bundledPackDirs, KINDS,
@@ -134,8 +134,15 @@ describe("regex guard", () => {
     expect(compileSafe("ab+c").test("abbc")).toBe(true);
   });
 
-  it("keeps the v1.1.1 template guard as it was", () => {
-    expect(NESTED_QUANTIFIER.source).toBe(String.raw`(\([^)]*[+*][^)]*\)|\[[^\]]*\][^)]*)[+*]\s*[+*]|\((?:\?:)?[^)]*[+*]\)[+*]`);
+  it("template guard refuses everything the v1.1.1 regex did, in linear time", () => {
+    const V111 = /(\([^)]*[+*][^)]*\)|\[[^\]]*\][^)]*)[+*]\s*[+*]|\((?:\?:)?[^)]*[+*]\)[+*]/;
+    const cases = ["(a+)+$", "(a*)*", "(?:a+)+", "(a|b+)*", "[ab]+*", "((a+))+", "(\\w+\\s?)*$", "(a+?)+", "(a+)?", "(a)+", "a+b*", "\\(a+\\)+", "[(]+", "(?:https?://)+", "x{1,3}y"];
+    for (const c of cases) if (V111.test(c)) expect(hasNestedQuantifier(c), c).toBe(true);
+    expect(hasNestedQuantifier("((a+))+")).toBe(true); // deeper than the old regex looked
+    for (const c of ["(a+)?", "(a)+", "a+b*", "\\(a+\\)+", "[(]+", "(?:https?://)+"]) expect(hasNestedQuantifier(c), c).toBe(false);
+    const t = performance.now();
+    for (const ch of ["(", "*", "[", "((", "(*", "[]"]) hasNestedQuantifier(ch.repeat(100_000));
+    expect(performance.now() - t).toBeLessThan(500);
   });
 
   it("never throws on random input (fuzz)", () => {

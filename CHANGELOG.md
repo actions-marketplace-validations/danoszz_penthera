@@ -25,7 +25,9 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   under unbounded repeats, no unbounded quantifier that every start position
   can rescan, and a backtracking budget for overlapping quantifier chains.
   Fuzz-tested: everything it accepts runs in milliseconds on adversarial
-  input. It takes over the v1.1.1 template guard, unchanged
+  input. The v1.1.1 template guard moved here too, rewritten from a regex
+  (itself polynomial on hostile pattern strings, flagged by CodeQL) into a
+  linear scan that also catches deeper nesting
 - Bundled `core` pack: 12 AI-provider key formats, the credential-path
   instruction pattern, two exec patterns and the `.env` template moved out of
   code. Behaviour is identical; a test compares against a snapshot of the old

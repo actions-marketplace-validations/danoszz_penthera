@@ -7,6 +7,7 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { request as httpRequest } from "node:http";
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, symlinkSync, rmSync, realpathSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
@@ -317,6 +318,15 @@ describe("ui server: binding, token and session", () => {
       expect(life.some((l) => !l.open)).toBe(true);
     });
 
+    it("env reports the folder, branch and hosts for a project", async () => {
+      const repo = (await get(`/api/env?project=${encodeURIComponent("/Users/demo/code/acme-shop")}`)).json;
+      expect(repo.branch).toBe("main");
+      expect(repo.fixBranches.every((b) => b.startsWith("penthera/fix-"))).toBe(true);
+      const url = (await get(`/api/env?project=${encodeURIComponent("https://staging.acme.test")}`)).json;
+      expect(url.folder).toBeNull();
+      expect(url.hosts.some((x) => x.thirdParty)).toBe(true);
+    });
+
     it("overview has the This week columns: fix first, new, fixed", async () => {
       const { columns } = (await get("/api/overview")).json;
       expect(columns.fixFirst.every((f) => f.severity === "critical" || f.severity === "high")).toBe(true);
@@ -452,6 +462,24 @@ describe("ui data source: only the chosen folders", () => {
     expect(src.writeReport("deps_1.json", { mode: "deps" })).toBe("deps_1.json");
     expect(() => src.writeReport("../escape.json", {})).toThrow();
     expect(src.saveLoopRun({ startedAt: "2026-10-19T10:00:00.000Z" })).toMatch(/^loop-/);
+  });
+
+  it("env reads git through the safe runner, only for folders inside the project roots", () => {
+    const project = realpathSync(tempDir());
+    const g = (...a) => execFileSync("git", ["-c", "user.email=t@t", "-c", "user.name=t", ...a], { cwd: project, stdio: "ignore" });
+    g("init", "-q", "-b", "main");
+    writeFileSync(join(project, "a.txt"), "x");
+    g("add", "-A");
+    g("commit", "-qm", "init");
+    g("branch", "penthera/fix-20261019-1200");
+    const src = createDataSource({ projects: [project], reportsDir: join(project, "reports"), home: tempDir(), memoryRoot: join(tempDir(), "memory"), settings: { get: () => ({}) } });
+    const env = src.env(project);
+    expect(env.folder).toBe(project);
+    expect(env.branch).toBe("main");
+    expect(env.head).toMatch(/^[0-9a-f]{7,}$/);
+    expect(env.fixBranches).toEqual(["penthera/fix-20261019-1200"]);
+    expect(src.env(realpathSync(tmpdir())).folder).toBeNull(); // outside the roots: no git, no folder
+    expect(src.env("http://localhost:3000").folder).toBeNull();
   });
 
   it("classify recognises each report kind", () => {

@@ -120,6 +120,7 @@ Prefer the terminal? Run `penthera` with no arguments for a guided wizard.
 | **Combined** | `penthera https://staging.app --repo .` | Black-box and white-box in one run |
 | **Interactive** | `penthera` *(no args)* | Guided wizard (URL plus optional repo scan, Markdown report) |
 | **Machine audit** | `penthera --machine` | macOS checks (keyloggers, persistence, rootkits) |
+| **Dependencies** | `penthera deps` | What each npm package can do (install scripts, shell, network, env, eval, native, obfuscation), capability diff on upgrades, typosquats. Offline |
 
 Pick a profile, or add individual flags for more depth:
 
@@ -244,6 +245,7 @@ npm run package:skill   # produces penthera-skill.zip; upload in Settings > Capa
 - "Scan this repo for hardcoded secrets and exposed API routes"
 - "Compare today's scan to last week's baseline and show only new findings"
 - "Generate a SARIF report for GitHub code scanning"
+- "Audit my MCP servers, skills and Claude Code hooks"
 
 The skill adds an authorization gate: it instructs the agent to refuse targets you
 do not own or are not authorized to test, and the wizard asks you to confirm before
@@ -259,6 +261,43 @@ Skill source and workflows live in [`skills/penthera/SKILL.md`](skills/penthera/
 
 ---
 
+## Audit your agent setup
+
+Your AI tools run code too. `penthera agents` audits the skills, MCP servers,
+hooks, permissions, plugins and rule files that Claude Code, Cursor, Claude
+Desktop, VS Code and Copilot load, and grades the setup A to F.
+
+```bash
+penthera agents                 # this repo: .mcp.json, .claude/, .cursor/, AGENTS.md, CLAUDE.md, skills/
+penthera agents --home          # + ~/.claude (hooks, permissions, plugins, skills), ~/.cursor/mcp.json, Claude Desktop
+penthera agents ./some-skill    # vet a downloaded skill before you install it
+penthera agents --pin           # write penthera.lock; later runs flag anything that changed
+```
+
+It is **offline and deterministic**: no LLM judge, no registry lookups, nothing
+leaves your machine, and it never modifies the config it reads. Every verdict
+is a rule you can read in [`lib/agents/`](lib/agents/), so a skill can't talk
+its way past it.
+
+| Check | What it catches |
+|---|---|
+| Hidden content | Unicode tag characters (decoded), zero-width and bidi controls, variation-selector smuggling, text pushed past a wall of blank lines or off-screen, instructions in HTML comments, text addressed to the scanner, base64 blobs (decoded and classified), `.pyc`/archives/executables in a skill folder (by magic bytes, so a renamed `.png` doesn't hide one), symlinks that leave the folder |
+| Code execution | `curl \| sh`, `wget \| bash`, `bash <(curl …)`, `eval "$(curl …)"`, `base64 -d \| sh`, `exec(base64…)`, PowerShell `iwr \| iex`, in skills, scripts, hooks and MCP launch commands |
+| MCP servers | `npx -y` / `uvx` / `bunx` / `pnpm dlx` without an exact version, inline secrets in `env`, headers or args (same rules as the repo secret scan), remote servers over plain `http://` |
+| Hooks & permissions | Hooks that auto-approve tool calls or pipe into a shell (including the scripts they run), `Bash(*)` and other wildcard allows, `bypassPermissions`, allow rules for `~/.ssh` and other credential files, wildcards in a skill's `allowed-tools` |
+| Plugins | Marketplaces and marketplace plugins not pinned to a commit |
+| Rug pulls | `--pin` writes SHA-256 hashes of every skill folder, MCP server definition, hook and installed plugin to `penthera.lock`. A later run reports what changed, appeared or disappeared |
+
+Each finding names the OWASP [MCP Top 10](https://owasp.org/www-project-mcp-top-10/)
+and [Agentic Top 10](https://genai.owasp.org/) (ASI) ids it maps to, and the
+usual `--json`, `-o`, `--markdown` and `--sarif` outputs all work. The scanner
+is built for the ways LLM-judged skill scanners have been bypassed: it reads
+whole files (no context window to overflow), every file in a skill folder (not
+just `SKILL.md`), and treats text aimed at a reviewer as a finding rather than
+an argument.
+
+---
+
 ## Scan and fix
 
 Penthera does not just report problems. It closes the loop: ask your agent to fix what it finds, and it detects the issue, applies a framework-aware fix to your code (shown as a diff for you to approve), and re-scans to prove it is resolved.
@@ -270,6 +309,55 @@ Penthera does not just report problems. It closes the loop: ask your agent to fi
 ```
 
 Fixes come from a [remediation playbook](skills/penthera/references/remediation.md) covering Next.js, Express, Fastify, Hono, and FastAPI. They are always shown as diffs for your approval and verified by a re-scan; nothing is applied blindly, and nothing touches production. To build secure-by-default in the first place, see [secure defaults](skills/penthera/references/secure-defaults.md).
+
+---
+
+## Dependency risk: what can your packages do?
+
+A lockfile change is code you did not write, about to run with your app's access
+to files, network, environment and CI secrets. `penthera deps` reads
+`package-lock.json`, statically scans every installed package, and tells you
+what each one *can do*, and which packages are new or gained capabilities in an
+upgrade.
+
+```bash
+penthera deps                          # every package in node_modules
+penthera deps --base origin/main       # capability diff vs the lockfile on main
+penthera deps --diff ../base-checkout  # diff vs another installed tree (or an old package-lock.json)
+penthera deps --pr-comment deps.md     # short Markdown diff for a PR comment
+```
+
+```
+  ▲ net-helper 1.0.0 → 1.1.0  + network, whole environment
+      node_modules/net-helper/index.js:3  const https = require('https');
+      node_modules/net-helper/index.js:5  const body = JSON.stringify(process.env);
+```
+
+| Capability | Detected from |
+|---|---|
+| Install scripts | `preinstall` / `install` / `postinstall`, and `binding.gyp` (npm runs `node-gyp` implicitly). Flagged as risky when the hook pipes a download to a shell or runs a file with network or decoding code |
+| Shell, network, dynamic code | `child_process`; `http`/`https`/`net`/`dgram`/`tls`/`http2`, `fetch`, `WebSocket`; `eval`, `new Function`, `vm` |
+| Environment | `process.env` reads, and bulk access (`JSON.stringify(process.env)`, enumeration). Serialising the environment next to network code is reported as likely exfiltration |
+| Files, modules, native | Writes near home-directory or system paths; computed `require()`/`import()`; `.node` addons and `binding.gyp` |
+| Obfuscation | Obfuscator identifiers (`_0x…`), `\x`-escape density, encoded blobs that are decoded and run (embedded WebAssembly and ANSI colour codes are recognised and ignored) |
+| Attack indicators | Writes to `~/.claude`, `~/.cursor`, `.mcp.json` or the Claude Desktop config; running the `claude`, `gemini` or `q` CLIs (the s1ngularity pattern); GitHub token harvesting |
+| Typosquats | Edit distance, separator and suffix tricks against ~7,800 popular npm names, vendored in the package and refreshed at release time |
+
+Every capability carries `file:line` evidence. It is a regex-and-tokenizer pass,
+not a full parser: deterministic, never executes package code, and fast enough
+for every PR (0.4 s for Penthera's own 61 packages, 5 to 16 s for real app
+trees of 500 to 1,700 packages). A capability is what code
+*can* do, not proof that it is malicious; the findings carry honest confidence
+labels (`potential` for obfuscation and typosquats).
+
+**Offline by default.** Old versions for the diff come from the base tree's
+`node_modules` or from npm's local cache (`~/.npm/_cacache`), looked up by the
+lockfile's integrity hash and verified byte for byte. `--online` is the only
+network use: it asks the npm registry for publish dates, publisher changes and
+deprecations, and fetches old tarballs the cache does not have (verified the
+same way). Copy
+[`docs/examples/github-actions-deps.yml`](docs/examples/github-actions-deps.yml)
+to comment the capability diff on every PR that changes the lockfile.
 
 ---
 
@@ -397,6 +485,26 @@ planned.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the project layout, how to add a probe
 or template, the test matrix, and the release and publishing checklist.
+
+---
+
+## Methodology and accuracy
+
+How Penthera decides what is a finding, how sure it is, and what it cannot
+see is written up in [docs/METHODOLOGY.md](docs/METHODOLOGY.md), with every
+design choice tied to published research or a standard
+([references](docs/references.md)). Reports carry the same citations: each
+finding gets a "Why this matters / Sources" line, and SARIF rules link to their
+source.
+
+Accuracy is measured, not claimed. `npm run bench` scans local labelled
+targets offline and scores precision and recall; the current run is 19 true
+positives, 3 false positives and 2 false negatives (precision 0.86, recall
+0.90). The [results](bench/RESULTS.md) list every miss and false alarm, and
+the [benchmark README](bench/README.md) explains the method and its limits.
+
+To cite Penthera, use the "Cite this repository" button on GitHub
+([CITATION.cff](CITATION.cff)).
 
 ---
 

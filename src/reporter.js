@@ -6,6 +6,8 @@
 import { writeFileSync, readFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { resolveWstgTags } from "../lib/owasp-wstg.js";
+import { referencesFor } from "../lib/references.js";
+import { formatDepsTerminal } from "../lib/deps/report.js";
 
 const PKG_VERSION = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf-8"),
@@ -258,6 +260,15 @@ export function printReport(result, opts = {}) {
     w("");
   }
 
+  // Dependencies (penthera deps)
+  if (result.deps) {
+    w(`  ${c.dim(line())}`);
+    w(`  ${c.bold("Dependencies")}`);
+    w("");
+    for (const l of formatDepsTerminal(result.deps, c, opts)) w(l);
+    w("");
+  }
+
   // Cookies
   if (result.cookies && result.cookies.length > 0) {
     w(`  ${c.dim(line())}`);
@@ -305,6 +316,26 @@ export function printReport(result, opts = {}) {
     w("");
   }
 
+  // Agent configuration (penthera agents)
+  if (result.agents) {
+    const a = result.agents;
+    const inv = a.inventory || {};
+    const gradeColor = { A: c.green, B: c.green, C: c.yellow, D: c.red, F: c.bgRed }[a.grade] || ((s) => s);
+    w(`  ${c.dim(line())}`);
+    w(`  ${c.bold("Agent Config")}${a.home ? c.dim("  repo + home") : c.dim("  repo")}`);
+    w("");
+    w(`  Grade      ${gradeColor(` ${a.grade} `)} ${c.dim(`(${a.score}/100)`)}`);
+    w(`  Found      ${inv.skills || 0} skills · ${inv.mcpServers || 0} MCP servers · ${inv.hooks || 0} hooks · ${inv.plugins || 0} plugins · ${inv.instructionFiles || 0} rule files`);
+    if (a.lock) {
+      const l = a.lock;
+      const status = l.status === "pinned" ? c.green(`pinned ${l.entries} entries → ${l.path}`)
+        : l.status === "checked" ? (l.changed || l.added ? c.yellow(`${l.changed} changed · ${l.added} new · ${l.removed} removed`) : c.green(`all ${l.entries} entries match`))
+        : l.status === "corrupt" ? c.red("corrupt") : c.dim("none (run with --pin)");
+      w(`  Lock       ${status}`);
+    }
+    w("");
+  }
+
   // Findings
   if (result.findings && result.findings.length > 0) {
     w(`  ${c.dim(line())}`);
@@ -324,7 +355,7 @@ export function printReport(result, opts = {}) {
       const needsReview = f.confidence === "needs-human-review" || f.confidence === "potential";
       const tag = needsReview ? c.dim(` [${f.confidence}]`) : "";
       w(`  ${colorFn(label)}  ${f.title}${tag}`);
-      if (f.url)  w(`  ${" ".repeat(6)} ${c.dim(f.url)}${f.status ? c.dim(` \u2192 ${f.status}`) : ""}`);
+      if (f.url)  w(`  ${" ".repeat(6)} ${c.dim(f.url + (f.line ? `:${f.line}` : ""))}${f.status ? c.dim(` \u2192 ${f.status}`) : ""}`);
       if (f.description && opts.verbose) w(`  ${" ".repeat(6)} ${c.dim(f.description)}`);
     }
     w("");
@@ -430,18 +461,30 @@ export function writeSarifReport(result, filePath) {
   for (const f of result.findings || []) {
     const ruleId = f.templateId || f.category || "unknown";
 
+    const refs = referencesFor(f);
+
     if (!rules.has(ruleId)) {
       rules.set(ruleId, {
         id: ruleId,
         name: f.title,
         shortDescription: { text: f.title },
         fullDescription: { text: f.description || f.title },
+        // Research and standards behind the rule (lib/references.json), so a
+        // reviewer in GitHub code scanning can see why it is reported.
+        ...(refs.length && {
+          helpUri: refs[0].url,
+          help: {
+            text: `Sources: ${refs.map((r) => `${r.cite}, ${r.title} (${r.url})`).join("; ")}`,
+            markdown: `**Sources:** ${refs.map((r) => `[${r.cite}](${r.url}), *${r.title}*`).join("; ")}`,
+          },
+        }),
         defaultConfiguration: {
           level: SARIF_SEV_MAP[f.severity] || "note",
         },
         properties: {
           "security-severity": sevToScore(f.severity),
           tags: ["security", f.category || "general", ...(f.wstg || resolveWstgTags(f))].filter(Boolean),
+          ...(refs.length && { references: refs.map((r) => r.key) }),
         },
       });
     }
@@ -457,6 +500,7 @@ export function writeSarifReport(result, filePath) {
           artifactLocation: {
             uri: toSarifUri(f.url),
           },
+          ...(Number.isInteger(f.line) && f.line > 0 ? { region: { startLine: f.line } } : {}),
         },
       }] : [],
       properties: {

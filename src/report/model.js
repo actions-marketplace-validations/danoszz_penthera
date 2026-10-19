@@ -11,6 +11,7 @@ import { buildActionPlan } from "../../lib/remediation/index.js";
 import { confidenceFor } from "../../lib/provenance.js";
 import { RECIPES } from "../../lib/fix/index.js";
 import { OWASP_NAMES } from "../../lib/agents/owasp.js";
+import { findingId } from "../../lib/memory/views.js";
 import { buildTimeline, formatDuration } from "./timeline.js";
 
 const SEV_ORDER = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
@@ -95,7 +96,7 @@ export function buildReportModel(result, { version = "0.0.0" } = {}) {
     const top10 = CATEGORY_TOP10[f.category] || null;
     return {
       n: i + 1,
-      fid: f.fid || null,
+      fid: f.fid || findingId(f),
       title: String(f.title || "Untitled finding"),
       severity: f.severity || "info",
       plainSeverity: PLAIN[f.severity] || "note",
@@ -122,7 +123,7 @@ export function buildReportModel(result, { version = "0.0.0" } = {}) {
   for (const f of findings) if (counts[f.severity] != null) counts[f.severity]++;
 
   const suppressed = (result?.suppressed || []).map((f) => ({
-    fid: f.fid || null,
+    fid: f.fid || findingId(f),
     title: String(f.title || ""),
     severity: f.severity || "info",
     reason: f.suppression?.reason || "",

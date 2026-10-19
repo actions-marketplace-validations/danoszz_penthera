@@ -449,9 +449,6 @@ A dashboard for everything above, on `127.0.0.1` only: where each project stands
 |---|---|
 | ![penthera ui overview, dark theme](assets/dashboard/overview-dark.jpg) | ![penthera ui fix loop asking to apply a diff](assets/dashboard/story-loop.jpg) |
 
----|---|
-| ![penthera ui overview: posture per project, severity mix, findings over time](assets/dashboard/overview.jpg) | ![penthera ui agent: the loop waiting for approval on a diff](assets/dashboard/agent.jpg) |
-
 ---
 
 ## Dependency risk: what can your packages do?

@@ -1,4 +1,4 @@
-name: Penthera Security Review
+name: "Penthera: Cyber Security Agent"
 description: "Offline security review on PRs: risky dependency changes and AI agent config (MCP, skills, hooks), with SARIF."
 author: danoszz
 branding:

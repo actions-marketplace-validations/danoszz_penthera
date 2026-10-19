@@ -4,6 +4,11 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Changed
+
+- The GitHub Action is listed on the Marketplace as "Penthera: Cyber Security
+  Agent". The `uses:` reference is unchanged.
+
 ## [1.6.0] - 2026-10-19
 
 Hardening and reach. An independent 360 review found three high-severity bugs, two of them reproduced; all are fixed with regression tests, and the open code-scanning alerts went from 18 to the 2 that need a second maintainer. `penthera deps` now covers Python, `penthera ui` adds a local dashboard (black or white, in the project blue), and every release passes an internal audit first. 1.5.0 was never published to npm; this release includes it.

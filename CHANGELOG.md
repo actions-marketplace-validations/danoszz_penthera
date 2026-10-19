@@ -78,8 +78,9 @@ tracks.
   the test toolchain (vitest 5) needs 22. CI runs on Node 22 and 24
 - GitHub Actions are pinned to commit SHAs, and every workflow declares
   least-privilege `permissions`
-- The publish workflow runs on Node 24 (npm 11.5+, ready for npm trusted
-  publishing) and creates the GitHub Release itself
+- Releases use npm trusted publishing (OIDC, no stored token) and **staged
+  publishing**: CI stages each version, and it only goes live after a
+  maintainer approves it with 2FA. The workflow also creates the GitHub Release
 - The Docker image runs as the unprivileged `node` user on `node:22-alpine`
 - README reordered so install and quick start come before compliance. The full
   NIS2 guide moved to [`docs/compliance-nis2.md`](docs/compliance-nis2.md)

@@ -4,6 +4,16 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Security
+
+- Cleared the open code-scanning alerts. The community-template regex guard
+  was itself a polynomial regex; it is now a linear scan, and an invalid
+  extractor regex no longer aborts a template. Markdown table cells escape
+  backslashes first (one shared helper). `<script>` extraction is a tokenizer
+  that accepts any case and junk in closing tags. Release workflow: read-only
+  top-level token, hash-verified npm, no dependency cache. Docker base image
+  pinned by digest. fast-check property tests fuzz the untrusted-input parsers.
+
 ### Added
 
 - **Internal testing audit** (`npm run audit:internal`), the release gate:

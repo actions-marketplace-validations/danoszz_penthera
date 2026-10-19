@@ -18,25 +18,47 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write # create the GitHub release
-  id-token: write # required for provenance
+  contents: read
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # trusted publishing (OIDC) and provenance
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: 24
-          cache: npm
+          # No dependency cache in the release job: a cache written by another
+          # workflow must not feed what gets published (cache poisoning).
           registry-url: https://registry.npmjs.org
 
-      # Staged publishing needs npm >= 11.15. Pinned so the release toolchain
-      # only changes through a reviewed PR.
+      # Staged publishing needs npm >= 11.15. Pinned by hash so the release
+      # toolchain only changes through a reviewed PR: the tarball is checked
+      # against the registry's sha512 integrity before it runs, and nothing is
+      # installed through `npm install`. To bump: `npm view npm@<v> dist.integrity`.
       - name: Use npm 11.21.1
-        run: npm install -g npm@11.21.1 && npm --version
+        env:
+          NPM_VERSION: 11.21.1
+          NPM_INTEGRITY: sha512-YTzL6QBEJXyHcTu0JiUc7RKMp+mzlJtl7rGLmERaXUQeFHIMc9atdr6G9M9C8vDWbv40epoTQAzNL2/PtZVDhQ==
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/npm.tgz" "https://registry.npmjs.org/npm/-/npm-${NPM_VERSION}.tgz"
+          GOT="sha512-$(openssl dgst -sha512 -binary "$RUNNER_TEMP/npm.tgz" | base64 -w0)"
+          [ "$GOT" = "$NPM_INTEGRITY" ] || { echo "npm tarball integrity mismatch: $GOT"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/npm"
+          tar -xzf "$RUNNER_TEMP/npm.tgz" -C "$RUNNER_TEMP/npm"
+          # A shim on PATH ahead of the bundled npm (bin/npm itself expects to
+          # live next to the node binary).
+          mkdir -p "$RUNNER_TEMP/npm/shim"
+          printf '#!/bin/sh\nexec node "%s/package/bin/npm-cli.js" "$@"\n' "$RUNNER_TEMP/npm" > "$RUNNER_TEMP/npm/shim/npm"
+          chmod +x "$RUNNER_TEMP/npm/shim/npm"
+          echo "$RUNNER_TEMP/npm/shim" >> "$GITHUB_PATH"
+
+      - name: Check the npm version
+        run: test "$(npm --version)" = "11.21.1"
 
       - name: Install dependencies
         run: npm ci
@@ -67,9 +89,17 @@ jobs:
             echo "- \`npm stage list penthera\` then \`npm stage approve <stage-id>\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
+  # Separate job so the write token never sits next to `npm ci` / `npm test`,
+  # which run third-party code. No checkout: it only calls the GitHub API.
+  release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the GitHub release
+    steps:
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
-            || gh release create "$GITHUB_REF_NAME" --generate-notes --verify-tag
+          gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --generate-notes --verify-tag

@@ -40,17 +40,19 @@ people you have can spend their time on judgement.
 
 ## Get started
 
-<!-- get-started: the onboarding wizard PR may rewrite this block. Keep the first command first. -->
-
-One command, no install, no account:
+One command in your project folder, no install, no account:
 
 ```bash
 npx penthera
 ```
 
-This is the guided start. Penthera asks where your app is running and whether
-to scan its source too, runs the scan, and then offers a deeper scan or a
-custom setup. Scan traffic goes only to the app you named.
+This is the guided start (`penthera init`). Penthera detects your setup
+offline, asks what to check, and runs the code, dependency, and AI-tooling
+checks. It scans your running app only after you confirm the app is yours. You
+get a grade per area, the three things to fix first, and one report folder.
+Then it offers, one yes or no at a time, the pre-commit hook, a CI workflow, and
+the dashboard. Nothing is committed or pushed. Details are in
+[docs/commands/init.md](docs/commands/init.md).
 
 When you know what you want, run it directly:
 
@@ -74,7 +76,6 @@ Code plugin, a per-project copy) are in [docs/commands/skill.md](docs/commands/s
 Penthera needs Node.js 22 or later. To run it in a container:
 `docker build -t penthera . && docker run --rm penthera https://your-app.example`.
 
-<!-- /get-started -->
 
 ## What it does
 

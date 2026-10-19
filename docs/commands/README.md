@@ -6,6 +6,7 @@ has the full flag list.
 
 | Command | Page | What it does |
 |---|---|---|
+| `penthera`, `penthera init` | [init.md](init.md) | Set up in one command: detect, check, then hook, workflow and dashboard |
 | `penthera <url>`, `--repo .` | [scan.md](scan.md) | Scan a running app and its source: modes, profiles, outputs, exit codes, CI |
 | `penthera agents` | [agents.md](agents.md) | Audit skills, MCP servers, hooks, plugins and rule files |
 | `penthera deps` | [deps.md](deps.md) | What each package can do, the upgrade diff, typosquats, license policy |

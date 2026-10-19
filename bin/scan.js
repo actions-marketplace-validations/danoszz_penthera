@@ -4,7 +4,7 @@
  * Alias: penthera-scan
  */
 import { readFileSync } from "node:fs";
-import { runOnboarding } from "../src/cli/onboarding.js";
+import { runScanWizard } from "../src/cli/onboarding.js";
 
 const arg = process.argv[2];
 if (arg === "--help" || arg === "-h") {
@@ -24,7 +24,7 @@ if (arg === "--version") {
   process.exit(0);
 }
 
-runOnboarding().catch((e) => {
+runScanWizard().catch((e) => {
   console.error(e.message);
   process.exit(2);
 });

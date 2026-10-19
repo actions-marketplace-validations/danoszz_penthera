@@ -1,0 +1,9 @@
+{
+  "name": "fixture-init-app",
+  "private": true,
+  "type": "module",
+  "main": "server.js",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

@@ -41,7 +41,9 @@ const BENCH_MAX_DROP = 0.02;
 // Raised for the dashboard (src/ui: ~245 KB unpacked, ~40 KB packed, 22 small files, no
 // dependencies): was 650_000 packed / 1_800_000 unpacked / 200 files. The headroom above
 // today's size stays about the same.
-const PACK_BUDGET = { packedBytes: 720_000, unpackedBytes: 2_050_000, files: 230 };
+// Raised again for the setup wizard (`penthera init`: src/cli/onboarding.js, detect.js and
+// docs/commands/init.md, ~35 KB unpacked, ~10 KB packed): was 720_000 / 2_050_000.
+const PACK_BUDGET = { packedBytes: 740_000, unpackedBytes: 2_100_000, files: 230 };
 
 /** Paths the npm package may contain. Anything else fails the packaging gate. */
 const PACK_ALLOW = [
@@ -370,7 +372,7 @@ async function gateSmoke() {
     // --help and --version
     await check("penthera --version", "penthera", ["--version"], { codes: [0], test: (r) => r.stdout.includes(PKG.version) || "wrong version" });
     await check("penthera --help", "penthera", ["--help"], { codes: [0] });
-    const subcommands = ["agents", "deps", "install", "memory", "fix", "evidence", "agent"];
+    const subcommands = ["init", "agents", "deps", "install", "memory", "fix", "evidence", "agent"];
     if (hookPresent()) subcommands.push("hook");
     for (const sub of subcommands) await check(`penthera ${sub} --help`, "penthera", [sub, "--help"], { codes: [0] });
     await check("penthera-scan --help", process.execPath, [join(ROOT, "bin/scan.js"), "--help"], { codes: [0] });
@@ -435,6 +437,10 @@ async function gateSmoke() {
       await check("penthera hook uninstall", "penthera", ["hook", "uninstall"],
         { codes: [0], cwd: loopRepo, test: () => !existsSync(hookFile) || "hook still installed" });
     }
+
+    // init: the setup wizard's plan on the throwaway repo, writing nothing
+    await check("penthera init --yes --dry-run", "penthera", ["init", "--yes", "--dry-run"],
+      { codes: [0], cwd: loopRepo, test: (r) => (r.stdout.includes("Would run") && !existsSync(join(loopRepo, "reports"))) || "no plan, or reports were written" });
 
     // memory: the loop above wrote to the scratch store
     await check("penthera memory show", "penthera", ["memory", "show", "--repo", loopRepo, "--json"], { codes: [0] });

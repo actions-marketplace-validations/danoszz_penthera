@@ -2,11 +2,14 @@
  * Shared terminal prompt helpers (TTY + piped stdin).
  */
 import { createInterface } from "node:readline";
+import { dim } from "./ansi.js";
 
 let _pipedLines = null;
 let _rl = null;
 
+/** Open the prompt. Safe to call again after closePrompt(): piped answers already read are kept. */
 export async function initPrompt() {
+  if (_pipedLines) return;
   if (process.stdin.isTTY) {
     _rl = createInterface({ input: process.stdin, output: process.stdout });
   } else {
@@ -18,6 +21,7 @@ export async function initPrompt() {
 
 export function closePrompt() {
   if (_rl) _rl.close();
+  _rl = null;
 }
 
 export function ask(question) {
@@ -61,4 +65,42 @@ export async function confirm(question, defaultYes = true) {
   const answer = await ask(`${question} ${hint}: `);
   if (!answer) return defaultYes;
   return answer.toLowerCase() === "y" || answer.toLowerCase() === "yes";
+}
+
+/**
+ * Parse a checklist answer: "" keeps the defaults, numbers ("2", "1,3", "2 4")
+ * toggle those items. Returns null when the answer is not a list of valid numbers.
+ */
+export function parseToggles(answer, count) {
+  const a = (answer || "").trim();
+  if (!a) return [];
+  const parts = a.split(/[\s,]+/).filter(Boolean);
+  const nums = parts.map((p) => Number(p));
+  if (nums.some((n) => !Number.isInteger(n) || n < 1 || n > count)) return null;
+  return [...new Set(nums.map((n) => n - 1))];
+}
+
+/**
+ * Multi-select list with defaults. Enter accepts; numbers toggle items.
+ * @param {string} question
+ * @param {{ id: string, label: string, hint?: string, checked: boolean }[]} items
+ * @returns {Promise<Set<string>>} the ids that end up checked
+ */
+export async function checklist(question, items, { indent = "  " } = {}) {
+  const checked = items.map((i) => !!i.checked);
+  process.stdout.write(`${indent}${question}\n`);
+  const pad = Math.max(...items.map((i) => i.label.length));
+  items.forEach((item, i) => {
+    const hint = item.hint ? `  ${dim(item.hint)}` : "";
+    process.stdout.write(`${indent}  ${i + 1}. [${checked[i] ? "x" : " "}] ${item.hint ? item.label.padEnd(pad) : item.label}${hint}\n`);
+  });
+  for (let tries = 0; tries < 3; tries++) {
+    const toggles = parseToggles(await ask(`${indent}Enter to accept, or numbers to toggle (e.g. 2,4): `), items.length);
+    if (toggles) {
+      for (const i of toggles) checked[i] = !checked[i];
+      break;
+    }
+    process.stdout.write(`${indent}Type item numbers from 1 to ${items.length}, separated by commas, or just press Enter.\n`);
+  }
+  return new Set(items.filter((_, i) => checked[i]).map((i) => i.id));
 }

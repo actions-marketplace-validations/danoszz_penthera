@@ -28,7 +28,7 @@ Node 22+ is required (see `.nvmrc` for the pinned version).
 | `npm run pentest:mock` | Tests against the local mock vuln API |
 | `npm run pentest:adaptive` | Knowledge-graph adaptive probes |
 | `npm run pentest:wstg` | OWASP WSTG mapping |
-| `npm run pentest:live` | Live playbooks — needs `pentest.config.js` + a running server |
+| `npm run pentest:live` | Live playbooks — opt-in: needs `pentest.config.js` or `PENTEST_BASE_URL` + a running server |
 | `npm run mock-server` | Start the mock API on port 8765 |
 
 CI runs the full `npm test` suite on Node 22 and 24, checks that every version

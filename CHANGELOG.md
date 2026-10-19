@@ -129,6 +129,21 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   dependency. `penthera evidence verify <dir> [--allowed-signers <file>]`
   recomputes every hash, rejects changed, missing, extra and symlinked files,
   and checks the signature. See `docs/evidence.md`
+- **`penthera agent --loop`** (`src/agent/`): the local scan → triage → plan →
+  patch → verify → learn loop. Fixes are applied one at a time on a local
+  branch `penthera/fix-<yyyymmdd-hhmm>`, verified by a re-scan (and the
+  project's tests with `--run-tests`), committed when verified and reverted
+  when not. Every diff needs `y/n/skip/quit` approval; `--auto low` auto-applies
+  only recipes memory shows verified 3+ times with no failures on the
+  framework. Stops when nothing fixable is left or at `--max-iterations`
+  (default 5). `-o` writes a `loopRun` JSON (iterations, fixes, time per step),
+  also appended to memory as a new `loop_run` event
+- The loop runs git only through an allow-list of local subcommands with
+  `protocol.allow=never`, no lazy fetch and the repo's hooks disabled; it never
+  pushes, fetches or opens pull requests. Scans run in one offline egress
+  context (the `--url` host only; Ollama on 127.0.0.1 only with
+  `--fix-model`). It refuses a dirty tree or detached HEAD unless
+  `--allow-dirty`, and Ctrl-C leaves only verified commits on the fix branch
 
 ### Docs
 

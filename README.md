@@ -400,6 +400,26 @@ or template, the test matrix, and the release and publishing checklist.
 
 ---
 
+## Methodology and accuracy
+
+How Penthera decides what is a finding, how sure it is, and what it cannot
+see is written up in [docs/METHODOLOGY.md](docs/METHODOLOGY.md), with every
+design choice tied to published research or a standard
+([references](docs/references.md)). Reports carry the same citations: each
+finding gets a "Why this matters / Sources" line, and SARIF rules link to their
+source.
+
+Accuracy is measured, not claimed. `npm run bench` scans local labelled
+targets offline and scores precision and recall; the current run is 19 true
+positives, 3 false positives and 2 false negatives (precision 0.86, recall
+0.90). The [results](bench/RESULTS.md) list every miss and false alarm, and
+the [benchmark README](bench/README.md) explains the method and its limits.
+
+To cite Penthera, use the "Cite this repository" button on GitHub
+([CITATION.cff](CITATION.cff)).
+
+---
+
 ## Status
 
 **v1.2, production-ready.** URL, repo, and machine scanning, NIS2 readiness tooling, scan profiles,

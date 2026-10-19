@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use Penthera in research or a report, please cite it using these metadata."
+type: software
+title: "Penthera: an offline security scanner for web apps and AI-built code"
+abstract: >-
+  Penthera is an offline, non-destructive security scanner and Agent Skill. It
+  runs black-box checks against a live URL and white-box checks against a
+  repository, labels every finding with a confidence level and its provenance,
+  maps findings to the OWASP Web Security Testing Guide, and exports SARIF and
+  NIS2 evidence. Its methodology and accuracy benchmark are documented in
+  docs/METHODOLOGY.md and bench/RESULTS.md.
+authors:
+  - family-names: "van der Zwaag"
+    given-names: "Daan"
+repository-code: "https://github.com/danoszz/penthera"
+url: "https://github.com/danoszz/penthera"
+license: MIT
+version: 1.2.0
+date-released: 2026-10-19
+keywords:
+  - security
+  - vulnerability scanner
+  - black-box testing
+  - static analysis
+  - secret detection
+  - SARIF
+  - OWASP
+  - NIS2

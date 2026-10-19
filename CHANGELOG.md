@@ -4,6 +4,26 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Added
+
+- `docs/METHODOLOGY.md`: threat model, what black-box and white-box scanning
+  can and cannot find, the confidence model, false-positive controls, the
+  non-destructive default, offline operation, and how new attack techniques
+  are adopted (reviewed rules in releases, never fetched at run time). Design
+  choices cite published research and standards
+- `docs/references.bib` and `docs/references.md`: 48 references, each checked
+  against the publisher or standards body, grouped by topic
+- Per-finding citations: `lib/references.json` maps each finding category to
+  1-3 references. The Markdown report adds a "Why this matters / Sources" line
+  per finding and a "Sources" line per action-plan item; SARIF rules get
+  `helpUri`, `help` and `properties.references`
+- Accuracy benchmark: `npm run bench` scans the mock server, two new local lab
+  targets (vulnerable and decoy) and a generated repo fixture, scores precision
+  and recall against `bench/ground-truth.json`, and writes `bench/RESULTS.md`.
+  Offline and seeded; `npm test` fails if it drops below the CI floor.
+  Optional Juice Shop and crAPI targets are documented
+- `CITATION.cff`, so GitHub shows "Cite this repository"
+
 ## [1.2.0] - 2026-10-19
 
 The first step toward securing the AI toolchain itself: catch AI provider keys,

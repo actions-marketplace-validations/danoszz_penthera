@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "labelledBy": "Penthera maintainers, by reading each target's source",
+  "labelledAt": "2026-10-19",
+  "scoring": "A finding with severity other than info that matches a vulnerability entry is a true positive (TP); further matches of the same entry are duplicates. Any other non-info finding is a false positive (FP). A vulnerability entry with no matching finding is a false negative (FN). Matching uses the finding title (case-insensitive regex) and, when given, the URL path or repo file.",
+  "targets": {
+    "mock-server": {
+      "kind": "url",
+      "source": "tests/fixtures/mock-server.js",
+      "profile": "deep",
+      "vulnerabilities": [
+        { "id": "csp-missing", "category": "headers", "title": "Missing Content-Security-Policy", "note": "No CSP on any response." },
+        { "id": "xfo-missing", "category": "headers", "title": "Missing X-Frame-Options", "note": "No framing protection (no XFO, no frame-ancestors)." },
+        { "id": "xcto-missing", "category": "headers", "title": "Missing X-Content-Type-Options" },
+        { "id": "swagger-ui-exposed", "category": "exposure", "title": "Swagger UI exposed", "path": "/docs" },
+        { "id": "openapi-exposed", "category": "exposure", "title": "OpenAPI specification exposed", "path": "/openapi.json" },
+        { "id": "login-no-rate-limit", "category": "auth", "title": "No login rate limiting", "path": "/api/login", "note": "POST /api/login never returns 429." },
+        { "id": "idor-users", "category": "auth", "title": "IDOR|BOLA", "path": "/api/users/", "note": "Any user record is readable by ID without authentication." },
+        { "id": "oauth-open-redirect", "category": "auth", "title": "OAuth open redirect", "path": "/api/oauth/callback" }
+      ],
+      "notVulnerable": [
+        { "id": "health-public", "title": "Unauthenticated endpoint: GET /api/health", "reason": "A health check is meant to be public and returns only {status: ok}. Reported because the OpenAPI spec declares no security scheme." }
+      ]
+    },
+    "injection-lab": {
+      "kind": "url",
+      "source": "bench/targets/labs.js",
+      "profile": "deep",
+      "vulnerabilities": [
+        { "id": "sqli-error", "category": "sqli", "title": "SQL injection", "path": "/api/search" },
+        { "id": "xss-reflected", "category": "xss", "title": "Reflected XSS", "path": "/api/products" },
+        { "id": "ssti", "category": "ssti", "title": "Server-Side Template Injection", "path": "/api/generate" },
+        { "id": "open-redirect", "category": "open-redirect", "title": "Open redirect", "path": "/api/connect" },
+        { "id": "cmdi", "category": "cmdi", "title": "command injection", "path": "/api/ping" }
+      ],
+      "notVulnerable": [
+        { "id": "script-in-plain-text", "title": "Fuzz", "path": "/api/generate", "reason": "The response is text/plain, so a <script> string in it does not execute. The fuzzer's XSS heuristic does not check Content-Type, which is why it labels this potential." }
+      ]
+    },
+    "decoy-lab": {
+      "kind": "url",
+      "source": "bench/targets/labs.js",
+      "profile": "deep",
+      "vulnerabilities": [],
+      "notVulnerable": [
+        { "id": "encoded-reflection", "path": "/api/items", "reason": "Input is reflected HTML-encoded. Tests the XSS context check." },
+        { "id": "fixed-canary", "path": "/api/posts", "reason": "Echoes input verbatim and always contains 49. Tests the randomized SSTI canary." },
+        { "id": "sql-error-in-baseline", "path": "/api/messages", "reason": "MySQL error text is present with or without input. Tests the baseline comparison." },
+        { "id": "one-slow-response", "path": "/api/events", "reason": "First sleep payload is answered after 3.3s, later ones instantly. Tests timing re-sampling." },
+        { "id": "relative-redirect", "path": "/api/download", "reason": "Redirects only to same-site paths and rejects // and /\\. Tests the redirect host check." },
+        { "id": "rate-limited-login", "path": "/api/login", "reason": "Returns 429 after three attempts." },
+        { "id": "hardened-headers", "path": "/", "reason": "CSP, XFO, XCTO, Referrer-Policy and Permissions-Policy are all set." }
+      ]
+    },
+    "repo-fixture": {
+      "kind": "repo",
+      "source": "bench/targets/repo-fixture.js",
+      "vulnerabilities": [
+        { "id": "aws-key", "category": "secrets", "title": "AWS access key", "file": "src/aws.js" },
+        { "id": "stripe-live", "category": "secrets", "title": "Stripe secret key", "file": "src/billing.js" },
+        { "id": "anthropic-key", "category": "secrets", "title": "Anthropic API key", "file": "src/ai/client.ts" },
+        { "id": "github-token", "category": "secrets", "title": "GitHub token", "file": "scripts/release.sh" },
+        { "id": "openrouter-key", "category": "secrets", "title": "OpenRouter API key", "file": "notebooks/eval.py" },
+        { "id": "db-password", "category": "secrets", "title": "Hardcoded password", "file": "server/db.js" },
+        { "id": "token-in-markdown", "category": "secrets", "title": "Hugging Face token", "file": "docs/deploy-notes.md", "note": "Secrets leak through docs and notes too (Meli et al. 2019). Markdown is not in the scanned file types, so this is an expected miss." },
+        { "id": "unprefixed-signing-key", "category": "secrets", "title": ".", "file": "src/webhooks.js", "note": "High-entropy value with no provider prefix and a variable name outside the generic patterns. Pattern-based detection is expected to miss this; it is kept to keep the recall figure honest." }
+      ],
+      "notVulnerable": [
+        { "id": "env-lookup", "file": "src/env.js", "reason": "Reads keys from process.env." },
+        { "id": "env-example", "file": ".env.example", "reason": "Placeholder values." },
+        { "id": "placeholders", "file": "src/settings.js", "reason": "Placeholder and masked values." },
+        { "id": "docs-redacted", "file": "docs/setup.md", "reason": "Documentation with a redacted value." },
+        { "id": "aws-docs-example", "file": "config/aws.example.yaml", "reason": "AWS's published documentation example key (AKIA...EXAMPLE), which is not a credential." }
+      ]
+    },
+    "juice-shop": {
+      "kind": "url",
+      "optional": true,
+      "url": "http://127.0.0.1:3000",
+      "source": "https://github.com/juice-shop/juice-shop (Docker image bkimminich/juice-shop)",
+      "profile": "deep",
+      "labelled": false,
+      "vulnerabilities": [],
+      "notVulnerable": []
+    },
+    "crapi": {
+      "kind": "url",
+      "optional": true,
+      "url": "http://127.0.0.1:8888",
+      "source": "https://github.com/OWASP/crAPI",
+      "profile": "deep",
+      "labelled": false,
+      "vulnerabilities": [],
+      "notVulnerable": []
+    }
+  }
+}

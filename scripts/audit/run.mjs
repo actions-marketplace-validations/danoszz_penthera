@@ -657,7 +657,7 @@ async function gateVersionsDocs() {
   }
   const cli = await penthera(["--version"], { log: false });
   if (!cli.stdout.includes(v)) notes.push(`penthera --version prints "${cli.stdout.trim()}", expected ${v}`);
-  if (!new RegExp(`^## \\[${v.replace(/\./g, "\\.")}\\]`, "m").test(readFileSync(join(ROOT, "CHANGELOG.md"), "utf-8"))) {
+  if (!new RegExp(`^## \\[${v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\]`, "m").test(readFileSync(join(ROOT, "CHANGELOG.md"), "utf-8"))) {
     notes.push(`CHANGELOG.md has no "## [${v}]" section.`);
   }
   const versionIssues = notes.length;
@@ -819,7 +819,7 @@ function renderReport(data, previous) {
   for (const g of GATES) {
     const r = data.gates[g.id];
     if (!r) continue;
-    L.push(`| ${g.title} | ${ICON[r.status]} | ${metricLine(r.metrics).replace(/\|/g, "\\|")} |`);
+    L.push(`| ${g.title} | ${ICON[r.status]} | ${metricLine(r.metrics).replace(/\\/g, "\\\\").replace(/\|/g, "\\|")} |`);
   }
   L.push("");
   L.push("## Changes since the previous report");

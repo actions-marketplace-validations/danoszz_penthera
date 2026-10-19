@@ -4,6 +4,15 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Docs
+
+- `docs/MANIFESTO.md`: what Penthera is today (and is not), seven design
+  decisions with their costs and what would change them, and an FAQ. Written to
+  be challenged in Discussions.
+- `docs/vision-2.0.md`: the plan for 2.0, covering the biggest gaps, an AI roadmap
+  (models propose, deterministic checks decide; local models first) and a
+  pre-registered research program with sample sizes and safety rules.
+
 ## [1.7.0] - 2026-10-19
 
 One view and one command. `npx penthera` now sets Penthera up in a project:

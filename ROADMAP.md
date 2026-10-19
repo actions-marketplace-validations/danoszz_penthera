@@ -34,6 +34,12 @@ v2.0 is in the [plan](docs/plan.md).
 The engineering detail, order of work, and acceptance criteria are in the
 [release plan](docs/release-plan.md).
 
+**Toward 2.0.** The public plan to become the best, with real-world accuracy,
+local models that propose fixes the scanner verifies, and the pre-registered
+experiments that decide what ships, is in [docs/vision-2.0.md](docs/vision-2.0.md).
+What Penthera is today and why, with an FAQ and every design decision open to
+challenge, is in [docs/MANIFESTO.md](docs/MANIFESTO.md).
+
 ### v1.3.0 "AI toolchain" (shipped in 1.4.0)
 
 | Feature | What it does |

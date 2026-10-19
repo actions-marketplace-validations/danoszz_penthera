@@ -125,9 +125,42 @@ This adds a line like `Signed-off-by: Your Name <you@example.com>` to the
 commit message. It must match the commit author. To sign off commits you
 already made on your branch, run `git rebase --signoff main` and force-push.
 
-If an AI assistant helped write a change, say so with a `Co-Authored-By:`
-trailer naming the tool. You are still the one signing off, so review the
-change as your own before you do.
+### Use of generative AI
+
+AI assistants are welcome here, and must be disclosed. Penthera follows the
+disclosure rules of the
+[NLnet generative AI policy](https://nlnet.nl/foundation/policies/generativeAI/);
+how the project itself uses AI is described in [docs/genai.md](docs/genai.md).
+
+If an AI assistant wrote or substantially shaped a commit, add these trailers to
+the commit message:
+
+```
+AI-Assisted: <tool> with <model and version>; <what it did, in one line>
+Co-Authored-By: <model and version> <noreply address of the vendor>
+```
+
+For example:
+
+```
+fix(deps): handle pax size headers in the tar reader
+
+AI-Assisted: Claude Code with Claude Opus 5.5; wrote the parser change and
+  the regression test from my description of the bug, I reviewed both
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Signed-off-by: Your Name <you@example.com>
+```
+
+- **Summarise the prompt** in the `AI-Assisted` line: what you asked for, not
+  the full transcript. For grant-funded work, the full prompts and outputs also
+  go in `docs/genai-logs/` (see [docs/genai.md](docs/genai.md)).
+- **Keep human and generated work apart** where you can: put generated changes
+  in their own commits, so the history shows which is which.
+- **You remain responsible.** By signing off you certify the change can be
+  published under the MIT licence and does not copy code under incompatible
+  terms. Only submit code you understand and can explain.
+- **Docs and tests only:** if AI only helped with documentation or tests, the
+  `Co-Authored-By` trailer is enough.
 
 Report security issues in Penthera itself privately — see [SECURITY.md](SECURITY.md).
 

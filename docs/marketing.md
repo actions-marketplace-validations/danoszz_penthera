@@ -18,7 +18,7 @@ and collects, a person posts.**
 
 | Automation | When | Output | Workflow / script |
 |------------|------|--------|-------------------|
-| Release post drafts | Every `v*` tag | LinkedIn (~600 chars) and X/Bluesky (≤280) drafts in the job summary and under "Share this release" in the GitHub Release | `publish.yml` → `scripts/marketing/release-post.mjs` |
+| Release post drafts | Every `v*` tag | LinkedIn (~600 chars) and X/Bluesky (≤280) drafts in the job summary and under "Share this release" in the GitHub Release (the read-only publish job drafts; the release job, which has no checkout, only attaches them) | `publish.yml` → `scripts/marketing/release-post.mjs` |
 | Incident radar | Daily 06:00 UTC | One issue per new malware advisory for a popular npm package (max 5 per run); every other new advisory as a comment on one standing batch issue | `incident-radar.yml` → `scripts/marketing/incident-radar.mjs` |
 | Product-led footer | Every report | One line at the end of Markdown reports, audience reports, the PR comment and the evidence bundle README | `src/report/footer.js` |
 | Demo media | Every published release, on demand | A PR with re-rendered GIFs from `assets/tapes/*.tape` | `demo-media.yml` |
@@ -128,7 +128,7 @@ node scripts/marketing/incident-radar.mjs --repo danoszz/penthera --dry-run
 
 - **One workflow:** Actions → the workflow → "…" → Disable workflow. Or delete
   its file.
-- **Release drafts:** remove the "Draft release posts" step from `publish.yml`.
+- **Release drafts:** remove the "Draft release posts" and "Keep the drafts" steps (publish job) and the two share steps (release job) from `publish.yml`.
 - **Footer, for one run:** `--no-footer` or `footer: "false"` in the Action.
   To drop it for everyone, make `footerLines()` in `src/report/footer.js`
   return `[]`.

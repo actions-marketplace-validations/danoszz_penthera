@@ -61,6 +61,7 @@ const HELP = `
     $ penthera agents [path]         Audit AI agent config: skills, MCP, hooks (offline)
     $ penthera deps [path]           What your npm and Python dependencies can do (offline)
     $ penthera install <pkg...>      Check what an npm install adds before anything runs
+    $ penthera hook install          Pre-commit hook: staged secrets, agent config, lockfiles
     $ penthera memory show|verify|forget  Local learning store (never leaves the machine)
     $ penthera fix --plan            Plan local fix recipes (penthera fix --help)
     $ penthera evidence verify <dir> Check an evidence bundle's hashes and signature
@@ -81,7 +82,8 @@ const HELP = `
         --all                   Enable all modes (recon + deep + fuzz)
         --machine               macOS machine audit (keyloggers, trojans, rootkits)
         --offline               Contact only the scan target: no recon sources, no
-                               Retire.js download (uses the vendored snapshot)
+                               Retire.js download (uses the vendored snapshot),
+                               no DNS lookups for SPF/DMARC
 
   ${dim("Agents mode")}  ${dim("(penthera agents [path], offline, read-only)")}
         --home                  Also audit ~/.claude, ~/.cursor and Claude Desktop config

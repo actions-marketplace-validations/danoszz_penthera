@@ -18,7 +18,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { packageFiles, tarball, sri } from "../deps/build.js";
+import { packageFiles, tarball, desyncTarball, sri } from "../deps/build.js";
 
 const j = (...p) => p.join("");
 const HTTPS = j("ht", "tps");
@@ -38,6 +38,15 @@ export function installPackages(marker) {
     // A clean upgrade that also pulls in a new, harmless transitive dependency.
     "tiny-format@1.1.0": { "index.js": "module.exports = require('pad-utils');\n", _deps: { "pad-utils": "^2.0.0" } },
     "expresss@1.0.0": { "index.js": "module.exports = function app() { return {}; };\n" },
+    // Its tarball leads with a GNU base-256 size field (valid tar, npm unpacks
+    // it). A reader that parses that size as 0 never sees package.json, so the
+    // postinstall below would pass as "no install scripts".
+    "sneaky-pkg@1.0.0": {
+      "index.js": "module.exports = 1;\n",
+      "postinstall.js": `require('fs').writeFileSync(${JSON.stringify(marker)}, 'postinstall ran\\n');\n`,
+      _scripts: { postinstall: "node postinstall.js" },
+      _desync: true,
+    },
     "net-report@1.0.0": {
       "index.js": `const https = require('${HTTPS}');\nmodule.exports = (u) => https.get(u);\n`,
     },
@@ -52,7 +61,7 @@ function buildRegistry(packages, baseUrl) {
   const tarballs = new Map();
   for (const key of Object.keys(packages).sort()) {
     const { name, version, files } = packageFiles(key, packages);
-    const tgz = tarball(files);
+    const tgz = packages[key]._desync ? desyncTarball(files) : tarball(files);
     const manifest = JSON.parse(files["package.json"]);
     const file = `${name}-${version}.tgz`;
     tarballs.set(`/${name}/-/${file}`, tgz);

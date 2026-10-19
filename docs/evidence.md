@@ -14,7 +14,7 @@ organisation through a channel other than the bundle itself (their security
 page, an email you can authenticate, or in person).
 
 ```bash
-npx penthera evidence verify ./evidence --allowed-signers allowed_signers
+npx penthera evidence verify ./evidence --allowed-signers allowed_signers --require-signature
 ```
 
 Exit code `0` means every file matches the manifest and the manifest was signed
@@ -55,9 +55,13 @@ symlinked files.
   manifest. It does not prove that the scan was run against the system you
   care about, or with the options you expect. Read the manifest's `command`,
   `target`, `scan` and `git` fields, and the auditor report's scope section.
-- Without `--allowed-signers`, `verify` still checks that the signature is
-  valid but cannot tell you whose key made it. It reports
-  `valid-unknown-signer` as a warning.
+- A signed bundle only verifies with `--allowed-signers`. Without it,
+  `verify` cannot tell whose key made the signature (anyone can re-sign a
+  rewritten manifest with their own key), so it fails with status
+  `unverified`. A manifest that declares a signature with no `.sig` file
+  fails too.
+- An unsigned bundle passes with an `UNSIGNED` warning. Pass
+  `--require-signature` (with `--allowed-signers`) to make it fail.
 - A scan is a snapshot. The bundle is evidence of what Penthera saw at
   `generated_at`, not a statement that the system is secure.
 

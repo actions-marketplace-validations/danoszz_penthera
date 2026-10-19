@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, mkdirSync, chmodSync, realpathSync } from "node:fs";
+import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, mkdirSync, chmodSync, realpathSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync, spawnSync } from "node:child_process";
@@ -93,17 +93,21 @@ describe("penthera hook run", () => {
     expect(first.blocking).toHaveLength(1);
 
     write("penthera.suppress.json", JSON.stringify({ version: 1, suppress: [{ id: first.blocking[0].id, reason: "test fixture" }] }));
+    git("add", "penthera.suppress.json");
     const sup = await runHook(repo);
     expect(sup.blocking).toHaveLength(0);
     expect(sup.suppressed).toHaveLength(1);
+    git("rm", "-q", "--cached", "penthera.suppress.json");
     rmSync(join(repo, "penthera.suppress.json"));
 
     write("penthera.policy.json", JSON.stringify({ hook: { ignore: ["a.js"] } }));
+    git("add", "penthera.policy.json");
     expect((await runHook(repo)).blocking).toHaveLength(0);
 
     write("b.js", `${["const password", '"hunter2hunter2";'].join(" = ")}\n`); // high
     git("add", "b.js");
     write("penthera.policy.json", JSON.stringify({ hook: { blockOn: "critical", ignore: ["a.js"] } }));
+    git("add", "penthera.policy.json");
     const r = await runHook(repo);
     expect(r.blocking).toHaveLength(0);
     expect(r.below.map((f) => f.severity)).toEqual(["high"]);
@@ -117,11 +121,40 @@ describe("penthera hook run", () => {
     git("commit", "-q", "-m", "lock", "--no-verify");
     write("penthera.policy.json", JSON.stringify({ licenses: { preset: "no-agpl" } }));
     write("package-lock.json", lock({ old: "AGPL-3.0-only", fresh: "MIT", copyleft: "AGPL-3.0-or-later" }));
-    git("add", "package-lock.json");
+    git("add", "package-lock.json", "penthera.policy.json");
     const r = await runHook(repo);
     expect(r.checked.lockfiles).toBe(1);
     // Only the packages this commit adds are judged: "old" was already in HEAD.
     expect(r.blocking.map((f) => `${f.category}:${f.package}`)).toEqual(["license:copyleft"]);
+  });
+
+  it("reads the policy and suppressions from the index, not the working tree (360 review)", async () => {
+    write("a.js", `const k = "${FAKE_KEY}";\n`);
+    git("add", "a.js");
+    const first = await runHook(repo);
+    // Unstaged edits that would loosen the check are ignored, with a warning.
+    write("penthera.suppress.json", JSON.stringify({ version: 1, suppress: [{ id: first.blocking[0].id, reason: "sneaky" }] }));
+    write("penthera.policy.json", JSON.stringify({ hook: { ignore: ["a.js"], blockOn: "critical" } }));
+    const r = await runHook(repo);
+    expect(r.blocking).toHaveLength(1);
+    expect(r.suppressed).toEqual([]);
+    expect(r.warnings.join("\n")).toMatch(/penthera\.policy\.json is not staged[\s\S]*penthera\.suppress\.json is not staged/);
+    // A staged loosening is visible in the commit itself, so it applies.
+    git("add", "penthera.suppress.json");
+    expect((await runHook(repo)).suppressed).toHaveLength(1);
+  });
+
+  it("does not follow a staged agent-config symlink out of the repo (360 review)", async () => {
+    const outside = realpathSync(mkdtempSync(join(tmpdir(), "penthera-hook-outside-")));
+    try {
+      writeFileSync(join(outside, "mcp.json"), MALICIOUS_MCP);
+      symlinkSync(join(outside, "mcp.json"), join(repo, ".mcp.json"));
+      git("add", ".mcp.json");
+      const r = await runHook(repo);
+      expect([...r.blocking, ...r.below].filter((f) => f.url === ".mcp.json")).toEqual([]);
+    } finally {
+      rmSync(outside, { recursive: true, force: true });
+    }
   });
 
   it("prints JSON and exits 1 when blocked", () => {

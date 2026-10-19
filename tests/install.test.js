@@ -8,14 +8,14 @@
  * marker existing means the script ran.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
-import { mkdtempSync, rmSync, readFileSync, writeFileSync, existsSync, readdirSync, cpSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync, writeFileSync, existsSync, readdirSync, cpSync, mkdirSync, chmodSync } from "node:fs";
 import { join, relative } from "node:path";
 import { tmpdir } from "node:os";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { startRegistry, installPackages, npmEnv, createProject } from "./fixtures/install/registry.js";
 import { normalizePolicy, loadPolicy, matchAllow, evaluatePolicy, DEFAULT_POLICY } from "../lib/install/policy.js";
-import { changesFromDiff, withAllowScripts } from "../lib/install/index.js";
+import { changesFromDiff, withAllowScripts, nonRegistryPackages, planInstall, applyInstall } from "../lib/install/index.js";
 
 const BIN = join(import.meta.dirname, "..", "bin", "penthera.js");
 
@@ -82,6 +82,128 @@ describe("policy", () => {
   });
 });
 
+describe("policy floors (360 review)", () => {
+  it("always denies script-mismatch and always holds unscanned, whatever the policy or allow list says", () => {
+    const lax = normalizePolicy({ allow: ["*"], deny: [], requireApproval: [] });
+    const v = evaluatePolicy([
+      { name: "liar", version: "1.0.0", flags: ["script-mismatch"] },
+      { name: "ghost", version: "1.0.0", flags: ["unscanned"] },
+      { name: "fine", version: "1.0.0", flags: ["network"] },
+    ], lax);
+    expect(v.denied.map((i) => i.name)).toEqual(["liar"]);
+    expect(v.needsApproval.map((i) => i.name)).toEqual(["ghost"]);
+    expect(v.clean).toBe(false);
+    // A policy may still escalate unscanned to a denial.
+    const strict = normalizePolicy({ deny: ["unscanned"] });
+    expect(evaluatePolicy([{ name: "ghost", version: "1.0.0", flags: ["unscanned"] }], strict).denied).toHaveLength(1);
+  });
+});
+
+describe("non-registry sources (360 review)", () => {
+  const reg = ["https://registry.npmjs.org/", "https://npm.acme.test/"];
+  it("lists lockfile entries resolved outside the configured registries", () => {
+    const pkgs = [
+      { name: "ok", resolved: "https://registry.npmjs.org/ok/-/ok-1.0.0.tgz" },
+      { name: "scoped", resolved: "https://npm.acme.test/@acme/x/-/x-1.0.0.tgz" },
+      { name: "bundled", resolved: null },
+      { name: "gitdep", resolved: "git+ssh://git@github.com/x/y.git#abc" },
+      { name: "url", resolved: "https://evil.example/x.tgz" },
+    ];
+    expect(nonRegistryPackages(pkgs, reg).map((p) => p.name)).toEqual(["gitdep", "url"]);
+  });
+
+  it("refuses git, hosted-git and tarball-URL specs unless --allow-non-registry is passed", async () => {
+    const d = mkdtempSync(join(tmpdir(), "penthera-spec-"));
+    try {
+      writeFileSync(join(d, "package.json"), '{"name":"x","version":"1.0.0"}');
+      const info = { version: "10.0.0", major: 10, registry: reg[0], registries: reg };
+      for (const spec of ["github:evil/pkg", "evil/pkg", "git+https://example.test/x.git", "https://example.test/x.tgz", "x@git+ssh://git@example.test/x.git"]) {
+        await expect(planInstall(d, [spec], { info }), spec).rejects.toThrow(/Non-registry package spec/);
+      }
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+});
+
+/**
+ * A stand-in npm on PATH that records its arguments and plays just enough of
+ * npm for planInstall/applyInstall: `install --package-lock-only` writes the
+ * given lockfile. Lets the tests see exactly which npm commands run.
+ */
+function fakeNpm(root, lock) {
+  const bin = join(root, "bin");
+  mkdirSync(bin, { recursive: true });
+  const log = join(root, "npm-calls.jsonl");
+  const script = join(root, "fake-npm.mjs");
+  writeFileSync(script, `
+import { appendFileSync, writeFileSync } from "node:fs";
+const args = process.argv.slice(2);
+appendFileSync(${JSON.stringify(log)}, JSON.stringify(args) + "\\n");
+if (args[0] === "--version") console.log("10.9.0");
+else if (args[0] === "config") console.log(JSON.stringify({ registry: "https://registry.npmjs.org/" }));
+else if (args[0] === "install" && args.includes("--package-lock-only")) writeFileSync("package-lock.json", ${JSON.stringify(JSON.stringify(lock))});
+`);
+  writeFileSync(join(bin, "npm"), `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(script)} "$@"\n`);
+  chmodSync(join(bin, "npm"), 0o755);
+  return { env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, npm_config_cache: join(root, "cache") }, calls: () => readFileSync(log, "utf-8").trim().split("\n").map((l) => JSON.parse(l)) };
+}
+
+describe.skipIf(process.platform === "win32")("npm invocations (360 review)", () => {
+  const lockWith = (resolved) => ({
+    lockfileVersion: 3,
+    packages: {
+      "": { name: "x", version: "1.0.0", dependencies: { dep: "1.0.0" } },
+      "node_modules/dep": { version: "1.0.0", resolved, integrity: "sha512-AAAA" },
+    },
+  });
+
+  it("fetches with npm cache add --ignore-scripts", async () => {
+    const d = mkdtempSync(join(tmpdir(), "penthera-fakenpm-"));
+    try {
+      writeFileSync(join(d, "package.json"), '{"name":"x","version":"1.0.0"}');
+      const npm = fakeNpm(d, lockWith("https://registry.npmjs.org/dep/-/dep-1.0.0.tgz"));
+      await planInstall(d, ["dep@1.0.0"], { env: npm.env });
+      const add = npm.calls().find((a) => a[0] === "cache");
+      expect(add).toBeTruthy();
+      expect(add).toContain("--ignore-scripts");
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses a resolved tree with a package from outside the registry before fetching anything", async () => {
+    const d = mkdtempSync(join(tmpdir(), "penthera-fakenpm-"));
+    try {
+      writeFileSync(join(d, "package.json"), '{"name":"x","version":"1.0.0"}');
+      const npm = fakeNpm(d, lockWith("https://evil.example/dep.tgz"));
+      await expect(planInstall(d, ["dep@1.0.0"], { env: npm.env })).rejects.toThrow(/outside the configured registry/);
+      expect(npm.calls().some((a) => a[0] === "cache")).toBe(false);
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+
+  it("applies with npm ci, which installs the reviewed lockfile and cannot re-resolve", async () => {
+    const d = mkdtempSync(join(tmpdir(), "penthera-fakenpm-"));
+    try {
+      const npm = fakeNpm(d, {});
+      const lock = Buffer.from(JSON.stringify(lockWith("https://registry.npmjs.org/dep/-/dep-1.0.0.tgz")));
+      const plan = {
+        root: d, lockName: "package-lock.json", original: {}, npm: { allowScriptsPolicy: false },
+        proposed: { "package.json": Buffer.from('{"name":"x","version":"1.0.0"}'), "package-lock.json": lock },
+        verdict: { items: [] },
+      };
+      const r = await applyInstall(plan, { runScripts: false, env: npm.env });
+      expect(r.args[0]).toBe("ci");
+      expect(npm.calls().map((a) => a[0])).toEqual(["ci"]);
+      expect(npm.calls()[0]).toContain("--ignore-scripts");
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("changesFromDiff", () => {
   it("flags new hooks, changed hook commands, typosquats and unreadable packages", () => {
     const diff = {
@@ -105,6 +227,22 @@ describe("changesFromDiff", () => {
     expect(byName.c.flags).toEqual([]);
     // Old version unreadable: judged on everything the new one can do.
     expect(byName.d).toMatchObject({ flags: ["shell"], compared: false });
+  });
+
+  it("flags a lockfile install script the scan did not find, and packages whose tarball was unreadable (360 review)", () => {
+    const diff = {
+      added: [
+        { name: "liar", version: "1.0.0", capabilities: [], installScripts: {}, scriptMismatch: true },
+        { name: "broken", version: "1.0.0", capabilities: null, installScripts: {}, unscanned: "tarball could not be read safely (bad header checksum at byte 0)" },
+      ],
+      upgraded: [
+        { name: "up", from: "1.0.0", to: "1.1.0", gained: null, unavailable: "new", installScripts: {}, unscanned: "package.json is missing" },
+      ],
+    };
+    const byName = Object.fromEntries(changesFromDiff(diff).map((c) => [c.name, c]));
+    expect(byName.liar.flags).toEqual(["script-mismatch"]);
+    expect(byName.broken).toMatchObject({ flags: ["unscanned"], unscanned: expect.stringMatching(/checksum/) });
+    expect(byName.up.flags).toEqual(["unscanned"]);
   });
 
   it("pins approvals in allowScripts, keeps indentation and explicit denials", () => {
@@ -268,6 +406,17 @@ describe("penthera install (fixture registry)", { timeout: 60_000 }, () => {
     const out = JSON.parse(r.stdout);
     expect(out).toMatchObject({ action: "dry-run", clean: false });
     expect(out.changes[0]).toMatchObject({ name: "color-helper", from: "1.0.0", version: "1.1.0", approval: ["install-scripts"], installScripts: { postinstall: "node postinstall.js" } });
+    expect(snapshot(p)).toEqual(before);
+  });
+
+  it("does not let a tar desync hide a postinstall script (360 review)", async () => {
+    const p = project();
+    const before = snapshot(p);
+    const r = await penthera(p, ["sneaky-pkg@1.0.0", "--yes"]);
+    expect(r.code).toBe(1);
+    expect(r.stdout).toContain("postinstall: node postinstall.js");
+    expect(r.stdout).toMatch(/sneaky-pkg@1\.0\.0 {2}needs approval: install script/);
+    expect(existsSync(marker)).toBe(false);
     expect(snapshot(p)).toEqual(before);
   });
 

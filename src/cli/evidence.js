@@ -1,5 +1,5 @@
 /**
- * `penthera evidence verify <dir> [--allowed-signers <file>] [--json]`
+ * `penthera evidence verify <dir> [--allowed-signers <file>] [--require-signature] [--json]`
  *
  * Recomputes every artifact hash in an evidence bundle and checks the SSH
  * signature over manifest.json. Exit 0 when the bundle verifies, 1 when it
@@ -9,11 +9,15 @@ import { parseArgs } from "node:util";
 import { verifyEvidence } from "../report/evidence.js";
 
 const HELP = `
-  penthera evidence verify <dir> [--allowed-signers <file>] [--json]
+  penthera evidence verify <dir> [--allowed-signers <file>] [--require-signature] [--json]
 
   Recomputes the SHA-256 of every file in an evidence bundle (written with
   --evidence <dir>), fails on any changed, missing or extra file, and checks
   manifest.json.sig with ssh-keygen against the allowed signers file.
+
+  A signed bundle only verifies with --allowed-signers (a valid signature by
+  an unknown key proves nothing). An unsigned bundle passes with an UNSIGNED
+  warning; --require-signature makes it fail.
 
   Exit codes: 0 verified, 1 verification failed, 2 usage error.
   See docs/evidence.md.
@@ -27,6 +31,7 @@ export function runEvidence(argv, { out = process.stdout } = {}) {
       allowPositionals: true,
       options: {
         "allowed-signers": { type: "string" },
+        "require-signature": { type: "boolean", default: false },
         json: { type: "boolean", default: false },
         help: { type: "boolean", short: "h", default: false },
       },
@@ -41,7 +46,11 @@ export function runEvidence(argv, { out = process.stdout } = {}) {
     return values.help ? 0 : 2;
   }
 
-  const r = verifyEvidence(positionals[1], { allowedSigners: values["allowed-signers"] || null });
+  if (values["require-signature"] && !values["allowed-signers"]) {
+    process.stderr.write(`  --require-signature needs --allowed-signers <file>: a signature is only worth something against keys you trust.\n${HELP}`);
+    return 2;
+  }
+  const r = verifyEvidence(positionals[1], { allowedSigners: values["allowed-signers"] || null, requireSignature: values["require-signature"] });
   if (values.json) {
     const { manifest, ...rest } = r;
     out.write(JSON.stringify({ ...rest, target: manifest?.target || null, generated_at: manifest?.generated_at || null }, null, 2) + "\n");
@@ -62,6 +71,7 @@ export function runEvidence(argv, { out = process.stdout } = {}) {
     const label = r.signature.ok ? (r.signature.status === "valid" ? "ok  " : "warn") : "FAIL";
     out.write(`  ${label}  signature: ${r.signature.detail}\n`);
   }
-  out.write(r.ok ? "\n  Verified: every artifact matches the manifest.\n\n" : `\n  NOT VERIFIED:\n${r.problems.map((p) => `    - ${p}\n`).join("")}\n`);
+  for (const w of r.warnings || []) process.stderr.write(`\n  WARNING  ${w}\n`);
+  out.write(r.ok ? `\n  Verified: every artifact matches the manifest${r.signature?.status === "valid" ? `, signed by ${r.signature.principal}` : " (UNSIGNED)"}.\n\n` : `\n  NOT VERIFIED:\n${r.problems.map((p) => `    - ${p}\n`).join("")}\n`);
   return r.ok ? 0 : 1;
 }

@@ -43,18 +43,22 @@ export function buildCommentBody(markdown, { sha, runUrl, marker = MARKER, max =
   return `${head}${text}${footer}\n`;
 }
 
+/** The account GITHUB_TOKEN posts as. Only its comments are ever edited. */
+export const ACTIONS_BOT = "github-actions[bot]";
+
 /**
  * Create or update the single marker comment on an issue or PR.
- * @param {{ listComments(issue: number): Promise<Array<{id: number, body: string, userType?: string}>>,
+ * @param {{ listComments(issue: number): Promise<Array<{id: number, body: string, login?: string, userType?: string}>>,
  *           createComment(issue: number, body: string): Promise<{id: number}>,
  *           updateComment(id: number, body: string): Promise<{id: number}> }} api
  * @returns {Promise<{ action: "created" | "updated" | "unchanged", id: number }>}
  */
-export async function upsertComment(api, { issue, body, marker = MARKER }) {
+export async function upsertComment(api, { issue, body, marker = MARKER, botLogin = ACTIONS_BOT }) {
   if (!body.includes(marker)) throw new Error("Comment body is missing the marker; refusing to post an untracked comment.");
-  // Only bot comments count: a person quoting the marker must not be edited.
+  // Only our own comments count: a person, or another bot or app, quoting the
+  // marker must not have its comment edited by us.
   const existing = (await api.listComments(issue)).find((c) =>
-    typeof c.body === "string" && c.body.includes(marker) && (c.userType == null || c.userType === "Bot"));
+    typeof c.body === "string" && c.body.includes(marker) && c.login === botLogin && c.userType === "Bot");
   if (!existing) return { action: "created", id: (await api.createComment(issue, body)).id };
   if (existing.body === body) return { action: "unchanged", id: existing.id };
   return { action: "updated", id: (await api.updateComment(existing.id, body)).id };
@@ -92,7 +96,7 @@ export function ghClient(repo, { run = spawnSync } = {}) {
   };
   return {
     async listComments(issue) {
-      const out = gh(["--paginate", `repos/${repo}/issues/${issue}/comments?per_page=100`, "--jq", ".[] | {id, body, userType: .user.type}"]);
+      const out = gh(["--paginate", `repos/${repo}/issues/${issue}/comments?per_page=100`, "--jq", ".[] | {id, body, login: .user.login, userType: .user.type}"]);
       return out.split("\n").filter(Boolean).map((l) => JSON.parse(l));
     },
     async createComment(issue, body) {

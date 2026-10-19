@@ -1,0 +1,10 @@
+{
+  "name": "fixture-fastify",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@fastify/cookie": "^11.0.0",
+    "@fastify/cors": "^11.0.0",
+    "fastify": "^5.0.0"
+  }
+}

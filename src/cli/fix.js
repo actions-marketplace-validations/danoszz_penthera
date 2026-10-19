@@ -1,0 +1,191 @@
+/**
+ * `penthera fix`: plan and apply deterministic fix recipes, locally.
+ *
+ *   penthera fix --plan [--repo <path>] [-o <report.json>]
+ *   penthera fix --apply <id> [--repo <path>] [-o <report.json>] [--yes] [--dry-run] [--allow-dirty]
+ *
+ * Planning never writes. Applying needs an explicit plan id plus approval (a
+ * y/N prompt, or --yes), never pushes, and refuses a dirty git tree. Nothing
+ * here touches the network, except the optional --fix-model fallback, which
+ * only talks to Ollama on 127.0.0.1.
+ */
+import { parseArgs } from "node:util";
+import { resolve } from "node:path";
+import { readFileSync, existsSync, statSync } from "node:fs";
+import { scanRepo } from "../scan-repo.js";
+import { planFixes, probeRepo, redactPlan, applyDiff, findingKey, createModelFixer } from "../../lib/fix/index.js";
+import { bold, dim, green, red, yellow, cyan } from "./ansi.js";
+
+const HELP = `
+  ${bold("penthera fix")} — plan and apply local fix recipes
+
+  ${dim("Usage")}
+    $ penthera fix --plan [--repo <path>]          Print a diff for each fixable finding
+    $ penthera fix --apply <id> [--repo <path>]    Apply one planned diff (asks first)
+
+  ${dim("Options")}
+    -r, --repo <path>        Repo to fix (default: .)
+    -o, --input <file>       Use findings from a JSON report (penthera ... -o report.json)
+                             instead of a fresh repo scan
+        --fix-model <name>   Ask a local Ollama model (127.0.0.1:11434 only) when no recipe
+                             matches. Off by default; output needs human review
+        --json               Print plans as JSON (secrets masked)
+        --yes                Approve the diff without the y/N prompt (for --apply)
+        --dry-run            Check that the diff applies, write nothing
+        --allow-dirty        Apply even with uncommitted changes in the repo
+    -h, --help               Show this help
+
+  Recipes: security headers, cookie flags, CORS allowlist, login rate limit,
+  hardcoded secret to env var. Plans change after each apply: run --plan again.
+`;
+
+/** Findings for the repo: a report's findings, or a fresh scan plus recipe probes. */
+async function gatherFindings(repo, input) {
+  if (input) {
+    const report = JSON.parse(readFileSync(resolve(input), "utf-8"));
+    return { findings: report.findings || [], fresh: false };
+  }
+  const result = await scanRepo(repo, {});
+  const seen = new Set();
+  const findings = [...result.findings, ...probeRepo(repo)].filter((f) => {
+    if (f.severity === "info" && f.category === "config") return false;
+    const k = findingKey(f);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  return { findings, fresh: true };
+}
+
+function colorDiff(diff) {
+  return diff.split("\n").map((l) => {
+    if (/^(---|\+\+\+) /.test(l)) return bold(l);
+    if (l.startsWith("@@")) return cyan(l);
+    if (l.startsWith("+")) return green(l);
+    if (l.startsWith("-")) return red(l);
+    return l;
+  }).join("\n");
+}
+
+function printPlan(plan) {
+  const conf = plan.confidence === "needs-human-review" ? yellow(plan.confidence) : plan.confidence;
+  process.stdout.write(`\n  ${bold(plan.id)}  ${plan.title}${plan.framework ? dim(` (${plan.framework})`) : ""}  confidence: ${conf}  source: ${plan.source}\n`);
+  for (const f of plan.findings) process.stdout.write(`    ${dim("fixes")} [${f.severity || "?"}] ${f.title}${f.url ? dim(` ${f.url}`) : ""}\n`);
+  for (const a of plan.ownerActions) process.stdout.write(`    ${yellow("owner action")} ${a}\n`);
+  process.stdout.write("\n" + colorDiff(plan.diff).replace(/^/gm, "    ").trimEnd() + "\n");
+}
+
+async function approve(plan, opts) {
+  if (opts.yes) return true;
+  if (!process.stdin.isTTY) {
+    process.stderr.write(`  Not applying ${plan.id}: review the diff above, then re-run with --yes to approve it.\n`);
+    return false;
+  }
+  const { initPrompt, confirm, closePrompt } = await import("./prompt.js");
+  await initPrompt();
+  const ok = await confirm(`\n  Apply ${plan.id} to the working tree?`, false);
+  closePrompt();
+  return ok;
+}
+
+export async function runFix(argv) {
+  let parsed;
+  try {
+    parsed = parseArgs({
+      args: argv,
+      allowPositionals: false,
+      options: {
+        plan: { type: "boolean", default: false },
+        apply: { type: "string" },
+        repo: { type: "string", short: "r" },
+        input: { type: "string", short: "o" },
+        "fix-model": { type: "string" },
+        json: { type: "boolean", default: false },
+        yes: { type: "boolean", default: false },
+        "dry-run": { type: "boolean", default: false },
+        "allow-dirty": { type: "boolean", default: false },
+        help: { type: "boolean", short: "h", default: false },
+      },
+    });
+  } catch (e) {
+    process.stderr.write(`  ${red("Error")} ${e.message}\n${HELP}`);
+    process.exit(2);
+  }
+  const opts = parsed.values;
+  if (opts.help) {
+    console.log(HELP);
+    process.exit(0);
+  }
+
+  const repo = resolve(opts.repo || ".");
+  if (!existsSync(repo) || !statSync(repo).isDirectory()) {
+    process.stderr.write(`  ${red("Error")} Repo not found: ${repo}\n`);
+    process.exit(2);
+  }
+
+  let model = null;
+  if (opts["fix-model"]) model = createModelFixer({ model: opts["fix-model"] });
+
+  let gathered;
+  try {
+    gathered = await gatherFindings(repo, opts.input);
+  } catch (e) {
+    process.stderr.write(`  ${red("Error")} Could not read findings: ${e.message}\n`);
+    process.exit(2);
+  }
+  const { plans, unmatched } = await planFixes(repo, gathered.findings, { model });
+
+  if (!opts.apply) {
+    if (opts.json) {
+      console.log(JSON.stringify({ repo, plans: plans.map(redactPlan), unmatched: unmatched.map((f) => ({ title: f.title, category: f.category, severity: f.severity, url: f.url || null })) }, null, 2));
+      process.exit(0);
+    }
+    process.stdout.write(`\n  ${bold("penthera fix")} ${dim(repo)}\n`);
+    process.stdout.write(`  ${plans.length} fix${plans.length === 1 ? "" : "es"} planned for ${gathered.findings.length} finding${gathered.findings.length === 1 ? "" : "s"}${gathered.fresh ? " (fresh repo scan)" : ` (from ${opts.input})`}\n`);
+    for (const p of plans) printPlan(redactPlan(p));
+    const manual = unmatched.filter((f) => f.severity !== "info");
+    if (manual.length) {
+      process.stdout.write(`\n  ${dim(`${manual.length} finding${manual.length === 1 ? "" : "s"} without a recipe; fix by hand (see the report's action plan)${model ? "" : " or try --fix-model <name>"}:`)}\n`);
+      for (const f of manual.slice(0, 20)) process.stdout.write(`    [${f.severity}] ${f.title}\n`);
+    }
+    if (plans.length) process.stdout.write(`\n  Apply one:  penthera fix --apply <id>${opts.repo ? ` --repo ${opts.repo}` : ""}${opts.input ? ` -o ${opts.input}` : ""}\n\n`);
+    process.exit(0);
+  }
+
+  const plan = plans.find((p) => p.id === opts.apply);
+  if (!plan) {
+    process.stderr.write(`  ${red("Error")} No plan with id ${opts.apply}. Plans change after each apply; run penthera fix --plan again.\n`);
+    process.exit(2);
+  }
+  printPlan(redactPlan(plan));
+  if (!opts["dry-run"] && !(await approve(plan, opts))) process.exit(1);
+
+  let result;
+  try {
+    result = applyDiff(repo, plan.diff, { dryRun: opts["dry-run"], allowDirty: opts["allow-dirty"] });
+  } catch (e) {
+    process.stderr.write(`  ${red("Not applied")} ${e.message}\n`);
+    process.exit(2);
+  }
+  const verb = result.applied ? "Applied" : "Dry run, would change";
+  process.stdout.write(`\n  ${green(verb)} ${result.files.map((f) => f.path + (f.created ? " (new)" : "")).join(", ")}\n`);
+  if (!result.applied) process.exit(0);
+
+  // Verify by re-scanning. Report findings came from a scan we can't repeat here.
+  if (gathered.fresh) {
+    const after = await gatherFindings(repo, null);
+    const still = new Set(after.findings.map(findingKey));
+    for (const f of plan.findings) {
+      const gone = !still.has(findingKey(f));
+      process.stdout.write(`  ${gone ? green("verified") : yellow("still reported")} ${f.title}\n`);
+    }
+  } else {
+    process.stdout.write(`  Re-run the scan that produced ${opts.input} to verify.\n`);
+  }
+  if (plan.ownerActions.length) {
+    process.stdout.write(`\n  ${yellow("Still on you:")}\n`);
+    for (const a of plan.ownerActions) process.stdout.write(`    - ${a}\n`);
+  }
+  process.stdout.write(`\n  Nothing was committed or pushed. Review with git diff, then commit it yourself.\n\n`);
+  process.exit(0);
+}

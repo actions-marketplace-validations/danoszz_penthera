@@ -72,6 +72,24 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   that comments the capability diff on PRs that change the lockfile
 - Findings use category `dependency-risk` and source `deps-scan`; SARIF
   results now carry a start line when a finding has one
+- **Fix recipes** (`lib/fix/`, `penthera fix`): deterministic, local fixes for
+  common findings, printed as unified diffs. `penthera fix --plan` plans fixes
+  for a fresh repo scan or an earlier `-o` report; `penthera fix --apply <id>`
+  applies one after a y/N prompt (or `--yes`), then re-scans to verify. Recipes:
+  security headers (Next.js, Express, Fastify, Hono), cookie flags, CORS
+  wildcard to an allowlist from `CORS_ALLOWED_ORIGINS`, a rate-limit stub on
+  login/auth routes, and a hardcoded secret moved to an env var with
+  `.env.example` updated (always with the owner action to rotate it)
+- `applyDiff()` refuses paths outside the repo (symlinks included), `.git`,
+  and dirty or non-git trees unless `--allow-dirty`, and writes nothing unless
+  every hunk applies. Planning never writes; nothing is committed or pushed
+- Recipes edit only at exact anchors and return no plan when the anchor is
+  missing, instead of a risky diff
+- Optional `--fix-model <name>` fallback for findings no recipe matches. It
+  talks only to Ollama on `127.0.0.1:11434`, is off by default, and labels its
+  output `confidence: "needs-human-review"`, `source: "local-model"`
+- Fixtures for Next.js, Express, Fastify and Hono under `tests/fixtures/fix/`
+- `detectFramework()` is now exported from `lib/whitebox/frameworks.js`
 
 ### Docs
 

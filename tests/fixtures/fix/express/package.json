@@ -1,0 +1,11 @@
+{
+  "name": "fixture-express",
+  "private": true,
+  "type": "module",
+  "main": "server.js",
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "express": "^5.1.0"
+  }
+}

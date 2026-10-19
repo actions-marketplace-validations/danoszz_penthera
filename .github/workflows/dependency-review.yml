@@ -20,8 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write
-      security-events: write
+      pull-requests: write # sticky PR comment with the capability diff
+      security-events: write # the upload-sarif step below
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -39,5 +39,17 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
 
       - uses: ./
+        id: penthera
         with:
           mode: deps
+          # Uploaded in this workflow instead, so the write scope above sits next
+          # to the step that uses it (Scorecard Token-Permissions).
+          sarif: "false"
+
+      - name: Upload SARIF
+        if: steps.penthera.outputs.sarif-file != ''
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        continue-on-error: true # code scanning may be off, or the token read-only on forks
+        with:
+          sarif_file: ${{ steps.penthera.outputs.sarif-file }}
+          category: penthera-deps

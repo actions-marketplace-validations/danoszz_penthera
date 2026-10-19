@@ -4,6 +4,16 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Security
+
+- Cleared the open code-scanning alerts. The community-template regex guard
+  was itself a polynomial regex; it is now a linear scan, and an invalid
+  extractor regex no longer aborts a template. Markdown table cells escape
+  backslashes first (one shared helper). `<script>` extraction is a tokenizer
+  that accepts any case and junk in closing tags. Release workflow: read-only
+  top-level token, hash-verified npm, no dependency cache. Docker base image
+  pinned by digest. fast-check property tests fuzz the untrusted-input parsers.
+
 ### Added
 
 - **Internal testing audit** (`npm run audit:internal`), the release gate:
@@ -99,6 +109,22 @@ reproduced; each fix has a regression test that fails without it.
   the machine-audit categories; `license` findings get their own remediation
 - Docs: `docs/plan.md` lists only what v1.5.0 shipped; top-level `--help`
   lists `penthera hook`
+
+### Docs
+
+- README cut from about 45 KB to under 20 KB. It opens with a three-command
+  "Try it in 60 seconds" block, a "Who it is for" table, and a "By the
+  numbers" block (benchmark, rule and test counts, references, release
+  provenance). Per-command detail moved to `docs/commands/` and network use to
+  `docs/privacy.md`.
+- Use-case pages in `docs/use-cases/`: before launch, teams adopting coding
+  agents, open-source maintainers, EU SMEs with NIS2 or CRA duties, agencies.
+- Comparison pages in `docs/compare/` for Socket, Snyk, GitHub Dependabot and
+  code scanning, OWASP ZAP and Semgrep, framed as using the tools together, with
+  sources and a last-checked date.
+- `docs/research/socket-positioning-notes.md`: how Socket presents itself and
+  what Penthera's docs took from it.
+- `npm run docs:numbers` prints the counts quoted in the README.
 
 ## [1.5.0] - 2026-10-19
 

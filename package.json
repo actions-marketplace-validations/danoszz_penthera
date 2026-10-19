@@ -53,6 +53,7 @@
     "prepack": "npm test",
     "mock-server": "node tests/fixtures/mock-server.js",
     "bench": "node bench/run.js",
+    "docs:numbers": "node scripts/docs-numbers.mjs",
     "refresh:retire-db": "node scripts/refresh-retire-db.mjs",
     "audit:internal": "node scripts/audit/run.mjs"
   },
@@ -80,7 +81,8 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "ajv": "^8.17.1",
+    "ajv": "^8.20.0",
+    "fast-check": "^4.10.2",
     "vitest": "^5.0.5"
   },
   "dependencies": {

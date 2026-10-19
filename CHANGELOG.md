@@ -4,6 +4,29 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Added
+
+- **`penthera hook install|uninstall|run`**: a pre-commit hook that checks
+  staged content only (the git index): secrets and AI provider keys, the
+  `penthera agents` rules on staged `.mcp.json`, `CLAUDE.md`, `AGENTS.md`,
+  `.cursor/`, `.claude/` and `skills/`, and, when `package-lock.json` is staged,
+  the capability diff against HEAD plus the license policy for the packages the
+  commit adds. Blocks on high and critical by default; one line per finding with
+  a fix hint and a `penthera.suppress.json` id. An existing hook is kept as
+  `pre-commit.pre-penthera`, runs first, and is restored by `uninstall`. Refuses
+  to write into a `core.hooksPath` managed by husky or lefthook without `--force`.
+  `.pre-commit-hooks.yaml` for pre-commit.com. Configured by a new `hook`
+  section in `penthera.policy.json` (`blockOn`, `checks`, `ignore`)
+- **License policy**: `penthera deps --license-policy <preset|file>` and a
+  `licenses` section in `penthera.policy.json` (`preset`, `allow`, `deny`,
+  `allowPackages`, `unknown`). Presets `permissive`, `weak-copyleft-ok` and
+  `no-agpl`. A small SPDX expression parser handles `AND`/`OR`/`WITH`,
+  parentheses, `+` and `LicenseRef-`, and matches deprecated ids (`GPL-3.0`) to
+  their current form. Breaches and `UNLICENSED` are high; missing, custom and
+  non-SPDX licenses are medium. Findings use category `license`; the SPDX id
+  list is vendored (`lib/deps/spdx.json`). CycloneDX SBOM components now carry
+  their license
+
 ## [1.4.0] - 2026-10-19
 
 The biggest release so far, covering the v1.3.0 "AI toolchain" and v1.4.0

@@ -126,8 +126,10 @@ person.
   and asks for confirmation.
 - **Never acts behind your back.** The fix loop works on a local branch, asks
   before every change by default, and never pushes or opens pull requests.
-- **No update channel to hijack.** Detection rules ship inside reviewed
-  releases. Nothing is downloaded and executed at run time.
+- **No update channel to hijack.** Detection rules and IOC lists ship inside
+  reviewed releases as signed, versioned [rule packs](docs/rule-packs.md). You
+  can add your own by path (`--rules <dir>`). Nothing is downloaded and
+  executed at run time.
 - **Releases you can verify.** npm provenance through trusted publishing, a
   maintainer approval with 2FA for every version, SHA-pinned CI, CodeQL, and
   OpenSSF Scorecard. Every release passes an

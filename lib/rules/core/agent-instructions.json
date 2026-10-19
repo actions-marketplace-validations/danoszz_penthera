@@ -1,0 +1,17 @@
+{
+  "kind": "agent-instruction",
+  "rules": [
+    {
+      "id": "instruction.credential-paths",
+      "description": "Mentions of SSH keys, cloud credentials and package-manager tokens inside hidden text.",
+      "pattern": "(?:~\\/\\.ssh|\\bid_rsa\\b|\\bid_ed25519\\b|\\.aws\\/credentials|\\.npmrc|\\.netrc|\\bkeychain\\b)",
+      "flags": "i",
+      "source": "https://github.com/danoszz/penthera/blob/afafb24/lib/agents/hidden-content.js",
+      "date": "2026-10-19",
+      "confidence": "potential",
+      "references": [
+        "greshake2023signed"
+      ]
+    }
+  ]
+}

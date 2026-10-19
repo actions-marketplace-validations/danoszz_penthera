@@ -1,0 +1,29 @@
+{
+  "kind": "agent-exec",
+  "rules": [
+    {
+      "id": "shell-process-substitution",
+      "label": "shell runs a download via process substitution",
+      "pattern": "\\b(?:(?:ba|z)?sh|source|\\.)\\s+<\\(\\s*(?:curl|wget)\\b",
+      "flags": "i",
+      "source": "https://github.com/danoszz/penthera/blob/afafb24/lib/agents/hidden-content.js",
+      "date": "2026-10-19",
+      "confidence": "likely",
+      "references": [
+        "greshake2023signed"
+      ]
+    },
+    {
+      "id": "shell-command-substitution",
+      "label": "shell -c runs a download",
+      "pattern": "\\b(?:ba|z)?sh\\s+-c\\s+[\"']?\\$\\(\\s*(?:curl|wget)\\b",
+      "flags": "i",
+      "source": "https://github.com/danoszz/penthera/blob/afafb24/lib/agents/hidden-content.js",
+      "date": "2026-10-19",
+      "confidence": "likely",
+      "references": [
+        "greshake2023signed"
+      ]
+    }
+  ]
+}

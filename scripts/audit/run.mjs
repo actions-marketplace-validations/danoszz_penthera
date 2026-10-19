@@ -38,12 +38,13 @@ const PKG = readJson(join(ROOT, "package.json"));
 const BENCH_MAX_DROP = 0.02;
 
 /** Package budget (current 1.2.0: ~475 KB packed, ~1.3 MB unpacked, 138 files). */
-// Raised for the dashboard (src/ui: ~245 KB unpacked, ~40 KB packed, 22 small files, no
-// dependencies): was 650_000 packed / 1_800_000 unpacked / 200 files. The headroom above
-// today's size stays about the same.
-// Raised again for the setup wizard (`penthera init`: src/cli/onboarding.js, detect.js and
-// docs/commands/init.md, ~35 KB unpacked, ~10 KB packed): was 720_000 / 2_050_000.
-const PACK_BUDGET = { packedBytes: 740_000, unpackedBytes: 2_100_000, files: 230 };
+// Raised for the dashboard (src/ui: ~245 KB unpacked, ~40 KB packed, 22 small
+// files, no dependencies), the bundled rule packs (lib/rules/: ~165 KB unpacked,
+// ~40 KB packed, 19 files of signed IOC and pattern data and their tooling) and
+// the setup wizard (`penthera init`: src/cli/onboarding.js, detect.js and
+// docs/commands/init.md, ~35 KB unpacked, ~10 KB packed): was 650_000 packed /
+// 1_800_000 unpacked / 200 files. The headroom above today's size stays about the same.
+const PACK_BUDGET = { packedBytes: 800_000, unpackedBytes: 2_300_000, files: 260 };
 
 /** Paths the npm package may contain. Anything else fails the packaging gate. */
 const PACK_ALLOW = [
@@ -52,6 +53,7 @@ const PACK_ALLOW = [
   /^lib\//,
   /^skills\/penthera\//,
   /^docs\//,
+  /^scripts\/rules\/[^/]+\.(?:mjs|sh)$/, // rule-pack build/sign tooling (docs/rule-packs.md)
   /^(package\.json|README\.md|CHANGELOG\.md|LICENSE|SECURITY\.md|pentest\.config\.example\.js)$/,
 ];
 

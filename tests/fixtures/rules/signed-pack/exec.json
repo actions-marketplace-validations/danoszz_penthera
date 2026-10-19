@@ -1,0 +1,13 @@
+{
+  "kind": "agent-exec",
+  "rules": [
+    {
+      "id": "fixture-pipe-to-node-eval",
+      "label": "fixture: fetched script piped to node -e",
+      "pattern": "\\bfixturecurl\\s+\\S+\\s*\\|\\s*node -e\\b",
+      "source": "https://example.com/advisories/fixture-exec",
+      "date": "2026-10-01",
+      "confidence": "potential"
+    }
+  ]
+}

@@ -13,6 +13,7 @@ has the full flag list.
 | `penthera install` | [install.md](install.md) | Check a new package before any install script runs |
 | `penthera fix`, `penthera agent --loop` | [fix.md](fix.md) | Deterministic fix recipes and the local scan, fix, verify loop |
 | `penthera hook` | [hook.md](hook.md) | Pre-commit hook for secrets, agent config and dependency changes |
+| `penthera rules list`, `penthera rules verify <dir>` | [rule-packs.md](../rule-packs.md) | Signed, versioned rule packs (IOCs, patterns); add your own with `--rules <dir>`, never fetched |
 | GitHub Action | [action.md](action.md) | The capability diff as a pull-request comment, plus SARIF |
 | Agent Skill | [skill.md](skill.md) | Let Claude Code, Cursor and other agents drive Penthera |
 | `penthera ui` | [dashboard.md](../dashboard.md) | The local dashboard: one view with projects, findings, side cards, and the fix loop from the page |

@@ -1,0 +1,35 @@
+{
+  "kind": "ioc-host",
+  "rules": [
+    {
+      "id": "shai-hulud-1-exfil",
+      "campaign": "Shai-Hulud worm (first wave)",
+      "description": "The worm's exfiltration endpoint. webhook.site is a legitimate service, so only this exact URL is an indicator.",
+      "urls": [
+        "https://webhook.site/bb8ca5f6-4175-45d2-b042-fc9ebb8170b7"
+      ],
+      "source": "https://www.stepsecurity.io/blog/ctrl-tinycolor-and-40-npm-packages-compromised",
+      "date": "2025-09-15",
+      "confidence": "confirmed",
+      "references": [
+        "ohm2020backstabber",
+        "ladisa2023sok"
+      ]
+    },
+    {
+      "id": "postmark-mcp-exfil",
+      "campaign": "postmark-mcp backdoor",
+      "description": "Attacker domain that received the BCC copies (phan@giftshop.club).",
+      "hosts": [
+        "giftshop.club"
+      ],
+      "source": "https://snyk.io/blog/malicious-mcp-server-on-npm-postmark-mcp-harvests-emails/",
+      "date": "2025-09-25",
+      "confidence": "confirmed",
+      "references": [
+        "ohm2020backstabber",
+        "ladisa2023sok"
+      ]
+    }
+  ]
+}

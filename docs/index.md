@@ -22,6 +22,7 @@ Open-source security for the apps and AI systems you ship: check it before you d
 | Authenticated scans | `--auth-cookie`, `--auth-bearer`, `PENTHERA_BEARER` env |
 | Adaptive probes | `--adaptive`, knowledge-graph-driven escalation on live routes |
 | Custom templates | `--templates ./my-templates`, Nuclei-compatible YAML dirs |
+| Rule packs | `--rules ./pack`, signed detection data; no runtime fetching. See [rule-packs.md](./rule-packs.md) |
 | Baseline diff | `--baseline reports/previous.json` |
 
 ## Reports

@@ -66,6 +66,11 @@ jobs:
       - name: Run tests
         run: npm test
 
+      # Rule packs bundled in lib/rules/ must be signed with the maintainer's
+      # key (scripts/rules/sign-pack.sh, run locally, never in CI).
+      - name: Check bundled rule packs are signed
+        run: npm run rules:check
+
       - name: Check the tag matches package.json
         run: |
           TAG="${GITHUB_REF_NAME#v}"

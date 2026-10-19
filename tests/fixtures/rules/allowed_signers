@@ -1,0 +1,3 @@
+# Test-only key for tests/fixtures/rules/signed-pack. Its private half was deleted
+# right after signing; it signs nothing else.
+fixture@penthera.test namespaces="penthera-rules" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEqdBBaP3QWYiC3rgj2n16BuoMyZYVxGzrkOSezUwwyj

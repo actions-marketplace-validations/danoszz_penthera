@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "name": "core",
+  "version": "1.0.0",
+  "created_at": "2026-10-19T13:44:05Z",
+  "min_penthera": "1.2.0",
+  "description": "Built-in detections that ship with Penthera: AI provider key formats, hidden-instruction and remote-exec patterns for agent configs, and the exposed .env template.",
+  "rules": [
+    {
+      "file": "agent-exec.json",
+      "kind": "agent-exec",
+      "sha256": "9decfc8f8305b302826e6b23c5f71520534beebe58e08d3da2731772a15eb416"
+    },
+    {
+      "file": "agent-instructions.json",
+      "kind": "agent-instruction",
+      "sha256": "edf192a2cf5665596b97ba2702d2540d37db3c9a7a953171a58f42ac16ed3b97"
+    },
+    {
+      "file": "secrets.json",
+      "kind": "secret",
+      "sha256": "48f2601311ea16d1254b21920582e3bf18c2c612a0e45406a8bdd2571358c320"
+    },
+    {
+      "file": "templates.json",
+      "kind": "nuclei-template",
+      "sha256": "67d762547efa3ac68b632fa2ca9196d97b601b7a35ec4e12eaf41207eb1e906d"
+    }
+  ]
+}

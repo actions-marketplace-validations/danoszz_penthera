@@ -1,0 +1,10 @@
+# pre-commit.com hook definition. See README "Block it before it's committed".
+- id: penthera
+  name: penthera (staged secrets, agent config, lockfile diff)
+  description: Blocks commits that stage secrets, risky AI agent config, or risky dependency changes.
+  entry: penthera hook run
+  language: node
+  pass_filenames: false
+  always_run: true
+  stages: [pre-commit]
+  minimum_pre_commit_version: "3.2.0"

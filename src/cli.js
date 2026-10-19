@@ -91,9 +91,13 @@ const HELP = `
         --online                Also check npm registry metadata (the only network use)
         --prod                  Skip devDependencies
         --pr-comment <file>     Write a short Markdown capability diff for a PR comment
+        --license-policy <p>    permissive | weak-copyleft-ok | no-agpl, or a policy file
 
   ${dim("Install mode")}  ${dim("(penthera install [pkg...]; penthera install --help for all options)")}
         --yes / --dry-run       Install only if nothing breaches the policy / report only
+
+  ${dim("Hook mode")}  ${dim("(penthera hook install|uninstall|run; penthera hook --help)")}
+                                Pre-commit: staged secrets, agent config, lockfile diff
 
   ${dim("Options")}
     -r, --repo <path>       Path to repo for source analysis
@@ -171,6 +175,12 @@ export async function run() {
     return;
   }
 
+  if (process.argv[2] === "hook") {
+    const { runHookCommand } = await import("./cli/hook.js");
+    process.exitCode = await runHookCommand(process.argv.slice(3));
+    return;
+  }
+
   if (process.argv[2] === "evidence") {
     const { runEvidence } = await import("./cli/evidence.js");
     process.exit(runEvidence(process.argv.slice(3)));
@@ -222,6 +232,7 @@ export async function run() {
         online:      { type: "boolean", default: false },
         "pr-comment": { type: "string" },
         prod:        { type: "boolean", default: false },
+        "license-policy": { type: "string" },
         profile:     { type: "string" },
         "auth-cookie": { type: "string" },
         "auth-bearer": { type: "string" },
@@ -360,8 +371,8 @@ export async function run() {
     await runDeps(positionals.slice(1), opts, { version: pkg.version });
     return;
   }
-  if (opts.diff || opts.base || opts.online || opts["pr-comment"] || opts.prod) {
-    printError("--diff, --base, --online, --prod and --pr-comment only apply to `penthera deps`.");
+  if (opts.diff || opts.base || opts.online || opts["pr-comment"] || opts.prod || opts["license-policy"]) {
+    printError("--diff, --base, --online, --prod, --pr-comment and --license-policy only apply to `penthera deps`.");
     process.exit(2);
   }
 

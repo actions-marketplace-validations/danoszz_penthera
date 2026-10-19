@@ -1,6 +1,6 @@
 /**
  * Property-based fuzzing (fast-check) for the parsers that take untrusted
- * input: SPDX expressions and lockfiles from dependency trees, agent files for
+ * input: SPDX expressions, npm and Python lockfiles, TOML, agent files for
  * the hidden-content engine, and community templates plus target responses
  * for the template matcher. Each property states what must hold for any input:
  * no crash outside the documented error type, and structural invariants.
@@ -9,8 +9,13 @@
  */
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { parseSpdx, formatSpdx, leaves, SpdxError } from "../lib/deps/license.js";
 import { parseLockfile, nameFromLockPath } from "../lib/deps/lockfile.js";
+import { parsePythonInput } from "../lib/deps/python/lockfiles.js";
+import { parseToml } from "../lib/deps/python/toml.js";
 import { scanHiddenContent, hasTagChars } from "../lib/agents/hidden-content.js";
 import { runMatcher, runExtractor } from "../lib/templates.js";
 import { hasNestedQuantifier } from "../lib/rules/regex-guard.js";
@@ -95,6 +100,43 @@ describe("npm lockfile parser", () => {
   it("the package name is whatever follows the last node_modules/", () => {
     fc.assert(fc.property(fc.string(), fc.string().filter((s) => !s.includes("node_modules/")), (pre, name) => {
       expect(nameFromLockPath(`${pre}node_modules/${name}`)).toBe(name);
+    }), RUNS);
+  });
+});
+
+describe("Python lockfile and requirements parsers", () => {
+  // `-r other.txt` includes resolve against this empty folder, never the repo.
+  const dir = mkdtempSync(join(tmpdir(), "penthera-fuzz-"));
+  const tomlish = fromAlphabet(["[[package]]\n", "[metadata]\n", 'name = "requests"\n', 'version = "2.32.3"\n', "[", "]", "=", '"', "'", "'''", '"""', "\\", "\n", " ", "#", "{", "}", ",", "x", "1", "true", "[package.dependencies]\n"], 80);
+  const reqish = fromAlphabet(["requests", "==", ">=", "2.0", "[extra]", ";", "python_version<'3.8'", "\n", "-r ", "-e ", "--hash=sha256:", "abc", "#", " ", "\\\n", "git+https://x/y.git@v1#egg=y", "@", "file:///tmp/x", "-c c.txt"], 60);
+  const jsonish = fc.oneof(fc.jsonValue().map((v) => JSON.stringify(v)), fc.string());
+
+  it("each kind returns packages or throws a plain Error, never a TypeError", () => {
+    const input = fc.oneof(
+      fc.tuple(fc.constantFrom("uv.lock", "poetry.lock", "pdm.lock"), fc.oneof(tomlish, fc.string())),
+      fc.tuple(fc.constant("Pipfile.lock"), jsonish),
+      fc.tuple(fc.constant("requirements.txt"), fc.oneof(reqish, fc.string())),
+    );
+    fc.assert(fc.property(input, ([kind, text]) => {
+      try {
+        const r = parsePythonInput(text, kind, dir);
+        expect(Array.isArray(r.packages)).toBe(true);
+        for (const p of r.packages) expect(typeof p.name).toBe("string");
+      } catch (e) {
+        expect(e.constructor === Error || e instanceof SyntaxError, String(e)).toBe(true);
+      }
+    }), RUNS);
+  });
+
+  it("TOML parser returns an object or throws Error", () => {
+    fc.assert(fc.property(fc.oneof(tomlish, fc.string({ maxLength: 120 })), (text) => {
+      try {
+        const v = parseToml(text);
+        expect(typeof v).toBe("object");
+        expect(Object.prototype.polluted).toBeUndefined();
+      } catch (e) {
+        expect(e.constructor, String(e)).toBe(Error);
+      }
     }), RUNS);
   });
 });

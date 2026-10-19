@@ -103,3 +103,17 @@ describe("script extraction (js/bad-tag-filter)", () => {
     expect(elapsed(() => extractScripts(big, base))).toBeLessThan(500);
   });
 });
+
+describe("Python lockfile shapes (found by tests/fuzz.test.js)", async () => {
+  const { parsePythonInput } = await import("../lib/deps/python/lockfiles.js");
+  it("a Pipfile.lock that is not an object is an Error, not a TypeError", () => {
+    for (const text of ["null", "1", "[]", '"x"']) {
+      expect(() => parsePythonInput(text, "Pipfile.lock", "/nonexistent")).toThrow(/not a JSON object/);
+    }
+  });
+  it("a TOML lockfile whose package key is not an array has no packages", () => {
+    for (const kind of ["uv.lock", "poetry.lock", "pdm.lock"]) {
+      expect(parsePythonInput('package = "x"\n', kind, "/nonexistent").packages).toEqual([]);
+    }
+  });
+});

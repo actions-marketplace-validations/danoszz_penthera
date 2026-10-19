@@ -15,6 +15,7 @@ import { compareWithBaseline } from "./cli/baseline.js";
 import { normalizeBaseUrl } from "./utils/url.js";
 import { printReport, printFindings, writeJsonReport, writeSarifReport, createProgress, printError } from "./reporter.js";
 import { writeMarkdownReport, markdownPathFromJson } from "./report/markdown.js";
+import { prepareReportOptions, customReport, writeEvidence } from "./cli/report-outputs.js";
 import { parseTemplatePaths } from "../lib/plugins.js";
 import { buildComplianceCoverage, listFrameworks } from "../lib/compliance/index.js";
 import { buildActionPlan } from "../lib/remediation/index.js";
@@ -57,8 +58,10 @@ const HELP = `
     $ penthera <url> --repo <path>   Full scan (both)
     $ penthera agents [path]         Audit AI agent config: skills, MCP, hooks (offline)
     $ penthera deps [path]           What your npm dependencies can do (offline)
+    $ penthera install <pkg...>      Check what an npm install adds before anything runs
     $ penthera memory show|verify|forget  Local learning store (never leaves the machine)
     $ penthera fix --plan            Plan local fix recipes (penthera fix --help)
+    $ penthera evidence verify <dir> Check an evidence bundle's hashes and signature
     $ penthera agent --loop          Scan, fix, verify, learn; local commits only (--help)
 
   ${dim("Scan modes")}
@@ -87,12 +90,19 @@ const HELP = `
         --prod                  Skip devDependencies
         --pr-comment <file>     Write a short Markdown capability diff for a PR comment
 
+  ${dim("Install mode")}  ${dim("(penthera install [pkg...]; penthera install --help for all options)")}
+        --yes / --dry-run       Install only if nothing breaches the policy / report only
+
   ${dim("Options")}
     -r, --repo <path>       Path to repo for source analysis
         --api-root <path>   API routes directory (default: auto-detect)
     -o, --output <file>     Write JSON report (+ companion .md if .json)
         --markdown <file>   Write Markdown report (human-readable)
         --sarif <file>      Write SARIF report (GitHub Security tab)
+        --audience <who>    developer | owner | auditor report (for --markdown or stdout)
+        --report-template <file.md>  Your own Markdown template ({{summary.critical}}, {{#each findings}})
+        --evidence <dir>    Evidence bundle: all reports + manifest.json with SHA-256s
+        --sign-key <key>    Sign the bundle's manifest with an SSH key (ssh-keygen -Y sign)
         --baseline <file>   Compare against previous JSON report
         --framework <name>  Add a compliance mapping to reports (nis2)
         --readiness         NIS2 readiness report (scan + self-assessment)
@@ -150,6 +160,17 @@ export async function run() {
     process.exit(await runMemoryCommand(process.argv.slice(3)));
   }
 
+  if (process.argv[2] === "install") {
+    const { runInstall } = await import("./cli/install.js");
+    process.exitCode = await runInstall(process.argv.slice(3));
+    return;
+  }
+
+  if (process.argv[2] === "evidence") {
+    const { runEvidence } = await import("./cli/evidence.js");
+    process.exit(runEvidence(process.argv.slice(3)));
+  }
+
   if (process.argv[2] === "fix") {
     const { runFix } = await import("./cli/fix.js");
     return runFix(process.argv.slice(3));
@@ -170,6 +191,10 @@ export async function run() {
         output:      { type: "string",  short: "o" },
         markdown:    { type: "string" },
         sarif:       { type: "string" },
+        audience:    { type: "string" },
+        "report-template": { type: "string" },
+        evidence:    { type: "string" },
+        "sign-key":  { type: "string" },
         baseline:    { type: "string" },
         framework:   { type: "string" },
         readiness:   { type: "boolean", default: false },
@@ -330,6 +355,14 @@ export async function run() {
   if (!agentsMode && !url && !repo && !opts.machine && !opts.readiness && !opts["policy-pack"] && !opts.sbom && !opts.questionnaire) {
     printError("No target specified. Provide a URL, --repo, --machine, --readiness, --policy-pack, --sbom, --questionnaire, or combine them.");
     console.log(HELP);
+    process.exit(2);
+  }
+
+  let reportCtx;
+  try {
+    reportCtx = prepareReportOptions(opts);
+  } catch (e) {
+    printError(e.message);
     process.exit(2);
   }
 
@@ -505,10 +538,13 @@ export async function run() {
   }
 
   const mdOpts = { version: pkg.version, baseline: baselineStats };
+  const custom = customReport(merged, opts, { version: pkg.version, template: reportCtx.template });
 
   // Output
   if (opts.json) {
     console.log(JSON.stringify(merged, null, 2));
+  } else if (custom && !opts.markdown) {
+    process.stdout.write(custom);
   } else if (opts.quiet) {
     printFindings(merged.findings);
   } else {
@@ -526,7 +562,8 @@ export async function run() {
   }
 
   if (opts.markdown) {
-    writeMarkdownReport(merged, opts.markdown, mdOpts);
+    if (custom) writeFileSync(resolve(opts.markdown), custom);
+    else writeMarkdownReport(merged, opts.markdown, mdOpts);
     if (!opts.quiet && !opts.json) {
       process.stderr.write(`  Markdown report ${opts.markdown}\n`);
     }
@@ -555,9 +592,10 @@ export async function run() {
     }
   }
 
+  let sbom = null;
   if (opts.sbom) {
     const sbomRepo = resolve(opts.repo || ".");
-    const sbom = buildSbom(sbomRepo, {
+    sbom = buildSbom(sbomRepo, {
       serialNumber: `urn:uuid:${randomUUID()}`,
       timestamp: new Date().toISOString(),
     });
@@ -610,6 +648,18 @@ export async function run() {
     }
   }
 
+  if (opts.evidence) {
+    try {
+      const bundle = writeEvidence(merged, opts, { version: pkg.version, template: reportCtx.template, mdOpts, sbom, argv: process.argv.slice(2) });
+      if (!opts.quiet && !opts.json) {
+        process.stderr.write(`  Evidence bundle ${bundle.manifest.artifacts.length} files${bundle.signed ? ", signed" : ""} → ${opts.evidence}/ (penthera evidence verify ${opts.evidence})\n`);
+      }
+    } catch (e) {
+      printError(`Could not write the evidence bundle: ${e.message}`);
+      process.exit(2);
+    }
+  }
+
   if (merged.auditLoop && !opts.quiet && !opts.json) {
     const a = merged.auditLoop;
     process.stderr.write(
@@ -618,7 +668,7 @@ export async function run() {
     );
   }
 
-  if ((opts.output || opts.markdown || opts.sarif || opts.readiness || opts["policy-pack"] || opts.sbom || opts.history || opts.questionnaire) && !opts.quiet && !opts.json) {
+  if ((opts.output || opts.markdown || opts.sarif || opts.evidence || opts.readiness || opts["policy-pack"] || opts.sbom || opts.history || opts.questionnaire) && !opts.quiet && !opts.json) {
     process.stderr.write("\n");
   }
 

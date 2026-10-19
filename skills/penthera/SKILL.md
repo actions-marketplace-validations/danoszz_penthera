@@ -5,6 +5,8 @@ description: >
   (TLS, headers, OpenAPI, auth hardening, secret scanning, optional injection probes),
   and checks npm dependencies offline for what they can do ("is this dependency safe?",
   "what changed in my deps?", "review this lockfile change", "is this a typosquat?"),
+  installs npm packages through a capability firewall ("install X safely", "is it safe
+  to add this package?"),
   then applies framework-aware fixes and re-scans to verify them. Use when the user asks
   to scan, audit, harden, fix, pentest, or review security of their own app, staging URL,
   localhost, or repo; apply security best practices; generate SARIF for GitHub; diff
@@ -68,12 +70,14 @@ All examples below use `penthera`; substitute `node bin/penthera.js` when needed
 | Scan a live URL | `penthera <url> --profile standard -o reports/scan.json` |
 | Scan repo only (secrets, routes) | `penthera --repo . -o reports/repo-scan.json` |
 | Is this dependency safe? / what changed in my deps? | `penthera deps` or `penthera deps --base origin/main` (see **Dependency risk scan**) |
+| Install X safely / is it safe to add this package? | `penthera install <pkg> --dry-run`, then `penthera install <pkg>` (see **Install firewall**) |
 | URL + source combined | `penthera <url> --repo . -o reports/scan.json --sarif reports/scan.sarif` |
 | Scan and fix my app | **Workflow 4**: `penthera agent --loop` (scan, fix, verify, commit locally), then hand-fix what is left from [references/remediation.md](references/remediation.md) |
 | Compare to previous scan | `penthera <url> -o reports/scan.json --baseline reports/previous.json` |
 | Authenticated endpoints | Add `--auth-cookie` or `--auth-bearer` / `PENTHERA_*` env |
 | macOS machine audit | `penthera --machine` |
 | Audit MCP servers, skills, hooks, agent config | `penthera agents . --home -o reports/agents.json` (see **Workflow 6**) |
+| Report for my auditor / manager / developers | `--audience auditor\|owner\|developer --markdown reports/<who>.md`, or `--evidence <dir>` (see **Workflow 7**) |
 
 ## Default safe behavior
 
@@ -230,6 +234,26 @@ penthera agents . --pin                         # write penthera.lock after the 
 4. Offer `--pin` only after the user has reviewed the setup. Later runs report pinned items that changed (possible rug pull) or appeared; tell the user to diff before re-pinning.
 5. Never edit `~/.claude`, `~/.cursor` or Claude Desktop config yourself unless the user asks for a specific change.
 
+## Workflow 7: Reports for an auditor, a manager or developers
+
+**Triggers:** "make a report for my auditor", "a summary for my manager / the owner", "evidence for our NIS2 audit", "signed scan evidence", "report in our own format"
+
+1. Confirm authorization, then pick the audience: **auditor** (scope, method, confidence and provenance, suppressions with who and why, NIS2 and OWASP tables), **owner** for a manager (plain language, what to do first, owner actions, trend), or **developer** (file:line, fix recipes, sources).
+2. One report:
+```bash
+mkdir -p reports
+penthera <url> --repo . --framework nis2 --audience auditor --markdown reports/auditor.md
+```
+   Add `--memory` so the owner report can show the trend across scans.
+3. Evidence an auditor can check (all reports plus a hashed, optionally signed manifest). The directory must be new:
+```bash
+penthera <url> --repo . --framework nis2 --evidence reports/evidence-$(date +%F) --sign-key ~/.ssh/id_ed25519
+penthera evidence verify reports/evidence-$(date +%F)
+```
+   Tell the user to send the public key to the auditor separately (an `allowed_signers` line) and point them to `docs/evidence.md` for the one-command check.
+4. A house format: write a template with `{{summary.critical}}`, `{{#each findings}}…{{/each}}` and `{{#if x}}…{{/if}}` (no other syntax), then `--report-template reports/template.md --markdown reports/custom.md`.
+5. Summarize what the report says in two or three sentences. Never describe a bundle as an audit or a certification: it is technical evidence.
+
 ## Repo-only secret scan
 
 **Triggers:** "find hardcoded secrets", "scan this repo for keys"
@@ -259,6 +283,21 @@ penthera deps --prod -o reports/deps.json  # skip devDependencies, write JSON + 
 2. Then critical/high risk signals (AI-config writes, AI CLI invocation, GitHub token harvesting, obfuscation, env exfiltration). Open the evidence file and read the lines before calling anything malicious: a capability is what code *can* do, not a verdict.
 3. If old versions were "not compared", say so; suggest installing the base tree and passing it to `--diff`.
 4. `--online` is the only network use (npm registry metadata: publish age, publisher change, deprecation). Only add it if the user agrees.
+
+## Install firewall
+
+**Triggers:** "install X safely", "is it safe to add this package?", "add X but check it first", "will this upgrade run anything on install?"
+
+`penthera install` resolves with scripts off in a temp copy, diffs capabilities against the current lockfile, and applies `penthera.policy.json` before the real `npm install`. npm contacts the configured registry (the only egress); say so.
+
+```bash
+penthera install <pkg> --dry-run --json   # always start here: report only, nothing changes
+penthera install <pkg> --yes              # install only if nothing breaches the policy
+```
+
+1. Run `--dry-run` first and summarize: new packages, capabilities gained, new install scripts with their commands, typosquat warnings, and what the policy says.
+2. Exit 1 means blocked: the project is untouched. Never add a package to `allow` in `penthera.policy.json`, or approve install scripts, without the user saying so after seeing the evidence.
+3. If the user approves, run `penthera install <pkg>` in their terminal (the prompt is theirs to answer), or `--yes` after they have added an `allow` entry.
 
 ## Examples
 

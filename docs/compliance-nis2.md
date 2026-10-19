@@ -1,6 +1,8 @@
 # Compliance: NIS2 and the cyberwetgeving
 
-Back to the [README](../README.md).
+Back to the [README](../README.md). Shipping a product? The Cyber Resilience
+Act's Article 14 reporting helper and the AI-BOM are in
+[compliance-cra.md](compliance-cra.md).
 
 The EU NIS2 directive and its national transpositions (the Cyberbeveiligingswet
 in the Netherlands, the NIS2-wet in Belgium) put a duty of care, the *zorgplicht*,

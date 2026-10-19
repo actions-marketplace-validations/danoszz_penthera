@@ -26,6 +26,24 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   non-SPDX licenses are medium. Findings use category `license`; the SPDX id
   list is vendored (`lib/deps/spdx.json`). CycloneDX SBOM components now carry
   their license
+- **CRA Article 14 reporting helper** (`penthera --cra-init cra.json`,
+  `penthera --cra cra.json`, `lib/compliance/cra.js`): for an actively exploited
+  vulnerability (24h early warning, 72h notification, final report 14 days after
+  a fix is available) or a severe incident (24h, 72h, final report one month
+  after the notification). Computes due dates in UTC and local time (hours
+  elapsed, days and months on the calendar, DST-safe), flags overdue and late
+  reports, drafts each report against Art. 14(2)/(4) with `NEEDS INPUT` for
+  missing facts, adds an Art. 14(8) user advisory, and can prefill the affected
+  component, purl and CVEs from a Penthera SBOM and scan JSON. NL profile names
+  NCSC-NL and the ENISA Single Reporting Platform. Drafts, not the official
+  form, not legal advice. Guide: `docs/compliance-cra.md`
+- **CycloneDX 1.6 AI-BOM** (`penthera --repo . --aibom aibom.cdx.json`,
+  `lib/whitebox/aibom.js`): AI SDK dependencies, model identifiers in code as
+  `machine-learning-model` components with `modelCard` and file:line evidence,
+  MCP servers as `services`, and Agent Skills and prompt files as hashed `data`
+  components. Offline. Tests validate the output against the official
+  CycloneDX 1.6 schema, vendored in `tests/fixtures/cyclonedx/` (new dev
+  dependency: `ajv`)
 
 ## [1.4.0] - 2026-10-19
 

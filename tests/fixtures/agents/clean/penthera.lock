@@ -1,0 +1,42 @@
+{
+  "lockfileVersion": 1,
+  "generator": "penthera agents --pin",
+  "note": "SHA-256 pins for agent skills, MCP servers, hooks and plugins. Review changes before re-pinning.",
+  "entries": {
+    "hook:.claude/settings.json#PostToolUse[Edit|Write]/0.0": {
+      "kind": "hook",
+      "scope": "repo",
+      "sha256": "24d5c9ae91b6a1a3da352553583fe4a974299611e85c22a84434f0e438b85d40"
+    },
+    "mcp:.mcp.json#docs": {
+      "kind": "mcp",
+      "scope": "repo",
+      "sha256": "59759ca82c7cb9dc42a8ad49fb8337831865c712609e529af03e0dfb31bfac4c"
+    },
+    "mcp:.mcp.json#fetch": {
+      "kind": "mcp",
+      "scope": "repo",
+      "sha256": "c04fa28b927024ad4865aa37e4c86088fe370ae6483e2f6bec37f5065c5d575b"
+    },
+    "mcp:.mcp.json#filesystem": {
+      "kind": "mcp",
+      "scope": "repo",
+      "sha256": "87f9be42c111803d5d771dc11ffa9a7adb5395f2be56d8bfa02f4c42badd1e5f"
+    },
+    "mcp:.mcp.json#github": {
+      "kind": "mcp",
+      "scope": "repo",
+      "sha256": "5115fbf2d65abc7665cc641800ce2c86a5f61e7847172a4b83886d129516d67c"
+    },
+    "mcp:.mcp.json#local": {
+      "kind": "mcp",
+      "scope": "repo",
+      "sha256": "68010c94209eefc008c29139220e6bcd84bc52de58ed62b9c2ab2814bfa369b7"
+    },
+    "skill:skills/release-notes": {
+      "kind": "skill",
+      "scope": "repo",
+      "sha256": "a3cd1014c28c0e06187e668d5b89ea34e5bcaae75255a211d2ad1cd87f94b63b"
+    }
+  }
+}

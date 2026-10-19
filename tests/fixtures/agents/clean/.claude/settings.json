@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test)",
+      "Bash(git status)",
+      "Read(./src/**)"
+    ],
+    "deny": [
+      "Bash(curl:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm run lint --silent"
+          }
+        ]
+      }
+    ]
+  },
+  "extraKnownMarketplaces": {
+    "team": {
+      "source": {
+        "source": "github",
+        "repo": "example/team-plugins",
+        "sha": "0123456789abcdef0123456789abcdef01234567"
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+---
+description: Code style
+globs: src/**
+---
+
+Use two-space indentation and ES modules.

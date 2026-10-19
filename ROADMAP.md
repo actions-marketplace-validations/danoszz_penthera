@@ -28,71 +28,68 @@ by ambition. Issues and PRs are welcome on anything here.
 ## Next
 
 Penthera is growing from "scan the app you built with AI" into "secure the AI
-tooling you build with". Three tracks, each ordered by value per hour.
+tooling you build with", competing with commercial supply-chain and AppSec
+platforms on their core value while staying local, deterministic, and free.
+The engineering detail, order of work, and acceptance criteria are in the
+[release plan](docs/release-plan.md).
 
-### 1. AI supply chain: is what you installed safe?
+### v1.3.0 "AI toolchain" (target late October 2026)
 
-Skills, MCP servers, plugins, hooks, and rule files now run with your
-credentials and in your shell. Poisoned skills and MCP servers have been found
-in the wild, and the scanners that exist mostly rely on a cloud LLM judge that
-has already been bypassed. Penthera's take: offline, deterministic, and
-explainable.
+| Feature | What it does |
+|---------|--------------|
+| `penthera agents` | Offline audit of `.mcp.json`, `~/.claude`, `~/.cursor`, hooks, plugins, skills, and `AGENTS.md` / `CLAUDE.md` / `.cursorrules`, graded A–F, with OWASP MCP and Agentic mapping |
+| Hidden-content engine | Unicode tag / zero-width / bidi characters, whitespace padding, embedded `.pyc` and archives, `curl \| sh`, auto-approve hooks, unpinned `npx -y` MCP servers |
+| `penthera.lock` | Hash-pins skills, MCP tool definitions, and hooks; a diff catches a silent "rug pull" update |
+| `penthera deps` | Static capability detection for every dependency (install scripts, network, shell, env, eval, obfuscation), with file:line evidence |
+| `penthera deps --diff` | What your dependencies can do now that they could not before: "this upgrade added network access" |
+| Typosquat check | Names close to popular packages, against a vendored list. Registry metadata only with `--online` |
+| Methodology and benchmark | `docs/METHODOLOGY.md`, verified citations on every finding category, `CITATION.cff`, and published precision and recall |
 
-| Feature | Why | Rough size |
-|---------|-----|-----------|
-| `penthera agents` | Audit `.mcp.json`, `~/.claude`, `~/.cursor`, hooks, plugins, skills, `AGENTS.md`/`CLAUDE.md`/`.cursorrules`, graded A–F with SARIF | Large |
-| Hidden-content engine | Unicode tag / zero-width / bidi characters, whitespace padding, embedded `.pyc` and archives, `curl \| sh`, auto-approve hooks, unpinned `npx -y` MCP servers | Medium |
-| `penthera.lock` | Hash-pin skills, MCP tool definitions, and hooks; a CI diff catches a silent "rug pull" update | Medium |
-| Install-time package checks | Packages that don't exist or are days old (slopsquatting), risky `postinstall` scripts, IOC packs for known npm worm campaigns | Medium |
-| JS bundle key scan | Provider keys shipped to the browser via `NEXT_PUBLIC_` / `VITE_` variables | Small |
+### v1.4.0 "Local loop" (target mid-November 2026)
 
-### 2. A local scan → fix → verify → learn loop
+| Feature | What it does |
+|---------|--------------|
+| `--offline` egress guard | One HTTP client that can only reach the target you named. Vendored CVE database, recon as explicit opt-in, an identifying User-Agent, and probe errors reported as inconclusive |
+| Local learning store | `~/.penthera/` history of verified fixes, false-positive suppressions, and probe yield. Append-only and hash-chained; it re-ranks and suppresses, never executes |
+| Fix recipes | Deterministic diffs for headers, cookies, CORS, rate limiting, and hardcoded secrets across Next.js, Express, Fastify, and Hono. Optional local model (Ollama) for the rest, labelled as such |
+| `penthera agent --loop` | Scan → fix on a local branch → verify by re-scan and tests → learn → repeat. Never pushes, never opens pull requests, approval on every diff by default |
+| `penthera install` | An install firewall: shows what new capabilities an install brings (install scripts, network, shell) before any script runs, with a policy file |
+| PR-comment GitHub Action | Comments the dependency capability diff on every PR that changes a lockfile, and uploads SARIF |
+| Custom reports and evidence bundle | Templates per audience, a found → fixed → verified timeline, and a SHA-256 manifest you can sign with a local SSH key |
 
-`penthera agent --loop`: scan, rank, propose a fix, apply it on a local branch,
-re-scan to prove it, and remember what worked, so the next run is sharper.
-Built to run entirely on your machine.
+### v1.5.0 "AI apps and compliance" (staged, December 2026)
 
-| Feature | Why | Rough size |
-|---------|-----|-----------|
-| `--offline` egress guard | One HTTP client that can only reach the target you named. Recon sources and the CVE database become explicit opt-ins with a vendored fallback | Medium |
-| Local learning store | `~/.penthera/` history of verified fixes, false-positive suppressions, and probe yield per stack. Append-only and hash-chained, so it cannot be quietly poisoned. It re-ranks and suppresses; it never executes anything | Medium |
-| Agent loop | Built-in fixes for the common cases (headers, cookies, CORS), an optional local model (Ollama) for the rest, a human approval gate on every diff | Large |
-| Custom reports | Templates per audience (developer, owner, auditor), a loop timeline of found → fixed → verified, and a hashed evidence bundle | Medium |
+| Feature | Why |
+|---------|-----|
+| LLM endpoint probes | Missing rate limits on chat endpoints, canary prompt-injection and system-prompt leakage (opt-in), markdown-image exfiltration, exposed Ollama / vector DBs, unauthenticated remote MCP |
+| OWASP LLM Top 10 mapping | The same per-run coverage table WSTG already gets |
+| CRA Art. 14 reporting helper | Vulnerability reporting under the Cyber Resilience Act applies from 11 Sept 2026; the NIS2 incident helper already does most of the work |
+| CycloneDX AI-BOM | Models, MCP servers, and skills alongside the existing SBOM |
+| Pre-commit hook and license policy | `agents` and `deps` before code leaves the laptop; allow and deny lists for licences |
+| Signed rule packs | New detection rules ship as reviewed, signed, versioned packs in releases. Never fetched at runtime |
+| JS bundle key scan, PyPI support for `deps` | Coverage gaps worth closing |
 
-### 3. AI-infused apps and compliance
+### Scheduled for later
 
-| Feature | Why | Rough size |
-|---------|-----|-----------|
-| LLM endpoint probes | Missing rate limits on chat endpoints, canary prompt-injection and system-prompt leakage (opt-in), markdown-image exfiltration, exposed Ollama / vector DBs, unauthenticated remote MCP | Large |
-| OWASP LLM, Agentic and MCP Top 10 mapping | The same per-run coverage table WSTG already gets | Medium |
-| CRA Art. 14 reporting helper | Vulnerability reporting under the Cyber Resilience Act applies from 11 Sept 2026; the NIS2 incident helper already does most of the work | Small |
-| CycloneDX AI-BOM | Models, MCP servers, and skills alongside the existing SBOM | Medium |
-| Risk-contextual prioritisation ("fix these three first") | A ranked shortlist beats a long list | Small |
-| MFA probe | The last Article 21 measure still marked planned | Medium |
-| CyFun adapter (Belgium) | Jurisdiction data is already config | Small |
-| Exploit-chain storytelling | Show how discovered chains combine, not just a flat list | Medium |
-
-## Under consideration
-
-**Local dashboard and live monitor.** A `penthera ui` command that opens a local
-web app: a dashboard of current posture, findings and their history, a field to
-enter a URL and run a scan, deep-scan and re-scan controls, downloadable
-reports, and an interactive view of the agent working rather than a wall of
-terminal output. Long-running monitoring with status reporting over time. This
-is the largest item on the list and would change what the tool feels like to
-use, so it needs real demand before the maintenance cost is worth taking on.
-
-**A GitHub Action and pre-commit hook** for `penthera agents`, so a team's
-agent configuration is checked on every PR.
-
-**A public, signed registry** of scan results for popular skills and MCP
-servers. Useful, but it would be a hosted service, so it lives outside the
-offline core if it happens at all.
-
-**Other candidates**, roughly in order: SBOM transitive dependencies and
-container images, an authorised-versus-unauthorised baseline for the IDOR probe,
-broader injection targeting, document export for non-technical owners, and
-credential-exposure lookup.
+- **Internal testing audit.** A standing release gate: Penthera against itself
+  and a fixed set of deliberately vulnerable apps, diffed against the previous
+  release, plus a weekly run between releases.
+- **Landing page.** One static page, no tracking scripts: what it does, install
+  in 30 seconds, why you can trust it.
+- **Local dashboard (`penthera ui`).** Current posture, findings and their
+  history, run and re-scan controls, downloadable reports, and a live view of
+  the agent loop. Long-running monitoring over time. The largest item here, so
+  it waits for demand.
+- **Team pack.** Shared policy files, a faster signed rule-pack channel, and a
+  self-hostable dashboard for teams. The single-machine tool stays complete and
+  MIT.
+- **A public, signed registry** of scan results for popular skills and MCP
+  servers. Useful, but it would be a hosted service, so it lives outside the
+  offline core if it happens at all.
+- **Earlier candidates:** risk-contextual prioritisation, the MFA probe, a CyFun
+  adapter for Belgium, exploit-chain storytelling, SBOM transitive dependencies
+  and container images, an authorised-versus-unauthorised IDOR baseline, and
+  document export for non-technical owners.
 
 ## Not planned
 

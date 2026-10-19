@@ -1,0 +1,5 @@
+# Model routing
+summarizer:
+  model: gemini-2.5-flash
+local:
+  model_name: llama3.1:8b

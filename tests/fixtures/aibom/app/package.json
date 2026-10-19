@@ -1,0 +1,11 @@
+{
+  "name": "ai-fixture-app",
+  "version": "0.3.0",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.60.0",
+    "openai": "^5.0.0",
+    "ai": "^5.0.0",
+    "@ai-sdk/openai": "^2.0.0",
+    "express": "^4.21.0"
+  }
+}

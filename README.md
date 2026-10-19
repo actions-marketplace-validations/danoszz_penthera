@@ -129,7 +129,8 @@ carefully. See [Ethical use](#ethical-use--authorization) and the [Disclaimer](#
 
 Shipping in the EU? Penthera also generates your
 [NIS2 readiness report, policy pack, incident-report drafts, SBOM, and prefilled
-customer security questionnaires](#compliance-nis2-and-the-cyberwetgeving).
+customer security questionnaires](#compliance-nis2-and-the-cyberwetgeving), plus
+CRA Article 14 report drafts and an AI-BOM.
 Readiness tooling, not a certification.
 
 ### What you get
@@ -569,11 +570,14 @@ helps with the paperwork around it. Offline, no accounts.
 | `--policy-pack ./policies` | Proportionate policy templates, prefilled from your gaps |
 | `--incident incident.json` | 24h / 72h / 1-month incident report drafts and deadlines |
 | `--sbom sbom.cdx.json` | CycloneDX software bill of materials |
+| `--cra cra.json` | CRA Article 14 drafts: 24h / 72h / 14-day or 1-month deadlines, overdue flags |
+| `--aibom aibom.cdx.json` | CycloneDX 1.6 AI-BOM: AI SDKs, models in code, MCP servers, skills, prompts |
 | `--history history.json` | Time-to-fix, ageing, and drift across scans |
 | `--suppliers suppliers.txt` | Passive red/amber/green rating of your suppliers |
 
 **Full guide, the measure-by-measure coverage table, and the limits:**
-[docs/compliance-nis2.md](docs/compliance-nis2.md).
+[docs/compliance-nis2.md](docs/compliance-nis2.md). Cyber Resilience Act
+reporting and the AI-BOM: [docs/compliance-cra.md](docs/compliance-cra.md).
 
 > Readiness tooling, not a certification and not legal advice.
 

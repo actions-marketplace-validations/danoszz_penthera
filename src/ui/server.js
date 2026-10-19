@@ -133,10 +133,10 @@ export async function startUiServer(opts = {}) {
       // 2. Session: the one-time URL token becomes an HttpOnly cookie.
       const token = url.searchParams.get("token");
       if (token != null && req.method === "GET" && url.pathname === "/") {
-        const ok = session.redeem(token);
-        if (!ok) { const wait = limiter.hit(req.method); if (wait) return tooMany(res, wait); }
-        if (!ok) return plain(res, 403, "This link was already used or is wrong. Restart `penthera ui` for a new one.");
-        res.writeHead(303, { "Set-Cookie": session.cookie(), Location: "/" });
+        const sid = session.redeem(token);
+        if (!sid) { const wait = limiter.hit(req.method); if (wait) return tooMany(res, wait); }
+        if (!sid) return plain(res, 403, "This link was already used or is wrong. Restart `penthera ui` for a new one.");
+        res.writeHead(303, { "Set-Cookie": session.cookie(sid), Location: "/" });
         return res.end();
       }
       if (!session.check(req.headers.cookie)) {

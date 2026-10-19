@@ -98,13 +98,15 @@ describe("ui server: binding, token and session", () => {
   });
 
   it("session helpers compare in constant time and parse cookies exactly", () => {
-    const s = createSession({ bootstrap: "boot", secret: "sec" });
-    expect(s.check(`a=b; ${COOKIE_NAME}=sec`)).toBe(true);
-    expect(s.check(`${COOKIE_NAME}=sec2`)).toBe(false);
-    expect(s.check(`x${COOKIE_NAME}=sec`)).toBe(false);
+    const s = createSession({ bootstrap: "boot", mint: () => "sec" });
+    expect(s.check(`${COOKIE_NAME}=sec`)).toBe(false); // nothing is valid before the link is redeemed
     expect(s.redeem("boo")).toBeNull();
     expect(s.redeem("boot")).toBe("sec");
     expect(s.redeem("boot")).toBeNull();
+    expect(s.check(`a=b; ${COOKIE_NAME}=sec`)).toBe(true);
+    expect(s.check(`${COOKIE_NAME}=sec2`)).toBe(false);
+    expect(s.check(`x${COOKIE_NAME}=sec`)).toBe(false);
+    expect(s.cookie("sec")).toBe(`${COOKIE_NAME}=sec; HttpOnly; SameSite=Strict; Path=/`);
     expect(readCookie("a=1; b=2", "b")).toBe("2");
   });
 
@@ -221,7 +223,8 @@ describe("ui server: binding, token and session", () => {
 
     it("the page has no inline script, inline handlers, inline styles or innerHTML", () => {
       const html = readFileSync(join(STATIC_DIR, "index.html"), "utf-8");
-      const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
+      const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\b[^>]*>/gi)];
+      expect(html.match(/<script\b/gi).length).toBe(scripts.length); // every opening tag is matched above
       expect(scripts.length).toBe(2); // theme.js (classic, before paint) and the app module
       for (const [, attrs, body] of scripts) {
         expect(attrs).toMatch(/\bsrc="\/[^"]+"/);

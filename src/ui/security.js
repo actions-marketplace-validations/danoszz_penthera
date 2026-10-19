@@ -12,7 +12,7 @@
  *
  * No CORS headers are ever sent. Every response carries a strict CSP.
  */
-import { randomBytes, timingSafeEqual } from "node:crypto";
+import { randomBytes, timingSafeEqual, createHash } from "node:crypto";
 
 export const COOKIE_NAME = "penthera_ui";
 
@@ -120,25 +120,34 @@ export function createAuthLimiter({ windowMs = 60_000, maxReads = 120, maxWrites
 }
 
 /**
- * Session state: one bootstrap token (single use, printed in the URL) and one
- * session secret (the cookie). Both are random per server start.
+ * Session state: one bootstrap token (single use, printed in the URL) and the
+ * session cookie. The cookie value is minted when the link is redeemed, handed
+ * to the browser once in Set-Cookie, and never kept: the server holds only its
+ * SHA-256, so nothing readable from this process (or a heap dump) is a
+ * working session.
  */
-export function createSession({ bootstrap = randomToken(), secret = randomToken() } = {}) {
+export function createSession({ bootstrap = randomToken(), mint = () => randomBytes(32).toString("base64url") } = {}) {
   let used = false;
+  let digest = null;
+  const hash = (v) => createHash("sha256").update(String(v)).digest("base64url");
   return {
     bootstrap,
-    /** Swap the URL token for the cookie value. Returns null when wrong or already used. */
+    /** Swap the URL token for a fresh session id. Returns null when wrong or already used. */
     redeem(token) {
       if (used || !safeEqual(token, bootstrap)) return null;
       used = true;
-      return secret;
+      const sid = mint();
+      digest = hash(sid);
+      return sid;
     },
     get redeemed() { return used; },
     check(cookieHeader) {
-      return safeEqual(readCookie(cookieHeader, COOKIE_NAME), secret);
+      const v = readCookie(cookieHeader, COOKIE_NAME);
+      return digest != null && typeof v === "string" && safeEqual(hash(v), digest);
     },
-    cookie() {
-      return `${COOKIE_NAME}=${secret}; HttpOnly; SameSite=Strict; Path=/`;
+    /** The Set-Cookie header for a session id that redeem() just returned. */
+    cookie(sid) {
+      return `${COOKIE_NAME}=${sid}; HttpOnly; SameSite=Strict; Path=/`;
     },
   };
 }

@@ -231,6 +231,22 @@ Requires Node 22+. Upgrading from 1.1.x or 1.2.x needs no config changes.
 
 ### Added
 
+- **`penthera ui [--open] [--port 0] [--project <dir>] [--reports <dir>] [--demo]`**:
+  a local dashboard on 127.0.0.1 (random port, one-time URL), styled as a
+  1-bit early-90s Mac desktop with a terminal inside, in dark and light themes.
+  Overview (posture per project, severity mix, findings over time, time to
+  fix, hosts contacted; a three-step start when there is no data yet),
+  Findings (filters, a plain-words explanation, evidence, sources, fix diff),
+  Run (scan, check dependencies, audit AI tooling, or the fix loop with an
+  Apply / Skip / Stop dialog on every diff, live output over SSE), History
+  (new, fixed and still open between two scans), Dependencies, AI tooling,
+  Evidence (create a bundle from the latest scan, verify in one click,
+  download the auditor report) and Settings. Reads only the chosen folders and
+  `~/.penthera`; no network, no new dependencies, no build step. Host check
+  against DNS rebinding, one-time token swapped for an HttpOnly SameSite=Strict
+  cookie, Origin check and JSON-only bodies on state changes, strict CSP, no
+  CORS, rate-limited unauthenticated requests, allowlisted static files.
+  Penthera scans it clean. `--demo` seeds fake data. See `docs/dashboard.md`
 - **GitHub Action** (`uses: danoszz/penthera@<sha>`, `action.yml`): on PRs that
   change the lockfile it runs `penthera deps --base <PR base>`, upserts one PR
   comment marked `<!-- penthera-deps -->` (edited in place on every push), and

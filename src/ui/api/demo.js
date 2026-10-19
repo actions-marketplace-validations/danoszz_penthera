@@ -9,9 +9,10 @@
  */
 import { createHash } from "node:crypto";
 import { referencesFor } from "../../../lib/references.js";
-import { findingId } from "../../../lib/memory/views.js";
+import { formatAudienceReport, AUDIENCES } from "../../report/audience.js";
 import {
   buildOverview, buildFindings, locateFinding, findingDetail, buildDeps, buildAi, loopSummary,
+  explainFinding, buildScanHistory, latestScan, slug,
 } from "./summarize.js";
 
 const DAY = 86_400_000;
@@ -282,8 +283,9 @@ const FIX_BY_CATEGORY = {
   secrets: { recipe: "secret-to-env", title: "Move Stripe key to an env var", files: ["src/lib/payments.ts"], diff: FIX_DIFFS.secret },
 };
 
-export function createDemoSource({ settings }) {
+export function createDemoSource({ settings, version = "dev" }) {
   const now = Date.now();
+  const bundles = BUNDLES.map((b) => ({ ...b }));
   const scans = demoScans(now);
   const memory = demoMemory(now);
   const loops = demoLoops(now);
@@ -301,20 +303,34 @@ export function createDemoSource({ settings }) {
         ...findingDetail(hit.finding), id, project, file: hit.report.name,
         sources: referencesFor(hit.finding).map((r) => ({ cite: r.cite, url: r.url })),
         fix: fix ? { ...fix, confidence: "high" } : null,
+        explain: explainFinding(hit.finding, hit.report.data),
       };
+    },
+    history: (project, a, b) => buildScanHistory(scans, project, a, b),
+    createEvidence(project) {
+      const latest = latestScan(scans, project);
+      if (!latest) return null;
+      const b = { id: createHash("sha256").update(project + bundles.length).digest("hex").slice(0, 16), path: `evidence/${slug(project)}-${new Date().toISOString().slice(0, 10)}`, target: project, daysAgo: 0, artifacts: 7, signed: false, ok: true };
+      bundles.unshift(b);
+      return { id: b.id, path: b.path };
+    },
+    audienceReport(project, audience) {
+      if (!AUDIENCES.includes(audience)) return null;
+      const latest = latestScan(scans, project);
+      return latest ? formatAudienceReport(latest.data, audience, { version }) : null;
     },
     deps: () => buildDeps({ deps: demoDeps(now), installs: demoInstalls(now) }),
     ai: () => buildAi(demoAgents(now)),
     memory: () => memory,
     runs: () => loops.map(loopSummary),
-    evidence: () => BUNDLES.map((b) => ({
+    evidence: () => bundles.map((b) => ({
       id: b.id, path: b.path, target: b.target, generatedAt: new Date(now - b.daysAgo * DAY).toISOString(),
-      tool: "penthera 1.4.0", artifacts: b.artifacts, signed: b.signed, readable: true,
+      tool: `penthera ${version}`, artifacts: b.artifacts, signed: b.signed, readable: true,
     })),
     verifyEvidence(id) {
-      const b = BUNDLES.find((x) => x.id === id);
+      const b = bundles.find((x) => x.id === id);
       if (!b) return null;
-      const names = ["report.json", "report.md", "report.sarif", "developer.md", "owner.md", "auditor.md", "sbom.json"].slice(0, b.artifacts);
+      const names = ["report.json", "report.md", "report.sarif", "report-developer.md", "report-owner.md", "report-auditor.md", "sbom.cdx.json"].slice(0, b.artifacts);
       const files = names.map((path, i) => (!b.ok && i === 1 ? { path, ok: false, reason: "hash mismatch" } : { path, ok: true, reason: null }));
       const signature = b.signed
         ? { ok: b.ok, status: b.ok ? "valid" : "invalid", detail: b.ok ? "Good \"penthera-evidence\" signature for security@acme.test with ED25519 key SHA256:q8Jm…" : "signature does not verify against the allowed signers" }
@@ -423,6 +439,18 @@ export function demoRunDeps({ pace = 1 } = {}) {
     return { merged: { target, findings: ["csp", "rate", "openapi", "powered"].map((k) => finding(k, target)) } };
   }
 
+  async function fakeRun(phases, onPhase) {
+    for (const p of phases) { await sleep(280 * pace); onPhase(p); }
+  }
+  const scanDeps = async (repo, { onPhase }) => {
+    await fakeRun(["Scanning 731 packages from package-lock.json (offline)", "Comparing against origin/main: 6 replaced version(s) to inspect", "Checking names against 5,000 popular packages"], onPhase);
+    return { target: repo, mode: "deps", findings: [{ severity: "critical", title: "lodahs@4.17.21 looks like a typosquat of lodash" }, { severity: "high", title: "left-pad-utils 1.0.2 -> 1.0.3 gained shell, network and obfuscated code" }] };
+  };
+  const scanAgents = async (repo, { onPhase }) => {
+    await fakeRun(["Discovering agent configuration...", "Scanning 9 skill(s) for hidden content...", "Scanning instruction and rule files...", "Checking 6 MCP server(s), 4 hook(s), permissions and plugins...", "Comparing against penthera.lock..."], onPhase);
+    return { target: repo, mode: "agents", agents: { grade: "C", score: 62 }, findings: [{ severity: "high", title: "Hidden Unicode tag characters in skill pdf-tools" }, { severity: "medium", title: "Instructions inside an HTML comment" }] };
+  };
+
   // The demo folders do not exist: same rule as confineDir, on the path string.
   function confineDir(input) {
     const p = String(input).trim().replace(/\/+$/, "");
@@ -432,5 +460,5 @@ export function demoRunDeps({ pace = 1 } = {}) {
     return p;
   }
 
-  return { runLoop, executeScan, confineDir, saveLoopRun: () => null, writeReport: () => null };
+  return { runLoop, executeScan, scanDeps, scanAgents, confineDir, saveLoopRun: () => null, writeReport: () => null };
 }

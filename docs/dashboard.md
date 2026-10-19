@@ -1,12 +1,15 @@
 # The local dashboard: `penthera ui`
 
-`penthera ui` starts a dashboard in your browser for what Penthera already
-knows about your projects: posture, findings, dependency changes, your AI
-tooling, evidence bundles, and a live view of the agent loop that you can
-drive from the page. It runs on `127.0.0.1` only, reads only the folders you
-give it and `~/.penthera`, and never contacts the network.
+`penthera ui` opens a dashboard in your browser for what Penthera knows about
+your projects: where each one stands, what each finding means, what changed
+since the last scan, your dependencies and AI tooling, and evidence for an
+auditor. It can also run scans and the fix loop for you, stopping at every
+diff. It runs on `127.0.0.1` only, reads only the folders you give it and
+`~/.penthera`, and never contacts the network.
 
-![Overview: posture per project, severity mix, findings over time](../assets/dashboard/overview.jpg)
+| Dark | Light |
+|---|---|
+| ![Overview, dark theme](../assets/dashboard/overview-dark.jpg) | ![Overview, light theme](../assets/dashboard/overview-light.jpg) |
 
 ## Start it
 
@@ -20,97 +23,135 @@ penthera ui --demo                       # fake data, nothing read from disk
 |--------|---------|--------------|
 | `--port <n>` | `0` (random free port) | Port on 127.0.0.1 |
 | `--open` | off | Open the one-time URL in your browser |
-| `--project <dir>` | the current folder | A folder the dashboard may read and run the agent loop in. Repeat for more |
-| `--reports <dir>` | `<first project>/reports` | Where report JSON files are read from (and where runs started here write theirs) |
-| `--demo` | off | Realistic fake data, a scripted agent loop. For a first look, screenshots and docs |
+| `--project <dir>` | the current folder | A folder the dashboard may read and run in. Repeat for more |
+| `--reports <dir>` | `<first project>/reports` | Where report JSON is read from, and where runs started here write theirs |
+| `--demo` | off | Realistic fake data and a scripted fix loop. For a first look, screenshots and docs |
 
-It prints a URL with a one-time token:
+It prints a URL with a one-time token. Open it once: the token is swapped for
+a session cookie and stops working, so a second browser (or a link that leaked
+into history) gets a 403. Restart `penthera ui` for a new link. Ctrl-C stops
+the server.
 
-```
-  penthera ui
-  http://127.0.0.1:53817/?token=Xq…
-  one-time link: it signs this browser in once, then stops working
-```
+## User stories
 
-Open it once. The token is swapped for a session cookie and stops working; a
-second browser (or a link that leaked into history) gets a 403. Restart
-`penthera ui` for a new link. Ctrl-C stops the server.
+Each story names who it is for, what they want and why. Each one has a
+feature in the dashboard and a screenshot from `penthera ui --demo`.
+
+**1. First run, nothing scanned yet.** *As a solo founder the week before
+launch, I want the dashboard to tell me what to do first when there is no
+data yet, so that I am not staring at empty charts.* The overview turns into
+a three-step start: scan your app, check your dependencies, audit your AI
+tooling. Each step opens Run with the right mode and your project folder
+filled in.
+
+![Story 1: the Welcome screen with three steps](../assets/dashboard/story-first-run.jpg)
+
+**2. Run a scan from the UI.** *As a developer who does not live in the
+terminal, I want to start a scan from the page and watch it work, so that I
+know it ran and where the report went.* Run has four modes: scan app, check
+dependencies, audit AI tooling, fix loop. A URL that is not on this machine
+needs its hostname typed back first. Output streams into a terminal window;
+when it finishes, "What next?" offers the obvious next steps.
+
+![Story 2: a scan streaming in the terminal window](../assets/dashboard/story-scan.jpg)
+
+**3. Let the agent fix things, one approved diff at a time.** *As a founder
+with no security engineer, I want Penthera to propose fixes and apply only the
+ones I approve, so that nothing changes in my code without me seeing it.* The
+fix loop stops at every diff with a dialog: the recipe, the files, what the
+fix closes, what memory knows about this recipe, and the diff itself. Apply
+(`y`), Skip (`n`) or Stop the loop (`q`). Verified fixes are committed on a
+local branch; failed ones are reverted. Nothing is pushed.
+
+![Story 3: the approval dialog for a fix](../assets/dashboard/story-loop.jpg)
+
+**4. Understand one finding.** *As a product owner who is not a security
+expert, I want one finding explained in plain words, so that I can decide
+whether it matters today.* The detail panel opens with "In plain words": how
+serious it is, how sure Penthera is (and what that confidence level means),
+what to do, and the OWASP mapping. Below it: what was seen, the evidence, the
+sources, and the exact fix diff.
+
+![Story 4: a finding explained in plain words](../assets/dashboard/story-finding.jpg)
+
+**5. Compare over time.** *As a tech lead after a release, I want to compare
+two scans of the same project, so that I can see what got fixed and what is
+new.* History picks the most interesting project by default, compares the
+previous scan with the latest (or any two you choose), and lists new, fixed
+and still-open findings next to the trend.
+
+![Story 5: history comparing two scans](../assets/dashboard/story-history.jpg)
+
+**6. Export evidence for an auditor.** *As the person who answers the NIS2
+questionnaire, I want a package an auditor can check without trusting me, so
+that the evidence holds up.* Evidence creates a bundle from the latest scan
+of a project (JSON, Markdown, SARIF, the auditor, owner and developer reports,
+and a manifest with a SHA-256 per file), verifies it straight away, and lets
+you download the auditor report as Markdown.
+
+![Story 6: a new bundle, verified, with downloads](../assets/dashboard/story-evidence.jpg)
+
+**7. Check what a dependency change can do.** *As a developer reviewing a
+pull request that bumps the lockfile, I want to see which packages gained new
+capabilities, so that I catch a malicious update before it runs.* Dependencies
+shows the capabilities in the tree, the capability diff against your base,
+typosquats, and every install firewall decision.
+
+![Story 7: the capability diff](../assets/dashboard/story-deps.jpg)
+
+**8. Trust my AI tooling.** *As someone who installs skills and MCP servers
+into Claude Code and Cursor, I want to know whether any of them hide
+instructions or changed since I reviewed them, so that my agent is not working
+for someone else.* AI tooling shows the A to F grade, hidden content with the
+decoded text, and drift against `penthera.lock`.
+
+![Story 8: grade, hidden content and lock drift](../assets/dashboard/story-ai-tooling.jpg)
+
+**9. Work in daylight.** *As someone who reads reports on a bright screen, I
+want a light theme, so that the dashboard is comfortable outside a dark room.*
+The `◐` button in the menu bar (and Settings) switches between the black
+terminal and the white paper theme. The first visit follows your system
+setting; the choice is remembered in this browser.
+
+| Narrow, dark | Narrow, light |
+|---|---|
+| <img src="../assets/dashboard/narrow-dark.jpg" alt="Overview at 390px, dark" width="280"> | <img src="../assets/dashboard/narrow-light.jpg" alt="Findings at 390px, light" width="280"> |
 
 ## Where the data comes from
 
 | Screen | Source |
 |--------|--------|
-| Overview | The latest scan report per target in the reports folder (`penthera <url> -o reports/x.json`, `--repo`), plus the trend and time to fix from local memory |
+| Overview | The latest scan report per target in the reports folder, plus trend and time to fix from local memory |
 | Findings | The same reports. The fix preview runs the fix recipes against the project folder, read-only |
-| Agent | Live runs started from this page; past `loopRun` files (`penthera agent --loop -o reports/loop.json`); memory stats |
-| Dependencies | `penthera deps --base main -o reports/deps.json` and `penthera install <pkg> --dry-run --json > reports/install.json` |
-| AI tooling | `penthera agents . --home -o reports/agents.json` |
-| Evidence | Bundles written with `--evidence reports/evidence/<name>` |
-| Settings | This session's egress mode; memory chain status for every project in `~/.penthera/memory` |
+| Run | Live runs started from this page; past `loopRun` files; memory stats |
+| History | Every scan report of one project in the reports folder |
+| Dependencies | `penthera deps -o reports/deps.json` and `penthera install <pkg> --dry-run --json > reports/install.json` (or Run → Check dependencies) |
+| AI tooling | `penthera agents . -o reports/agents.json` (or Run → Audit AI tooling) |
+| Evidence | Bundles below the reports folder, written with `--evidence` or from this screen |
+| Settings | Theme, egress mode for scans started here, data locations, memory chain status |
 
-The reports folder is read one level deep for `*.json` (anything that is not a
-Penthera report is ignored) and two levels deep for evidence bundles. Symlinks
-are skipped. A memory chain that does not verify is shown as broken and its
-contents are not used, the same rule scans follow.
+The reports folder is read one level deep for `*.json` (anything that is not
+a Penthera report is ignored) and two levels deep for evidence bundles.
+Symlinks are skipped. A memory chain that does not verify is shown as broken
+and its contents are not used, the same rule scans follow.
 
-## The screens
+## Running things from the page
 
-**Overview.** Posture per project as an A to F grade (100 minus 30 per critical,
-15 per high, 5 per medium, 1 per low; any critical is an F), the severity mix,
-open findings over time, open against fixed, time to fix, the hosts scans
-contacted (and the ones offline mode blocked), the last scans and recent loop
-runs.
-
-**Findings.** Every finding in the latest report per project. Filter by text
-(`/`), project and severity, move with `j`/`k`. The detail panel shows the
-evidence, the sources Penthera cites for that class of issue, how to fix it,
-and, when a fix recipe matches, the exact diff the agent loop would propose.
-
-![Findings with the detail panel and a fix diff](../assets/dashboard/findings.jpg)
-
-**Agent.** "Run as agent" starts `penthera agent --loop` against a project
-folder (and optionally the running app's URL). Output streams in as it
-happens. Every diff stops the loop and shows an approval card: **Approve**
-(`y`), **Skip** (`n`, not proposed again this run) or **Stop** (`q`). The
-iteration timeline marks each fix as verified, failed and reverted, or
-skipped. "Scan only" runs a plain scan and writes the report into the reports
-folder instead.
-
-![The agent loop waiting for a decision on a diff](../assets/dashboard/agent.jpg)
-
-**Dependencies.** What the packages in your tree can do, the capability diff
-against the base you compared with (added, upgraded with gained capabilities,
-removed), typosquats, and every install firewall decision.
-
-**AI tooling.** The agent-config grade and its history, the inventory, hidden
-content hits (Unicode tag characters, zero-width text, instructions in HTML
-comments and the rest), and drift against `penthera.lock`.
-
-**Evidence.** Every bundle, with a Verify button that recomputes each SHA-256
-against `manifest.json` and checks the SSH signature, exactly like
-`penthera evidence verify`.
-
-**Settings.** Egress mode for scans started from this page (offline is on by
-default), where data is read from, and the state of every memory chain.
-
-## Running the agent from the page
-
-The page calls the same `runLoop` as `penthera agent --loop`, with the same
-guarantees: the loop needs a clean git tree on a branch, works on a local
-`penthera/fix-<yyyymmdd-hhmm>` branch, runs only allow-listed local git
-commands with hooks off, is always offline with egress limited to the URL's
-host, and never pushes. On top of that:
+Run calls the same functions as the CLI (`executeScan`, `scanDeps`,
+`scanAgents`, `runLoop`) with the same rules. The fix loop needs a clean git
+tree on a branch, works on a local `penthera/fix-<yyyymmdd-hhmm>` branch, runs
+only allow-listed local git commands with hooks off, is always offline with
+egress limited to the URL's host, and never pushes. On top of that:
 
 - The project folder must be inside one of the `--project` folders.
 - A URL that is not on this machine (anything but `localhost`, `127.x.x.x`,
   `[::1]` and `*.localhost`) needs its hostname typed back before the run
-  starts. That is the authorization gate: only scan what you own or have
-  written permission to test.
-- One run at a time. Closing the tab does not stop a run; come back to the
-  Agent screen and it reattaches. **Stop** stops after the current step, and the
-  fix branch holds only verified commits.
-- The finished `loopRun` is written to the reports folder as
-  `loop-<timestamp>.json`.
+  starts. Only scan what you own or have written permission to test.
+- One run at a time. Closing the tab does not stop a run; come back to Run and
+  it reattaches. Stop finishes the current step, and the fix branch holds only
+  verified commits.
+- Reports land in the reports folder (`loop-<timestamp>.json`,
+  `deps_<timestamp>.json`, and so on), so every screen picks them up.
 
 ## Security model
 
@@ -119,12 +160,12 @@ browser can send it requests. Every request passes, in this order:
 
 1. **Host check.** The `Host` header must be exactly `127.0.0.1:<port>` or
    `localhost:<port>`. This blocks DNS rebinding, where `attacker.example`
-   re-resolves to 127.0.0.1 so the attacker's page can read the response.
-   It runs before the token check, so a rebinding page cannot even redeem the
+   re-resolves to 127.0.0.1 so the attacker's page can read the response. It
+   runs before the token check, so a rebinding page cannot even redeem the
    link.
 2. **Path check.** No dot segments, encoded dots or slashes, backslashes or NUL
-   bytes in the path. Static files come from an allowlist built at startup;
-   no part of a request path is ever joined onto a filesystem path.
+   bytes. Static files come from an allowlist built at startup; no part of a
+   request path is ever joined onto a filesystem path.
 3. **Session.** The one-time URL token is exchanged for an `HttpOnly;
    SameSite=Strict` cookie and a redirect to `/`, so the token leaves the
    address bar. Every request, static files included, needs the cookie.
@@ -146,38 +187,45 @@ Cross-Origin-Opener-Policy / -Resource-Policy / -Embedder-Policy
 
 There are no CORS headers, and `OPTIONS` gets a 405. The page has no inline
 script or style, loads nothing from another host (no CDN, fonts, analytics or
-chart library: the charts are hand-written SVG and block characters), and
-never turns data into HTML: finding titles and evidence come from the sites and
-repos you scanned, so they are only ever set as text.
+chart library), and never turns data into HTML: finding titles and evidence
+come from the sites and repos you scanned, so they are only ever set as text.
+Report downloads are served as `text/markdown` attachments from the same
+checks; the audience is one of `auditor`, `owner` or `developer`, nothing else.
 
 Penthera scans its own dashboard clean with `--profile standard`, signed in and
 not; `tests/ui.test.js` runs that scan on every test run, alongside tests for
 the Host check, the token and cookie, Origin, the headers, the rate limit and
 path traversal.
 
-## Design notes
+## Design
 
-Black canvas, monospace throughout, box-drawing frames, faint scanlines, a
-blinking block cursor, output that types itself out. One phosphor green for
-identity and "this is fine", one electric blue for anything you can act on;
-severity colours appear only next to a word or a number, never alone. All text
-meets WCAG AA on black (body text 13.9:1, muted 7.8:1, the dimmest 5.0:1).
+A 1-bit desktop with a terminal inside. The window chrome comes from the Mac
+of the early 90s: a menu bar, pinstriped title bars with close and zoom boxes,
+a dithered desktop, rounded push buttons where the default one wears a thick
+ring, and alert dialogs with a double frame. The voice, the `▸` progress
+lines, the numbered "What next?" and the `#0000ed` block-letter wordmark come
+straight from the CLI and its demo GIF, so the terminal, the README and the
+dashboard read as one product.
 
-With `prefers-reduced-motion`, the typing, the cursor blink and the logo
-flicker are off and output appears whole. Screens switch with `1`-`7` and have
-no transition. Every control is a real button or link, the approval card takes
-focus when a diff arrives, and screen readers get each log line whole (never
-letter by letter) while approvals and run status are announced.
-
-It also works at phone width:
-
-<img src="../assets/dashboard/narrow.jpg" alt="The overview at 390px wide" width="300">
-
-## Screenshots
-
-All screenshots are of `penthera ui --demo`.
-
-| | |
-|---|---|
-| ![Dependencies](../assets/dashboard/dependencies.jpg) | ![AI tooling](../assets/dashboard/ai-tooling.jpg) |
-| ![Evidence verification](../assets/dashboard/evidence.jpg) | ![Agent](../assets/dashboard/agent.jpg) |
+- **Black, white and patterns do the work.** Severity is a word plus a
+  pattern swatch (solid, hatched, half-tone, dotted, empty), and bars are drawn
+  with shade characters `█ ▓ ▒ ░ ·`. Charts fill with hatching and dithering,
+  not colour.
+- **One accent.** `#0000ed` marks the active screen, the default button,
+  selection, links and chart lines. On black it measures 2.2:1, so there it is
+  only a fill (white text on it, 9.5:1), a frame or a glow; text in that hue
+  uses the tint `#7a7aff` (6.1:1). On white, `#0000ed` is text-safe (9.3:1).
+- **Green** is kept for the cursor, the prompt and "OK".
+- **Calm where it counts.** Pinstripes only on real windows and dialogs; data
+  sits in hairline group boxes, one stat strip, and tables with figure captions
+  that say where each number came from.
+- **Both themes pass WCAG AA** for every text node on every screen (measured in
+  the browser, composited). Light text uses a 0.6 ink step where the dark
+  theme uses 0.5, because 0.5 measures 3.6:1 on paper.
+- **Motion.** The output types itself out and the cursor blinks. With
+  `prefers-reduced-motion`, both stop and output appears whole. Screens switch
+  with `1`-`8` and have no transition.
+- **Keyboard.** `1`-`8` screens, `/` filter findings, `j`/`k` move through
+  findings, `y`/`n`/`q` answer a diff. Every control is a real button or link;
+  the approval dialog takes focus when a diff arrives; screen readers get each
+  log line whole, never letter by letter.

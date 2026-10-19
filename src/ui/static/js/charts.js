@@ -1,67 +1,66 @@
-// Hand-rolled charts: text bars made of block characters, and small SVGs.
-// Every chart carries its numbers as text (a label or aria-label), so colour
-// is never the only channel.
+// Hand-rolled 1-bit charts: shade characters (█ ▓ ▒ ░) for bars, small SVGs
+// for lines and columns, filled with patterns instead of colours. Every chart
+// carries its numbers as text, so no pattern or colour is the only channel.
 import { h, s } from "./dom.js";
 import { SEVERITIES, stamp } from "./format.js";
 
-const EIGHTHS = ["", "▏", "▎", "▍", "▌", "▋", "▊", "▉"];
+/** The shade each severity is drawn with: solid, dense, half, sparse, dotted. */
+export const SHADE = { critical: "█", high: "▓", medium: "▒", low: "░", info: "·" };
 
-/** A bar of `width` characters, filled to value/max with eighth-blocks. */
-export function textBar(value, max, width = 24) {
-  const ratio = max > 0 ? Math.max(0, Math.min(1, value / max)) : 0;
-  const eighths = Math.round(ratio * width * 8);
-  const full = Math.floor(eighths / 8);
-  const part = EIGHTHS[eighths % 8];
-  const filled = "█".repeat(full) + part;
-  const rest = Math.max(0, width - full - (part ? 1 : 0));
-  return { filled, rest: "·".repeat(rest) };
+/** One hidden <svg> holding the fill patterns the charts reference by id. */
+export function patternDefs() {
+  const hatch = s("pattern", { id: "pt-hatch", width: 6, height: 6, patternUnits: "userSpaceOnUse", patternTransform: "rotate(45)" },
+    s("line", { class: "hatch-line", x1: 0, y1: 0, x2: 0, y2: 6 }));
+  const dither = s("pattern", { id: "pt-dither", width: 2, height: 2, patternUnits: "userSpaceOnUse" },
+    s("rect", { class: "dither-dot", x: 0, y: 0, width: 1, height: 1 }));
+  return s("svg", { width: 0, height: 0, "aria-hidden": "true", focusable: "false", class: "sr" }, s("defs", {}, hatch, dither));
 }
 
-/** Rows of label / bar / count, e.g. a severity mix. */
-export function bars(rows, { width = 24, cls = (r) => r.cls, fill = (r) => r.fill || cls(r) } = {}) {
+/** A bar of `width` characters filled to value/max with `ch`, the rest dotted. */
+export function textBar(value, max, width = 24, ch = "█") {
+  const n = value > 0 && max > 0 ? Math.max(1, Math.round(Math.min(1, value / max) * width)) : 0;
+  return { filled: ch.repeat(n), rest: "·".repeat(Math.max(0, width - n)) };
+}
+
+/** Rows of label / bar / count. */
+export function bars(rows, { width = 24 } = {}) {
   const max = Math.max(1, ...rows.map((r) => r.value));
   const el = h("div", { class: "bars", role: "list" });
   for (const r of rows) {
-    const { filled, rest } = textBar(r.value, max, width);
+    const { filled, rest } = textBar(r.value, max, width, r.ch || "█");
     el.append(
-      h("span", { class: cls(r), role: "listitem", "aria-label": `${r.label}: ${r.value}` }, r.label),
-      h("span", { class: "bar", "aria-hidden": "true" }, h("span", { class: fill(r) }, filled), h("span", { class: "track" }, rest)),
-      h("span", { class: "num", "aria-hidden": "true" }, String(r.value)),
+      h("span", { class: r.cls || "t1", role: "listitem", "aria-label": `${r.label}: ${r.value}` }, r.label),
+      h("span", { class: "bar", "aria-hidden": "true" }, h("span", { class: "shade" }, filled), h("span", { class: "shade track" }, rest)),
+      h("span", { class: "num t1", "aria-hidden": "true" }, String(r.value)),
     );
   }
   return el;
 }
 
 export function severityBars(counts, opts = {}) {
-  return bars(SEVERITIES.map((sev) => ({ label: sev, value: counts?.[sev] || 0, cls: `sev sev-${sev}`, fill: `c-${sev}` })), opts);
+  return bars(SEVERITIES.map((sev) => ({ label: sev, value: counts?.[sev] || 0, cls: `sev sev-${sev}`, ch: SHADE[sev] })), opts);
 }
 
-/** One stacked bar across all severities (SVG, so no inline styles are needed). */
-export function stackedBar(counts, { height = 8 } = {}) {
+/** One stacked bar across all severities, as shade characters. */
+export function stackedBar(counts, { width = 40 } = {}) {
   const total = SEVERITIES.reduce((n, k) => n + (counts?.[k] || 0), 0);
-  const svg = s("svg", {
-    class: "chart stackbar", viewBox: `0 0 100 ${height}`, preserveAspectRatio: "none",
-    role: "img", "aria-label": SEVERITIES.map((k) => `${counts?.[k] || 0} ${k}`).join(", "),
-  });
-  svg.append(s("rect", { class: "seg-track", x: 0, y: 0, width: 100, height }));
-  let x = 0;
-  for (const k of SEVERITIES) {
-    const w = total ? ((counts?.[k] || 0) / total) * 100 : 0;
-    if (w > 0) svg.append(s("rect", { class: `seg-${k}`, x, y: 0, width: w, height }));
-    x += w;
+  let out = "";
+  if (total) {
+    for (const k of SEVERITIES) {
+      const c = counts?.[k] || 0;
+      if (c) out += SHADE[k].repeat(Math.max(1, Math.round((c / total) * width)));
+    }
   }
-  return svg;
+  out = out.slice(0, width).padEnd(width, " ");
+  return h("div", { class: "stackbar", role: "img", "aria-label": SEVERITIES.map((k) => `${counts?.[k] || 0} ${k}`).join(", ") }, out);
 }
 
 /** Tiny line, last point marked. */
 export function sparkline(values, { width = 140, height = 24, label = "trend", zero = true } = {}) {
   const vs = values.filter((v) => Number.isFinite(v));
-  const svg = s("svg", {
-    class: "spark", viewBox: `0 0 ${width} ${height}`, role: "img",
-    "aria-label": vs.length ? `${label}: ${vs.join(", ")}` : `${label}: no data`,
-  });
+  const svg = s("svg", { class: "spark", viewBox: `0 0 ${width} ${height}`, role: "img", "aria-label": vs.length ? `${label}: ${vs.join(", ")}` : `${label}: no data` });
   if (vs.length < 2) {
-    svg.append(s("line", { x1: 0, y1: height / 2, x2: width, y2: height / 2, stroke: "#1f3d1a", "stroke-dasharray": "2 3" }));
+    svg.append(s("line", { class: "grid-line", x1: 0, y1: height / 2, x2: width, y2: height / 2 }));
     return svg;
   }
   const max = Math.max(...vs, 1);
@@ -70,12 +69,13 @@ export function sparkline(values, { width = 140, height = 24, label = "trend", z
   const pts = vs.map((v, i) => [pad + (i * (width - pad * 2)) / (vs.length - 1), height - pad - ((v - min) / (max - min || 1)) * (height - pad * 2)]);
   svg.append(s("polyline", { class: "s-line", points: pts.map((p) => p.map((n) => n.toFixed(1)).join(",")).join(" ") }));
   const last = pts[pts.length - 1];
-  svg.append(s("circle", { class: "s-dot", cx: last[0], cy: last[1], r: 2 }));
+  svg.append(s("rect", { class: "s-dot", x: last[0] - 2, y: last[1] - 2, width: 4, height: 4 }));
   return svg;
 }
 
 /**
- * Findings over time: total open (green, filled) and critical+high (red, dashed).
+ * Findings over time: open (blue line over a hatched area) and critical+high
+ * (dashed ink).
  * @param {{ ts: string, total: number, severe: number }[]} points
  */
 export function trendChart(points, { width = 640, height = 180 } = {}) {
@@ -103,7 +103,7 @@ export function trendChart(points, { width = 640, height = 180 } = {}) {
   svg.append(s("path", { class: "line-total", d: line("total") }));
   svg.append(s("path", { class: "line-severe", d: line("severe") }));
   points.forEach((p, i) => {
-    svg.append(s("circle", { class: "dot", cx: x(i), cy: y(p.total), r: 2.2 }, s("title", {}, `${stamp(p.ts)}: ${p.total} open, ${p.severe} critical/high`)));
+    svg.append(s("rect", { class: "dot", x: x(i) - 3, y: y(p.total) - 3, width: 6, height: 6 }, s("title", {}, `${stamp(p.ts)}: ${p.total} open, ${p.severe} critical/high`)));
   });
   const ticks = points.length <= 6 ? points.map((_, i) => i) : [0, Math.floor((points.length - 1) / 2), points.length - 1];
   for (const i of ticks) {
@@ -112,7 +112,7 @@ export function trendChart(points, { width = 640, height = 180 } = {}) {
   return svg;
 }
 
-/** Vertical columns with value labels (time-to-fix buckets, etc). */
+/** Vertical columns, dither-filled, with value labels. */
 export function columns(items, { width = 320, height = 130, label = "distribution" } = {}) {
   const m = { t: 16, b: 20 };
   const max = Math.max(1, ...items.map((i) => i.n));
@@ -122,7 +122,7 @@ export function columns(items, { width = 320, height = 130, label = "distributio
   items.forEach((it, i) => {
     const hgt = ((height - m.t - m.b) * it.n) / max;
     const x0 = i * bw + bw * 0.22;
-    svg.append(s("rect", { class: "col", x: x0, y: height - m.b - hgt, width: bw * 0.56, height: Math.max(hgt, it.n ? 1 : 0) }));
+    if (it.n) svg.append(s("rect", { class: "col", x: x0, y: height - m.b - hgt, width: bw * 0.56, height: hgt }));
     svg.append(s("text", { class: "col-value", x: i * bw + bw / 2, y: height - m.b - hgt - 4, "text-anchor": "middle" }, String(it.n)));
     svg.append(s("text", { class: "col-label", x: i * bw + bw / 2, y: height - 5, "text-anchor": "middle" }, it.label));
   });
@@ -137,8 +137,27 @@ const BIG = {
   F: ["█▀▀▀", "█▀▀ ", "█   "],
 };
 
-/** The agent-config grade as a block-letter. */
 export function bigGrade(letter) {
   const rows = BIG[letter] || ["", letter || "?", ""];
   return h("pre", { class: `grade-big grade-${letter}`, "aria-hidden": "true" }, rows.join("\n"));
+}
+
+// The CLI's wordmark (src/cli/ansi.js LOGO_BIG), ANSI Shadow block letters.
+const LOGO = [
+  "██████╗ ███████╗███╗   ██╗████████╗██╗  ██╗███████╗██████╗  █████╗ ",
+  "██╔══██╗██╔════╝████╗  ██║╚══██╔══╝██║  ██║██╔════╝██╔══██╗██╔══██╗",
+  "██████╔╝█████╗  ██╔██╗ ██║   ██║   ███████║█████╗  ██████╔╝███████║",
+  "██╔═══╝ ██╔══╝  ██║╚██╗██║   ██║   ██╔══██║██╔══╝  ██╔══██╗██╔══██║",
+  "██║     ███████╗██║ ╚████║   ██║   ██║  ██║███████╗██║  ██║██║  ██║",
+  "╚═╝     ╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝",
+];
+
+/** The wordmark: solid blocks in #0000ed, the box-drawing shadow in a second tone. */
+export function wordmark() {
+  const pre = h("pre", { class: "wordmark", "aria-hidden": "true" });
+  for (const row of LOGO) {
+    for (const run of row.match(/█+|[^█]+/g)) pre.append(h("span", { class: run[0] === "█" ? "fill" : "edge" }, run));
+    pre.append("\n");
+  }
+  return pre;
 }

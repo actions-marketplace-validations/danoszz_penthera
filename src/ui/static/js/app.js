@@ -1,50 +1,82 @@
-// penthera ui: hash router, keyboard shortcuts, shell chrome.
+// penthera ui: hash router, keyboard shortcuts, the menu bar and window chrome.
 import { h, clear, announce } from "./dom.js";
 import { api } from "./api.js";
 import { typeInto } from "./typer.js";
+import { patternDefs } from "./charts.js";
+import { SCREENS, ERR } from "./copy.js";
 import * as overview from "./views/overview.js";
 import * as findings from "./views/findings.js";
-import * as agent from "./views/agent.js";
+import * as run from "./views/run.js";
+import * as history from "./views/history.js";
 import * as deps from "./views/deps.js";
 import * as ai from "./views/ai.js";
 import * as evidence from "./views/evidence.js";
 import * as settings from "./views/settings.js";
 
-const VIEWS = { overview, findings, agent, deps, ai, evidence, settings };
+const VIEWS = { overview, findings, run, history, deps, ai, evidence, settings };
 const ORDER = Object.keys(VIEWS);
-const TITLES = { overview: "Overview", findings: "Findings", agent: "Agent", deps: "Dependencies", ai: "AI tooling", evidence: "Evidence", settings: "Settings" };
+const THEME_KEY = "penthera-ui-theme";
 
 const main = document.getElementById("main");
-const ctx = { api, meta: null, go, params: new URLSearchParams() };
+const ctx = { api, meta: null, go, params: new URLSearchParams(), theme: { get: getTheme, set: setTheme } };
 let cleanup = null;
 let renderSeq = 0;
 
 function parseHash() {
   const raw = location.hash.replace(/^#\/?/, "");
   const [name, query = ""] = raw.split("?");
-  return { name: VIEWS[name] ? name : "overview", params: new URLSearchParams(query) };
+  const alias = name === "agent" ? "run" : name;
+  return { name: VIEWS[alias] ? alias : "overview", params: new URLSearchParams(query) };
 }
 
 export function go(name, params = {}) {
   const q = new URLSearchParams(params).toString();
-  location.hash = `#/${name}${q ? `?${q}` : ""}`;
+  const next = `#/${name}${q ? `?${q}` : ""}`;
+  if (location.hash === next) render();
+  else location.hash = next;
 }
+
+// ── Theme: one system, [data-theme] on <html>. theme.js set it before paint. ──
+function getTheme() { return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark"; }
+function setTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  try { localStorage.setItem(THEME_KEY, t); } catch { /* storage off: the choice lasts this page only */ }
+  paintThemeButton();
+  announce(`${t === "light" ? "Light" : "Dark"} theme`);
+}
+function paintThemeButton() {
+  const b = document.getElementById("theme-btn");
+  const t = getTheme();
+  b.textContent = t === "light" ? "◑ light" : "◐ dark";
+  b.setAttribute("aria-label", `Theme: ${t}. Switch to ${t === "light" ? "dark" : "light"}`);
+}
+document.getElementById("theme-btn").addEventListener("click", () => setTheme(getTheme() === "light" ? "dark" : "light"));
+paintThemeButton();
+
+function clock() {
+  const d = new Date();
+  document.getElementById("mb-clock").textContent = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+clock();
+setInterval(clock, 15_000);
 
 async function render() {
   const seq = ++renderSeq;
   const { name, params } = parseHash();
   ctx.params = params;
-  for (const a of document.querySelectorAll(".nav a")) {
+  for (const a of document.querySelectorAll(".menubar nav a")) {
     if (a.dataset.view === name) a.setAttribute("aria-current", "page");
     else a.removeAttribute("aria-current");
   }
-  document.title = `${TITLES[name]} :: penthera ui`;
+  const title = SCREENS[name].title;
+  document.title = `${title} :: penthera ui`;
+  document.getElementById("win-title").textContent = `penthera :: ${title.toLowerCase()}`;
   document.querySelector("#prompt .path").textContent = `~/${name}`;
   typeInto(document.getElementById("prompt-cmd"), `penthera ui --view ${name}`);
 
   if (cleanup) { try { cleanup(); } catch { /* view already gone */ } cleanup = null; }
   clear(main);
-  const root = h("div"); // no enter animation: screens switch from the keyboard (1-7)
+  const root = h("div"); // no enter animation: screens switch from the keyboard (1-8)
   main.append(root);
   try {
     const c = await VIEWS[name].render(root, ctx);
@@ -53,29 +85,22 @@ async function render() {
   } catch (e) {
     if (seq !== renderSeq) return;
     clear(root).append(
-      h("h1", {}, TITLES[name]),
+      h("h1", {}, title),
       h("p", { class: "error", role: "alert" }, e.message),
-      e.status === 401 ? h("p", { class: "muted" }, "The session ended. Restart penthera ui and open the new one-time URL.") : null,
+      e.status === 401 ? h("p", { class: "muted" }, ERR.session) : null,
     );
   }
-  announce(`${TITLES[name]} screen`);
+  announce(`${title} screen`);
 }
 
 function chrome(meta) {
-  const top = document.getElementById("top-meta");
-  clear(top).append(
-    meta.demo ? h("span", { class: "chip warn", title: "Fake data seeded by --demo" }, "DEMO DATA") : null,
-    h("span", { class: meta.settings.offline ? "chip on" : "chip warn" }, meta.settings.offline ? "egress: offline" : "egress: target + sources"),
-    h("span", { class: "chip" }, `v${meta.version}`),
-  );
-  const foot = document.getElementById("side-foot");
-  const row = (k, v) => h("div", { class: "row" }, h("span", {}, k), h("span", { class: "v" }, v));
-  clear(foot).append(
-    row("bind", `${location.host}`),
-    row("session", "cookie, strict"),
-    row("network", "none"),
-    row("telemetry", "none"),
-  );
+  // Only real elements go into the bar: a null child would render as the text "null".
+  const chips = [
+    meta.demo ? h("span", { class: "chip inv", title: "Fake data seeded by --demo" }, "DEMO DATA") : null,
+    h("span", { class: meta.settings.offline ? "chip on" : "chip" }, meta.settings.offline ? "offline" : "online"),
+  ].filter(Boolean);
+  clear(document.getElementById("mb-chips")).append(...chips);
+  document.getElementById("status-bind").textContent = `v${meta.version} :: bound to ${location.host} :: no network :: no telemetry`;
 }
 
 function isTyping(e) {
@@ -96,6 +121,7 @@ document.addEventListener("keydown", (e) => {
 window.addEventListener("hashchange", render);
 
 (async function boot() {
+  document.body.append(patternDefs());
   try {
     ctx.meta = await api.get("/api/meta");
     chrome(ctx.meta);
@@ -103,7 +129,7 @@ window.addEventListener("hashchange", render);
     clear(main).append(
       h("h1", {}, "Not signed in"),
       h("p", { class: "error", role: "alert" }, e.message),
-      h("p", { class: "muted" }, "Run penthera ui and open the one-time URL it prints. The link works once."),
+      h("p", { class: "muted" }, "Run penthera ui and open the one-time link it prints. The link works once."),
     );
     return;
   }

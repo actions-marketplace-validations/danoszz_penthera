@@ -64,6 +64,17 @@ export function createApi({ source, runs, version, settings }) {
       if (!f) throw new RunError("No finding with that id in the latest reports.", 404);
       return f;
     }],
+    ["GET", /^\/api\/history$/, (_m, q) => {
+      const n = (k) => (q.get(k) == null || q.get(k) === "" ? null : Number(q.get(k)));
+      const h = source.history(String(q.get("project") || ""), n("a"), n("b"));
+      if (!h) throw new RunError("No scans for that project in the reports folder.", 404);
+      return h;
+    }],
+    ["POST", /^\/api\/evidence\/create$/, async (_m, _q, body) => {
+      const r = await source.createEvidence(String(body.project || ""));
+      if (!r) throw new RunError("No scan report for that project yet. Run a scan first.", 404);
+      return r;
+    }],
     ["GET", /^\/api\/deps$/, () => source.deps()],
     ["GET", /^\/api\/ai$/, () => source.ai()],
     ["GET", /^\/api\/memory$/, () => ({ projects: source.memory() })],
@@ -84,6 +95,17 @@ export function createApi({ source, runs, version, settings }) {
 
   return async function handle(req, res, path, query) {
     if (!path.startsWith("/api/")) return false;
+    if (path === "/api/report" && req.method === "GET") {
+      const project = String(query.get("project") || "");
+      const audience = String(query.get("audience") || "auditor");
+      const md = source.audienceReport(project, audience);
+      if (!md) { sendJson(res, 404, { error: "No report for that project and audience." }); return true; }
+      const name = `penthera-${audience}-${project.replace(/^https?:\/\//, "").replace(/[^a-z0-9]+/gi, "-").slice(-40)}.md`;
+      const buf = Buffer.from(md);
+      res.writeHead(200, { "Content-Type": "text/markdown; charset=utf-8", "Content-Disposition": `attachment; filename="${name}"`, "Content-Length": buf.length });
+      res.end(buf);
+      return true;
+    }
     const sse = path.match(/^\/api\/runs\/([0-9a-f]{16})\/stream$/);
     if (sse && req.method === "GET") {
       if (!runs.get(sse[1])) { sendJson(res, 404, { error: "No such run." }); return true; }

@@ -9,6 +9,7 @@
  */
 import { findingId } from "../../../lib/memory/views.js";
 import { gradeFindings } from "../../../lib/agents/index.js";
+import { buildReportModel, CONFIDENCE_LABELS } from "../../report/model.js";
 
 export const SEVERITIES = ["critical", "high", "medium", "low", "info"];
 const SEV_RANK = Object.fromEntries(SEVERITIES.map((s, i) => [s, i]));
@@ -357,4 +358,64 @@ export function memoryStats({ id, label, chain, views, history }) {
     recipes: (views?.recipeSuccess || []).slice(0, 20).map((r) => ({ framework: r.framework, recipe: r.recipe, verified: r.verified, failed: r.failed, rate: r.rate })),
     trend: history?.trend || [],
   };
+}
+
+/**
+ * "Understand one finding": the report model's plain-language fields for a
+ * single finding (plain severity, what the confidence label means, OWASP
+ * mapping, the recipe that would fix it, the action-plan fix text).
+ */
+export function explainFinding(f, report) {
+  const m = buildReportModel({ target: report?.target, timestamp: report?.timestamp, findings: [f] });
+  const x = m.findings[0];
+  const conf = CONFIDENCE_LABELS.find((c) => c.label === x.confidence);
+  return {
+    plainSeverity: x.plainSeverity,
+    confidence: x.confidence,
+    confidenceMeaning: conf ? conf.meaning : null,
+    owasp: x.owasp,
+    recipe: x.recipe,
+    fixText: x.fixText,
+  };
+}
+
+const scanMeta = (r, i) => ({
+  i, ts: r.data.timestamp || new Date(r.mtime).toISOString(), file: r.name,
+  counts: counts(r.data.findings), open: actionable(counts(r.data.findings)),
+});
+
+/**
+ * "Compare over time": every scan of one project, and what changed between
+ * two of them (default: the previous scan and the latest).
+ */
+export function buildScanHistory(scans, project, a = null, b = null) {
+  const series = groupScans(scans).get(project);
+  if (!series) return null;
+  const list = series.map(scanMeta);
+  const bi = Number.isInteger(b) && b >= 0 && b < series.length ? b : series.length - 1;
+  const ai = Number.isInteger(a) && a >= 0 && a < series.length ? a : Math.max(0, bi - 1);
+  const rows = (r) => new Map((r.data.findings || []).filter((f) => f.severity !== "info").map((f) => [findingId(f), findingRow(f, r.data)]));
+  const A = rows(series[ai]);
+  const B = rows(series[bi]);
+  const sort = (xs) => xs.sort((x, y) => SEV_RANK[x.severity] - SEV_RANK[y.severity] || x.title.localeCompare(y.title));
+  return {
+    project,
+    scans: list,
+    a: list[ai],
+    b: list[bi],
+    new: sort([...B].filter(([id]) => !A.has(id)).map(([, r]) => r)),
+    fixed: sort([...A].filter(([id]) => !B.has(id)).map(([, r]) => r)),
+    still: sort([...B].filter(([id]) => A.has(id)).map(([, r]) => r)),
+  };
+}
+
+/** The latest scan report for a project, or null. */
+export function latestScan(scans, project) {
+  const series = groupScans(scans).get(project);
+  return series ? series[series.length - 1] : null;
+}
+
+/** A filesystem-safe slug for a project key. */
+export function slug(key) {
+  return String(key).replace(/^https?:\/\//, "").replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "").toLowerCase().slice(-48) || "project";
 }

@@ -38,8 +38,19 @@ export function s(tag, attrs, ...children) {
   return el;
 }
 
+/**
+ * Empty an element. Returns a null-safe appender: native Element.append()
+ * turns null into the text "null", which is how a stray conditional child
+ * once rendered "null" in the menu bar. Everything goes through append() below.
+ */
 export function clear(el) {
   while (el.firstChild) el.firstChild.remove();
+  return { append: (...children) => { append(el, children); return el; } };
+}
+
+/** Null-safe append for an existing element. */
+export function put(el, ...children) {
+  append(el, children);
   return el;
 }
 
@@ -76,4 +87,26 @@ export function diffBlock(diff) {
     pre.append(h("span", { class: cls }, `${line}\n`));
   }
   return pre;
+}
+
+/** A figure caption under a chart: what it is, where the numbers came from. */
+export function fig(left, right = "") {
+  return h("p", { class: "fig" }, h("span", {}, left), h("span", {}, right));
+}
+
+/** The CLI's "What next?" block: numbered choices that navigate. */
+export function whatNext(items, go, heading = "What next?") {
+  return h("section", { class: "next", "aria-label": heading },
+    h("h2", {}, heading),
+    h("ol", {}, items.map((it) => h("li", {},
+      h("button", { type: "button", onclick: () => go(...it.go) }, it.label),
+      it.why ? h("span", { class: "why" }, `:: ${it.why}`) : null,
+    ))));
+}
+
+/** A window inside the window: pinstriped title bar, close and zoom boxes. */
+export function subwin(title, attrs, ...children) {
+  return h("section", { class: ["subwin", attrs?.class], "aria-label": title },
+    h("div", { class: "titlebar" }, h("span", { class: "box close", "aria-hidden": "true" }), h("span", { class: "title" }, title), h("span", { class: "box zoom", "aria-hidden": "true" })),
+    ...children);
 }

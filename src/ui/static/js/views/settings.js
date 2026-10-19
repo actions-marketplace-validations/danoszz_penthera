@@ -1,10 +1,11 @@
-import { h, panel, empty, announce } from "../dom.js";
+import { h, put, panel, empty, announce } from "../dom.js";
+import { SCREENS } from "../copy.js";
 
-export async function render(root, { api, meta, refreshMeta }) {
+export async function render(root, { api, meta, refreshMeta, theme }) {
   const [settings, mem] = await Promise.all([api.get("/api/settings"), api.get("/api/memory")]);
 
   const sw = h("button", { type: "button", class: "switch", role: "switch", "aria-checked": String(settings.offline), "aria-describedby": "egress-help" },
-    h("span", {}, "Offline"), h("span", { class: "state" }, settings.offline ? "[ON]" : "[OFF]"));
+    h("span", {}, "Offline mode"), h("span", { class: "state" }, settings.offline ? "[ON]" : "[OFF]"));
   const help = h("p", { id: "egress-help", class: "muted" });
   const paint = (offline) => {
     sw.setAttribute("aria-checked", String(offline));
@@ -25,7 +26,7 @@ export async function render(root, { api, meta, refreshMeta }) {
     }
   });
 
-  root.append(
+  put(root, 
     h("h1", {}, "Settings"),
     h("p", { class: "lede" }, "For this dashboard session. Nothing here is written to disk."),
     h("div", { class: "grid" },

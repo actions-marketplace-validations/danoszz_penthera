@@ -339,7 +339,7 @@ penthera ui --demo --open                            # fake data, to look around
 
 1. Start it in the user's terminal (it keeps running until Ctrl-C). It binds 127.0.0.1 on a random port and prints a one-time URL: tell the user to open that link (or pass `--open`). Never paste the token anywhere else.
 2. It reads only the `--project` folders, the reports folder and `~/.penthera`. If the screens are empty, scan with `-o reports/<name>.json` first (and `penthera deps -o reports/deps.json`, `penthera agents . -o reports/agents.json`).
-3. "Run as agent" on the Agent screen is `penthera agent --loop` with the same rules: the user approves every diff in the page, nothing is pushed. A URL that is not on this machine needs its hostname typed to confirm; the authorization gate above still applies.
+3. The Run screen starts scans, dependency checks, AI tooling audits and the fix loop. The fix loop is `penthera agent --loop` with the same rules: the user approves every diff in the page, nothing is pushed. A URL that is not on this machine needs its hostname typed to confirm; the authorization gate above still applies.
 
 See [docs/dashboard.md](../../docs/dashboard.md).
 

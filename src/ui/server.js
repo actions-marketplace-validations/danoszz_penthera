@@ -88,17 +88,20 @@ export async function startUiServer(opts = {}) {
   let runDeps = opts.runDeps;
   if (!source && opts.demo) {
     const demo = await import("./api/demo.js");
-    source = demo.createDemoSource({ settings });
+    source = demo.createDemoSource({ settings, version: opts.version });
     runDeps = runDeps || demo.demoRunDeps();
   }
-  if (!source) source = createDataSource({ projects, reportsDir, home, memoryRoot, settings });
+  if (!source) source = createDataSource({ projects, reportsDir, home, memoryRoot, settings, version: opts.version });
   if (!runDeps) {
-    const [{ runLoop }, { executeScan }, { writeJsonReport }] = await Promise.all([
+    const [{ runLoop }, { executeScan }, { writeJsonReport }, { scanDeps }, { scanAgents }] = await Promise.all([
       import("../agent/loop.js"), import("../cli/run-scan.js"), import("../reporter.js"),
+      import("../../lib/deps/index.js"), import("../../lib/agents/index.js"),
     ]);
     runDeps = {
       runLoop,
       executeScan,
+      scanDeps,
+      scanAgents,
       saveLoopRun: (l) => source.saveLoopRun?.(l),
       writeReport: (merged, base) => { writeJsonReport(merged, source.reportPath(base)); return base; },
     };

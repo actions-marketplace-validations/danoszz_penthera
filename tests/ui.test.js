@@ -222,7 +222,7 @@ describe("ui server: binding, token and session", () => {
     it("the page has no inline script, inline handlers, inline styles or innerHTML", () => {
       const html = readFileSync(join(STATIC_DIR, "index.html"), "utf-8");
       const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
-      expect(scripts.length).toBeGreaterThan(0);
+      expect(scripts.length).toBe(2); // theme.js (classic, before paint) and the app module
       for (const [, attrs, body] of scripts) {
         expect(attrs).toMatch(/\bsrc="\/[^"]+"/);
         expect(body.trim()).toBe("");
@@ -295,6 +295,36 @@ describe("ui server: binding, token and session", () => {
       expect([400, 404]).toContain((await raw(ui.port, { path: "/api/findings/../meta", headers: { Cookie: cookie } })).status);
     });
 
+    it("history compares two scans: new, fixed, still open", async () => {
+      const r = await get(`/api/history?project=${encodeURIComponent("http://localhost:3000")}`);
+      expect(r.status).toBe(200);
+      expect(r.json.scans.length).toBeGreaterThan(1);
+      expect(r.json.b.i).toBe(r.json.scans.length - 1);
+      expect(r.json.fixed.length + r.json.new.length + r.json.still.length).toBeGreaterThan(0);
+      const first = await get(`/api/history?project=${encodeURIComponent("http://localhost:3000")}&a=0&b=${r.json.b.i}`);
+      expect(first.json.fixed.length).toBeGreaterThan(r.json.fixed.length);
+      expect((await get("/api/history?project=nope")).status).toBe(404);
+    });
+
+    it("downloads the auditor report as a Markdown attachment", async () => {
+      const r = await raw(ui.port, { path: `/api/report?project=${encodeURIComponent("http://localhost:3000")}&audience=auditor`, headers: { Cookie: cookie } });
+      expect(r.status).toBe(200);
+      expect(r.headers["content-type"]).toMatch(/^text\/markdown/);
+      expect(r.headers["content-disposition"]).toMatch(/^attachment; filename="penthera-auditor-[a-z0-9-]+\.md"$/);
+      expect(r.headers["content-security-policy"]).toBe(CSP);
+      expect(r.body.length).toBeGreaterThan(200);
+      expect((await raw(ui.port, { path: "/api/report?project=x&audience=auditor", headers: { Cookie: cookie } })).status).toBe(404);
+      expect((await raw(ui.port, { path: `/api/report?project=${encodeURIComponent("http://localhost:3000")}&audience=root`, headers: { Cookie: cookie } })).status).toBe(404);
+    });
+
+    it("finding detail explains the finding in plain words", async () => {
+      const { findings } = (await get("/api/findings")).json;
+      const f = findings.find((x) => x.severity === "critical");
+      const d = (await get(`/api/findings/${f.id}?project=${encodeURIComponent(f.project)}`)).json;
+      expect(d.explain.plainSeverity).toBe("serious");
+      expect(d.explain.confidenceMeaning).toMatch(/\w/);
+    });
+
     it("unknown API routes 404 and wrong methods 405", async () => {
       expect((await get("/api/nope")).status).toBe(404);
       const r = await raw(ui.port, { method: "DELETE", path: "/api/settings", headers: { Cookie: cookie, Origin: `http://127.0.0.1:${ui.port}` } });
@@ -361,6 +391,16 @@ describe("ui data source: only the chosen folders", () => {
 
     const [b] = src.evidence();
     expect(b.readable).toBe(true);
+
+    // "Export evidence for an auditor": a new bundle from the latest report, inside the reports folder.
+    const made = src.createEvidence("http://localhost:3000");
+    expect(made.path).toMatch(/^evidence\/localhost-3000-/);
+    expect(src.verifyEvidence(made.id).ok).toBe(true);
+    expect(src.verifyEvidence(made.id).files.map((f) => f.path)).toEqual(expect.arrayContaining(["report.json", "report-auditor.md", "report.sarif"]));
+    expect(src.createEvidence("http://nope")).toBeNull();
+    expect(src.audienceReport("http://localhost:3000", "auditor")).toMatch(/\w/);
+    expect(src.audienceReport("http://localhost:3000", "../../etc")).toBeNull();
+    expect(src.history("http://localhost:3000").fixed.map((f) => f.title)).toEqual(["Missing CSP"]);
     expect(src.verifyEvidence(b.id).ok).toBe(true);
     writeFileSync(join(bundle, "report.json"), "{\"tampered\":true}\n");
     expect(src.verifyEvidence(b.id).ok).toBe(false);
@@ -394,6 +434,9 @@ describe("ui runs: authorization and the approval flow", () => {
     expect(() => validateRunRequest({ kind: "loop", repo: tmpdir() }, roots)).toThrow(/outside the project folders/);
     expect(validateRunRequest({ kind: "loop", repo: join(root, "repo") }, roots).repo).toMatch(/repo$/);
     expect(() => validateRunRequest({ kind: "nope" }, roots)).toThrow(RunError);
+    expect(() => validateRunRequest({ kind: "deps" }, roots)).toThrow(/package-lock/);
+    expect(() => validateRunRequest({ kind: "agents", repo: join(root, "repo"), url: "http://localhost:3000" }, roots)).toThrow(/reads files only/);
+    expect(validateRunRequest({ kind: "agents", repo: join(root, "repo") }, roots).kind).toBe("agents");
   });
 
   it("needs the hostname typed back for a URL that is not on this machine", () => {

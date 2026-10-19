@@ -1,5 +1,6 @@
-import { h, panel, clear, empty, sevBadge, diffBlock, announce } from "../dom.js";
+import { h, put, panel, clear, empty, sevBadge, diffBlock, announce } from "../dom.js";
 import { SEVERITIES, ago, shortProject } from "../format.js";
+import { SCREENS, EMPTY } from "../copy.js";
 
 export async function render(root, { api, params, go }) {
   const { findings } = await api.get("/api/findings");
@@ -30,9 +31,9 @@ export async function render(root, { api, params, go }) {
   const tbody = h("tbody");
   const detail = h("div", { class: "detail" });
 
-  root.append(
-    h("h1", {}, "Findings"),
-    h("p", { class: "lede" }, "Latest report per project. Select a row for evidence, sources and the fix the agent loop would propose."),
+  put(root, 
+    h("h1", {}, SCREENS.findings.title),
+    h("p", { class: "lede" }, SCREENS.findings.lede),
     h("div", { class: "filters", role: "search" }, search, projectSel, h("div", { class: "filters", role: "group", "aria-label": "Severity" }, toggles),
       h("label", { class: "check", for: "f-supp" }, supp, "suppressed"), count),
     h("div", { class: "split" },
@@ -54,7 +55,13 @@ export async function render(root, { api, params, go }) {
       && (state.suppressed || !f.suppressed)
       && (!q || `${f.title} ${f.category} ${f.location} ${f.source}`.toLowerCase().includes(q)));
     clear(tbody);
+    let group = null;
     for (const f of visible) {
+      if (f.severity !== group) {
+        group = f.severity;
+        const n = visible.filter((x) => x.severity === group).length;
+        put(tbody, h("tr", { class: "group" }, h("td", { colspan: "4" }, `${group} :: ${n}`)));
+      }
       const tr = h("tr", { class: keyOf(f) === state.selected ? "sel" : null, dataset: { key: keyOf(f) } },
         h("td", {}, sevBadge(f.severity)),
         h("td", {},
@@ -64,9 +71,12 @@ export async function render(root, { api, params, go }) {
         h("td", { class: "hide-narrow muted trunc", title: f.project }, shortProject(f.project)),
         h("td", { class: "hide-narrow muted" }, f.category || "-"),
       );
-      tbody.append(tr);
+      put(tbody, tr);
     }
-    if (!visible.length) tbody.append(h("tr", {}, h("td", { colspan: "4" }, empty(findings.length ? "Nothing matches these filters." : "No findings in the reports folder."))));
+    if (!visible.length) {
+      const hidden = [state.q.trim() ? "the text filter" : null, state.project ? "the project filter" : null, state.sev.size < SEVERITIES.length ? "the severity toggles" : null].filter(Boolean).join(", ");
+      put(tbody, h("tr", {}, h("td", { colspan: "4" }, empty(findings.length ? EMPTY.findingsFiltered(hidden || "the filters") : EMPTY.findingsNone))));
+    }
     count.textContent = `${visible.length} of ${findings.length}`;
   }
 
@@ -112,7 +122,7 @@ export async function render(root, { api, params, go }) {
   draw();
   const first = state.selected ? visible.find((f) => keyOf(f) === state.selected) : visible[0];
   if (first) select(first);
-  else detail.append(panel("Detail", {}, empty("Select a finding.")));
+  else put(detail, panel("Detail", {}, empty("Select a finding.")));
 
   return () => document.removeEventListener("keydown", onKey);
 }
@@ -120,6 +130,7 @@ export async function render(root, { api, params, go }) {
 function renderDetail(d, f, go) {
   const section = (label, ...body) => h("section", {}, h("div", { class: "label" }, label), ...body);
   const repo = f.project.startsWith("/") ? f.project : null;
+  const x = d.explain || {};
   return panel("Detail", {},
     h("div", {}, sevBadge(d.severity), " ", h("span", { class: "chip" }, d.confidence || "unrated"), " ", d.category ? h("span", { class: "chip" }, d.category) : null),
     h("h2", { tabindex: "-1" }, d.title),
@@ -130,7 +141,13 @@ function renderDetail(d, f, go) {
       h("dt", {}, "seen"), h("dd", {}, ago(f.seen)),
       h("dt", {}, "id"), h("dd", { class: "faint" }, d.id),
     ),
-    d.description ? section("What it means", h("p", {}, d.description)) : null,
+    h("div", { class: "plain", "aria-label": "In plain words" },
+      h("p", {}, h("span", { class: "strong" }, "In plain words :: "), (x.plainSeverity || d.severity) === "note" ? "a note, not a problem." : `a ${x.plainSeverity || d.severity} problem${d.category ? ` with ${d.category.replace(/-/g, " ")}` : ""}.`),
+      x.confidenceMeaning ? h("p", {}, h("span", { class: "strong" }, `How sure (${x.confidence}) :: `), x.confidenceMeaning) : null,
+      x.fixText ? h("p", {}, h("span", { class: "strong" }, "What to do :: "), x.fixText) : null,
+      x.owasp?.length ? h("p", { class: "muted" }, `Maps to ${x.owasp.join(" · ")}`) : null,
+    ),
+    d.description ? section("What we saw", h("p", {}, d.description)) : null,
     d.evidence ? section("Evidence", h("pre", { class: "block" }, d.evidence)) : null,
     d.request ? section("Request", h("pre", { class: "block" }, d.request)) : null,
     d.response ? section("Response", h("pre", { class: "block" }, d.response)) : null,
@@ -142,7 +159,7 @@ function renderDetail(d, f, go) {
         h("p", {}, h("span", { class: "ok" }, d.fix.recipe), ` :: ${d.fix.title} `, h("span", { class: "chip" }, `confidence ${d.fix.confidence}`)),
         h("p", { class: "faint" }, `files: ${d.fix.files.join(", ")}`),
         diffBlock(d.fix.diff),
-        repo ? h("p", {}, h("button", { type: "button", class: "btn", onclick: () => go("agent", { repo }) }, "Fix it with the agent loop →")) : null)
+        repo ? h("p", {}, h("button", { type: "button", class: "btn", onclick: () => go("run", { kind: "loop", repo }) }, "Fix it with the agent ▸")) : null)
       : section("Fix recipe", h("p", { class: "muted" }, "No recipe matches this finding. Fix it by hand, or run the loop with a local model (--fix-model) from the CLI.")),
   );
 }

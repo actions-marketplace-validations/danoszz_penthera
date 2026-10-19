@@ -14,8 +14,11 @@ import { openMemory, buildViews, buildHistory } from "../../../lib/memory/index.
 import { referencesFor } from "../../../lib/references.js";
 import { planFixes, redactPlan } from "../../../lib/fix/index.js";
 import { verifyEvidence, MANIFEST, SIGNATURE, SCHEMA as EVIDENCE_SCHEMA } from "../../report/evidence.js";
+import { writeEvidence } from "../../cli/report-outputs.js";
+import { formatAudienceReport, AUDIENCES } from "../../report/audience.js";
 import {
   classify, buildOverview, buildFindings, locateFinding, findingDetail, buildDeps, buildAi, memoryStats, loopSummary,
+  explainFinding, buildScanHistory, latestScan, slug,
 } from "./summarize.js";
 
 const MAX_REPORT_BYTES = 25 * 1024 * 1024;
@@ -59,7 +62,7 @@ export function confineDir(input, roots) {
 
 const idFor = (s) => createHash("sha256").update(s).digest("hex").slice(0, 16);
 
-export function createDataSource({ projects, reportsDir, home, memoryRoot, settings }) {
+export function createDataSource({ projects, reportsDir, home, memoryRoot, settings, version = "dev" }) {
   const projectRoots = realRoots(projects);
   const reportsReal = realRoots([reportsDir])[0];
   const roots = realRoots([...projects, reportsDir, home]);
@@ -169,7 +172,29 @@ export function createDataSource({ projects, reportsDir, home, memoryRoot, setti
           }
         } catch { /* no preview outside the project dirs */ }
       }
-      return { ...detail, id, project, sources, fix, file: hit.report.name };
+      return { ...detail, id, project, sources, fix, file: hit.report.name, explain: explainFinding(hit.finding, hit.report.data) };
+    },
+
+    history(project, a, b) {
+      return buildScanHistory(scan().scans, project, a, b);
+    },
+
+    /** "Export evidence for an auditor": a bundle from the latest report of a project, into <reports>/evidence/. */
+    createEvidence(project) {
+      const latest = latestScan(scan().scans, project);
+      if (!latest) return null;
+      const dir = join(reportsReal, "evidence", `${slug(project)}-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}`);
+      if (dirname(dirname(dir)) !== reportsReal) return null;
+      writeEvidence(latest.data, { evidence: dir }, { version, mdOpts: { version }, argv: ["ui", "evidence", "create"] });
+      cache = null;
+      return { id: idFor(dir), path: relative(reportsReal, dir) };
+    },
+
+    /** The developer, owner or auditor report for the latest scan of a project, as Markdown. */
+    audienceReport(project, audience) {
+      if (!AUDIENCES.includes(audience)) return null;
+      const latest = latestScan(scan().scans, project);
+      return latest ? formatAudienceReport(latest.data, audience, { version }) : null;
     },
 
     deps() {

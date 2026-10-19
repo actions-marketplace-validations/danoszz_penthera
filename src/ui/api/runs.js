@@ -42,8 +42,8 @@ export function isLocalHost(hostname) {
  */
 export function validateRunRequest(body, projectRoots, confine = confineDir) {
   if (!body || typeof body !== "object") throw new RunError("Expected a JSON body.");
-  const kind = body.kind === "scan" ? "scan" : body.kind === "loop" ? "loop" : null;
-  if (!kind) throw new RunError('kind must be "loop" or "scan".');
+  const kind = ["scan", "loop", "deps", "agents"].includes(body.kind) ? body.kind : null;
+  if (!kind) throw new RunError('kind must be "scan", "deps", "agents" or "loop".');
 
   let url = null;
   if (body.url != null && String(body.url).trim()) {
@@ -66,6 +66,8 @@ export function validateRunRequest(body, projectRoots, confine = confineDir) {
     try { repo = confine(String(body.repo), projectRoots); } catch (e) { throw new RunError(e.message); }
   }
   if (kind === "loop" && !repo) throw new RunError("The agent loop fixes a repo: enter a project folder.");
+  if ((kind === "deps" || kind === "agents") && !repo) throw new RunError(`${kind === "deps" ? "The dependency check reads package-lock.json" : "The AI tooling audit reads agent config"} in a project folder: enter one.`);
+  if ((kind === "deps" || kind === "agents") && url) throw new RunError("This check reads files only; leave the URL empty.");
   if (kind === "scan" && !repo && !url) throw new RunError("Enter a project folder, a URL, or both.");
 
   const maxIterations = body.maxIterations == null ? 5 : Number(body.maxIterations);
@@ -149,6 +151,18 @@ export function createRunManager(deps) {
       const file = deps.saveLoopRun?.(loopRun);
       if (file) emit(run, "log", { text: `loopRun written to ${file}` });
       emit(run, "log", { text: `branch ${run.summary.branch}: nothing was pushed. Merge it yourself when you are happy with it.` });
+    } else if (req.kind === "deps" || req.kind === "agents") {
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-");
+      emit(run, "log", { text: req.kind === "deps" ? `penthera deps ${req.repo} (offline)` : `penthera agents ${req.repo} (offline, read-only)` });
+      const result = req.kind === "deps"
+        ? await deps.scanDeps(req.repo, { onPhase: (m) => log(m) })
+        : await deps.scanAgents(req.repo, { onPhase: (m) => log(m) });
+      const c = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+      for (const f of result.findings || []) if (c[f.severity] != null) c[f.severity]++;
+      const file = deps.writeReport(result, `${req.kind}_${stamp}.json`);
+      run.summary = { counts: c, total: (result.findings || []).length, file, grade: result.agents?.grade || null };
+      log(`${req.kind === "deps" ? "deps" : "agents"} done: ${c.critical} critical, ${c.high} high, ${c.medium} medium, ${c.low} low${result.agents ? `, grade ${result.agents.grade}` : ""}`);
+      if (file) log(`report written to ${file}`);
     } else {
       const offline = deps.settings().offline;
       emit(run, "log", { text: `penthera${req.url ? ` ${req.url}` : ""}${req.repo ? ` --repo ${req.repo}` : ""} --profile standard${offline ? " --offline" : ""}` });

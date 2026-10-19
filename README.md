@@ -443,10 +443,13 @@ It shows each diff and asks `y/n/skip/quit`, applies it on a local branch `penth
 penthera ui --open     # try it first with: penthera ui --demo
 ```
 
-A dashboard for everything above, on `127.0.0.1` only: posture per project, findings with evidence and the fix diff, the dependency capability diff and install decisions, your AI-tooling grade, evidence bundles you can verify in one click, and "Run as agent", which drives `agent --loop` from the page with Approve / Skip / Stop on every diff. It reads only the folders you pass and `~/.penthera`, never contacts the network, and ships no third-party code. The link it prints works once. Security model and screens: [docs/dashboard.md](docs/dashboard.md).
+A dashboard for everything above, on `127.0.0.1` only: where each project stands, every finding explained in plain words with its fix diff, history between scans, the dependency capability diff, your AI-tooling grade, and evidence bundles for an auditor. Run starts scans and the fix loop from the page, with Apply / Skip / Stop on every diff. Dark and light themes. It reads only the folders you pass and `~/.penthera`, never contacts the network, and ships no third-party code. The link it prints works once. Screens, user stories and the security model: [docs/dashboard.md](docs/dashboard.md).
 
-| Overview | Run as agent |
+| Dark | Light |
 |---|---|
+| ![penthera ui overview, dark theme](assets/dashboard/overview-dark.jpg) | ![penthera ui fix loop asking to apply a diff](assets/dashboard/story-loop.jpg) |
+
+---|---|
 | ![penthera ui overview: posture per project, severity mix, findings over time](assets/dashboard/overview.jpg) | ![penthera ui agent: the loop waiting for approval on a diff](assets/dashboard/agent.jpg) |
 
 ---

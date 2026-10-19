@@ -79,6 +79,19 @@ re-exports engine pieces via `exports` in `package.json`
   `penthera/plugins`.
 - Every finding needs a `severity`, `title`, `target`, and a remediation hint so
   reports stay actionable. Add a test (prefer the mock server over live hosts).
+- **Say where the technique comes from.** In the PR, give the source (paper,
+  advisory, OWASP or MITRE ATLAS entry, incident write-up) and the date. If the
+  finding uses a new `category`, map it to 1-3 entries in `lib/references.json`,
+  adding any new entry to `docs/references.bib` only after checking it against
+  the publisher, then run `node scripts/build-references.mjs`.
+- **Add a benchmark case.** A labelled true positive in `bench/`, plus a decoy
+  where a false positive is plausible, then `npm run bench` and commit the
+  updated `bench/RESULTS.md`. See [bench/README.md](bench/README.md).
+- Rules ship in releases only. Do not add code that downloads rules,
+  templates or signatures at run time
+  ([why](docs/METHODOLOGY.md#how-new-attack-techniques-are-adopted)). The
+  Retire.js database download is the one existing exception, documented in
+  [METHODOLOGY.md](docs/METHODOLOGY.md#offline-and-no-telemetry).
 
 ---
 

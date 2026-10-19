@@ -38,6 +38,15 @@ Security scanner for developers: scan live URLs, local repos, or macOS machines 
 | Penthera's own CI | `.github/workflows/ci.yml` (full tests + mock scan), `codeql.yml`, `scorecard.yml` |
 | Docker | `docker build -t penthera . && docker run penthera https://localhost:3000` |
 
+## Methodology & research
+
+| Topic | Link |
+|-------|------|
+| How detection works, confidence model, limits | [METHODOLOGY.md](./METHODOLOGY.md) |
+| Cited research and standards | [references.md](./references.md) ([BibTeX](./references.bib)) |
+| Accuracy benchmark (`npm run bench`) | [bench/README.md](../bench/README.md), latest [results](../bench/RESULTS.md) |
+| Citing Penthera | [CITATION.cff](../CITATION.cff) |
+
 ## Agent skill
 
 | Topic | Location |

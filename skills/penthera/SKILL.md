@@ -1,25 +1,24 @@
 ---
 name: penthera
 description: >
-  Runs authorized security scans on live URLs and local repos using the Penthera CLI
-  (TLS, headers, OpenAPI, auth hardening, secret scanning, optional injection probes),
-  and checks npm dependencies offline for what they can do ("is this dependency safe?",
-  "what changed in my deps?", "review this lockfile change", "is this a typosquat?"),
-  installs npm packages through a capability firewall ("install X safely", "is it safe
-  to add this package?"),
-  then applies framework-aware fixes and re-scans to verify them. Use when the user asks
-  to scan, audit, harden, fix, pentest, or review security of their own app, staging URL,
-  localhost, or repo; apply security best practices; generate SARIF for GitHub; diff
-  against a baseline; find hardcoded secrets before deploy; or audit the AI agent setup
-  itself ("audit my MCP servers / skills / agent config", "are my Claude Code hooks
-  safe?", "check this skill before I install it"). Do NOT use for targets without
-  explicit authorization.
+  The routine work of a security team, run locally with the Penthera CLI. Scans the
+  user's own live URL and repo (TLS, headers, auth, OpenAPI, secrets incl. AI keys,
+  opt-in injection); checks npm dependencies offline ("is this dependency safe?",
+  "what changed in my deps?", "install X safely", "any AGPL in our deps?"); blocks
+  secrets and risky agent config before they are committed ("add a pre-commit hook");
+  audits AI tooling ("audit my MCP servers / skills / hooks", "check this skill
+  before I install it"); fixes findings
+  on a local branch and re-scans to verify ("scan and fix my app"); and writes
+  reports and evidence ("report for my auditor / manager", NIS2, SARIF, baseline
+  diff). Use when the user asks to scan, audit, harden, fix, or review the security of
+  their own app, staging URL, localhost, repo, dependencies, or agent setup. Do NOT
+  use for targets without explicit authorization.
 license: MIT
 compatibility: Node.js 22+, network access to target, Penthera CLI (npm link or node bin/penthera.js from repo). macOS only for --machine.
 allowed-tools: "Bash(node:*) Bash(npm:*) Bash(penthera:*) Read Write Edit"
 metadata:
   author: danoszz
-  version: 1.2.0
+  version: 1.5.0
   category: security
 ---
 
@@ -71,6 +70,8 @@ All examples below use `penthera`; substitute `node bin/penthera.js` when needed
 | Scan repo only (secrets, routes) | `penthera --repo . -o reports/repo-scan.json` |
 | Is this dependency safe? / what changed in my deps? | `penthera deps` or `penthera deps --base origin/main` (see **Dependency risk scan**) |
 | Install X safely / is it safe to add this package? | `penthera install <pkg> --dry-run`, then `penthera install <pkg>` (see **Install firewall**) |
+| Are our dependency licenses OK? / any AGPL? | `penthera deps --license-policy permissive` (see **License policy**) |
+| Add a pre-commit hook / stop me committing secrets | `penthera hook install` (see **Pre-commit hook**) |
 | URL + source combined | `penthera <url> --repo . -o reports/scan.json --sarif reports/scan.sarif` |
 | Scan and fix my app | **Workflow 4**: `penthera agent --loop` (scan, fix, verify, commit locally), then hand-fix what is left from [references/remediation.md](references/remediation.md) |
 | Compare to previous scan | `penthera <url> -o reports/scan.json --baseline reports/previous.json` |
@@ -298,6 +299,30 @@ penthera install <pkg> --yes              # install only if nothing breaches the
 1. Run `--dry-run` first and summarize: new packages, capabilities gained, new install scripts with their commands, typosquat warnings, and what the policy says.
 2. Exit 1 means blocked: the project is untouched. Never add a package to `allow` in `penthera.policy.json`, or approve install scripts, without the user saying so after seeing the evidence.
 3. If the user approves, run `penthera install <pkg>` in their terminal (the prompt is theirs to answer), or `--yes` after they have added an `allow` entry.
+
+## License policy
+
+**Triggers:** "are our licenses OK?", "do we ship anything GPL / AGPL?", "license check before release", "add a license policy"
+
+```bash
+penthera deps --license-policy permissive --json   # presets: permissive, weak-copyleft-ok, no-agpl
+```
+
+1. Findings have category `license`: a breach or `UNLICENSED` is high; a missing, custom or non-SPDX license is medium.
+2. Without the flag, the `licenses` section of `penthera.policy.json` applies if present. Never add packages to `allowPackages` without the user's say-so; that is a legal decision, not a technical one.
+
+## Pre-commit hook
+
+**Triggers:** "add a pre-commit hook", "stop me committing secrets / API keys", "check before I commit", "block bad MCP config in commits"
+
+```bash
+penthera hook install   # .git/hooks/pre-commit; an existing hook is kept and runs first
+penthera hook run       # check what is staged now (exit 1 = blocked)
+```
+
+1. It checks staged content only: secrets and AI provider keys, `penthera agents` rules on staged agent config, and the capability diff plus license policy when `package-lock.json` is staged. Blocks on high and critical by default (`hook.blockOn` in `penthera.policy.json`).
+2. If `core.hooksPath` is set (husky, lefthook), do not pass `--force`; add `npx --no-install penthera hook run` to that tool's pre-commit config instead.
+3. Never suggest `git commit --no-verify` to get past a finding unless the user asks how to skip it; suggest fixing it or a `penthera.suppress.json` entry with a reason.
 
 ## Examples
 

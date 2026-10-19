@@ -2,14 +2,32 @@
  * `penthera deps [path]`: CLI runner for the dependency capability scan.
  */
 import { resolve } from "node:path";
-import { existsSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { mergeResults } from "./merge-results.js";
 import { buildActionPlan } from "../../lib/remediation/index.js";
 import { printReport, printFindings, writeJsonReport, writeSarifReport, createProgress, printError } from "../reporter.js";
 import { writeMarkdownReport, markdownPathFromJson } from "../report/markdown.js";
 
-export const DEPS_FLAGS = ["diff", "base", "online", "pr-comment", "prod"];
+export const DEPS_FLAGS = ["diff", "base", "online", "pr-comment", "prod", "license-policy"];
+
+/**
+ * The license policy for this run: `--license-policy <preset|file>`, else the
+ * `licenses` section of penthera.policy.json, else none.
+ */
+async function resolveLicensePolicy(root, flag) {
+  const { normalizeLicensePolicy, LICENSE_PRESETS } = await import("../../lib/deps/license.js");
+  if (flag) {
+    if (LICENSE_PRESETS[flag]) return normalizeLicensePolicy({ preset: flag }, "--license-policy");
+    const path = resolve(flag);
+    if (!existsSync(path)) throw new Error(`--license-policy: "${flag}" is neither a preset (${Object.keys(LICENSE_PRESETS).join(", ")}) nor a file`);
+    let raw;
+    try { raw = JSON.parse(readFileSync(path, "utf-8")); } catch (e) { throw new Error(`${flag}: ${e.message}`); }
+    return normalizeLicensePolicy(raw && typeof raw === "object" && "licenses" in raw ? raw.licenses : raw, `${flag}: licenses`);
+  }
+  const { loadPolicy } = await import("../../lib/install/policy.js");
+  return loadPolicy(root).policy.licenses;
+}
 
 export async function runDeps(args, opts, { version }) {
   if (args.length > 1) {
@@ -34,7 +52,9 @@ export async function runDeps(args, opts, { version }) {
   const { scanDeps } = await import("../../lib/deps/index.js");
   let result;
   try {
+    const licensePolicy = await resolveLicensePolicy(root, opts["license-policy"]);
     result = await scanDeps(root, {
+      licensePolicy,
       diff: opts.diff || null,
       base: opts.base || null,
       online: !!opts.online,

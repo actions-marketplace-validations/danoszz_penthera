@@ -173,7 +173,7 @@ moved into the same module unchanged, so existing user templates keep working.
 
 | Pack | Contents |
 |---|---|
-| `core` | Detections that were hardcoded before v1.5.0, moved here so the mechanism is used for real: 12 AI-provider key formats, the credential-path hidden-instruction pattern, two process-substitution exec patterns, and the `.env` exposure template. Engines splice them back in at their old positions; a test compares the result with a snapshot of the old built-ins. |
+| `core` | Detections that were hardcoded before rule packs, moved here so the mechanism is used for real: 12 AI-provider key formats, the credential-path hidden-instruction pattern, two process-substitution exec patterns, and the `.env` exposure template. Engines splice them back in at their old positions; a test compares the result with a snapshot of the old built-ins. |
 | `ioc-2025-2026` | Named npm campaigns: **s1ngularity** (nx and @nx/* versions, from GHSA-cxm3-wv7p-598c), **Shai-Hulud** (484 package versions from StepSecurity's table, the webhook.site exfil URL, and `bundle.js` by SHA-256), **Shai-Hulud 2.0** (1,089 package versions from Wiz Research's CSV, plus `setup_bun.js` and `bun_environment.js`), and **postmark-mcp** 1.0.16 to 1.0.18 with its exfil domain. Every rule cites the list it came from; entries that could not be checked against a primary source were dropped. |
 
 ## Writing and signing a pack

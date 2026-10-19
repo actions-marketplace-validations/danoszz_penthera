@@ -24,7 +24,9 @@ import { blankAssessment } from "../lib/compliance/self-assessment.js";
 import { buildPolicyPack, policyPackIndex } from "../lib/compliance/policy-pack.js";
 import { parseQuestionnaire, answerQuestionnaire, formatQuestionnaireMarkdown } from "../lib/compliance/questionnaire.js";
 import { buildIncidentReports, formatIncidentMarkdown, incidentTemplate } from "../lib/compliance/incident.js";
-import { buildSbom } from "../lib/whitebox/sbom.js";
+import { buildSbom, buildAiBom } from "../lib/whitebox/sbom.js";
+import { aiBomSummary } from "../lib/whitebox/aibom.js";
+import { buildCraReports, craTemplate, formatCraMarkdown, readCraInput } from "../lib/compliance/cra.js";
 import { emptyHistory, updateHistory, buildAuditLoop } from "../lib/audit-loop.js";
 import { rateSuppliers, parseSupplierList, formatSuppliersMarkdown } from "../lib/supply-chain.js";
 
@@ -91,9 +93,13 @@ const HELP = `
         --online                Also check npm registry metadata (the only network use)
         --prod                  Skip devDependencies
         --pr-comment <file>     Write a short Markdown capability diff for a PR comment
+        --license-policy <p>    permissive | weak-copyleft-ok | no-agpl, or a policy file
 
   ${dim("Install mode")}  ${dim("(penthera install [pkg...]; penthera install --help for all options)")}
         --yes / --dry-run       Install only if nothing breaches the policy / report only
+
+  ${dim("Hook mode")}  ${dim("(penthera hook install|uninstall|run; penthera hook --help)")}
+                                Pre-commit: staged secrets, agent config, lockfile diff
 
   ${dim("Options")}
     -r, --repo <path>       Path to repo for source analysis
@@ -116,6 +122,9 @@ const HELP = `
         --incident <file>   Generate NIS2 incident-report drafts + timeline
         --incident-init <file>  Write a blank incident template and exit
         --sbom <file>       Write a CycloneDX software bill of materials (from --repo)
+        --aibom <file>      Write a CycloneDX 1.6 AI-BOM: AI SDKs, models, MCP servers, skills, prompts
+        --cra <file>        Generate CRA Article 14 report drafts + timeline (writes cra-reports.md)
+        --cra-init <file>   Write a blank CRA reporting template and exit
         --history <file>    Track findings over time (time-to-fix, ageing, drift)
         --memory            Learn from this scan locally; apply suppressions + ranking
         --suppliers <file>  Passively rate suppliers' public domains (RAG, measure d)
@@ -168,6 +177,12 @@ export async function run() {
     return;
   }
 
+  if (process.argv[2] === "hook") {
+    const { runHookCommand } = await import("./cli/hook.js");
+    process.exitCode = await runHookCommand(process.argv.slice(3));
+    return;
+  }
+
   if (process.argv[2] === "evidence") {
     const { runEvidence } = await import("./cli/evidence.js");
     process.exit(runEvidence(process.argv.slice(3)));
@@ -213,6 +228,9 @@ export async function run() {
         incident:    { type: "string" },
         "incident-init": { type: "string" },
         sbom:        { type: "string" },
+        aibom:       { type: "string" },
+        cra:         { type: "string" },
+        "cra-init":  { type: "string" },
         history:     { type: "string" },
         memory:      { type: "boolean", default: false },
         suppliers:   { type: "string" },
@@ -221,6 +239,7 @@ export async function run() {
         online:      { type: "boolean", default: false },
         "pr-comment": { type: "string" },
         prod:        { type: "boolean", default: false },
+        "license-policy": { type: "string" },
         profile:     { type: "string" },
         "auth-cookie": { type: "string" },
         "auth-bearer": { type: "string" },
@@ -313,6 +332,32 @@ export async function run() {
     process.exit(0);
   }
 
+  if (opts["cra-init"]) {
+    const path = resolve(opts["cra-init"]);
+    writeFileSync(path, JSON.stringify(craTemplate(), null, 2) + "\n");
+    console.log(`Wrote a blank CRA reporting template to ${path}`);
+    console.log(`Set type and aware_at (ISO 8601), then run:  penthera --cra ${opts["cra-init"]}`);
+    process.exit(0);
+  }
+
+  if (opts.cra) {
+    let input;
+    try {
+      input = readCraInput(resolve(opts.cra));
+    } catch (e) {
+      printError(`Could not read --cra file: ${e.message}`);
+      process.exit(2);
+    }
+    for (const err of input.errors) printError(err);
+    const result = buildCraReports(input.cra, loadJurisdiction(), { now: new Date().toISOString(), prefilled: input.prefilled });
+    const outPath = resolve("cra-reports.md");
+    writeFileSync(outPath, formatCraMarkdown(result));
+    console.log(`CRA Article 14 report drafts written to ${outPath}`);
+    for (const t of result.timeline) console.log(`  ${t.title} (${t.within}): ${t.dueBy ? `due ${t.dueBy}` : t.basis || "n/a"}, ${t.status}`);
+    for (const w of result.warnings) console.log(`  ⚠️ ${w}`);
+    process.exit(0);
+  }
+
   if (opts.suppliers && opts.offline) {
     printError("--suppliers rates third-party domains, which --offline forbids.");
     process.exit(2);
@@ -347,8 +392,8 @@ export async function run() {
     await runDeps(positionals.slice(1), opts, { version: pkg.version });
     return;
   }
-  if (opts.diff || opts.base || opts.online || opts["pr-comment"] || opts.prod) {
-    printError("--diff, --base, --online, --prod and --pr-comment only apply to `penthera deps`.");
+  if (opts.diff || opts.base || opts.online || opts["pr-comment"] || opts.prod || opts["license-policy"]) {
+    printError("--diff, --base, --online, --prod, --pr-comment and --license-policy only apply to `penthera deps`.");
     process.exit(2);
   }
 
@@ -373,8 +418,8 @@ export async function run() {
   const url = positionals[0] && !agentsMode ? normalizeBaseUrl(positionals[0]) : null;
   const repo = opts.repo || null;
 
-  if (!agentsMode && !url && !repo && !opts.machine && !opts.readiness && !opts["policy-pack"] && !opts.sbom && !opts.questionnaire) {
-    printError("No target specified. Provide a URL, --repo, --machine, --readiness, --policy-pack, --sbom, --questionnaire, or combine them.");
+  if (!agentsMode && !url && !repo && !opts.machine && !opts.readiness && !opts["policy-pack"] && !opts.sbom && !opts.aibom && !opts.questionnaire) {
+    printError("No target specified. Provide a URL, --repo, --machine, --readiness, --policy-pack, --sbom, --aibom, --questionnaire, or combine them.");
     console.log(HELP);
     process.exit(2);
   }
@@ -630,6 +675,19 @@ export async function run() {
     }
   }
 
+  if (opts.aibom) {
+    const aibom = buildAiBom(resolve(opts.repo || "."), {
+      serialNumber: `urn:uuid:${randomUUID()}`,
+      timestamp: new Date().toISOString(),
+      toolVersion: pkg.version,
+    });
+    writeFileSync(resolve(opts.aibom), JSON.stringify(aibom, null, 2) + "\n");
+    if (!opts.quiet && !opts.json) {
+      const n = aiBomSummary(aibom);
+      process.stderr.write(`  AI-BOM (CycloneDX 1.6) ${n.sdks} SDKs, ${n.models} models, ${n.mcpServers} MCP servers, ${n.skills} skills, ${n.prompts} prompts → ${opts.aibom}\n`);
+    }
+  }
+
   if (opts["policy-pack"]) {
     const dir = resolve(opts["policy-pack"]);
     mkdirSync(dir, { recursive: true });
@@ -689,7 +747,7 @@ export async function run() {
     );
   }
 
-  if ((opts.output || opts.markdown || opts.sarif || opts.evidence || opts.readiness || opts["policy-pack"] || opts.sbom || opts.history || opts.questionnaire) && !opts.quiet && !opts.json) {
+  if ((opts.output || opts.markdown || opts.sarif || opts.evidence || opts.readiness || opts["policy-pack"] || opts.sbom || opts.aibom || opts.history || opts.questionnaire) && !opts.quiet && !opts.json) {
     process.stderr.write("\n");
   }
 

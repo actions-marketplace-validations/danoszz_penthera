@@ -176,9 +176,14 @@ describe("regex guard", () => {
       accepted++;
       const re = new RegExp(src);
       for (const input of INPUTS) {
-        const t = performance.now();
-        re.test(input);
-        const ms = performance.now() - t;
+        // Best of three for slow runs: a parallel test worker can stall one
+        // run, but a quadratic pattern is slow every time.
+        let ms = Infinity;
+        for (let tries = 0; tries < 3 && ms > 50; tries++) {
+          const t = performance.now();
+          re.test(input);
+          ms = Math.min(ms, performance.now() - t);
+        }
         if (ms > worst.ms) worst = { ms, src };
       }
     }

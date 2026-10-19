@@ -33,7 +33,7 @@ platforms on their core value while staying local, deterministic, and free.
 The engineering detail, order of work, and acceptance criteria are in the
 [release plan](docs/release-plan.md).
 
-### v1.3.0 "AI toolchain" (target late October 2026)
+### v1.3.0 "AI toolchain" (shipped in 1.4.0)
 
 | Feature | What it does |
 |---------|--------------|
@@ -45,7 +45,7 @@ The engineering detail, order of work, and acceptance criteria are in the
 | Typosquat check | Names close to popular packages, against a vendored list. Registry metadata only with `--online` |
 | Methodology and benchmark | `docs/METHODOLOGY.md`, verified citations on every finding category, `CITATION.cff`, and published precision and recall |
 
-### v1.4.0 "Local loop" (target mid-November 2026)
+### v1.4.0 "Local loop" (shipped in 1.4.0)
 
 | Feature | What it does |
 |---------|--------------|
@@ -57,7 +57,7 @@ The engineering detail, order of work, and acceptance criteria are in the
 | PR-comment GitHub Action | Comments the dependency capability diff on every PR that changes a lockfile, and uploads SARIF |
 | Custom reports and evidence bundle | Templates per audience, a found → fixed → verified timeline, and a SHA-256 manifest you can sign with a local SSH key |
 
-### v1.5.0 "AI apps and compliance" (staged, December 2026)
+### v1.5.x "AI apps and compliance" (partly shipped in 1.5.0)
 
 | Feature | Why |
 |---------|-----|

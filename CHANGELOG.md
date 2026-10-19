@@ -36,6 +36,73 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   Research's CSV, loader file names) and postmark-mcp 1.0.16 to 1.0.18 with its
   exfil domain. `penthera deps` reports hits as critical `deps-ioc` findings
   that cite the source, wherever the package sits in the tree, installed or not
+
+## [1.5.0] - 2026-10-19
+
+Blocks problems at commit time, adds license policy, and extends the EU
+evidence to the Cyber Resilience Act. The GitHub Action is now ready for the
+Marketplace as "Penthera Security Review". Penthera also has a clearer
+problem statement: open-source security for the apps and AI systems you ship.
+
+### Added
+
+- **`penthera hook install|uninstall|run`**: a pre-commit hook that checks
+  staged content only (the git index): secrets and AI provider keys, the
+  `penthera agents` rules on staged `.mcp.json`, `CLAUDE.md`, `AGENTS.md`,
+  `.cursor/`, `.claude/` and `skills/`, and, when `package-lock.json` is staged,
+  the capability diff against HEAD plus the license policy for the packages the
+  commit adds. Blocks on high and critical by default; one line per finding with
+  a fix hint and a `penthera.suppress.json` id. An existing hook is kept as
+  `pre-commit.pre-penthera`, runs first, and is restored by `uninstall`. Refuses
+  to write into a `core.hooksPath` managed by husky or lefthook without `--force`.
+  `.pre-commit-hooks.yaml` for pre-commit.com. Configured by a new `hook`
+  section in `penthera.policy.json` (`blockOn`, `checks`, `ignore`)
+- **License policy**: `penthera deps --license-policy <preset|file>` and a
+  `licenses` section in `penthera.policy.json` (`preset`, `allow`, `deny`,
+  `allowPackages`, `unknown`). Presets `permissive`, `weak-copyleft-ok` and
+  `no-agpl`. A small SPDX expression parser handles `AND`/`OR`/`WITH`,
+  parentheses, `+` and `LicenseRef-`, and matches deprecated ids (`GPL-3.0`) to
+  their current form. Breaches and `UNLICENSED` are high; missing, custom and
+  non-SPDX licenses are medium. Findings use category `license`; the SPDX id
+  list is vendored (`lib/deps/spdx.json`). CycloneDX SBOM components now carry
+  their license
+- **CRA Article 14 reporting helper** (`penthera --cra-init cra.json`,
+  `penthera --cra cra.json`, `lib/compliance/cra.js`): for an actively exploited
+  vulnerability (24h early warning, 72h notification, final report 14 days after
+  a fix is available) or a severe incident (24h, 72h, final report one month
+  after the notification). Computes due dates in UTC and local time (hours
+  elapsed, days and months on the calendar, DST-safe), flags overdue and late
+  reports, drafts each report against Art. 14(2)/(4) with `NEEDS INPUT` for
+  missing facts, adds an Art. 14(8) user advisory, and can prefill the affected
+  component, purl and CVEs from a Penthera SBOM and scan JSON. NL profile names
+  NCSC-NL and the ENISA Single Reporting Platform. Drafts, not the official
+  form, not legal advice. Guide: `docs/compliance-cra.md`
+- **CycloneDX 1.6 AI-BOM** (`penthera --repo . --aibom aibom.cdx.json`,
+  `lib/whitebox/aibom.js`): AI SDK dependencies, model identifiers in code as
+  `machine-learning-model` components with `modelCard` and file:line evidence,
+  MCP servers as `services`, and Agent Skills and prompt files as hashed `data`
+  components. Offline. Tests validate the output against the official
+  CycloneDX 1.6 schema, vendored in `tests/fixtures/cyclonedx/` (new dev
+  dependency: `ajv`)
+
+## [1.4.0] - 2026-10-19
+
+The biggest release so far, covering the v1.3.0 "AI toolchain" and v1.4.0
+"Local loop" milestones together. Penthera now does the routine work of a small
+security team on your own machine:
+- tests your app;
+- vets and guards your dependencies;
+- audits your AI tooling;
+- fixes what it finds on a local branch and verifies each fix;
+- writes reports and evidence for auditors.
+
+It still runs offline, with no telemetry. The first outside contribution, from
+@Nurana100, is in this release.
+
+Requires Node 22+. Upgrading from 1.1.x or 1.2.x needs no config changes.
+
+### Added
+
 - **GitHub Action** (`uses: danoszz/penthera@<sha>`, `action.yml`): on PRs that
   change the lockfile it runs `penthera deps --base <PR base>`, upserts one PR
   comment marked `<!-- penthera-deps -->` (edited in place on every push), and
@@ -183,6 +250,11 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ### Docs
 
+- Sharper positioning: "the routine work of a security team, on your own
+  machine". The README now opens with what Penthera does for you, why you can
+  trust it, and a factual table of how it fits next to Socket, Snyk, GitHub,
+  OWASP ZAP and Anthropic's OSS Scanner. The package, plugin, skill and
+  repository descriptions match.
 - Funding and partnership drafts under `docs/funding/`: an NLnet application
   draft, GitHub Sponsors tiers, a partner brief, and a due diligence checklist.
 - CONTRIBUTING: commits are signed off under the Developer Certificate of Origin.

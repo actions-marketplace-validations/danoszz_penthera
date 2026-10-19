@@ -1,6 +1,6 @@
 # Penthera documentation
 
-Security scanner for developers: scan live URLs, local repos, or macOS machines from your AI agent or the CLI.
+The routine work of a security team, on your own machine: app scanning, dependency and install checks, an AI-tooling audit, a local fix loop, and auditor-grade reports. Offline, deterministic, free.
 
 ## Getting started
 

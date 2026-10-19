@@ -5,7 +5,7 @@ release, in what order, what each piece depends on, and how we know it is done.
 Dates are targets, not promises. Building is fast; review, real-world testing,
 and the 2FA release approval set the pace.
 
-Written 2026-10-19.
+Written 2026-10-19. **Status:** both milestones shipped together as 1.4.0 on 2026-10-19, a few weeks ahead of the targets below.
 
 ## The bet
 

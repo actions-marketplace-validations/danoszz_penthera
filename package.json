@@ -1,8 +1,8 @@
 {
   "name": "penthera",
-  "version": "1.2.0",
+  "version": "1.5.0",
   "type": "module",
-  "description": "Security scanner for web apps and AI-built code: scan URLs and repos from Claude Code, Cursor or the CLI. OWASP-mapped, SARIF output, NIS2 evidence. Authorized testing only.",
+  "description": "The routine work of a security team, on your own machine: audits your app, dependencies, and AI tooling (skills, MCP, hooks), fixes and verifies, and writes the evidence. Offline, deterministic, free.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/danoszz/penthera.git"
@@ -68,10 +68,20 @@
     "cursor",
     "claude-code",
     "owasp",
-    "sarif"
+    "sarif",
+    "supply-chain",
+    "dependencies",
+    "mcp",
+    "ai-security",
+    "agent-security",
+    "nis2",
+    "sbom",
+    "offline",
+    "devsecops"
   ],
   "license": "MIT",
   "devDependencies": {
+    "ajv": "^8.17.1",
     "vitest": "^5.0.5"
   },
   "dependencies": {

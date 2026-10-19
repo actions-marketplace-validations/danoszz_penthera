@@ -38,6 +38,15 @@
       "content": "Final report: detailed description, root cause, applied and ongoing mitigations, and any cross-border impact."
     }
   ],
+  "cra": {
+    "law": "Cyber Resilience Act, Regulation (EU) 2024/2847, Article 14 (reporting applies from 11 September 2026)",
+    "csirtCoordinator": "NCSC-NL (Nationaal Cyber Security Centrum)",
+    "csirtContact": "https://www.ncsc.nl/contact",
+    "srp": "https://portal.cra-srp.enisa.europa.eu/",
+    "timezone": "Europe/Amsterdam",
+    "source": "https://www.enisa.europa.eu/topics/product-security/vulnerability-services/eu-incident-response-and-cyber-crisis-management/single-reporting-platform-srp/list-of-csirts-designated-as-coordinators",
+    "note": "NCSC-NL is the Dutch CSIRT designated as coordinator on ENISA's list (checked 2026-10-19). It applies if your main establishment is in the Netherlands, i.e. where cybersecurity decisions about your products are predominantly taken (Art. 14(7))."
+  },
   "penalties": "Up to €10M or 2% of global annual turnover. Management can be held personally accountable.",
   "pointers": [
     "Determine whether you are an essential or important entity, and your sector's competent authority.",

@@ -59,7 +59,7 @@ const HELP = `
     $ penthera --repo <path>         Scan a local repo (white-box)
     $ penthera <url> --repo <path>   Full scan (both)
     $ penthera agents [path]         Audit AI agent config: skills, MCP, hooks (offline)
-    $ penthera deps [path]           What your npm dependencies can do (offline)
+    $ penthera deps [path]           What your npm and Python dependencies can do (offline)
     $ penthera install <pkg...>      Check what an npm install adds before anything runs
     $ penthera memory show|verify|forget  Local learning store (never leaves the machine)
     $ penthera fix --plan            Plan local fix recipes (penthera fix --help)
@@ -85,11 +85,12 @@ const HELP = `
         --home                  Also audit ~/.claude, ~/.cursor and Claude Desktop config
         --pin                   Write penthera.lock (SHA-256 of skills, MCP servers, hooks)
 
-  ${dim("Deps mode")}  ${dim("(penthera deps [path], reads package-lock.json + node_modules, offline)")}
+  ${dim("Deps mode")}  ${dim("(penthera deps [path], reads package-lock.json, Python lockfiles or a .venv, offline)")}
         --diff <lock|dir>       Capability diff against an old lockfile or installed tree
         --base <git-ref>        Capability diff against the lockfile at a git ref
         --online                Also check npm registry metadata (the only network use)
-        --prod                  Skip devDependencies
+        --prod                  Skip dev dependencies
+        --venv <path>           Python virtualenv to read (default: .venv or venv)
         --pr-comment <file>     Write a short Markdown capability diff for a PR comment
         --license-policy <p>    permissive | weak-copyleft-ok | no-agpl, or a policy file
 
@@ -235,6 +236,7 @@ export async function run() {
         "pr-comment": { type: "string" },
         prod:        { type: "boolean", default: false },
         "license-policy": { type: "string" },
+        venv:        { type: "string" },
         profile:     { type: "string" },
         "auth-cookie": { type: "string" },
         "auth-bearer": { type: "string" },
@@ -373,8 +375,8 @@ export async function run() {
     await runDeps(positionals.slice(1), opts, { version: pkg.version });
     return;
   }
-  if (opts.diff || opts.base || opts.online || opts["pr-comment"] || opts.prod || opts["license-policy"]) {
-    printError("--diff, --base, --online, --prod, --pr-comment and --license-policy only apply to `penthera deps`.");
+  if (opts.diff || opts.base || opts.online || opts["pr-comment"] || opts.prod || opts["license-policy"] || opts.venv) {
+    printError("--diff, --base, --online, --prod, --pr-comment, --license-policy and --venv only apply to `penthera deps`.");
     process.exit(2);
   }
 

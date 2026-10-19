@@ -37,6 +37,26 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   security for the apps and AI systems you ship". Never in SARIF or JSON.
   `--no-footer` (or `footer: "false"` in the Action) leaves it off. Evidence
   bundles now include a `README.md`
+- **Python support for `penthera deps`** (`lib/deps/python/`): reads `uv.lock`,
+  `poetry.lock`, `pdm.lock`, `Pipfile.lock` and `requirements*.txt` (pinned and
+  `--hash` lines, `-r` includes, pip-compile `# via` for direct deps), and the
+  installed `.venv` / `venv` / `--venv <path>` through `dist-info` `METADATA`
+  and `RECORD`, with no pip or interpreter. A Python tokenizer blanks comments
+  and docstrings; patterns cover shell, network, env bulk access and
+  exfiltration, eval/exec/compile, computed imports, unpickling, native
+  extensions, obfuscation (`exec` of base64/zlib payloads, encoded blobs,
+  PyArmor) and the same AI-agent indicators as npm. Install-time and
+  persistence code: `setup.py` custom commands, `.pth` import lines (scored by
+  what the imported module can do), `.pth` files no distribution owns, code that
+  writes `.pth` files, and installed files that no longer match `RECORD`. Same
+  capability ids, findings, diff, PR comment and SARIF as npm; projects with
+  both get one combined report
+- `--diff` / `--base` for Python lockfiles. Old versions come from pip's HTTP
+  cache (sha256 from the lockfile) or uv's cache (recorded hash), else they are
+  marked "not compared"
+- PyPI typosquat check against a vendored list of the top 8,000 PyPI projects
+  (`lib/deps/popular-pypi.json`, PEP 503 normalised, refreshed at release time by
+  `scripts/refresh-popular-pypi.mjs`), including `python-` / `-py` affixes
 
 ### Changed
 

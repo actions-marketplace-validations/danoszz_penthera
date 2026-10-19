@@ -5,9 +5,10 @@
 <br/><br/>
 
 [![npm](https://img.shields.io/npm/v/penthera?color=0000ed)](https://www.npmjs.com/package/penthera)
-![node](https://img.shields.io/badge/node-%E2%89%A518-0000ed)
+![node](https://img.shields.io/badge/node-%E2%89%A522-0000ed)
 ![license](https://img.shields.io/badge/license-MIT-0000ed)
 [![CI](https://github.com/danoszz/penthera/actions/workflows/ci.yml/badge.svg)](https://github.com/danoszz/penthera/actions/workflows/ci.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/danoszz/penthera/badge)](https://scorecard.dev/viewer/?uri=github.com/danoszz/penthera)
 
 <br/>
 
@@ -157,245 +158,6 @@ Findings map to the [OWASP Web Security Testing Guide](docs/owasp-wstg-coverage.
 
 ---
 
-## Compliance: NIS2 and the cyberwetgeving
-
-The EU NIS2 directive and its national transpositions (the Cyberbeveiligingswet
-in the Netherlands, the NIS2-wet in Belgium) put a duty of care, the *zorgplicht*,
-on in-scope organisations. That duty is the set of risk-management measures in
-Article 21(2) of the directive. Most of them are organisational. Some are
-technical and testable, and that is the part Penthera helps with.
-
-Penthera does not make you compliant and does not certify anything. What it gives
-you is automated, repeatable technical evidence for the measures a scanner can
-honestly verify: the kind of artefact you can attach to a risk file, show an
-auditor, or run in CI so a regression shows up before it ships.
-
-| Art. 21(2) measure | What Penthera does | Coverage |
-|--------------------|--------------------|----------|
-| **(a)** Risk analysis & information-security policy | Findings, severity, and baseline history feed your risk analysis | Evidence |
-| **(b)** Incident handling | `--incident` drafts the 24h / 72h / 1-month reports against your authority's required content | Partial |
-| **(c)** Business continuity, backup, crisis management | Organisational; outside a scanner's reach | Out of scope |
-| **(d)** Supply-chain security | Known-CVE checks on JS dependencies, leaked credentials, a CycloneDX SBOM (`--sbom`), and passive supplier rating (`--suppliers`) | Partial |
-| **(e)** Security in acquisition, development & maintenance; **vulnerability handling** | The core: black- + white-box scanning mapped to OWASP WSTG, SARIF → GitHub, baseline regression, scan-and-fix loop | **Strong** |
-| **(f)** Assessing the effectiveness of measures | Baseline diff, re-scan-to-verify, and `--history` tracking of time-to-fix, ageing, and drift | Partial |
-| **(g)** Cyber hygiene & training | Remediation playbook + secure-defaults guidance (guidance, not a training programme) | Partial |
-| **(h)** Cryptography & encryption | TLS protocol/cipher/certificate audit, HSTS, cookie `Secure` (transport layer only) | Partial |
-| **(i)** HR security, **access control**, asset management | Access control tested: JWT, IDOR/BOLA, OAuth redirect, client-side-auth, trust-boundary mapping | Partial |
-| **(j)** Multi-factor authentication & secure communications | MFA probe (on the roadmap) | Planned |
-
-**Coverage key:** *Strong* = automated technical testing · *Partial* = part of the
-measure · *Evidence* = output feeds the measure, no direct test · *Planned* = on the
-roadmap · *Out of scope* = organisational or physical.
-
-In practice, Penthera today gives you solid automated evidence for the
-secure-development and vulnerability-handling duty (e), which is the technical
-heart of the zorgplicht, plus meaningful coverage of supply chain (d),
-cryptography in transit (h), access control (i), and effectiveness testing (f).
-That is not the whole duty of care, but it is a real, defensible start you can run
-today and re-run on every deploy.
-
-> **Not legal advice, not a certification, not a guarantee of compliance.**
-> Penthera automates the technical-testing part of the duty of care. The
-> directive's organisational duties (governance, risk-management policy,
-> incident-notification processes, supply-chain contracts, staff training) need
-> human process and, where it matters, review by a qualified advisor. For an
-> authoritative reading, consult your national authority (the NCSC in the
-> Netherlands, the CCB and its CyFun framework in Belgium) or a specialised jurist.
-
-Generate this mapping for your own scan with `--framework nis2`. It adds a
-per-run coverage table (which measures *this* scan actually exercised, driven by
-the probes that ran) to the terminal, Markdown, and JSON reports:
-
-```bash
-penthera https://myapp.com --framework nis2 -o reports/scan.json
-```
-
-### Readiness report (clone → report in two commands)
-
-Go further than the mapping: combine the scan with a short offline
-self-assessment (the organisational measures a scanner can't test, like policies,
-backups, training, and MFA) into a full NIS2 readiness report. Every Article 21
-measure is marked `met / partial / gap / n-a`, with proportionality notes, your
-incident-reporting deadlines, and provenance on every piece of evidence.
-
-```bash
-# 1. Create your self-assessment (offline, one-time). Fill in yes | partial | no | na.
-penthera --assessment-init assessment.json
-
-# 2. Scan + self-assessment → readiness report (writes reports/scan-readiness.md)
-penthera https://myapp.com --repo . --readiness --assessment assessment.json -o reports/scan.json
-```
-
-The readiness report is **evidence and self-assessment tooling, not a
-certification**. It is provenance-linked (`source, method, collected_at,
-confidence`) and reproducible, and it lists exactly what only you can attest to.
-Jurisdiction specifics live in `lib/jurisdictions/nl.json` (NL today; BE and
-others are just added config).
-
-### Answer a customer's security questionnaire
-
-The questionnaire blocking your deal, drafted from evidence you already have:
-
-```bash
-# one question per line, pasted from the customer's form
-penthera https://myapp.com --readiness --assessment assessment.json --questionnaire questions.txt
-```
-
-Each question is mapped to the Article 21 measure it belongs to and answered
-from the scan and your self-assessment, with the backing evidence cited.
-Anything Penthera can't map is marked `NEEDS HUMAN INPUT` instead of guessed.
-Review every answer before you send it.
-
-### Policy pack
-
-Generate the proportionate written policies NIS2 expects, pre-filled from your
-readiness gaps and the NL incident deadlines:
-
-```bash
-penthera --policy-pack ./policies --org "Your Company" --readiness --assessment assessment.json
-```
-
-Writes editable Markdown starting points: information security, access control,
-incident response, backup/continuity, acceptable use, supplier security, and
-vulnerability management. **Templates, not legal advice.** Keep them short and
-used. A two-page policy that genuinely exists is what "proportionate" means.
-
-### Incident-report helper
-
-NIS2 has hard reporting deadlines (24h early warning, 72h notification, 1-month
-final report). If something happens, get the timeline and draft reports:
-
-```bash
-penthera --incident-init incident.json   # fill in what happened (set aware_at)
-penthera --incident incident.json        # writes incident-reports.md
-```
-
-It computes your three deadlines from when you became aware, flags anything
-overdue, and drafts the early-warning, notification, and final report against
-the required content, with `NEEDS INPUT` where you still have to fill in facts.
-**These are drafts to help you meet the deadlines, not a substitute for your
-authority's official form.**
-
-### Software bill of materials (SBOM)
-
-Emit a standard CycloneDX SBOM of your dependencies. It's what enterprises
-increasingly require of suppliers, and direct evidence for supply-chain security
-(measure d):
-
-```bash
-penthera --repo . --sbom sbom.cdx.json
-```
-
-Parses `package-lock.json` / `package.json` / `requirements.txt` offline (no
-network), with resolved versions and package URLs (purls).
-
-### Remediation tracking (the audit loop)
-
-Closing findings matters more than finding them. Track them over time:
-time-to-fix, ageing of open items, and what changed since the last scan (evidence
-for measure f, effectiveness):
-
-```bash
-penthera https://myapp.com --history reports/history.json -o reports/scan.json
-```
-
-Each run folds the current findings into a small history keyed by a **stable
-fingerprint** (so a re-worded or re-counted finding isn't mistaken for a new
-one), then reports open vs resolved, median time-to-fix, and ageing buckets.
-Re-run on a cadence to watch the trend.
-
-### Supplier rating (passive)
-
-Assess your suppliers' public security posture for supply-chain risk (measure d):
-
-```bash
-printf 'supplier1.com\nsupplier2.com\n' > suppliers.txt
-penthera --suppliers suppliers.txt
-```
-
-**Strictly passive and public-data-only.** One homepage GET (security headers),
-a TLS handshake (certificate), and public DNS lookups (SPF/DMARC/MX) per domain.
-No endpoint discovery, no auth probes, no intrusive testing. You get a
-red/amber/green rating per supplier. It's a screening aid for your own vendor
-risk assessment, **not** an authorised penetration test of the supplier.
-
-Because the mapping targets the NIS2 directive itself, it applies across the
-national transpositions; jurisdiction-specific profiles (NL, BE) are on the roadmap.
-
----
-
-## Ethical use & authorization
-
-Penthera sends HTTP requests to the targets you give it. Some modes (`--deep`,
-`--fuzz`, `--all`) send attack payloads designed to find vulnerabilities. Use it
-responsibly.
-
-**You may use Penthera when:**
-
-- You **own** the target (your app, your server, your project).
-- You have **written authorization** from the system owner (email, ticket, signed scope).
-- You scan **localhost** or private lab environments you control.
-- You use it for **defensive security**: research, coursework, CI hardening, pre-release audits.
-
-**You must not use Penthera to:**
-
-- Scan systems you do not own or lack explicit permission to test.
-- Probe government, healthcare, financial, or third-party production systems without authorization.
-- Exfiltrate data, disrupt services, or bypass access controls.
-- Use findings to attack, extort, or harm anyone.
-
-> Before scanning any URL that is not localhost, confirm you have permission.
-> **When in doubt, do not scan.**
-
-Unauthorized security testing may violate computer-misuse laws (for example the US
-CFAA, the UK Computer Misuse Act, and EU national equivalents) and can result in
-criminal prosecution, civil liability, IP blocking, account termination, and
-academic or professional penalties.
-
----
-
-## Disclaimer
-
-Penthera is provided for legitimate security research and defensive testing of
-systems you own or are authorized to test, and for that purpose only.
-
-- It is a research and self-assessment tool. Scan your own apps to find and fix
-  weaknesses before attackers do.
-- The same capabilities that harden a system can cause harm if pointed at someone
-  else's. Use it carefully and lawfully.
-- The author does not condone unauthorized or malicious use, and accepts no
-  liability for any damage, loss, or legal consequence arising from use or misuse
-  of this software.
-- The software is provided "as is", without warranty of any kind. See [LICENSE](LICENSE) (MIT).
-- You are solely responsible for ensuring every scan you run is authorized and
-  legal in your jurisdiction.
-
-By using Penthera you accept these terms.
-
----
-
-## Install
-
-The [one-line installer](#run-it) is the fastest path. To set it up manually:
-
-```bash
-git clone https://github.com/danoszz/penthera.git
-cd penthera
-npm install
-npm link            # exposes `penthera` and `penthera-scan` globally
-penthera --version
-```
-
-Requirements: Node.js 18+ and npm. Optional: nuclei-templates for `--nuclei`, and
-Docker. To run it in a container:
-
-```bash
-docker build -t penthera .
-docker run --rm penthera https://your-app.example
-```
-
----
-
 ## Quick start
 
 ```bash
@@ -510,19 +272,100 @@ Fixes come from a [remediation playbook](skills/penthera/references/remediation.
 
 ---
 
+## Compliance: NIS2 and the cyberwetgeving
+
+Shipping in the EU? NIS2 (the Cyberbeveiligingswet in the Netherlands, the
+NIS2-wet in Belgium) puts a duty of care on in-scope organisations. Penthera
+turns the technical, testable part of that duty into repeatable evidence, and
+helps with the paperwork around it. Offline, no accounts.
+
+| Command | What you get |
+|---------|--------------|
+| `--framework nis2` | Per-run Article 21(2) coverage table in every report |
+| `--readiness --assessment a.json` | Full readiness report: every measure marked met / partial / gap |
+| `--questionnaire questions.txt` | Customer security questionnaire drafted from your evidence |
+| `--policy-pack ./policies` | Proportionate policy templates, prefilled from your gaps |
+| `--incident incident.json` | 24h / 72h / 1-month incident report drafts and deadlines |
+| `--sbom sbom.cdx.json` | CycloneDX software bill of materials |
+| `--history history.json` | Time-to-fix, ageing, and drift across scans |
+| `--suppliers suppliers.txt` | Passive red/amber/green rating of your suppliers |
+
+**Full guide, the measure-by-measure coverage table, and the limits:**
+[docs/compliance-nis2.md](docs/compliance-nis2.md).
+
+> Readiness tooling, not a certification and not legal advice.
+
+---
+
 ## CI integration
 
 ```yaml
 # Scan a staging URL on a schedule and upload results to GitHub Security.
-# Set the PENTEST_STAGING_URL secret to enable. Full example: .github/workflows/scan.yml
-- run: npx penthera "$PENTEST_URL" --profile standard --sarif reports/scan.sarif
-- uses: github/codeql-action/upload-sarif@v3
+- run: npx penthera@1.1.2 "$PENTEST_URL" --profile standard --sarif reports/scan.sarif
+- uses: github/codeql-action/upload-sarif@v4
   with:
     sarif_file: reports/scan.sarif
 ```
 
-The repo's own CI (`.github/workflows/ci.yml`) runs the offline suites on Node 18,
-20, and 22, and self-scans a mock vulnerable API on every push.
+Copy the full workflow from
+[`docs/examples/github-actions-scan.yml`](docs/examples/github-actions-scan.yml)
+into your app's repo. Pin the Penthera version so a scheduled run never picks up
+code you have not reviewed.
+
+Penthera's own CI runs the full test suite on Node 22 and 24, self-scans a mock
+vulnerable API on every push, and runs CodeQL and OpenSSF Scorecard.
+
+---
+
+## Ethical use & authorization
+
+Penthera sends HTTP requests to the targets you give it. Some modes (`--deep`,
+`--fuzz`, `--all`) send attack payloads designed to find vulnerabilities. Use it
+responsibly.
+
+**You may use Penthera when:**
+
+- You **own** the target (your app, your server, your project).
+- You have **written authorization** from the system owner (email, ticket, signed scope).
+- You scan **localhost** or private lab environments you control.
+- You use it for **defensive security**: research, coursework, CI hardening, pre-release audits.
+
+**You must not use Penthera to:**
+
+- Scan systems you do not own or lack explicit permission to test.
+- Probe government, healthcare, financial, or third-party production systems without authorization.
+- Exfiltrate data, disrupt services, or bypass access controls.
+- Use findings to attack, extort, or harm anyone.
+
+> Before scanning any URL that is not localhost, confirm you have permission.
+> **When in doubt, do not scan.**
+
+Unauthorized security testing may violate computer-misuse laws (for example the US
+CFAA, the UK Computer Misuse Act, and EU national equivalents) and can result in
+criminal prosecution, civil liability, IP blocking, account termination, and
+academic or professional penalties.
+
+---
+
+## Install
+
+The [one-line installer](#run-it) is the fastest path. To set it up manually:
+
+```bash
+git clone https://github.com/danoszz/penthera.git
+cd penthera
+npm install
+npm link            # exposes `penthera` and `penthera-scan` globally
+penthera --version
+```
+
+Requirements: Node.js 22+ and npm. Optional: nuclei-templates for `--nuclei`, and
+Docker. To run it in a container:
+
+```bash
+docker build -t penthera .
+docker run --rm penthera https://your-app.example
+```
 
 ---
 
@@ -547,8 +390,6 @@ npm run pentest:mock     # offline tests against a local mock vuln API
 npm run mock-server      # start the mock API on port 8765
 ```
 
-See the [roadmap](ROADMAP.md) for what is next and what is deliberately not planned.
-
 See the [roadmap](ROADMAP.md) for what is next and what is deliberately not
 planned.
 
@@ -559,7 +400,7 @@ or template, the test matrix, and the release and publishing checklist.
 
 ## Status
 
-**v1.0, production-ready.** URL, repo, and machine scanning, scan profiles,
+**v1.1, production-ready.** URL, repo, and machine scanning, NIS2 readiness tooling, scan profiles,
 Markdown, JSON, and SARIF reports, session-aware auth, JWT, IDOR, OAuth, and
 header probes, adaptive knowledge-graph probing, a plugins and templates API,
 Docker, CI, and the Agent Skill are all shipped. See the [CHANGELOG](CHANGELOG.md)
@@ -591,6 +432,26 @@ Penthera has no telemetry. It does not collect, store, or transmit any usage dat
 - **Recon mode** (`--recon`) queries public OSINT sources (crt.sh, web.archive.org, AlienVault OTX) with the target domain to find subdomains and historical URLs. This shares the target domain with those third-party services. Omit `--recon` to avoid it.
 
 You are responsible for ensuring you are authorized to scan any target. See [Ethical use](#ethical-use--authorization).
+
+---
+
+## Disclaimer
+
+Penthera is provided for legitimate security research and defensive testing of
+systems you own or are authorized to test, and for that purpose only.
+
+- It is a research and self-assessment tool. Scan your own apps to find and fix
+  weaknesses before attackers do.
+- The same capabilities that harden a system can cause harm if pointed at someone
+  else's. Use it carefully and lawfully.
+- The author does not condone unauthorized or malicious use, and accepts no
+  liability for any damage, loss, or legal consequence arising from use or misuse
+  of this software.
+- The software is provided "as is", without warranty of any kind. See [LICENSE](LICENSE) (MIT).
+- You are solely responsible for ensuring every scan you run is authorized and
+  legal in your jurisdiction.
+
+By using Penthera you accept these terms.
 
 ---
 

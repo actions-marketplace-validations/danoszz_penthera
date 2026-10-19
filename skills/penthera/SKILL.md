@@ -9,11 +9,11 @@ description: >
   against a baseline; or find hardcoded secrets before deploy. Do NOT use for targets
   without explicit authorization.
 license: MIT
-compatibility: Node.js 18+, network access to target, Penthera CLI (npm link or node bin/penthera.js from repo). macOS only for --machine.
+compatibility: Node.js 22+, network access to target, Penthera CLI (npm link or node bin/penthera.js from repo). macOS only for --machine.
 allowed-tools: "Bash(node:*) Bash(npm:*) Bash(penthera:*) Read Write Edit"
 metadata:
   author: danoszz
-  version: 1.1.1
+  version: 1.1.2
   category: security
 ---
 

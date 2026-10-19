@@ -2,21 +2,43 @@
 
 ## Supported versions
 
+Security fixes land on the latest minor release only. Upgrade to get them.
+
 | Version | Supported |
 | ------- | --------- |
-| 1.0.x   | Yes       |
-| < 1.0   | No        |
+| 1.1.x   | Yes       |
+| < 1.1   | No        |
 
 ## Reporting a vulnerability
 
 If you find a security issue in **Penthera itself** (not a finding produced by
 scanning a target), please report it privately:
 
-1. Open a [GitHub Security Advisory](https://github.com/danoszz/penthera/security/advisories/new), or
-2. Email the repository owner with a clear description and reproduction steps.
+1. Open a [GitHub Security Advisory](https://github.com/danoszz/penthera/security/advisories/new)
+   (preferred: it keeps the report private and lets us credit you), or
+2. Email the maintainer via the address on the [GitHub profile](https://github.com/danoszz)
+   with a clear description and reproduction steps.
 
-Please do **not** open public issues for undisclosed vulnerabilities. We aim to
-acknowledge reports within a few days.
+Please do **not** open public issues for undisclosed vulnerabilities.
+
+**What to expect.** Penthera is maintained part-time, but security reports come
+first:
+
+- Acknowledgement within 3 working days.
+- An initial assessment (accepted, needs more info, or out of scope) within 10
+  working days.
+- A fix or mitigation for accepted issues as fast as severity warrants, followed
+  by a release, a GitHub advisory, and credit to you unless you prefer otherwise.
+
+**In scope:** the CLI, the scanner engine (`lib/`, `src/`), the Agent Skill
+(`skills/penthera/`), the installer (`install.sh`), and the published npm package
+and its build pipeline. Examples: code execution from a malicious scan target or
+repo, a skill instruction that bypasses the authorization gate, a supply-chain
+weakness in our release workflow.
+
+**Safe harbor.** Good-faith research on Penthera's own code, done on your own
+machine, is welcome and we will not pursue action against it. This does not
+cover scanning third-party systems: the authorization rules below still apply.
 
 ## Responsible use
 

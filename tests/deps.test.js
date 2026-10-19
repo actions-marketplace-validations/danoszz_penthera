@@ -14,12 +14,12 @@ import { execFileSync } from "node:child_process";
 import { gzipSync } from "node:zlib";
 import { createHash } from "node:crypto";
 import { buildFixtures } from "./fixtures/deps/build.js";
-import { blankComments, scanSource, scanPackage, obfuscationSignals, entropy } from "../lib/deps/capabilities.js";
+import { blankComments, scanSource, scanPackage, obfuscationSignals, entropy, nodeScriptTargets } from "../lib/deps/capabilities.js";
 import { parseLockfile, directDependencies } from "../lib/deps/lockfile.js";
 import { DirSource, untar, verifyIntegrity, sourceFromNpmCache, parseIntegrity } from "../lib/deps/source.js";
 import { editDistance, checkName, findTyposquats, loadPopular } from "../lib/deps/typosquat.js";
 import { diffTrees, compareVersions } from "../lib/deps/diff.js";
-import { registrySignals } from "../lib/deps/online.js";
+import { registrySignals, fetchPackument } from "../lib/deps/online.js";
 import { scanDeps } from "../lib/deps/index.js";
 import { formatPrComment, formatDepsMarkdown } from "../lib/deps/report.js";
 import { mergeResults } from "../src/cli/merge-results.js";
@@ -548,3 +548,22 @@ describe("penthera deps CLI", () => {
   });
 });
 
+
+describe("hostile input stays cheap", () => {
+  it("parses node script targets from install hooks in linear time", () => {
+    expect(nodeScriptTargets("node scripts/postinstall.js")).toEqual(["scripts/postinstall.js"]);
+    expect(nodeScriptTargets("node --no-warnings --max-old-space-size=4096 ./setup.js && echo ok")).toEqual(["./setup.js"]);
+    const hostile = "node " + "-- -".repeat(50_000) + "!";
+    const t0 = performance.now();
+    nodeScriptTargets(hostile);
+    expect(performance.now() - t0).toBeLessThan(200);
+  });
+
+  it("encodes package names for the registry, scoped or not", async () => {
+    const seen = [];
+    const fetchImpl = async (url) => { seen.push(url); return { ok: false }; };
+    await fetchPackument("@scope/pkg", { fetchImpl, registry: "https://r.test/" });
+    await fetchPackument("../../x?y", { fetchImpl, registry: "https://r.test/" });
+    expect(seen).toEqual(["https://r.test/@scope%2Fpkg", "https://r.test/..%2F..%2Fx%3Fy"]);
+  });
+});

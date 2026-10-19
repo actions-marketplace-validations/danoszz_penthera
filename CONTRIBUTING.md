@@ -101,7 +101,27 @@ re-exports engine pieces via `exports` in `package.json`
 2. Keep changes focused; add or update tests.
 3. Run `npm test`; it must be green on Node 22+.
 4. Update `CHANGELOG.md` and relevant docs.
-5. Open the PR with a clear description and rationale.
+5. Sign off every commit (see below).
+6. Open the PR with a clear description and rationale.
+
+### Sign off your commits (DCO)
+
+Penthera uses the [Developer Certificate of Origin 1.1](https://developercertificate.org/).
+By signing off a commit you certify that you wrote the change, or otherwise
+have the right to submit it under the project's MIT licence. Add the sign-off
+with `-s`:
+
+```bash
+git commit -s -m "fix: describe the change"
+```
+
+This adds a line like `Signed-off-by: Your Name <you@example.com>` to the
+commit message. It must match the commit author. To sign off commits you
+already made on your branch, run `git rebase --signoff main` and force-push.
+
+If an AI assistant helped write a change, say so with a `Co-Authored-By:`
+trailer naming the tool. You are still the one signing off, so review the
+change as your own before you do.
 
 Report security issues in Penthera itself privately — see [SECURITY.md](SECURITY.md).
 

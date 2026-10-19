@@ -1,12 +1,25 @@
 {
   "name": "penthera",
   "version": "1.2.0",
-  "description": "Find and fix security issues in vibecoded apps. Scan a live URL, a local repo, or your macOS machine for TLS, headers, auth, secrets, IDOR/OAuth, and injection issues, then apply framework-aware fixes and re-scan to verify. Mapped to OWASP with SARIF output. Runs as a skill or CLI. Authorized testing only.",
+  "description": "The routine work of a security team, on your own machine. Audit a live URL and your repo, vet what your npm dependencies can do and block risky installs, audit your AI tooling (skills, MCP servers, hooks, plugins), fix what it finds on a local branch and re-scan to verify, and produce reports and NIS2 evidence. Offline, deterministic, no telemetry. Authorized testing only.",
   "author": {
     "name": "Daan van der Zwaag",
     "url": "https://github.com/danoszz"
   },
   "homepage": "https://github.com/danoszz/penthera",
   "license": "MIT",
-  "keywords": ["security", "scanner", "pentest", "owasp", "sarif", "secrets", "cli", "vibecoding"]
+  "keywords": [
+    "security",
+    "scanner",
+    "pentest",
+    "owasp",
+    "sarif",
+    "secrets",
+    "cli",
+    "vibecoding",
+    "supply-chain",
+    "mcp",
+    "ai-security",
+    "nis2"
+  ]
 }

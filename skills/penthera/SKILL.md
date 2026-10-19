@@ -1,19 +1,16 @@
 ---
 name: penthera
 description: >
-  Runs authorized security scans on live URLs and local repos using the Penthera CLI
-  (TLS, headers, OpenAPI, auth hardening, secret scanning, optional injection probes),
-  and checks npm dependencies offline for what they can do ("is this dependency safe?",
-  "what changed in my deps?", "review this lockfile change", "is this a typosquat?"),
-  installs npm packages through a capability firewall ("install X safely", "is it safe
-  to add this package?"),
-  then applies framework-aware fixes and re-scans to verify them. Use when the user asks
-  to scan, audit, harden, fix, pentest, or review security of their own app, staging URL,
-  localhost, or repo; apply security best practices; generate SARIF for GitHub; diff
-  against a baseline; find hardcoded secrets before deploy; or audit the AI agent setup
-  itself ("audit my MCP servers / skills / agent config", "are my Claude Code hooks
-  safe?", "check this skill before I install it"). Do NOT use for targets without
-  explicit authorization.
+  The routine work of a security team, run locally with the Penthera CLI. Scans the
+  user's own live URL and repo (TLS, headers, auth, OpenAPI, secrets incl. AI keys,
+  opt-in injection); checks npm dependencies offline ("is this dependency safe?",
+  "what changed in my deps?", "install X safely"); audits AI tooling ("audit my MCP
+  servers / skills / hooks", "check this skill before I install it"); fixes findings
+  on a local branch and re-scans to verify ("scan and fix my app"); and writes
+  reports and evidence ("report for my auditor / manager", NIS2, SARIF, baseline
+  diff). Use when the user asks to scan, audit, harden, fix, or review the security of
+  their own app, staging URL, localhost, repo, dependencies, or agent setup. Do NOT
+  use for targets without explicit authorization.
 license: MIT
 compatibility: Node.js 22+, network access to target, Penthera CLI (npm link or node bin/penthera.js from repo). macOS only for --machine.
 allowed-tools: "Bash(node:*) Bash(npm:*) Bash(penthera:*) Read Write Edit"

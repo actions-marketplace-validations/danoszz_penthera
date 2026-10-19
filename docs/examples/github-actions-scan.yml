@@ -1,0 +1,55 @@
+# Example: scan your staging URL with Penthera on a schedule.
+#
+# Copy this file into YOUR app's repo as `.github/workflows/penthera.yml` and add
+# a `PENTEST_STAGING_URL` repository secret. Only point it at a URL you own or are
+# authorized to test. Findings appear under Security > Code scanning.
+#
+# Pin the Penthera version (and, ideally, the actions below to commit SHAs) so a
+# scheduled run never picks up code you have not reviewed.
+
+name: Penthera security scan
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1" # weekly, Monday 06:00 UTC
+
+permissions:
+  contents: read
+
+jobs:
+  penthera:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Scan staging URL
+        env:
+          PENTEST_URL: ${{ secrets.PENTEST_STAGING_URL }}
+        run: |
+          mkdir -p reports
+          set +e
+          npx --yes penthera@1.1.2 "$PENTEST_URL" \
+            --profile standard \
+            -o reports/scan.json \
+            --sarif reports/scan.sarif
+          code=$?
+          set -e
+          # Exit 1 = critical or high findings (reported via SARIF); only 2 (scan error) fails the job.
+          if [ "$code" -eq 2 ]; then exit 2; fi
+
+      - uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: reports/scan.sarif
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: penthera-reports
+          path: reports/

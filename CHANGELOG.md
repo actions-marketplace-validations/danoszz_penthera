@@ -6,6 +6,12 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ### Added
 
+- **GitHub Action** (`uses: danoszz/penthera@<sha>`, `action.yml`): on PRs that
+  change the lockfile it runs `penthera deps --base <PR base>`, upserts one PR
+  comment marked `<!-- penthera-deps -->` (edited in place on every push), and
+  uploads SARIF. Runs from the action's own checkout with no npx or npm install.
+  Fork PRs get the diff in the job summary. Also `mode: agents` and `mode: scan`,
+  plus `fail-on`. Example: `docs/examples/pr-dependency-review.yml`
 - **`penthera agents [path] [--home] [--pin]`**: an offline, deterministic audit
   of AI developer tooling. It finds and parses `.mcp.json`, `.cursor/`,
   `.claude/`, `.vscode/mcp.json`, `AGENTS.md`, `CLAUDE.md`, `.cursorrules`,

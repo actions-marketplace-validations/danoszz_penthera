@@ -1,0 +1,56 @@
+# Example: comment a dependency capability diff on every PR that changes the lockfile.
+#
+# Copy this file into YOUR repo as `.github/workflows/pr-dependency-review.yml`.
+# The Penthera action reports packages that are new or that gained capabilities
+# (network, shell, install scripts, whole environment, dynamic code, ...) in one
+# PR comment, updated in place on every push, and uploads SARIF to code scanning.
+# Penthera runs offline from the action's own checkout: no npx, no registry
+# lookups, no telemetry. The only API call is the comment on your own PR.
+#
+# Pin the action to a release commit SHA. Find it with:
+#   git ls-remote https://github.com/danoszz/penthera refs/tags/v1.4.0
+#
+# Fork PRs get a read-only token: the comment is skipped and the diff goes to the
+# job summary instead. Do not switch this to `pull_request_target`; that would
+# run with write access next to untrusted code.
+
+name: Dependency review
+
+on:
+  pull_request:
+    paths:
+      - package-lock.json
+      - npm-shrinkwrap.json
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  penthera:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 22
+
+      # Optional but recommended: Penthera reads package code from node_modules
+      # and npm's cache. Installing both trees with --ignore-scripts (no package
+      # code runs) lets it inspect every changed version. Without this step the
+      # comment lists upgrades it could not compare.
+      - name: Install base and PR trees without running scripts
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          git worktree add --detach "$RUNNER_TEMP/base" "$BASE_SHA"
+          (cd "$RUNNER_TEMP/base" && npm ci --ignore-scripts --no-audit --no-fund)
+          npm ci --ignore-scripts --no-audit --no-fund
+
+      - uses: danoszz/penthera@0000000000000000000000000000000000000000 # v1.4.0 (replace with the release commit SHA)
+        with:
+          mode: deps
+          fail-on: none # or high / critical to block the merge

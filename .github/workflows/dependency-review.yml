@@ -1,0 +1,43 @@
+# Dogfood: run this repo's own action (action.yml) on PRs that change the lockfile.
+# Users copy docs/examples/pr-dependency-review.yml, which pins a release SHA.
+
+name: Dependency review
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - package-lock.json
+      - action.yml
+      - scripts/action/**
+      - .github/workflows/dependency-review.yml
+
+permissions:
+  contents: read
+
+jobs:
+  penthera:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 22
+
+      - name: Install base and PR trees without running scripts
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          git worktree add --detach "$RUNNER_TEMP/base" "$BASE_SHA"
+          (cd "$RUNNER_TEMP/base" && npm ci --ignore-scripts --no-audit --no-fund)
+          npm ci --ignore-scripts --no-audit --no-fund
+
+      - uses: ./
+        with:
+          mode: deps

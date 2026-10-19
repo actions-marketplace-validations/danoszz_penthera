@@ -383,9 +383,26 @@ labels (`potential` for obfuscation and typosquats).
 lockfile's integrity hash and verified byte for byte. `--online` is the only
 network use: it asks the npm registry for publish dates, publisher changes and
 deprecations, and fetches old tarballs the cache does not have (verified the
-same way). Copy
-[`docs/examples/github-actions-deps.yml`](docs/examples/github-actions-deps.yml)
-to comment the capability diff on every PR that changes the lockfile.
+same way). To comment the capability diff on every PR that changes the
+lockfile, use the GitHub Action below.
+
+### Use as a GitHub Action
+
+```yaml
+- uses: danoszz/penthera@<release-commit-sha> # v1.4.0
+  with:
+    mode: deps        # deps | agents | scan (scan also needs url:)
+    fail-on: none     # none | high | critical
+```
+
+On every pull request it posts one comment with the capability diff against
+the PR base and edits that same comment on each push. It also uploads SARIF to
+code scanning. Penthera runs from the action's own checkout: no npx, no install
+from npm, no registry lookups. On fork PRs the token is read-only, so the diff
+goes to the job summary instead. Inputs: `mode`, `path`, `base-ref`, `url`,
+`fail-on`, `comment`, `sarif`, `penthera-version`. Copy the full workflow, with
+permissions and a lockfile paths filter, from
+[`docs/examples/pr-dependency-review.yml`](docs/examples/pr-dependency-review.yml).
 
 ---
 

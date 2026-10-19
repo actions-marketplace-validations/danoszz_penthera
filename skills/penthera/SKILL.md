@@ -4,7 +4,7 @@ description: >
   Open-source security for the apps and AI systems the user ships, run locally with
   the Penthera CLI. Scans the
   user's own live URL and repo (TLS, headers, auth, OpenAPI, secrets incl. AI keys,
-  opt-in injection); checks npm dependencies offline ("is this dependency safe?",
+  opt-in injection); checks npm and Python dependencies offline ("is this dependency safe?",
   "what changed in my deps?", "install X safely", "any AGPL in our deps?"); blocks
   secrets and risky agent config before they are committed ("add a pre-commit hook");
   audits AI tooling ("audit my MCP servers / skills / hooks", "check this skill
@@ -270,19 +270,20 @@ Summarize secret findings; remind user to rotate any exposed credentials.
 
 ## Dependency risk scan
 
-**Triggers:** "is this dependency safe?", "what changed in my deps?", "review this lockfile change / dependency upgrade", "does this package have install scripts?", "is this a typosquat?"
+**Triggers:** "is this dependency safe?", "what changed in my deps?", "review this lockfile change / dependency upgrade", "does this package have install scripts?", "is this a typosquat?", "is this pip / PyPI package safe?", "check my requirements.txt / uv.lock / poetry.lock / venv", "does this package have a .pth file or setup.py hook?"
 
-Offline and read-only: it reads `package-lock.json` and `node_modules`, runs no package code, and sends nothing anywhere, so no target authorization is needed. It never installs anything; if `node_modules` is missing, tell the user to run `npm ci --ignore-scripts` first.
+Offline and read-only: it reads `package-lock.json` and `node_modules`, or for Python `uv.lock` / `poetry.lock` / `pdm.lock` / `Pipfile.lock` / `requirements*.txt` and the `.venv` (or `--venv <path>`), runs no package code (not even pip), and sends nothing anywhere, so no target authorization is needed. It never installs anything; if `node_modules` is missing, tell the user to run `npm ci --ignore-scripts` first. For Python without a venv, suggest `uv sync` or `pip install -r requirements.txt` into a `.venv` (wheels only, `--only-binary :all:`, if they are wary of setup.py).
 
 ```bash
 penthera deps                              # what every installed package can do
 penthera deps --base origin/main           # capability diff vs the lockfile on main
 penthera deps --diff ../base-checkout      # diff vs another installed tree
 penthera deps --prod -o reports/deps.json  # skip devDependencies, write JSON + Markdown
+penthera deps --venv path/to/venv          # Python: a virtualenv that is not .venv/venv
 ```
 
 1. Lead with the diff: which packages are **new** or **gained** capabilities (network, shell, install script, whole environment, dynamic code), each with its `file:line` evidence.
-2. Then critical/high risk signals (AI-config writes, AI CLI invocation, GitHub token harvesting, obfuscation, env exfiltration). Open the evidence file and read the lines before calling anything malicious: a capability is what code *can* do, not a verdict.
+2. Then critical/high risk signals (AI-config writes, AI CLI invocation, GitHub token harvesting, obfuscation, env exfiltration; for Python also `.pth` startup hooks that run risky code, unowned `.pth` files, files changed since install). Open the evidence file and read the lines before calling anything malicious: a capability is what code *can* do, not a verdict.
 3. If old versions were "not compared", say so; suggest installing the base tree and passing it to `--diff`.
 4. `--online` is the only network use (npm registry metadata: publish age, publisher change, deprecation). Only add it if the user agrees.
 

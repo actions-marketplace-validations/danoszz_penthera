@@ -15,6 +15,7 @@ import { referencesFor } from "../../../lib/references.js";
 import { planFixes, redactPlan } from "../../../lib/fix/index.js";
 import { verifyEvidence, MANIFEST, SIGNATURE, SCHEMA as EVIDENCE_SCHEMA } from "../../report/evidence.js";
 import { writeEvidence } from "../../cli/report-outputs.js";
+import { createGit } from "../../agent/git.js";
 import { formatAudienceReport, AUDIENCES } from "../../report/audience.js";
 import {
   classify, buildOverview, buildFindings, locateFinding, findingDetail, buildDeps, buildAi, memoryStats, loopSummary,
@@ -214,6 +215,35 @@ export function createDataSource({ projects, reportsDir, home, memoryRoot, setti
         } catch { /* no preview outside the project dirs */ }
       }
       return { ...detail, id, project, sources, fix, file: hit.report.name, explain: explainFinding(hit.finding, hit.report.data) };
+    },
+
+    /**
+     * The Environment card: which folder a project maps to, its git branch and
+     * HEAD, local penthera/fix-* branches, and the hosts its latest scan
+     * contacted. Git is read through the agent's hardened runner
+     * (src/agent/git.js: allow-listed subcommands, hooks and fsmonitor off).
+     */
+    env(project) {
+      let folder = null;
+      if (typeof project === "string" && project.startsWith("/")) {
+        try { folder = confineDir(project, projectRoots); } catch { folder = null; }
+      }
+      const out = { folder, branch: null, head: null, fixBranches: [], hosts: [], blocked: [] };
+      if (folder) {
+        const git = createGit(folder);
+        out.branch = git.tryRun("symbolic-ref", "--quiet", "--short", "HEAD")?.trim() || null;
+        out.head = git.tryRun("rev-parse", "--short", "HEAD")?.trim() || null;
+        const refs = git.tryRun("show-ref", "--heads") || "";
+        out.fixBranches = refs.split("\n").map((l) => l.split(" ")[1] || "").filter((r) => r.startsWith("refs/heads/penthera/fix-"))
+          .map((r) => r.replace("refs/heads/", "")).slice(-10).reverse();
+      }
+      const latest = latestScan(scan().scans, project);
+      const e = latest?.data?.egress;
+      if (e) {
+        out.hosts = (e.hosts || []).slice(0, 12).map((h) => ({ host: String(h.host).slice(0, 255), requests: h.requests || 0, thirdParty: (e.thirdPartyHosts || []).some((t) => t.host === h.host) }));
+        out.blocked = (e.blocked || []).slice(0, 8).map((h) => ({ host: String(h.host).slice(0, 255), requests: h.requests || 0 }));
+      }
+      return out;
     },
 
     history(project, a, b) {

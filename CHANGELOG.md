@@ -4,6 +4,39 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Added
+
+- **`penthera init`, the setup wizard** (also `npx penthera` with no arguments
+  in a terminal). It detects the project offline (git, framework, npm and
+  Python lockfiles, agent config, a dev server on localhost, an existing hook
+  or workflow), asks one checklist question, runs the code, dependency and AI
+  tooling checks (and the running app, only after you confirm it is yours),
+  then shows the grade per area, the three things to fix first and one report
+  folder, `reports/penthera-<date>/`. It then offers, one yes/no each, the
+  pre-commit hook, a `.github/workflows/penthera.yml` pinned to the release
+  commit SHA (shown as a diff first), `reports/` in `.gitignore`, the fix loop
+  and the dashboard. `--yes` takes the safe defaults and never scans a URL,
+  runs the fix loop or opens the dashboard; `--dry-run` prints the plan.
+  Nothing is committed or pushed. See [docs/commands/init.md](docs/commands/init.md).
+
+### Changed
+
+- **`penthera ui` is one view, like the Claude Code desktop app.** A
+  collapsible left sidebar lists projects (grade, open findings, last scan)
+  and recent runs grouped by project, with "+ New scan" on top and settings
+  behind a gear. The centre is one scrolling stream: the selected project's
+  header (grade, severity bar, trend sparkline), what changed since the last
+  scan, "Fix first" and the findings; a running scan or fix loop streams there
+  as a transcript with Apply / Skip / Stop inline on each diff. A prompt-style
+  bar starts scans, dependency checks, AI tooling audits and the fix loop. The
+  collapsible right panel stacks Environment (egress, folder, git branch),
+  Memory, Dependencies, AI tooling, Evidence and Changes cards, and shows a
+  finding's detail when you pick one. `[` and `]` toggle the side panels, which
+  become drawers at narrow widths. Calmer chrome, one primary action at a time;
+  the themes, `--demo` and every security property are unchanged. New
+  `GET /api/env` reads the branch through the agent's hardened git runner.
+- `penthera-scan` keeps the URL-first wizard that `penthera` used to open.
+
 ## [1.6.1] - 2026-10-19
 
 The GitHub Action gets its Marketplace name. Nothing else changes.

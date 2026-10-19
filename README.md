@@ -33,6 +33,10 @@ ship. On your own machine, offline, and free.**
 
 No install, no account. Each step runs on your machine and sends nothing to us.
 
+**Get started in one command.** In your project folder, `npx penthera` detects
+your setup, asks what to check, runs it offline, and offers the pre-commit hook
+and CI workflow ([init.md](docs/commands/init.md)). Or run the checks one by one:
+
 ```bash
 npx penthera agents --home          # 1. audit your Claude Code, Cursor and MCP setup
 npx penthera deps                   # 2. what can the packages in this project actually do?
@@ -202,7 +206,7 @@ out as Markdown, JSON, and SARIF, with the fixes in priority order.
 | `uses: danoszz/penthera@<sha>` | PR comment with the capability diff, plus SARIF | [action.md](docs/commands/action.md) |
 | `penthera --machine` | macOS checks (persistence, keyloggers, rootkits) | [scan.md](docs/commands/scan.md) |
 | `penthera rules list\|verify <dir>` | Signed, versioned rule packs (IOCs, patterns); add your own with `--rules <dir>`, never fetched | [rule-packs.md](docs/rule-packs.md) |
-| `penthera ui [--open] [--demo]` | Local dashboard on 127.0.0.1; runs scans and the fix loop from the page | [dashboard.md](docs/dashboard.md) |
+| `penthera ui [--open] [--demo]` | Local dashboard on 127.0.0.1: one view with projects, findings and side panels; runs scans and the fix loop from the page | [dashboard.md](docs/dashboard.md) |
 
 Scans, `agents` and `deps` write Markdown, JSON and SARIF (`--markdown`,
 `--json`, `--sarif`). Exit code `1` means critical or high findings, `2` means
@@ -210,7 +214,7 @@ the scan failed.
 
 | `penthera ui`, dark | `penthera ui`, light |
 |---|---|
-| ![The dashboard overview in the dark theme](assets/dashboard/overview-dark.jpg) | ![The dashboard overview in the light theme](assets/dashboard/overview-light.jpg) |
+| ![The dashboard in the dark theme: projects, findings, and a finding's detail](assets/dashboard/ui-dark.jpg) | ![The dashboard in the light theme: all projects and the side cards](assets/dashboard/ui-light.jpg) |
 
 ## How it works
 

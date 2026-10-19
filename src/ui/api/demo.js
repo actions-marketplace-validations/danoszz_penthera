@@ -307,6 +307,19 @@ export function createDemoSource({ settings, version = "dev" }) {
       };
     },
     history: (project, a, b) => buildScanHistory(scans, project, a, b),
+    env(project) {
+      const latest = latestScan(scans, project);
+      const e = latest?.data?.egress;
+      const isRepo = String(project).startsWith("/");
+      return {
+        folder: isRepo ? project : null,
+        branch: isRepo ? "main" : null,
+        head: isRepo ? "4be9c1f" : null,
+        fixBranches: isRepo ? loops.map((l) => l.loopRun.branch.fix) : [],
+        hosts: (e?.hosts || []).map((h) => ({ ...h, thirdParty: (e.thirdPartyHosts || []).some((t) => t.host === h.host) })),
+        blocked: e?.blocked || [],
+      };
+    },
     createEvidence(project) {
       const latest = latestScan(scans, project);
       if (!latest) return null;

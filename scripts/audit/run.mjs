@@ -39,11 +39,12 @@ const BENCH_MAX_DROP = 0.02;
 
 /** Package budget (current 1.2.0: ~475 KB packed, ~1.3 MB unpacked, 138 files). */
 // Raised for the dashboard (src/ui: ~245 KB unpacked, ~40 KB packed, 22 small
-// files, no dependencies) and the bundled rule packs (lib/rules/: ~165 KB
-// unpacked, ~40 KB packed, 19 files of signed IOC and pattern data and their
-// tooling): was 650_000 packed / 1_800_000 unpacked / 200 files. The headroom
-// above today's size stays about the same.
-const PACK_BUDGET = { packedBytes: 780_000, unpackedBytes: 2_250_000, files: 260 };
+// files, no dependencies), the bundled rule packs (lib/rules/: ~165 KB unpacked,
+// ~40 KB packed, 19 files of signed IOC and pattern data and their tooling) and
+// the setup wizard (`penthera init`: src/cli/onboarding.js, detect.js and
+// docs/commands/init.md, ~35 KB unpacked, ~10 KB packed): was 650_000 packed /
+// 1_800_000 unpacked / 200 files. The headroom above today's size stays about the same.
+const PACK_BUDGET = { packedBytes: 800_000, unpackedBytes: 2_300_000, files: 260 };
 
 /** Paths the npm package may contain. Anything else fails the packaging gate. */
 const PACK_ALLOW = [
@@ -373,7 +374,7 @@ async function gateSmoke() {
     // --help and --version
     await check("penthera --version", "penthera", ["--version"], { codes: [0], test: (r) => r.stdout.includes(PKG.version) || "wrong version" });
     await check("penthera --help", "penthera", ["--help"], { codes: [0] });
-    const subcommands = ["agents", "deps", "install", "memory", "fix", "evidence", "agent"];
+    const subcommands = ["init", "agents", "deps", "install", "memory", "fix", "evidence", "agent"];
     if (hookPresent()) subcommands.push("hook");
     for (const sub of subcommands) await check(`penthera ${sub} --help`, "penthera", [sub, "--help"], { codes: [0] });
     await check("penthera-scan --help", process.execPath, [join(ROOT, "bin/scan.js"), "--help"], { codes: [0] });
@@ -438,6 +439,10 @@ async function gateSmoke() {
       await check("penthera hook uninstall", "penthera", ["hook", "uninstall"],
         { codes: [0], cwd: loopRepo, test: () => !existsSync(hookFile) || "hook still installed" });
     }
+
+    // init: the setup wizard's plan on the throwaway repo, writing nothing
+    await check("penthera init --yes --dry-run", "penthera", ["init", "--yes", "--dry-run"],
+      { codes: [0], cwd: loopRepo, test: (r) => (r.stdout.includes("Would run") && !existsSync(join(loopRepo, "reports"))) || "no plan, or reports were written" });
 
     // memory: the loop above wrote to the scratch store
     await check("penthera memory show", "penthera", ["memory", "show", "--repo", loopRepo, "--json"], { codes: [0] });

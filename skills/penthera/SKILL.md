@@ -2,8 +2,8 @@
 name: penthera
 description: >
   Open-source security for the apps and AI systems the user ships, run locally with
-  the Penthera CLI. Scans the
-  user's own live URL and repo (TLS, headers, auth, OpenAPI, secrets incl. AI keys,
+  the Penthera CLI. Sets it up in one command ("set up penthera in this repo").
+  Scans the user's own live URL and repo (TLS, headers, auth, OpenAPI, secrets incl. AI keys,
   opt-in injection); checks npm and Python dependencies offline ("is this dependency safe?",
   "what changed in my deps?", "install X safely", "any AGPL in our deps?"); blocks
   secrets and risky agent config before they are committed ("add a pre-commit hook");
@@ -66,7 +66,7 @@ All examples below use `penthera`; substitute `node bin/penthera.js` when needed
 
 | User intent | Command pattern |
 |-------------|-----------------|
-| First-time / unsure | `penthera` (interactive wizard, TTY) or `penthera-scan` |
+| First-time / unsure / "set up penthera in this repo" | `penthera init` (see **Set up in one command**); `penthera-scan` for a URL-first wizard |
 | Scan a live URL | `penthera <url> --profile standard -o reports/scan.json` |
 | Scan repo only (secrets, routes) | `penthera --repo . -o reports/repo-scan.json` |
 | Is this dependency safe? / what changed in my deps? | `penthera deps` or `penthera deps --base origin/main` (see **Dependency risk scan**) |
@@ -314,6 +314,20 @@ penthera deps --license-policy permissive --json   # presets: permissive, weak-c
 1. Findings have category `license`: a breach or `UNLICENSED` is high; a missing, custom or non-SPDX license is medium.
 2. Without the flag, the `licenses` section of `penthera.policy.json` applies if present. Never add packages to `allowPackages` without the user's say-so; that is a legal decision, not a technical one.
 
+## Set up in one command
+
+**Triggers:** "set up penthera in this repo", "get started with penthera", "onboard this project", "add penthera to this project"
+
+```bash
+penthera init --dry-run --yes   # show the plan: detected items, checks, files it would write
+penthera init --yes             # code, deps and AI tooling checks offline; hook, workflow, .gitignore
+penthera init                   # the interactive wizard, in the user's terminal
+```
+
+1. Run `--dry-run --yes` first and show the user the plan. `--yes` never scans a URL, never runs the fix loop and never opens the dashboard; it writes the pre-commit hook, `.github/workflows/penthera.yml` and a `reports/` line in `.gitignore`. Ask before running it if the user only asked a question.
+2. Reports land in `reports/penthera-<date>/`; read `summary.md` and walk the user through the "Fix first" items.
+3. Never commit or push the workflow file it writes; tell the user to review and commit it. To scan the running app, use `penthera <url>` after the authorization gate above, not `init --yes`.
+
 ## Pre-commit hook
 
 **Triggers:** "add a pre-commit hook", "stop me committing secrets / API keys", "check before I commit", "block bad MCP config in commits"
@@ -339,7 +353,7 @@ penthera ui --demo --open                            # fake data, to look around
 
 1. Start it in the user's terminal (it keeps running until Ctrl-C). It binds 127.0.0.1 on a random port and prints a one-time URL: tell the user to open that link (or pass `--open`). Never paste the token anywhere else.
 2. It reads only the `--project` folders, the reports folder and `~/.penthera`. If the screens are empty, scan with `-o reports/<name>.json` first (and `penthera deps -o reports/deps.json`, `penthera agents . -o reports/agents.json`).
-3. The Run screen starts scans, dependency checks, AI tooling audits and the fix loop. The fix loop is `penthera agent --loop` with the same rules: the user approves every diff in the page, nothing is pushed. A URL that is not on this machine needs its hostname typed to confirm; the authorization gate above still applies.
+3. The bar at the bottom of the view starts scans, dependency checks, AI tooling audits and the fix loop for the selected project. The fix loop is `penthera agent --loop` with the same rules: the user approves every diff in the page, nothing is pushed. A URL that is not on this machine needs its hostname typed to confirm; the authorization gate above still applies.
 
 See [docs/dashboard.md](../../docs/dashboard.md).
 

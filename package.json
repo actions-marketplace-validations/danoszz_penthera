@@ -54,6 +54,7 @@
     "prepack": "npm test",
     "mock-server": "node tests/fixtures/mock-server.js",
     "bench": "node bench/run.js",
+    "docs:numbers": "node scripts/docs-numbers.mjs",
     "refresh:retire-db": "node scripts/refresh-retire-db.mjs",
     "rules:build": "node scripts/rules/build-pack.mjs",
     "rules:check": "node scripts/rules/check-bundled.mjs",

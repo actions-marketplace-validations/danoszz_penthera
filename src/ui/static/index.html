@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="referrer" content="no-referrer">
+  <title>penthera ui</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/app.css">
+  <script type="module" src="/js/app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="shell">
+    <aside class="side">
+      <div>
+        <pre class="logo" aria-hidden="true">█▀█ █▀▀ █▄ █ ▀█▀ █ █ █▀▀ █▀█ ▄▀█
+█▀▀ ██▄ █ ▀█  █  █▀█ ██▄ █▀▄ █▀█</pre>
+        <p class="sr">Penthera</p>
+        <div class="logo-sub">security team :: local</div>
+      </div>
+      <nav class="nav" aria-label="Screens">
+        <ol>
+          <li><a href="#/overview" data-view="overview"><span class="key">[1]</span><span class="mark">▸</span><span class="label">Overview</span></a></li>
+          <li><a href="#/findings" data-view="findings"><span class="key">[2]</span><span class="mark">▸</span><span class="label">Findings</span></a></li>
+          <li><a href="#/agent" data-view="agent"><span class="key">[3]</span><span class="mark">▸</span><span class="label">Agent</span></a></li>
+          <li><a href="#/deps" data-view="deps"><span class="key">[4]</span><span class="mark">▸</span><span class="label">Dependencies</span></a></li>
+          <li><a href="#/ai" data-view="ai"><span class="key">[5]</span><span class="mark">▸</span><span class="label">AI tooling</span></a></li>
+          <li><a href="#/evidence" data-view="evidence"><span class="key">[6]</span><span class="mark">▸</span><span class="label">Evidence</span></a></li>
+          <li><a href="#/settings" data-view="settings"><span class="key">[7]</span><span class="mark">▸</span><span class="label">Settings</span></a></li>
+        </ol>
+      </nav>
+      <div class="side-foot" id="side-foot"></div>
+    </aside>
+    <header class="top">
+      <div class="prompt" id="prompt"><span class="user">penthera</span>@127.0.0.1:<span class="path">~/overview</span>$ <span id="prompt-cmd"></span><span class="cursor" aria-hidden="true"></span></div>
+      <div class="top-meta" id="top-meta"></div>
+    </header>
+    <main class="main" id="main" tabindex="-1"></main>
+    <footer class="status" id="status">
+      <span><kbd>1</kbd>-<kbd>7</kbd> screens</span>
+      <span><kbd>/</kbd> filter findings</span>
+      <span><kbd>j</kbd> <kbd>k</kbd> move in tables</span>
+      <span><kbd>y</kbd> <kbd>n</kbd> <kbd>q</kbd> approve, skip, stop a diff</span>
+    </footer>
+  </div>
+  <div class="sr" role="status" aria-live="polite" id="announce"></div>
+</body>
+</html>

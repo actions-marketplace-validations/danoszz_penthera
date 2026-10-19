@@ -54,6 +54,7 @@ teams that don't have one.
 | | Review pull requests | Comments the dependency capability diff on every PR that touches the lockfile | [GitHub Action](#use-as-a-github-action) |
 | | Audit your AI tooling | Skills, MCP servers, hooks, plugins, and rule files: hidden instructions, unpinned servers, over-broad permissions, silent updates | `penthera agents --home` |
 | **After you ship** | Report and prove | Reports for developers, owners, and auditors; a hashed, signable evidence bundle; NIS2 and CRA readiness and report drafts | `penthera <url> --audience auditor --evidence out/` |
+| | See it all | A local dashboard on 127.0.0.1: posture, findings, deps, AI tooling, evidence, and the agent loop with Approve / Skip / Stop per diff | [`penthera ui`](#dashboard-penthera-ui) |
 | | Keep watching | Scheduled checks of your own production for drift: certificates, headers, new endpoints, keys in bundles, new CVEs in your SBOM | *on the [roadmap](ROADMAP.md)* |
 
 What it is not: a human pentester, a 24/7 SOC, or incident response. It does the
@@ -435,6 +436,18 @@ penthera agent --loop --repo . --url http://localhost:3000 -o reports/loop.json
 ```
 
 It shows each diff and asks `y/n/skip/quit`, applies it on a local branch `penthera/fix-<yyyymmdd-hhmm>`, re-scans (plus your tests with `--run-tests`), commits the fix if it verified and reverts it if not, and records the outcome in [local memory](docs/local-loop.md). It refuses a dirty tree or a detached HEAD, runs only an allow-list of local git commands with your repo's hooks disabled, contacts only the `--url` host, and never pushes or opens a pull request. `--auto low` applies without asking only recipes that memory shows verified 3+ times with no failures on your framework. Details and the `loopRun` JSON: [docs/local-loop.md](docs/local-loop.md#the-agent-loop).
+
+### Dashboard: `penthera ui`
+
+```bash
+penthera ui --open     # try it first with: penthera ui --demo
+```
+
+A dashboard for everything above, on `127.0.0.1` only: posture per project, findings with evidence and the fix diff, the dependency capability diff and install decisions, your AI-tooling grade, evidence bundles you can verify in one click, and "Run as agent", which drives `agent --loop` from the page with Approve / Skip / Stop on every diff. It reads only the folders you pass and `~/.penthera`, never contacts the network, and ships no third-party code. The link it prints works once. Security model and screens: [docs/dashboard.md](docs/dashboard.md).
+
+| Overview | Run as agent |
+|---|---|
+| ![penthera ui overview: posture per project, severity mix, findings over time](assets/dashboard/overview.jpg) | ![penthera ui agent: the loop waiting for approval on a diff](assets/dashboard/agent.jpg) |
 
 ---
 

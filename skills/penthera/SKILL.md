@@ -3,6 +3,8 @@ name: penthera
 description: >
   Runs authorized security scans on live URLs and local repos using the Penthera CLI
   (TLS, headers, OpenAPI, auth hardening, secret scanning, optional injection probes),
+  and checks npm dependencies offline for what they can do ("is this dependency safe?",
+  "what changed in my deps?", "review this lockfile change", "is this a typosquat?"),
   then applies framework-aware fixes and re-scans to verify them. Use when the user asks
   to scan, audit, harden, fix, pentest, or review security of their own app, staging URL,
   localhost, or repo; apply security best practices; generate SARIF for GitHub; diff
@@ -63,6 +65,7 @@ All examples below use `penthera`; substitute `node bin/penthera.js` when needed
 | First-time / unsure | `penthera` (interactive wizard, TTY) or `penthera-scan` |
 | Scan a live URL | `penthera <url> --profile standard -o reports/scan.json` |
 | Scan repo only (secrets, routes) | `penthera --repo . -o reports/repo-scan.json` |
+| Is this dependency safe? / what changed in my deps? | `penthera deps` or `penthera deps --base origin/main` (see **Dependency risk scan**) |
 | URL + source combined | `penthera <url> --repo . -o reports/scan.json --sarif reports/scan.sarif` |
 | Scan and fix my app | Run a scan, then **Workflow 4** (apply fixes from [references/remediation.md](references/remediation.md), re-scan to verify) |
 | Compare to previous scan | `penthera <url> -o reports/scan.json --baseline reports/previous.json` |
@@ -214,6 +217,24 @@ penthera --repo . -o reports/repo-scan.json
 ```
 
 Summarize secret findings; remind user to rotate any exposed credentials.
+
+## Dependency risk scan
+
+**Triggers:** "is this dependency safe?", "what changed in my deps?", "review this lockfile change / dependency upgrade", "does this package have install scripts?", "is this a typosquat?"
+
+Offline and read-only: it reads `package-lock.json` and `node_modules`, runs no package code, and sends nothing anywhere, so no target authorization is needed. It never installs anything; if `node_modules` is missing, tell the user to run `npm ci --ignore-scripts` first.
+
+```bash
+penthera deps                              # what every installed package can do
+penthera deps --base origin/main           # capability diff vs the lockfile on main
+penthera deps --diff ../base-checkout      # diff vs another installed tree
+penthera deps --prod -o reports/deps.json  # skip devDependencies, write JSON + Markdown
+```
+
+1. Lead with the diff: which packages are **new** or **gained** capabilities (network, shell, install script, whole environment, dynamic code), each with its `file:line` evidence.
+2. Then critical/high risk signals (AI-config writes, AI CLI invocation, GitHub token harvesting, obfuscation, env exfiltration). Open the evidence file and read the lines before calling anything malicious: a capability is what code *can* do, not a verdict.
+3. If old versions were "not compared", say so; suggest installing the base tree and passing it to `--diff`.
+4. `--online` is the only network use (npm registry metadata: publish age, publisher change, deprecation). Only add it if the user agrees.
 
 ## Examples
 

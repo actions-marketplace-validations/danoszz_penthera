@@ -48,6 +48,7 @@
     "pentest:wstg": "vitest run tests/owasp-wstg.test.js --reporter=verbose",
     "validate:report": "node skills/penthera/scripts/validate-report.mjs",
     "package:skill": "bash scripts/package-skill.sh",
+    "refresh:popular": "node scripts/refresh-popular-packages.mjs",
     "prepack": "npm test",
     "mock-server": "node tests/fixtures/mock-server.js"
   },

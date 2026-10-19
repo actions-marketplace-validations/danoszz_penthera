@@ -1,0 +1,105 @@
+# Example: comment a dependency capability diff on every PR that changes the lockfile.
+#
+# Copy this file into YOUR app's repo as `.github/workflows/penthera-deps.yml`.
+# It installs the base and PR dependency trees with `--ignore-scripts` (no
+# package code runs), then `penthera deps --diff` reports packages that are new
+# or that gained capabilities (network, shell, install scripts, whole
+# environment, dynamic code, ...) and posts that as one PR comment, updated in
+# place on every push. Penthera itself runs offline; nothing is sent anywhere
+# except the comment to your own PR.
+#
+# Pin PENTHERA_VERSION to a release you have reviewed (and, ideally, the actions
+# below to commit SHAs) so this job never runs code you have not looked at.
+#
+# Fork PRs get a read-only token, so the comment step is skipped for them; the
+# report is still uploaded as an artifact. Do not switch this to
+# `pull_request_target`: that would run with write access next to untrusted code.
+
+name: Dependency capability diff
+
+on:
+  pull_request:
+    paths:
+      - package-lock.json
+      - npm-shrinkwrap.json
+
+permissions:
+  contents: read
+
+jobs:
+  deps:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      PENTHERA_VERSION: latest # pin, e.g. 1.3.0
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: head
+          persist-credentials: false
+
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Install both trees without running install scripts
+        run: |
+          (cd head && npm ci --ignore-scripts --no-audit --no-fund)
+          (cd base && npm ci --ignore-scripts --no-audit --no-fund)
+
+      - name: Diff dependency capabilities
+        id: deps
+        # Run from the temp dir so `npx` can't pick up a `penthera` binary that
+        # the PR's own node_modules might provide.
+        working-directory: ${{ runner.temp }}
+        run: |
+          set +e
+          npx --yes "penthera@${PENTHERA_VERSION}" deps "$GITHUB_WORKSPACE/head" \
+            --diff "$GITHUB_WORKSPACE/base" \
+            --pr-comment "$RUNNER_TEMP/deps-comment.md" \
+            --sarif "$RUNNER_TEMP/deps.sarif" \
+            -o "$RUNNER_TEMP/deps.json"
+          code=$?
+          set -e
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          # 1 = critical/high findings (reported in the comment); 2 = scan error.
+          if [ "$code" -eq 2 ]; then exit 2; fi
+
+      - name: Comment on the PR (updated in place)
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          body="$RUNNER_TEMP/deps-comment.md"
+          id=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+            --jq '.[] | select(.body | startswith("<!-- penthera-deps -->")) | .id' | head -n1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$id" -F body=@"$body" > /dev/null
+          else
+            gh pr comment "$PR" --repo "$REPO" --body-file "$body"
+          fi
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: penthera-deps
+          path: |
+            ${{ runner.temp }}/deps-comment.md
+            ${{ runner.temp }}/deps.json
+            ${{ runner.temp }}/deps.md
+            ${{ runner.temp }}/deps.sarif
+
+      # Optional: block the merge when critical or high findings appear.
+      # - name: Fail on critical/high
+      #   if: steps.deps.outputs.code == '1'
+      #   run: exit 1

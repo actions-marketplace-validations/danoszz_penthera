@@ -6,6 +6,7 @@
 import { writeFileSync, readFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { resolveWstgTags } from "../lib/owasp-wstg.js";
+import { formatDepsTerminal } from "../lib/deps/report.js";
 
 const PKG_VERSION = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf-8"),
@@ -258,6 +259,15 @@ export function printReport(result, opts = {}) {
     w("");
   }
 
+  // Dependencies (penthera deps)
+  if (result.deps) {
+    w(`  ${c.dim(line())}`);
+    w(`  ${c.bold("Dependencies")}`);
+    w("");
+    for (const l of formatDepsTerminal(result.deps, c, opts)) w(l);
+    w("");
+  }
+
   // Cookies
   if (result.cookies && result.cookies.length > 0) {
     w(`  ${c.dim(line())}`);
@@ -324,7 +334,7 @@ export function printReport(result, opts = {}) {
       const needsReview = f.confidence === "needs-human-review" || f.confidence === "potential";
       const tag = needsReview ? c.dim(` [${f.confidence}]`) : "";
       w(`  ${colorFn(label)}  ${f.title}${tag}`);
-      if (f.url)  w(`  ${" ".repeat(6)} ${c.dim(f.url)}${f.status ? c.dim(` \u2192 ${f.status}`) : ""}`);
+      if (f.url)  w(`  ${" ".repeat(6)} ${c.dim(f.url + (f.line ? `:${f.line}` : ""))}${f.status ? c.dim(` \u2192 ${f.status}`) : ""}`);
       if (f.description && opts.verbose) w(`  ${" ".repeat(6)} ${c.dim(f.description)}`);
     }
     w("");
@@ -457,6 +467,7 @@ export function writeSarifReport(result, filePath) {
           artifactLocation: {
             uri: toSarifUri(f.url),
           },
+          ...(Number.isInteger(f.line) && f.line > 0 ? { region: { startLine: f.line } } : {}),
         },
       }] : [],
       properties: {

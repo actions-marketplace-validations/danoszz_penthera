@@ -55,6 +55,7 @@ const HELP = `
     $ penthera <url>                 Scan a live URL (black-box)
     $ penthera --repo <path>         Scan a local repo (white-box)
     $ penthera <url> --repo <path>   Full scan (both)
+    $ penthera deps [path]           What your npm dependencies can do (offline)
 
   ${dim("Scan modes")}
         --profile <name>        quick | standard | deep (default: standard)
@@ -68,6 +69,13 @@ const HELP = `
         --adaptive              Knowledge-graph adaptive probes on discovered routes
         --all                   Enable all modes (recon + deep + fuzz)
         --machine               macOS machine audit (keyloggers, trojans, rootkits)
+
+  ${dim("Deps mode")}  ${dim("(penthera deps [path], reads package-lock.json + node_modules, offline)")}
+        --diff <lock|dir>       Capability diff against an old lockfile or installed tree
+        --base <git-ref>        Capability diff against the lockfile at a git ref
+        --online                Also check npm registry metadata (the only network use)
+        --prod                  Skip devDependencies
+        --pr-comment <file>     Write a short Markdown capability diff for a PR comment
 
   ${dim("Options")}
     -r, --repo <path>       Path to repo for source analysis
@@ -109,6 +117,8 @@ const HELP = `
     $ penthera https://myapp.com --adaptive -o report.json
     $ penthera https://myapp.com --templates ./my-templates -o report.json
     $ penthera https://myapp.com --sarif results.sarif --json | jq '.findings[]'
+    $ penthera deps --base origin/main
+    $ penthera deps --diff ../base-checkout --pr-comment deps.md
 
   ${dim("Exit codes")}
     0  No critical or high findings
@@ -143,6 +153,11 @@ export async function run() {
         sbom:        { type: "string" },
         history:     { type: "string" },
         suppliers:   { type: "string" },
+        diff:        { type: "string" },
+        base:        { type: "string" },
+        online:      { type: "boolean", default: false },
+        "pr-comment": { type: "string" },
+        prod:        { type: "boolean", default: false },
         profile:     { type: "string" },
         "auth-cookie": { type: "string" },
         "auth-bearer": { type: "string" },
@@ -238,6 +253,17 @@ export async function run() {
       console.log(`  ${String(r.rating).padEnd(7)} ${r.domain}${r.score != null ? ` (${r.score})` : ""}`);
     }
     process.exit(0);
+  }
+
+  // `penthera deps [path]`: offline dependency capability scan and diff.
+  if (positionals[0] === "deps") {
+    const { runDeps } = await import("./cli/deps.js");
+    await runDeps(positionals.slice(1), opts, { version: pkg.version });
+    return;
+  }
+  if (opts.diff || opts.base || opts.online || opts["pr-comment"] || opts.prod) {
+    printError("--diff, --base, --online, --prod and --pr-comment only apply to `penthera deps`.");
+    process.exit(2);
   }
 
   if (shouldRunOnboarding(positionals, opts)) {

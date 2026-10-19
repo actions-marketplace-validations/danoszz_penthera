@@ -4,6 +4,33 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Added
+
+- **`penthera deps [path]`**: offline, deterministic dependency risk scanning
+  for npm. Reads `package-lock.json` (v1-v3), statically scans every installed
+  package and reports what it can do, with `file:line` evidence: install
+  scripts (including implicit `node-gyp`), shell, network, writes outside its
+  folder, environment reads and bulk access, `eval` / `new Function` / `vm`,
+  computed `require`/`import`, native binaries, and obfuscation signals
+- **Capability diff** (`--diff <lockfile|dir>`, `--base <git-ref>`): packages
+  that are new or that gained capabilities in an upgrade. Old versions come
+  from the base tree or npm's local content cache, verified against the
+  lockfile integrity, so the diff works offline
+- Attack indicators: writes to `~/.claude`, `~/.cursor`, `.mcp.json` or the
+  Claude Desktop config, running the `claude` / `gemini` / `q` CLIs (the
+  s1ngularity pattern), GitHub token harvesting, and the whole environment
+  serialised next to network code
+- Typosquat / slopsquat check against a vendored list of ~7,800 popular npm
+  names (`lib/deps/popular-packages.json`, from npm-high-impact), refreshed at
+  release time by `npm run refresh:popular`. Nothing is fetched at runtime
+- `--online` (off by default, the only network use): npm registry metadata for
+  fresh versions, brand-new packages, publisher changes and deprecations
+- `--pr-comment <file>` and an example workflow
+  ([`docs/examples/github-actions-deps.yml`](docs/examples/github-actions-deps.yml))
+  that comments the capability diff on PRs that change the lockfile
+- Findings use category `dependency-risk` and source `deps-scan`; SARIF
+  results now carry a start line when a finding has one
+
 ## [1.2.0] - 2026-10-19
 
 The first step toward securing the AI toolchain itself: catch AI provider keys,

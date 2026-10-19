@@ -1,8 +1,8 @@
 {
   "name": "penthera",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "type": "module",
-  "description": "Lightweight security scanner for web apps — scan URLs or repos from the CLI",
+  "description": "Security scanner for web apps and AI-built code: scan URLs and repos from Claude Code, Cursor or the CLI. OWASP-mapped, SARIF output, NIS2 evidence. Authorized testing only.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/danoszz/penthera.git"
@@ -21,7 +21,6 @@
     "lib",
     "skills",
     "docs",
-    "scripts/package-skill.sh",
     "pentest.config.example.js",
     "CHANGELOG.md",
     "LICENSE",
@@ -34,7 +33,7 @@
     "./wstg": "./lib/owasp-wstg.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "scripts": {
     "test": "vitest run --reporter=verbose",
@@ -42,7 +41,6 @@
     "scan:full": "node bin/scan.js",
     "pentest": "vitest run --reporter=verbose",
     "pentest:watch": "vitest --reporter=verbose",
-    "pentest:static": "vitest run tests/pentest-static.test.js --reporter=verbose",
     "pentest:live": "vitest run tests/pentest-live.test.js --reporter=verbose",
     "pentest:adaptive": "vitest run tests/pentest-adaptive.test.js --reporter=verbose",
     "pentest:recon": "vitest run tests/pentest-recon.test.js --reporter=verbose",
@@ -68,9 +66,9 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "vitest": "^3.1.1"
+    "vitest": "^5.0.5"
   },
   "dependencies": {
-    "yaml": "^2.8.3"
+    "yaml": "^2.9.1"
   }
 }

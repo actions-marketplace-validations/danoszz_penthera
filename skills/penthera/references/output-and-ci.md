@@ -44,59 +44,21 @@ Output includes: new findings count, resolved count, unchanged count. Use for we
 
 ## GitHub Actions
 
-**Penthera CI** (`.github/workflows/ci.yml`) runs on every push:
+**Penthera's own CI** (`.github/workflows/ci.yml`) runs on every push and PR:
 
-1. Unit + mock server tests
-2. Skill preflight check
-3. Scan against the local mock API → JSON + SARIF
-4. `validate-report.mjs` on the JSON output
-5. SARIF upload to GitHub Security tab
+1. The full test suite (`npm test`) on Node 22 and 24
+2. A scan of the deliberately vulnerable mock API, producing JSON + SARIF
+3. `validate-report.mjs` on the JSON output, plus the skill preflight
 
-For **your staging URL**, copy `.github/workflows/scan.example.yml` to `scan.yml`:
+The mock-server SARIF is kept as a build artifact, not uploaded to code scanning,
+because those findings are about the test fixture, not the repo.
 
-```yaml
-name: Security Scan
-
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: "0 6 * * 1"
-
-jobs:
-  penthera:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - run: npm ci
-
-      - name: Scan staging URL
-        env:
-          PENTEST_URL: ${{ secrets.PENTEST_STAGING_URL }}
-        run: |
-          node bin/penthera.js "$PENTEST_URL" \
-            --profile standard \
-            -o reports/scan.json \
-            --sarif reports/scan.sarif
-
-      - uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: reports/scan.sarif
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: penthera-reports
-          path: reports/
-```
-
-Store `PENTEST_STAGING_URL` as a repository secret.
+**For your own staging URL**, copy
+[`docs/examples/github-actions-scan.yml`](https://github.com/danoszz/penthera/blob/main/docs/examples/github-actions-scan.yml)
+into your app's repo as `.github/workflows/penthera.yml` and add a
+`PENTEST_STAGING_URL` repository secret. It runs `npx penthera@<version>` on a
+weekly schedule and uploads SARIF to your Security tab. Pin the version so a
+scheduled run never picks up code you have not reviewed.
 
 ## Agent reporting workflow
 

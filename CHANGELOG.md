@@ -4,6 +4,59 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-19
+
+The first step toward securing the AI toolchain itself: catch AI provider keys,
+harden Penthera's own supply chain, and make CI test what it says it tests. The
+[roadmap](ROADMAP.md) now sets out the AI supply-chain and local agent-loop
+tracks.
+
+### Added
+
+- **AI provider key detection** in repo scans: Anthropic, OpenAI project and
+  service-account keys, OpenRouter, Google (Gemini / Firebase), Groq, Hugging
+  Face, Replicate, xAI, Perplexity, LangSmith, and Pinecone. Jupyter notebooks
+  (`.ipynb`) are now scanned too. A provider key inside an `api_key = "..."`
+  assignment is reported once, under its provider, instead of twice
+- `findSecretsInText()` exported from `lib/whitebox/secrets.js`, so the same
+  rules can run on any text (groundwork for scanning JS bundles)
+- CodeQL and OpenSSF Scorecard workflows, Dependabot for npm and GitHub Actions
+  (with a 7-day cooldown before adopting new releases)
+- CI check that `package.json`, the lockfile, the skill, and both plugin
+  manifests carry the same version
+- Roadmap: AI supply-chain audit (`penthera agents`), a fully local
+  scan → fix → verify → learn loop, and LLM-endpoint probes. Principles now
+  state no telemetry, no auto-push, and no remote learning
+
+### Fixed
+
+- **Modern OpenAI keys were missed.** The old pattern stopped at the hyphen in
+  `sk-proj-...` and `sk-svcacct-...`, so the key format OpenAI has issued since
+  2024 never matched
+- The example scan workflow lived in `.github/workflows/`, so it ran on its
+  weekly cron and failed every Monday. It moved to
+  `docs/examples/github-actions-scan.yml` and now uses `npx penthera@<version>`,
+  so it works when copied into your own repo
+- CI ran only 4 of 24 test files; it now runs the full `npm test`
+- Removed `tests/pentest-static.test.js`, which tested functions defined inside
+  the test file rather than anything Penthera ships
+- `.claude-plugin/plugin.json` still said 1.0.0
+- `SECURITY.md` listed 1.0.x as supported. It now covers 1.2.x and gives response
+  times, scope, and safe-harbor terms
+
+### Changed
+
+- **Node.js 22 or newer is now required.** Node 18 and 20 are end-of-life, and
+  the test toolchain (vitest 5) needs 22. CI runs on Node 22 and 24
+- GitHub Actions are pinned to commit SHAs, and every workflow declares
+  least-privilege `permissions`
+- The publish workflow runs on Node 24 (npm 11.5+, ready for npm trusted
+  publishing) and creates the GitHub Release itself
+- The Docker image runs as the unprivileged `node` user on `node:22-alpine`
+- README reordered so install and quick start come before compliance. The full
+  NIS2 guide moved to [`docs/compliance-nis2.md`](docs/compliance-nis2.md)
+- vitest 3 → 5 (clears 8 dev-only advisories), yaml 2.8 → 2.9
+
 ## [1.1.1] - 2026-08-16
 
 A correctness release. One of these was a live outage: if you are on 1.1.0,
@@ -176,7 +229,7 @@ and generated documents.
   live integration tests report as skipped (not passed) without a running target
 - Corrected the built-in template count (14, not 17) in docs and progress output
 
-## [1.0.0], 2026-06-30
+## [1.0.0] - 2026-06-30
 
 First production-ready release.
 
@@ -201,11 +254,11 @@ First production-ready release.
 
 - URL trailing-slash normalization (double-slash 404 bug)
 
-## [0.2.0], 2026-04
+## [0.2.0] - 2026-04
 
 - Markdown reports, scan profiles, auth tooling, expanded API discovery
 
-## [0.1.x], 2026-04
+## [0.1.x] - 2026-04
 
 - Initial CLI: URL, repo, and machine scan modes
 - Built-in templates, TLS, CORS, SARIF export

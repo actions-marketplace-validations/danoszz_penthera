@@ -6,17 +6,21 @@ on:
   pull_request:
     branches: [main]
 
+# Least privilege by default; jobs opt in to anything more.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18, 20, 22]
+        node-version: [22, 24]
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
@@ -24,36 +28,33 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Static security tests
-        run: npm run pentest:static
+      - name: Test suite
+        run: npm test
 
-      - name: Adaptive probe tests
-        run: npm run pentest:adaptive
-
-      - name: Mock server integration tests
-        run: npm run pentest:mock
-
-      - name: OWASP WSTG mapping tests
-        run: npm run pentest:wstg
+      - name: Versions are in sync
+        run: |
+          PKG=$(node -p "require('./package.json').version")
+          PLUGIN=$(node -p "require('./.claude-plugin/plugin.json').version")
+          MARKET=$(node -p "require('./.claude-plugin/marketplace.json').metadata.version")
+          SKILL=$(sed -n 's/^  version: *//p' skills/penthera/SKILL.md | tr -d '"')
+          LOCK=$(node -p "require('./package-lock.json').version")
+          echo "package=$PKG plugin=$PLUGIN marketplace=$MARKET skill=$SKILL lock=$LOCK"
+          for v in "$PLUGIN" "$MARKET" "$SKILL" "$LOCK"; do
+            [ "$v" = "$PKG" ] || { echo "Version drift: expected $PKG, found $v"; exit 1; }
+          done
 
       - name: CLI smoke test
         run: node bin/penthera.js --version
 
-      - name: Skill preflight
-        run: bash skills/penthera/scripts/preflight.sh http://127.0.0.1:8765
-
   scan:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - run: npm ci
@@ -65,6 +66,9 @@ jobs:
             curl -sf http://127.0.0.1:8765/api/health && break
             sleep 1
           done
+
+      - name: Skill preflight
+        run: bash skills/penthera/scripts/preflight.sh http://127.0.0.1:8765
 
       - name: Scan mock API (standard profile)
         run: |
@@ -87,7 +91,7 @@ jobs:
       # End users uploading their own scan SARIF is handled by scan.yml.
 
       - name: Upload scan artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: penthera-ci-reports

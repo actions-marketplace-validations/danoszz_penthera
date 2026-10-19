@@ -6,15 +6,17 @@
   },
   "metadata": {
     "description": "Find and fix security issues in vibecoded apps",
-    "version": "1.1.1"
+    "version": "1.2.0"
   },
   "plugins": [
     {
       "name": "penthera",
-      "description": "Find and fix security issues in vibecoded apps. Scan a live URL or repo for TLS, headers, auth, secrets, IDOR/OAuth, and injection issues, then apply framework-aware fixes and re-scan to verify. Mapped to OWASP with SARIF output. Runs as a skill or CLI. Authorized testing only.",
+      "description": "Find and fix security issues in vibecoded apps. Scan a live URL, a local repo, or your macOS machine for TLS, headers, auth, secrets, IDOR/OAuth, and injection issues, then apply framework-aware fixes and re-scan to verify. Mapped to OWASP with SARIF output. Runs as a skill or CLI. Authorized testing only.",
       "source": "./",
       "strict": false,
-      "skills": ["./skills/penthera"]
+      "skills": [
+        "./skills/penthera"
+      ]
     }
   ]
 }

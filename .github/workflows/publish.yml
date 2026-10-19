@@ -5,8 +5,11 @@ name: Publish
 # and commit, and npm shows a "Built and signed on GitHub Actions" badge on the
 # package page. It only works from CI with OIDC, never from a laptop.
 #
-# Setup: add an npm automation token as the NPM_TOKEN repository secret.
-# Release: npm version <patch|minor|major> && git push --follow-tags
+# Setup: preferred is npm trusted publishing (OIDC, no long-lived secret):
+#   npmjs.com > penthera > Settings > Trusted publishing > GitHub Actions,
+#   repo danoszz/penthera, workflow publish.yml. Then delete the NPM_TOKEN secret.
+#   Until that is configured, the NPM_TOKEN repository secret is used.
+# Release: see CONTRIBUTING.md ("Cutting a release"). Pushing a v* tag publishes.
 
 on:
   push:
@@ -15,18 +18,18 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write # create the GitHub release
   id-token: write # required for provenance
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: 20
+          node-version: 24 # npm 11.5+ for trusted publishing
           cache: npm
           registry-url: https://registry.npmjs.org
 
@@ -49,3 +52,10 @@ jobs:
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" --generate-notes --verify-tag

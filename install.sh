@@ -26,10 +26,10 @@ say ""
 
 # ── Prerequisites ───────────────────────────────────────────────────────────
 command -v git  >/dev/null 2>&1 || die "git is required. Install it and re-run."
-command -v node >/dev/null 2>&1 || die "Node.js 18+ is required: https://nodejs.org"
+command -v node >/dev/null 2>&1 || die "Node.js 22+ is required: https://nodejs.org"
 
 NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')"
-[ "$NODE_MAJOR" -ge 18 ] || die "Node 18+ required (found $(node -v))."
+[ "$NODE_MAJOR" -ge 22 ] || die "Node 22+ required (found $(node -v))."
 ok "Node $(node -v)"
 
 # ── Clone or update ─────────────────────────────────────────────────────────

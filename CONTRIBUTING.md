@@ -30,6 +30,7 @@ Node 22+ is required (see `.nvmrc` for the pinned version).
 | `npm run pentest:wstg` | OWASP WSTG mapping |
 | `npm run pentest:live` | Live playbooks — opt-in: needs `pentest.config.js` or `PENTEST_BASE_URL` + a running server |
 | `npm run mock-server` | Start the mock API on port 8765 |
+| `npm run audit:internal` | The release gate: every check above and more, written to `audit/REPORT.md` ([docs/internal-audit.md](docs/internal-audit.md)) |
 
 CI runs the full `npm test` suite on Node 22 and 24, checks that every version
 string is in sync, and self-scans the mock server (`.github/workflows/ci.yml`).
@@ -140,13 +141,20 @@ live once a maintainer approves it with 2FA. **Do not run `npm publish` locally.
    - `skills/penthera/SKILL.md` (`metadata.version`)
    - `.claude-plugin/plugin.json` (`version`)
    - `.claude-plugin/marketplace.json` (`metadata.version`)
+   - `CITATION.cff` (`version`)
 2. Move the `[Unreleased]` notes in `CHANGELOG.md` under the new version.
    Refresh the typosquat list with `npm run refresh:popular` and commit
    `lib/deps/popular-packages.json` if it changed (the only time it is fetched).
-3. Merge to `main` through a PR so CI runs.
-4. Tag the merge commit and push the tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
-5. Approve the staged version with 2FA: npmjs.com → penthera → Staged Packages →
+3. Run the internal audit on the release branch: `npm run audit:internal`.
+   **It must pass.** Commit the regenerated `audit/REPORT.md` with the release
+   and read its "Changes since the previous report". A new self-scan finding
+   is fixed, or accepted in `audit/baseline.json` with a reason in review;
+   never by loosening a threshold to make the gate pass.
+4. Merge to `main` through a PR so CI runs.
+5. Tag the merge commit and push the tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+   Do not tag a commit whose audit failed.
+6. Approve the staged version with 2FA: npmjs.com → penthera → Staged Packages →
    Approve, or `npm stage list penthera` and `npm stage approve <stage-id>`.
    Check the file list and provenance before you approve.
-6. Optional: `npm run package:skill` and attach the zip to the release for
+7. Optional: `npm run package:skill` and attach the zip to the release for
    Claude.ai uploads.

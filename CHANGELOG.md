@@ -26,6 +26,24 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   non-SPDX licenses are medium. Findings use category `license`; the SPDX id
   list is vendored (`lib/deps/spdx.json`). CycloneDX SBOM components now carry
   their license
+- **Internal testing audit** (`npm run audit:internal`), the release gate:
+  tests, benchmark drift, a self-scan against `audit/baseline.json`, a CLI
+  smoke matrix, package contents and size, zero third-party egress offline,
+  supply chain and version/docs checks, written to `audit/REPORT.md`. Runs
+  weekly in CI. See [docs/internal-audit.md](docs/internal-audit.md)
+
+### Changed
+
+- The live test suites (`pentest-live`, `-recon`, `-adaptive`) are opt-in:
+  they run only with `PENTEST_BASE_URL` or a `pentest.config.js`, instead of
+  probing whatever listens on `localhost:3000` during `npm test`.
+
+### Fixed
+
+- The secret scanner no longer reports a value that is only a template
+  placeholder (`apiKey: "${key}"`, `{{ api_key }}`) as a hardcoded secret.
+- `penthera-scan --help` and `--version` exit 0 instead of starting the wizard.
+- The example workflows in `docs/examples/` pin actions by commit SHA.
 
 ## [1.4.0] - 2026-10-19
 

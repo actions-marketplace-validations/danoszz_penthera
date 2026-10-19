@@ -6,6 +6,31 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ### Added
 
+- **`penthera agents [path] [--home] [--pin]`**: an offline, deterministic audit
+  of AI developer tooling. It finds and parses `.mcp.json`, `.cursor/`,
+  `.claude/`, `.vscode/mcp.json`, `AGENTS.md`, `CLAUDE.md`, `.cursorrules`,
+  `.github/copilot-instructions.md` and skill folders; with `--home` also
+  `~/.claude` (settings, hooks, permissions, plugins, skills), `~/.claude.json`,
+  `~/.cursor/mcp.json` and the Claude Desktop config. Read-only, no network, no
+  LLM judge
+- Hidden-content engine (`lib/agents/hidden-content.js`): Unicode tag
+  characters (decoded), zero-width and bidi controls, variation-selector
+  smuggling, whitespace inflation, instructions in HTML comments, text aimed at
+  a scanner, base64 blobs (decoded and classified), binaries and archives in
+  skill folders by magic bytes, symlinks that leave a skill, and `curl | sh` /
+  `eval` style remote execution
+- Risky-config rules: unpinned `npx -y` / `uvx` / `bunx` / `pnpm dlx` MCP
+  servers, inline secrets in server env/headers/args (via `findSecretsInText()`),
+  plain-HTTP remote servers, hooks that auto-approve or pipe to a shell,
+  `Bash(*)` and other wildcard permissions, `bypassPermissions`, credential-file
+  allows, wildcard `allowed-tools`, and unpinned plugin marketplaces
+- `penthera.lock`: `--pin` records SHA-256 hashes of every skill folder, MCP
+  server definition, hook and installed plugin; later runs report changed (rug
+  pull), new and removed entries
+- A–F grade for the agent setup in the terminal and Markdown reports. Findings
+  use category `agent-config`, map to OWASP MCP Top 10 and Agentic (ASI) ids,
+  and get per-rule SARIF ids (`agents/<rule>`)
+- Agent Skill: Workflow 6 ("audit my MCP servers / skills / agent config")
 - `docs/METHODOLOGY.md`: threat model, what black-box and white-box scanning
   can and cannot find, the confidence model, false-positive controls, the
   non-destructive default, offline operation, and how new attack techniques
@@ -70,8 +95,9 @@ tracks.
   the test toolchain (vitest 5) needs 22. CI runs on Node 22 and 24
 - GitHub Actions are pinned to commit SHAs, and every workflow declares
   least-privilege `permissions`
-- The publish workflow runs on Node 24 (npm 11.5+, ready for npm trusted
-  publishing) and creates the GitHub Release itself
+- Releases use npm trusted publishing (OIDC, no stored token) and **staged
+  publishing**: CI stages each version, and it only goes live after a
+  maintainer approves it with 2FA. The workflow also creates the GitHub Release
 - The Docker image runs as the unprivileged `node` user on `node:22-alpine`
 - README reordered so install and quick start come before compliance. The full
   NIS2 guide moved to [`docs/compliance-nis2.md`](docs/compliance-nis2.md)

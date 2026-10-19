@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Open-source security for the apps and AI systems you ship",
-    "version": "1.6.0"
+    "version": "1.6.1"
   },
   "plugins": [
     {

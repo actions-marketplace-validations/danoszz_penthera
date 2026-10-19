@@ -73,3 +73,27 @@ jobs:
         run: |
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
             || gh release create "$GITHUB_REF_NAME" --generate-notes --verify-tag
+
+      # Marketing: draft (never post) a LinkedIn and an X/Bluesky post from the
+      # CHANGELOG section for this tag. It goes to the job summary and into the
+      # release body under a collapsed "Share this release". A person posts it
+      # after approving the staged package. See docs/marketing.md.
+      - name: Draft release posts
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          share="$RUNNER_TEMP/share.md"
+          node scripts/marketing/release-post.mjs --tag "$GITHUB_REF_NAME" > "$share" || {
+            echo "::warning::No CHANGELOG section for $GITHUB_REF_NAME; skipping the post drafts."
+            exit 0
+          }
+          cat "$share" >> "$GITHUB_STEP_SUMMARY"
+          body="$RUNNER_TEMP/body.md"
+          gh release view "$GITHUB_REF_NAME" --json body --jq .body > "$body"
+          if ! grep -q '<!-- penthera-share -->' "$body"; then
+            printf '\n\n' >> "$body"
+            cat "$share" >> "$body"
+            gh release edit "$GITHUB_REF_NAME" --notes-file "$body"
+          fi

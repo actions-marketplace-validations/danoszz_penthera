@@ -11,6 +11,32 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   smoke matrix, package contents and size, zero third-party egress offline,
   supply chain and version/docs checks, written to `audit/REPORT.md`. Runs
   weekly in CI. See [docs/internal-audit.md](docs/internal-audit.md)
+- **Marketing automation that drafts, never posts** (`docs/marketing.md`): no
+  social-media tokens, no tracking, no auto-posting; every workflow SHA-pinned
+  with least-privilege permissions and a `workflow_dispatch` dry run
+  - Release post drafts: `publish.yml` writes a LinkedIn (~600 characters) and
+    an X/Bluesky (≤280) post from the CHANGELOG section to the job summary and
+    a collapsed "Share this release" section in the GitHub Release
+    (`scripts/marketing/release-post.mjs`)
+  - Incident radar (`incident-radar.yml`, daily): new npm and PyPI malware
+    advisories from the public GitHub Advisory Database become
+    `incident-radar` issues with affected versions, an IOC checklist and a
+    draft "check if you're affected" post. Popular packages get their own
+    issue (at most 5 per run); the rest are batched into one issue
+  - Demo media (`demo-media.yml`): VHS tapes in `assets/tapes/` for a URL
+    scan, `penthera agents` and `penthera deps --diff`, re-rendered on release
+    and opened as a PR
+  - Monthly stats issue (`monthly-stats.yml`): npm downloads, stars, forks,
+    skills.sh installs, dependents and merged PRs, with month-over-month
+    changes and a draft post
+  - Contributor flywheel (`contributor-flywheel.yml`): when fewer than 3
+    `good first issue` issues are open, one reminder lists the
+    `TODO(good-first-issue)` markers in the code
+- **Report footer**: Markdown reports, audience reports, the PR comment and
+  the evidence bundle end with one line, "Checked by Penthera, open-source
+  security for the apps and AI systems you ship". Never in SARIF or JSON.
+  `--no-footer` (or `footer: "false"` in the Action) leaves it off. Evidence
+  bundles now include a `README.md`
 
 ### Changed
 

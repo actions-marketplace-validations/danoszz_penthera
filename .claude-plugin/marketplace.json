@@ -5,13 +5,13 @@
     "url": "https://github.com/danoszz"
   },
   "metadata": {
-    "description": "The routine work of a security team, on your own machine",
+    "description": "Open-source security for the apps and AI systems you ship",
     "version": "1.5.0"
   },
   "plugins": [
     {
       "name": "penthera",
-      "description": "The routine work of a security team, on your own machine. Audit a live URL and your repo, vet what your npm dependencies can do and block risky installs, audit your AI tooling (skills, MCP servers, hooks, plugins), fix what it finds on a local branch and re-scan to verify, and produce reports and NIS2 evidence. Offline, deterministic, no telemetry. Authorized testing only.",
+      "description": "Open-source security for the apps and AI systems you ship. Before you deploy: scan your app and repo, fix on a local branch and verify. What you build with: vet npm dependencies, guard installs, audit skills, MCP servers and hooks. After you ship: reports, evidence bundles, NIS2 and CRA readiness. Offline, deterministic, no telemetry. Authorized testing only.",
       "source": "./",
       "strict": false,
       "skills": [

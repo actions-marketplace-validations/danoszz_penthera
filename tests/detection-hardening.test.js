@@ -41,6 +41,15 @@ describe("scanSecrets — false-positive handling", () => {
     expect(scanOne("app.js", `const apiKey = "your-api-key-here";`)).toHaveLength(0);
   });
 
+  it("does not flag a value that is only a template placeholder", () => {
+    // Code that generates config, e.g. bench/targets/repo-fixture.js.
+    expect(scanOne("gen.js", "const f = `apiKey: \"${key}\"`;")).toHaveLength(0);
+    expect(scanOne("gen.js", "const f = `password: \"${dbPassword}\"`;")).toHaveLength(0);
+    expect(scanOne("tpl.yml", `api_key: "{{ api_key }}"`)).toHaveLength(0);
+    // A real value next to a placeholder-looking prefix is still a secret.
+    expect(scanOne("app.js", `const apiKey = "\${k}h3J9sK2dLq8Wm4Zx";`).length).toBeGreaterThan(0);
+  });
+
   it("flags a real hardcoded password with a non-duplicated title", () => {
     const findings = scanOne("config.js", `const password = "S3cr3t-Prod-9!xQ";`);
     const pw = findings.find((f) => /password/i.test(f.title));

@@ -38,6 +38,24 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   Research's CSV, loader file names) and postmark-mcp 1.0.16 to 1.0.18 with its
   exfil domain. `penthera deps` reports hits as critical `deps-ioc` findings
   that cite the source, wherever the package sits in the tree, installed or not
+- **Internal testing audit** (`npm run audit:internal`), the release gate:
+  tests, benchmark drift, a self-scan against `audit/baseline.json`, a CLI
+  smoke matrix, package contents and size, zero third-party egress offline,
+  supply chain and version/docs checks, written to `audit/REPORT.md`. Runs
+  weekly in CI. See [docs/internal-audit.md](docs/internal-audit.md)
+
+### Changed
+
+- The live test suites (`pentest-live`, `-recon`, `-adaptive`) are opt-in:
+  they run only with `PENTEST_BASE_URL` or a `pentest.config.js`, instead of
+  probing whatever listens on `localhost:3000` during `npm test`.
+
+### Fixed
+
+- The secret scanner no longer reports a value that is only a template
+  placeholder (`apiKey: "${key}"`, `{{ api_key }}`) as a hardcoded secret.
+- `penthera-scan --help` and `--version` exit 0 instead of starting the wizard.
+- The example workflows in `docs/examples/` pin actions by commit SHA.
 
 ## [1.5.0] - 2026-10-19
 
@@ -45,6 +63,15 @@ Blocks problems at commit time, adds license policy, and extends the EU
 evidence to the Cyber Resilience Act. The GitHub Action is now ready for the
 Marketplace as "Penthera Security Review". Penthera also has a clearer
 problem statement: open-source security for the apps and AI systems you ship.
+
+### Docs
+
+- Problem statement: "open-source security for the apps and AI systems you
+  ship", organised around three moments (before you deploy, what you build
+  with, after you ship). README, package, plugin, skill and repository
+  descriptions updated. Roadmap gains v1.6.0 "Before you deploy" (preview
+  deployment scanning, `penthera ship`) and v1.7.0 "After you ship"
+  (`penthera watch`). New `docs/plan.md` sets measurable quality gates to v2.0.
 
 ### Added
 

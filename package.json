@@ -2,7 +2,7 @@
   "name": "penthera",
   "version": "1.5.0",
   "type": "module",
-  "description": "The routine work of a security team, on your own machine: audits your app, dependencies, and AI tooling (skills, MCP, hooks), fixes and verifies, and writes the evidence. Offline, deterministic, free.",
+  "description": "Open-source security for the apps and AI systems you ship. Check it before you deploy, vet what you build with (dependencies, MCP servers, skills), keep watching after you ship. Offline, deterministic, free.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/danoszz/penthera.git"
@@ -55,7 +55,8 @@
     "bench": "node bench/run.js",
     "refresh:retire-db": "node scripts/refresh-retire-db.mjs",
     "rules:build": "node scripts/rules/build-pack.mjs",
-    "rules:check": "node scripts/rules/check-bundled.mjs"
+    "rules:check": "node scripts/rules/check-bundled.mjs",
+    "audit:internal": "node scripts/audit/run.mjs"
   },
   "keywords": [
     "security",

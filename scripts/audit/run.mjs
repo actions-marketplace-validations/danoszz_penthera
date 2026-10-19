@@ -229,17 +229,49 @@ async function gateBench() {
   }
 }
 
-/** Self-scans: CLI args per scan. Add the pre-commit hook here once it lands. */
-const SELF_SCANS = [
-  { key: "repo", label: "penthera --repo .", args: ["--repo", "."] },
-  { key: "agents", label: "penthera agents .", args: ["agents", "."] },
-  { key: "deps", label: "penthera deps .", args: ["deps", "."] },
-];
-
-/** True when the CLI dispatches a `hook` subcommand (v1.5.0, pre-commit hook). */
+/** True when the CLI dispatches a `hook` subcommand (the v1.5.0 pre-commit hook). */
 function hookPresent() {
   return /argv\[2\] === "hook"|positionals\[0\] === "hook"/.test(readFileSync(join(ROOT, "src/cli.js"), "utf-8"));
 }
+
+/** A report file from a CLI scan of this repo; exit 1 only means "high findings present". */
+const cliScan = (args) => async (out) => {
+  const r = await penthera([...args, "-o", out, "-q"], { timeout: 600_000 });
+  return r.code > 1 || !existsSync(out) ? { code: r.code } : { report: readJson(out) };
+};
+
+/**
+ * The pre-commit hook checks staged content only, so stage everything: copy the
+ * working tree (tracked and unignored files) into a scratch git repo, `git add
+ * -A`, and run `penthera hook run` there. Blocking findings become `findings`.
+ */
+async function hookScan(out) {
+  const work = scratch("hook");
+  try {
+    const ls = await run("git", ["ls-files", "-z", "-co", "--exclude-standard"], { log: false });
+    for (const f of ls.stdout.split("\0").filter(Boolean)) {
+      if (existsSync(join(ROOT, f))) cpSync(join(ROOT, f), join(work, f), { recursive: true });
+    }
+    const git = (...a) => run("git", ["-C", work, ...a], { log: false });
+    await git("init", "-q", "-b", "main");
+    await git("add", "-A");
+    const r = await penthera(["hook", "run", "--json"], { cwd: work, timeout: 600_000 });
+    if (r.code > 1) return { code: r.code };
+    const res = JSON.parse(r.stdout);
+    writeFileSync(out, r.stdout);
+    return { report: { findings: res.blocking || [], staged: res.staged } };
+  } finally {
+    rmSync(work, { recursive: true, force: true });
+  }
+}
+
+/** Self-scans of this repo. Each returns { report } or { code } on failure. */
+const SELF_SCANS = [
+  { key: "repo", label: "penthera --repo .", scan: cliScan(["--repo", "."]) },
+  { key: "agents", label: "penthera agents .", scan: cliScan(["agents", "."]) },
+  { key: "deps", label: "penthera deps .", scan: cliScan(["deps", "."]) },
+  { key: "hook", label: "penthera hook run (whole tree staged)", scan: hookScan, when: hookPresent },
+];
 
 /** 3. Penthera on itself; fail on high/critical findings not in audit/baseline.json. */
 async function gateSelfScan() {
@@ -251,15 +283,16 @@ async function gateSelfScan() {
   let ok = true;
   try {
     for (const s of SELF_SCANS) {
-      const out = join(dir, `${s.key}.json`);
-      const r = await penthera([...s.args, "-o", out, "-q"], { timeout: 600_000 });
-      // Exit 1 only means "high findings present"; the baseline decides if they are new.
-      if (r.code > 1 || !existsSync(out)) {
-        ok = false;
-        notes.push(`\`${s.label}\` failed (exit ${r.code}).`);
+      if (s.when && !s.when()) {
+        metrics[s.key] = "not present";
         continue;
       }
-      const report = readJson(out);
+      const { report, code } = await s.scan(join(dir, `${s.key}.json`));
+      if (!report) {
+        ok = false;
+        notes.push(`\`${s.label}\` failed (exit ${code}).`);
+        continue;
+      }
       const severe = severeFindings(report);
       current[s.key] = severe;
       const known = new Map((baseline.selfScan?.[s.key] || []).map((b) => [b.fingerprint, b]));
@@ -283,11 +316,6 @@ async function gateSelfScan() {
           notes.push(`Baseline entry ${key}/${b.fingerprint} (${b.title}) has no reason. Every accepted finding needs one.`);
         }
       }
-    }
-    if (hookPresent()) {
-      notes.push("The `hook` subcommand exists but is not wired into the self-scan yet: add it to SELF_SCANS in scripts/audit/run.mjs.");
-    } else {
-      metrics.hook = "not present";
     }
     return { status: ok ? "pass" : "fail", metrics, notes };
   } finally {
@@ -316,8 +344,10 @@ async function gateSmoke() {
   const home = join(dir, "penthera-home");
   const env = { PENTHERA_HOME: home };
   const cases = [];
-  const check = async (label, cmd, args, expect, opts = {}) => {
-    const r = await (cmd === "penthera" ? penthera(args, { env, ...opts }) : run(cmd, args, { env, ...opts }));
+  // expect: { codes, test?, input?, cwd? }
+  const check = async (label, cmd, args, expect) => {
+    const opts = { env, input: expect.input ?? null, cwd: expect.cwd ?? ROOT };
+    const r = await (cmd === "penthera" ? penthera(args, opts) : run(cmd, args, opts));
     let ok = expect.codes.includes(r.code);
     let why = ok ? "" : `exit ${r.code}, expected ${expect.codes.join("/")}`;
     if (ok && expect.test) {
@@ -393,6 +423,15 @@ async function gateSmoke() {
       ["agent", "--loop", "--repo", loopRepo, "--max-iterations", "1", "-o", loopOut],
       // Exit 1 = high findings remain, which is expected when every diff is declined.
       { codes: [0, 1], input: "n\n".repeat(20) + "q\n", test: () => readJson(loopOut).loopRun?.iterations?.length >= 1 || "no iteration in loopRun" });
+
+    // hook: install into the throwaway repo, then remove it again
+    if (hookPresent()) {
+      const hookFile = join(loopRepo, ".git/hooks/pre-commit");
+      await check("penthera hook install", "penthera", ["hook", "install"],
+        { codes: [0], cwd: loopRepo, test: () => existsSync(hookFile) || "no .git/hooks/pre-commit" });
+      await check("penthera hook uninstall", "penthera", ["hook", "uninstall"],
+        { codes: [0], cwd: loopRepo, test: () => !existsSync(hookFile) || "hook still installed" });
+    }
 
     // memory: the loop above wrote to the scratch store
     await check("penthera memory show", "penthera", ["memory", "show", "--repo", loopRepo, "--json"], { codes: [0] });

@@ -511,6 +511,12 @@ function toSarifUri(location) {
  * Uploads to GitHub via: gh api repos/{owner}/{repo}/code-scanning/sarifs
  */
 export function writeSarifReport(result, filePath) {
+  mkdirSync(dirname(filePath), { recursive: true });
+  writeFileSync(filePath, JSON.stringify(formatSarif(result), null, 2) + "\n");
+}
+
+/** The SARIF 2.1.0 object for a scan result. */
+export function formatSarif(result) {
   const rules = new Map();
   const results = [];
 
@@ -594,9 +600,7 @@ export function writeSarifReport(result, filePath) {
       }],
     }],
   };
-
-  mkdirSync(dirname(filePath), { recursive: true });
-  writeFileSync(filePath, JSON.stringify(sarif, null, 2) + "\n");
+  return sarif;
 }
 
 function sevToScore(severity) {

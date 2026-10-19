@@ -9,7 +9,7 @@ import { buildActionPlan } from "../../lib/remediation/index.js";
 import { printReport, printFindings, writeJsonReport, writeSarifReport, createProgress, printError } from "../reporter.js";
 import { writeMarkdownReport, markdownPathFromJson } from "../report/markdown.js";
 
-export const DEPS_FLAGS = ["diff", "base", "online", "pr-comment", "prod", "license-policy"];
+export const DEPS_FLAGS = ["diff", "base", "online", "pr-comment", "prod", "license-policy", "venv"];
 
 /**
  * The license policy for this run: `--license-policy <preset|file>`, else the
@@ -59,6 +59,7 @@ export async function runDeps(args, opts, { version }) {
       base: opts.base || null,
       online: !!opts.online,
       prod: !!opts.prod,
+      venv: opts.venv || null,
       onPhase: createProgress(quiet),
     });
   } catch (e) {

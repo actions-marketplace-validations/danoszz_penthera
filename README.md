@@ -38,7 +38,7 @@ one would do, from a CLI or from inside Claude Code and Cursor:
 | The job | What Penthera does | Command |
 |---------|--------------------|---------|
 | **Test the app** | Black-box scan of a live URL (TLS, headers, CORS, auth, JWT, IDOR, OAuth, OpenAPI, opt-in injection and fuzzing) and white-box scan of the repo (routes, trust boundaries, secrets including AI provider keys) | `penthera <url> --repo .` |
-| **Vet dependencies** | What every npm package can actually do (install scripts, shell, network, env, obfuscation), what an upgrade added, lookalike names | `penthera deps --base main` |
+| **Vet dependencies** | What every npm and Python package can actually do (install scripts, shell, network, env, obfuscation), what an upgrade added, lookalike names | `penthera deps --base main` |
 | **Guard installs** | Shows what a new package brings before any install script runs, and stops it under your policy | `penthera install <pkg>` |
 | **Review pull requests** | Comments the dependency capability diff on every PR that touches the lockfile | [GitHub Action](#use-as-a-github-action) |
 | **Audit your AI tooling** | Skills, MCP servers, hooks, plugins, and rule files: hidden instructions, unpinned servers, over-broad permissions, silent updates | `penthera agents --home` |
@@ -205,7 +205,7 @@ Prefer the terminal? Run `penthera` with no arguments for a guided wizard.
 | **Combined** | `penthera https://staging.app --repo .` | Black-box and white-box in one run |
 | **Interactive** | `penthera` *(no args)* | Guided wizard (URL plus optional repo scan, Markdown report) |
 | **Machine audit** | `penthera --machine` | macOS checks (keyloggers, persistence, rootkits) |
-| **Dependencies** | `penthera deps` | What each npm package can do (install scripts, shell, network, env, eval, native, obfuscation), capability diff on upgrades, typosquats. Offline |
+| **Dependencies** | `penthera deps` | What each npm or Python package can do (install scripts, shell, network, env, eval, native, obfuscation, `.pth` startup hooks), capability diff on upgrades, typosquats. Offline |
 
 Pick a profile, or add individual flags for more depth:
 
@@ -484,6 +484,33 @@ network use: it asks the npm registry for publish dates, publisher changes and
 deprecations, and fetches old tarballs the cache does not have (verified the
 same way). To comment the capability diff on every PR that changes the
 lockfile, use the GitHub Action below.
+
+### npm and Python
+
+The same command reads Python projects: `uv.lock`, `poetry.lock`, `pdm.lock`,
+`Pipfile.lock` or `requirements*.txt` (pinned and `--hash` lines), and the
+installed `.venv` / `venv` (or `--venv <path>`) through
+`site-packages/*.dist-info` `RECORD` files, without running pip or Python. A
+repo with both a `package-lock.json` and Python inputs gets one combined report.
+
+```bash
+penthera deps                          # uv.lock + .venv
+penthera deps --venv ~/.venvs/app      # a virtualenv somewhere else (no lockfile needed)
+penthera deps --base origin/main       # capability diff vs the Python lockfile on main
+```
+
+Capabilities and evidence are the same as for npm (`subprocess`/`os.system`,
+`socket`/`requests`/`httpx`/`aiohttp`, `os.environ` bulk access,
+`eval`/`exec`/`compile`, computed `__import__`, native `.so`/`.pyd`, AI-agent
+indicators), plus what is specific to Python: `setup.py` custom commands
+(install-time code), `.pth` files with `import` lines (they run on every
+interpreter start, a known persistence trick), unpickling, `exec` of a
+base64/zlib-decoded payload, installed files that no longer match their
+`RECORD` hash, and `.pth` files no distribution owns. Old versions for the diff
+come from pip's HTTP cache (matched by the lockfile's sha256) or uv's cache
+(by recorded hash), otherwise they are marked "not compared". Typosquats are
+checked against the top 8,000 PyPI projects, PEP 503 normalised.
+`--online` registry checks are npm-only for now.
 
 ### Use as a GitHub Action
 

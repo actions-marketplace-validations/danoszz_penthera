@@ -49,6 +49,7 @@
     "validate:report": "node skills/penthera/scripts/validate-report.mjs",
     "package:skill": "bash scripts/package-skill.sh",
     "refresh:popular": "node scripts/refresh-popular-packages.mjs",
+    "refresh:popular-pypi": "node scripts/refresh-popular-pypi.mjs",
     "prepack": "npm test",
     "mock-server": "node tests/fixtures/mock-server.js",
     "bench": "node bench/run.js",

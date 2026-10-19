@@ -49,7 +49,8 @@
     "validate:report": "node skills/penthera/scripts/validate-report.mjs",
     "package:skill": "bash scripts/package-skill.sh",
     "prepack": "npm test",
-    "mock-server": "node tests/fixtures/mock-server.js"
+    "mock-server": "node tests/fixtures/mock-server.js",
+    "refresh:retire-db": "node scripts/refresh-retire-db.mjs"
   },
   "keywords": [
     "security",

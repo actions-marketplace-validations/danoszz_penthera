@@ -68,6 +68,8 @@ const HELP = `
         --adaptive              Knowledge-graph adaptive probes on discovered routes
         --all                   Enable all modes (recon + deep + fuzz)
         --machine               macOS machine audit (keyloggers, trojans, rootkits)
+        --offline               Contact only the scan target: no recon sources, no
+                               Retire.js download (uses the vendored snapshot)
 
   ${dim("Options")}
     -r, --repo <path>       Path to repo for source analysis
@@ -93,6 +95,7 @@ const HELP = `
         --json              Output JSON to stdout
         --timeout <ms>      Request timeout (default: 10000)
         --concurrency <n>   Concurrent requests (default: 15)
+        --user-agent <ua>   User-Agent header (default: penthera/${pkg.version} (+https://github.com/danoszz/penthera))
     -v, --verbose           Detailed output
     -q, --quiet             Findings only (for piping)
     -h, --help              Show this help
@@ -101,6 +104,7 @@ const HELP = `
   ${dim("Examples")}
     $ penthera https://myapp.com
     $ penthera https://myapp.com --recon --deep
+    $ penthera http://localhost:3000 --offline
     $ penthera https://myapp.com --profile quick -o report.json
     $ penthera https://myapp.com --profile deep -o report.json --markdown report.md
     $ penthera https://myapp.com --baseline reports/previous.json
@@ -155,6 +159,8 @@ export async function run() {
         adaptive:    { type: "boolean", default: false },
         all:         { type: "boolean", default: false },
         machine:     { type: "boolean", default: false },
+        offline:     { type: "boolean", default: false },
+        "user-agent": { type: "string" },
         timeout:     { type: "string",  default: "10000" },
         concurrency: { type: "string",  default: "15" },
         verbose:     { type: "boolean", short: "v", default: false },
@@ -215,6 +221,11 @@ export async function run() {
       console.log(`  ${t.within} (${t.id}): due ${t.dueBy || "set aware_at"}`);
     }
     process.exit(0);
+  }
+
+  if (opts.suppliers && opts.offline) {
+    printError("--suppliers rates third-party domains, which --offline forbids.");
+    process.exit(2);
   }
 
   if (opts.suppliers) {
@@ -297,6 +308,8 @@ export async function run() {
     verbose: opts.verbose,
     authCookie: opts["auth-cookie"] || null,
     authBearer: opts["auth-bearer"] || null,
+    offline: opts.offline,
+    userAgent: opts["user-agent"] || null,
     onPhase: createProgress(opts.quiet || opts.json),
   };
 

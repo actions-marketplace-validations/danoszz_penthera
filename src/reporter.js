@@ -345,10 +345,45 @@ export function printReport(result, opts = {}) {
     w("");
   }
 
+  // Network egress: which hosts this scan talked to besides the target
+  if (result.egress) {
+    const e = result.egress;
+    w(`  ${c.dim(line())}`);
+    w(`  ${c.bold("Network")}${e.offline ? c.dim(" --offline") : ""}`);
+    w("");
+    if (e.thirdPartyHosts.length === 0) {
+      w(`  Contacted  ${c.green("scan target only")} ${c.dim(`(${e.target})`)}`);
+    } else {
+      w(`  Contacted  ${e.thirdPartyHosts.length} third-party host${e.thirdPartyHosts.length > 1 ? "s" : ""} besides the target`);
+      for (const h of e.thirdPartyHosts) w(`    ${c.dim(pad(h.host, 36))} ${h.requests} request${h.requests > 1 ? "s" : ""}`);
+    }
+    if (e.blocked.length > 0) {
+      w(`  Blocked    ${e.blocked.map((h) => h.host).join(", ")}`);
+    }
+    if (result.retireDb) {
+      w(`  Retire.js  ${result.retireDb.source === "snapshot" ? `vendored snapshot ${c.dim(`(${String(result.retireDb.snapshotDate).slice(0, 10)})`)}` : "live database"}`);
+    }
+    w("");
+  }
+
   // Summary
   w(`  ${c.dim(line())}`);
   printSummaryLine(result, w);
+  printInconclusiveLine(result, w, opts);
   w("");
+}
+
+/** Probes whose requests failed: the scan could not decide, so say so. */
+function printInconclusiveLine(result, w, opts = {}) {
+  const errors = result.errors || [];
+  if (errors.length === 0) return;
+  const probes = [...new Set(errors.map((e) => e.probe))];
+  w(`  ${c.yellow(`${probes.length} probe${probes.length > 1 ? "s" : ""} inconclusive`)} ${c.dim(`(${probes.join(", ")})`)}`);
+  if (opts.verbose) {
+    for (const e of errors) {
+      w(`    ${c.dim(`${e.probe}: ${e.message}${e.count > 1 ? ` (x${e.count})` : ""}, ${e.url}`)}`);
+    }
+  }
 }
 
 function printSummaryLine(result, w) {

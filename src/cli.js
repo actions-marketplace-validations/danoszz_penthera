@@ -66,6 +66,7 @@ const HELP = `
     $ penthera fix --plan            Plan local fix recipes (penthera fix --help)
     $ penthera evidence verify <dir> Check an evidence bundle's hashes and signature
     $ penthera agent --loop          Scan, fix, verify, learn; local commits only (--help)
+    $ penthera ui [--open] [--demo]  Local dashboard on 127.0.0.1 (penthera ui --help)
 
   ${dim("Scan modes")}
         --profile <name>        quick | standard | deep (default: standard)
@@ -193,6 +194,11 @@ export async function run() {
   if (process.argv[2] === "fix") {
     const { runFix } = await import("./cli/fix.js");
     return runFix(process.argv.slice(3));
+  }
+
+  if (process.argv[2] === "ui") {
+    const { runUi } = await import("./cli/ui.js");
+    process.exit(await runUi(process.argv.slice(3), { version: pkg.version }));
   }
 
   if (process.argv[2] === "agent") {

@@ -9,6 +9,7 @@ Security scanner for developers: scan live URLs, local repos, or macOS machines 
 | [README](../README.md) | Install, quick start, ethical use |
 | [Run it](../README.md#run-it) | Install + first-time wizard (`penthera` with no args) |
 | [CHANGELOG](../CHANGELOG.md) | Version history |
+| [Roadmap](../ROADMAP.md) and [release plan](./release-plan.md) | What ships next, in what order |
 
 ## Scanning
 

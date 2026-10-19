@@ -28,7 +28,7 @@ export const DEPS_UNSUPPORTED = [
  * The license policy for this run: `--license-policy <preset|file>`, else the
  * `licenses` section of penthera.policy.json, else none.
  */
-async function resolveLicensePolicy(root, flag) {
+export async function resolveLicensePolicy(root, flag) {
   const { normalizeLicensePolicy, LICENSE_PRESETS } = await import("../../lib/deps/license.js");
   if (flag) {
     if (LICENSE_PRESETS[flag]) return normalizeLicensePolicy({ preset: flag }, "--license-policy");

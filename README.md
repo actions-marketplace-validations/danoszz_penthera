@@ -33,6 +33,10 @@ ship. On your own machine, offline, and free.**
 
 No install, no account. Each step runs on your machine and sends nothing to us.
 
+**Get started in one command.** In your project folder, `npx penthera` detects
+your setup, asks what to check, runs it offline, and offers the pre-commit hook
+and CI workflow ([init.md](docs/commands/init.md)). Or run the checks one by one:
+
 ```bash
 npx penthera agents --home          # 1. audit your Claude Code, Cursor and MCP setup
 npx penthera deps                   # 2. what can the packages in this project actually do?

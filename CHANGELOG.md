@@ -4,6 +4,25 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Added
+
+- **`penthera init`, the setup wizard** (also `npx penthera` with no arguments
+  in a terminal). It detects the project offline (git, framework, npm and
+  Python lockfiles, agent config, a dev server on localhost, an existing hook
+  or workflow), asks one checklist question, runs the code, dependency and AI
+  tooling checks (and the running app, only after you confirm it is yours),
+  then shows the grade per area, the three things to fix first and one report
+  folder, `reports/penthera-<date>/`. It then offers, one yes/no each, the
+  pre-commit hook, a `.github/workflows/penthera.yml` pinned to the release
+  commit SHA (shown as a diff first), `reports/` in `.gitignore`, the fix loop
+  and the dashboard. `--yes` takes the safe defaults and never scans a URL,
+  runs the fix loop or opens the dashboard; `--dry-run` prints the plan.
+  Nothing is committed or pushed. See [docs/commands/init.md](docs/commands/init.md).
+
+### Changed
+
+- `penthera-scan` keeps the URL-first wizard that `penthera` used to open.
+
 ## [1.6.1] - 2026-10-19
 
 The GitHub Action gets its Marketplace name. Nothing else changes.

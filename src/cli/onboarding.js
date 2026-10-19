@@ -1,14 +1,31 @@
 /**
  * PostHog-style interactive onboarding, simple defaults, advanced hidden.
+ *
+ * `penthera` (no arguments, in a terminal) and `penthera init` run the setup
+ * wizard: detect what the project has, ask what to check, run it offline, show
+ * one summary, then offer the hook, the GitHub workflow, .gitignore, the fix
+ * loop and the dashboard, each a yes/no. Nothing is committed or pushed, and
+ * nothing is written outside the project. `penthera-scan` keeps the URL-first
+ * wizard (runScanWizard).
  */
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, mkdirSync, writeFileSync, appendFileSync } from "node:fs";
+import { resolve, join, relative, sep } from "node:path";
 import { readFileSync } from "node:fs";
-import { initPrompt, closePrompt, ask, choose, confirm, normalizeUrlInput } from "./prompt.js";
-import { banner, box, bold, dim, cyan, green, yellow, hr, brand } from "./ansi.js";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
+import { initPrompt, closePrompt, ask, choose, confirm, checklist, normalizeUrlInput } from "./prompt.js";
+import { banner, logo, box, bold, dim, cyan, green, yellow, red, hr, brand } from "./ansi.js";
 import { executeScan, writeScanReports } from "./run-scan.js";
+import { detectProject, portsFromEnv } from "./detect.js";
+import { mergeResults } from "./merge-results.js";
+import { resolveLicensePolicy } from "./deps.js";
 import { isPrivateHost } from "../utils/url.js";
-import { printError } from "../reporter.js";
+import { printError, writeJsonReport } from "../reporter.js";
+import { writeMarkdownReport } from "../report/markdown.js";
+import { buildActionPlan } from "../../lib/remediation/index.js";
+import { gradeFindings } from "../../lib/agents/index.js";
+import { installHook } from "../../lib/hook/index.js";
 
 const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf-8"));
 
@@ -70,7 +87,8 @@ function printScanFailure(url, err) {
   printError(err.message);
 }
 
-export async function runOnboarding() {
+/** `penthera-scan`: the URL-first wizard (asks for a URL, scans it, offers a deeper scan). */
+export async function runScanWizard() {
   await initPrompt();
 
   process.stdout.write(banner());
@@ -213,4 +231,407 @@ export async function runOnboarding() {
     printScanFailure(customUrl || url, e);
     process.exit(2);
   }
+}
+
+// ── `penthera init`: the setup wizard ─────────────────────────────────────
+
+/**
+ * The release the generated workflow pins, by commit SHA. Update after each
+ * release is tagged: git rev-parse vX.Y.Z^{commit}
+ */
+export const ACTION_PIN = Object.freeze({ tag: "v1.6.1", sha: "525895575f4a9bebe911707a43804a934eac0c4a" });
+
+export const WORKFLOW_PATH = ".github/workflows/penthera.yml";
+const BIN = fileURLToPath(new URL("../../bin/penthera.js", import.meta.url));
+const WORKFLOW_EXAMPLE = new URL("../../docs/examples/pr-dependency-review.yml", import.meta.url);
+
+const INIT_HELP = `
+  ${bold("penthera init")} — set up Penthera in this project in one command
+
+  ${dim("Usage")}
+    $ penthera                 In a terminal with no arguments: the same wizard
+    $ penthera init            Detect, ask what to check, run it, offer setup steps
+    $ penthera init --yes      Accept every safe default, ask nothing
+    $ penthera init --dry-run  Show what would run and be written; change nothing
+
+  ${dim("Options")}
+    -y, --yes        Non-interactive. Runs the code, dependency and AI tooling checks
+                     that apply, offline. Never scans a URL, never runs the fix loop,
+                     never opens the dashboard
+        --dry-run    Print the checks and file writes instead of doing them
+    -h, --help       Show this help
+
+  Reports go to reports/penthera-<date>/. The hook goes in .git/hooks, the workflow
+  in ${WORKFLOW_PATH}, and nothing is committed or pushed.
+`;
+
+const AREAS = {
+  code: { label: "Code", cmd: (c) => `penthera --repo .${c.offline ? " --offline" : ""}` },
+  deps: { label: "Dependencies", cmd: (c) => `penthera deps${c.offline ? "" : " --online"}` },
+  agents: { label: "AI tooling", cmd: (c) => `penthera agents${c.home ? " --home" : ""}` },
+  app: { label: "Running app", cmd: (c) => `penthera ${c.url}${c.offline ? " --offline" : ""}` },
+};
+const EFFORT_RANK = { quick: 0, moderate: 1, significant: 2 };
+
+const noop = () => {};
+const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+const out = (s = "") => process.stdout.write(s + "\n");
+
+/** Local calendar date, YYYY-MM-DD: one report folder per day. */
+function today(now = new Date()) {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
+}
+
+/** Refuse any write that would land outside the project root. */
+function inside(root, path) {
+  const full = resolve(root, path);
+  if (full !== root && !full.startsWith(root + sep)) throw new Error(`Refusing to write outside the project: ${full}`);
+  return full;
+}
+
+function countLine(findings) {
+  const c = countFindings(findings);
+  const parts = ["critical", "high", "medium", "low"].filter((s) => c[s]).map((s) => `${c[s]} ${s}`);
+  return parts.length ? parts.join(" · ") : "no issues";
+}
+
+/** Word-wrap `text` to the terminal (max 80 columns), each line prefixed by `indent`. */
+function wrap(text, indent) {
+  const width = Math.min(process.stdout.columns || 80, 80) - indent.length;
+  const lines = [];
+  let line = "";
+  for (const word of text.split(/\s+/)) {
+    if (line && line.length + 1 + word.length > width) { lines.push(line); line = word; }
+    else line = line ? `${line} ${word}` : word;
+  }
+  if (line) lines.push(line);
+  return lines.map((l) => indent + l).join("\n");
+}
+
+function gradeColor(g) {
+  return g === "A" ? green(g) : g === "B" || g === "C" ? yellow(g) : red(g);
+}
+
+/** The generated workflow: the PR dependency review example, pinned to ACTION_PIN. */
+export function workflowYaml(pin = ACTION_PIN) {
+  const example = readFileSync(WORKFLOW_EXAMPLE, "utf-8");
+  const body = example.slice(example.indexOf("\nname:") + 1);
+  const pinned = body.replace(/danoszz\/penthera@[0-9a-f]{40} # .*$/m, `danoszz/penthera@${pin.sha} # ${pin.tag}`);
+  if (pinned === body) throw new Error("docs/examples/pr-dependency-review.yml no longer has a pinned `uses: danoszz/penthera@<sha>` line");
+  return [
+    "# Added by `penthera init`. Review it, then commit it yourself.",
+    "#",
+    "# Comments a dependency capability diff on every PR that changes the lockfile",
+    "# (new packages, or packages that gained network, shell, install-script or",
+    "# dynamic-code capabilities) and uploads SARIF to code scanning. Penthera runs",
+    "# offline from the action's own checkout. The action is pinned to the",
+    `# ${pin.tag} release commit. Do not switch this to \`pull_request_target\`: that`,
+    "# would run with write access next to untrusted code.",
+    "",
+    pinned,
+  ].join("\n");
+}
+
+/** A new-file unified diff, for showing the workflow before it is written. */
+export function newFileDiff(path, content) {
+  const lines = content.replace(/\n$/, "").split("\n");
+  return [dim("--- /dev/null"), dim(`+++ b/${path}`), dim(`@@ -0,0 +1,${lines.length} @@`), ...lines.map((l) => green(`+${l}`))].join("\n");
+}
+
+/** The checklist offered after detection, with defaults from what was found. */
+export function checkItems(found) {
+  const items = [
+    { id: "code", label: "Code: secrets and risky API routes in ./", hint: "penthera --repo .", checked: found.code || found.git },
+    { id: "deps", label: "Dependencies: what your npm and Python packages can do", hint: "penthera deps", checked: found.lockfiles.npm.length + found.lockfiles.python.length > 0 },
+    { id: "agents", label: "AI tooling: skills, MCP servers, hooks, agent instructions", hint: "penthera agents", checked: found.agentConfig.length > 0 },
+  ];
+  if (found.devServer) items.push({ id: "app", label: `The running app at ${found.devServer}`, hint: "only if it is yours", checked: false });
+  items.push({ id: "offline", label: "Offline mode: nothing leaves this machine", hint: "recommended", checked: true });
+  return items;
+}
+
+function printFound(f, cwd) {
+  const yes = (s) => `${green("✓")} ${s}`;
+  const no = (s) => `${dim("·")} ${dim(s)}`;
+  const rel = relative(cwd, f.root) || ".";
+  out(`  ${bold("Found")}  ${dim(rel === "." ? "in this folder" : `in ${rel}`)}`);
+  out(`    ${f.git ? yes(`git repository${f.branch ? ` (branch ${f.branch})` : ""}`) : no("not a git repository (hook and workflow steps are skipped)")}`);
+  out(`    ${f.framework ? yes(`framework: ${f.framework}`) : no("no web framework detected")}`);
+  const locks = [...f.lockfiles.npm, ...f.lockfiles.python];
+  out(`    ${locks.length ? yes(`lockfiles: ${locks.join(", ")}`) : no("no npm or Python lockfile")}`);
+  out(`    ${f.agentConfig.length ? yes(`agent config: ${f.agentConfig.join(", ")}`) : no("no agent config (.mcp.json, .claude/, .cursor/, CLAUDE.md, AGENTS.md, skills/)")}`);
+  out(`    ${f.devServer ? yes(`dev server: ${f.devServer}`) : no("no dev server on localhost:3000, 5173, 8000 or 8080")}`);
+  if (f.git) out(`    ${f.hook ? yes("Penthera pre-commit hook installed") : no("no Penthera pre-commit hook")}`);
+  out(`    ${f.workflows.length ? yes(`Penthera workflow: ${f.workflows.join(", ")}`) : no("no Penthera GitHub workflow")}`);
+  out();
+}
+
+/** Run one check and return its merged result (findings + actionPlan). */
+async function runCheck(id, ctx) {
+  const { root, offline, version } = ctx;
+  if (id === "code") return (await executeScan({ repo: root, offline, json: true, version, onPhase: noop })).merged;
+  if (id === "app") return (await executeScan({ url: ctx.url, offline, json: true, version, onPhase: noop })).merged;
+  let result;
+  if (id === "deps") {
+    const { scanDeps } = await import("../../lib/deps/index.js");
+    result = await scanDeps(root, { licensePolicy: await resolveLicensePolicy(root), online: !offline, onPhase: noop });
+  } else {
+    const { scanAgents } = await import("../../lib/agents/index.js");
+    result = await scanAgents(root, { home: ctx.home, onPhase: noop });
+  }
+  const merged = mergeResults([result]);
+  merged.actionPlan = buildActionPlan(merged.findings);
+  return merged;
+}
+
+/** The three actions to do first, across every area. */
+export function fixFirst(results, limit = 3) {
+  const SEV = { critical: 0, high: 1, medium: 2, low: 3 };
+  return results
+    .flatMap((r) => (r.merged?.actionPlan || []).map((a) => ({ ...a, area: r.label })))
+    .sort((a, b) => (SEV[a.severity] ?? 5) - (SEV[b.severity] ?? 5) || (EFFORT_RANK[a.effort] ?? 3) - (EFFORT_RANK[b.effort] ?? 3))
+    .slice(0, limit)
+    .map((a) => ({ action: a.action, area: a.area, severity: a.severity, why: (a.why || "").split(/(?<=\.)\s/)[0], findings: a.findings.length }));
+}
+
+function summaryMarkdown(results, top, ctx) {
+  const L = [`# Penthera summary, ${ctx.date}`, "", `Penthera ${ctx.version}, ${ctx.offline ? "offline" : "online"}.`, "", "| Area | Grade | Findings | Report |", "| --- | --- | --- | --- |"];
+  for (const r of results) {
+    L.push(r.error
+      ? `| ${r.label} | n/a | could not run: ${r.error.replace(/\|/g, "\\|")} | |`
+      : `| ${r.label} | ${r.grade} | ${countLine(r.merged.findings)} | [${r.id}.md](${r.id}.md) |`);
+  }
+  if (top.length) {
+    L.push("", "## Fix first", "");
+    top.forEach((a, i) => L.push(`${i + 1}. **${a.action}** (${a.area}, ${a.severity}). ${a.why}`));
+  }
+  L.push("", "## Rerun", "", ...results.map((r) => `- ${r.label}: \`${r.command}\``), "");
+  return L.join("\n");
+}
+
+/**
+ * `penthera init [--yes] [--dry-run]`.
+ * @returns {Promise<number>} exit code: 0 done, 2 bad usage
+ */
+export async function runInit(argv, { version = pkg.version } = {}) {
+  let opts;
+  try {
+    opts = parseArgs({
+      args: argv,
+      allowPositionals: false,
+      options: {
+        yes: { type: "boolean", short: "y", default: false },
+        "dry-run": { type: "boolean", default: false },
+        help: { type: "boolean", short: "h", default: false },
+      },
+    }).values;
+  } catch (e) {
+    printError(e.message);
+    return 2;
+  }
+  if (opts.help) { console.log(INIT_HELP); return 0; }
+
+  const auto = opts.yes;
+  const dry = opts["dry-run"];
+  const cwd = process.cwd();
+  if (!auto) await initPrompt();
+  const yesNo = (q, def) => (auto ? Promise.resolve(def) : confirm(`  ${cyan(">")} ${q}`, def));
+
+  out(logo("set up Penthera in this project: detect, check, set up"));
+  if (dry) out(`  ${yellow("Dry run")}  ${dim("nothing is scanned, written or started.")}\n`);
+  if (auto) out(`  ${dim("--yes: accepting the safe defaults. No URL scan, no fix loop, no dashboard.")}\n`);
+
+  // ── 1. Detect ──────────────────────────────────────────────────────────
+  const found = await detectProject(cwd, { ports: portsFromEnv() });
+  const root = found.root;
+  printFound(found, cwd);
+
+  // ── 2. What to check ───────────────────────────────────────────────────
+  const items = checkItems(found);
+  let picked;
+  if (auto) {
+    picked = new Set(items.filter((i) => i.checked && i.id !== "app").map((i) => i.id));
+  } else {
+    picked = await checklist(bold("What should Penthera check?"), items);
+    out();
+  }
+  const ctx = { root, version, offline: picked.has("offline"), home: false, url: null, date: today() };
+  if (picked.has("agents") && !auto) {
+    ctx.home = await yesNo("Also check ~/.claude and ~/.cursor (your user-level agent config)?", false);
+  }
+  if (picked.has("app")) {
+    out(`  ${yellow("Note")}  ${dim("The app check sends safe requests (no attack payloads) to")} ${cyan(found.devServer)}`);
+    const owned = await yesNo(`Is ${found.devServer} your app (you own it or may test it)?`, false);
+    if (owned) ctx.url = found.devServer;
+    else { picked.delete("app"); out(`  ${dim("Skipping the app check.")}`); }
+  }
+  const checks = ["code", "deps", "agents", "app"].filter((id) => picked.has(id));
+  const dir = inside(root, join("reports", `penthera-${ctx.date}`));
+  const relDir = relative(cwd, dir) || ".";
+
+  // ── 3. Run ─────────────────────────────────────────────────────────────
+  const results = [];
+  if (!checks.length) {
+    out(`  ${dim("Nothing selected to check.")}`);
+  } else if (dry) {
+    out(`  ${bold("Would run")}  ${dim(ctx.offline ? "(offline)" : "(online)")}`);
+    for (const id of checks) out(`    ${AREAS[id].label.padEnd(13)} ${cyan(AREAS[id].cmd(ctx))}  ${dim(`→ ${join(relDir, `${id}.json`)}, ${id}.md`)}`);
+    out(`    ${"Summary".padEnd(13)} ${dim(`→ ${join(relDir, "summary.md")}, summary.json`)}`);
+  } else {
+    out(`  ${bold(`Running ${plural(checks.length, "check")}`)}  ${dim(ctx.offline ? "(offline)" : "(online)")}`);
+    mkdirSync(dir, { recursive: true });
+    for (const id of checks) {
+      const label = AREAS[id].label;
+      const r = { id, label, command: AREAS[id].cmd(ctx) };
+      if (process.stdout.isTTY) process.stdout.write(`    ${dim("…")} ${label.padEnd(13)} ${dim(r.command)}`);
+      const t0 = Date.now();
+      try {
+        r.merged = await runCheck(id, ctx);
+        Object.assign(r, gradeFindings(r.merged.findings));
+        writeJsonReport(r.merged, join(dir, `${id}.json`));
+        writeMarkdownReport(r.merged, join(dir, `${id}.md`), { version });
+      } catch (e) {
+        r.error = e.message.split("\n")[0];
+      }
+      const secs = dim(`${((Date.now() - t0) / 1000).toFixed(1)}s`);
+      if (process.stdout.isTTY) process.stdout.write("\r\x1b[2K");
+      out(r.error
+        ? `    ${yellow("!")} ${label.padEnd(13)} ${dim("could not run:")} ${r.error}`
+        : `    ${green("✓")} ${label.padEnd(13)} ${gradeColor(r.grade)}  ${countLine(r.merged.findings)}  ${secs}`);
+      results.push(r);
+    }
+
+    const top = fixFirst(results);
+    writeFileSync(join(dir, "summary.md"), summaryMarkdown(results, top, ctx));
+    writeFileSync(join(dir, "summary.json"), JSON.stringify({
+      generatedAt: new Date().toISOString(),
+      version,
+      offline: ctx.offline,
+      checks: results.map((r) => ({
+        id: r.id, label: r.label, command: r.command,
+        ...(r.error ? { error: r.error } : { grade: r.grade, score: r.score, counts: countFindings(r.merged.findings), report: { json: `${r.id}.json`, markdown: `${r.id}.md` } }),
+      })),
+      fixFirst: top,
+    }, null, 2) + "\n");
+
+    out(`\n  ${hr()}`);
+    out(`  ${bold("Summary")}`);
+    for (const r of results) out(`    ${r.label.padEnd(13)} ${r.error ? dim("n/a") : `${gradeColor(r.grade)}  ${countLine(r.merged.findings)}`}`);
+    if (top.length) {
+      out(`\n  ${bold("Fix first")}`);
+      top.forEach((a, i) => {
+        out(`    ${i + 1}. ${a.action} ${dim(`(${a.area}, ${a.severity})`)}`);
+        if (a.why) out(dim(wrap(a.why, "       ")));
+      });
+    } else if (results.some((r) => !r.error)) {
+      out(`\n  ${green("Nothing to fix first.")}`);
+    }
+    out(`\n  ${bold("Report")}  ${cyan(join(relDir, "summary.md"))}  ${dim(`(+ JSON and Markdown per area in ${relDir}/)`)}`);
+    out(`  ${hr()}\n`);
+  }
+
+  // ── 4. Set up ──────────────────────────────────────────────────────────
+  out(`  ${bold("Set up")}  ${dim(dry ? "(dry run: answers are shown, nothing is written)" : "nothing is committed or pushed")}`);
+  const did = (s) => out(`    ${dry ? yellow("would") : green("✓")} ${s}`);
+  const skip = (s) => out(`    ${dim("·")} ${dim(s)}`);
+
+  // Pre-commit hook
+  if (!found.git) skip("Pre-commit hook: not a git repository");
+  else if (found.hook) skip("Pre-commit hook: already installed");
+  else if (await yesNo("Install the pre-commit hook? It blocks staged secrets, risky agent config and lockfile changes", true)) {
+    if (dry) did("install .git/hooks/pre-commit (penthera hook install)");
+    else {
+      try {
+        const r = installHook(root);
+        did(`Installed ${relative(cwd, r.path) || r.path}${r.chained ? dim(" (your existing hook runs first)") : ""}`);
+      } catch (e) {
+        out(`    ${yellow("!")} Hook not installed: ${e.message}`);
+      }
+    }
+  }
+
+  // GitHub workflow
+  const wfFull = inside(root, WORKFLOW_PATH);
+  if (!found.git) skip("GitHub workflow: not a git repository");
+  else if (found.workflows.length) skip(`GitHub workflow: already present (${found.workflows.join(", ")})`);
+  else if (existsSync(wfFull)) skip(`GitHub workflow: ${WORKFLOW_PATH} exists, left as is`);
+  else if (!found.lockfiles.npm.length) skip("GitHub workflow: the PR dependency review reads package-lock.json, none here");
+  else {
+    const yaml = workflowYaml();
+    out(`\n  ${dim(`The PR dependency review workflow, pinned to the ${ACTION_PIN.tag} release commit:`)}\n`);
+    out(newFileDiff(WORKFLOW_PATH, yaml).split("\n").map((l) => `    ${l}`).join("\n"));
+    out();
+    if (await yesNo(`Write ${WORKFLOW_PATH}? It is not committed`, true)) {
+      if (!dry) {
+        mkdirSync(join(root, ".github", "workflows"), { recursive: true });
+        writeFileSync(wfFull, yaml);
+      }
+      did(`${dry ? "write " : "Wrote "}${WORKFLOW_PATH}${dry ? "" : dim(" (review and commit it yourself)")}`);
+    }
+  }
+
+  // .gitignore
+  if (found.reportsIgnored) skip(".gitignore: reports/ is already ignored");
+  else if (await yesNo("Add reports/ to .gitignore so scan output is never committed?", true)) {
+    if (!dry) {
+      const gi = inside(root, ".gitignore");
+      const prev = existsSync(gi) ? readFileSync(gi, "utf-8") : "";
+      appendFileSync(gi, `${prev && !prev.endsWith("\n") ? "\n" : ""}${prev ? "\n" : ""}# Penthera scan reports\nreports/\n`);
+    }
+    did(`${dry ? "add" : "Added"} reports/ to .gitignore`);
+  }
+
+  // Fix loop (never in --yes)
+  let loop = false;
+  if (auto) skip("Fix loop: not run with --yes (penthera agent --loop)");
+  else if (!found.git) skip("Fix loop: needs a git repository");
+  else if (!picked.has("code")) skip("Fix loop: the code check was not selected");
+  else loop = await yesNo("Run the fix loop now on a local branch? It shows each diff and asks before applying", false);
+  if (loop) {
+    if (dry) did("run penthera agent --loop (local branch penthera/fix-<date>, nothing pushed)");
+    else {
+      // The only uncommitted changes are ours (.gitignore, the workflow, reports/)
+      // when the tree was clean; the loop never patches changed files.
+      const args = [BIN, "agent", "--loop", "--repo", root, ...(found.clean && found.branch ? ["--allow-dirty"] : [])];
+      out();
+      closePrompt();
+      // Ctrl-C belongs to the child while it runs.
+      process.on("SIGINT", noop);
+      spawnSync(process.execPath, args, { stdio: "inherit" });
+      process.off("SIGINT", noop);
+      await initPrompt();
+    }
+  }
+
+  // Dashboard (never in --yes: it runs until Ctrl-C)
+  let dashboard = false;
+  if (auto) skip("Dashboard: not opened with --yes (penthera ui --open)");
+  else dashboard = await yesNo("Open the dashboard (penthera ui --open)?", true);
+
+  // ── 5. What next ───────────────────────────────────────────────────────
+  out(`\n  ${bold("What next")}`);
+  const next = [
+    ["penthera", "this wizard again"],
+    ...checks.map((id) => [AREAS[id].cmd(ctx), AREAS[id].label.toLowerCase()]),
+    ...(found.git ? [["penthera hook run", "check what is staged now"], ["penthera agent --loop", "fix findings on a local branch"]] : []),
+    ["penthera ui --open", "the dashboard"],
+    ["penthera --help", "every command"],
+  ];
+  const w = Math.max(...next.map(([c]) => c.length));
+  for (const [c, why] of next) out(`    ${cyan(c.padEnd(w))}  ${dim(why)}`);
+  out();
+
+  closePrompt();
+  if (dashboard) {
+    if (dry) did("start penthera ui --open (127.0.0.1 only)");
+    else {
+      process.on("SIGINT", noop);
+      // The dashboard reads top-level report JSON, so point it at this run's folder.
+      const reports = results.some((r) => !r.error) ? ["--reports", dir] : [];
+      spawnSync(process.execPath, [BIN, "ui", "--open", "--project", root, ...reports], { stdio: "inherit" });
+      process.off("SIGINT", noop);
+    }
+  }
+  return 0;
 }

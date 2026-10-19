@@ -54,7 +54,8 @@ const HELP = `
   ${bold("penthera")} v${pkg.version} \u2014 lightweight security scanner
 
   ${dim("Usage")}
-    $ penthera                        Interactive setup (TTY, no args needed)
+    $ penthera                        Setup wizard: detect, check, set up (TTY, no args)
+    $ penthera init [--yes] [--dry-run]  The same wizard, also non-interactive
     $ penthera <url>                 Scan a live URL (black-box)
     $ penthera --repo <path>         Scan a local repo (white-box)
     $ penthera <url> --repo <path>   Full scan (both)
@@ -168,7 +169,20 @@ const HELP = `
 function bold(s) { return `\x1b[1m${s}\x1b[0m`; }
 function dim(s) { return `\x1b[2m${s}\x1b[0m`; }
 
+/** `penthera init ...`, or bare `penthera --yes` / `--dry-run`: the setup wizard. */
+function initArgs(argv) {
+  if (argv[0] === "init") return argv.slice(1);
+  if (argv.length && argv.every((a) => ["--yes", "-y", "--dry-run"].includes(a))) return argv;
+  return null;
+}
+
 export async function run() {
+  const init = initArgs(process.argv.slice(2));
+  if (init) {
+    const { runInit } = await import("./cli/onboarding.js");
+    process.exit(await runInit(init, { version: pkg.version }));
+  }
+
   if (process.argv[2] === "memory") {
     const { runMemoryCommand } = await import("./cli/memory.js");
     process.exit(await runMemoryCommand(process.argv.slice(3)));
@@ -389,9 +403,8 @@ export async function run() {
   }
 
   if (shouldRunOnboarding(positionals, opts)) {
-    const { runOnboarding } = await import("./cli/onboarding.js");
-    await runOnboarding();
-    return;
+    const { runInit } = await import("./cli/onboarding.js");
+    process.exit(await runInit([], { version: pkg.version }));
   }
 
   // `penthera agents [path]`: offline audit of skills, MCP servers, hooks, plugins.

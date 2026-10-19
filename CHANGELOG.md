@@ -32,10 +32,12 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   and get per-rule SARIF ids (`agents/<rule>`)
 - Agent Skill: Workflow 6 ("audit my MCP servers / skills / agent config")
 
-## [1.1.2] - 2026-10-19
+## [1.2.0] - 2026-10-19
 
-A maintenance release: catch AI provider keys, tighten our own supply chain, and
-make CI test what it says it tests.
+The first step toward securing the AI toolchain itself: catch AI provider keys,
+harden Penthera's own supply chain, and make CI test what it says it tests. The
+[roadmap](ROADMAP.md) now sets out the AI supply-chain and local agent-loop
+tracks.
 
 ### Added
 
@@ -50,6 +52,9 @@ make CI test what it says it tests.
   (with a 7-day cooldown before adopting new releases)
 - CI check that `package.json`, the lockfile, the skill, and both plugin
   manifests carry the same version
+- Roadmap: AI supply-chain audit (`penthera agents`), a fully local
+  scan → fix → verify → learn loop, and LLM-endpoint probes. Principles now
+  state no telemetry, no auto-push, and no remote learning
 
 ### Fixed
 
@@ -64,7 +69,7 @@ make CI test what it says it tests.
 - Removed `tests/pentest-static.test.js`, which tested functions defined inside
   the test file rather than anything Penthera ships
 - `.claude-plugin/plugin.json` still said 1.0.0
-- `SECURITY.md` listed 1.0.x as supported. It now covers 1.1.x and gives response
+- `SECURITY.md` listed 1.0.x as supported. It now covers 1.2.x and gives response
   times, scope, and safe-harbor terms
 
 ### Changed

@@ -102,16 +102,25 @@ const PACKAGES = {
 
 // ── Tarballs and npm cache ────────────────────────────────────────────────
 
-function tarEntry(name, data) {
+/**
+ * One ustar entry. `base256: true` writes the size the GNU way (high bit set,
+ * big-endian binary), which tar and npm accept for any size.
+ */
+export function tarEntry(name, data, { base256 = false, type = "0" } = {}) {
   const h = Buffer.alloc(512);
   h.write(name, 0, 100);
   h.write("0000644\0", 100);
   h.write("0000000\0", 108);
   h.write("0000000\0", 116);
-  h.write(data.length.toString(8).padStart(11, "0") + "\0", 124);
+  if (base256) {
+    h[124] = 0x80;
+    h.writeUInt32BE(data.length, 132);
+  } else {
+    h.write(data.length.toString(8).padStart(11, "0") + "\0", 124);
+  }
   h.write("00000000000\0", 136);
   h.fill(" ", 148, 156);
-  h.write("0", 156);
+  h.write(type, 156);
   h.write("ustar\0", 257);
   h.write("00", 263);
   let sum = 0;
@@ -135,6 +144,18 @@ export function packageFiles(key, packages = PACKAGES) {
 export function tarball(files) {
   const parts = Object.keys(files).sort().map((f) => tarEntry(`package/${f}`, Buffer.from(files[f])));
   return gzipSync(Buffer.concat([...parts, Buffer.alloc(1024)]));
+}
+
+/**
+ * A tarball that npm unpacks normally but a parser that reads the GNU base-256
+ * size field as 0 does not: it lands inside the first file's body, reads 512
+ * zero bytes as the end of the archive and never sees package.json. This is
+ * the desync the 360 review found; the tests check it now fails closed.
+ */
+export function desyncTarball(files) {
+  const pad = tarEntry("package/pad.bin", Buffer.alloc(1024), { base256: true });
+  const rest = Object.keys(files).sort().map((f) => tarEntry(`package/${f}`, Buffer.from(files[f])));
+  return gzipSync(Buffer.concat([pad, ...rest, Buffer.alloc(1024)]));
 }
 
 export const sri = (buf) => `sha512-${createHash("sha512").update(buf).digest("base64")}`;

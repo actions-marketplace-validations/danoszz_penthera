@@ -121,6 +121,23 @@ describe("evidence bundle", () => {
     expect(verifyEvidence(dir).problems[0]).toMatch(/not a penthera-evidence\/1 manifest/);
   });
 
+  it("warns UNSIGNED on an unsigned bundle, and --require-signature fails it (360 review)", () => {
+    const dir = bundle();
+    const r = verifyEvidence(dir);
+    expect(r.ok).toBe(true);
+    expect(r.warnings.join()).toMatch(/UNSIGNED/);
+    expect(verifyEvidence(dir, { requireSignature: true }).ok).toBe(false);
+    const bin = resolve("bin/penthera.js");
+    const cli = spawnSync(process.execPath, [bin, "evidence", "verify", dir], { encoding: "utf-8" });
+    expect(cli.status).toBe(0);
+    expect(cli.stderr).toMatch(/WARNING {2}UNSIGNED/);
+    expect(cli.stdout).toMatch(/\(UNSIGNED\)/);
+    const usage = spawnSync(process.execPath, [bin, "evidence", "verify", dir, "--require-signature"], { encoding: "utf-8" });
+    expect(usage.status).toBe(2);
+    const strict = spawnSync(process.execPath, [bin, "evidence", "verify", dir, "--require-signature", "--allowed-signers", join(dir, "nope")], { encoding: "utf-8" });
+    expect(strict.status).toBe(1);
+  });
+
   it("fails when --allowed-signers is given but the bundle is unsigned", () => {
     const dir = bundle();
     const r = verifyEvidence(dir, { allowedSigners: join(dir, "nope") });
@@ -187,9 +204,11 @@ describe.skipIf(!hasSshKeygen())("SSH signature round trip", () => {
     expect(ok.ok).toBe(true);
     expect(ok.signature).toMatchObject({ status: "valid", principal: "auditee@example.com" });
 
+    // 360 review: a valid signature by a key nobody checked is not "verified".
     const unknown = verifyEvidence(dir);
-    expect(unknown.ok).toBe(true);
-    expect(unknown.signature.status).toBe("valid-unknown-signer");
+    expect(unknown.ok).toBe(false);
+    expect(unknown.signature.status).toBe("unverified");
+    expect(unknown.problems.join()).toMatch(/--allowed-signers/);
 
     const wrong = verifyEvidence(dir, { allowedSigners: allowed(join(keys, "allowed-other"), "mallory@example.com", other) });
     expect(wrong.ok).toBe(false);
@@ -206,6 +225,18 @@ describe.skipIf(!hasSshKeygen())("SSH signature round trip", () => {
     expect(r.files.every((f) => f.ok)).toBe(true);
     expect(r.ok).toBe(false);
     expect(r.signature.status).toBe("invalid");
+  });
+
+  it("fails a bundle re-signed with an attacker's key when no signer is pinned, and a declared signature with no .sig (360 review)", () => {
+    const dir = bundle({ signKey: other });
+    const bin = resolve("bin/penthera.js");
+    const r = spawnSync(process.execPath, [bin, "evidence", "verify", dir], { encoding: "utf-8" });
+    expect(r.status).toBe(1);
+    expect(r.stdout).toMatch(/signer was not checked/);
+    rmSync(join(dir, SIGNATURE));
+    const stripped = verifyEvidence(dir);
+    expect(stripped.ok).toBe(false);
+    expect(stripped.signature.status).toBe("missing");
   });
 
   it("penthera evidence verify exits 0 for a good bundle and 1 for a tampered one", () => {

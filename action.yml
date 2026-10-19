@@ -98,9 +98,17 @@ runs:
           deps)
             base="${INPUT_BASE_REF:-$PR_BASE_SHA}"
             if [ -n "$base" ]; then
+              # A ref is a branch, tag or SHA. Anything else (a leading "-" would be
+              # read as a git option) is refused before git sees it.
+              case "$base" in
+                -*|*..*|*[!A-Za-z0-9_./@^~{}+-]*)
+                  echo "::error::base-ref is not a plain git ref: $base"
+                  exit 2
+                  ;;
+              esac
               # Shallow checkouts lack the base commit; fetch just that one from origin.
-              if ! git -C "$INPUT_PATH" cat-file -e "$base^{commit}" 2>/dev/null; then
-                git -C "$INPUT_PATH" fetch --no-tags --depth=1 origin "$base" || echo "::warning::Could not fetch $base; the diff may fail."
+              if ! git -C "$INPUT_PATH" cat-file -e --end-of-options "$base^{commit}" 2>/dev/null; then
+                git -C "$INPUT_PATH" fetch --no-tags --depth=1 --end-of-options origin "$base" || echo "::warning::Could not fetch $base; the diff may fail."
               fi
               args+=(--base "$base")
             else

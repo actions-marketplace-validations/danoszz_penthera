@@ -8,8 +8,21 @@ import { mergeResults } from "./merge-results.js";
 import { buildActionPlan } from "../../lib/remediation/index.js";
 import { printReport, printFindings, writeJsonReport, writeSarifReport, createProgress, printError } from "../reporter.js";
 import { writeMarkdownReport, markdownPathFromJson } from "../report/markdown.js";
+import { prepareReportOptions, customReport, writeEvidence } from "./report-outputs.js";
+import { compareWithBaseline } from "./baseline.js";
 
 export const DEPS_FLAGS = ["diff", "base", "online", "pr-comment", "prod", "license-policy", "venv"];
+
+/**
+ * Scan-command flags that mean nothing for a dependency scan. Rejected rather
+ * than ignored: a flag that silently does nothing reads as a check that ran.
+ * (--audience, --report-template, --evidence, --sign-key and --baseline work.)
+ */
+export const DEPS_UNSUPPORTED = [
+  "memory", "framework", "readiness", "assessment", "questionnaire", "policy-pack", "org", "history",
+  "sbom", "aibom", "repo", "api-root", "recon", "deep", "fuzz", "nuclei", "templates", "adaptive", "all",
+  "machine", "home", "pin", "profile", "auth-cookie", "auth-bearer",
+];
 
 /**
  * The license policy for this run: `--license-policy <preset|file>`, else the
@@ -38,9 +51,21 @@ export async function runDeps(args, opts, { version }) {
     printError("Use --diff <lockfile|dir> or --base <git-ref>, not both.");
     process.exit(2);
   }
+  const unsupported = DEPS_UNSUPPORTED.filter((f) => opts[f] !== undefined && opts[f] !== false);
+  if (unsupported.length) {
+    printError(`${unsupported.map((f) => `--${f}`).join(", ")} ${unsupported.length > 1 ? "do" : "does"} not apply to \`penthera deps\` (URL and --repo scans only). Deps supports --diff, --base, --online, --prod, --venv, --pr-comment, --license-policy, -o, --markdown, --sarif, --audience, --report-template, --evidence, --sign-key and --baseline.`);
+    process.exit(2);
+  }
   const root = resolve(args[0] || ".");
   if (!existsSync(root)) {
     printError(`Path not found: ${root}`);
+    process.exit(2);
+  }
+  let reportCtx;
+  try {
+    reportCtx = prepareReportOptions(opts);
+  } catch (e) {
+    printError(e.message);
     process.exit(2);
   }
   const quiet = opts.quiet || opts.json;
@@ -70,12 +95,30 @@ export async function runDeps(args, opts, { version }) {
   const merged = mergeResults([result]);
   merged.actionPlan = buildActionPlan(merged.findings);
 
+  let baselineStats = null;
+  if (opts.baseline) {
+    let comparison;
+    try {
+      comparison = compareWithBaseline(merged.findings, resolve(opts.baseline));
+    } catch (e) {
+      printError(`--baseline: ${e.message}`);
+      process.exit(2);
+    }
+    baselineStats = comparison.stats;
+    if (opts.quiet) merged.findings = comparison.newFindings;
+    else if (!opts.json) {
+      process.stderr.write(`\n  Baseline: ${comparison.stats.newCount} new, ${comparison.stats.resolvedCount} resolved, ${comparison.stats.unchangedCount} unchanged\n\n`);
+    }
+  }
+  const custom = customReport(merged, opts, { version, template: reportCtx.template });
+
   if (opts.json) console.log(JSON.stringify(merged, null, 2));
+  else if (custom && !opts.markdown) process.stdout.write(custom);
   else if (opts.quiet) printFindings(merged.findings);
   else printReport(merged, { verbose: opts.verbose });
 
   const footer = !opts["no-footer"];
-  const mdOpts = { version, footer };
+  const mdOpts = { version, baseline: baselineStats, footer };
   const note = (s) => { if (!quiet) process.stderr.write(s); };
   if (opts.output) {
     writeJsonReport(merged, opts.output);
@@ -84,7 +127,8 @@ export async function runDeps(args, opts, { version }) {
     note(`  JSON report    ${opts.output}\n  Markdown report ${md}\n`);
   }
   if (opts.markdown) {
-    writeMarkdownReport(merged, opts.markdown, mdOpts);
+    if (custom) writeFileSync(resolve(opts.markdown), custom);
+    else writeMarkdownReport(merged, opts.markdown, mdOpts);
     note(`  Markdown report ${opts.markdown}\n`);
   }
   if (opts.sarif) {
@@ -98,7 +142,16 @@ export async function runDeps(args, opts, { version }) {
     writeFileSync(path, formatPrComment(merged, { version, footer }));
     note(`  PR comment     ${opts["pr-comment"]}\n`);
   }
-  if (opts.output || opts.markdown || opts.sarif || opts["pr-comment"]) note("\n");
+  if (opts.evidence) {
+    try {
+      const bundle = writeEvidence(merged, { ...opts, repo: root }, { version, template: reportCtx.template, mdOpts, sbom: null, argv: process.argv.slice(2) });
+      note(`  Evidence bundle ${bundle.manifest.artifacts.length} files${bundle.signed ? ", signed" : ""} → ${opts.evidence}/ (penthera evidence verify ${opts.evidence})\n`);
+    } catch (e) {
+      printError(`Could not write the evidence bundle: ${e.message}`);
+      process.exit(2);
+    }
+  }
+  if (opts.output || opts.markdown || opts.sarif || opts["pr-comment"] || opts.evidence) note("\n");
 
   // exitCode, not exit(): large --json output to a pipe must drain first.
   const hasSevere = merged.findings.some((f) => f.severity === "critical" || f.severity === "high");

@@ -79,6 +79,20 @@ export async function render(root, { api, go, meta }) {
     ),
   );
 
+  const c = o.columns;
+  const rowsOf = (list, none) => (list.length
+    ? h("ul", { class: "rows" }, list.slice(0, 8).map((r) => h("li", {},
+      h("span", { class: "code" }, `${r.severity.slice(0, 1).toUpperCase()}+`),
+      h("button", { type: "button", class: ["row-btn", "t", r.severity === "critical" || r.severity === "high" ? "b" : null], onclick: () => go("findings", { project: r.project, id: r.id }) },
+        r.title, h("span", { class: "where" }, ` · ${shortProject(r.project)}`)))))
+    : empty(none));
+  put(root, panel("This week", { class: "week", meta: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) },
+    h("div", { class: "cols" },
+      h("div", {}, h("h3", {}, `Fix first · ${c.fixFirst.length}`), rowsOf(c.fixFirst, "Nothing critical or high. Good.")),
+      h("div", {}, h("h3", {}, `New since the last scan · ${c.newest.length}`), rowsOf(c.newest, "Nothing new since the last scan.")),
+      h("div", {}, h("h3", {}, `Fixed since the last scan · ${c.fixed.length}`), rowsOf(c.fixed, "Nothing fixed since the last scan yet.")),
+    )));
+
   const grid = h("div", { class: "grid" });
   put(root, grid);
 
@@ -93,7 +107,7 @@ export async function render(root, { api, go, meta }) {
     h("td", { class: "num ok" }, String(p.fixed)),
     h("td", { class: "num muted hide-narrow" }, h("button", { type: "button", class: "row-btn", onclick: () => go("history", { project: p.key }) }, ago(p.lastScan))),
   ));
-  put(grid, panel("Posture per project", { class: "span-12" },
+  put(grid, panel("Posture per project", { class: "span-12", meta: plural(o.projects.length, "project") },
     h("div", { class: "table-wrap" }, h("table", {},
       h("thead", {}, h("tr", {}, ...["Grade", "Project", "Severity", "Trend", "Open", "Fixed", "Last scan"].map((t, i) => h("th", { class: [i === 4 || i === 5 || i === 6 ? "num" : null, i === 2 || i === 6 ? "hide-narrow" : null] }, t)))),
       h("tbody", {}, rows),
@@ -101,13 +115,13 @@ export async function render(root, { api, go, meta }) {
     fig("fig 1 :: grade = 100 − 30/critical − 15/high − 5/medium − 1/low; any critical is an F", `${o.projects.length} projects`),
   ));
 
-  put(grid, panel("Severity mix", { class: "span-5" },
+  put(grid, panel("Severity mix", { class: "span-5", meta: `${total} findings` },
     stackedBar(o.mix, { width: 34 }),
     severityBars(o.mix, { width: 18 }),
     fig("fig 2 :: latest report per project", `${total} findings`),
   ));
 
-  put(grid, panel("Findings over time", { class: "span-7" },
+  put(grid, panel("Findings over time", { class: "span-7", meta: "by scan" },
     trendChart(combinedTrend(o.projects)),
     h("div", { class: "legend" },
       h("span", {}, h("span", { class: "sw" }), "open (critical to low)"),
@@ -116,12 +130,12 @@ export async function render(root, { api, go, meta }) {
     fig("fig 3 :: summed across projects, by scan", "from reports + memory"),
   ));
 
-  put(grid, panel("Time to fix", { class: "span-4" },
+  put(grid, panel("Time to fix", { class: "span-4", meta: o.timeToFix.medianDays == null ? "no data" : `median ${o.timeToFix.medianDays}d` },
     columns(o.timeToFix.buckets, { label: "Fixes by time to fix" }),
     fig("fig 4 :: first seen to gone", `${o.timeToFix.samples} fixes`),
   ));
 
-  put(grid, panel("Hosts contacted", { class: "span-4" },
+  put(grid, panel("Hosts contacted", { class: "span-4", meta: `${o.egress.hosts.length} hosts` },
     o.egress.hosts.length
       ? h("ul", { class: "list" }, o.egress.hosts.map((x) => h("li", {},
         h("span", { class: x.thirdParty ? "t1" : "ok" }, x.thirdParty ? "3P" : "OK"),
@@ -136,7 +150,7 @@ export async function render(root, { api, go, meta }) {
     fig("fig 5 :: latest scan per project", "3P = third party"),
   ));
 
-  put(grid, panel("Last scans", { class: "span-4" },
+  put(grid, panel("Last scans", { class: "span-4", meta: `${o.lastScans.length} newest` },
     h("ul", { class: "list" }, o.lastScans.map((sc) => h("li", {},
       h("span", { class: "muted" }, ago(sc.ts).padStart(7)),
       h("span", { class: "grow trunc t1", title: sc.target }, shortProject(sc.target)),
@@ -146,7 +160,7 @@ export async function render(root, { api, go, meta }) {
   ));
 
   if (o.loops.length) {
-    put(grid, panel("Agent loop runs", { class: "span-12" },
+    put(grid, panel("Agent loop runs", { class: "span-12", meta: plural(o.loops.length, "run") },
       h("ul", { class: "list" }, o.loops.map((l) => h("li", {},
         h("span", { class: "muted" }, ago(l.startedAt)),
         h("span", { class: "grow t1" }, `${shortProject(l.target.repo)} :: ${l.findings.initial ?? "?"} → ${l.findings.final ?? "?"} findings`),

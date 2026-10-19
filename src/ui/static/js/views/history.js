@@ -1,5 +1,5 @@
 import { h, put, panel, clear, empty, sevBadge, fig, whatNext } from "../dom.js";
-import { trendChart } from "../charts.js";
+import { trendChart, ganttChart } from "../charts.js";
 import { stamp, ago, shortProject } from "../format.js";
 import { SCREENS, EMPTY } from "../copy.js";
 
@@ -46,14 +46,22 @@ export async function render(root, { api, params, go }) {
         cell("New", String(hst.new.length), "in after, not in before"),
         cell("Fixed", String(hst.fixed.length), "in before, gone after", "ok"),
       ),
-      h("div", { class: "cmp" },
-        list("New", hst.new, "Nothing new. Good."),
-        list("Fixed", hst.fixed, "Nothing fixed between these two scans."),
-        list("Still open", hst.still, "Nothing carried over."),
+      panel(`Between scan ${hst.a.i + 1} and scan ${hst.b.i + 1}`, { meta: `${stamp(hst.b.ts)}` },
+        h("div", { class: "cols" },
+          col(`New · ${hst.new.length}`, hst.new, "Nothing new."),
+          col(`Fixed · ${hst.fixed.length}`, hst.fixed, "Nothing fixed between these two scans."),
+          col(`Still open · ${hst.still.length}`, hst.still, "Nothing carried over."),
+        )),
+      h("div", { class: "grid stack" }, panel("Timeline", { class: "span-12", meta: `${hst.lifetimes.filter((l) => l.open).length} open · ${hst.lifetimes.filter((l) => !l.open).length} fixed` },
+        h("div", { class: "table-wrap" }, ganttChart(hst.lifetimes, hst.scans)),
+        h("div", { class: "legend" },
+          h("span", {}, "▨ open, up to now"), h("span", {}, "█ open and critical"), h("span", {}, "□ fixed: first seen to last seen"), h("span", {}, "┊ a scan"),
+        ),
+        fig(`fig 1 :: every finding of ${shortProject(project)} across ${hst.scans.length} scans`, "from the reports folder"),
       ),
-      h("div", { class: "grid" }, panel("Open findings per scan", { class: "span-12" },
+      panel("Open findings per scan", { class: "span-12", meta: `${hst.scans.length} scans` },
         trendChart(hst.scans.map((sc) => ({ ts: sc.ts, total: sc.open, severe: sc.counts.critical + sc.counts.high })), { width: 1100, height: 200 }),
-        fig(`fig 1 :: ${shortProject(project)}, every scan in the reports folder`, `${hst.scans.length} scans`),
+        fig(`fig 2 :: ${shortProject(project)}, every scan in the reports folder`, `${hst.scans.length} scans`),
       )),
       whatNext([
         { label: "Read what is still open", go: ["findings", { project }] },
@@ -67,6 +75,11 @@ export async function render(root, { api, params, go }) {
   aSel.addEventListener("change", () => load(Number(aSel.value), Number(bSel.value)));
   bSel.addEventListener("change", () => load(Number(aSel.value), Number(bSel.value)));
   await load();
+
+  function col(title, rows, none) {
+    return h("div", {}, h("h3", {}, title),
+      rows.length ? h("ul", { class: "rows" }, rows.map((r) => h("li", {}, h("span", { class: "code" }, r.severity.slice(0, 1).toUpperCase() + "+"), h("span", { class: ["t", r.severity === "critical" || r.severity === "high" ? "b" : null] }, r.title)))) : empty(none));
+  }
 
   function list(title, rows, none) {
     return panel(`${title} (${rows.length})`, {},

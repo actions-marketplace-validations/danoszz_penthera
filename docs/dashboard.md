@@ -78,7 +78,9 @@ sources, and the exact fix diff.
 two scans of the same project, so that I can see what got fixed and what is
 new.* History picks the most interesting project by default, compares the
 previous scan with the latest (or any two you choose), and lists new, fixed
-and still-open findings next to the trend.
+and still-open findings in three columns. Below them, a timeline draws every
+finding as a bar across the scans (S1, S2, ...): hatched while it is still
+open, an outline once it was fixed.
 
 ![Story 5: history comparing two scans](../assets/dashboard/story-history.jpg)
 
@@ -107,7 +109,16 @@ decoded text, and drift against `penthera.lock`.
 
 ![Story 8: grade, hidden content and lock drift](../assets/dashboard/story-ai-tooling.jpg)
 
-**9. Work in daylight.** *As someone who reads reports on a bright screen, I
+**9. Know where to start this week.** *As a solo founder on a Monday morning,
+I want one place that says what to fix first and what changed since the last
+scan, so that I do not have to read every report.* The overview opens with a
+"This week" window: fix first (every critical and high), new since the last
+scan, and fixed since the last scan, across all projects. Each line opens the
+finding.
+
+![Story 9: the This week window](../assets/dashboard/story-week.jpg)
+
+**10. Work in daylight.** *As someone who reads reports on a bright screen, I
 want a light theme, so that the dashboard is comfortable outside a dark room.*
 The `◐` button in the menu bar (and Settings) switches between the black
 terminal and the white paper theme. The first visit follows your system
@@ -115,7 +126,7 @@ setting; the choice is remembered in this browser.
 
 | Narrow, dark | Narrow, light |
 |---|---|
-| <img src="../assets/dashboard/narrow-dark.jpg" alt="Overview at 390px, dark" width="280"> | <img src="../assets/dashboard/narrow-light.jpg" alt="Findings at 390px, light" width="280"> |
+| <img src="../assets/dashboard/narrow-dark.jpg" alt="Overview at 390px, dark" width="280"> | <img src="../assets/dashboard/narrow-light.jpg" alt="History at 390px, light" width="280"> |
 
 ## Where the data comes from
 
@@ -200,7 +211,9 @@ path traversal.
 ## Design
 
 A 1-bit desktop with a terminal inside. The window chrome comes from the Mac
-of the early 90s: a menu bar, pinstriped title bars with close and zoom boxes,
+of the early 90s, and the layout from a planning board the maintainer keeps in
+the same style (every section a pinstriped window with its date on the right,
+bold-ruled columns, a Gantt with dashed milestones): a menu bar, pinstriped title bars with close and zoom boxes,
 a dithered desktop, rounded push buttons where the default one wears a thick
 ring, and alert dialogs with a double frame. The voice, the `▸` progress
 lines, the numbered "What next?" and the `#0000ed` block-letter wordmark come

@@ -54,12 +54,20 @@ export function put(el, ...children) {
   return el;
 }
 
-/** A framed panel with a box-drawing title. */
+/**
+ * A section as a window: pinstriped title bar with a close box, the title
+ * centred on its plate, optional metadata on the right (attrs.meta).
+ */
 export function panel(title, attrs, ...children) {
   const id = `p-${Math.random().toString(36).slice(2, 9)}`;
   return h("section", { class: ["panel", attrs?.class], "aria-labelledby": id },
-    h("h2", { class: "panel-h", id }, title),
-    ...children);
+    h("div", { class: "panel-bar" },
+      h("span", { class: "box", "aria-hidden": "true" }),
+      h("h2", { class: "panel-h", id }, title),
+      attrs?.meta ? h("span", { class: "panel-meta" }, attrs.meta) : null,
+      h("span", { class: "grip", "aria-hidden": "true" }),
+    ),
+    h("div", { class: "panel-body" }, ...children));
 }
 
 export const sevClass = (sev) => `sev sev-${sev || "info"}`;

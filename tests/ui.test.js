@@ -307,6 +307,22 @@ describe("ui server: binding, token and session", () => {
       const first = await get(`/api/history?project=${encodeURIComponent("http://localhost:3000")}&a=0&b=${r.json.b.i}`);
       expect(first.json.fixed.length).toBeGreaterThan(r.json.fixed.length);
       expect((await get("/api/history?project=nope")).status).toBe(404);
+      // The timeline: one lifetime per finding, open ones reach the latest scan.
+      const life = r.json.lifetimes;
+      expect(life.length).toBeGreaterThan(0);
+      for (const l of life) {
+        expect(l.from).toBeLessThanOrEqual(l.to);
+        expect(l.open).toBe(l.to === r.json.scans.length - 1);
+      }
+      expect(life.some((l) => !l.open)).toBe(true);
+    });
+
+    it("overview has the This week columns: fix first, new, fixed", async () => {
+      const { columns } = (await get("/api/overview")).json;
+      expect(columns.fixFirst.every((f) => f.severity === "critical" || f.severity === "high")).toBe(true);
+      expect(columns.fixFirst.length).toBeGreaterThan(0);
+      expect(columns.newest.map((f) => f.title)).toContain("Open redirect via ?next=");
+      expect(columns.fixed.length).toBeGreaterThan(0);
     });
 
     it("downloads the auditor report as a Markdown attachment", async () => {

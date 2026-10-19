@@ -171,8 +171,23 @@ export function buildOverview({ scans = [], memory = [], runs = [] }) {
       durationMs: Number.isFinite(r.data.duration) ? r.data.duration : null, counts: counts(r.data.findings), file: r.name,
     }));
 
+  // "This week" columns: fix first, new since the previous scan, fixed since the previous scan.
+  const fixFirst = [];
+  const newest = [];
+  const fixedLately = [];
+  for (const [key] of groups) {
+    const hst = buildScanHistory(scans, key);
+    if (!hst) continue;
+    const latest = groups.get(key)[groups.get(key).length - 1];
+    for (const f of latest.data.findings || []) if (f.severity === "critical" || f.severity === "high") fixFirst.push(findingRow(f, latest.data));
+    if (hst.scans.length > 1) { newest.push(...hst.new); fixedLately.push(...hst.fixed); }
+  }
+  const bySev = (xs) => xs.sort((x, y) => SEV_RANK[x.severity] - SEV_RANK[y.severity] || x.title.localeCompare(y.title));
+  const columns = { fixFirst: bySev(fixFirst), newest: bySev(newest), fixed: bySev(fixedLately) };
+
   const ttfDays = ttf.map((ms) => ms / DAY);
   return {
+    columns,
     projects,
     mix,
     open,
@@ -399,9 +414,23 @@ export function buildScanHistory(scans, project, a = null, b = null) {
   const A = rows(series[ai]);
   const B = rows(series[bi]);
   const sort = (xs) => xs.sort((x, y) => SEV_RANK[x.severity] - SEV_RANK[y.severity] || x.title.localeCompare(y.title));
+  // Finding lifetimes across every scan of the project: first seen, last seen, open or fixed.
+  const life = new Map();
+  series.forEach((r, i) => {
+    for (const f of (r.data.findings || []).filter((x) => x.severity !== "info")) {
+      const id = findingId(f);
+      if (!life.has(id)) life.set(id, { ...findingRow(f, r.data), from: i, to: i });
+      life.get(id).to = i;
+    }
+  });
+  const last = series.length - 1;
+  const lifetimes = sort([...life.values()].map((x) => ({ ...x, open: x.to === last })))
+    .sort((x, y) => Number(y.open) - Number(x.open) || SEV_RANK[x.severity] - SEV_RANK[y.severity] || x.from - y.from)
+    .slice(0, 40);
   return {
     project,
     scans: list,
+    lifetimes,
     a: list[ai],
     b: list[bi],
     new: sort([...B].filter(([id]) => !A.has(id)).map(([, r]) => r)),

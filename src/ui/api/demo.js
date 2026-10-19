@@ -38,7 +38,7 @@ const F = {
 const PROJECTS = [
   { target: "http://localhost:3000", mode: "url", series: [["csp", "hsts", "cookie", "cors", "rate", "jquery", "openapi", "powered", "redirect", "env"], ["csp", "hsts", "cookie", "cors", "rate", "jquery", "openapi", "powered", "env"], ["csp", "hsts", "cookie", "rate", "jquery", "openapi", "powered", "env"], ["csp", "hsts", "rate", "jquery", "openapi", "powered", "env"], ["csp", "hsts", "rate", "openapi", "powered", "env"], ["csp", "rate", "openapi", "powered", "env"], ["csp", "rate", "openapi", "env"]] },
   { target: "/Users/demo/code/acme-shop", mode: "repo", series: [["secret", "csp", "cookie", "cors", "rate"], ["secret", "csp", "cookie", "rate"], ["secret", "csp", "rate"], ["secret", "csp"], ["secret", "csp"]] },
-  { target: "https://staging.acme.test", mode: "url", series: [["tls", "admin", "sqli", "hsts", "csp", "openapi"], ["tls", "admin", "sqli", "hsts", "csp", "openapi", "powered"], ["tls", "admin", "sqli", "hsts", "csp"], ["tls", "admin", "hsts", "csp"]] },
+  { target: "https://staging.acme.test", mode: "url", series: [["tls", "admin", "sqli", "hsts", "csp", "openapi"], ["tls", "admin", "sqli", "hsts", "csp", "openapi", "powered"], ["tls", "admin", "sqli", "hsts", "csp"], ["tls", "admin", "hsts", "csp", "redirect"]] },
   { target: "/Users/demo/code/billing-api", mode: "repo", series: [["rate", "hsts"], ["rate"], ["rate"]] },
 ];
 

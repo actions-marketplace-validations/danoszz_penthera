@@ -30,7 +30,8 @@ updates:
     cooldown:
       default-days: 7
     ignore:
-      # Stay on Node LTS lines (even majors). Odd majors are short-lived
-      # "current" releases that never become LTS.
+      # Node majors are chosen by hand so the image stays on an LTS line
+      # (22 -> 24 -> 26). Odd majors never become LTS, and Dependabot does not
+      # accept version ranges for Docker tags, so all majors are skipped here.
       - dependency-name: "node"
-        versions: [">=23 <24", ">=25 <26", ">=27 <28", ">=29 <30"]
+        update-types: ["version-update:semver-major"]

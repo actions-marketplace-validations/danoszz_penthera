@@ -9,6 +9,7 @@ import { buildActionPlan, formatActionPlanMarkdown } from "../../lib/remediation
 import { formatAuditLoopMarkdown } from "../../lib/audit-loop.js";
 import { referencesFor, formatSourcesMarkdown } from "../../lib/references.js";
 import { formatDepsMarkdown } from "../../lib/deps/report.js";
+import { mdInline } from "./md-escape.js";
 
 const SEV_ORDER = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 const SEV_TAG = {
@@ -33,9 +34,7 @@ function countBySeverity(findings) {
   return counts;
 }
 
-function mdEscape(s) {
-  return String(s || "").replace(/\|/g, "\\|").replace(/\n/g, " ");
-}
+const mdEscape = mdInline;
 
 /**
  * Generate Markdown report content from scan result.

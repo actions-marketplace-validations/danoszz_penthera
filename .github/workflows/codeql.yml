@@ -26,6 +26,7 @@ jobs:
           # The mock server and test fixtures are intentionally vulnerable.
           config: |
             paths-ignore:
-              - tests/fixtures
+              - tests # test code feeds hostile inputs on purpose (ReDoS guards, injection fixtures)
+              - bench/targets # deliberately vulnerable benchmark lab
 
       - uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0

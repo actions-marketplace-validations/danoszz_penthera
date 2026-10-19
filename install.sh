@@ -41,11 +41,10 @@ fi
 
 # ── Install dependencies + link CLI ─────────────────────────────────────────
 cd "$DIR"
-if [ -f package-lock.json ]; then
-  npm ci --omit=dev --silent
-else
-  npm install --omit=dev --silent
-fi
+# Always from the lockfile: `npm ci` installs exactly the reviewed tree and
+# checks every tarball against its recorded integrity hash.
+[ -f package-lock.json ] || die "package-lock.json missing in $DIR; refusing an unpinned install."
+npm ci --omit=dev --silent
 ok "Installed dependencies"
 
 if npm link >/dev/null 2>&1; then

@@ -55,6 +55,7 @@ const HELP = `
     $ penthera <url>                 Scan a live URL (black-box)
     $ penthera --repo <path>         Scan a local repo (white-box)
     $ penthera <url> --repo <path>   Full scan (both)
+    $ penthera fix --plan            Plan local fix recipes (penthera fix --help)
 
   ${dim("Scan modes")}
         --profile <name>        quick | standard | deep (default: standard)
@@ -120,6 +121,10 @@ function bold(s) { return `\x1b[1m${s}\x1b[0m`; }
 function dim(s) { return `\x1b[2m${s}\x1b[0m`; }
 
 export async function run() {
+  if (process.argv[2] === "fix") {
+    const { runFix } = await import("./cli/fix.js");
+    return runFix(process.argv.slice(3));
+  }
   let parsed;
   try {
     parsed = parseArgs({

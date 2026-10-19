@@ -150,9 +150,15 @@ mkdir -p reports
 penthera <url> --repo . --profile standard -o reports/scan.json
 ```
 
-3. Detect the framework: check `package.json` / imports (`next`, `express`, `fastify`, `hono`) or `requirements.txt` (`fastapi`, `flask`).
-4. For each finding, **highest severity first**, look it up by `category` in [references/remediation.md](references/remediation.md) and propose the framework-specific fix **as a diff**.
-5. Apply each fix only after the user approves it.
+3. **Try the fix recipes first.** For headers, cookie flags, CORS wildcards, login rate limits and hardcoded secrets, Penthera writes the diff itself, deterministically:
+
+```bash
+penthera fix --plan --repo . -o reports/scan.json   # or omit -o for a fresh repo scan
+```
+
+   Show the user each plan's diff and owner actions. After they approve one, run `penthera fix --apply <id> --repo . --yes` (`--yes` stands in for the y/N prompt, so pass it only after the user has said yes in chat). Plans change after each apply, so run `--plan` again before the next one. Applying refuses a dirty tree: let the user commit (or pass `--allow-dirty` only if they ask). Use `--json` to read plans programmatically; secrets are masked there.
+4. For findings without a recipe, detect the framework (`package.json` / imports: `next`, `express`, `fastify`, `hono`; `requirements.txt`: `fastapi`, `flask`), look the finding up by `category` in [references/remediation.md](references/remediation.md), **highest severity first**, and propose the framework-specific fix **as a diff**.
+5. Apply each fix only after the user approves it. Never add `--fix-model` unless the user asks for it: it sends code to a local Ollama model, and its diffs are `needs-human-review`.
 6. **Re-scan to verify**: `penthera <url> --repo . -o reports/scan-after.json --baseline reports/scan.json`. A fix is done only when its finding no longer appears.
 7. Report what is resolved and what remains.
 
@@ -167,6 +173,7 @@ Applying fixes **modifies the user's code**. Before editing:
 - Re-scan after each fix (or batch) to confirm it actually resolved the finding.
 - Never apply fixes against a production system; work in the repo or a branch.
 - Rotating an exposed secret and renewing a TLS certificate are **user actions**, not code edits, flag them clearly rather than attempting them.
+- Relay every plan's `ownerActions` to the user. `secret-to-env` always includes "rotate this secret": moving it to an env var does not make it safe again.
 
 ## Workflow 5: Owner reports & questionnaire responses
 

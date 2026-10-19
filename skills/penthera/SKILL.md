@@ -5,6 +5,8 @@ description: >
   (TLS, headers, OpenAPI, auth hardening, secret scanning, optional injection probes),
   and checks npm dependencies offline for what they can do ("is this dependency safe?",
   "what changed in my deps?", "review this lockfile change", "is this a typosquat?"),
+  installs npm packages through a capability firewall ("install X safely", "is it safe
+  to add this package?"),
   then applies framework-aware fixes and re-scans to verify them. Use when the user asks
   to scan, audit, harden, fix, pentest, or review security of their own app, staging URL,
   localhost, or repo; apply security best practices; generate SARIF for GitHub; diff
@@ -68,6 +70,7 @@ All examples below use `penthera`; substitute `node bin/penthera.js` when needed
 | Scan a live URL | `penthera <url> --profile standard -o reports/scan.json` |
 | Scan repo only (secrets, routes) | `penthera --repo . -o reports/repo-scan.json` |
 | Is this dependency safe? / what changed in my deps? | `penthera deps` or `penthera deps --base origin/main` (see **Dependency risk scan**) |
+| Install X safely / is it safe to add this package? | `penthera install <pkg> --dry-run`, then `penthera install <pkg>` (see **Install firewall**) |
 | URL + source combined | `penthera <url> --repo . -o reports/scan.json --sarif reports/scan.sarif` |
 | Scan and fix my app | Run a scan, then **Workflow 4** (apply fixes from [references/remediation.md](references/remediation.md), re-scan to verify) |
 | Compare to previous scan | `penthera <url> -o reports/scan.json --baseline reports/previous.json` |
@@ -285,6 +288,21 @@ penthera deps --prod -o reports/deps.json  # skip devDependencies, write JSON + 
 2. Then critical/high risk signals (AI-config writes, AI CLI invocation, GitHub token harvesting, obfuscation, env exfiltration). Open the evidence file and read the lines before calling anything malicious: a capability is what code *can* do, not a verdict.
 3. If old versions were "not compared", say so; suggest installing the base tree and passing it to `--diff`.
 4. `--online` is the only network use (npm registry metadata: publish age, publisher change, deprecation). Only add it if the user agrees.
+
+## Install firewall
+
+**Triggers:** "install X safely", "is it safe to add this package?", "add X but check it first", "will this upgrade run anything on install?"
+
+`penthera install` resolves with scripts off in a temp copy, diffs capabilities against the current lockfile, and applies `penthera.policy.json` before the real `npm install`. npm contacts the configured registry (the only egress); say so.
+
+```bash
+penthera install <pkg> --dry-run --json   # always start here: report only, nothing changes
+penthera install <pkg> --yes              # install only if nothing breaches the policy
+```
+
+1. Run `--dry-run` first and summarize: new packages, capabilities gained, new install scripts with their commands, typosquat warnings, and what the policy says.
+2. Exit 1 means blocked: the project is untouched. Never add a package to `allow` in `penthera.policy.json`, or approve install scripts, without the user saying so after seeing the evidence.
+3. If the user approves, run `penthera install <pkg>` in their terminal (the prompt is theirs to answer), or `--yes` after they have added an `allow` entry.
 
 ## Examples
 

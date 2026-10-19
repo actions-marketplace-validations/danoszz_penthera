@@ -58,6 +58,7 @@ const HELP = `
     $ penthera <url> --repo <path>   Full scan (both)
     $ penthera agents [path]         Audit AI agent config: skills, MCP, hooks (offline)
     $ penthera deps [path]           What your npm dependencies can do (offline)
+    $ penthera install <pkg...>      Check what an npm install adds before anything runs
     $ penthera memory show|verify|forget  Local learning store (never leaves the machine)
     $ penthera fix --plan            Plan local fix recipes (penthera fix --help)
     $ penthera evidence verify <dir> Check an evidence bundle's hashes and signature
@@ -87,6 +88,9 @@ const HELP = `
         --online                Also check npm registry metadata (the only network use)
         --prod                  Skip devDependencies
         --pr-comment <file>     Write a short Markdown capability diff for a PR comment
+
+  ${dim("Install mode")}  ${dim("(penthera install [pkg...]; penthera install --help for all options)")}
+        --yes / --dry-run       Install only if nothing breaches the policy / report only
 
   ${dim("Options")}
     -r, --repo <path>       Path to repo for source analysis
@@ -153,6 +157,12 @@ export async function run() {
   if (process.argv[2] === "memory") {
     const { runMemoryCommand } = await import("./cli/memory.js");
     process.exit(await runMemoryCommand(process.argv.slice(3)));
+  }
+
+  if (process.argv[2] === "install") {
+    const { runInstall } = await import("./cli/install.js");
+    process.exitCode = await runInstall(process.argv.slice(3));
+    return;
   }
 
   if (process.argv[2] === "evidence") {

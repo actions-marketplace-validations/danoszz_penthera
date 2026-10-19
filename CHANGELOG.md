@@ -76,6 +76,10 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ### Fixed
 
+- Repo scans skip nested git repositories and worktrees (any subfolder with
+  its own `.git`, such as coding-agent worktrees under `.claude/worktrees`),
+  instead of reporting their files as this repo's, and no longer follow
+  symlinked folders out of the repo.
 - The secret scanner no longer reports a value that is only a template
   placeholder (`apiKey: "${key}"`, `{{ api_key }}`) as a hardcoded secret.
 - `penthera-scan --help` and `--version` exit 0 instead of starting the wizard.

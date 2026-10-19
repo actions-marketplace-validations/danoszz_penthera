@@ -1,6 +1,6 @@
 {
   "name": "penthera",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Open-source security for the apps and AI systems you ship. Before you deploy: scan your app and repo, fix on a local branch and verify. What you build with: vet npm dependencies, guard installs, audit skills, MCP servers and hooks. After you ship: reports, evidence bundles, NIS2 and CRA readiness. Offline, deterministic, no telemetry. Authorized testing only.",
   "author": {
     "name": "Daan van der Zwaag",

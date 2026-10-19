@@ -4,6 +4,10 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-10-19
+
+The GitHub Action gets its Marketplace name. Nothing else changes.
+
 ### Changed
 
 - The GitHub Action is listed on the Marketplace as "Penthera: Cyber Security

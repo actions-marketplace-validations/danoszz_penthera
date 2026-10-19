@@ -90,6 +90,28 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   output `confidence: "needs-human-review"`, `source: "local-model"`
 - Fixtures for Next.js, Express, Fastify and Hono under `tests/fixtures/fix/`
 - `detectFramework()` is now exported from `lib/whitebox/frameworks.js`
+- **Audience reports** (`--audience developer|owner|auditor`): developer gets
+  findings with file:line, fix recipe ids or diffs, and sources; owner gets a
+  plain-language summary, what to do first, owner actions and the trend from
+  memory; auditor gets scope and method (linking `docs/METHODOLOGY.md`),
+  confidence labels with provenance per finding, egress and inconclusive
+  probes, suppressions with who and why, and NIS2 and OWASP mapping tables.
+  The default report is unchanged
+- **User templates** (`--report-template file.md`): `{{a.b}}`,
+  `{{#each}}`, `{{#if}}`/`{{else}}`, nothing else. Values are HTML- and
+  Markdown-escaped; no helpers, code, includes or prototype access. Written from
+  scratch (`src/report/template.js`) and fuzz-tested against injection
+- **Fix timeline** in the audience reports: found → fixed → verified with time
+  to fix, from an agent loop run (`loopRun`) or memory fix events
+  (`lib/memory/history.js`, also the owner report's trend)
+- **Evidence bundle** (`--evidence <dir>`, `--sign-key <ssh-key>`): JSON,
+  Markdown, SARIF, the three audience reports, a custom template report, the
+  readiness report and SBOM when requested, and `manifest.json` (tool version,
+  command line with secrets redacted, timestamp, target, git commit, SHA-256 of
+  every file). Signing uses `ssh-keygen -Y sign -n penthera-evidence`; no new
+  dependency. `penthera evidence verify <dir> [--allowed-signers <file>]`
+  recomputes every hash, rejects changed, missing, extra and symlinked files,
+  and checks the signature. See `docs/evidence.md`
 
 ### Docs
 

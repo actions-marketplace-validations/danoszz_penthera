@@ -201,6 +201,9 @@ next to it. Reports are gitignored by default.
 | **Markdown** | `--markdown file.md` or `-o file.json` | Human-readable report (exec summary, findings tables, fixes). Written next to `-o` automatically |
 | JSON | `--json` or `-o file.json` | CI pipelines, baseline diffs, custom tooling |
 | SARIF | `--sarif file.sarif` | GitHub Security / Code Scanning tab |
+| Audience report | `--audience developer\|owner\|auditor` | The same scan written for a developer, an owner or an auditor ([docs/evidence.md](docs/evidence.md#audience-reports)) |
+| Your template | `--report-template file.md` | Your own Markdown with `{{summary.critical}}`, `{{#each findings}}`, `{{#if x}}`; no code runs |
+| **Evidence bundle** | `--evidence <dir> [--sign-key <ssh-key>]` | All reports plus `manifest.json` with SHA-256s, optionally SSH-signed. Auditors check it with `penthera evidence verify <dir> --allowed-signers <file>` ([docs/evidence.md](docs/evidence.md)) |
 
 ---
 

@@ -1,6 +1,6 @@
 # Plan for 1.8, Phase A: measure first
 
-Written 2026-10-19. Status: **draft, waiting for maintainer approval.**
+Written 2026-10-19. Status: **decisions made 2026-10-19; approved when this PR is merged.**
 
 This is the execution plan for the first milestone of
 [vision-2.0.md](../vision-2.0.md): measure Penthera's accuracy on real code
@@ -224,16 +224,16 @@ the first three mechanically.
 
 ## What the maintainer must decide or do
 
-**Decide now (asked with this plan):**
+**Decided 2026-10-19:**
 
-1. Primary method for recall (recommended: labelled sample of unflagged units,
-   with seeded issues as secondary).
-2. What a true positive is (recommended: two levels, "correct" as primary and
-   "actionable" as secondary).
-3. Who the second labeller is (recommended: a fellow researcher at the
-   university, credited as co-author).
-4. Whether agent setups are a separate stratum with their own sample size
-   (recommended: yes, ≥ 50 setups, reported separately).
+1. Recall: a blind, labelled sample of unflagged units is the primary method;
+   seeded issues are secondary.
+2. True positive: two levels. "Correct" (the finding is factually right) is
+   primary; "actionable" (the owner should act on it) is secondary.
+3. Second labeller: a fellow researcher at the university, credited as
+   co-author.
+4. Agent setups: a separate sixth stratum of ≥ 50 public setups, reported
+   separately from the 150 web-app projects.
 
 **Do before main data collection:**
 

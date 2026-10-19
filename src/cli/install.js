@@ -3,7 +3,7 @@
  *
  * Shows what an install would change (new packages, capabilities gained, new
  * install scripts and their commands), applies penthera.policy.json, and only
- * then runs the real `npm install`. Exit codes: 0 installed (or a clean
+ * then runs `npm ci` on the reviewed lockfile. Exit codes: 0 installed (or a clean
  * --dry-run), 1 blocked or aborted (project untouched), 2 error.
  */
 import { parseArgs } from "node:util";
@@ -30,6 +30,7 @@ const HELP = `
     -D, --save-dev         Save as devDependencies
     -E, --save-exact       Save exact versions
         --offline          npm resolves from its cache only (no registry traffic at all)
+        --allow-non-registry  Accept git and tarball-URL packages (refused by default)
         --json             Print the plan as JSON
     -v, --verbose          Show more evidence per capability
     -h, --help             Show this help
@@ -38,13 +39,17 @@ const HELP = `
     npm resolves the new tree in a temporary copy with scripts disabled, new
     tarballs go into npm's cache (integrity-verified, never unpacked or run),
     and the \`penthera deps\` engine diffs capabilities against your lockfile.
-    Nothing in your project changes until you approve. Approved install scripts
-    run; otherwise the install uses --ignore-scripts.
+    Nothing in your project changes until you approve. Then \`npm ci\` installs
+    exactly the reviewed lockfile. Approved install scripts run; otherwise the
+    install uses --ignore-scripts. A package Penthera could not read is held for
+    approval whatever the policy says, and one whose lockfile claims an install
+    script the scan did not find is always refused.
 
   ${dim("Policy")}  ${dim(`(${POLICY_FILE})`)}
     { "allow": ["@acme/*", "esbuild"], "deny": ["token-harvest"],
       "requireApproval": ["install-scripts", "ai-config-write", "ai-cli-invoke",
                           "token-harvest", "obfuscated", "typosquat", "unscanned"] }
+    "script-mismatch" is always denied and "unscanned" always needs approval.
     The requireApproval list above is the default.
 `;
 
@@ -70,6 +75,7 @@ function printPlan(plan, { policyPath, verbose }) {
       : dim(i.change === "upgraded" ? (i.compared ? "no new capabilities" : "old version not readable") : "no notable capabilities");
     L.push(`  ${head}  ${note}`);
     if (i.typosquatOf) L.push(`      ${yellow(`looks like ${i.typosquatOf}`)}: check this is the package you meant`);
+    if (i.unscanned) L.push(`      ${red("not scanned")}: ${i.unscanned}`);
     if (i.flags.includes("install-scripts")) {
       for (const [hook, cmd] of Object.entries(i.installScripts || {})) {
         const was = i.previousInstallScripts?.[hook];
@@ -120,6 +126,7 @@ export async function runInstall(argv) {
         "save-dev": { type: "boolean", short: "D", default: false },
         "save-exact": { type: "boolean", short: "E", default: false },
         offline: { type: "boolean", default: false },
+        "allow-non-registry": { type: "boolean", default: false },
         json: { type: "boolean", default: false },
         verbose: { type: "boolean", short: "v", default: false },
         help: { type: "boolean", short: "h", default: false },
@@ -164,6 +171,7 @@ export async function runInstall(argv) {
       saveDev: opts["save-dev"],
       saveExact: opts["save-exact"],
       offline: opts.offline,
+      allowNonRegistry: opts["allow-non-registry"],
       onPhase: createProgress(json),
     });
   } catch (e) {
@@ -195,7 +203,8 @@ export async function runInstall(argv) {
       out(`  ${red("Blocked")}: ${needsApproval.length} package(s) need approval and --yes only installs when nothing breaches the policy. ${untouched}\n\n`);
       return finish(1, "blocked");
     }
-    const withScripts = scripts.length > 0;
+    // A package that could not be read may have install scripts nobody saw.
+    const withScripts = scripts.length > 0 || needsApproval.some((i) => i.approval.includes("unscanned"));
     await initPrompt();
     const answer = (await ask(withScripts
       ? `  Install anyway? [y]es, run the install scripts / [s]kip scripts / [N]o: `
@@ -209,7 +218,7 @@ export async function runInstall(argv) {
     }
   }
 
-  out(`\n  ${dim("▸")} npm install${runScripts ? "" : " --ignore-scripts"} ${dim("(installs the reviewed lockfile)")}\n`);
+  out(`\n  ${dim("▸")} npm ci${runScripts ? "" : " --ignore-scripts"} ${dim("(installs exactly the reviewed lockfile)")}\n`);
   let applied;
   try {
     applied = await applyInstall(plan, { runScripts, offline: opts.offline });

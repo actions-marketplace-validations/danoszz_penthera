@@ -9,11 +9,12 @@
  * See docs/evidence.md.
  */
 import { createHash } from "node:crypto";
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import {
   readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, lstatSync,
 } from "node:fs";
 import { join, resolve, relative, sep } from "node:path";
+import { createGit } from "../agent/git.js";
 
 export const SCHEMA = "penthera-evidence/1";
 export const NAMESPACE = "penthera-evidence";
@@ -75,8 +76,10 @@ function quote(a) {
 export function gitInfo(dir) {
   if (!dir) return null;
   try {
-    const commit = execFileSync("git", ["-C", dir, "rev-parse", "HEAD"], { encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"] }).trim();
-    const status = execFileSync("git", ["-C", dir, "status", "--porcelain"], { encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"] });
+    // The scanned repo is untrusted: no fsmonitor, no hooks, no transports.
+    const git = createGit(dir);
+    const commit = git.run("rev-parse", "HEAD").trim();
+    const status = git.run("status", "--porcelain");
     return /^[0-9a-f]{40,64}$/.test(commit) ? { commit, dirty: status.trim().length > 0 } : null;
   } catch {
     return null;
@@ -174,19 +177,28 @@ function sshVerify(args, manifestBuf) {
   return { ok: r.status === 0, out: `${r.stdout || ""}${r.stderr || ""}`.trim() };
 }
 
-function checkSignature(root, manifestBuf, allowedSigners) {
+/**
+ * Signature status. A bundle that says it is signed (manifest.signature, or a
+ * .sig file) only passes when the signature verifies against --allowed-signers:
+ * anyone can re-sign a rewritten manifest with their own key, so a signature
+ * whose signer was not checked proves nothing and must not read as "verified".
+ */
+function checkSignature(root, manifestBuf, manifest, allowedSigners) {
   const sigPath = join(root, SIGNATURE);
+  const declared = manifest.signature != null;
   if (!existsSync(sigPath)) {
+    if (declared) return { status: "missing", ok: false, detail: `the manifest declares a signature but ${SIGNATURE} is missing` };
     return allowedSigners
       ? { status: "missing", ok: false, detail: `--allowed-signers was given but there is no ${SIGNATURE}` }
-      : { status: "unsigned", ok: true, detail: "bundle is not signed; hashes only prove it is internally consistent" };
+      : { status: "unsigned", ok: true, detail: "UNSIGNED: hashes only prove the bundle is internally consistent, not who wrote it" };
+  }
+  if (lstatSync(sigPath).isSymbolicLink() || !lstatSync(sigPath).isFile()) {
+    return { status: "invalid", ok: false, detail: `${SIGNATURE} is not a regular file` };
   }
   if (!allowedSigners) {
     const r = sshVerify(["check-novalidate", "-n", NAMESPACE, "-s", sigPath], manifestBuf);
-    if (r.missing) return { status: "unchecked", ok: true, detail: "ssh-keygen not found; signature not checked" };
-    return r.ok
-      ? { status: "valid-unknown-signer", ok: true, detail: "signature is valid, but the signer was not checked: pass --allowed-signers" }
-      : { status: "invalid", ok: false, detail: r.out };
+    if (!r.missing && !r.ok) return { status: "invalid", ok: false, detail: r.out };
+    return { status: "unverified", ok: false, detail: "the bundle is signed, but the signer was not checked: pass --allowed-signers <file> listing the keys you trust" };
   }
   const allowed = resolve(allowedSigners);
   if (!existsSync(allowed)) return { status: "invalid", ok: false, detail: `allowed signers file ${allowedSigners} not found` };
@@ -203,14 +215,16 @@ function checkSignature(root, manifestBuf, allowedSigners) {
 
 /**
  * Verify a bundle. Never throws on a bad bundle; returns { ok, ... }.
+ * `warnings` carries the UNSIGNED notice for a bundle that passes without a
+ * signature; `requireSignature` turns that into a failure.
  * @param {string} dir
- * @param {{ allowedSigners?: string }} opts
+ * @param {{ allowedSigners?: string, requireSignature?: boolean }} opts
  */
-export function verifyEvidence(dir, { allowedSigners = null } = {}) {
+export function verifyEvidence(dir, { allowedSigners = null, requireSignature = false } = {}) {
   const root = resolve(dir);
   const problems = [];
   const files = [];
-  const fail = (msg) => ({ ok: false, problems: [msg], files, unlisted: [], signature: null, manifest: null });
+  const fail = (msg) => ({ ok: false, problems: [msg], warnings: [], files, unlisted: [], signature: null, manifest: null });
 
   const manifestPath = join(root, MANIFEST);
   if (!existsSync(manifestPath)) return fail(`${MANIFEST} not found in ${dir}`);
@@ -246,8 +260,13 @@ export function verifyEvidence(dir, { allowedSigners = null } = {}) {
   for (const p of unlisted) problems.push(`${p} is in the bundle but not in the manifest`);
   for (const f of files) if (!f.ok) problems.push(`${f.path}: ${f.reason}`);
 
-  const signature = checkSignature(root, manifestBuf, allowedSigners);
+  const signature = checkSignature(root, manifestBuf, manifest, allowedSigners);
   if (!signature.ok) problems.push(`signature: ${signature.detail}`);
+  const warnings = [];
+  if (signature.status === "unsigned") {
+    if (requireSignature) problems.push("signature: --require-signature was given but the bundle is not signed");
+    else warnings.push("UNSIGNED bundle: anyone could have written it. Ask for a signed bundle and verify with --allowed-signers --require-signature.");
+  }
 
-  return { ok: problems.length === 0, problems, files, unlisted, signature, manifest };
+  return { ok: problems.length === 0, problems, warnings, files, unlisted, signature, manifest };
 }

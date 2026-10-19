@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, afterAll } from "vitest";
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdtempSync, readFileSync, writeFileSync, rmSync, symlinkSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, writeFileSync, rmSync, symlinkSync, existsSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -15,6 +15,8 @@ import {
 import { createModelFixer, assertLocalModelUrl, OLLAMA_ORIGIN } from "../lib/fix/model.js";
 import { scanSecrets } from "../lib/whitebox/secrets.js";
 import { scanRepo } from "../src/scan-repo.js";
+import { assertCleanTree } from "../lib/fix/apply.js";
+import { gitInfo } from "../src/report/evidence.js";
 
 const FIXTURES = resolve("tests/fixtures/fix");
 const BIN = resolve("bin/penthera.js");
@@ -91,8 +93,56 @@ describe("applyDiff safety", () => {
     writeFileSync(join(outside, "target.js"), "x\n");
     symlinkSync(outside, join(dir, "linked"));
     commit(dir);
-    expect(() => applyDiff(dir, edit("linked/target.js"))).toThrow(/resolves outside the repo/);
+    expect(() => applyDiff(dir, edit("linked/target.js"))).toThrow(/is a symlink/);
     expect(readFileSync(join(outside, "target.js"), "utf-8")).toBe("x\n");
+  });
+
+  it("refuses a create through a dangling symlink to a path outside the repo (360 review)", () => {
+    const dir = repoFrom("express");
+    symlinkSync("../escaped.txt", join(dir, "evil.js"));
+    commit(dir);
+    const escaped = resolve(dir, "..", "escaped.txt");
+    rmSync(escaped, { force: true });
+    expect(() => applyDiff(dir, createPatch("evil.js", null, "pwned\n"))).toThrow(/is a symlink/);
+    expect(existsSync(escaped)).toBe(false);
+  });
+
+  it("refuses symlinks anywhere in the path, even ones that stay inside the repo", () => {
+    const dir = repoFrom("express");
+    mkdirSync(join(dir, "real"));
+    writeFileSync(join(dir, "real", "a.js"), "x\n");
+    symlinkSync("real", join(dir, "alias"));
+    commit(dir);
+    expect(() => applyDiff(dir, edit("alias/a.js"))).toThrow(/alias is a symlink/);
+    expect(readFileSync(join(dir, "real", "a.js"), "utf-8")).toBe("x\n");
+  });
+
+  it("refuses .git in any case, at any depth, and HFS+/NTFS aliases of it (360 review)", () => {
+    const dir = repoFrom("express");
+    for (const path of [".GIT/hooks/pre-commit", ".Git/config", "sub/.git/config", "vendor/x/.GIT/hooks/post-checkout", ".git./config", ".g\u200cit/config", "GIT~1/config"]) {
+      expect(() => applyDiff(dir, createPatch(path, null, "#!/bin/sh\necho pwned\n")), path).toThrow(/inside \.git/);
+    }
+    expect(existsSync(join(dir, ".git", "hooks", "pre-commit"))).toBe(false);
+  });
+
+  it("refuses edits to .gitmodules", () => {
+    const dir = repoFrom("express");
+    expect(() => applyDiff(dir, createPatch(".gitmodules", null, "[submodule \"x\"]\n\turl = ../evil\n"))).toThrow(/\.gitmodules/);
+    expect(() => applyDiff(dir, createPatch("lib/.GitModules", null, "x\n"))).toThrow(/\.gitmodules/);
+  });
+
+  it.skipIf(process.platform === "win32")("never runs the scanned repo's core.fsmonitor command (360 review)", () => {
+    const dir = repoFrom("express");
+    const marker = join(tempDir(), "fsmonitor-ran");
+    const hook = join(tempDir(), "fsmonitor.sh");
+    writeFileSync(hook, `#!/bin/sh\ntouch ${JSON.stringify(marker)}\nexit 1\n`, { mode: 0o755 });
+    git(dir, "config", "core.fsmonitor", hook);
+    assertCleanTree(dir);
+    expect(gitInfo(dir).commit).toMatch(/^[0-9a-f]{40}/);
+    expect(existsSync(marker)).toBe(false);
+    // Control: plain git status in that repo does run it.
+    git(dir, "status", "--porcelain");
+    expect(existsSync(marker)).toBe(true);
   });
 
   it("refuses a dirty tree or a non-git directory unless allowDirty", () => {

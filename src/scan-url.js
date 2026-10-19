@@ -386,7 +386,11 @@ async function scanUrlInContext(target, opts) {
   } catch { /* non-critical */ }
 
   // ── Phase 9b: Email authentication posture (SPF/DMARC via DNS) ─────────
-  if (!local && !isIpHost) {
+  // DNS TXT/MX queries go to resolvers, not the target, so --offline skips them.
+  if (!local && !isIpHost && opts.offline) {
+    progress("Skipping email authentication (--offline: no DNS lookups for SPF, DMARC, MX)...");
+  }
+  if (!local && !isIpHost && !opts.offline) {
     progress("Checking email authentication (SPF, DMARC)...");
     try {
       const emailResult = await probeEmailDns(extractDomain(target));

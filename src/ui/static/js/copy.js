@@ -3,7 +3,7 @@
 // no exclamation marks, verbs first on buttons, empty states name the
 // action that fills them, errors give the cause then the fix.
 
-export const TAGLINE = "the routine work of a security team, on your own machine";
+export const TAGLINE = "Open-source security for the apps and AI systems you ship"; // README headline; display lines take no period
 
 export const SCREENS = {
   overview: { title: "Overview", lede: "Where each project stands, from the reports and memory on this machine." },

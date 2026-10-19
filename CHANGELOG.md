@@ -4,6 +4,20 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Added
+
+- **Local learning store** (`lib/memory/`), the memory behind the v1.4 local
+  loop. `--memory` records each scan under `~/.penthera/memory/<project-id>/`
+  (or `PENTHERA_HOME`) as an append-only, hash-chained event log, then uses it
+  to suppress findings marked as false positives and to rank findings within a
+  severity. Suppressed findings are listed in their own section with who
+  suppressed them and why. Memory is never read from the scanned repo and
+  nothing in it is ever executed; a broken chain means memory is not applied.
+  See [docs/local-loop.md](docs/local-loop.md) for the threat model
+- `penthera memory show | verify | forget [--all] | suppress <id> --reason <text>`
+- Optional repo file `penthera.suppress.json` for shared suppressions. Every
+  finding it hides is labelled "suppressed by repo file" with its reason
+
 ## [1.2.0] - 2026-10-19
 
 The first step toward securing the AI toolchain itself: catch AI provider keys,

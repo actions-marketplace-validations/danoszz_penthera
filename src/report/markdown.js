@@ -155,6 +155,20 @@ export function formatMarkdownReport(result, opts = {}) {
     }
   }
 
+  if (result.suppressed?.length) {
+    lines.push("## Suppressed findings");
+    lines.push("");
+    lines.push("Hidden from the findings above by `--memory`. Review these: a suppression is a decision someone made, not a fix.");
+    lines.push("");
+    lines.push("| Finding | Severity | Suppressed by | Reason | Id |");
+    lines.push("|---------|----------|---------------|--------|----|");
+    for (const f of result.suppressed) {
+      const by = f.suppression?.source === "repo-file" ? "**suppressed by repo file** (`penthera.suppress.json`)" : "suppressed by local memory";
+      lines.push(`| ${mdEscape(f.title)} | ${f.severity || "-"} | ${by} | ${mdEscape(f.suppression?.reason)} | \`${f.fid}\` |`);
+    }
+    lines.push("");
+  }
+
   const actionPlan = result.actionPlan || buildActionPlan(findings);
   if (actionPlan.length > 0) {
     lines.push(formatActionPlanMarkdown(actionPlan));

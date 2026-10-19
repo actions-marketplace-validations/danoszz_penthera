@@ -55,6 +55,7 @@ const HELP = `
     $ penthera <url>                 Scan a live URL (black-box)
     $ penthera --repo <path>         Scan a local repo (white-box)
     $ penthera <url> --repo <path>   Full scan (both)
+    $ penthera memory show|verify|forget  Local learning store (never leaves the machine)
 
   ${dim("Scan modes")}
         --profile <name>        quick | standard | deep (default: standard)
@@ -87,6 +88,7 @@ const HELP = `
         --incident-init <file>  Write a blank incident template and exit
         --sbom <file>       Write a CycloneDX software bill of materials (from --repo)
         --history <file>    Track findings over time (time-to-fix, ageing, drift)
+        --memory            Learn from this scan locally; apply suppressions + ranking
         --suppliers <file>  Passively rate suppliers' public domains (RAG, measure d)
         --auth-cookie <v>   Cookie header for authenticated scans
         --auth-bearer <v>   Bearer token for authenticated scans
@@ -120,6 +122,11 @@ function bold(s) { return `\x1b[1m${s}\x1b[0m`; }
 function dim(s) { return `\x1b[2m${s}\x1b[0m`; }
 
 export async function run() {
+  if (process.argv[2] === "memory") {
+    const { runMemoryCommand } = await import("./cli/memory.js");
+    process.exit(await runMemoryCommand(process.argv.slice(3)));
+  }
+
   let parsed;
   try {
     parsed = parseArgs({
@@ -142,6 +149,7 @@ export async function run() {
         "incident-init": { type: "string" },
         sbom:        { type: "string" },
         history:     { type: "string" },
+        memory:      { type: "boolean", default: false },
         suppliers:   { type: "string" },
         profile:     { type: "string" },
         "auth-cookie": { type: "string" },
@@ -341,6 +349,13 @@ export async function run() {
 
   const merged = mergeResults(results);
   merged.profile = profileOpts.profile;
+
+  // Local learning store (opt-in): suppress + rank from ~/.penthera/memory, then record this scan.
+  if (opts.memory && (url || repo)) {
+    const { applyMemoryToScan } = await import("../lib/memory/index.js");
+    const { warnings } = applyMemoryToScan(merged, { repo: repo ? resolve(repo) : null, url });
+    for (const w of warnings) process.stderr.write(`  \x1b[33mWARN\x1b[0m ${w}\n`);
+  }
 
   // Compliance framework mapping (e.g. --framework nis2)
   if (opts.framework) {

@@ -1,7 +1,8 @@
 ---
 name: penthera
 description: >
-  The routine work of a security team, run locally with the Penthera CLI. Scans the
+  Open-source security for the apps and AI systems the user ships, run locally with
+  the Penthera CLI. Scans the
   user's own live URL and repo (TLS, headers, auth, OpenAPI, secrets incl. AI keys,
   opt-in injection); checks npm and Python dependencies offline ("is this dependency safe?",
   "what changed in my deps?", "install X safely", "any AGPL in our deps?"); blocks

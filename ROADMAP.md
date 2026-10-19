@@ -27,9 +27,10 @@ by ambition. Issues and PRs are welcome on anything here.
 
 ## Next
 
-Penthera is growing from "scan the app you built with AI" into "secure the AI
-tooling you build with", competing with commercial supply-chain and AppSec
-platforms on their core value while staying local, deterministic, and free.
+Penthera is open-source security for the apps and AI systems you ship: check it
+before you deploy, vet what you build with, keep watching after you ship. All on
+your own machine, deterministic, and free. How quality is measured on the way to
+v2.0 is in the [plan](docs/plan.md).
 The engineering detail, order of work, and acceptance criteria are in the
 [release plan](docs/release-plan.md).
 
@@ -59,27 +60,45 @@ The engineering detail, order of work, and acceptance criteria are in the
 
 ### v1.5.x "AI apps and compliance" (partly shipped in 1.5.0)
 
+| Feature | Status |
+|---------|--------|
+| Pre-commit hook and license policy | Shipped in 1.5.0 |
+| CRA Art. 14 reporting helper and CycloneDX AI-BOM | Shipped in 1.5.0 |
+| Signed, versioned rule packs (new detection knowledge without a runtime update channel) | Building |
+| `penthera deps` for Python (pip, Poetry, uv) | Building |
+| Local dashboard, `penthera ui` | Building |
+| Internal testing audit (standing release gate) | Building |
+| LLM endpoint configuration checks (rate limits, exposed inference and vector stores, unauthenticated remote MCP, CSP exfiltration surface) | Parked; needs a narrower design |
+| JS bundle key scan | Open for contributors ([#6](https://github.com/danoszz/penthera/issues/6)) |
+
+### v1.6.0 "Before you deploy" (planned)
+
+Test what you are about to ship, where it already runs: on your machine or on a
+preview deployment.
+
 | Feature | Why |
 |---------|-----|
-| LLM endpoint probes | Missing rate limits on chat endpoints, canary prompt-injection and system-prompt leakage (opt-in), markdown-image exfiltration, exposed Ollama / vector DBs, unauthenticated remote MCP |
-| OWASP LLM Top 10 mapping | The same per-run coverage table WSTG already gets |
-| CRA Art. 14 reporting helper | Vulnerability reporting under the Cyber Resilience Act applies from 11 Sept 2026; the NIS2 incident helper already does most of the work |
-| CycloneDX AI-BOM | Models, MCP servers, and skills alongside the existing SBOM |
-| Pre-commit hook and license policy | `agents` and `deps` before code leaves the laptop; allow and deny lists for licences |
-| Signed rule packs | New detection rules ship as reviewed, signed, versioned packs in releases. Never fetched at runtime |
-| JS bundle key scan, PyPI support for `deps` | Coverage gaps worth closing |
+| `penthera ship` | One pre-deploy gate: repo scan, `deps`, `agents`, and a scan of your localhost or preview URL, with a pass/fail you can wire into any deploy script |
+| Preview-deployment scanning | A GitHub Action that waits for the Vercel, Netlify, or Cloudflare Pages preview URL of a PR, scans it, and comments the result. Your own preview, so authorization is built in |
+| Framework presets | Sensible routes, auth flows, and headers for Next.js, SvelteKit, Remix, Nuxt, and Astro, so the first scan is useful without config |
+| Authenticated preview scans | Test accounts from your own seed data, never real credentials |
+
+### v1.7.0 "After you ship" (planned)
+
+Keep watching what you shipped, without agents on your servers and without a
+cloud service.
+
+| Feature | Why |
+|---------|-----|
+| `penthera watch` | Scheduled, non-destructive checks of your own production: certificate expiry, header and CSP regressions, newly exposed endpoints, keys appearing in bundles, drift since the last release |
+| New-CVE alerts for your SBOM | Your shipped SBOM checked against new advisories on a schedule, as a reviewed rule-pack update or an opt-in advisory lookup |
+| Alerts where you already look | A GitHub issue, the job summary, or a local notification. Nothing leaves your infrastructure |
+| Dashboard history | Posture over time in `penthera ui`, fed by `watch` runs |
 
 ### Scheduled for later
 
-- **Internal testing audit.** A standing release gate: Penthera against itself
-  and a fixed set of deliberately vulnerable apps, diffed against the previous
-  release, plus a weekly run between releases.
 - **Landing page.** One static page, no tracking scripts: what it does, install
   in 30 seconds, why you can trust it.
-- **Local dashboard (`penthera ui`).** Current posture, findings and their
-  history, run and re-scan controls, downloadable reports, and a live view of
-  the agent loop. Long-running monitoring over time. The largest item here, so
-  it waits for demand.
 - **Team pack.** Shared policy files, a faster signed rule-pack channel, and a
   self-hostable dashboard for teams. The single-machine tool stays complete and
   MIT.

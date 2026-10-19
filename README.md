@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/penthera-social.jpg" alt="Penthera: the routine work of a security team, on your own machine" width="840">
+<img src="assets/penthera-social.jpg" alt="Penthera: open-source security for the apps and AI systems you ship" width="840">
 
 <br/><br/>
 
@@ -20,30 +20,41 @@
 
 <div align="center">
 
-### The routine work of a security team, on your own machine.
+### Open-source security for the apps and AI systems you ship.
 
-**Penthera audits your app, your dependencies, and your AI tooling, fixes what it
-can, proves the fix, and writes the evidence. Offline, deterministic, free, and
-open source.**
+**Check it before you deploy. Vet what you build with. Keep watching after you
+ship. On your own machine, offline, and free.**
 
 </div>
 
 ---
 
+## The problem
+
+Teams now ship apps and AI agents faster than anyone can secure them. AI writes
+much of the code. AI pulls in the packages, MCP servers, and skills. And on most
+teams nobody does security full time. Attackers have noticed: 2025 and 2026
+brought self-spreading npm worms that hijacked AI coding tools, malicious MCP
+servers, poisoned agent skills, and leaked AI provider keys running up large bills.
+
+Commercial platforms answer this from the cloud, for a fee, often with an AI
+deciding what is malicious. **Penthera answers it on your machine, for free,
+with rules you can read.** Think of it as the open-source security team for
+teams that don't have one.
+
 ## What it does for you
 
-Most small teams have no security engineer. Penthera covers the recurring work
-one would do, from a CLI or from inside Claude Code and Cursor:
-
-| The job | What Penthera does | Command |
-|---------|--------------------|---------|
-| **Test the app** | Black-box scan of a live URL (TLS, headers, CORS, auth, JWT, IDOR, OAuth, OpenAPI, opt-in injection and fuzzing) and white-box scan of the repo (routes, trust boundaries, secrets including AI provider keys) | `penthera <url> --repo .` |
-| **Vet dependencies** | What every npm and Python package can actually do (install scripts, shell, network, env, obfuscation), what an upgrade added, lookalike names | `penthera deps --base main` |
-| **Guard installs** | Shows what a new package brings before any install script runs, and stops it under your policy | `penthera install <pkg>` |
-| **Review pull requests** | Comments the dependency capability diff on every PR that touches the lockfile | [GitHub Action](#use-as-a-github-action) |
-| **Audit your AI tooling** | Skills, MCP servers, hooks, plugins, and rule files: hidden instructions, unpinned servers, over-broad permissions, silent updates | `penthera agents --home` |
-| **Fix and verify** | Deterministic fixes on a local branch, re-scanned to prove they worked, remembered so the next run is sharper. Never pushes | `penthera agent --loop` |
-| **Report and prove** | Reports for developers, owners, and auditors; a hashed, signable evidence bundle; NIS2 readiness and incident drafts | `penthera <url> --audience auditor --evidence out/` |
+| | The job | What Penthera does | Command |
+|---|---------|--------------------|---------|
+| **Before you deploy** | Test the app | Scan your localhost or preview URL (TLS, headers, CORS, auth, JWT, IDOR, OAuth, OpenAPI, opt-in injection and fuzzing) and your repo (routes, trust boundaries, secrets including AI keys) | `penthera <url> --repo .` |
+| | Fix and verify | Deterministic fixes on a local branch, re-scanned to prove they worked, remembered so the next run is sharper. Never pushes | `penthera agent --loop` |
+| | Block it at commit time | Secrets, risky agent config, and dependency changes stopped before they are committed | `penthera hook install` |
+| **What you build with** | Vet dependencies | What every npm and Python package can actually do (install scripts, shell, network, env, obfuscation), what an upgrade added, lookalike names | `penthera deps --base main` |
+| | Guard installs | Shows what a new package brings before any install script runs, and stops it under your policy | `penthera install <pkg>` |
+| | Review pull requests | Comments the dependency capability diff on every PR that touches the lockfile | [GitHub Action](#use-as-a-github-action) |
+| | Audit your AI tooling | Skills, MCP servers, hooks, plugins, and rule files: hidden instructions, unpinned servers, over-broad permissions, silent updates | `penthera agents --home` |
+| **After you ship** | Report and prove | Reports for developers, owners, and auditors; a hashed, signable evidence bundle; NIS2 and CRA readiness and report drafts | `penthera <url> --audience auditor --evidence out/` |
+| | Keep watching | Scheduled checks of your own production for drift: certificates, headers, new endpoints, keys in bundles, new CVEs in your SBOM | *on the [roadmap](ROADMAP.md)* |
 
 What it is not: a human pentester, a 24/7 SOC, or incident response. It does the
 repeatable checks so the people you do have can spend their time on judgement.
@@ -110,19 +121,7 @@ wizard. See the [quick start](#quick-start).
 
 ---
 
-## Why Penthera
-
-You shipped something fast: vibecoded, AI-assisted, already live. The same models
-that helped you build it also make it easy for someone to probe it. Exposed API
-routes, missing security headers, weak auth, a hardcoded key in the repo, an AI
-provider key in the frontend bundle. Meanwhile the packages, skills, and MCP
-servers you pull in run with your credentials, and attackers know it: 2025 and
-2026 brought self-spreading npm worms, malicious MCP servers, and poisoned agent
-skills.
-
-Commercial platforms answer this from the cloud, for a fee, often with an AI
-judge deciding what is malicious. Penthera answers it on your machine, for free,
-with rules you can read.
+## Use it responsibly
 
 Penthera is for hardening systems you own. It is powerful, so please use it
 carefully. See [Ethical use](#ethical-use--authorization) and the [Disclaimer](#disclaimer).

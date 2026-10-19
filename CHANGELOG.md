@@ -4,6 +4,22 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-19
+
+The biggest release so far, covering the v1.3.0 "AI toolchain" and v1.4.0
+"Local loop" milestones together. Penthera now does the routine work of a small
+security team on your own machine:
+- tests your app;
+- vets and guards your dependencies;
+- audits your AI tooling;
+- fixes what it finds on a local branch and verifies each fix;
+- writes reports and evidence for auditors.
+
+It still runs offline, with no telemetry. The first outside contribution, from
+@Nurana100, is in this release.
+
+Requires Node 22+. Upgrading from 1.1.x or 1.2.x needs no config changes.
+
 ### Added
 
 - **GitHub Action** (`uses: danoszz/penthera@<sha>`, `action.yml`): on PRs that

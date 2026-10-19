@@ -1,6 +1,6 @@
 {
   "name": "penthera",
-  "version": "1.2.0",
+  "version": "1.4.0",
   "description": "The routine work of a security team, on your own machine. Audit a live URL and your repo, vet what your npm dependencies can do and block risky installs, audit your AI tooling (skills, MCP servers, hooks, plugins), fix what it finds on a local branch and re-scan to verify, and produce reports and NIS2 evidence. Offline, deterministic, no telemetry. Authorized testing only.",
   "author": {
     "name": "Daan van der Zwaag",

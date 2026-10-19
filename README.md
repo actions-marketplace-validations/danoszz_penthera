@@ -583,7 +583,7 @@ helps with the paperwork around it. Offline, no accounts.
 
 ```yaml
 # Scan a staging URL on a schedule and upload results to GitHub Security.
-- run: npx penthera@1.2.0 "$PENTEST_URL" --profile standard --sarif reports/scan.sarif
+- run: npx penthera@1.4.0 "$PENTEST_URL" --profile standard --sarif reports/scan.sarif
 - uses: github/codeql-action/upload-sarif@v4
   with:
     sarif_file: reports/scan.sarif

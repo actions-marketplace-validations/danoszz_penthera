@@ -29,3 +29,8 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    ignore:
+      # Stay on Node LTS lines (even majors). Odd majors are short-lived
+      # "current" releases that never become LTS.
+      - dependency-name: "node"
+        versions: [">=23 <24", ">=25 <26", ">=27 <28", ">=29 <30"]

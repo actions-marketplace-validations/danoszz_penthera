@@ -136,6 +136,17 @@ person.
   [internal audit](docs/internal-audit.md) of eight gates
   ([latest report](audit/REPORT.md)).
 
+## What it is today, and where it is going
+
+Penthera does the routine, repeatable checks well. It does not find novel bugs,
+it is not an autonomous AI, and its accuracy is measured so far only on a small
+benchmark of our own. AI is optional and never the judge: models may propose,
+deterministic checks decide. The full, honest picture, every design decision and
+how to challenge it, is in the [manifesto and FAQ](docs/MANIFESTO.md). The plan
+for 2.0 (real-world accuracy, local models that propose fixes the scanner
+verifies, and the research to prove each step) is in the
+[2.0 vision](docs/vision-2.0.md).
+
 ## Research and methodology
 
 Penthera's method is written down and tied to the literature. The

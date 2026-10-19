@@ -12,6 +12,8 @@ Open-source security for the apps and AI systems you ship: check it before you d
 | [Comparisons](./compare/README.md) | Using Penthera with [Socket](./compare/socket.md), [Snyk](./compare/snyk.md), [GitHub](./compare/github.md), [ZAP](./compare/zap.md), [Semgrep](./compare/semgrep.md) |
 | [Commands](./commands/README.md) | One page per command: [scan](./commands/scan.md), [agents](./commands/agents.md), [deps](./commands/deps.md), [install](./commands/install.md), [fix](./commands/fix.md), [hook](./commands/hook.md), [action](./commands/action.md), [skill](./commands/skill.md) |
 | [CHANGELOG](../CHANGELOG.md) | Version history |
+| [Manifesto and FAQ](./MANIFESTO.md) | What Penthera is today, its design decisions, and how to challenge them |
+| [2.0 vision](./vision-2.0.md) | The plan to become the best: gaps, AI roadmap, research program |
 | [Roadmap](../ROADMAP.md), [plan to v2.0](./plan.md) and [release plan](./release-plan.md) | What ships next, in what order, and how quality is measured |
 
 ## Scanning

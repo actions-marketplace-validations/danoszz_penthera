@@ -57,7 +57,7 @@ async function gatherFindings(repo, input) {
   return { findings, fresh: true };
 }
 
-function colorDiff(diff) {
+export function colorDiff(diff) {
   return diff.split("\n").map((l) => {
     if (/^(---|\+\+\+) /.test(l)) return bold(l);
     if (l.startsWith("@@")) return cyan(l);
@@ -67,7 +67,7 @@ function colorDiff(diff) {
   }).join("\n");
 }
 
-function printPlan(plan) {
+export function printPlan(plan) {
   const conf = plan.confidence === "needs-human-review" ? yellow(plan.confidence) : plan.confidence;
   process.stdout.write(`\n  ${bold(plan.id)}  ${plan.title}${plan.framework ? dim(` (${plan.framework})`) : ""}  confidence: ${conf}  source: ${plan.source}\n`);
   for (const f of plan.findings) process.stdout.write(`    ${dim("fixes")} [${f.severity || "?"}] ${f.title}${f.url ? dim(` ${f.url}`) : ""}\n`);

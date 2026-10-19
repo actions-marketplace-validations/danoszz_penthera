@@ -120,23 +120,24 @@ function tarEntry(name, data) {
   return Buffer.concat([h, data, Buffer.alloc((512 - (data.length % 512)) % 512)]);
 }
 
-function packageFiles(key) {
+export function packageFiles(key, packages = PACKAGES) {
   const [name, version] = [key.slice(0, key.lastIndexOf("@")), key.slice(key.lastIndexOf("@") + 1)];
-  const spec = PACKAGES[key];
+  const spec = packages[key];
   const files = {};
   const manifest = { name, version, main: "index.js", license: "MIT" };
   if (spec._scripts) manifest.scripts = spec._scripts;
+  if (spec._deps) manifest.dependencies = spec._deps;
   files["package.json"] = JSON.stringify(manifest, null, 2) + "\n";
   for (const [f, body] of Object.entries(spec)) if (!f.startsWith("_")) files[f] = body;
   return { name, version, files, hasInstallScript: !!spec._scripts };
 }
 
-function tarball(files) {
+export function tarball(files) {
   const parts = Object.keys(files).sort().map((f) => tarEntry(`package/${f}`, Buffer.from(files[f])));
   return gzipSync(Buffer.concat([...parts, Buffer.alloc(1024)]));
 }
 
-const sri = (buf) => `sha512-${createHash("sha512").update(buf).digest("base64")}`;
+export const sri = (buf) => `sha512-${createHash("sha512").update(buf).digest("base64")}`;
 
 function cachePut(cacheDir, tgz) {
   const hex = createHash("sha512").update(tgz).digest("hex");

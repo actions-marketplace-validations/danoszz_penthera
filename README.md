@@ -201,6 +201,9 @@ next to it. Reports are gitignored by default.
 | **Markdown** | `--markdown file.md` or `-o file.json` | Human-readable report (exec summary, findings tables, fixes). Written next to `-o` automatically |
 | JSON | `--json` or `-o file.json` | CI pipelines, baseline diffs, custom tooling |
 | SARIF | `--sarif file.sarif` | GitHub Security / Code Scanning tab |
+| Audience report | `--audience developer\|owner\|auditor` | The same scan written for a developer, an owner or an auditor ([docs/evidence.md](docs/evidence.md#audience-reports)) |
+| Your template | `--report-template file.md` | Your own Markdown with `{{summary.critical}}`, `{{#each findings}}`, `{{#if x}}`; no code runs |
+| **Evidence bundle** | `--evidence <dir> [--sign-key <ssh-key>]` | All reports plus `manifest.json` with SHA-256s, optionally SSH-signed. Auditors check it with `penthera evidence verify <dir> --allowed-signers <file>` ([docs/evidence.md](docs/evidence.md)) |
 
 ---
 
@@ -338,6 +341,16 @@ How it stays safe:
 
 No recipe for a finding? `--fix-model <name>` can ask a model running in [Ollama](https://ollama.com) on `127.0.0.1:11434`, and nowhere else. It is off by default and only used when no recipe matches. Its diffs are labelled `needs-human-review`.
 
+### The local loop: `penthera agent --loop`
+
+`penthera agent --loop` runs scan → fix → verify → learn on your machine until nothing fixable is left (or `--max-iterations`, default 5):
+
+```bash
+penthera agent --loop --repo . --url http://localhost:3000 -o reports/loop.json
+```
+
+It shows each diff and asks `y/n/skip/quit`, applies it on a local branch `penthera/fix-<yyyymmdd-hhmm>`, re-scans (plus your tests with `--run-tests`), commits the fix if it verified and reverts it if not, and records the outcome in [local memory](docs/local-loop.md). It refuses a dirty tree or a detached HEAD, runs only an allow-list of local git commands with your repo's hooks disabled, contacts only the `--url` host, and never pushes or opens a pull request. `--auto low` applies without asking only recipes that memory shows verified 3+ times with no failures on your framework. Details and the `loopRun` JSON: [docs/local-loop.md](docs/local-loop.md#the-agent-loop).
+
 ---
 
 ## Dependency risk: what can your packages do?
@@ -403,6 +416,56 @@ goes to the job summary instead. Inputs: `mode`, `path`, `base-ref`, `url`,
 `fail-on`, `comment`, `sarif`, `penthera-version`. Copy the full workflow, with
 permissions and a lockfile paths filter, from
 [`docs/examples/pr-dependency-review.yml`](docs/examples/pr-dependency-review.yml).
+
+### Install firewall: `penthera install`
+
+`penthera deps` tells you what changed after the fact. `penthera install` asks
+before anything runs:
+
+```bash
+penthera install left-pad             # check, then install (asks if the policy says so)
+penthera install -D vitest --dry-run  # report only
+penthera install --yes                # CI: install only if nothing breaches the policy
+```
+
+```
+  ▲ color-helper 1.0.0 → 1.1.0  + install script
+      postinstall: node postinstall.js
+
+  Policy    defaults (no penthera.policy.json)
+  ! color-helper@1.1.0  needs approval: install script
+
+  Install anyway? [y]es, run the install scripts / [s]kip scripts / [N]o:
+```
+
+1. npm resolves the new tree in a temporary copy of `package.json` and the
+   lockfile, with scripts off (`npm install --package-lock-only --ignore-scripts`).
+2. New tarballs are fetched with `npm cache add`. Nothing is unpacked into
+   `node_modules` and no package code runs; each tarball is checked against
+   the proposed lockfile's integrity before it is read.
+3. The `deps` engine diffs capabilities against your current lockfile, lists
+   new install scripts with their commands, and checks new names for typosquats.
+4. `penthera.policy.json` decides. On approval, the reviewed lockfile is
+   installed as is, with `--ignore-scripts` unless you approved the scripts
+   (on npm 12+, approved scripts are pinned in `package.json` `allowScripts`).
+   On abort, exit code 1, and the project is byte for byte unchanged.
+
+```json
+{
+  "allow": ["@acme/*", "esbuild", "sharp@0.33.5"],
+  "deny": ["ai-cli-invoke", "token-harvest"],
+  "requireApproval": ["install-scripts", "ai-config-write", "ai-cli-invoke",
+                      "token-harvest", "obfuscated", "typosquat", "unscanned"]
+}
+```
+
+`deny` and `requireApproval` take capability ids from the table above
+(`install-scripts`, `shell`, `network`, `env-bulk`, `obfuscated`, ...) plus
+`typosquat` and `unscanned`. The `requireApproval` list shown is the default.
+`allow` takes names or globs, optionally pinned to a version, and overrides
+both. The one network use is npm talking to your configured registry, and
+Penthera prints which one; Penthera itself sends nothing. Workspaces and
+`file:` dependencies are not supported yet.
 
 ---
 

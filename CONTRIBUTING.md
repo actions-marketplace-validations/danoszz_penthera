@@ -96,9 +96,11 @@ Report security issues in Penthera itself privately — see [SECURITY.md](SECURI
 
 ## Cutting a release
 
-Publishing is automated: pushing a `v*` tag runs `.github/workflows/publish.yml`,
-which tests, checks the tag against `package.json`, publishes to npm with
-provenance, and creates the GitHub Release. **Do not run `npm publish` locally.**
+Publishing is automated and two-step. Pushing a `v*` tag runs
+`.github/workflows/publish.yml`, which tests, checks the tag against
+`package.json`, **stages** the package on npm with provenance (trusted
+publishing, no token), and creates the GitHub Release. The version only goes
+live once a maintainer approves it with 2FA. **Do not run `npm publish` locally.**
 
 1. Bump the version everywhere it appears. CI fails if they drift:
    - `package.json` and `package-lock.json` (`npm version X.Y.Z --no-git-tag-version`)
@@ -108,5 +110,8 @@ provenance, and creates the GitHub Release. **Do not run `npm publish` locally.*
 2. Move the `[Unreleased]` notes in `CHANGELOG.md` under the new version.
 3. Merge to `main` through a PR so CI runs.
 4. Tag the merge commit and push the tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
-5. Optional: `npm run package:skill` and attach the zip to the release for
+5. Approve the staged version with 2FA: npmjs.com → penthera → Staged Packages →
+   Approve, or `npm stage list penthera` and `npm stage approve <stage-id>`.
+   Check the file list and provenance before you approve.
+6. Optional: `npm run package:skill` and attach the zip to the release for
    Claude.ai uploads.

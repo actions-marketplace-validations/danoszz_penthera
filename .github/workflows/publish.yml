@@ -1,15 +1,15 @@
 name: Publish
 
-# Publishes to npm with build provenance when a version tag is pushed.
-# Provenance cryptographically links the published tarball to this workflow run
-# and commit, and npm shows a "Built and signed on GitHub Actions" badge on the
-# package page. It only works from CI with OIDC, never from a laptop.
+# Stages a release on npm when a version tag is pushed. Nothing goes live until a
+# maintainer approves it with 2FA on npmjs.com (Staged Packages tab) or with
+# `npm stage approve <stage-id>`. A hijacked workflow can stage, never ship.
 #
-# Setup: preferred is npm trusted publishing (OIDC, no long-lived secret):
-#   npmjs.com > penthera > Settings > Trusted publishing > GitHub Actions,
-#   repo danoszz/penthera, workflow publish.yml. Then delete the NPM_TOKEN secret.
-#   Until that is configured, the NPM_TOKEN repository secret is used.
-# Release: see CONTRIBUTING.md ("Cutting a release"). Pushing a v* tag publishes.
+# Auth is npm trusted publishing (OIDC): no npm token is stored anywhere. The
+# trusted publisher on npmjs.com is configured stage-only (danoszz/penthera,
+# publish.yml, "npm publish" unchecked). Provenance links the tarball to this
+# workflow run and commit.
+#
+# Release: see CONTRIBUTING.md ("Cutting a release"). Pushing a v* tag stages.
 
 on:
   push:
@@ -29,9 +29,14 @@ jobs:
 
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: 24 # npm 11.5+ for trusted publishing
+          node-version: 24
           cache: npm
           registry-url: https://registry.npmjs.org
+
+      # Staged publishing needs npm >= 11.15. Pinned so the release toolchain
+      # only changes through a reviewed PR.
+      - name: Use npm 11.21.1
+        run: npm install -g npm@11.21.1 && npm --version
 
       - name: Install dependencies
         run: npm ci
@@ -48,10 +53,19 @@ jobs:
             exit 1
           fi
 
-      - name: Publish with provenance
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Stage on npm with provenance
+        run: npm stage publish --provenance --access public
+
+      - name: Ask for approval
+        run: |
+          {
+            echo "## penthera@${GITHUB_REF_NAME#v} is staged on npm"
+            echo
+            echo "It is **not live yet**. Approve it with 2FA:"
+            echo
+            echo "- npmjs.com → penthera → **Staged Packages** → Approve, or"
+            echo "- \`npm stage list penthera\` then \`npm stage approve <stage-id>\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Create GitHub release
         env:

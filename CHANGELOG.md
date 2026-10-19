@@ -72,6 +72,23 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   that comments the capability diff on PRs that change the lockfile
 - Findings use category `dependency-risk` and source `deps-scan`; SARIF
   results now carry a start line when a finding has one
+- **`penthera install [pkg...]`**: an install firewall on the `deps` engine.
+  npm resolves the new tree in a temporary copy with scripts off
+  (`--package-lock-only --ignore-scripts`), new tarballs are fetched with
+  `npm cache add` and read back only after an integrity check, and the
+  capability diff, new install scripts (with their commands) and typosquats
+  are shown before anything in the project changes. `penthera.policy.json`
+  (`allow` names/globs, `deny` and `requireApproval` capabilities) decides;
+  by default new install scripts, AI-config writes, AI CLI invocation, token
+  harvesting, obfuscation, typosquats and unreadable packages need approval.
+  Interactive by default, `--yes` for CI (installs only when nothing breaches
+  the policy), `--dry-run` to report. On approval the reviewed lockfile is
+  installed as is, with `--ignore-scripts` unless the scripts were approved
+  (on npm 12+, approved scripts are pinned in `package.json` `allowScripts`).
+  An abort leaves the project byte for byte unchanged. npm's registry traffic
+  is the only egress, and it is printed
+- `scanDeps()` accepts `treeRoot` and a list of cache dirs; the diff output
+  carries each changed package's install scripts
 - **Fix recipes** (`lib/fix/`, `penthera fix`): deterministic, local fixes for
   common findings, printed as unified diffs. `penthera fix --plan` plans fixes
   for a fresh repo scan or an earlier `-o` report; `penthera fix --apply <id>`

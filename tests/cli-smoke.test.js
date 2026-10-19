@@ -29,6 +29,19 @@ function run(args) {
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
 describe("CLI smoke (offline commands)", () => {
+  it("lists every subcommand in the top-level --help, penthera hook included (360 review)", () => {
+    const help = execFileSync(process.execPath, [BIN, "--help"], { encoding: "utf-8", env: { ...process.env, NO_COLOR: "1" } });
+    for (const cmd of ["agents", "deps", "install", "hook", "memory", "fix", "evidence", "agent"]) {
+      expect(help, cmd).toMatch(new RegExp(`\\$ penthera ${cmd}\\b`));
+    }
+  });
+
+  it("docs/plan.md claims for v1.5.0 only what v1.5.0 shipped (360 review)", () => {
+    const row = readFileSync(join(REPO, "docs/plan.md"), "utf-8").split("\n").find((l) => l.startsWith("| v1.5.0 |"));
+    expect(row).toMatch(/hook.*license policy.*CRA.*AI-BOM/);
+    expect(row).not.toMatch(/rule pack|dashboard|Python|internal audit/i);
+  });
+
   it("--assessment-init writes a valid self-assessment template", () => {
     run(["--assessment-init", "a.json"]);
     const a = JSON.parse(readFileSync(join(dir, "a.json"), "utf-8"));

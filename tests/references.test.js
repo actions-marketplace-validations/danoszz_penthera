@@ -3,7 +3,7 @@
  * Markdown report and SARIF.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, mkdtempSync } from "node:fs";
+import { readFileSync, mkdtempSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -49,6 +49,28 @@ describe("references data", () => {
       cwd: new URL("..", import.meta.url),
       stdio: "pipe",
     })).not.toThrow();
+  });
+
+  it("cites every finding category the code emits, deps, license and machine audit included (360 review)", () => {
+    const emitted = new Set();
+    const walk = (d) => {
+      for (const e of readdirSync(d, { withFileTypes: true })) {
+        const p = join(d, e.name);
+        if (e.isDirectory()) walk(p);
+        else if (/\.(m?js)$/.test(e.name)) for (const m of readFileSync(p, "utf-8").matchAll(/category: "([a-z0-9-]+)"/g)) emitted.add(m[1]);
+      }
+    };
+    walk(new URL("../lib", import.meta.url).pathname);
+    walk(new URL("../src", import.meta.url).pathname);
+    for (const cat of ["dependency-risk", "license", "machine-integrity", "rootkit"]) expect(emitted.has(cat), cat).toBe(true);
+    const missing = [...emitted].filter((cat) => referenceKeysFor({ category: cat }).length === 0);
+    expect(missing).toEqual([]);
+  });
+
+  it("gives license findings their own remediation, not the generic fallback", () => {
+    const plan = buildActionPlan([{ severity: "high", category: "license", title: "copyleft@1.0.0: AGPL-3.0-or-later is not allowed", package: "copyleft" }]);
+    expect(plan[0]).toMatchObject({ id: "license", ownerAction: true });
+    expect(plan[0].references).toEqual(["spdxlicenselist"]);
   });
 
   it("returns [] for unknown categories", () => {

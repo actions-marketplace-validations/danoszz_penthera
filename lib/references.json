@@ -127,6 +127,78 @@
     ],
     "attack-chain": [
       "shostack2014threat"
+    ],
+    "dependency-risk": [
+      "ladisa2023sok",
+      "ohm2020backstabber",
+      "zimmermann2019small"
+    ],
+    "license": [
+      "spdxlicenselist"
+    ],
+    "agent-config": [
+      "owasp2025agentic",
+      "owasp2025mcptop10",
+      "greshake2023signed"
+    ],
+    "machine": [
+      "scarfone2008sp800115",
+      "saltzer1975protection"
+    ],
+    "machine-integrity": [
+      "scarfone2008sp800115",
+      "thompson1984reflections"
+    ],
+    "machine-config": [
+      "scarfone2008sp800115",
+      "saltzer1975protection"
+    ],
+    "suspicious-process": [
+      "scarfone2008sp800115"
+    ],
+    "ssh-config": [
+      "scarfone2008sp800115",
+      "saltzer1975protection"
+    ],
+    "rootkit": [
+      "scarfone2008sp800115",
+      "thompson1984reflections"
+    ],
+    "persistence": [
+      "scarfone2008sp800115"
+    ],
+    "network": [
+      "scarfone2008sp800115"
+    ],
+    "system-commands": [
+      "scarfone2008sp800115"
+    ],
+    "suspicious-files": [
+      "scarfone2008sp800115"
+    ],
+    "rkhunter": [
+      "scarfone2008sp800115"
+    ],
+    "permissions": [
+      "scarfone2008sp800115",
+      "saltzer1975protection"
+    ],
+    "malware": [
+      "scarfone2008sp800115"
+    ],
+    "kernel": [
+      "scarfone2008sp800115",
+      "saltzer1975protection"
+    ],
+    "hidden-files": [
+      "scarfone2008sp800115"
+    ],
+    "code-signing": [
+      "scarfone2008sp800115",
+      "thompson1984reflections"
+    ],
+    "browser-extensions": [
+      "scarfone2008sp800115"
     ]
   },
   "sources": {
@@ -369,6 +441,11 @@
       "cite": "MITRE CWE",
       "title": "CWE: Common Weakness Enumeration",
       "url": "https://cwe.mitre.org/"
+    },
+    "spdxlicenselist": {
+      "cite": "SPDX License List",
+      "title": "SPDX License List",
+      "url": "https://spdx.org/licenses/"
     }
   }
 }

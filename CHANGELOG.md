@@ -78,6 +78,33 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 - Funding and partnership drafts under `docs/funding/`: an NLnet application
   draft, GitHub Sponsors tiers, a partner brief, and a due diligence checklist.
 - CONTRIBUTING: commits are signed off under the Developer Certificate of Origin.
+- **`--offline`**: the scan contacts only the target. Recon is skipped, the
+  Retire.js check uses the vendored database snapshot, and every other host is
+  refused by the HTTP client (redirects may stay within the target's
+  registrable domain). Groundwork for the local agent loop.
+- **Vendored Retire.js database** (`lib/data/retire-jsrepository.json.gz`,
+  72 KB gzipped) with source URL, date and SHA-256 in a meta file.
+  `npm run refresh:retire-db` updates it at release time, and
+  `npm run refresh:retire-db -- --check` reports drift from upstream. Online
+  scans fall back to it when the live download fails.
+- **Third-party egress report**: every scan lists the hosts it contacted
+  besides the target, in the terminal summary and in a "Network egress" section
+  of the Markdown report (`result.egress` in JSON).
+- **`--user-agent <ua>`** to override the new default User-Agent.
+
+### Changed
+
+- Every request now sends `User-Agent: penthera/<version>
+  (+https://github.com/danoszz/penthera)` instead of Node's default (#7;
+  first added by @Nurana100 in #20, our first outside contribution).
+- Probe failures (timeouts, connection errors, refused hosts) are recorded as
+  `result.errors[]` (`{ probe, url, message, count }`). The terminal summary
+  shows "N probes inconclusive", and the Markdown report lists them under
+  "Inconclusive probes" (#8).
+- All network calls go through one client in `src/utils/http.js`, which owns
+  timeouts, the User-Agent and egress policy. The per-module fetch wrappers in
+  the crawler, injection, fuzzer, template, recon, parameter, Retire.js and
+  adaptive-probe modules are gone.
 
 ## [1.2.0] - 2026-10-19
 

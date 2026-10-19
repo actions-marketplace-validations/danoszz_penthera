@@ -51,7 +51,8 @@
     "refresh:popular": "node scripts/refresh-popular-packages.mjs",
     "prepack": "npm test",
     "mock-server": "node tests/fixtures/mock-server.js",
-    "bench": "node bench/run.js"
+    "bench": "node bench/run.js",
+    "refresh:retire-db": "node scripts/refresh-retire-db.mjs"
   },
   "keywords": [
     "security",

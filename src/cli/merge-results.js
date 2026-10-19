@@ -31,6 +31,8 @@ export function mergeResults(results) {
       apiRoot: results.find((r) => r.apiRoot)?.apiRoot || null,
       machine: results.find((r) => r.machine)?.machine || null,
       executedProbes: results.flatMap((r) => r.executedProbes || []),
+      egress: results.find((r) => r.egress)?.egress || null,
+      errors: results.flatMap((r) => r.errors || []),
       findings: dedupeFindings(results.flatMap((r) => r.findings || [])),
     };
   }

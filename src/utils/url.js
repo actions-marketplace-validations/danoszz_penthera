@@ -44,6 +44,29 @@ export function redirectsToHost(locationHeader, requestUrl, attackerHost) {
   }
 }
 
+// Second-level labels that act as public suffixes under country TLDs
+// (example.co.uk, example.com.au). Not a full public-suffix list: a miss makes
+// two sibling hosts look unrelated, which errs toward blocking, not allowing.
+const SECOND_LEVEL_SUFFIXES = new Set(["ac", "co", "com", "edu", "gov", "ltd", "ne", "net", "or", "org", "plc"]);
+
+/**
+ * Registrable domain of a hostname, e.g. "app.staging.example.com" →
+ * "example.com", "shop.example.co.uk" → "example.co.uk". IPs and
+ * single-label hosts come back unchanged.
+ */
+export function registrableDomain(hostname) {
+  const host = String(hostname).toLowerCase().replace(/\.$/, "");
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":") || host.startsWith("[")) return host;
+  const parts = host.split(".");
+  if (parts.length <= 2) return host;
+  const tld = parts[parts.length - 1];
+  const second = parts[parts.length - 2];
+  if (tld.length === 2 && SECOND_LEVEL_SUFFIXES.has(second)) {
+    return parts.slice(-3).join(".");
+  }
+  return parts.slice(-2).join(".");
+}
+
 /** Convert a URL into a safe filename fragment. */
 export function urlToFilename(url) {
   return url

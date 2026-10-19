@@ -56,7 +56,8 @@ import { probeJwt } from "../lib/blackbox/jwt.js";
 import { probeEmailDns } from "../lib/blackbox/email-dns.js";
 import { resolveAuth } from "./utils/auth.js";
 import { normalizeBaseUrl, isPrivateHost, joinUrl } from "./utils/url.js";
-import { safeFetch } from "./utils/http.js";
+import { safeFetch, createEgressContext, runWithEgress, egressSummary, probeErrors } from "./utils/http.js";
+import { RECON_HOSTS } from "../lib/recon.js";
 import { dedupeFindings } from "./cli/merge-results.js";
 
 const SENSITIVE_RE = /private_key|SECRET|PASSWORD|API_KEY|FIREBASE_|STRIPE_|DATABASE_URL|client_email|\[core\]|\[remote/i;
@@ -70,6 +71,21 @@ const SENSITIVE_RE = /private_key|SECRET|PASSWORD|API_KEY|FIREBASE_|STRIPE_|DATA
  */
 export async function scanUrl(rawTarget, opts = {}) {
   const target = normalizeBaseUrl(rawTarget);
+  // Every request in this scan goes through one egress context: it enforces
+  // --offline, sets the User-Agent, and records hosts contacted and probe errors.
+  const ctx = createEgressContext({
+    target,
+    offline: opts.offline,
+    userAgent: opts.userAgent,
+    allowHosts: opts.allowHosts,
+  });
+  const result = await runWithEgress(ctx, () => scanUrlInContext(target, opts));
+  result.egress = egressSummary(ctx);
+  result.errors = probeErrors(ctx);
+  return result;
+}
+
+async function scanUrlInContext(target, opts) {
   const timeout = opts.timeout || 10_000;
   const concurrency = opts.concurrency || 15;
   const progress = opts.onPhase || (() => {});
@@ -104,7 +120,7 @@ export async function scanUrl(rawTarget, opts = {}) {
   // ── Phase 1: Reachability ──────────────────────────────────────────────
   progress("Checking target reachability...");
   try {
-    const res = await safeFetch(target, { timeout });
+    const res = await safeFetch(target, { timeout, probe: "reachability" });
     result.reachable = res != null && res.status < 500;
   } catch {
     result.reachable = false;
@@ -243,7 +259,7 @@ export async function scanUrl(rawTarget, opts = {}) {
 
   await Promise.allSettled(
     unchecked.map(async (file) => {
-      const res = await safeFetch(joinUrl(target, file.path), { timeout: 5_000 });
+      const res = await safeFetch(joinUrl(target, file.path), { timeout: 5_000, probe: "sensitive-files" });
       if (!res || res.status !== 200) return;
       const text = await res.text().catch(() => "");
 
@@ -281,6 +297,7 @@ export async function scanUrl(rawTarget, opts = {}) {
     const res = await safeFetch(joinUrl(target, corsEndpoint), {
       headers: { Origin: evilOrigin },
       timeout: 5_000,
+      probe: "cors",
     });
     if (!res) continue;
     const acao = res.headers.get("access-control-allow-origin");
@@ -308,6 +325,7 @@ export async function scanUrl(rawTarget, opts = {}) {
         "x-middleware-subrequest": "middleware:middleware:middleware:middleware:middleware",
       },
       timeout: 5_000,
+      probe: "framework-check",
     });
     if (res && res.status === 200) {
       const alreadyFound = result.findings.some(
@@ -330,7 +348,7 @@ export async function scanUrl(rawTarget, opts = {}) {
   // ── Phase 9: Cookie Security Audit ──────────────────────────────────────
   progress("Auditing cookie security...");
   try {
-    const cookieRes = await safeFetch(target, { timeout });
+    const cookieRes = await safeFetch(target, { timeout, probe: "cookie" });
     if (cookieRes) {
       const setCookies = cookieRes.headers.getSetCookie?.() || [];
       if (setCookies.length > 0) {
@@ -390,6 +408,9 @@ export async function scanUrl(rawTarget, opts = {}) {
       // Only count the probe as run when its database actually loaded, so the
       // WSTG and compliance coverage can't claim a check that was skipped.
       retireJsRan = jsResult.dbLoaded !== false;
+      if (jsResult.dbSource) {
+        result.retireDb = { source: jsResult.dbSource, snapshotDate: jsResult.dbSnapshotDate || null };
+      }
       if (jsResult.libraries.length > 0) {
         result.jsLibraries = jsResult.libraries;
       }
@@ -416,7 +437,10 @@ export async function scanUrl(rawTarget, opts = {}) {
   if (opts.recon && local) {
     progress("Skipping OSINT recon (localhost target)...");
   }
-  if (opts.recon && !local) {
+  if (opts.recon && !local && opts.offline) {
+    progress(`Skipping OSINT recon (--offline: no queries to ${RECON_HOSTS.join(", ")})...`);
+  }
+  if (opts.recon && !local && !opts.offline) {
     const domain = extractDomain(target);
     progress(`Running OSINT recon on ${domain}...`);
     try {
@@ -426,7 +450,7 @@ export async function scanUrl(rawTarget, opts = {}) {
       if (result.recon.endpoints.length > 0) {
         progress(`Probing ${result.recon.endpoints.length} historically known endpoints...`);
         for (const path of result.recon.endpoints.slice(0, 50)) {
-          const res = await safeFetch(`${target}${path}`, { timeout: 5_000 });
+          const res = await safeFetch(`${target}${path}`, { timeout: 5_000, probe: "recon" });
           if (res && res.status !== 404 && res.status < 500) {
             const alreadyKnown = filtered.some((ep) => ep.path === path);
             if (!alreadyKnown) {
@@ -570,7 +594,7 @@ export async function scanUrl(rawTarget, opts = {}) {
     ...(auth.bearer ? ["jwt"] : []),
     ...(!opts.skipRetireJs && retireJsRan ? ["retirejs"] : []),
     ...(!opts.skipParamDiscovery && hadEndpoints ? ["param-discovery"] : []),
-    ...(opts.recon && !local ? ["recon"] : []),
+    ...(opts.recon && !local && !opts.offline ? ["recon"] : []),
     ...(opts.deep && hadEndpoints ? ["sqli", "ssti", "ssrf", "xss", "cmdi", "open-redirect"] : []),
     ...(opts.fuzz && filtered.some((ep) => ep.path.includes("/api/") || ep.path.includes("/graphql")) ? ["api-fuzzing"] : []),
     ...(opts.adaptive ? ["adaptive"] : []),

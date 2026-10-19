@@ -169,6 +169,41 @@ export function formatMarkdownReport(result, opts = {}) {
     }
   }
 
+  const errors = result.errors || [];
+  if (errors.length > 0) {
+    const probes = new Set(errors.map((e) => e.probe));
+    lines.push("## Inconclusive probes");
+    lines.push("");
+    lines.push(`${probes.size} probe(s) could not complete. Their silence is not a clean result.`);
+    lines.push("");
+    lines.push("| Probe | URL | Error | Count |");
+    lines.push("|-------|-----|-------|-------|");
+    for (const e of errors) {
+      lines.push(`| ${mdEscape(e.probe)} | \`${mdEscape(e.url)}\` | ${mdEscape(e.message)} | ${e.count || 1} |`);
+    }
+    lines.push("");
+  }
+
+  if (result.egress) {
+    const e = result.egress;
+    lines.push("## Network egress");
+    lines.push("");
+    lines.push(`- **Mode:** ${e.offline ? "--offline (scan target only)" : "online"}`);
+    lines.push(`- **User-Agent:** \`${mdEscape(e.userAgent)}\``);
+    if (e.thirdPartyHosts.length === 0) {
+      lines.push(`- **Third-party hosts contacted:** none`);
+    } else {
+      lines.push(`- **Third-party hosts contacted:** ${e.thirdPartyHosts.map((h) => `\`${h.host}\` (${h.requests})`).join(", ")}`);
+    }
+    if (e.blocked.length > 0) {
+      lines.push(`- **Blocked by --offline:** ${e.blocked.map((h) => `\`${h.host}\` (${h.requests})`).join(", ")}`);
+    }
+    if (result.retireDb) {
+      lines.push(`- **Retire.js database:** ${result.retireDb.source === "snapshot" ? `vendored snapshot from ${result.retireDb.snapshotDate}` : "live"}`);
+    }
+    lines.push("");
+  }
+
   const actionPlan = result.actionPlan || buildActionPlan(findings);
   if (actionPlan.length > 0) {
     lines.push(formatActionPlanMarkdown(actionPlan));

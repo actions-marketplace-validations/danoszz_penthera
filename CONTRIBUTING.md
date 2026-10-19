@@ -18,23 +18,23 @@ npm test          # full suite (vitest)
 npm link          # optional: expose `penthera` globally for manual testing
 ```
 
-Node 18+ is required (see `.nvmrc` for the pinned version).
+Node 22+ is required (see `.nvmrc` for the pinned version).
 
 ### Test suites
 
 | Command | What it covers |
 |---------|----------------|
 | `npm test` | Everything (vitest) |
-| `npm run pentest:static` | Offline unit tests (no network) |
 | `npm run pentest:mock` | Tests against the local mock vuln API |
 | `npm run pentest:adaptive` | Knowledge-graph adaptive probes |
 | `npm run pentest:wstg` | OWASP WSTG mapping |
 | `npm run pentest:live` | Live playbooks — needs `pentest.config.js` + a running server |
 | `npm run mock-server` | Start the mock API on port 8765 |
 
-CI runs the offline suites on Node 18/20/22 plus a self-scan of the mock server
-(`.github/workflows/ci.yml`). Keep new tests offline-friendly so CI stays
-deterministic.
+CI runs the full `npm test` suite on Node 22 and 24, checks that every version
+string is in sync, and self-scans the mock server (`.github/workflows/ci.yml`).
+CodeQL and OpenSSF Scorecard run on their own workflows. Keep new tests offline:
+no test may reach the public internet, so CI stays deterministic.
 
 ---
 
@@ -50,9 +50,14 @@ src/
   scan-repo.js      white-box + secret scanning
   reporter.js       terminal, JSON, SARIF output
 lib/
-  blackbox/         headers, openapi, client-auth, jwt, idor, oauth, adaptive-scan
-  whitebox/         secrets scanner, framework route discovery
+  blackbox/         headers, openapi, client-auth, jwt, idor, oauth, email-dns, adaptive-scan
+  whitebox/         secrets scanner (incl. AI provider keys), route discovery, SBOM
+  compliance/       NIS2 readiness, self-assessment, policy pack, incident, questionnaire
+  remediation/      fix playbook and prioritised action plan
+  jurisdictions/    per-country config (nl.json)
   owasp-wstg.js     WSTG v4.2 probe mapping
+  provenance.js     confidence + provenance on every finding
+  audit-loop.js     remediation history, time-to-fix
   plugins.js        templates/plugins API (also exported from the package)
 skills/penthera/    Agent Skill (SKILL.md, references/, scripts/)
 docs/               documentation hub
@@ -81,7 +86,7 @@ re-exports engine pieces via `exports` in `package.json`
 
 1. Branch from `main`.
 2. Keep changes focused; add or update tests.
-3. Run `npm test` — green on Node 18+.
+3. Run `npm test`; it must be green on Node 22+.
 4. Update `CHANGELOG.md` and relevant docs.
 5. Open the PR with a clear description and rationale.
 
@@ -89,42 +94,24 @@ Report security issues in Penthera itself privately — see [SECURITY.md](SECURI
 
 ---
 
-## Maintainer notes — skill publishing & discovery
-
-There is **no central approval queue** for Agent Skills. Discovery is
-distributed: host the skill in a public repo and make it trivial to install.
-
-**Release checklist:**
-
-1. Make the repo public on GitHub (`danoszz/penthera`).
-2. Add GitHub topics: `agent-skills`, `cursor`, `claude-code`, `security`,
-   `pentest`, `cli`, `owasp` (Settings → General → Topics).
-3. Verify install paths still work:
-   - `curl -fsSL .../install.sh | bash`
-   - `npx skills add danoszz/penthera`
-   - manual copy into `~/.cursor/skills` / `~/.claude/skills`
-4. Add a skills.sh badge once indexed:
-   `[![skills.sh](https://img.shields.io/badge/skills.sh-penthera-0000ed)](https://skills.sh/danoszz/penthera)`
-5. Reference the open standard ([agentskills.io](https://agentskills.io)) in
-   release notes.
-6. **npm publish** — `skills/` is already in the package `files` array, so
-   `npm i -g penthera` ships the skill with the CLI. Run `npm run package:skill`
-   to produce the Claude.ai upload zip and attach it to the GitHub Release.
-
-**Skill maturity phases:**
-
-| Phase | Status | What it covered |
-|-------|--------|-----------------|
-| Phase 1 | Done | `SKILL.md`, references, preflight script, Cursor symlink |
-| Phase 2 | Done | `validate-report.mjs`, CI skill validation, OWASP WSTG docs |
-| Phase 3 | Done | Bundled in the npm package, release zip, install.sh, production metadata |
-
----
-
 ## Cutting a release
 
-1. Bump `version` in `package.json` and `skills/penthera/SKILL.md`.
-2. Update `CHANGELOG.md` (SemVer).
-3. Tag: `git tag vX.Y.Z && git push --tags`.
-4. `npm publish` (runs `prepack` → tests first).
-5. Create the GitHub Release; attach the skill zip.
+Publishing is automated and two-step. Pushing a `v*` tag runs
+`.github/workflows/publish.yml`, which tests, checks the tag against
+`package.json`, **stages** the package on npm with provenance (trusted
+publishing, no token), and creates the GitHub Release. The version only goes
+live once a maintainer approves it with 2FA. **Do not run `npm publish` locally.**
+
+1. Bump the version everywhere it appears. CI fails if they drift:
+   - `package.json` and `package-lock.json` (`npm version X.Y.Z --no-git-tag-version`)
+   - `skills/penthera/SKILL.md` (`metadata.version`)
+   - `.claude-plugin/plugin.json` (`version`)
+   - `.claude-plugin/marketplace.json` (`metadata.version`)
+2. Move the `[Unreleased]` notes in `CHANGELOG.md` under the new version.
+3. Merge to `main` through a PR so CI runs.
+4. Tag the merge commit and push the tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+5. Approve the staged version with 2FA: npmjs.com → penthera → Staged Packages →
+   Approve, or `npm stage list penthera` and `npm stage approve <stage-id>`.
+   Check the file list and provenance before you approve.
+6. Optional: `npm run package:skill` and attach the zip to the release for
+   Claude.ai uploads.

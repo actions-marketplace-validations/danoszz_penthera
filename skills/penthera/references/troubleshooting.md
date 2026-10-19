@@ -21,7 +21,7 @@ penthera https://myapp.com --verbose --timeout 30000
 
 **Symptoms:** `node: command not found` or engine error
 
-**Solution:** Install Node.js 18+ from [nodejs.org](https://nodejs.org/). Verify:
+**Solution:** Install Node.js 22+ from [nodejs.org](https://nodejs.org/). Verify:
 
 ```bash
 node -v   # should be v18.x or higher

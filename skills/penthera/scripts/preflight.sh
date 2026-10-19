@@ -20,14 +20,14 @@ ok() {
   echo "preflight: OK: $*"
 }
 
-# Node.js 18+
+# Node.js 22+
 if ! command -v node >/dev/null 2>&1; then
-  fail "Node.js not found. Install Node.js 18+ from https://nodejs.org/"
+  fail "Node.js not found. Install Node.js 22+ from https://nodejs.org/"
 fi
 
 NODE_MAJOR=$(node -e "process.stdout.write(String(process.version).replace(/^v/, '').split('.')[0])")
-if [ "$NODE_MAJOR" -lt 18 ]; then
-  fail "Node.js $(node -v) is too old. Requires Node.js 18+."
+if [ "$NODE_MAJOR" -lt 22 ]; then
+  fail "Node.js $(node -v) is too old. Requires Node.js 22+."
 fi
 ok "Node.js $(node -v)"
 

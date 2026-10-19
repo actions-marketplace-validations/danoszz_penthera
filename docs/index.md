@@ -1,6 +1,6 @@
 # Penthera documentation
 
-Lightweight security scanner for developers, scan live URLs, local repos, or macOS machines from the CLI.
+Security scanner for developers: scan live URLs, local repos, or macOS machines from your AI agent or the CLI.
 
 ## Getting started
 
@@ -33,8 +33,9 @@ Lightweight security scanner for developers, scan live URLs, local repos, or mac
 | Topic | Link |
 |-------|------|
 | OWASP WSTG mapping | [owasp-wstg-coverage.md](./owasp-wstg-coverage.md) |
-| GitHub Actions CI | `.github/workflows/ci.yml` (mock scan + SARIF) |
-| Staging scans | `.github/workflows/scan.yml`, set `PENTEST_STAGING_URL` secret |
+| NIS2 compliance guide | [compliance-nis2.md](./compliance-nis2.md) |
+| Scan your app in GitHub Actions | [examples/github-actions-scan.yml](./examples/github-actions-scan.yml), set `PENTEST_STAGING_URL` |
+| Penthera's own CI | `.github/workflows/ci.yml` (full tests + mock scan), `codeql.yml`, `scorecard.yml` |
 | Docker | `docker build -t penthera . && docker run penthera https://localhost:3000` |
 
 ## Agent skill

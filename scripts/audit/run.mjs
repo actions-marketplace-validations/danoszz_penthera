@@ -38,7 +38,9 @@ const PKG = readJson(join(ROOT, "package.json"));
 const BENCH_MAX_DROP = 0.02;
 
 /** Package budget (current 1.2.0: ~475 KB packed, ~1.3 MB unpacked, 138 files). */
-const PACK_BUDGET = { packedBytes: 650_000, unpackedBytes: 1_800_000, files: 200 };
+// Raised to 1.9 MB unpacked for the bundled rule packs (lib/rules/, ~130 KB of
+// signed IOC and pattern data, docs/rule-packs.md).
+const PACK_BUDGET = { packedBytes: 650_000, unpackedBytes: 1_900_000, files: 200 };
 
 /** Paths the npm package may contain. Anything else fails the packaging gate. */
 const PACK_ALLOW = [

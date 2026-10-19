@@ -2,7 +2,7 @@
   "schema": 1,
   "name": "ioc-2025-2026",
   "version": "1.0.0",
-  "created_at": "2026-10-19T13:45:54Z",
+  "created_at": "2026-10-19T14:09:27Z",
   "min_penthera": "1.2.0",
   "description": "Indicators for named npm supply-chain campaigns of 2025: s1ngularity (Nx), Shai-Hulud and Shai-Hulud 2.0, and the postmark-mcp backdoor. Every entry cites the advisory or vendor list it came from.",
   "rules": [
@@ -19,7 +19,7 @@
     {
       "file": "packages.json",
       "kind": "ioc-package",
-      "sha256": "7cc45da9f5c4fc98f3c9ddb29cc5881188e9486c23b22dafa114b24721fb2b43"
+      "sha256": "9c2d5378917f61894bbb12feba104e49e9cdfb2b7547c19da7ded4eaa1b28ca9"
     }
   ]
 }

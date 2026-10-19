@@ -655,6 +655,7 @@ async function gateVersionsDocs() {
   const lock = readJson(join(ROOT, "package-lock.json"));
   const skill = readFileSync(join(ROOT, "skills/penthera/SKILL.md"), "utf-8").match(/^ {2}version:\s*"?([^"\s]+)"?/m)?.[1];
   const citation = readFileSync(join(ROOT, "CITATION.cff"), "utf-8").match(/^version:\s*"?([^"\s]+)"?/m)?.[1];
+  const howToCite = readFileSync(join(ROOT, "docs/METHODOLOGY.md"), "utf-8").match(/\(Version ([^)\s]+)\) \[Computer software\]/)?.[1];
   const found = {
     "package-lock.json": lock.version,
     'package-lock.json packages[""]': lock.packages?.[""]?.version,
@@ -662,6 +663,7 @@ async function gateVersionsDocs() {
     ".claude-plugin/marketplace.json": readJson(join(ROOT, ".claude-plugin/marketplace.json")).metadata?.version,
     "skills/penthera/SKILL.md": skill,
     "CITATION.cff": citation,
+    "docs/METHODOLOGY.md (How to cite)": howToCite,
   };
   for (const [file, got] of Object.entries(found)) {
     if (got !== v) notes.push(`Version drift: ${file} has ${got ?? "none"}, package.json has ${v}`);

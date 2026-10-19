@@ -25,7 +25,7 @@ so drift shows up between releases.
 | Packaging | `npm pack --dry-run` | A file outside the allow-list ships, anything that looks like tests, fixtures, reports or secrets ships, or the package exceeds its size budget |
 | Offline | A full `--all --adaptive --offline` scan of the mock server | The report's `egress` field shows any third-party host |
 | Supply chain | `npm audit --omit=dev`; sha512 integrity for every lockfile entry; install scripts in runtime dependencies (via `penthera deps --prod`); every `uses:` in `.github/workflows`, `action.yml` and `docs/examples` | Any vulnerability, missing integrity, runtime install script, typosquat, action not pinned by commit SHA, or workflow without top-level `permissions:` |
-| Versions and docs | The version in `package.json`, the lockfile, the plugin manifests, `SKILL.md` and `CITATION.cff`; a `CHANGELOG.md` section for it; every relative link in `README.md` and `docs/` | Any mismatch or broken link |
+| Versions and docs | The version in `package.json`, the lockfile, the plugin manifests, `SKILL.md`, `CITATION.cff` and the "How to cite" block in `docs/METHODOLOGY.md`; a `CHANGELOG.md` section for it; every relative link in `README.md` and `docs/` | Any mismatch or broken link |
 
 Everything runs on this machine against this repo or `127.0.0.1`. The only
 network use is `npm audit` (the npm registry) and, with `--with-docker`,

@@ -1,0 +1,39 @@
+{
+  "$comment": "High/critical self-scan findings accepted by the internal audit (scripts/audit/run.mjs). Each needs a reason. Regenerate with: npm run audit:internal -- --update-baseline",
+  "selfScan": {
+    "repo": [
+      {
+        "fingerprint": "8649b788e4112b44",
+        "severity": "high",
+        "title": "Generic API key assignment in source",
+        "location": "tests/fixtures/fix/express/server.js",
+        "reason": "Deliberate fixture: a fake hardcoded secret that the secret-to-env fix recipe moves to an environment variable (tests/fix.test.js). Never a real credential."
+      },
+      {
+        "fingerprint": "c20ca5be7bd83e29",
+        "severity": "high",
+        "title": "JWT secret assignment in source",
+        "location": "tests/fixtures/fix/next/app/api/login/route.ts",
+        "reason": "Deliberate fixture: a fake hardcoded secret that the secret-to-env fix recipe moves to an environment variable (tests/fix.test.js). Never a real credential."
+      }
+    ],
+    "agents": [],
+    "deps": [],
+    "hook": [
+      {
+        "fingerprint": "8649b788e4112b44",
+        "severity": "high",
+        "title": "Generic API key assignment in source",
+        "location": "tests/fixtures/fix/express/server.js",
+        "reason": "Deliberate fixture: a fake hardcoded secret that the secret-to-env fix recipe moves to an environment variable (tests/fix.test.js). Never a real credential."
+      },
+      {
+        "fingerprint": "c20ca5be7bd83e29",
+        "severity": "high",
+        "title": "JWT secret assignment in source",
+        "location": "tests/fixtures/fix/next/app/api/login/route.ts",
+        "reason": "Deliberate fixture: a fake hardcoded secret that the secret-to-env fix recipe moves to an environment variable (tests/fix.test.js). Never a real credential."
+      }
+    ]
+  }
+}

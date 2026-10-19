@@ -8,6 +8,9 @@ Open-source security for the apps and AI systems you ship: check it before you d
 |-------|-------------|
 | [README](../README.md) | Install, quick start, ethical use |
 | [Run it](../README.md#run-it) | Install + first-time wizard (`penthera` with no args) |
+| [Use cases](./use-cases/README.md) | By situation: [before launch](./use-cases/solo-founder.md), [AI-coding teams](./use-cases/ai-coding-teams.md), [maintainers](./use-cases/open-source-maintainers.md), [EU SMEs](./use-cases/eu-sme-compliance.md), [agencies](./use-cases/agencies.md) |
+| [Comparisons](./compare/README.md) | Using Penthera with [Socket](./compare/socket.md), [Snyk](./compare/snyk.md), [GitHub](./compare/github.md), [ZAP](./compare/zap.md), [Semgrep](./compare/semgrep.md) |
+| [Commands](./commands/README.md) | One page per command: [scan](./commands/scan.md), [agents](./commands/agents.md), [deps](./commands/deps.md), [install](./commands/install.md), [fix](./commands/fix.md), [hook](./commands/hook.md), [action](./commands/action.md), [skill](./commands/skill.md) |
 | [CHANGELOG](../CHANGELOG.md) | Version history |
 | [Roadmap](../ROADMAP.md), [plan to v2.0](./plan.md) and [release plan](./release-plan.md) | What ships next, in what order, and how quality is measured |
 
@@ -36,6 +39,9 @@ Open-source security for the apps and AI systems you ship: check it before you d
 | OWASP WSTG mapping | [owasp-wstg-coverage.md](./owasp-wstg-coverage.md) |
 | NIS2 compliance guide | [compliance-nis2.md](./compliance-nis2.md) |
 | Local loop and learning store | [local-loop.md](./local-loop.md) |
+| CRA reporting and AI-BOM | [compliance-cra.md](./compliance-cra.md) |
+| Reports and evidence bundles | [evidence.md](./evidence.md) |
+| Privacy, network use, `--offline` | [privacy.md](./privacy.md) |
 | Scan your app in GitHub Actions | [examples/github-actions-scan.yml](./examples/github-actions-scan.yml), set `PENTEST_STAGING_URL` |
 | Penthera's own CI | `.github/workflows/ci.yml` (full tests + mock scan), `codeql.yml`, `scorecard.yml` |
 | Docker | `docker build -t penthera . && docker run penthera https://localhost:3000` |
@@ -48,6 +54,8 @@ Open-source security for the apps and AI systems you ship: check it before you d
 | Cited research and standards | [references.md](./references.md) ([BibTeX](./references.bib)) |
 | Accuracy benchmark (`npm run bench`) | [bench/README.md](../bench/README.md), latest [results](../bench/RESULTS.md) |
 | Citing Penthera | [CITATION.cff](../CITATION.cff) |
+| Refresh the README's numbers | `npm run docs:numbers` (`-- --tests` to count tests) |
+| How Socket positions itself, and what Penthera took from it | [research/socket-positioning-notes.md](./research/socket-positioning-notes.md) |
 
 ## Agent skill
 

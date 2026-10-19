@@ -8,6 +8,7 @@
  *              probes, suppressions (who and why), loop timeline, NIS2 and OWASP
  */
 import { buildReportModel, CONFIDENCE_LABELS } from "./model.js";
+import { mdInline } from "./md-escape.js";
 
 export const AUDIENCES = ["developer", "owner", "auditor"];
 
@@ -24,10 +25,7 @@ const NIS2_STATUS = {
 };
 
 /** Inline text: one line, no table breaks, no raw HTML. */
-function md(s) {
-  return String(s ?? "").replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, "").replace(/\r?\n|\r/g, " ")
-    .replace(/\\/g, "\\\\").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\|/g, "\\|");
-}
+const md = mdInline;
 /** Penthera's own remediation text (lib/remediation): may hold code spans, so only fold lines. */
 function prose(s) {
   return String(s ?? "").replace(/\r?\n|\r/g, " ");

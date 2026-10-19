@@ -8,6 +8,7 @@ import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync } from "no
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import YAML from "yaml";
+import { spawnSync } from "node:child_process";
 import {
   MARKER, MAX_BODY, buildCommentBody, upsertComment, isForkPullRequest, gate, ghClient, runComment,
 } from "../scripts/action/comment.mjs";
@@ -23,7 +24,7 @@ function fakeApi(comments = []) {
     comments,
     calls,
     async listComments(issue) { calls.push(["list", issue]); return comments.map((c) => ({ ...c })); },
-    async createComment(issue, body) { calls.push(["create", issue]); const c = { id: next++, body, userType: "Bot" }; comments.push(c); return c; },
+    async createComment(issue, body) { calls.push(["create", issue]); const c = { id: next++, body, login: "github-actions[bot]", userType: "Bot" }; comments.push(c); return c; },
     async updateComment(id, body) { calls.push(["update", id]); const c = comments.find((x) => x.id === id); c.body = body; return c; },
   };
 }
@@ -66,6 +67,22 @@ describe("action.yml", () => {
       // Inputs only reach the shell through env.
       expect(s.run, s.name).not.toMatch(/\$\{\{\s*(inputs|github)\./);
     }
+  });
+
+  it("refuses a base-ref that git could read as an option, and ends options before it (360 review)", () => {
+    const script = action.runs.steps.map((st) => st.run || "").join("\n");
+    const guard = /case "\$base" in[\s\S]*?esac/.exec(script)?.[0];
+    expect(guard).toBeTruthy();
+    const check = (ref) => spawnSync("sh", ["-c", `base="$1"; ${guard}; echo ok`, "_", ref], { encoding: "utf-8" });
+    for (const good of ["main", "origin/main", "0123456789abcdef0123456789abcdef01234567", "release/v1.5", "HEAD~1"]) {
+      expect(check(good).stdout.trim(), good).toBe("ok");
+    }
+    for (const bad of ["--upload-pack=touch /tmp/x", "-x", "a b", "a;b", "$(id)", "a..b"]) {
+      const r = check(bad);
+      expect(r.status, bad).toBe(2);
+      expect(r.stdout).toContain("::error::base-ref is not a plain git ref");
+    }
+    expect(script).toMatch(/fetch --no-tags --depth=1 --end-of-options origin "\$base"/);
   });
 
   it("pins every third-party action by full commit SHA", () => {
@@ -140,7 +157,7 @@ describe("upsertComment", () => {
 
   it("does nothing when the body is unchanged", async () => {
     const body = `${MARKER}\nsame`;
-    const api = fakeApi([{ id: 5, body, userType: "Bot" }]);
+    const api = fakeApi([{ id: 5, body, login: "github-actions[bot]", userType: "Bot" }]);
     expect(await upsertComment(api, { issue: 7, body })).toEqual({ action: "unchanged", id: 5 });
     expect(api.calls.map((c) => c[0])).toEqual(["list"]);
   });
@@ -150,6 +167,17 @@ describe("upsertComment", () => {
     const res = await upsertComment(api, { issue: 7, body: `${MARKER}\nbot` });
     expect(res.action).toBe("created");
     expect(api.comments.find((c) => c.id === 9).body).toBe(`look: ${MARKER}`);
+  });
+
+  it("never edits another bot's or app's comment that carries the marker (360 review)", async () => {
+    const api = fakeApi([
+      { id: 11, body: `${MARKER}\nspoofed by an app`, login: "evil-app[bot]", userType: "Bot" },
+      { id: 12, body: `${MARKER}\nno login`, userType: "Bot" },
+    ]);
+    const res = await upsertComment(api, { issue: 7, body: `${MARKER}\nours` });
+    expect(res.action).toBe("created");
+    expect(api.calls.some((c) => c[0] === "update")).toBe(false);
+    expect(api.comments.find((c) => c.id === 11).body).toContain("spoofed");
   });
 
   it("refuses a body without the marker", async () => {
@@ -162,7 +190,7 @@ describe("ghClient", () => {
     const calls = [];
     const run = (cmd, args, opts) => {
       calls.push({ cmd, args, input: opts.input });
-      if (args.includes("--paginate")) return { status: 0, stdout: '{"id":1,"body":"a","userType":"Bot"}\n{"id":2,"body":"b","userType":"User"}\n' };
+      if (args.includes("--paginate")) return { status: 0, stdout: '{"id":1,"body":"a","login":"github-actions[bot]","userType":"Bot"}\n{"id":2,"body":"b","login":"x","userType":"User"}\n' };
       return { status: 0, stdout: '{"id":3}' };
     };
     const api = ghClient("o/r", { run });
@@ -171,6 +199,7 @@ describe("ghClient", () => {
     await api.updateComment(3, "bye");
     expect(calls.every((c) => c.cmd === "gh" && c.args[0] === "api")).toBe(true);
     expect(calls[0].args).toContain("repos/o/r/issues/4/comments?per_page=100");
+    expect(calls[0].args.join(" ")).toContain("login: .user.login");
     expect(calls[1].args).toEqual(["api", "--method", "POST", "repos/o/r/issues/4/comments", "--input", "-"]);
     expect(JSON.parse(calls[1].input)).toEqual({ body: "hello" });
     expect(calls[2].args).toContain("repos/o/r/issues/comments/3");

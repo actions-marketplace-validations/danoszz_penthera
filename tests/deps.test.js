@@ -7,16 +7,16 @@
  * contains anything that reads like a real payload.
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { mkdtempSync, rmSync, readFileSync, copyFileSync, mkdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { mkdtempSync, rmSync, readFileSync, copyFileSync, mkdirSync, writeFileSync, existsSync } from "node:fs";
+import { join, resolve, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
-import { gzipSync } from "node:zlib";
+import { gzipSync, gunzipSync } from "node:zlib";
 import { createHash } from "node:crypto";
-import { buildFixtures } from "./fixtures/deps/build.js";
+import { buildFixtures, tarEntry, desyncTarball, tarball, sri } from "./fixtures/deps/build.js";
 import { blankComments, scanSource, scanPackage, obfuscationSignals, entropy, nodeScriptTargets } from "../lib/deps/capabilities.js";
 import { parseLockfile, directDependencies } from "../lib/deps/lockfile.js";
-import { DirSource, untar, verifyIntegrity, sourceFromNpmCache, parseIntegrity } from "../lib/deps/source.js";
+import { DirSource, untar, verifyIntegrity, sourceFromNpmCache, sourceFromTarball, parseIntegrity, MAX_UNPACKED_BYTES } from "../lib/deps/source.js";
 import { editDistance, checkName, findTyposquats, loadPopular } from "../lib/deps/typosquat.js";
 import { diffTrees, compareVersions } from "../lib/deps/diff.js";
 import { registrySignals, fetchPackument } from "../lib/deps/online.js";
@@ -265,12 +265,121 @@ describe("lockfile and sources", () => {
   });
 
   it("untar drops path traversal entries", () => {
-    const h = Buffer.alloc(512);
-    h.write("package/../../evil.js", 0);
-    h.write("00000000001\0", 124);
-    h.write("0", 156);
-    const files = untar(Buffer.concat([h, Buffer.from("x"), Buffer.alloc(511), Buffer.alloc(1024)]));
+    const files = untar(Buffer.concat([tarEntry("package/../../evil.js", Buffer.from("x")), Buffer.alloc(1024)]));
     expect([...files.keys()]).toEqual([]);
+  });
+});
+
+// ── Tar parsing fails closed (360 review) ─────────────────────────────────
+
+describe("tar parsing (360 review)", () => {
+  const pkgJson = JSON.stringify({ name: "sneaky", version: "1.0.0", scripts: { postinstall: "node p.js" } });
+  const tar = (...entries) => Buffer.concat([...entries, Buffer.alloc(1024)]);
+
+  it("reads a GNU base-256 size instead of desyncing past package.json", () => {
+    const files = untar(gunzipSync(desyncTarball({ "package.json": pkgJson, "index.js": "x" })));
+    expect([...files.keys()].sort()).toEqual(["index.js", "package.json", "pad.bin"]);
+    expect(files.get("pad.bin").length).toBe(1024);
+    expect(scanPackage(new (class { files() { return [...files.keys()]; } size(r) { return files.get(r).length; } read(r) { return files.get(r); } })()).installScripts)
+      .toEqual({ postinstall: "node p.js" });
+  });
+
+  it("honours a pax size= record", () => {
+    const body = Buffer.from("hello world");
+    const rec = (k, v) => { const r = ` ${k}=${v}\n`; let n = r.length + 1; n += String(n).length - 1; return `${n}${r}`; };
+    const pax = tarEntry("package/PaxHeader", Buffer.from(rec("size", body.length)), { type: "x" });
+    // The ustar header claims 0 bytes; pax says 11. npm follows pax.
+    const lying = tarEntry("package/a.txt", Buffer.alloc(0));
+    const files = untar(tar(pax, lying.subarray(0, 512), body, Buffer.alloc(512 - body.length), tarEntry("package/package.json", Buffer.from(pkgJson))));
+    expect(files.get("a.txt").toString()).toBe("hello world");
+    expect(files.has("package.json")).toBe(true);
+  });
+
+  it("throws on a bad checksum, a malformed size, a truncated entry and data after the end marker", () => {
+    const good = tarEntry("package/package.json", Buffer.from(pkgJson));
+    const badSum = Buffer.from(good); badSum[0] ^= 1;
+    expect(() => untar(tar(badSum))).toThrow(/checksum/);
+    const badSize = Buffer.from(good); badSize.write("0000000009x\0", 124);
+    expect(() => untar(badSize)).toThrow(/checksum|malformed size/);
+    expect(() => untar(good.subarray(0, 520))).toThrow(/truncated/);
+    expect(() => untar(Buffer.concat([Buffer.alloc(512), good]))).toThrow(/after the end-of-archive/);
+  });
+
+  it("enforces per-file and total size caps while reading", () => {
+    const t = tar(tarEntry("package/big.bin", Buffer.alloc(4096)), tarEntry("package/package.json", Buffer.from(pkgJson)));
+    const files = untar(t, { maxFile: 1024 });
+    expect(files.get("big.bin").length).toBe(0);
+    expect(files.oversize.get("big.bin")).toBe(4096);
+    expect(() => untar(t, { maxTotal: 2048 })).toThrow(/larger than|over/);
+  });
+
+  it("caps gunzip output, so a gzip bomb is unscanned instead of exhausting memory", () => {
+    const bomb = gzipSync(Buffer.alloc(MAX_UNPACKED_BYTES + 4096), { level: 1 });
+    const src = sourceFromTarball(bomb, sri(bomb));
+    expect(src.anomaly).toMatch(/could not be read safely/);
+    expect(scanPackage(src).unscanned).toMatch(/could not be read safely/);
+  }, 30_000);
+
+  it("a verified tarball that does not unpack cleanly is unscanned, not missing", () => {
+    const tgz = gzipSync(Buffer.concat([Buffer.alloc(512), tarEntry("package/package.json", Buffer.from(pkgJson))]));
+    const cache = join(dir, "anomaly-cache");
+    const hex = createHash("sha512").update(tgz).digest("hex");
+    const p = join(cache, "_cacache", "content-v2", "sha512", hex.slice(0, 2), hex.slice(2, 4), hex.slice(4));
+    mkdirSync(dirname(p), { recursive: true });
+    writeFileSync(p, tgz);
+    const src = sourceFromNpmCache(sri(tgz), cache);
+    expect(src).not.toBeNull();
+    expect(scanPackage(src).unscanned).toMatch(/end-of-archive/);
+  });
+
+  it("a package without a readable package.json is unscanned", () => {
+    const files = untar(tar(tarEntry("package/index.js", Buffer.from("module.exports = 1;"))));
+    const src = { files: () => [...files.keys()], size: (r) => files.get(r).length, read: (r) => files.get(r) };
+    expect(scanPackage(src).unscanned).toMatch(/package\.json/);
+  });
+});
+
+describe("scanDeps fails closed (360 review)", () => {
+  /** A one-package project whose tarball only lives in a private npm cache. */
+  function project(name, tgz, entry = {}) {
+    const root = join(dir, `fc-${name}`);
+    const cache = join(root, "cache");
+    const hex = createHash("sha512").update(tgz).digest("hex");
+    const p = join(cache, "_cacache", "content-v2", "sha512", hex.slice(0, 2), hex.slice(2, 4), hex.slice(4));
+    mkdirSync(dirname(p), { recursive: true });
+    writeFileSync(p, tgz);
+    writeFileSync(join(root, "package-lock.json"), JSON.stringify({
+      lockfileVersion: 3,
+      packages: { "": { dependencies: { [name]: "1.0.0" } }, [`node_modules/${name}`]: { version: "1.0.0", integrity: sri(tgz), ...entry } },
+    }));
+    return { root, cache };
+  }
+
+  it("reports a package whose tarball hides package.json as could-not-be-scanned (high)", async () => {
+    const tgz = gzipSync(Buffer.concat([tarEntry("package/index.js", Buffer.from("module.exports = 1;")), Buffer.alloc(1024)]));
+    const { root, cache } = project("no-manifest", tgz);
+    const r = await scanDeps(root, { cacheDir: cache });
+    const f = r.findings.find((x) => /could not be scanned/.test(x.title));
+    expect(f).toMatchObject({ severity: "high", package: "no-manifest" });
+    expect(r.deps.unscanned).toEqual([expect.objectContaining({ package: "no-manifest@1.0.0" })]);
+    expect(r.deps.packages[0].capabilities).toBeNull();
+    expect(r.deps.notInstalled).toEqual([]);
+  });
+
+  it("reports hasInstallScript in the lockfile with no script in the package (high)", async () => {
+    const tgz = tarball({ "package.json": JSON.stringify({ name: "liar", version: "1.0.0" }), "index.js": "module.exports = 1;\n" });
+    const { root, cache } = project("liar", tgz, { hasInstallScript: true });
+    const r = await scanDeps(root, { cacheDir: cache });
+    expect(r.findings.find((x) => /install script the scan did not find/.test(x.title))).toMatchObject({ severity: "high", package: "liar" });
+    expect(r.deps.scriptMismatch).toEqual(["liar@1.0.0"]);
+  });
+
+  it("does not flag a prebuilt-only native package the registry marks hasInstallScript (fsevents 2.x)", async () => {
+    const tgz = tarball({ "package.json": JSON.stringify({ name: "prebuilt", version: "1.0.0", main: "x.js" }), "x.js": "module.exports = require('./x.node');\n", "x.node": "\0bin" });
+    const { root, cache } = project("prebuilt", tgz, { hasInstallScript: true });
+    const r = await scanDeps(root, { cacheDir: cache });
+    expect(r.deps.scriptMismatch).toEqual([]);
+    expect(r.findings.filter((f) => f.severity === "high")).toEqual([]);
   });
 });
 
@@ -402,6 +511,22 @@ describe("scanDeps", () => {
     expect(r.deps.diff.upgraded[0].gained).toEqual(["network", "env-bulk"]);
   });
 
+  it("--base refuses refs git would read as options (360 review)", async () => {
+    const repo = join(dir, "git-repo-ref");
+    mkdirSync(repo, { recursive: true });
+    const git = (...a) => execFileSync("git", a, { cwd: repo, stdio: "pipe", env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" } });
+    git("init", "-q");
+    copyFileSync(join(fx.base, "package-lock.json"), join(repo, "package-lock.json"));
+    git("add", "package-lock.json");
+    git("commit", "-qm", "base");
+    const pwned = join(dir, "ref-pwned");
+    for (const ref of [`--output=${pwned}`, "-p", "a b", "HEAD..main"]) {
+      await expect(scanDeps(repo, { base: ref, cacheDir: noCache() }), ref).rejects.toThrow(/Invalid git ref/);
+    }
+    expect(existsSync(`${pwned}:package-lock.json`)).toBe(false);
+    expect((await scanDeps(repo, { base: "HEAD", cacheDir: noCache() })).deps.diff.base).toBe("HEAD");
+  });
+
   it("--prod skips devDependencies", async () => {
     const all = await scanDeps(fx.head, { cacheDir: noCache() });
     const prod = await scanDeps(fx.head, { prod: true, cacheDir: noCache() });
@@ -496,6 +621,30 @@ describe("deps output", () => {
     expect(pr).toContain("network, whole environment");
     expect(pr).toContain("Risk signals");
   });
+
+  it("neutralises Markdown and HTML smuggled in through lockfile names and versions (360 review)", () => {
+    const evil = "x](https://evil.test/a)![i](https://evil.test/p.png)<img src=x onerror=alert(1)></details><details open>@octocat";
+    const result = {
+      deps: {
+        total: 1,
+        diff: {
+          base: "main\n# Approved",
+          added: [{ name: evil, version: "1.0.0\n\n## Looks fine", capabilities: ["network"] }],
+          upgraded: [{ name: "@team/x", from: "1.0.0", to: "2.0.0 | **ok**", gained: ["shell"], lost: [], unavailable: null }],
+          removed: [],
+          evidence: { [`${evil}@1.0.0\n\n## Looks fine`]: { network: [{ file: "a.js</details>`", line: 1, snippet: "fetch(`x`)\n</details>\n@octocat" }] } },
+        },
+      },
+      findings: [{ severity: "high", title: `${evil}: runs install script`, url: "node_modules/x\n# h", category: "dependency-risk" }],
+    };
+    const pr = formatPrComment(result, { version: "test" });
+    expect(pr).not.toMatch(/<img|<details open|\]\(https?:\/\/evil|!\[i\]/);
+    expect(pr.match(/<\/?details/g)).toEqual(["<details", "</details"]); // only the report's own
+    expect(pr).not.toMatch(/@octocat|https:\/\/evil/); // no mention, no autolink
+    expect(pr).not.toMatch(/^#+ (Approved|Looks fine|h)/m);
+    expect(pr).not.toContain("| **ok**");
+    for (const line of pr.split("\n").filter((l) => l.startsWith("| "))) expect(line.length).toBeLessThan(700);
+  });
 });
 
 // ── CLI ───────────────────────────────────────────────────────────────────
@@ -530,6 +679,35 @@ describe("penthera deps CLI", () => {
     const json = JSON.parse(out);
     expect(json.mode).toBe("deps");
     expect(json.findings).toEqual([]);
+  });
+
+  it("honours --audience, --report-template, --evidence and --baseline, and rejects scan-only flags (360 review)", () => {
+    const aud = run(["deps", fx.head, "--audience", "auditor", "-q"]);
+    expect(aud.out).toMatch(/^# /m); // the auditor report went to stdout
+    expect(aud.out).not.toContain("Gained capabilities");
+
+    const tpl = join(dir, "deps-tpl.md");
+    writeFileSync(tpl, "High: {{summary.high}}\n");
+    const md = join(dir, "deps-custom.md");
+    run(["deps", fx.head, "--report-template", tpl, "--markdown", md]);
+    expect(readFileSync(md, "utf-8")).toMatch(/^High: \d+\n$/);
+
+    const ev = join(dir, "deps-evidence");
+    run(["deps", fx.head, "--evidence", ev]);
+    const manifest = JSON.parse(readFileSync(join(ev, "manifest.json"), "utf-8"));
+    expect(manifest.artifacts.map((a) => a.path)).toContain("report-auditor.md");
+    expect(run(["evidence", "verify", ev]).code).toBe(0);
+
+    const base = join(dir, "deps-base.json");
+    run(["deps", fx.head, "-o", base]);
+    const again = run(["deps", fx.head, "--baseline", base]);
+    expect(again.out).toMatch(/Baseline: 0 new, 0 resolved, \d+ unchanged/);
+
+    for (const flag of [["--memory"], ["--framework", "nis2"], ["--sbom", "x.json"], ["--recon"]]) {
+      const r = run(["deps", fx.head, ...flag]);
+      expect(r.code, flag[0]).toBe(2);
+      expect(r.out).toMatch(new RegExp(`${flag[0]} does not apply to \`penthera deps\``));
+    }
   });
 
   it("rejects deps-only flags outside deps mode", () => {

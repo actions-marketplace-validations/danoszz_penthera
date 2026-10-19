@@ -4,6 +4,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { evaluateSpf, evaluateDmarc, probeEmailDns } from "../lib/blackbox/email-dns.js";
+import { createEgressContext, runWithEgress } from "../src/utils/http.js";
 
 describe("email auth — SPF", () => {
   it("flags a missing SPF record", () => {
@@ -36,6 +37,28 @@ describe("email auth — DMARC", () => {
     const r = evaluateDmarc(["v=DMARC1; p=reject"]);
     expect(r.policy).toBe("reject");
     expect(r.finding).toBeNull();
+  });
+});
+
+describe("probeEmailDns under --offline (360 review)", () => {
+  it("makes no DNS queries at all", async () => {
+    const asked = [];
+    const resolver = {
+      resolveTxt: async (n) => { asked.push(n); return []; },
+      resolveMx: async (n) => { asked.push(n); return []; },
+    };
+    const ctx = createEgressContext({ target: "https://example.com", offline: true });
+    const r = await runWithEgress(ctx, () => probeEmailDns("example.com", { resolver }));
+    expect(asked).toEqual([]);
+    expect(r).toMatchObject({ skipped: "offline", findings: [] });
+    // Without --offline the same call does query.
+    await runWithEgress(createEgressContext({ target: "https://example.com" }), () => probeEmailDns("example.com", { resolver }));
+    expect(asked.length).toBeGreaterThan(0);
+  });
+
+  it("is listed as skipped in the --offline help", async () => {
+    const { readFileSync } = await import("node:fs");
+    expect(readFileSync(new URL("../src/cli.js", import.meta.url), "utf-8")).toMatch(/--offline[\s\S]{0,200}no DNS lookups for SPF\/DMARC/);
   });
 });
 

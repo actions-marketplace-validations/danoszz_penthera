@@ -27,7 +27,8 @@ these three moments is out of scope.
 
 | Release | Theme | Done when |
 |---------|-------|-----------|
-| v1.5.0 | AI apps and compliance | Pre-commit hook, license policy, CRA helper, AI-BOM, signed rule packs, Python `deps`, dashboard, internal audit all merged and passing the audit |
+| v1.5.0 | AI apps and compliance | Released with the pre-commit hook, license policy, CRA helper and AI-BOM |
+| v1.5.x | Hardening and the rest of AI apps | The 360 security review fixes (v1.5.1); Python `deps`, the internal audit gate, signed rule packs and the dashboard merged and passing the audit |
 | v1.6.0 | Before you deploy | `penthera ship` and preview-deployment scanning work on a real Vercel and Netlify project |
 | v1.7.0 | After you ship | `penthera watch` runs weekly on three real production apps for a month without a false alarm anyone complained about |
 | v2.0.0 | Stable | Public interfaces frozen (CLI flags, JSON report schema, policy file, rule-pack format), documented, and covered by compatibility tests |

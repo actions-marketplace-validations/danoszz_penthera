@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/penthera-social.jpg" alt="Penthera, a security scanner for Claude, Cursor and CLI" width="840">
+<img src="assets/penthera-social.jpg" alt="Penthera: the routine work of a security team, on your own machine" width="840">
 
 <br/><br/>
 
@@ -18,14 +18,95 @@
 
 ---
 
+<div align="center">
+
+### The routine work of a security team, on your own machine.
+
+**Penthera audits your app, your dependencies, and your AI tooling, fixes what it
+can, proves the fix, and writes the evidence. Offline, deterministic, free, and
+open source.**
+
+</div>
+
+---
+
+## What it does for you
+
+Most small teams have no security engineer. Penthera covers the recurring work
+one would do, from a CLI or from inside Claude Code and Cursor:
+
+| The job | What Penthera does | Command |
+|---------|--------------------|---------|
+| **Test the app** | Black-box scan of a live URL (TLS, headers, CORS, auth, JWT, IDOR, OAuth, OpenAPI, opt-in injection and fuzzing) and white-box scan of the repo (routes, trust boundaries, secrets including AI provider keys) | `penthera <url> --repo .` |
+| **Vet dependencies** | What every npm package can actually do (install scripts, shell, network, env, obfuscation), what an upgrade added, lookalike names | `penthera deps --base main` |
+| **Guard installs** | Shows what a new package brings before any install script runs, and stops it under your policy | `penthera install <pkg>` |
+| **Review pull requests** | Comments the dependency capability diff on every PR that touches the lockfile | [GitHub Action](#use-as-a-github-action) |
+| **Audit your AI tooling** | Skills, MCP servers, hooks, plugins, and rule files: hidden instructions, unpinned servers, over-broad permissions, silent updates | `penthera agents --home` |
+| **Fix and verify** | Deterministic fixes on a local branch, re-scanned to prove they worked, remembered so the next run is sharper. Never pushes | `penthera agent --loop` |
+| **Report and prove** | Reports for developers, owners, and auditors; a hashed, signable evidence bundle; NIS2 readiness and incident drafts | `penthera <url> --audience auditor --evidence out/` |
+
+What it is not: a human pentester, a 24/7 SOC, or incident response. It does the
+repeatable checks so the people you do have can spend their time on judgement.
+
+## Why you can trust it
+
+- **Local and offline.** No account, no telemetry, no cloud. `--offline` limits
+  network traffic to the target you named, and every report lists the hosts that
+  were contacted.
+- **Deterministic, not an AI verdict.** Rules you can read, with `file:line`
+  evidence and a confidence label on every finding. No model decides what is
+  malicious.
+- **Never acts behind your back.** The fix loop works on a local branch, asks
+  before every change by default, and never pushes or opens pull requests.
+- **No update channel to hijack.** Detection rules ship inside reviewed releases.
+  Nothing is downloaded and executed at run time.
+- **Releases you can verify.** Published with npm provenance through trusted
+  publishing, and each version is approved by a maintainer with 2FA before it
+  goes live. SHA-pinned CI, CodeQL, and OpenSSF Scorecard.
+- **Measured and cited.** A published [methodology](docs/METHODOLOGY.md),
+  [48 verified references](docs/references.md), and a reproducible
+  [benchmark](bench/RESULTS.md) with precision and recall.
+
+---
+
+## How Penthera fits with other tools
+
+Penthera is meant to sit next to the tools you already use, not replace them.
+Many teams run several of these together. Penthera's SARIF output goes straight
+into GitHub code scanning, for example.
+
+| | Focus | Where it runs | How it decides | Cost |
+|---|---|---|---|---|
+| **Penthera** | Your app (URL + repo), your dependencies, your AI tooling, fixes, and EU compliance evidence | Your machine or CI, offline | Readable deterministic rules, with evidence | Free, MIT |
+| [Socket](https://socket.dev) | Supply-chain risk across package registries, extensions, and skills | Cloud service, GitHub App, CLI | Package analysis at registry scale, including AI review | Free tier and paid plans |
+| [Snyk](https://snyk.io) | Known vulnerabilities in dependencies, code, containers, and IaC | Cloud service, IDE, CLI | Curated vulnerability database plus static analysis | Free tier and paid plans |
+| [GitHub Dependabot and code scanning](https://docs.github.com/code-security) | Known-CVE alerts, update PRs, CodeQL | GitHub | Advisory database, CodeQL queries | Free for public repos |
+| [OWASP ZAP](https://www.zaproxy.org) | Dynamic testing of web apps | Your machine or CI | Active and passive scan rules | Free, open source |
+| [Anthropic OSS Scanner](https://red.anthropic.com/oss-scanner/) | Finding vulnerabilities in established open-source projects | Run by Anthropic, opt-in for maintainers | AI-driven review with reproducible reports | Free for accepted projects |
+
+**Where Penthera adds something:**
+- it checks your app, your dependencies and your AI agent setup in one tool;
+- it runs entirely on your machine, with no account;
+- it fixes what it finds and re-scans to verify the fix;
+- it produces NIS2 evidence.
+
+**Where others go further:** registry-wide package intelligence (Socket), curated
+vulnerability data (Snyk, GitHub), and depth of dynamic testing (ZAP).
+
+Descriptions reflect each project's public documentation as of October 2026.
+Corrections are welcome by pull request.
+
+---
+
 ## Two ways to use it
 
-**As an Agent Skill (recommended).** Most people start here. Let Cursor or Claude
-Code drive it: [install once](#run-it), then ask it to "scan my app for security
-issues." The agent picks the scan, runs it, and gives you the fixes.
+**As an Agent Skill (recommended).** Let Claude Code or Cursor drive it:
+[install once](#run-it), then ask it to "scan my app for security issues", "is
+this package safe to add?", or "audit my MCP servers". The agent picks the
+check, runs it, and walks you through the fixes.
 
-**As a CLI.** Prefer the terminal? Run `penthera https://myapp.com`, or just
-`penthera` for the guided wizard. See the [quick start](#quick-start).
+**As a CLI.** Run `penthera https://myapp.com`, or just `penthera` for the guided
+wizard. See the [quick start](#quick-start).
 
 ---
 
@@ -33,14 +114,15 @@ issues." The agent picks the scan, runs it, and gives you the fixes.
 
 You shipped something fast: vibecoded, AI-assisted, already live. The same models
 that helped you build it also make it easy for someone to probe it. Exposed API
-routes, missing security headers, weak auth, a hardcoded key in the repo. These
-are the common mistakes that get apps broken into. An AI provider key in the
-frontend bundle is the newest and most expensive of them.
+routes, missing security headers, weak auth, a hardcoded key in the repo, an AI
+provider key in the frontend bundle. Meanwhile the packages, skills, and MCP
+servers you pull in run with your credentials, and attackers know it: 2025 and
+2026 brought self-spreading npm worms, malicious MCP servers, and poisoned agent
+skills.
 
-Penthera is the check you run before you launch. Ask your agent to "scan my app
-for security issues" and it runs an authorized, non-destructive scan, then lists
-the top fixes in priority order. You do not need a DAST suite or a security
-background to use it.
+Commercial platforms answer this from the cloud, for a fee, often with an AI
+judge deciding what is malicious. Penthera answers it on your machine, for free,
+with rules you can read.
 
 Penthera is for hardening systems you own. It is powerful, so please use it
 carefully. See [Ethical use](#ethical-use--authorization) and the [Disclaimer](#disclaimer).
@@ -48,7 +130,7 @@ carefully. See [Ethical use](#ethical-use--authorization) and the [Disclaimer](#
 Shipping in the EU? Penthera also generates your
 [NIS2 readiness report, policy pack, incident-report drafts, SBOM, and prefilled
 customer security questionnaires](#compliance-nis2-and-the-cyberwetgeving).
-Offline, no accounts. Readiness tooling, not a certification.
+Readiness tooling, not a certification.
 
 ### What you get
 
@@ -72,6 +154,8 @@ Offline, no accounts. Readiness tooling, not a certification.
 Every finding carries a confidence label (`confirmed`, `likely`, `potential`,
 `needs-human-review`), so a heuristic never poses as a certainty. Reports come
 out as Markdown, JSON, and SARIF, with the fixes in priority order.
+
+---
 
 ---
 
@@ -111,7 +195,7 @@ Prefer the terminal? Run `penthera` with no arguments for a guided wizard.
 
 ---
 
-## What it does
+## Scan modes and profiles
 
 | Mode | Command | Coverage |
 |------|---------|----------|
@@ -138,25 +222,26 @@ Individual flags: `--recon`, `--deep`, `--fuzz`, `--adaptive`, `--nuclei <path>`
 
 ```mermaid
 flowchart LR
-    U["You / your AI agent"] -->|scan request| P((Penthera))
+    U["You / your AI agent"] --> P((Penthera))
 
-    P --> BB["Black-box<br/>TLS, headers, CORS<br/>endpoint + OpenAPI discovery<br/>JWT, auth, IDOR/OAuth<br/>injection, fuzzing"]
-    P --> WB["White-box<br/>API routes<br/>secret scanning<br/>trust boundaries"]
-    P --> MA["Machine audit<br/>(macOS)"]
+    P --> APP["Your app<br/>black-box URL scan<br/>white-box repo scan"]
+    P --> DEP["Your dependencies<br/>capabilities, upgrade diff<br/>install firewall, typosquats"]
+    P --> AI["Your AI tooling<br/>skills, MCP, hooks<br/>plugins, rule files"]
 
-    BB --> F[["Findings<br/>scored by severity"]]
-    WB --> F
-    MA --> F
+    APP --> F[["Findings<br/>severity, confidence<br/>evidence, sources"]]
+    DEP --> F
+    AI --> F
 
-    F --> T["Terminal summary<br/>+ top 3 fixes"]
-    F --> MD["Markdown report"]
-    F --> J["JSON"]
-    F --> S["SARIF to GitHub Security"]
+    F --> FIX["Fix loop<br/>local branch, re-scan<br/>learn, never push"]
+    FIX -.verified.-> F
+    F --> R["Reports<br/>terminal, Markdown, JSON<br/>SARIF, audience views"]
+    F --> E["Evidence<br/>hashed, signable bundle<br/>NIS2 readiness"]
 ```
 
 Findings map to the [OWASP Web Security Testing Guide](docs/owasp-wstg-coverage.md)
-(WSTG v4.2). The default scan is non-destructive. Payload-based testing is opt-in
-(`--deep`, `--fuzz`, `--all`) and gated behind explicit confirmation.
+(WSTG v4.2), and agent findings to the OWASP MCP and Agentic Top 10s. The
+default scan is non-destructive. Payload-based testing is opt-in (`--deep`,
+`--fuzz`, `--all`) and gated behind explicit confirmation.
 
 ---
 
@@ -618,11 +703,12 @@ To cite Penthera, use the "Cite this repository" button on GitHub
 
 ## Status
 
-**v1.2, production-ready.** URL, repo, and machine scanning, NIS2 readiness tooling, scan profiles,
-Markdown, JSON, and SARIF reports, session-aware auth, JWT, IDOR, OAuth, and
-header probes, adaptive knowledge-graph probing, a plugins and templates API,
-Docker, CI, and the Agent Skill are all shipped. See the [CHANGELOG](CHANGELOG.md)
-for the full history.
+**Production-ready and moving fast.** App scanning (URL, repo, macOS machine),
+dependency capability analysis and an install firewall, the AI-tooling audit, the
+local fix loop with a learning store, audience reports and evidence bundles, the
+PR-comment GitHub Action, and NIS2 readiness tooling are all shipped. See the
+[CHANGELOG](CHANGELOG.md) for the full history and the [roadmap](ROADMAP.md) for
+what is next.
 
 Penthera is actively maintained. Issues and PRs welcome.
 

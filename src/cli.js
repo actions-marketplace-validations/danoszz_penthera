@@ -62,6 +62,7 @@ const HELP = `
     $ penthera memory show|verify|forget  Local learning store (never leaves the machine)
     $ penthera fix --plan            Plan local fix recipes (penthera fix --help)
     $ penthera evidence verify <dir> Check an evidence bundle's hashes and signature
+    $ penthera rules list|verify <dir>  Signed detection rule packs (penthera rules --help)
     $ penthera agent --loop          Scan, fix, verify, learn; local commits only (--help)
 
   ${dim("Scan modes")}
@@ -73,6 +74,7 @@ const HELP = `
         --fuzz                  + Property-based API fuzzing
         --nuclei <path>         + Community Nuclei YAML templates (alias for --templates)
         --templates <paths>     Comma-separated dirs of Nuclei-compatible YAML templates
+        --rules <dir>           + Signed rule pack (repeatable; scans, agents, deps)
         --adaptive              Knowledge-graph adaptive probes on discovered routes
         --all                   Enable all modes (recon + deep + fuzz)
         --machine               macOS machine audit (keyloggers, trojans, rootkits)
@@ -176,6 +178,11 @@ export async function run() {
     return runFix(process.argv.slice(3));
   }
 
+  if (process.argv[2] === "rules") {
+    const { runRules } = await import("./cli/rules.js");
+    process.exit(await runRules(process.argv.slice(3)));
+  }
+
   if (process.argv[2] === "agent") {
     const { runAgent } = await import("./cli/agent.js");
     process.exit(await runAgent(process.argv.slice(3)));
@@ -223,6 +230,9 @@ export async function run() {
         fuzz:        { type: "boolean", default: false },
         nuclei:      { type: "string" },
         templates:   { type: "string" },
+        rules:       { type: "string", multiple: true },
+        "rules-signers": { type: "string", multiple: true },
+        "allow-unsigned-rules": { type: "boolean", default: false },
         adaptive:    { type: "boolean", default: false },
         all:         { type: "boolean", default: false },
         machine:     { type: "boolean", default: false },
@@ -252,6 +262,17 @@ export async function run() {
   if (opts.version) {
     console.log(`penthera v${pkg.version}`);
     process.exit(0);
+  }
+
+  // --rules <dir>: verified rule packs, added before any engine runs.
+  if (opts.rules) {
+    const { activateRules, printRuleWarnings } = await import("./cli/rules.js");
+    try {
+      printRuleWarnings(await activateRules(opts));
+    } catch (e) {
+      printError(e.message);
+      process.exit(2);
+    }
   }
 
   if (opts["assessment-init"]) {

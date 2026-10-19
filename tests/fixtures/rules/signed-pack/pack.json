@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "name": "fixture-signed",
+  "version": "1.0.0",
+  "created_at": "2026-10-01T00:00:00Z",
+  "min_penthera": "1.2.0",
+  "description": "Test fixture. Signed with a throwaway key whose private half was deleted after signing.",
+  "rules": [
+    {
+      "file": "exec.json",
+      "kind": "agent-exec",
+      "sha256": "2d5af44c83d2ba8160c1d8709527c7851b55372d7e28c1bdf91f07a338df0659"
+    },
+    {
+      "file": "packages.json",
+      "kind": "ioc-package",
+      "sha256": "e207b05890381f4a8ac3500992ded287a775bb52454414a1a1ffd64dd7ec4853"
+    },
+    {
+      "file": "secrets.json",
+      "kind": "secret",
+      "sha256": "3c202e913974a48bee5c4381f75d6db1b747a647fe94e04cb0d08658834d7392"
+    }
+  ]
+}

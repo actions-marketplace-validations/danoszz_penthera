@@ -1,0 +1,13 @@
+# Keys trusted to sign Penthera rule packs (ssh-keygen -Y, namespace
+# "penthera-rules"). Format: ALLOWED SIGNERS in ssh-keygen(1):
+#
+#   principal namespaces="penthera-rules" ssh-ed25519 AAAA... comment
+#
+# Only the maintainer's release-signing key belongs here. Adding a key to this
+# file in a PR is a change to Penthera's trust root and gets the same review
+# as a change to the verifier. Users who trust their own packs pass
+# --rules-signers <file> instead of editing this file.
+#
+# PLACEHOLDER: no key yet. Until the maintainer adds theirs, every pack given
+# with --rules is refused unless it is signed by a key in --rules-signers or
+# --allow-unsigned-rules is set. See docs/rule-packs.md, "Signing a release".

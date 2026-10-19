@@ -1,0 +1,13 @@
+{
+  "kind": "ioc-package",
+  "rules": [
+    {
+      "id": "fixture-campaign",
+      "campaign": "Fixture campaign",
+      "packages": [{ "name": "left-pad-fixture", "versions": ["6.6.6"] }],
+      "source": "https://example.com/advisories/fixture-campaign",
+      "date": "2026-10-01",
+      "confidence": "confirmed"
+    }
+  ]
+}

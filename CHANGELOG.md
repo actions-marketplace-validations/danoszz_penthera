@@ -6,6 +6,36 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ### Added
 
+- **Signed rule packs** (`lib/rules/`, [docs/rule-packs.md](docs/rule-packs.md)):
+  detection data (secret formats, hidden-instruction and exec patterns, IOC
+  lists, typosquat targets, Nuclei-compatible templates) ships as versioned
+  directories. Each pack has a `pack.json` index of SHA-256 hashes, signed
+  with `ssh-keygen -Y sign -n penthera-rules`. Penthera verifies the signature
+  (in Node; ssh-keygen is not needed at run time), then every hash, the schema
+  and every regex, before it loads anything. Packs arrive bundled in a release,
+  or by path with `--rules <dir>` (plus `--rules-signers <file>` for your own
+  keys). Unsigned packs are refused unless `--allow-unsigned-rules`, which
+  warns loudly. Nothing is ever fetched
+- `penthera rules list` and `penthera rules verify <dir>`; tooling in
+  `scripts/rules/` (`build-pack.mjs`, maintainer-only `sign-pack.sh`,
+  `check-bundled.mjs`). The publish workflow now refuses to stage a release
+  whose bundled packs are not signed by a key in `lib/rules/allowed_signers`
+- ReDoS guard for data-supplied regexes (`lib/rules/regex-guard.js`): length
+  cap, no backreferences or lookaround, no nested quantifiers, no alternation
+  under unbounded repeats, no unbounded quantifier that every start position
+  can rescan, and a backtracking budget for overlapping quantifier chains.
+  Fuzz-tested: everything it accepts runs in milliseconds on adversarial
+  input. It takes over the v1.1.1 template guard, unchanged
+- Bundled `core` pack: 12 AI-provider key formats, the credential-path
+  instruction pattern, two exec patterns and the `.env` template moved out of
+  code. Behaviour is identical; a test compares against a snapshot of the old
+  built-ins
+- Bundled `ioc-2025-2026` pack (**unsigned in this PR; the maintainer signs it
+  before release**): s1ngularity/nx versions (GHSA-cxm3-wv7p-598c), Shai-Hulud
+  (StepSecurity's list, exfil URL, `bundle.js` by hash), Shai-Hulud 2.0 (Wiz
+  Research's CSV, loader file names) and postmark-mcp 1.0.16 to 1.0.18 with its
+  exfil domain. `penthera deps` reports hits as critical `deps-ioc` findings
+  that cite the source, wherever the package sits in the tree, installed or not
 - **GitHub Action** (`uses: danoszz/penthera@<sha>`, `action.yml`): on PRs that
   change the lockfile it runs `penthera deps --base <PR base>`, upserts one PR
   comment marked `<!-- penthera-deps -->` (edited in place on every push), and

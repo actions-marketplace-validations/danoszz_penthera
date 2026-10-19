@@ -383,6 +383,7 @@ penthera deps --pr-comment deps.md     # short Markdown diff for a PR comment
 | Obfuscation | Obfuscator identifiers (`_0x…`), `\x`-escape density, encoded blobs that are decoded and run (embedded WebAssembly and ANSI colour codes are recognised and ignored) |
 | Attack indicators | Writes to `~/.claude`, `~/.cursor`, `.mcp.json` or the Claude Desktop config; running the `claude`, `gemini` or `q` CLIs (the s1ngularity pattern); GitHub token harvesting |
 | Typosquats | Edit distance, separator and suffix tricks against ~7,800 popular npm names, vendored in the package and refreshed at release time |
+| Known-bad versions | Package versions, exfil endpoints and dropped files from named campaigns (s1ngularity, Shai-Hulud, Shai-Hulud 2.0, postmark-mcp), from the signed [rule packs](docs/rule-packs.md) that ship with each release. Matched against the lockfile, so a bad version is reported even when it is not installed |
 
 Every capability carries `file:line` evidence. It is a regex-and-tokenizer pass,
 not a full parser: deterministic, never executes package code, and fast enough

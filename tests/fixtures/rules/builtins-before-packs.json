@@ -1,0 +1,714 @@
+{
+  "_note": "Built-in rules as they were in lib/ before rule packs (main @ afafb24). tests/rule-packs.test.js checks the engines still expose exactly these, in this order, now that part of them lives in lib/rules/core.",
+  "secrets": [
+    {
+      "name": "AWS access key",
+      "source": "AKIA[0-9A-Z]{16}",
+      "flags": "",
+      "severity": "critical",
+      "skipIf": false
+    },
+    {
+      "name": "GitHub token",
+      "source": "ghp_[a-zA-Z0-9]{36,}",
+      "flags": "",
+      "severity": "critical",
+      "skipIf": false
+    },
+    {
+      "name": "Anthropic API key",
+      "source": "sk-ant-(?:api|admin)\\d{2}-[A-Za-z0-9_-]{32,}",
+      "flags": "",
+      "severity": "critical",
+      "skipIf": false
+    },
+    {
+      "name": "OpenRouter API key",
+      "source": "sk-or-v1-[a-f0-9]{64}",
+      "flags": "",
+      "severity": "critical",
+      "skipIf": false
+    },
+    {
+      "name": "OpenAI API key",
+      "source": "sk-(?:proj|svcacct|admin)-[A-Za-z0-9_-]{20,}",
+      "flags": "",
+      "severity": "critical",
+      "skipIf": false
+    },
+    {
+      "name": "OpenAI API key (legacy format)",
+      "source": "sk-[a-zA-Z0-9]{20,}",
+      "flags": "",
+      "severity": "critical",
+      "skipIf": false
+    },
+    {
+      "name": "Google API key (Gemini / Firebase / Maps)",
+      "source": "AIza[0-9A-Za-z_-]{35}",
+      "flags": "",
+      "severity": "high",
+      "skipIf": false
+    },
+    {
+      "name": "Groq API key",
+      "source": "gsk_[A-Za-z0-9]{48,}",
+      "flags": "",
+      "severity": "critical",
+      "skipIf": false
+    },
+    {
+      "name": "Hugging Face token",
+      "source": "hf_[A-Za-z0-9]{34,}",
+      "flags": "",
+      "severity": "critical",
+      "skipIf": false
+    },
+    {
+      "name": "Replicate API token",
+      "source": "r8_[A-Za-z0-9]{37,}",
+      "flags": "",
+      "severity": "critical",
+      "skipIf": false
+    },
+    {
+      "name": "xAI API key",
+      "source": "xai-[A-Za-z0-9]{70,}",
+      "flags": "",
+      "severity": "critical",
+      "skipIf": false
+    },
+    {
+      "name": "Perplexity API key",
+      "source": "pplx-[A-Za-z0-9]{40,}",
+      "flags": "",
+      "severity": "critical",
+      "skipIf": false
+    },
+    {
+      "name": "LangSmith API key",
+      "source": "lsv2_(?:pt|sk)_[a-f0-9]{32}_[a-f0-9]{10}",
+      "flags": "",
+      "severity": "high",
+      "skipIf": false
+    },
+    {
+      "name": "Pinecone API key",
+      "source": "pcsk_[A-Za-z0-9_]{50,}",
+      "flags": "",
+      "severity": "high",
+      "skipIf": false
+    },
+    {
+      "name": "Stripe secret key",
+      "source": "sk_live_[a-zA-Z0-9]{20,}",
+      "flags": "",
+      "severity": "critical",
+      "skipIf": false
+    },
+    {
+      "name": "Generic API key assignment",
+      "source": "(?:api[_-]?key|apikey|secret[_-]?key)\\s*[:=]\\s*['\"][^'\"\\s]{8,}['\"]",
+      "flags": "i",
+      "severity": "high",
+      "skipIf": true
+    },
+    {
+      "name": "Hardcoded password",
+      "source": "(?:password|passwd|pwd)\\s*[:=]\\s*['\"][^'\"\\s]{4,}['\"]",
+      "flags": "i",
+      "severity": "high",
+      "skipIf": true
+    },
+    {
+      "name": "GCP/Firebase service account",
+      "source": "\"private_key\"\\s*:\\s*\"-----BEGIN",
+      "flags": "",
+      "severity": "critical",
+      "skipIf": false
+    },
+    {
+      "name": "Private key block",
+      "source": "-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----",
+      "flags": "",
+      "severity": "critical",
+      "skipIf": false
+    },
+    {
+      "name": "JWT secret assignment",
+      "source": "(?:jwt[_-]?secret|session[_-]?secret)\\s*[:=]\\s*['\"][^'\"\\s]{8,}['\"]",
+      "flags": "i",
+      "severity": "high",
+      "skipIf": true
+    }
+  ],
+  "instructions": [
+    {
+      "source": "\\b(?:ignore|disregard|forget|override)\\b[^.\\n]{0,40}\\b(?:previous|prior|above|earlier|all|any|other)\\b[^.\\n]{0,20}\\b(?:instructions?|rules?|prompts?|guidelines?|directions?)\\b",
+      "flags": "i"
+    },
+    {
+      "source": "\\b(?:you|assistant|claude|agent|model|ai|llm)\\b[^.\\n]{0,30}\\b(?:must|should|shall|will|are to|need to|have to)\\b",
+      "flags": "i"
+    },
+    {
+      "source": "\\bdo(?:n'?t| not) (?:tell|inform|mention|reveal|show|alert|ask|notify)\\b",
+      "flags": "i"
+    },
+    {
+      "source": "\\bwithout (?:asking|telling|informing|confirm\\w*|permission|the user)",
+      "flags": "i"
+    },
+    {
+      "source": "\\b(?:system prompt|developer message|new instructions?)\\b",
+      "flags": "i"
+    },
+    {
+      "source": "\\b(?:run|execute|exec|invoke)\\b[^.\\n]{0,40}\\b(?:command|script|bash|shell|curl|wget|powershell)\\b",
+      "flags": "i"
+    },
+    {
+      "source": "\\b(?:send|upload|post|exfiltrat\\w*|transmit|forward|copy)\\b[^\\n]{0,60}(?:https?:\\/\\/|\\btokens?\\b|\\bsecrets?\\b|\\bapi keys?\\b|\\bcredentials?\\b|\\.env\\b|\\bssh\\b|\\bpasswords?\\b)",
+      "flags": "i"
+    },
+    {
+      "source": "(?:~\\/\\.ssh|\\bid_rsa\\b|\\bid_ed25519\\b|\\.aws\\/credentials|\\.npmrc|\\.netrc|\\bkeychain\\b)",
+      "flags": "i"
+    }
+  ],
+  "exec": [
+    {
+      "rule": "curl-pipe-shell",
+      "label": "download piped to a shell",
+      "source": "\\b(?:curl|wget|fetch|iwr)\\b[^\\n|]*\\|\\s*(?:sudo\\s+)?(?:env\\s+\\S*\\s*)?(?:ba|z|da|k|fi|c|tc)?sh\\b",
+      "flags": "i"
+    },
+    {
+      "rule": "curl-pipe-interpreter",
+      "label": "download piped to an interpreter",
+      "source": "\\b(?:curl|wget)\\b[^\\n|]*\\|\\s*(?:sudo\\s+)?(?:python[0-9.]*|node|perl|ruby|php|deno|bun)\\b",
+      "flags": "i"
+    },
+    {
+      "rule": "shell-process-substitution",
+      "label": "shell runs a download via process substitution",
+      "source": "\\b(?:(?:ba|z)?sh|source|\\.)\\s+<\\(\\s*(?:curl|wget)\\b",
+      "flags": "i"
+    },
+    {
+      "rule": "shell-command-substitution",
+      "label": "shell -c runs a download",
+      "source": "\\b(?:ba|z)?sh\\s+-c\\s+[\"']?\\$\\(\\s*(?:curl|wget)\\b",
+      "flags": "i"
+    },
+    {
+      "rule": "base64-pipe-shell",
+      "label": "decoded base64 piped to a shell",
+      "source": "base64\\s+(?:-d|--decode|-D)\\b[^\\n]*\\|\\s*(?:sudo\\s+)?(?:env\\s+\\S*\\s*)?(?:ba|z|da|k|fi|c|tc)?sh\\b",
+      "flags": "i"
+    },
+    {
+      "rule": "shell-eval",
+      "label": "eval of command output",
+      "source": "\\beval\\s+[\"']?\\$\\(",
+      "flags": ""
+    },
+    {
+      "rule": "js-eval-remote",
+      "label": "eval of fetched or decoded content",
+      "source": "\\b(?:eval|Function)\\s*\\(\\s*(?:await\\s+)?(?:atob|Buffer\\.from|fetch|require\\(\\s*[\"']child_process|\\(await fetch)",
+      "flags": ""
+    },
+    {
+      "rule": "py-exec-remote",
+      "label": "exec of fetched or decoded content",
+      "source": "\\bexec\\s*\\(\\s*(?:base64\\.b64decode|__import__|compile|urllib|requests\\.get|zlib\\.decompress|marshal\\.loads|bytes\\.fromhex)",
+      "flags": ""
+    },
+    {
+      "rule": "powershell-iex",
+      "label": "PowerShell Invoke-Expression of a download",
+      "source": "\\b(?:iex|Invoke-Expression)\\b[^\\n]*\\b(?:iwr|irm|Invoke-WebRequest|Invoke-RestMethod|DownloadString)\\b|\\b(?:iwr|irm|Invoke-WebRequest|Invoke-RestMethod|DownloadString)\\b[^\\n]*\\|\\s*(?:iex|Invoke-Expression)\\b",
+      "flags": "i"
+    }
+  ],
+  "templates": [
+    {
+      "id": "env-file-exposure",
+      "info": {
+        "name": ".env file exposed",
+        "severity": "critical",
+        "tags": [
+          "exposure",
+          "config"
+        ]
+      },
+      "http": [
+        {
+          "method": "GET",
+          "path": "/.env",
+          "matchers": [
+            {
+              "type": "status",
+              "status": [
+                200
+              ]
+            },
+            {
+              "type": "word",
+              "words": [
+                "DB_",
+                "API_KEY",
+                "SECRET",
+                "PASSWORD",
+                "FIREBASE_",
+                "STRIPE_"
+              ],
+              "condition": "or"
+            }
+          ],
+          "matchers-condition": "and"
+        }
+      ]
+    },
+    {
+      "id": "env-local-exposure",
+      "info": {
+        "name": ".env.local file exposed",
+        "severity": "critical",
+        "tags": [
+          "exposure",
+          "config"
+        ]
+      },
+      "http": [
+        {
+          "method": "GET",
+          "path": "/.env.local",
+          "matchers": [
+            {
+              "type": "status",
+              "status": [
+                200
+              ]
+            },
+            {
+              "type": "regex",
+              "regex": [
+                "(?m)^[A-Z][A-Z0-9_]{2,}="
+              ]
+            },
+            {
+              "type": "negative-word",
+              "words": [
+                "<html",
+                "<!DOCTYPE",
+                "<script"
+              ]
+            }
+          ],
+          "matchers-condition": "and"
+        }
+      ]
+    },
+    {
+      "id": "git-config-exposure",
+      "info": {
+        "name": "Git config exposed",
+        "severity": "high",
+        "tags": [
+          "exposure",
+          "git"
+        ]
+      },
+      "http": [
+        {
+          "method": "GET",
+          "path": "/.git/config",
+          "matchers": [
+            {
+              "type": "status",
+              "status": [
+                200
+              ]
+            },
+            {
+              "type": "word",
+              "words": [
+                "[core]",
+                "[remote"
+              ],
+              "condition": "or"
+            }
+          ],
+          "matchers-condition": "and"
+        }
+      ]
+    },
+    {
+      "id": "git-head-exposure",
+      "info": {
+        "name": "Git HEAD exposed",
+        "severity": "medium",
+        "tags": [
+          "exposure",
+          "git"
+        ]
+      },
+      "http": [
+        {
+          "method": "GET",
+          "path": "/.git/HEAD",
+          "matchers": [
+            {
+              "type": "status",
+              "status": [
+                200
+              ]
+            },
+            {
+              "type": "word",
+              "words": [
+                "ref: refs/"
+              ]
+            }
+          ],
+          "matchers-condition": "and"
+        }
+      ]
+    },
+    {
+      "id": "service-account-key-exposure",
+      "info": {
+        "name": "Service account key exposed",
+        "severity": "critical",
+        "tags": [
+          "exposure",
+          "firebase",
+          "gcp"
+        ]
+      },
+      "http": [
+        {
+          "method": "GET",
+          "path": "/serviceAccountKey.json",
+          "matchers": [
+            {
+              "type": "status",
+              "status": [
+                200
+              ]
+            },
+            {
+              "type": "word",
+              "words": [
+                "private_key",
+                "client_email"
+              ],
+              "condition": "and"
+            }
+          ],
+          "matchers-condition": "and"
+        }
+      ]
+    },
+    {
+      "id": "nextjs-sourcemap-exposure",
+      "info": {
+        "name": "Next.js source maps exposed",
+        "severity": "medium",
+        "tags": [
+          "exposure",
+          "nextjs"
+        ],
+        "description": "Source maps allow attackers to read your original source code"
+      },
+      "http": [
+        {
+          "method": "GET",
+          "path": "/_next/static/chunks/main.js.map",
+          "matchers": [
+            {
+              "type": "status",
+              "status": [
+                200
+              ]
+            },
+            {
+              "type": "word",
+              "words": [
+                "mappings",
+                "sources"
+              ],
+              "condition": "or"
+            }
+          ],
+          "matchers-condition": "and"
+        }
+      ]
+    },
+    {
+      "id": "firebase-database-open-read",
+      "info": {
+        "name": "Firebase Realtime DB open read",
+        "severity": "high",
+        "tags": [
+          "firebase",
+          "misconfiguration"
+        ]
+      },
+      "http": [
+        {
+          "method": "GET",
+          "path": "/.json",
+          "matchers": [
+            {
+              "type": "status",
+              "status": [
+                200
+              ]
+            },
+            {
+              "type": "regex",
+              "regex": [
+                "^\\s*[\\{\\[]"
+              ]
+            },
+            {
+              "type": "negative-word",
+              "words": [
+                "Permission denied",
+                "error",
+                "<html",
+                "<!DOCTYPE"
+              ]
+            }
+          ],
+          "matchers-condition": "and"
+        }
+      ]
+    },
+    {
+      "id": "nextjs-debug-endpoint",
+      "info": {
+        "name": "Next.js debug endpoint accessible",
+        "severity": "medium",
+        "tags": [
+          "nextjs",
+          "debug"
+        ]
+      },
+      "http": [
+        {
+          "method": "GET",
+          "path": "/api/__nextjs_original-stack-frame",
+          "matchers": [
+            {
+              "type": "status",
+              "status": [
+                200,
+                400
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "graphql-introspection",
+      "info": {
+        "name": "GraphQL introspection enabled",
+        "severity": "medium",
+        "tags": [
+          "graphql",
+          "misconfiguration"
+        ]
+      },
+      "http": [
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": "{\"query\":\"{ __schema { types { name } } }\"}",
+          "matchers": [
+            {
+              "type": "status",
+              "status": [
+                200
+              ]
+            },
+            {
+              "type": "word",
+              "words": [
+                "__schema",
+                "__type"
+              ],
+              "condition": "or"
+            }
+          ],
+          "matchers-condition": "and"
+        }
+      ]
+    },
+    {
+      "id": "swagger-ui-exposed",
+      "info": {
+        "name": "Swagger UI exposed",
+        "severity": "low",
+        "tags": [
+          "exposure",
+          "api-docs"
+        ]
+      },
+      "http": [
+        {
+          "method": "GET",
+          "path": "/api/docs",
+          "matchers": [
+            {
+              "type": "status",
+              "status": [
+                200
+              ]
+            },
+            {
+              "type": "word",
+              "words": [
+                "swagger",
+                "openapi",
+                "api-docs"
+              ],
+              "condition": "or"
+            }
+          ],
+          "matchers-condition": "and"
+        }
+      ]
+    },
+    {
+      "id": "cve-2025-29927-nextjs-middleware-bypass",
+      "info": {
+        "name": "CVE-2025-29927: Next.js middleware bypass",
+        "severity": "critical",
+        "tags": [
+          "cve",
+          "nextjs",
+          "auth-bypass"
+        ],
+        "description": "x-middleware-subrequest header can bypass Next.js middleware auth checks"
+      },
+      "http": [
+        {
+          "method": "GET",
+          "path": "/api/admin/users",
+          "headers": {
+            "x-middleware-subrequest": "middleware:middleware:middleware:middleware:middleware"
+          },
+          "matchers": [
+            {
+              "type": "status",
+              "status": [
+                200
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cors-wildcard",
+      "info": {
+        "name": "CORS allows wildcard origin",
+        "severity": "medium",
+        "tags": [
+          "cors",
+          "misconfiguration"
+        ]
+      },
+      "http": [
+        {
+          "method": "GET",
+          "path": "/api/health",
+          "headers": {
+            "Origin": "https://evil-attacker.com"
+          },
+          "matchers": [
+            {
+              "type": "word",
+              "words": [
+                "https://evil-attacker.com"
+              ],
+              "part": "header"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cors-null-origin",
+      "info": {
+        "name": "CORS allows null origin",
+        "severity": "high",
+        "tags": [
+          "cors",
+          "misconfiguration"
+        ]
+      },
+      "http": [
+        {
+          "method": "GET",
+          "path": "/api/health",
+          "headers": {
+            "Origin": "null"
+          },
+          "matchers": [
+            {
+              "type": "regex",
+              "regex": [
+                "access-control-allow-origin:\\s*null"
+              ],
+              "part": "header"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "directory-listing",
+      "info": {
+        "name": "Directory listing enabled",
+        "severity": "low",
+        "tags": [
+          "exposure",
+          "misconfiguration"
+        ]
+      },
+      "http": [
+        {
+          "method": "GET",
+          "path": "/api/",
+          "matchers": [
+            {
+              "type": "status",
+              "status": [
+                200
+              ]
+            },
+            {
+              "type": "word",
+              "words": [
+                "Index of",
+                "Directory listing",
+                "<pre>"
+              ],
+              "condition": "or"
+            }
+          ],
+          "matchers-condition": "and"
+        }
+      ]
+    }
+  ]
+}

@@ -21,6 +21,7 @@
     "lib",
     "skills",
     "docs",
+    "scripts/rules",
     "pentest.config.example.js",
     "CHANGELOG.md",
     "LICENSE",
@@ -52,7 +53,9 @@
     "prepack": "npm test",
     "mock-server": "node tests/fixtures/mock-server.js",
     "bench": "node bench/run.js",
-    "refresh:retire-db": "node scripts/refresh-retire-db.mjs"
+    "refresh:retire-db": "node scripts/refresh-retire-db.mjs",
+    "rules:build": "node scripts/rules/build-pack.mjs",
+    "rules:check": "node scripts/rules/check-bundled.mjs"
   },
   "keywords": [
     "security",

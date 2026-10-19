@@ -263,6 +263,14 @@ Penthera keeps up through reviewed releases, not through live updates:
   added by pull request, reviewed, tested against the benchmark, and published
   in a versioned release with a CHANGELOG entry. There is no rule server, no
   background update, and no command that fetches rules from the internet.
+- **Detection data ships as signed rule packs.** Patterns and IOC lists that
+  are data rather than logic (key formats, malicious package versions, exfil
+  hosts) live in versioned packs under `lib/rules/`. Each pack is signed with
+  the maintainer's SSH key, which never enters CI. Every file is hash-pinned,
+  and every regex must pass a ReDoS guard before it loads. The publish workflow
+  refuses to stage a release with an unsigned bundled pack. You can add your
+  own packs by path (`--rules <dir>`), never by URL. See
+  [rule-packs.md](./rule-packs.md).
 - **Every new rule carries a source and a date.** A rule added after v1.2.0
   records where the technique comes from (a paper, an advisory, an OWASP or
   ATLAS entry, an incident write-up) and the date it was added. Categories are

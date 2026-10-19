@@ -1,0 +1,43 @@
+{
+  "kind": "ioc-file",
+  "rules": [
+    {
+      "id": "shai-hulud-1-bundle",
+      "campaign": "Shai-Hulud worm (first wave)",
+      "description": "The worm payload. bundle.js is a common file name, so it only matches with this SHA-256.",
+      "files": [
+        {
+          "path": "bundle.js",
+          "sha256": "46faab8ab153fae6e80e7cca38eab363075bb524edd79e42269217a083628f09"
+        }
+      ],
+      "source": "https://www.stepsecurity.io/blog/ctrl-tinycolor-and-40-npm-packages-compromised",
+      "date": "2025-09-15",
+      "confidence": "confirmed",
+      "references": [
+        "ohm2020backstabber",
+        "ladisa2023sok"
+      ]
+    },
+    {
+      "id": "shai-hulud-2-loader",
+      "campaign": "Shai-Hulud 2.0 (Sha1-Hulud: The Second Coming)",
+      "description": "The preinstall loader and payload file names. Matched by name: Wiz publishes SHA-1 hashes only.",
+      "files": [
+        {
+          "path": "setup_bun.js"
+        },
+        {
+          "path": "bun_environment.js"
+        }
+      ],
+      "source": "https://www.wiz.io/blog/shai-hulud-2-0-ongoing-supply-chain-attack",
+      "date": "2025-11-24",
+      "confidence": "likely",
+      "references": [
+        "ohm2020backstabber",
+        "ladisa2023sok"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "kind": "nuclei-template",
+  "rules": [
+    {
+      "id": "template.env-file-exposure",
+      "template": {
+        "id": "env-file-exposure",
+        "info": {
+          "name": ".env file exposed",
+          "severity": "critical",
+          "tags": [
+            "exposure",
+            "config"
+          ]
+        },
+        "http": [
+          {
+            "method": "GET",
+            "path": "/.env",
+            "matchers": [
+              {
+                "type": "status",
+                "status": [
+                  200
+                ]
+              },
+              {
+                "type": "word",
+                "words": [
+                  "DB_",
+                  "API_KEY",
+                  "SECRET",
+                  "PASSWORD",
+                  "FIREBASE_",
+                  "STRIPE_"
+                ],
+                "condition": "or"
+              }
+            ],
+            "matchers-condition": "and"
+          }
+        ]
+      },
+      "source": "https://github.com/danoszz/penthera/blob/afafb24/lib/templates.js",
+      "date": "2026-06-30",
+      "confidence": "confirmed",
+      "references": [
+        "owaspwstg42"
+      ]
+    }
+  ]
+}

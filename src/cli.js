@@ -67,6 +67,7 @@ const HELP = `
     $ penthera evidence verify <dir> Check an evidence bundle's hashes and signature
     $ penthera rules list|verify <dir>  Signed detection rule packs (penthera rules --help)
     $ penthera agent --loop          Scan, fix, verify, learn; local commits only (--help)
+    $ penthera ui [--open] [--demo]  Local dashboard on 127.0.0.1 (penthera ui --help)
 
   ${dim("Scan modes")}
         --profile <name>        quick | standard | deep (default: standard)
@@ -113,6 +114,7 @@ const HELP = `
         --audience <who>    developer | owner | auditor report (for --markdown or stdout)
         --report-template <file.md>  Your own Markdown template ({{summary.critical}}, {{#each findings}})
         --evidence <dir>    Evidence bundle: all reports + manifest.json with SHA-256s
+        --no-footer         Leave the one-line "Checked by Penthera" footer off Markdown output
         --sign-key <key>    Sign the bundle's manifest with an SSH key (ssh-keygen -Y sign)
         --baseline <file>   Compare against previous JSON report
         --framework <name>  Add a compliance mapping to reports (nis2)
@@ -201,6 +203,11 @@ export async function run() {
     process.exit(await runRules(process.argv.slice(3)));
   }
 
+  if (process.argv[2] === "ui") {
+    const { runUi } = await import("./cli/ui.js");
+    process.exit(await runUi(process.argv.slice(3), { version: pkg.version }));
+  }
+
   if (process.argv[2] === "agent") {
     const { runAgent } = await import("./cli/agent.js");
     process.exit(await runAgent(process.argv.slice(3)));
@@ -217,6 +224,7 @@ export async function run() {
         markdown:    { type: "string" },
         sarif:       { type: "string" },
         audience:    { type: "string" },
+        "no-footer": { type: "boolean", default: false },
         "report-template": { type: "string" },
         evidence:    { type: "string" },
         "sign-key":  { type: "string" },
@@ -607,7 +615,7 @@ export async function run() {
     }
   }
 
-  const mdOpts = { version: pkg.version, baseline: baselineStats };
+  const mdOpts = { version: pkg.version, baseline: baselineStats, footer: !opts["no-footer"] };
   const custom = customReport(merged, opts, { version: pkg.version, template: reportCtx.template });
 
   // Output

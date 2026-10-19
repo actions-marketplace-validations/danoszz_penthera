@@ -38,10 +38,12 @@ const PKG = readJson(join(ROOT, "package.json"));
 const BENCH_MAX_DROP = 0.02;
 
 /** Package budget (current 1.2.0: ~475 KB packed, ~1.3 MB unpacked, 138 files). */
-// Raised for the bundled rule packs (lib/rules/: ~40 KB packed, ~165 KB
-// unpacked, 19 files of signed IOC and pattern data and their tooling). Main
-// before them: ~629 KB packed, ~1.8 MB unpacked, 179 files.
-const PACK_BUDGET = { packedBytes: 720_000, unpackedBytes: 2_000_000, files: 230 };
+// Raised for the dashboard (src/ui: ~245 KB unpacked, ~40 KB packed, 22 small
+// files, no dependencies) and the bundled rule packs (lib/rules/: ~165 KB
+// unpacked, ~40 KB packed, 19 files of signed IOC and pattern data and their
+// tooling): was 650_000 packed / 1_800_000 unpacked / 200 files. The headroom
+// above today's size stays about the same.
+const PACK_BUDGET = { packedBytes: 780_000, unpackedBytes: 2_250_000, files: 260 };
 
 /** Paths the npm package may contain. Anything else fails the packaging gate. */
 const PACK_ALLOW = [

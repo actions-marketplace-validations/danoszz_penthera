@@ -31,10 +31,24 @@ export function changelogSection(changelog, tag) {
   return lines.slice(start + 1, end).join("\n").trim();
 }
 
-/** Plain text: no Markdown emphasis, code ticks, links or parenthesised asides. */
+/** Drop HTML comments, including unterminated and multi-line ones, without a regex. */
+function stripComments(s) {
+  let out = "";
+  let i = 0;
+  for (;;) {
+    const start = s.indexOf("<!--", i);
+    if (start < 0) return out + s.slice(i);
+    out += s.slice(i, start);
+    const end = s.indexOf("-->", start + 4);
+    if (end < 0) return out;
+    i = end + 3;
+  }
+}
+
+/** Plain text: no HTML, no Markdown emphasis, code ticks, links or parenthesised asides. */
 export function plain(s) {
-  return String(s)
-    .replace(/<!--.*?-->/g, "")
+  return stripComments(String(s))
+    .replace(/[<>]/g, "")
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
     .replace(/[*_`]/g, "")
     .replace(/\s+/g, " ")

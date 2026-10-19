@@ -65,7 +65,7 @@ export function plan(advisories, { seen, popular = new Set(), cap = 5, mode = "n
 }
 
 const tick = (s) => `\`${String(s).replace(/`/g, "'")}\``;
-const cell = (s) => String(s).replace(/\|/g, "\\|").replace(/\n/g, " ");
+const cell = (s) => String(s).replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\n/g, " ");
 
 export function issueTitle(adv) {
   const pkgs = packagesOf(adv);

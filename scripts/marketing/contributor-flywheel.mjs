@@ -26,7 +26,7 @@ export function parseMarkers(grepOutput) {
   for (const row of String(grepOutput).split("\n")) {
     const m = row.match(/^(.+?):(\d+):(.*)$/);
     if (!m || !m[3].includes(TAG)) continue;
-    const text = m[3].slice(m[3].indexOf(TAG) + TAG.length).replace(/^[:\s-]+/, "").replace(/\s*(\*\/|-->)\s*$/, "").trim();
+    const text = m[3].slice(m[3].indexOf(TAG) + TAG.length).replace(/^[:\s-]+/, "").replace(/\s*\*\/\s*$/, "").replace(/[<>]/g, "").trim();
     out.push({ file: m[1], line: Number(m[2]), text });
   }
   return out;

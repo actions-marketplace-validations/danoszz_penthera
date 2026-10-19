@@ -289,6 +289,7 @@ export function buildDeps({ deps = [], installs = [] }) {
       target: str(latest.target, 500),
       ts: latest.timestamp || null,
       lockfile: str(d.lockfile, 300),
+      ecosystem: str(d.ecosystem, 20) || "npm",
       network: str(d.network, 80),
       total: d.total ?? 0,
       scanned: d.scanned ?? 0,

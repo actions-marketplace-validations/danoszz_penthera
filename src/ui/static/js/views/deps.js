@@ -35,7 +35,7 @@ export async function render(root, { api }) {
 
     put(grid, panel("Capabilities in the tree", { class: "span-5" },
       bars(caps.map(([id, n]) => ({ label: id, value: n, cls: "t1", ch: SHADE[CAP_SEV[id] || "info"] })), { width: 18 }),
-      h("p", { class: "panel-note" }, `${l.lockfile} :: ${l.network} :: ${ago(l.ts)}`),
+      h("p", { class: "panel-note" }, `${l.ecosystem} :: ${l.lockfile} :: ${l.network} :: ${ago(l.ts)}`),
     ));
 
     put(grid, panel("Capability diff", { class: "span-7" },

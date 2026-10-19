@@ -10,7 +10,7 @@ export const SCREENS = {
   findings: { title: "Findings", lede: "Every open finding in the latest report per project. Pick one to see what it means and how to fix it." },
   run: { title: "Run", lede: "Scan, check dependencies, audit AI tooling, or let the agent fix things. Every diff waits for you. Nothing is pushed." },
   history: { title: "History", lede: "Compare two scans of one project :: what is new, what got fixed, what is still open." },
-  deps: { title: "Dependencies", lede: "What your npm packages can do, what changed, and what the install firewall let in." },
+  deps: { title: "Dependencies", lede: "What your npm and Python packages can do, what changed, and what the install firewall let in." },
   ai: { title: "AI tooling", lede: "Skills, MCP servers, hooks and rule files :: the grade, hidden content, and drift against penthera.lock." },
   evidence: { title: "Evidence", lede: "Hashed, signable bundles for an auditor. Create one from the latest scan, verify any of them in one click." },
   settings: { title: "Settings", lede: "For this session. Nothing here is written to disk except your theme choice." },

@@ -7,6 +7,7 @@ import { buildWstgCoverage, formatWstgMarkdown } from "../../lib/owasp-wstg.js";
 import { formatComplianceMarkdown } from "../../lib/compliance/index.js";
 import { buildActionPlan, formatActionPlanMarkdown } from "../../lib/remediation/index.js";
 import { formatAuditLoopMarkdown } from "../../lib/audit-loop.js";
+import { referencesFor, formatSourcesMarkdown } from "../../lib/references.js";
 
 const SEV_ORDER = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 const SEV_TAG = {
@@ -150,12 +151,14 @@ export function formatMarkdownReport(result, opts = {}) {
       lines.push("");
 
       for (const f of group) {
-        if (!f.description) continue;
+        const refs = referencesFor(f);
+        if (!f.description && refs.length === 0) continue;
         lines.push(`**${f.title}**`);
         lines.push("");
-        lines.push(f.description);
+        if (f.description) lines.push(f.description);
         if (f.url) lines.push(`\n- URL: ${f.url}`);
         if (f.status) lines.push(`- HTTP status: ${f.status}`);
+        if (refs.length) lines.push(`- Why this matters / Sources: ${formatSourcesMarkdown(refs)}`);
         lines.push("");
       }
     }

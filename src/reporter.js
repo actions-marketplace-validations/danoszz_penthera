@@ -6,6 +6,7 @@
 import { writeFileSync, readFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { resolveWstgTags } from "../lib/owasp-wstg.js";
+import { referencesFor } from "../lib/references.js";
 
 const PKG_VERSION = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf-8"),
@@ -450,18 +451,30 @@ export function writeSarifReport(result, filePath) {
   for (const f of result.findings || []) {
     const ruleId = f.templateId || f.category || "unknown";
 
+    const refs = referencesFor(f);
+
     if (!rules.has(ruleId)) {
       rules.set(ruleId, {
         id: ruleId,
         name: f.title,
         shortDescription: { text: f.title },
         fullDescription: { text: f.description || f.title },
+        // Research and standards behind the rule (lib/references.json), so a
+        // reviewer in GitHub code scanning can see why it is reported.
+        ...(refs.length && {
+          helpUri: refs[0].url,
+          help: {
+            text: `Sources: ${refs.map((r) => `${r.cite}, ${r.title} (${r.url})`).join("; ")}`,
+            markdown: `**Sources:** ${refs.map((r) => `[${r.cite}](${r.url}), *${r.title}*`).join("; ")}`,
+          },
+        }),
         defaultConfiguration: {
           level: SARIF_SEV_MAP[f.severity] || "note",
         },
         properties: {
           "security-severity": sevToScore(f.severity),
           tags: ["security", f.category || "general", ...(f.wstg || resolveWstgTags(f))].filter(Boolean),
+          ...(refs.length && { references: refs.map((r) => r.key) }),
         },
       });
     }

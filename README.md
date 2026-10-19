@@ -34,7 +34,8 @@ issues." The agent picks the scan, runs it, and gives you the fixes.
 You shipped something fast: vibecoded, AI-assisted, already live. The same models
 that helped you build it also make it easy for someone to probe it. Exposed API
 routes, missing security headers, weak auth, a hardcoded key in the repo. These
-are the common mistakes that get apps broken into.
+are the common mistakes that get apps broken into. An AI provider key in the
+frontend bundle is the newest and most expensive of them.
 
 Penthera is the check you run before you launch. Ask your agent to "scan my app
 for security issues" and it runs an authorized, non-destructive scan, then lists
@@ -115,7 +116,7 @@ Prefer the terminal? Run `penthera` with no arguments for a guided wizard.
 | Mode | Command | Coverage |
 |------|---------|----------|
 | **URL scan** | `penthera https://example.com` | TLS, fingerprinting, endpoint discovery, templates, CORS, cookies, JS CVEs, param discovery, OpenAPI/FastAPI probes, security headers, auth hardening |
-| **Repo scan** | `penthera --repo ./my-app` | API route discovery (Next.js, Express, Hono, Fastify), trust-boundary mapping, hardcoded-secret scanning |
+| **Repo scan** | `penthera --repo ./my-app` | API route discovery (Next.js, Express, Hono, Fastify), trust-boundary mapping, hardcoded-secret scanning (including Anthropic, OpenAI, Gemini, Groq, Hugging Face and other AI provider keys) |
 | **Combined** | `penthera https://staging.app --repo .` | Black-box and white-box in one run |
 | **Interactive** | `penthera` *(no args)* | Guided wizard (URL plus optional repo scan, Markdown report) |
 | **Machine audit** | `penthera --machine` | macOS checks (keyloggers, persistence, rootkits) |
@@ -301,7 +302,7 @@ helps with the paperwork around it. Offline, no accounts.
 
 ```yaml
 # Scan a staging URL on a schedule and upload results to GitHub Security.
-- run: npx penthera@1.1.2 "$PENTEST_URL" --profile standard --sarif reports/scan.sarif
+- run: npx penthera@1.2.0 "$PENTEST_URL" --profile standard --sarif reports/scan.sarif
 - uses: github/codeql-action/upload-sarif@v4
   with:
     sarif_file: reports/scan.sarif
@@ -390,7 +391,8 @@ npm run pentest:mock     # offline tests against a local mock vuln API
 npm run mock-server      # start the mock API on port 8765
 ```
 
-See the [roadmap](ROADMAP.md) for what is next and what is deliberately not
+See the [roadmap](ROADMAP.md) for what is next, including auditing the skills,
+MCP servers, and plugins in your AI toolchain, and what is deliberately not
 planned.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the project layout, how to add a probe
@@ -400,7 +402,7 @@ or template, the test matrix, and the release and publishing checklist.
 
 ## Status
 
-**v1.1, production-ready.** URL, repo, and machine scanning, NIS2 readiness tooling, scan profiles,
+**v1.2, production-ready.** URL, repo, and machine scanning, NIS2 readiness tooling, scan profiles,
 Markdown, JSON, and SARIF reports, session-aware auth, JWT, IDOR, OAuth, and
 header probes, adaptive knowledge-graph probing, a plugins and templates API,
 Docker, CI, and the Agent Skill are all shipped. See the [CHANGELOG](CHANGELOG.md)

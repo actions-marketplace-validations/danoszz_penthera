@@ -419,8 +419,18 @@ you can help keep it maintained:
 
 [![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-GitHub-db61a2?logo=githubsponsors)](https://github.com/sponsors/danoszz)
 
-Sponsorship funds new probes, broader framework coverage, and keeping the suite
-current with new attack patterns. Thank you.
+| Tier | Monthly | You get |
+|------|---------|---------|
+| Individual | $5 | Thanks, and your name on the GitHub sponsors list |
+| Supporter | $25 | A mention in the next release notes |
+| Startup | $100 | Your name and link in this README |
+| Company | $500 | Your logo in this README, and a quarterly roadmap call |
+
+Sponsorship pays for maintainer time: keeping detection rules current, security
+fixes, and the [roadmap](ROADMAP.md). It does not buy influence over findings,
+a support SLA, or early access to vulnerability reports, and a logo here is not
+a security endorsement of that company. Details in
+[docs/funding/sponsor-tiers.md](docs/funding/sponsor-tiers.md).
 
 ---
 

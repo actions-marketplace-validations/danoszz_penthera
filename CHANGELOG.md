@@ -4,6 +4,12 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Docs
+
+- Funding and partnership drafts under `docs/funding/`: an NLnet application
+  draft, GitHub Sponsors tiers, a partner brief, and a due diligence checklist.
+- CONTRIBUTING: commits are signed off under the Developer Certificate of Origin.
+
 ## [1.2.0] - 2026-10-19
 
 The first step toward securing the AI toolchain itself: catch AI provider keys,

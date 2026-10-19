@@ -18,6 +18,7 @@ import { initPrompt, closePrompt, ask, choose, confirm, checklist, normalizeUrlI
 import { banner, logo, box, bold, dim, cyan, green, yellow, red, hr, brand } from "./ansi.js";
 import { executeScan, writeScanReports } from "./run-scan.js";
 import { detectProject, portsFromEnv } from "./detect.js";
+import { mdInline } from "../report/md-escape.js";
 import { mergeResults } from "./merge-results.js";
 import { resolveLicensePolicy } from "./deps.js";
 import { isPrivateHost } from "../utils/url.js";
@@ -399,12 +400,12 @@ function summaryMarkdown(results, top, ctx) {
   const L = [`# Penthera summary, ${ctx.date}`, "", `Penthera ${ctx.version}, ${ctx.offline ? "offline" : "online"}.`, "", "| Area | Grade | Findings | Report |", "| --- | --- | --- | --- |"];
   for (const r of results) {
     L.push(r.error
-      ? `| ${r.label} | n/a | could not run: ${r.error.replace(/\|/g, "\\|")} | |`
-      : `| ${r.label} | ${r.grade} | ${countLine(r.merged.findings)} | [${r.id}.md](${r.id}.md) |`);
+      ? `| ${r.label} | n/a | could not run: ${mdInline(r.error)} | |`
+      : `| ${mdInline(r.label)} | ${r.grade} | ${countLine(r.merged.findings)} | [${r.id}.md](${r.id}.md) |`);
   }
   if (top.length) {
     L.push("", "## Fix first", "");
-    top.forEach((a, i) => L.push(`${i + 1}. **${a.action}** (${a.area}, ${a.severity}). ${a.why}`));
+    top.forEach((a, i) => L.push(`${i + 1}. **${mdInline(a.action)}** (${mdInline(a.area)}, ${a.severity}). ${mdInline(a.why)}`));
   }
   L.push("", "## Rerun", "", ...results.map((r) => `- ${r.label}: \`${r.command}\``), "");
   return L.join("\n");

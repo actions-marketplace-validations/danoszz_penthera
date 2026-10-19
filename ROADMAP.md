@@ -71,7 +71,7 @@ The engineering detail, order of work, and acceptance criteria are in the
 | LLM endpoint configuration checks (rate limits, exposed inference and vector stores, unauthenticated remote MCP, CSP exfiltration surface) | Parked; needs a narrower design |
 | JS bundle key scan | Open for contributors ([#6](https://github.com/danoszz/penthera/issues/6)) |
 
-### v1.7.0 "Before you deploy" (planned)
+### Next: "Before you deploy"
 
 Test what you are about to ship, where it already runs: on your machine or on a
 preview deployment.
@@ -83,7 +83,7 @@ preview deployment.
 | Framework presets | Sensible routes, auth flows, and headers for Next.js, SvelteKit, Remix, Nuxt, and Astro, so the first scan is useful without config |
 | Authenticated preview scans | Test accounts from your own seed data, never real credentials |
 
-### v1.8.0 "After you ship" (planned)
+### After that: "After you ship"
 
 Keep watching what you shipped, without agents on your servers and without a
 cloud service.

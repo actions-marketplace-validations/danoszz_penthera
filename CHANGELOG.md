@@ -4,6 +4,14 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-10-19
+
+One view and one command. `npx penthera` now sets Penthera up in a project:
+it detects what is there, asks what to check, runs it offline and offers the
+hook, the PR workflow and the dashboard. `penthera ui` is a single view with
+side panels. The README is rewritten, and the methodology and references
+follow APA 7.
+
 ### Added
 
 - **`penthera init`, the setup wizard** (also `npx penthera` with no arguments

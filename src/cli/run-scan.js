@@ -59,6 +59,8 @@ export async function executeScan(config) {
     verbose,
     authCookie,
     authBearer,
+    offline: config.offline || false,
+    userAgent: config.userAgent || null,
     onPhase: onPhase || createProgress(quiet || json),
   };
 

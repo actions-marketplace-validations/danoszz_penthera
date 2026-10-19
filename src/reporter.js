@@ -6,6 +6,8 @@
 import { writeFileSync, readFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { resolveWstgTags } from "../lib/owasp-wstg.js";
+import { referencesFor } from "../lib/references.js";
+import { formatDepsTerminal } from "../lib/deps/report.js";
 
 const PKG_VERSION = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf-8"),
@@ -258,6 +260,15 @@ export function printReport(result, opts = {}) {
     w("");
   }
 
+  // Dependencies (penthera deps)
+  if (result.deps) {
+    w(`  ${c.dim(line())}`);
+    w(`  ${c.bold("Dependencies")}`);
+    w("");
+    for (const l of formatDepsTerminal(result.deps, c, opts)) w(l);
+    w("");
+  }
+
   // Cookies
   if (result.cookies && result.cookies.length > 0) {
     w(`  ${c.dim(line())}`);
@@ -305,6 +316,26 @@ export function printReport(result, opts = {}) {
     w("");
   }
 
+  // Agent configuration (penthera agents)
+  if (result.agents) {
+    const a = result.agents;
+    const inv = a.inventory || {};
+    const gradeColor = { A: c.green, B: c.green, C: c.yellow, D: c.red, F: c.bgRed }[a.grade] || ((s) => s);
+    w(`  ${c.dim(line())}`);
+    w(`  ${c.bold("Agent Config")}${a.home ? c.dim("  repo + home") : c.dim("  repo")}`);
+    w("");
+    w(`  Grade      ${gradeColor(` ${a.grade} `)} ${c.dim(`(${a.score}/100)`)}`);
+    w(`  Found      ${inv.skills || 0} skills · ${inv.mcpServers || 0} MCP servers · ${inv.hooks || 0} hooks · ${inv.plugins || 0} plugins · ${inv.instructionFiles || 0} rule files`);
+    if (a.lock) {
+      const l = a.lock;
+      const status = l.status === "pinned" ? c.green(`pinned ${l.entries} entries → ${l.path}`)
+        : l.status === "checked" ? (l.changed || l.added ? c.yellow(`${l.changed} changed · ${l.added} new · ${l.removed} removed`) : c.green(`all ${l.entries} entries match`))
+        : l.status === "corrupt" ? c.red("corrupt") : c.dim("none (run with --pin)");
+      w(`  Lock       ${status}`);
+    }
+    w("");
+  }
+
   // Findings
   if (result.findings && result.findings.length > 0) {
     w(`  ${c.dim(line())}`);
@@ -323,14 +354,27 @@ export function printReport(result, opts = {}) {
       // heuristic as a confirmed break. Certainties stay unannotated.
       const needsReview = f.confidence === "needs-human-review" || f.confidence === "potential";
       const tag = needsReview ? c.dim(` [${f.confidence}]`) : "";
-      w(`  ${colorFn(label)}  ${f.title}${tag}`);
-      if (f.url)  w(`  ${" ".repeat(6)} ${c.dim(f.url)}${f.status ? c.dim(` \u2192 ${f.status}`) : ""}`);
+      w(`  ${colorFn(label)}  ${f.title}${tag}${f.fid ? c.dim(`  ${f.fid}`) : ""}`);
+      if (f.url)  w(`  ${" ".repeat(6)} ${c.dim(f.url + (f.line ? `:${f.line}` : ""))}${f.status ? c.dim(` \u2192 ${f.status}`) : ""}`);
       if (f.description && opts.verbose) w(`  ${" ".repeat(6)} ${c.dim(f.description)}`);
     }
     w("");
   } else if (result.findings) {
     w(`  ${c.dim(line())}`);
     w(`  ${c.green("No findings")} \u2014 looking good.`);
+    w("");
+  }
+
+  // Suppressed by local memory or the repo's penthera.suppress.json (--memory).
+  // Always listed with who suppressed it and why, so nothing disappears silently.
+  if (result.suppressed?.length) {
+    w(`  ${c.dim(line())}`);
+    w(`  ${c.bold("Suppressed")} ${c.dim(`(${result.suppressed.length}, not counted above)`)}`);
+    w("");
+    for (const f of result.suppressed) {
+      w(`  ${c.dim(SEV_LABEL[f.severity] || "    ")}  ${f.title}${c.dim(`  ${f.fid}`)}`);
+      w(`  ${" ".repeat(6)} ${c.yellow(suppressionLabel(f.suppression))}: ${c.dim(stripControl(f.suppression?.reason))}`);
+    }
     w("");
   }
 
@@ -345,10 +389,53 @@ export function printReport(result, opts = {}) {
     w("");
   }
 
+  // Network egress: which hosts this scan talked to besides the target
+  if (result.egress) {
+    const e = result.egress;
+    w(`  ${c.dim(line())}`);
+    w(`  ${c.bold("Network")}${e.offline ? c.dim(" --offline") : ""}`);
+    w("");
+    if (e.thirdPartyHosts.length === 0) {
+      w(`  Contacted  ${c.green("scan target only")} ${c.dim(`(${e.target})`)}`);
+    } else {
+      w(`  Contacted  ${e.thirdPartyHosts.length} third-party host${e.thirdPartyHosts.length > 1 ? "s" : ""} besides the target`);
+      for (const h of e.thirdPartyHosts) w(`    ${c.dim(pad(h.host, 36))} ${h.requests} request${h.requests > 1 ? "s" : ""}`);
+    }
+    if (e.blocked.length > 0) {
+      w(`  Blocked    ${e.blocked.map((h) => h.host).join(", ")}`);
+    }
+    if (result.retireDb) {
+      w(`  Retire.js  ${result.retireDb.source === "snapshot" ? `vendored snapshot ${c.dim(`(${String(result.retireDb.snapshotDate).slice(0, 10)})`)}` : "live database"}`);
+    }
+    w("");
+  }
+
   // Summary
   w(`  ${c.dim(line())}`);
   printSummaryLine(result, w);
+  printInconclusiveLine(result, w, opts);
   w("");
+}
+
+export function suppressionLabel(s) {
+  return s?.source === "repo-file" ? "suppressed by repo file (penthera.suppress.json)" : "suppressed by local memory";
+}
+
+function stripControl(str) {
+  return String(str ?? "").replace(/[\u0000-\u001f\u007f-\u009f]/g, "?");
+}
+
+/** Probes whose requests failed: the scan could not decide, so say so. */
+function printInconclusiveLine(result, w, opts = {}) {
+  const errors = result.errors || [];
+  if (errors.length === 0) return;
+  const probes = [...new Set(errors.map((e) => e.probe))];
+  w(`  ${c.yellow(`${probes.length} probe${probes.length > 1 ? "s" : ""} inconclusive`)} ${c.dim(`(${probes.join(", ")})`)}`);
+  if (opts.verbose) {
+    for (const e of errors) {
+      w(`    ${c.dim(`${e.probe}: ${e.message}${e.count > 1 ? ` (x${e.count})` : ""}, ${e.url}`)}`);
+    }
+  }
 }
 
 function printSummaryLine(result, w) {
@@ -430,18 +517,30 @@ export function writeSarifReport(result, filePath) {
   for (const f of result.findings || []) {
     const ruleId = f.templateId || f.category || "unknown";
 
+    const refs = referencesFor(f);
+
     if (!rules.has(ruleId)) {
       rules.set(ruleId, {
         id: ruleId,
         name: f.title,
         shortDescription: { text: f.title },
         fullDescription: { text: f.description || f.title },
+        // Research and standards behind the rule (lib/references.json), so a
+        // reviewer in GitHub code scanning can see why it is reported.
+        ...(refs.length && {
+          helpUri: refs[0].url,
+          help: {
+            text: `Sources: ${refs.map((r) => `${r.cite}, ${r.title} (${r.url})`).join("; ")}`,
+            markdown: `**Sources:** ${refs.map((r) => `[${r.cite}](${r.url}), *${r.title}*`).join("; ")}`,
+          },
+        }),
         defaultConfiguration: {
           level: SARIF_SEV_MAP[f.severity] || "note",
         },
         properties: {
           "security-severity": sevToScore(f.severity),
           tags: ["security", f.category || "general", ...(f.wstg || resolveWstgTags(f))].filter(Boolean),
+          ...(refs.length && { references: refs.map((r) => r.key) }),
         },
       });
     }
@@ -457,6 +556,7 @@ export function writeSarifReport(result, filePath) {
           artifactLocation: {
             uri: toSarifUri(f.url),
           },
+          ...(Number.isInteger(f.line) && f.line > 0 ? { region: { startLine: f.line } } : {}),
         },
       }] : [],
       properties: {

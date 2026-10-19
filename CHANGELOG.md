@@ -6,6 +6,72 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ### Added
 
+- **`penthera agents [path] [--home] [--pin]`**: an offline, deterministic audit
+  of AI developer tooling. It finds and parses `.mcp.json`, `.cursor/`,
+  `.claude/`, `.vscode/mcp.json`, `AGENTS.md`, `CLAUDE.md`, `.cursorrules`,
+  `.github/copilot-instructions.md` and skill folders; with `--home` also
+  `~/.claude` (settings, hooks, permissions, plugins, skills), `~/.claude.json`,
+  `~/.cursor/mcp.json` and the Claude Desktop config. Read-only, no network, no
+  LLM judge
+- Hidden-content engine (`lib/agents/hidden-content.js`): Unicode tag
+  characters (decoded), zero-width and bidi controls, variation-selector
+  smuggling, whitespace inflation, instructions in HTML comments, text aimed at
+  a scanner, base64 blobs (decoded and classified), binaries and archives in
+  skill folders by magic bytes, symlinks that leave a skill, and `curl | sh` /
+  `eval` style remote execution
+- Risky-config rules: unpinned `npx -y` / `uvx` / `bunx` / `pnpm dlx` MCP
+  servers, inline secrets in server env/headers/args (via `findSecretsInText()`),
+  plain-HTTP remote servers, hooks that auto-approve or pipe to a shell,
+  `Bash(*)` and other wildcard permissions, `bypassPermissions`, credential-file
+  allows, wildcard `allowed-tools`, and unpinned plugin marketplaces
+- `penthera.lock`: `--pin` records SHA-256 hashes of every skill folder, MCP
+  server definition, hook and installed plugin; later runs report changed (rug
+  pull), new and removed entries
+- A–F grade for the agent setup in the terminal and Markdown reports. Findings
+  use category `agent-config`, map to OWASP MCP Top 10 and Agentic (ASI) ids,
+  and get per-rule SARIF ids (`agents/<rule>`)
+- Agent Skill: Workflow 6 ("audit my MCP servers / skills / agent config")
+- `docs/METHODOLOGY.md`: threat model, what black-box and white-box scanning
+  can and cannot find, the confidence model, false-positive controls, the
+  non-destructive default, offline operation, and how new attack techniques
+  are adopted (reviewed rules in releases, never fetched at run time). Design
+  choices cite published research and standards
+- `docs/references.bib` and `docs/references.md`: 48 references, each checked
+  against the publisher or standards body, grouped by topic
+- Per-finding citations: `lib/references.json` maps each finding category to
+  1-3 references. The Markdown report adds a "Why this matters / Sources" line
+  per finding and a "Sources" line per action-plan item; SARIF rules get
+  `helpUri`, `help` and `properties.references`
+- Accuracy benchmark: `npm run bench` scans the mock server, two new local lab
+  targets (vulnerable and decoy) and a generated repo fixture, scores precision
+  and recall against `bench/ground-truth.json`, and writes `bench/RESULTS.md`.
+  Offline and seeded; `npm test` fails if it drops below the CI floor.
+  Optional Juice Shop and crAPI targets are documented
+- `CITATION.cff`, so GitHub shows "Cite this repository"
+- **`penthera deps [path]`**: offline, deterministic dependency risk scanning
+  for npm. Reads `package-lock.json` (v1-v3), statically scans every installed
+  package and reports what it can do, with `file:line` evidence: install
+  scripts (including implicit `node-gyp`), shell, network, writes outside its
+  folder, environment reads and bulk access, `eval` / `new Function` / `vm`,
+  computed `require`/`import`, native binaries, and obfuscation signals
+- **Capability diff** (`--diff <lockfile|dir>`, `--base <git-ref>`): packages
+  that are new or that gained capabilities in an upgrade. Old versions come
+  from the base tree or npm's local content cache, verified against the
+  lockfile integrity, so the diff works offline
+- Attack indicators: writes to `~/.claude`, `~/.cursor`, `.mcp.json` or the
+  Claude Desktop config, running the `claude` / `gemini` / `q` CLIs (the
+  s1ngularity pattern), GitHub token harvesting, and the whole environment
+  serialised next to network code
+- Typosquat / slopsquat check against a vendored list of ~7,800 popular npm
+  names (`lib/deps/popular-packages.json`, from npm-high-impact), refreshed at
+  release time by `npm run refresh:popular`. Nothing is fetched at runtime
+- `--online` (off by default, the only network use): npm registry metadata for
+  fresh versions, brand-new packages, publisher changes and deprecations
+- `--pr-comment <file>` and an example workflow
+  ([`docs/examples/github-actions-deps.yml`](docs/examples/github-actions-deps.yml))
+  that comments the capability diff on PRs that change the lockfile
+- Findings use category `dependency-risk` and source `deps-scan`; SARIF
+  results now carry a start line when a finding has one
 - **Fix recipes** (`lib/fix/`, `penthera fix`): deterministic, local fixes for
   common findings, printed as unified diffs. `penthera fix --plan` plans fixes
   for a fresh repo scan or an earlier `-o` report; `penthera fix --apply <id>`
@@ -24,6 +90,50 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   output `confidence: "needs-human-review"`, `source: "local-model"`
 - Fixtures for Next.js, Express, Fastify and Hono under `tests/fixtures/fix/`
 - `detectFramework()` is now exported from `lib/whitebox/frameworks.js`
+
+### Docs
+
+- Funding and partnership drafts under `docs/funding/`: an NLnet application
+  draft, GitHub Sponsors tiers, a partner brief, and a due diligence checklist.
+- CONTRIBUTING: commits are signed off under the Developer Certificate of Origin.
+- **`--offline`**: the scan contacts only the target. Recon is skipped, the
+  Retire.js check uses the vendored database snapshot, and every other host is
+  refused by the HTTP client (redirects may stay within the target's
+  registrable domain). Groundwork for the local agent loop.
+- **Vendored Retire.js database** (`lib/data/retire-jsrepository.json.gz`,
+  72 KB gzipped) with source URL, date and SHA-256 in a meta file.
+  `npm run refresh:retire-db` updates it at release time, and
+  `npm run refresh:retire-db -- --check` reports drift from upstream. Online
+  scans fall back to it when the live download fails.
+- **Third-party egress report**: every scan lists the hosts it contacted
+  besides the target, in the terminal summary and in a "Network egress" section
+  of the Markdown report (`result.egress` in JSON).
+- **`--user-agent <ua>`** to override the new default User-Agent.
+
+### Changed
+
+- Every request now sends `User-Agent: penthera/<version>
+  (+https://github.com/danoszz/penthera)` instead of Node's default (#7;
+  first added by @Nurana100 in #20, our first outside contribution).
+- Probe failures (timeouts, connection errors, refused hosts) are recorded as
+  `result.errors[]` (`{ probe, url, message, count }`). The terminal summary
+  shows "N probes inconclusive", and the Markdown report lists them under
+  "Inconclusive probes" (#8).
+- All network calls go through one client in `src/utils/http.js`, which owns
+  timeouts, the User-Agent and egress policy. The per-module fetch wrappers in
+  the crawler, injection, fuzzer, template, recon, parameter, Retire.js and
+  adaptive-probe modules are gone.
+- **Local learning store** (`lib/memory/`), the memory behind the v1.4 local
+  loop. `--memory` records each scan under `~/.penthera/memory/<project-id>/`
+  (or `PENTHERA_HOME`) as an append-only, hash-chained event log, then uses it
+  to suppress findings marked as false positives and to rank findings within a
+  severity. Suppressed findings are listed in their own section with who
+  suppressed them and why. Memory is never read from the scanned repo and
+  nothing in it is ever executed; a broken chain means memory is not applied.
+  See [docs/local-loop.md](docs/local-loop.md) for the threat model
+- `penthera memory show | verify | forget [--all] | suppress <id> --reason <text>`
+- Optional repo file `penthera.suppress.json` for shared suppressions. Every
+  finding it hides is labelled "suppressed by repo file" with its reason
 
 ## [1.2.0] - 2026-10-19
 

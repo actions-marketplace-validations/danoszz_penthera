@@ -7,6 +7,8 @@ import { buildWstgCoverage, formatWstgMarkdown } from "../../lib/owasp-wstg.js";
 import { formatComplianceMarkdown } from "../../lib/compliance/index.js";
 import { buildActionPlan, formatActionPlanMarkdown } from "../../lib/remediation/index.js";
 import { formatAuditLoopMarkdown } from "../../lib/audit-loop.js";
+import { referencesFor, formatSourcesMarkdown } from "../../lib/references.js";
+import { formatDepsMarkdown } from "../../lib/deps/report.js";
 
 const SEV_ORDER = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 const SEV_TAG = {
@@ -59,6 +61,12 @@ export function formatMarkdownReport(result, opts = {}) {
   lines.push(`| **Mode** | ${result.modes?.join(", ") || result.mode || "-"} |`);
   lines.push(`| **Reachable** | ${result.reachable ? "Yes" : "No"} |`);
   if (result.profile) lines.push(`| **Profile** | ${result.profile} |`);
+  if (result.agents) {
+    lines.push(`| **Agent config grade** | **${result.agents.grade}** (${result.agents.score}/100) |`);
+    const inv = result.agents.inventory || {};
+    lines.push(`| **Agent config found** | ${inv.skills || 0} skills, ${inv.mcpServers || 0} MCP servers, ${inv.hooks || 0} hooks, ${inv.plugins || 0} plugins |`);
+    if (result.agents.lock) lines.push(`| **penthera.lock** | ${result.agents.lock.status} |`);
+  }
   lines.push("");
 
   const total = findings.length;
@@ -96,6 +104,10 @@ export function formatMarkdownReport(result, opts = {}) {
 
   if (result.compliance) {
     lines.push(formatComplianceMarkdown(result.compliance));
+  }
+
+  if (result.deps) {
+    lines.push(formatDepsMarkdown(result.deps));
   }
 
   if (result.fingerprint) {
@@ -144,15 +156,66 @@ export function formatMarkdownReport(result, opts = {}) {
       lines.push("");
 
       for (const f of group) {
-        if (!f.description) continue;
+        const refs = referencesFor(f);
+        if (!f.description && refs.length === 0) continue;
         lines.push(`**${f.title}**`);
         lines.push("");
-        lines.push(f.description);
+        if (f.description) lines.push(f.description);
         if (f.url) lines.push(`\n- URL: ${f.url}`);
         if (f.status) lines.push(`- HTTP status: ${f.status}`);
+        if (refs.length) lines.push(`- Why this matters / Sources: ${formatSourcesMarkdown(refs)}`);
         lines.push("");
       }
     }
+  }
+
+  if (result.suppressed?.length) {
+    lines.push("## Suppressed findings");
+    lines.push("");
+    lines.push("Hidden from the findings above by `--memory`. Review these: a suppression is a decision someone made, not a fix.");
+    lines.push("");
+    lines.push("| Finding | Severity | Suppressed by | Reason | Id |");
+    lines.push("|---------|----------|---------------|--------|----|");
+    for (const f of result.suppressed) {
+      const by = f.suppression?.source === "repo-file" ? "**suppressed by repo file** (`penthera.suppress.json`)" : "suppressed by local memory";
+      lines.push(`| ${mdEscape(f.title)} | ${f.severity || "-"} | ${by} | ${mdEscape(f.suppression?.reason)} | \`${f.fid}\` |`);
+    }
+    lines.push("");
+  }
+
+  const errors = result.errors || [];
+  if (errors.length > 0) {
+    const probes = new Set(errors.map((e) => e.probe));
+    lines.push("## Inconclusive probes");
+    lines.push("");
+    lines.push(`${probes.size} probe(s) could not complete. Their silence is not a clean result.`);
+    lines.push("");
+    lines.push("| Probe | URL | Error | Count |");
+    lines.push("|-------|-----|-------|-------|");
+    for (const e of errors) {
+      lines.push(`| ${mdEscape(e.probe)} | \`${mdEscape(e.url)}\` | ${mdEscape(e.message)} | ${e.count || 1} |`);
+    }
+    lines.push("");
+  }
+
+  if (result.egress) {
+    const e = result.egress;
+    lines.push("## Network egress");
+    lines.push("");
+    lines.push(`- **Mode:** ${e.offline ? "--offline (scan target only)" : "online"}`);
+    lines.push(`- **User-Agent:** \`${mdEscape(e.userAgent)}\``);
+    if (e.thirdPartyHosts.length === 0) {
+      lines.push(`- **Third-party hosts contacted:** none`);
+    } else {
+      lines.push(`- **Third-party hosts contacted:** ${e.thirdPartyHosts.map((h) => `\`${h.host}\` (${h.requests})`).join(", ")}`);
+    }
+    if (e.blocked.length > 0) {
+      lines.push(`- **Blocked by --offline:** ${e.blocked.map((h) => `\`${h.host}\` (${h.requests})`).join(", ")}`);
+    }
+    if (result.retireDb) {
+      lines.push(`- **Retire.js database:** ${result.retireDb.source === "snapshot" ? `vendored snapshot from ${result.retireDb.snapshotDate}` : "live"}`);
+    }
+    lines.push("");
   }
 
   const actionPlan = result.actionPlan || buildActionPlan(findings);

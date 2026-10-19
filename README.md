@@ -205,7 +205,7 @@ out as Markdown, JSON, and SARIF, with the fixes in priority order.
 | `penthera hook install` | Pre-commit hook on staged changes, about 0.1 to 0.5 s | [hook.md](docs/commands/hook.md) |
 | `uses: danoszz/penthera@<sha>` | PR comment with the capability diff, plus SARIF | [action.md](docs/commands/action.md) |
 | `penthera --machine` | macOS checks (persistence, keyloggers, rootkits) | [scan.md](docs/commands/scan.md) |
-| `penthera ui [--open] [--demo]` | Local dashboard on 127.0.0.1; runs scans and the fix loop from the page | [dashboard.md](docs/dashboard.md) |
+| `penthera ui [--open] [--demo]` | Local dashboard on 127.0.0.1: one view with projects, findings and side panels; runs scans and the fix loop from the page | [dashboard.md](docs/dashboard.md) |
 
 Scans, `agents` and `deps` write Markdown, JSON and SARIF (`--markdown`,
 `--json`, `--sarif`). Exit code `1` means critical or high findings, `2` means
@@ -213,7 +213,7 @@ the scan failed.
 
 | `penthera ui`, dark | `penthera ui`, light |
 |---|---|
-| ![The dashboard overview in the dark theme](assets/dashboard/overview-dark.jpg) | ![The dashboard overview in the light theme](assets/dashboard/overview-light.jpg) |
+| ![The dashboard in the dark theme: projects, findings, and a finding's detail](assets/dashboard/ui-dark.jpg) | ![The dashboard in the light theme: all projects and the side cards](assets/dashboard/ui-light.jpg) |
 
 ## How it works
 

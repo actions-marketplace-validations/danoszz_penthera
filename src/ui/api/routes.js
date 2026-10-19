@@ -75,6 +75,7 @@ export function createApi({ source, runs, version, settings }) {
       if (!r) throw new RunError("No scan report for that project yet. Run a scan first.", 404);
       return r;
     }],
+    ["GET", /^\/api\/env$/, (_m, q) => source.env(String(q.get("project") || ""))],
     ["GET", /^\/api\/deps$/, () => source.deps()],
     ["GET", /^\/api\/ai$/, () => source.ai()],
     ["GET", /^\/api\/memory$/, () => ({ projects: source.memory() })],

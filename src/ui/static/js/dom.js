@@ -54,22 +54,6 @@ export function put(el, ...children) {
   return el;
 }
 
-/**
- * A section as a window: pinstriped title bar with a close box, the title
- * centred on its plate, optional metadata on the right (attrs.meta).
- */
-export function panel(title, attrs, ...children) {
-  const id = `p-${Math.random().toString(36).slice(2, 9)}`;
-  return h("section", { class: ["panel", attrs?.class], "aria-labelledby": id },
-    h("div", { class: "panel-bar" },
-      h("span", { class: "box", "aria-hidden": "true" }),
-      h("h2", { class: "panel-h", id }, title),
-      attrs?.meta ? h("span", { class: "panel-meta" }, attrs.meta) : null,
-      h("span", { class: "grip", "aria-hidden": "true" }),
-    ),
-    h("div", { class: "panel-body" }, ...children));
-}
-
 export const sevClass = (sev) => `sev sev-${sev || "info"}`;
 export const sevBadge = (sev) => h("span", { class: sevClass(sev) }, sev || "info");
 
@@ -95,26 +79,4 @@ export function diffBlock(diff) {
     pre.append(h("span", { class: cls }, `${line}\n`));
   }
   return pre;
-}
-
-/** A figure caption under a chart: what it is, where the numbers came from. */
-export function fig(left, right = "") {
-  return h("p", { class: "fig" }, h("span", {}, left), h("span", {}, right));
-}
-
-/** The CLI's "What next?" block: numbered choices that navigate. */
-export function whatNext(items, go, heading = "What next?") {
-  return h("section", { class: "next", "aria-label": heading },
-    h("h2", {}, heading),
-    h("ol", {}, items.map((it) => h("li", {},
-      h("button", { type: "button", onclick: () => go(...it.go) }, it.label),
-      it.why ? h("span", { class: "why" }, `:: ${it.why}`) : null,
-    ))));
-}
-
-/** A window inside the window: pinstriped title bar, close and zoom boxes. */
-export function subwin(title, attrs, ...children) {
-  return h("section", { class: ["subwin", attrs?.class], "aria-label": title },
-    h("div", { class: "titlebar" }, h("span", { class: "box close", "aria-hidden": "true" }), h("span", { class: "title" }, title), h("span", { class: "box zoom", "aria-hidden": "true" })),
-    ...children);
 }

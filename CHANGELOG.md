@@ -21,6 +21,20 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ### Changed
 
+- **`penthera ui` is one view, like the Claude Code desktop app.** A
+  collapsible left sidebar lists projects (grade, open findings, last scan)
+  and recent runs grouped by project, with "+ New scan" on top and settings
+  behind a gear. The centre is one scrolling stream: the selected project's
+  header (grade, severity bar, trend sparkline), what changed since the last
+  scan, "Fix first" and the findings; a running scan or fix loop streams there
+  as a transcript with Apply / Skip / Stop inline on each diff. A prompt-style
+  bar starts scans, dependency checks, AI tooling audits and the fix loop. The
+  collapsible right panel stacks Environment (egress, folder, git branch),
+  Memory, Dependencies, AI tooling, Evidence and Changes cards, and shows a
+  finding's detail when you pick one. `[` and `]` toggle the side panels, which
+  become drawers at narrow widths. Calmer chrome, one primary action at a time;
+  the themes, `--demo` and every security property are unchanged. New
+  `GET /api/env` reads the branch through the agent's hardened git runner.
 - `penthera-scan` keeps the URL-first wizard that `penthera` used to open.
 
 ## [1.6.1] - 2026-10-19

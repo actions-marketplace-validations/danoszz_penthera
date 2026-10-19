@@ -5,7 +5,7 @@
  */
 import { parseArgs } from "node:util";
 import { resolve, dirname } from "node:path";
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { scanUrl } from "./scan-url.js";
 import { scanRepo } from "./scan-repo.js";
@@ -55,6 +55,7 @@ const HELP = `
     $ penthera <url>                 Scan a live URL (black-box)
     $ penthera --repo <path>         Scan a local repo (white-box)
     $ penthera <url> --repo <path>   Full scan (both)
+    $ penthera agents [path]         Audit AI agent config: skills, MCP, hooks (offline)
 
   ${dim("Scan modes")}
         --profile <name>        quick | standard | deep (default: standard)
@@ -68,6 +69,10 @@ const HELP = `
         --adaptive              Knowledge-graph adaptive probes on discovered routes
         --all                   Enable all modes (recon + deep + fuzz)
         --machine               macOS machine audit (keyloggers, trojans, rootkits)
+
+  ${dim("Agents mode")}  ${dim("(penthera agents [path], offline, read-only)")}
+        --home                  Also audit ~/.claude, ~/.cursor and Claude Desktop config
+        --pin                   Write penthera.lock (SHA-256 of skills, MCP servers, hooks)
 
   ${dim("Options")}
     -r, --repo <path>       Path to repo for source analysis
@@ -109,6 +114,8 @@ const HELP = `
     $ penthera https://myapp.com --adaptive -o report.json
     $ penthera https://myapp.com --templates ./my-templates -o report.json
     $ penthera https://myapp.com --sarif results.sarif --json | jq '.findings[]'
+    $ penthera agents . --home
+    $ penthera agents --pin
 
   ${dim("Exit codes")}
     0  No critical or high findings
@@ -155,6 +162,8 @@ export async function run() {
         adaptive:    { type: "boolean", default: false },
         all:         { type: "boolean", default: false },
         machine:     { type: "boolean", default: false },
+        home:        { type: "boolean", default: false },
+        pin:         { type: "boolean", default: false },
         timeout:     { type: "string",  default: "10000" },
         concurrency: { type: "string",  default: "15" },
         verbose:     { type: "boolean", short: "v", default: false },
@@ -246,10 +255,22 @@ export async function run() {
     return;
   }
 
-  const url = positionals[0] ? normalizeBaseUrl(positionals[0]) : null;
+  // `penthera agents [path]`: offline audit of skills, MCP servers, hooks, plugins.
+  const agentsMode = positionals[0] === "agents";
+  const agentsRoot = agentsMode ? resolve(positionals[1] || ".") : null;
+  if (agentsMode && positionals.length > 2) {
+    printError(`agents takes one path, got: ${positionals.slice(1).join(" ")}`);
+    process.exit(2);
+  }
+  if ((opts.home || opts.pin) && !agentsMode) {
+    printError("--home and --pin only apply to `penthera agents`.");
+    process.exit(2);
+  }
+
+  const url = positionals[0] && !agentsMode ? normalizeBaseUrl(positionals[0]) : null;
   const repo = opts.repo || null;
 
-  if (!url && !repo && !opts.machine && !opts.readiness && !opts["policy-pack"] && !opts.sbom && !opts.questionnaire) {
+  if (!agentsMode && !url && !repo && !opts.machine && !opts.readiness && !opts["policy-pack"] && !opts.sbom && !opts.questionnaire) {
     printError("No target specified. Provide a URL, --repo, --machine, --readiness, --policy-pack, --sbom, --questionnaire, or combine them.");
     console.log(HELP);
     process.exit(2);
@@ -319,6 +340,15 @@ export async function run() {
         apiRoot: opts["api-root"] ? resolve(opts["api-root"]) : null,
       });
       results.push(repoResult);
+    }
+
+    if (agentsMode) {
+      if (!existsSync(agentsRoot)) {
+        printError(`Path not found: ${agentsRoot}`);
+        process.exit(2);
+      }
+      const { scanAgents } = await import("../lib/agents/index.js");
+      results.push(await scanAgents(agentsRoot, { home: opts.home, pin: opts.pin, onPhase: scanOpts.onPhase }));
     }
 
     if (opts.machine) {

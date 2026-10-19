@@ -1,7 +1,5 @@
-name: Penthera
-description: >-
-  Offline dependency capability diff on pull requests: which packages gained
-  shell, network or install-time code. One PR comment, updated in place, plus SARIF.
+name: Penthera Security Review
+description: "Offline security review on PRs: risky dependency changes and AI agent config (MCP, skills, hooks), with SARIF."
 author: danoszz
 branding:
   icon: shield

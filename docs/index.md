@@ -35,6 +35,7 @@ Security scanner for developers: scan live URLs, local repos, or macOS machines 
 |-------|------|
 | OWASP WSTG mapping | [owasp-wstg-coverage.md](./owasp-wstg-coverage.md) |
 | NIS2 compliance guide | [compliance-nis2.md](./compliance-nis2.md) |
+| Local loop and learning store | [local-loop.md](./local-loop.md) |
 | Scan your app in GitHub Actions | [examples/github-actions-scan.yml](./examples/github-actions-scan.yml), set `PENTEST_STAGING_URL` |
 | Penthera's own CI | `.github/workflows/ci.yml` (full tests + mock scan), `codeql.yml`, `scorecard.yml` |
 | Docker | `docker build -t penthera . && docker run penthera https://localhost:3000` |

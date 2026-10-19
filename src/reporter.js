@@ -354,7 +354,7 @@ export function printReport(result, opts = {}) {
       // heuristic as a confirmed break. Certainties stay unannotated.
       const needsReview = f.confidence === "needs-human-review" || f.confidence === "potential";
       const tag = needsReview ? c.dim(` [${f.confidence}]`) : "";
-      w(`  ${colorFn(label)}  ${f.title}${tag}`);
+      w(`  ${colorFn(label)}  ${f.title}${tag}${f.fid ? c.dim(`  ${f.fid}`) : ""}`);
       if (f.url)  w(`  ${" ".repeat(6)} ${c.dim(f.url + (f.line ? `:${f.line}` : ""))}${f.status ? c.dim(` \u2192 ${f.status}`) : ""}`);
       if (f.description && opts.verbose) w(`  ${" ".repeat(6)} ${c.dim(f.description)}`);
     }
@@ -362,6 +362,19 @@ export function printReport(result, opts = {}) {
   } else if (result.findings) {
     w(`  ${c.dim(line())}`);
     w(`  ${c.green("No findings")} \u2014 looking good.`);
+    w("");
+  }
+
+  // Suppressed by local memory or the repo's penthera.suppress.json (--memory).
+  // Always listed with who suppressed it and why, so nothing disappears silently.
+  if (result.suppressed?.length) {
+    w(`  ${c.dim(line())}`);
+    w(`  ${c.bold("Suppressed")} ${c.dim(`(${result.suppressed.length}, not counted above)`)}`);
+    w("");
+    for (const f of result.suppressed) {
+      w(`  ${c.dim(SEV_LABEL[f.severity] || "    ")}  ${f.title}${c.dim(`  ${f.fid}`)}`);
+      w(`  ${" ".repeat(6)} ${c.yellow(suppressionLabel(f.suppression))}: ${c.dim(stripControl(f.suppression?.reason))}`);
+    }
     w("");
   }
 
@@ -402,6 +415,14 @@ export function printReport(result, opts = {}) {
   printSummaryLine(result, w);
   printInconclusiveLine(result, w, opts);
   w("");
+}
+
+export function suppressionLabel(s) {
+  return s?.source === "repo-file" ? "suppressed by repo file (penthera.suppress.json)" : "suppressed by local memory";
+}
+
+function stripControl(str) {
+  return String(str ?? "").replace(/[\u0000-\u001f\u007f-\u009f]/g, "?");
 }
 
 /** Probes whose requests failed: the scan could not decide, so say so. */

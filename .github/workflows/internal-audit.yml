@@ -1,0 +1,63 @@
+name: Internal audit
+
+# The standing release gate (docs/internal-audit.md), run weekly so drift shows
+# up between releases. It only reads the repo and uploads the report as a
+# workflow artifact: no comments, issues, commits or releases.
+
+on:
+  schedule:
+    - cron: "0 5 * * 1" # weekly, Monday 05:00 UTC
+  workflow_dispatch:
+    inputs:
+      with_docker:
+        description: "Also scan OWASP Juice Shop in Docker (slower)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: internal-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Internal audit
+        env:
+          WITH_DOCKER: ${{ inputs.with_docker && '--with-docker' || '' }}
+        run: npm run audit:internal -- $WITH_DOCKER
+
+      - name: Report in the job summary
+        if: always()
+        run: |
+          if [ -f audit/REPORT.md ]; then
+            sed '/^<!-- audit-data/,/^-->/d' audit/REPORT.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: internal-audit-report
+          path: |
+            audit/REPORT.md
+            audit/baseline.json
+            audit/logs/
+          retention-days: 90

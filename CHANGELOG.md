@@ -11,6 +11,15 @@ evidence to the Cyber Resilience Act. The GitHub Action is now ready for the
 Marketplace as "Penthera Security Review". Penthera also has a clearer
 problem statement: open-source security for the apps and AI systems you ship.
 
+### Docs
+
+- Problem statement: "open-source security for the apps and AI systems you
+  ship", organised around three moments (before you deploy, what you build
+  with, after you ship). README, package, plugin, skill and repository
+  descriptions updated. Roadmap gains v1.6.0 "Before you deploy" (preview
+  deployment scanning, `penthera ship`) and v1.7.0 "After you ship"
+  (`penthera watch`). New `docs/plan.md` sets measurable quality gates to v2.0.
+
 ### Added
 
 - **`penthera hook install|uninstall|run`**: a pre-commit hook that checks

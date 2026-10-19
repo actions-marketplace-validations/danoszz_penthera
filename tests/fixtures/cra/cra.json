@@ -1,0 +1,14 @@
+{
+  "type": "vulnerability",
+  "title": "jQuery XSS exploited in acme-portal",
+  "aware_at": "2026-10-24T09:00:00+02:00",
+  "timezone": "Europe/Amsterdam",
+  "main_establishment": "NL",
+  "contact": "security@acme.test",
+  "component": { "name": "jquery" },
+  "member_states": "NL, BE, DE",
+  "exploit_nature": "Stored XSS payload in support tickets, observed in production logs",
+  "corrective_measure_available_at": "2026-10-26T15:00:00+01:00",
+  "submitted": { "early_warning": "2026-10-24T18:00:00Z" },
+  "prefill": { "scan": "scan.json", "sbom": "sbom.cdx.json" }
+}

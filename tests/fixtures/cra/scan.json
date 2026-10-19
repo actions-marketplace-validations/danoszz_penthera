@@ -1,0 +1,7 @@
+{
+  "target": "https://staging.acme.test",
+  "findings": [
+    { "severity": "medium", "title": "Vulnerable JS library: jquery 3.4.1", "description": "CVE-2020-11022, CVE-2020-11023, upgrade to 3.5.0", "category": "js-vulnerability", "source": "retirejs" },
+    { "severity": "low", "title": "Missing Permissions-Policy header", "description": "No Permissions-Policy header", "category": "headers" }
+  ]
+}

@@ -1,6 +1,6 @@
 # Penthera documentation
 
-The routine work of a security team, on your own machine: app scanning, dependency and install checks, an AI-tooling audit, a local fix loop, and auditor-grade reports. Offline, deterministic, free.
+Open-source security for the apps and AI systems you ship: check it before you deploy, vet what you build with, keep watching after you ship. Offline, deterministic, free.
 
 ## Getting started
 
@@ -9,7 +9,7 @@ The routine work of a security team, on your own machine: app scanning, dependen
 | [README](../README.md) | Install, quick start, ethical use |
 | [Run it](../README.md#run-it) | Install + first-time wizard (`penthera` with no args) |
 | [CHANGELOG](../CHANGELOG.md) | Version history |
-| [Roadmap](../ROADMAP.md) and [release plan](./release-plan.md) | What ships next, in what order |
+| [Roadmap](../ROADMAP.md), [plan to v2.0](./plan.md) and [release plan](./release-plan.md) | What ships next, in what order, and how quality is measured |
 
 ## Scanning
 

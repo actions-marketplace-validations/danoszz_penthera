@@ -16,7 +16,7 @@ compatibility: Node.js 22+, network access to target, Penthera CLI (npm link or 
 allowed-tools: "Bash(node:*) Bash(npm:*) Bash(penthera:*) Read Write Edit"
 metadata:
   author: danoszz
-  version: 1.2.0
+  version: 1.4.0
   category: security
 ---
 

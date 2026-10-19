@@ -1,0 +1,374 @@
+{
+  "_comment": "categories: finding category -> 1-3 keys of docs/references.bib (hand-maintained). sources: generated from the .bib by scripts/build-references.mjs; do not edit by hand.",
+  "categories": {
+    "headers": [
+      "weichselbaum2016csp",
+      "hodges2012rfc6797",
+      "owaspwstg42"
+    ],
+    "transport": [
+      "hodges2012rfc6797",
+      "owaspwstg42"
+    ],
+    "tls": [
+      "hodges2012rfc6797",
+      "owaspwstg42"
+    ],
+    "cookie": [
+      "barth2008robust",
+      "owaspwstg42"
+    ],
+    "cors": [
+      "chen2018cors",
+      "owaspwstg42"
+    ],
+    "cors-misconfiguration": [
+      "chen2018cors",
+      "owaspwstg42"
+    ],
+    "secrets": [
+      "meli2019bad",
+      "basak2023secretbench"
+    ],
+    "sqli": [
+      "owaspwstg42",
+      "owasp2025top10",
+      "crosby2009opportunities"
+    ],
+    "cmdi": [
+      "owaspwstg42",
+      "owasp2025top10",
+      "crosby2009opportunities"
+    ],
+    "ssti": [
+      "owaspwstg42",
+      "owasp2025top10"
+    ],
+    "ssrf": [
+      "owaspwstg42",
+      "owasp2021top10"
+    ],
+    "xss": [
+      "lekies2013flows",
+      "weichselbaum2016csp",
+      "owaspwstg42"
+    ],
+    "injection": [
+      "owaspwstg42",
+      "owasp2025top10"
+    ],
+    "open-redirect": [
+      "lodderstedt2025rfc9700",
+      "owaspwstg42"
+    ],
+    "auth": [
+      "owasp2023api",
+      "fett2016comprehensive",
+      "sheffer2020rfc8725"
+    ],
+    "auth-bypass": [
+      "owasp2023api",
+      "owaspwstg42"
+    ],
+    "rate-limiting": [
+      "owasp2023api",
+      "owaspwstg42"
+    ],
+    "timing": [
+      "crosby2009opportunities",
+      "kocher1996timing"
+    ],
+    "cve": [
+      "zimmermann2019small",
+      "ladisa2023sok"
+    ],
+    "js-vulnerability": [
+      "lauinger2017thou",
+      "zimmermann2019small"
+    ],
+    "email-auth": [
+      "kitterman2014rfc7208",
+      "kucherawy2015rfc7489"
+    ],
+    "exposure": [
+      "owaspwstg42",
+      "owasp2025top10"
+    ],
+    "disclosure": [
+      "owaspwstg42",
+      "owasp2025top10"
+    ],
+    "info-leak": [
+      "owaspwstg42",
+      "owasp2025top10"
+    ],
+    "config": [
+      "owaspwstg42",
+      "owasp2025top10"
+    ],
+    "method-confusion": [
+      "owaspwstg42"
+    ],
+    "content-type-confusion": [
+      "owaspwstg42"
+    ],
+    "code-pattern": [
+      "mitrecwe",
+      "owaspwstg42"
+    ],
+    "fuzzing": [
+      "owaspwstg42"
+    ],
+    "parameter-discovery": [
+      "owaspwstg42"
+    ],
+    "recon": [
+      "owaspwstg42"
+    ],
+    "attack-chain": [
+      "shostack2014threat"
+    ]
+  },
+  "sources": {
+    "bau2010state": {
+      "cite": "Bau et al. 2010",
+      "title": "State of the Art: Automated Black-Box Web Application Vulnerability Testing",
+      "url": "https://doi.org/10.1109/SP.2010.27"
+    },
+    "doupe2010johnny": {
+      "cite": "Doupé et al. 2010",
+      "title": "Why Johnny Can't Pentest: An Analysis of Black-Box Web Vulnerability Scanners",
+      "url": "https://doi.org/10.1007/978-3-642-14215-4_7"
+    },
+    "antunes2010benchmarking": {
+      "cite": "Antunes & Vieira 2010",
+      "title": "Benchmarking Vulnerability Detection Tools for Web Services",
+      "url": "https://doi.org/10.1109/ICWS.2010.76"
+    },
+    "antunes2015assessing": {
+      "cite": "Antunes & Vieira 2015",
+      "title": "Assessing and Comparing Vulnerability Detection Tools for Web Services: Benchmarking Approach and Examples",
+      "url": "https://doi.org/10.1109/TSC.2014.2310221"
+    },
+    "owaspbenchmark": {
+      "cite": "OWASP Benchmark",
+      "title": "OWASP Benchmark Project",
+      "url": "https://owasp.org/www-project-benchmark/"
+    },
+    "scarfone2008sp800115": {
+      "cite": "NIST SP 800-115",
+      "title": "Technical Guide to Information Security Testing and Assessment",
+      "url": "https://doi.org/10.6028/NIST.SP.800-115"
+    },
+    "saltzer1975protection": {
+      "cite": "Saltzer & Schroeder 1975",
+      "title": "The Protection of Information in Computer Systems",
+      "url": "https://doi.org/10.1109/PROC.1975.9939"
+    },
+    "shostack2014threat": {
+      "cite": "Shostack 2014",
+      "title": "Threat Modeling: Designing for Security",
+      "url": "https://www.wiley-vch.de/de/fachgebiete/computer-und-informatik/threat-modeling-978-1-118-80999-0"
+    },
+    "kohnfelder1999threats": {
+      "cite": "Kohnfelder & Garg 1999",
+      "title": "The Threats to Our Products",
+      "url": "https://shostack.org/files/microsoft/The-Threats-To-Our-Products.docx"
+    },
+    "ladisa2023sok": {
+      "cite": "Ladisa et al. 2023",
+      "title": "SoK: Taxonomy of Attacks on Open-Source Software Supply Chains",
+      "url": "https://doi.org/10.1109/SP46215.2023.10179304"
+    },
+    "ohm2020backstabber": {
+      "cite": "Ohm et al. 2020",
+      "title": "Backstabber's Knife Collection: A Review of Open Source Software Supply Chain Attacks",
+      "url": "https://doi.org/10.1007/978-3-030-52683-2_2"
+    },
+    "zimmermann2019small": {
+      "cite": "Zimmermann et al. 2019",
+      "title": "Small World with High Risks: A Study of Security Threats in the npm Ecosystem",
+      "url": "https://www.usenix.org/conference/usenixsecurity19/presentation/zimmerman"
+    },
+    "lauinger2017thou": {
+      "cite": "Lauinger et al. 2017",
+      "title": "Thou Shalt Not Depend on Me: Analysing the Use of Outdated JavaScript Libraries on the Web",
+      "url": "https://doi.org/10.14722/ndss.2017.23414"
+    },
+    "thompson1984reflections": {
+      "cite": "Thompson 1984",
+      "title": "Reflections on Trusting Trust",
+      "url": "https://doi.org/10.1145/358198.358210"
+    },
+    "torresarias2019intoto": {
+      "cite": "Torres-Arias et al. 2019",
+      "title": "in-toto: Providing farm-to-table guarantees for bits and bytes",
+      "url": "https://www.usenix.org/conference/usenixsecurity19/presentation/torres-arias"
+    },
+    "samuel2010survivable": {
+      "cite": "Samuel et al. 2010",
+      "title": "Survivable Key Compromise in Software Update Systems",
+      "url": "https://doi.org/10.1145/1866307.1866315"
+    },
+    "meli2019bad": {
+      "cite": "Meli et al. 2019",
+      "title": "How Bad Can It Git? Characterizing Secret Leakage in Public GitHub Repositories",
+      "url": "https://doi.org/10.14722/ndss.2019.23418"
+    },
+    "basak2023secretbench": {
+      "cite": "Basak et al. 2023",
+      "title": "SecretBench: A Dataset of Software Secrets",
+      "url": "https://doi.org/10.1109/MSR59073.2023.00053"
+    },
+    "weichselbaum2016csp": {
+      "cite": "Weichselbaum et al. 2016",
+      "title": "CSP Is Dead, Long Live CSP! On the Insecurity of Whitelists and the Future of Content Security Policy",
+      "url": "https://doi.org/10.1145/2976749.2978363"
+    },
+    "kocher1996timing": {
+      "cite": "Kocher 1996",
+      "title": "Timing Attacks on Implementations of Diffie-Hellman, RSA, DSS, and Other Systems",
+      "url": "https://doi.org/10.1007/3-540-68697-5_9"
+    },
+    "crosby2009opportunities": {
+      "cite": "Crosby et al. 2009",
+      "title": "Opportunities and Limits of Remote Timing Attacks",
+      "url": "https://doi.org/10.1145/1455526.1455530"
+    },
+    "lekies2013flows": {
+      "cite": "Lekies et al. 2013",
+      "title": "25 Million Flows Later: Large-scale Detection of DOM-based XSS",
+      "url": "https://doi.org/10.1145/2508859.2516703"
+    },
+    "stock2014precise": {
+      "cite": "Stock et al. 2014",
+      "title": "Precise Client-side Protection against DOM-based Cross-Site Scripting",
+      "url": "https://www.usenix.org/conference/usenixsecurity14/technical-sessions/presentation/stock"
+    },
+    "barth2008robust": {
+      "cite": "Barth et al. 2008",
+      "title": "Robust Defenses for Cross-Site Request Forgery",
+      "url": "https://doi.org/10.1145/1455770.1455782"
+    },
+    "fett2016comprehensive": {
+      "cite": "Fett et al. 2016",
+      "title": "A Comprehensive Formal Security Analysis of OAuth 2.0",
+      "url": "https://doi.org/10.1145/2976749.2978385"
+    },
+    "hodges2012rfc6797": {
+      "cite": "RFC 6797 (2012)",
+      "title": "HTTP Strict Transport Security (HSTS)",
+      "url": "https://doi.org/10.17487/RFC6797"
+    },
+    "jones2015rfc7519": {
+      "cite": "RFC 7519 (2015)",
+      "title": "JSON Web Token (JWT)",
+      "url": "https://doi.org/10.17487/RFC7519"
+    },
+    "sakimura2015rfc7636": {
+      "cite": "RFC 7636 (2015)",
+      "title": "Proof Key for Code Exchange by OAuth Public Clients",
+      "url": "https://doi.org/10.17487/RFC7636"
+    },
+    "lodderstedt2025rfc9700": {
+      "cite": "RFC 9700 (2025)",
+      "title": "Best Current Practice for OAuth 2.0 Security",
+      "url": "https://doi.org/10.17487/RFC9700"
+    },
+    "chen2018cors": {
+      "cite": "Chen et al. 2018",
+      "title": "We Still Don't Have Secure Cross-Domain Requests: an Empirical Study of CORS",
+      "url": "https://www.usenix.org/conference/usenixsecurity18/presentation/chen-jianjun"
+    },
+    "sheffer2020rfc8725": {
+      "cite": "RFC 8725 (2020)",
+      "title": "JSON Web Token Best Current Practices",
+      "url": "https://doi.org/10.17487/RFC8725"
+    },
+    "owasp2023api": {
+      "cite": "OWASP API Top 10:2023",
+      "title": "OWASP Top 10 API Security Risks - 2023",
+      "url": "https://owasp.org/API-Security/editions/2023/en/0x11-t10/"
+    },
+    "kitterman2014rfc7208": {
+      "cite": "RFC 7208 (2014)",
+      "title": "Sender Policy Framework (SPF) for Authorizing Use of Domains in Email, Version 1",
+      "url": "https://doi.org/10.17487/RFC7208"
+    },
+    "kucherawy2015rfc7489": {
+      "cite": "RFC 7489 (2015)",
+      "title": "Domain-based Message Authentication, Reporting, and Conformance (DMARC)",
+      "url": "https://doi.org/10.17487/RFC7489"
+    },
+    "owasp2021top10": {
+      "cite": "OWASP Top 10:2021",
+      "title": "OWASP Top 10:2021",
+      "url": "https://top10.owasp.org/2021"
+    },
+    "owasp2025top10": {
+      "cite": "OWASP Top 10:2025",
+      "title": "OWASP Top 10:2025",
+      "url": "https://top10.owasp.org/2025"
+    },
+    "owaspwstg42": {
+      "cite": "OWASP WSTG v4.2",
+      "title": "OWASP Web Security Testing Guide, Version 4.2",
+      "url": "https://wstg.owasp.org/v4.2/"
+    },
+    "greshake2023signed": {
+      "cite": "Greshake et al. 2023",
+      "title": "Not What You've Signed Up For: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection",
+      "url": "https://doi.org/10.1145/3605764.3623985"
+    },
+    "spracklen2025package": {
+      "cite": "Spracklen et al. 2025",
+      "title": "We Have a Package for You! A Comprehensive Analysis of Package Hallucinations by Code Generating LLMs",
+      "url": "https://www.usenix.org/conference/usenixsecurity25/presentation/spracklen"
+    },
+    "perez2022ignore": {
+      "cite": "Perez & Ribeiro 2022",
+      "title": "Ignore Previous Prompt: Attack Techniques For Language Models",
+      "url": "https://doi.org/10.48550/arXiv.2211.09527"
+    },
+    "liu2023prompt": {
+      "cite": "Liu et al. 2023",
+      "title": "Prompt Injection attack against LLM-integrated Applications",
+      "url": "https://doi.org/10.48550/arXiv.2306.05499"
+    },
+    "owasp2024llmtop10": {
+      "cite": "OWASP LLM Top 10 (2025)",
+      "title": "OWASP Top 10 for LLM Applications 2025",
+      "url": "https://genai.owasp.org/resource/owasp-top-10-for-llm-applications-2025/"
+    },
+    "owasp2025agentic": {
+      "cite": "OWASP Agentic Top 10 (2026)",
+      "title": "OWASP Top 10 for Agentic Applications for 2026",
+      "url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+    },
+    "owasp2025mcptop10": {
+      "cite": "OWASP MCP Top 10",
+      "title": "OWASP MCP Top 10",
+      "url": "https://owasp.org/www-project-mcp-top-10/"
+    },
+    "mitreatlas": {
+      "cite": "MITRE ATLAS",
+      "title": "MITRE ATLAS: Adversarial Threat Landscape for AI Systems",
+      "url": "https://atlas.mitre.org/"
+    },
+    "oasis2023sarif": {
+      "cite": "SARIF 2.1.0",
+      "title": "Static Analysis Results Interchange Format (SARIF) Version 2.1.0 Plus Errata 01",
+      "url": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/sarif-v2.1.0-errata01-os-complete.html"
+    },
+    "eu2022nis2": {
+      "cite": "NIS2 Directive",
+      "title": "Directive (EU) 2022/2555 of the European Parliament and of the Council of 14 December 2022 on measures for a high common level of cybersecurity across the Union, amending Regulation (EU) No 910/2014 and Directive (EU) 2018/1972, and repealing Directive (EU) 2016/1148 (NIS 2 Directive)",
+      "url": "https://eur-lex.europa.eu/eli/dir/2022/2555/oj"
+    },
+    "mitrecwe": {
+      "cite": "MITRE CWE",
+      "title": "CWE: Common Weakness Enumeration",
+      "url": "https://cwe.mitre.org/"
+    }
+  }
+}

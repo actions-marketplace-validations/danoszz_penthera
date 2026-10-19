@@ -5,7 +5,7 @@
  */
 import { parseArgs } from "node:util";
 import { resolve, dirname } from "node:path";
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { scanUrl } from "./scan-url.js";
 import { scanRepo } from "./scan-repo.js";
@@ -55,6 +55,8 @@ const HELP = `
     $ penthera <url>                 Scan a live URL (black-box)
     $ penthera --repo <path>         Scan a local repo (white-box)
     $ penthera <url> --repo <path>   Full scan (both)
+    $ penthera agents [path]         Audit AI agent config: skills, MCP, hooks (offline)
+    $ penthera deps [path]           What your npm dependencies can do (offline)
 
   ${dim("Scan modes")}
         --profile <name>        quick | standard | deep (default: standard)
@@ -70,6 +72,17 @@ const HELP = `
         --machine               macOS machine audit (keyloggers, trojans, rootkits)
         --offline               Contact only the scan target: no recon sources, no
                                Retire.js download (uses the vendored snapshot)
+
+  ${dim("Agents mode")}  ${dim("(penthera agents [path], offline, read-only)")}
+        --home                  Also audit ~/.claude, ~/.cursor and Claude Desktop config
+        --pin                   Write penthera.lock (SHA-256 of skills, MCP servers, hooks)
+
+  ${dim("Deps mode")}  ${dim("(penthera deps [path], reads package-lock.json + node_modules, offline)")}
+        --diff <lock|dir>       Capability diff against an old lockfile or installed tree
+        --base <git-ref>        Capability diff against the lockfile at a git ref
+        --online                Also check npm registry metadata (the only network use)
+        --prod                  Skip devDependencies
+        --pr-comment <file>     Write a short Markdown capability diff for a PR comment
 
   ${dim("Options")}
     -r, --repo <path>       Path to repo for source analysis
@@ -113,6 +126,10 @@ const HELP = `
     $ penthera https://myapp.com --adaptive -o report.json
     $ penthera https://myapp.com --templates ./my-templates -o report.json
     $ penthera https://myapp.com --sarif results.sarif --json | jq '.findings[]'
+    $ penthera agents . --home
+    $ penthera agents --pin
+    $ penthera deps --base origin/main
+    $ penthera deps --diff ../base-checkout --pr-comment deps.md
 
   ${dim("Exit codes")}
     0  No critical or high findings
@@ -147,6 +164,11 @@ export async function run() {
         sbom:        { type: "string" },
         history:     { type: "string" },
         suppliers:   { type: "string" },
+        diff:        { type: "string" },
+        base:        { type: "string" },
+        online:      { type: "boolean", default: false },
+        "pr-comment": { type: "string" },
+        prod:        { type: "boolean", default: false },
         profile:     { type: "string" },
         "auth-cookie": { type: "string" },
         "auth-bearer": { type: "string" },
@@ -159,6 +181,8 @@ export async function run() {
         adaptive:    { type: "boolean", default: false },
         all:         { type: "boolean", default: false },
         machine:     { type: "boolean", default: false },
+        home:        { type: "boolean", default: false },
+        pin:         { type: "boolean", default: false },
         offline:     { type: "boolean", default: false },
         "user-agent": { type: "string" },
         timeout:     { type: "string",  default: "10000" },
@@ -251,16 +275,39 @@ export async function run() {
     process.exit(0);
   }
 
+  // `penthera deps [path]`: offline dependency capability scan and diff.
+  if (positionals[0] === "deps") {
+    const { runDeps } = await import("./cli/deps.js");
+    await runDeps(positionals.slice(1), opts, { version: pkg.version });
+    return;
+  }
+  if (opts.diff || opts.base || opts.online || opts["pr-comment"] || opts.prod) {
+    printError("--diff, --base, --online, --prod and --pr-comment only apply to `penthera deps`.");
+    process.exit(2);
+  }
+
   if (shouldRunOnboarding(positionals, opts)) {
     const { runOnboarding } = await import("./cli/onboarding.js");
     await runOnboarding();
     return;
   }
 
-  const url = positionals[0] ? normalizeBaseUrl(positionals[0]) : null;
+  // `penthera agents [path]`: offline audit of skills, MCP servers, hooks, plugins.
+  const agentsMode = positionals[0] === "agents";
+  const agentsRoot = agentsMode ? resolve(positionals[1] || ".") : null;
+  if (agentsMode && positionals.length > 2) {
+    printError(`agents takes one path, got: ${positionals.slice(1).join(" ")}`);
+    process.exit(2);
+  }
+  if ((opts.home || opts.pin) && !agentsMode) {
+    printError("--home and --pin only apply to `penthera agents`.");
+    process.exit(2);
+  }
+
+  const url = positionals[0] && !agentsMode ? normalizeBaseUrl(positionals[0]) : null;
   const repo = opts.repo || null;
 
-  if (!url && !repo && !opts.machine && !opts.readiness && !opts["policy-pack"] && !opts.sbom && !opts.questionnaire) {
+  if (!agentsMode && !url && !repo && !opts.machine && !opts.readiness && !opts["policy-pack"] && !opts.sbom && !opts.questionnaire) {
     printError("No target specified. Provide a URL, --repo, --machine, --readiness, --policy-pack, --sbom, --questionnaire, or combine them.");
     console.log(HELP);
     process.exit(2);
@@ -332,6 +379,15 @@ export async function run() {
         apiRoot: opts["api-root"] ? resolve(opts["api-root"]) : null,
       });
       results.push(repoResult);
+    }
+
+    if (agentsMode) {
+      if (!existsSync(agentsRoot)) {
+        printError(`Path not found: ${agentsRoot}`);
+        process.exit(2);
+      }
+      const { scanAgents } = await import("../lib/agents/index.js");
+      results.push(await scanAgents(agentsRoot, { home: opts.home, pin: opts.pin, onPhase: scanOpts.onPhase }));
     }
 
     if (opts.machine) {

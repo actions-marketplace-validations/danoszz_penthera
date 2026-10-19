@@ -46,6 +46,9 @@ jobs:
       - name: CLI smoke test
         run: node bin/penthera.js --version
 
+      - name: Accuracy benchmark (offline, local targets)
+        run: npm run bench -- --check --no-write
+
   scan:
     runs-on: ubuntu-latest
 

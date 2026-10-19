@@ -9,6 +9,7 @@ Security scanner for developers: scan live URLs, local repos, or macOS machines 
 | [README](../README.md) | Install, quick start, ethical use |
 | [Run it](../README.md#run-it) | Install + first-time wizard (`penthera` with no args) |
 | [CHANGELOG](../CHANGELOG.md) | Version history |
+| [Roadmap](../ROADMAP.md) and [release plan](./release-plan.md) | What ships next, in what order |
 
 ## Scanning
 
@@ -37,6 +38,15 @@ Security scanner for developers: scan live URLs, local repos, or macOS machines 
 | Scan your app in GitHub Actions | [examples/github-actions-scan.yml](./examples/github-actions-scan.yml), set `PENTEST_STAGING_URL` |
 | Penthera's own CI | `.github/workflows/ci.yml` (full tests + mock scan), `codeql.yml`, `scorecard.yml` |
 | Docker | `docker build -t penthera . && docker run penthera https://localhost:3000` |
+
+## Methodology & research
+
+| Topic | Link |
+|-------|------|
+| How detection works, confidence model, limits | [METHODOLOGY.md](./METHODOLOGY.md) |
+| Cited research and standards | [references.md](./references.md) ([BibTeX](./references.bib)) |
+| Accuracy benchmark (`npm run bench`) | [bench/README.md](../bench/README.md), latest [results](../bench/RESULTS.md) |
+| Citing Penthera | [CITATION.cff](../CITATION.cff) |
 
 ## Agent skill
 

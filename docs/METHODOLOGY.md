@@ -1,0 +1,321 @@
+# Methodology
+
+This document describes what Penthera tests, how it decides that something is a
+finding, how sure it is, and where its limits are. Each design choice points to
+the research or standard it rests on. Citation keys such as `[bau2010state]`
+refer to [references.md](references.md) and [references.bib](references.bib).
+
+Measured accuracy on the bundled benchmark is in
+[bench/RESULTS.md](../bench/RESULTS.md); the method behind those numbers is in
+[bench/README.md](../bench/README.md).
+
+## Contents
+
+- [Threat model](#threat-model)
+- [Black-box and white-box: what each can find](#black-box-and-white-box-what-each-can-find)
+- [Confidence model](#confidence-model)
+- [False-positive controls](#false-positive-controls)
+- [Non-destructive by default](#non-destructive-by-default)
+- [Offline and no telemetry](#offline-and-no-telemetry)
+- [How new attack techniques are adopted](#how-new-attack-techniques-are-adopted)
+- [Citations in reports](#citations-in-reports)
+- [Known limitations](#known-limitations)
+
+## Threat model
+
+Penthera is built for small teams shipping web apps and APIs, often with AI
+coding tools, who need a first line of evidence before a human review or a
+paid penetration test. The threat model follows the structure in Shostack
+[shostack2014threat]: what are we building, what can go wrong, what do we do
+about it, and did we do a good job.
+
+**Assets.** User data behind the API, credentials and API keys (including AI
+provider keys), the session and identity layer, and the integrity of the code
+and dependencies that get deployed.
+
+**Adversaries in scope.**
+
+1. A remote, unauthenticated attacker on the internet who can send arbitrary
+   HTTP requests to the deployed app. This is what the black-box scan models.
+2. An authenticated user trying to reach another user's data (broken object
+   level authorization, the top item in the OWASP API Security Top 10
+   [owasp2023api]). Penthera tests this when given credentials.
+3. Anyone who obtains a copy of the source: a leaked repository, a public fork,
+   a compromised CI log. Meli et al. found secrets leaked in over 100,000
+   public GitHub repositories, with thousands of new, unique secrets leaked
+   every day [meli2019bad]. This is what the
+   white-box secret scan models.
+4. A supply-chain attacker who publishes or compromises a dependency
+   [ladisa2023sok, ohm2020backstabber, zimmermann2019small], including
+   packages that code-generating models invent and attackers then register
+   [spracklen2025package].
+
+**Out of scope.** Physical access, insider threats with production access,
+denial of service, social engineering, and anything that needs exploitation
+beyond a single benign probe. Penthera does not try to replace a human tester;
+it tries to find the issues a scanner can find reliably and say clearly which
+ones it cannot judge.
+
+**Penthera itself is in the threat model.** A security tool runs with the
+user's credentials and network position, so a compromised scanner is a
+compromised machine. Thompson's point that you cannot trust code you did not
+build yourself [thompson1984reflections] applies to scanners and their rule
+feeds. This is why Penthera fetches no rules at run time
+([below](#how-new-attack-techniques-are-adopted)).
+
+STRIDE, the threat categories that Shostack's book builds on, originates at
+Microsoft [kohnfelder1999threats]. Penthera's probes map onto it roughly as:
+spoofing (auth, JWT, OAuth, email SPF/DMARC), tampering (injection, CORS),
+repudiation (not tested), information disclosure (exposed files, secrets,
+verbose errors), denial of service (not tested, only rate limiting is
+checked), and elevation of privilege (IDOR/BOLA, client-side-only auth).
+
+## Black-box and white-box: what each can find
+
+Penthera runs two kinds of analysis and reports them together.
+
+### Black-box (URL scan)
+
+The scanner sees only HTTP responses. Its tests are those of the OWASP Web
+Security Testing Guide [owaspwstg42]; each probe's WSTG IDs are listed in
+[owasp-wstg-coverage.md](owasp-wstg-coverage.md).
+
+What black-box testing finds well: properties that are visible in every
+response (missing security headers, TLS configuration, cookie flags, CORS
+policy), files and interfaces that should not be public, and injection flaws
+whose effect shows up in the response or its timing. Protocol checks follow
+the relevant specifications: HSTS [hodges2012rfc6797], JWT
+[jones2015rfc7519, sheffer2020rfc8725], and OAuth redirect and PKCE handling
+[lodderstedt2025rfc9700, sakimura2015rfc7636, fett2016comprehensive].
+
+What it misses, and why. Two classic evaluations of black-box scanners point
+the same way. Bau et al. tested eight commercial scanners against a custom
+vulnerable application and older versions of real ones. As a group the tools
+did reasonably well, but second-order flaws, stored XSS and stored SQL
+injection, were missed by many of them [bau2010state]. Doupé et al. tested
+eleven commercial and open-source scanners against WackoPicko, a realistic
+purpose-built app with sixteen planted flaws. Eight of the sixteen were missed
+by every scanner, including stored SQL injection, multi-step stored XSS,
+forceful browsing and a business logic flaw. They concluded that crawling
+matters as much as detection: a scanner cannot test a page it never reaches,
+and losing track of state (logins, multi-step forms) is a main reason it
+doesn't [doupe2010johnny].
+
+Penthera's design responds to each point:
+
+- **Crawl coverage.** Endpoint discovery uses a wordlist plus the app's own
+  OpenAPI document when one is exposed, and records exactly which probes ran.
+  The WSTG coverage table in every report lists tests as run or not run, so a
+  missing check is never presented as a pass.
+- **State and logic.** Penthera does not claim to find business logic flaws,
+  which no scanner in the Doupé et al. study found either.
+  IDOR/BOLA results are labelled `needs-human-review` because a scanner cannot
+  know whether user A is allowed to read object B.
+- **Stored and second-order flaws.** Not tested. They need a write followed by
+  a read elsewhere, which conflicts with the non-destructive default.
+
+### White-box (repository scan)
+
+The scanner reads source files. It finds hardcoded secrets, route handlers and
+their authentication boundaries, and risky code patterns.
+
+Secret detection uses provider-specific prefixes (for example `AKIA` for AWS,
+`sk-ant-` for Anthropic) plus a small number of assignment patterns such as
+`api_key = "..."` with a placeholder filter. Meli et al. took the same
+conservative route, restricting detection to private keys and API keys with
+distinctive formats [meli2019bad]. The cost is recall: a secret with no
+recognisable format is invisible to this approach. SecretBench, a labelled
+dataset of real secrets across many formats, is the natural yardstick for that
+gap [basak2023secretbench]. The benchmark here includes an unprefixed signing
+key that Penthera misses for this reason.
+
+What white-box scanning cannot see: runtime configuration (headers added by a
+CDN, a WAF in front of the app), secrets injected at deploy time, and anything
+in dependencies that is only known from a vulnerability database.
+
+### Combining them
+
+Running both against the same app catches cases neither sees alone: a route
+the repository marks as public that the black-box scan confirms is reachable,
+or a header the code sets that the edge strips. The report keeps the source of
+each finding (`source`, `method`) so a reader can tell which side produced it.
+
+## Confidence model
+
+Severity says how bad a finding would be if real. Confidence says how likely it
+is to be real. Penthera reports both, and never lets a heuristic look like a
+fact. The labels are defined in
+[lib/provenance.js](../lib/provenance.js):
+
+| Label | Meaning | Typical sources |
+|---|---|---|
+| `confirmed` | Deterministic evidence. The header is absent, the certificate expired, the key matches a provider format. | Header audit, TLS check, cookie audit, secret scan, OpenAPI exposure |
+| `likely` | A strong signal with a small false-positive chance. | Injection probes with a verified canary, auth and JWT probes, framework checks |
+| `potential` | A heuristic or one-shot signal that needs corroboration. | Fuzzer, adaptive probes |
+| `needs-human-review` | Exploitability cannot be judged from outside. | IDOR/BOLA, client-side-only auth |
+
+Every finding also carries `source`, `method` and `collected_at`, and these
+travel into SARIF so the label survives into GitHub code scanning.
+
+The benchmark reports precision per confidence label, which is the check that
+the labels mean what they say. On the current run all `likely` and
+`needs-human-review` findings were true positives, the one `potential` finding
+was a false positive, and the two `confirmed` false positives are cases where
+the evidence is real but the judgement is wrong (a health endpoint that is
+public by design, AWS's published example key). See
+[bench/RESULTS.md](../bench/RESULTS.md).
+
+## False-positive controls
+
+Black-box scanners lose trust through false positives faster than through
+misses. Specific controls in the probes:
+
+- **Randomized canaries.** The SSTI probe multiplies two random four-digit
+  numbers and looks for the seven- or eight-digit product, and only when the
+  raw payload and the literal expression are absent from the response
+  ([lib/injections.js](../lib/injections.js), `buildSstiProbes`). The common
+  fixed `7*7 = 49` canary fires on any page that happens to contain "49". XSS
+  probes use a per-probe random reflection marker (`makeCanary`).
+- **Context before payload.** The XSS probe first checks where its marker is
+  reflected (HTML body, attribute, script) and only sends payloads that would
+  execute in that context, then checks they came back unencoded. This is the
+  approach of context-aware tools such as Dalfox.
+- **Baseline comparison.** Error-based SQL injection is only reported when the
+  database error appears in the injected response and not in the baseline.
+- **Timing re-sampling.** A single slow response proves nothing: garbage
+  collection, cold starts and network jitter all look like an injected sleep.
+  Time-based SQL and command injection candidates are re-sent and only
+  reported when the median delay holds (`confirmTimingDelay`). Crosby et al.
+  showed that network jitter dominates single remote timing measurements and
+  that filtering over many samples is what makes them usable
+  [crosby2009opportunities], building on Kocher's original timing attacks
+  [kocher1996timing]. Penthera's delays are seconds, not microseconds, so a
+  median of three samples is enough.
+- **Host-checked redirects.** An open redirect is reported only if the
+  `Location` header actually resolves to the attacker host, not when the
+  payload merely appears in a same-site redirect's query string.
+- **Context-aware suppression.** On localhost and private hosts, findings that
+  do not apply (no HTTPS, missing `Secure` on cookies) are suppressed.
+
+The benchmark's decoy target exercises each of these with an endpoint built to
+fool a naive scanner. Writing it found one real problem in the decoy itself: a
+"safe" redirect that accepted `/\evil.com`, which browsers treat as
+`//evil.com`. Penthera reported it correctly.
+
+## Non-destructive by default
+
+The `quick` and `standard` profiles send only requests a normal browser or API
+client would send: GETs, `OPTIONS`, and invalid login attempts. They do not
+send attack payloads, create or modify data, or exploit anything they find.
+
+Payload-based testing (`--deep`, `--fuzz`, `--adaptive`, or `--profile deep`)
+is opt-in and gated behind a confirmation prompt. Even then each probe sends a
+benign marker (a random string, arithmetic, a short sleep, `id`) rather than a
+working exploit, and stops at the first confirmation per endpoint. The
+adaptive engine may send unexpected HTTP methods, including `DELETE`, to
+routes with placeholder IDs; it is therefore never part of a default run.
+
+This follows Saltzer and Schroeder's fail-safe defaults and least privilege
+[saltzer1975protection]: the default does the least that is still useful, and
+anything riskier needs an explicit decision. NIST SP 800-115 makes the same
+distinction between non-intrusive assessment and penetration testing, and
+recommends written rules of engagement before the latter
+[scarfone2008sp800115].
+
+## Offline and no telemetry
+
+Penthera does not phone home. It sends no usage data, analytics or crash
+reports, and it has no accounts. Reports are written to local files.
+
+Network traffic goes to the target you name, with two documented exceptions:
+
+1. `--recon` (and the `deep` profile) queries public OSINT sources (crt.sh,
+   the Wayback Machine, AlienVault OTX) with the target domain. It is skipped
+   for localhost.
+2. The Retire.js check downloads the public Retire.js vulnerability database
+   from GitHub to compare JavaScript library versions locally. This is data,
+   not code: it is parsed as JSON and never executed. It is the one place a
+   detection input arrives at run time, and the roadmap's `--offline` egress
+   guard replaces it with a vendored copy shipped in releases.
+
+The benchmark enforces offline operation mechanically: it wraps `fetch` so any
+request to a non-loopback host is refused and counted, and fails if the count
+is not zero.
+
+These choices follow economy of mechanism and complete mediation
+[saltzer1975protection]: fewer network paths means fewer things to audit, and
+a tool that talks only to the target is easy to reason about in a regulated
+environment.
+
+## How new attack techniques are adopted
+
+Attack techniques change quickly. In the last few years: indirect prompt
+injection against LLM-integrated apps [greshake2023signed, perez2022ignore,
+liu2023prompt], package hallucination and slopsquatting
+[spracklen2025package], and attacks on agent tooling and MCP servers
+catalogued by OWASP [owasp2024llmtop10, owasp2025agentic, owasp2025mcptop10]
+and MITRE ATLAS [mitreatlas]. A scanner that does not keep up becomes a
+false sense of security.
+
+Penthera keeps up through reviewed releases, not through live updates:
+
+- **Rules ship as code in a release.** New probes, patterns and templates are
+  added by pull request, reviewed, tested against the benchmark, and published
+  in a versioned release with a CHANGELOG entry. There is no rule server, no
+  background update, and no command that fetches rules from the internet.
+- **Every new rule carries a source and a date.** A rule added after v1.2.0
+  records where the technique comes from (a paper, an advisory, an OWASP or
+  ATLAS entry, an incident write-up) and the date it was added. Categories are
+  already linked to their sources in [lib/references.json](../lib/references.json);
+  the built-in rules that predate this policy are being backfilled.
+- **Every new rule comes with a benchmark case.** A detection rule is added
+  together with a labelled true positive and, where a false positive is
+  plausible, a decoy in [bench/](../bench/). The CI floor in the benchmark
+  stops a rule that adds false positives.
+- **Your own templates stay local.** `--nuclei <path>` and `--templates <dirs>`
+  load YAML templates from directories you choose. Penthera does not download
+  them.
+
+Why not auto-update? A rule feed is a code path from someone else's server
+into a tool that runs with your network access and often your credentials.
+Supply-chain research shows that update channels and package registries are
+exactly where attackers insert themselves [ladisa2023sok, ohm2020backstabber,
+zimmermann2019small], and that securing an update channel needs signed
+metadata, key rotation and explicit trust delegation [samuel2010survivable,
+torresarias2019intoto]. Shipping rules inside the signed, versioned package
+reuses the trust you already place in the release, and gives a clear audit
+trail: the rules you ran are the rules in the version you installed.
+
+## Citations in reports
+
+Each finding category maps to one to three references in
+[lib/references.json](../lib/references.json). They appear:
+
+- in the Markdown report, as a "Why this matters / Sources" line under each
+  finding and a "Sources" line under each action-plan item;
+- in SARIF [oasis2023sarif], as the rule's `helpUri` (first source) and
+  `help` text (all sources), and as `properties.references` (the BibTeX keys).
+
+[references.md](references.md) and the `sources` block of `references.json`
+are generated from [references.bib](references.bib) by
+`node scripts/build-references.mjs`, and a test fails if they drift.
+
+## Known limitations
+
+- No authenticated crawling beyond the bearer token or cookie you pass, so
+  pages behind multi-step flows are not reached [doupe2010johnny].
+- No stored or second-order injection testing [bau2010state].
+- No DOM-based XSS analysis; Penthera does not run JavaScript
+  [lekies2013flows, stock2014precise].
+- No business logic testing. IDOR/BOLA findings need a human to confirm.
+- Secret detection is pattern-based and skips Markdown and other
+  documentation files, so unprefixed secrets and secrets in notes are missed.
+- The bundled benchmark was written by the same people as the scanner. Its
+  numbers measure regressions and the false-positive controls, not accuracy on
+  arbitrary applications. Independent benchmarks such as the OWASP Benchmark
+  [owaspbenchmark] and the approach of Antunes and Vieira
+  [antunes2010benchmarking, antunes2015assessing] are the model for a fairer
+  comparison, and scoring against labelled third-party targets (Juice Shop,
+  crAPI) is the next step.
+- Compliance output (NIS2 [eu2022nis2]) is evidence toward a duty of care, not
+  a certification.

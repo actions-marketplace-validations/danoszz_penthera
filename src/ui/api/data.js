@@ -7,7 +7,7 @@
  * realpath'd and re-checked, and no API takes a file path from the browser:
  * findings and bundles are addressed by ids this module hands out.
  */
-import { readdirSync, readFileSync, lstatSync, realpathSync, existsSync, statSync, mkdirSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, lstatSync, realpathSync, existsSync, statSync, mkdirSync, openSync, writeSync, closeSync, constants as FS } from "node:fs";
 import { join, resolve, relative, sep, isAbsolute, dirname } from "node:path";
 import { createHash } from "node:crypto";
 import { openMemory, buildViews, buildHistory } from "../../../lib/memory/index.js";
@@ -58,6 +58,47 @@ export function confineDir(input, roots) {
     throw new Error("That folder is outside the project folders this dashboard was started with. Restart with `penthera ui --project <dir>`.");
   }
   return real;
+}
+
+/**
+ * Throws unless no existing component of `target` below `root` is a symlink.
+ * The same rule lib/fix/apply.js applies to fix diffs: a planted symlink
+ * (reports/evidence -> ~/.ssh) must never redirect a write out of the folder.
+ */
+export function assertNoSymlinks(root, target) {
+  const rel = relative(root, target);
+  if (rel.startsWith("..") || isAbsolute(rel)) throw new Error(`Refusing to write ${target}: it is outside ${root}`);
+  let cur = root;
+  for (const seg of rel.split(sep).filter(Boolean)) {
+    cur = join(cur, seg);
+    let st;
+    try { st = lstatSync(cur); } catch (e) { if (e.code === "ENOENT") return; throw e; }
+    if (st.isSymbolicLink()) throw new Error(`Refusing to write through a symlink: ${relative(root, cur)}`);
+  }
+}
+
+/**
+ * Write a new file in `dir` (which must be `root` or below it): exclusive
+ * create, never through a symlink, never over an existing file. A name is a
+ * single path segment.
+ */
+export function writeNewFile(root, dir, name, content) {
+  if (typeof name !== "string" || !name || name.includes("/") || name.includes("\\") || name.includes("\0") || name === "." || name === "..") {
+    throw new Error(`Bad file name ${JSON.stringify(name)}`);
+  }
+  const target = join(dir, name);
+  assertNoSymlinks(root, target);
+  mkdirSync(dir, { recursive: true });
+  assertNoSymlinks(root, target); // again, after mkdir
+  const fd = openSync(target, FS.O_WRONLY | FS.O_CREAT | FS.O_EXCL | (FS.O_NOFOLLOW || 0), 0o644);
+  try {
+    const buf = Buffer.from(content, "utf-8");
+    let off = 0;
+    while (off < buf.length) off += writeSync(fd, buf, off, buf.length - off);
+  } finally {
+    closeSync(fd);
+  }
+  return target;
 }
 
 const idFor = (s) => createHash("sha256").update(s).digest("hex").slice(0, 16);
@@ -185,6 +226,7 @@ export function createDataSource({ projects, reportsDir, home, memoryRoot, setti
       if (!latest) return null;
       const dir = join(reportsReal, "evidence", `${slug(project)}-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}`);
       if (dirname(dirname(dir)) !== reportsReal) return null;
+      assertNoSymlinks(reportsReal, dir); // reports/evidence must not be a planted symlink
       writeEvidence(latest.data, { evidence: dir }, { version, mdOpts: { version }, argv: ["ui", "evidence", "create"] });
       cache = null;
       return { id: idFor(dir), path: relative(reportsReal, dir) };
@@ -246,11 +288,8 @@ export function createDataSource({ projects, reportsDir, home, memoryRoot, setti
     /** Persist a finished loop run next to the other reports. */
     saveLoopRun(loopRun) {
       try {
-        mkdirSync(reportsReal, { recursive: true });
         const name = `loop-${String(loopRun.startedAt || new Date().toISOString()).replace(/[:.]/g, "-")}.json`;
-        const path = join(reportsReal, name);
-        if (dirname(path) !== reportsReal) return null;
-        writeFileSync(path, JSON.stringify({ loopRun }, null, 2) + "\n");
+        writeNewFile(reportsReal, reportsReal, name, JSON.stringify({ loopRun }, null, 2) + "\n");
         cache = null;
         return name;
       } catch {
@@ -258,10 +297,11 @@ export function createDataSource({ projects, reportsDir, home, memoryRoot, setti
       }
     },
 
-    reportPath(base) {
-      mkdirSync(reportsReal, { recursive: true });
+    /** A scan, deps or agents report from a run started here: a new file, never through a symlink. */
+    writeReport(name, result) {
+      writeNewFile(reportsReal, reportsReal, name, JSON.stringify(result, null, 2) + "\n");
       cache = null;
-      return join(reportsReal, base);
+      return name;
     },
 
     settings,

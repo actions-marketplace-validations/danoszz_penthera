@@ -339,7 +339,7 @@ export function createDemoSource({ settings, version = "dev" }) {
       return { id, ok: problems.length === 0, problems, files, signature };
     },
     saveLoopRun: () => null,
-    reportPath: () => null,
+    writeReport: () => null,
     settings,
   };
 }

@@ -93,8 +93,8 @@ export async function startUiServer(opts = {}) {
   }
   if (!source) source = createDataSource({ projects, reportsDir, home, memoryRoot, settings, version: opts.version });
   if (!runDeps) {
-    const [{ runLoop }, { executeScan }, { writeJsonReport }, { scanDeps }, { scanAgents }] = await Promise.all([
-      import("../agent/loop.js"), import("../cli/run-scan.js"), import("../reporter.js"),
+    const [{ runLoop }, { executeScan }, { scanDeps }, { scanAgents }] = await Promise.all([
+      import("../agent/loop.js"), import("../cli/run-scan.js"),
       import("../../lib/deps/index.js"), import("../../lib/agents/index.js"),
     ]);
     runDeps = {
@@ -103,7 +103,7 @@ export async function startUiServer(opts = {}) {
       scanDeps,
       scanAgents,
       saveLoopRun: (l) => source.saveLoopRun?.(l),
-      writeReport: (merged, base) => { writeJsonReport(merged, source.reportPath(base)); return base; },
+      writeReport: (result, name) => source.writeReport(name, result),
     };
   }
   const runs = createRunManager({ ...runDeps, settings: settings.get, projectRoots: source.projectRoots || projects });

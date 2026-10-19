@@ -7,12 +7,12 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { request as httpRequest } from "node:http";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, symlinkSync, rmSync, realpathSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, symlinkSync, rmSync, realpathSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { startUiServer, loadStatic, STATIC_DIR } from "../src/ui/server.js";
 import { CSP, hostAllowed, originAllowed, createSession, readCookie, COOKIE_NAME } from "../src/ui/security.js";
-import { createDataSource, confineDir, isInside } from "../src/ui/api/data.js";
+import { createDataSource, confineDir, isInside, writeNewFile, assertNoSymlinks } from "../src/ui/api/data.js";
 import { validateRunRequest, createRunManager, RunError, cleanLine } from "../src/ui/api/runs.js";
 import { classify, buildOverview, buildFindings } from "../src/ui/api/summarize.js";
 import { writeEvidenceBundle } from "../src/report/evidence.js";
@@ -424,6 +424,34 @@ describe("ui data source: only the chosen folders", () => {
     writeFileSync(join(bundle, "report.json"), "{\"tampered\":true}\n");
     expect(src.verifyEvidence(b.id).ok).toBe(false);
     expect(src.verifyEvidence("ffffffffffffffff")).toBeNull();
+  });
+
+  it("writes into the reports folder only as new files, never through a symlink (same rule as lib/fix/apply.js)", () => {
+    const project = realpathSync(tempDir());
+    const reports = join(project, "reports");
+    mkdirSync(reports);
+    const outside = realpathSync(tempDir());
+
+    expect(readFileSync(writeNewFile(reports, reports, "a.json", "{}\n"), "utf-8")).toBe("{}\n");
+    expect(() => writeNewFile(reports, reports, "a.json", "x")).toThrow(/EEXIST/); // never overwrites
+    for (const bad of ["../x.json", "a/b.json", "", "..", "a\0b"]) expect(() => writeNewFile(reports, reports, bad, "x")).toThrow();
+
+    symlinkSync(join(outside, "target.json"), join(reports, "link.json"));
+    expect(() => writeNewFile(reports, reports, "link.json", "x")).toThrow(/symlink/);
+    expect(existsSync(join(outside, "target.json"))).toBe(false);
+
+    // A planted reports/evidence -> elsewhere must not receive a bundle.
+    symlinkSync(outside, join(reports, "evidence"));
+    expect(() => assertNoSymlinks(reports, join(reports, "evidence", "x"))).toThrow(/symlink/);
+    writeFileSync(join(reports, "s.json"), JSON.stringify({ target: "http://localhost:3000", mode: "url", timestamp: "2026-10-01T00:00:00Z", findings: [{ severity: "high", title: "x" }] }));
+    const src = createDataSource({ projects: [project], reportsDir: reports, home: tempDir(), memoryRoot: join(tempDir(), "memory"), settings: { get: () => ({}) } });
+    expect(() => src.createEvidence("http://localhost:3000")).toThrow(/symlink/);
+    expect(readdirSync(outside)).toEqual([]);
+
+    // Run reports and loop runs go through the same writer.
+    expect(src.writeReport("deps_1.json", { mode: "deps" })).toBe("deps_1.json");
+    expect(() => src.writeReport("../escape.json", {})).toThrow();
+    expect(src.saveLoopRun({ startedAt: "2026-10-19T10:00:00.000Z" })).toMatch(/^loop-/);
   });
 
   it("classify recognises each report kind", () => {

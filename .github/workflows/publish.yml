@@ -80,8 +80,15 @@ jobs:
             exit 1
           fi
 
+      # A prerelease (1.8.0-rc.1) goes to the `next` dist-tag, never `latest`.
       - name: Stage on npm with provenance
-        run: npm stage publish --provenance --access public
+        run: |
+          case "${GITHUB_REF_NAME#v}" in
+            *-*) DIST_TAG=next ;;
+            *)   DIST_TAG=latest ;;
+          esac
+          echo "Staging with dist-tag $DIST_TAG"
+          npm stage publish --provenance --access public --tag "$DIST_TAG"
 
       - name: Ask for approval
         run: |
@@ -131,7 +138,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
-            || gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --generate-notes --verify-tag
+            || gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --generate-notes --verify-tag \
+                 $(case "$GITHUB_REF_NAME" in *-*) echo --prerelease ;; esac)
 
       # Attach the post drafts (written by the publish job) to the release.
       # Only the GitHub API is called here. See docs/marketing.md.

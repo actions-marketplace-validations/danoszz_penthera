@@ -123,7 +123,7 @@ Each feature goes through the same path: **method → evidence → tool.**
 - **Method.** The [methodology](docs/METHODOLOGY.md) states the threat model,
   what black-box (HTTP) and white-box (source) analysis can and cannot see, the
   confidence model, and the false-positive controls on each probe. Each design
-  choice cites the research or standard it rests on: 49 verified references, in
+  choice cites the research or standard it rests on: 57 verified references, in
   APA style, in [docs/references.md](docs/references.md).
 - **Evidence.** A benchmark runs on every release, and the release gate fails
   if precision or recall drops by more than 0.02. Experiments that decide what
@@ -144,7 +144,7 @@ they catch regressions; they do not measure real-world accuracy. Measuring that
 on real projects is experiment E1, the first step of the
 [research plan](docs/vision-2.0.md). Intervals are Wilson. What Penthera cannot
 see is listed under [Known limitations](docs/METHODOLOGY.md#known-limitations).
-Counts as of 2026-10-19; refresh them with `npm run docs:numbers` and
+Counts as of 2026-10-20; refresh them with `npm run docs:numbers` and
 `npm run bench`.
 
 **Cite this repository** with the button on GitHub or
@@ -237,9 +237,9 @@ What changed, what we are measuring, and what comes next, in one place.
 | | Where it stands | Read more |
 |---|---|---|
 | **Latest release** | 1.7.0 (2026-10-19): one-command setup (`npx penthera`), the dashboard, signed rule packs | [CHANGELOG](CHANGELOG.md) |
-| **On main, unreleased** | Release checks on Linux, macOS and Windows, docs tested as code, a smaller package, security hardening | [Unreleased](CHANGELOG.md#unreleased) |
+| **On main, unreleased** | Fixes from a second independent security review, a fix loop that cannot edit the tests that judge it, release checks on Linux, macOS and Windows, docs tested as code | [Unreleased](CHANGELOG.md#unreleased) |
 | **Now** | 1.8.0 feature freeze: fixes only, a release candidate on npm's `next` tag first | [Roadmap: now](ROADMAP.md#now-180-feature-freeze) |
-| **Research** | E1, accuracy on real code, is pre-registered; the benchmark tooling is in review | [E1 pre-registration](docs/research/prereg/E1-real-world-accuracy.md), [plan](docs/research/plan-1.8.md) |
+| **Research** | E1, accuracy on real code, is pre-registered; the benchmark tooling is in review. After the 2026 agent incidents: a checklist for running agents safely and a draft experiment (E8) | [E1 pre-registration](docs/research/prereg/E1-real-world-accuracy.md), [agents safely](docs/agents-safely.md), [what the incidents mean](docs/research/agent-incidents-2026.md) |
 | **Next** | Real-world precision and recall with intervals, published whatever the result | [Roadmap: next](ROADMAP.md#next), [research plan](docs/vision-2.0.md) |
 
 Releases are deliberately slow: a feature freeze, an independent review, the

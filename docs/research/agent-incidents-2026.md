@@ -1,6 +1,6 @@
 # What the 2026 agent incidents mean for Penthera
 
-Status: **draft for the maintainer, not yet public.** Written 2026-10-20.
+Status: **published 2026-10-20; the positioning section is a proposal awaiting the maintainer's approval.**
 
 Follow-up specs, all drafts for review: the checklist
 [agents-safely.md](../agents-safely.md), the rule spec

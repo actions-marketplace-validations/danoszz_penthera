@@ -1,17 +1,23 @@
-// penthera ui: one view. Left: projects and runs. Centre: the selected project
-// or run. Right: cards, or the open finding, or settings.
+// penthera ui: a menu bar over three tiled windows. Projects on the left, the
+// selected project (five tabs) or run in the centre, the inspector on the
+// right. Runs start from the New scan dialog; every action is also in a menu.
 import { h, clear, announce } from "./dom.js";
 import { api, signIn } from "./api.js";
-import { patternDefs } from "./charts.js";
-import { state, set, on } from "./state.js";
+import { patternDefs, riskLevel } from "./charts.js";
+import { state, set, on, TABS, countsInView } from "./state.js";
+import { renderMenubar, closeMenus } from "./menubar.js";
 import { renderLeft } from "./left.js";
-import { renderCenter, renderBar, refreshList, moveFinding, answerPending } from "./center.js";
+import { renderCenter, refreshList, moveFinding, answerPending } from "./center.js";
 import { renderRight } from "./right.js";
+import { newScan, about } from "./dialog.js";
+import { setup } from "./onboarding.js";
 import { ERR } from "./copy.js";
 
 const THEME_KEY = "penthera-ui-theme";
+const UX_KEY = "penthera-ui-mode";
 const PANELS_KEY = "penthera-ui-panels";
 const app = document.getElementById("app");
+const menubar = document.getElementById("menubar");
 const left = document.getElementById("left");
 const center = document.getElementById("center");
 const right = document.getElementById("right");
@@ -27,73 +33,83 @@ const theme = {
   },
 };
 
-// ── Side panels: [ and ] toggle; drawers below 1180px / 760px ──
+// ── Side windows: [ and ] toggle; drawers below 1180px / 760px ──
 const narrowRight = () => window.matchMedia("(max-width: 1180px)").matches;
 const narrowLeft = () => window.matchMedia("(max-width: 760px)").matches;
 function savedPanels() {
   try { return JSON.parse(localStorage.getItem(PANELS_KEY) || "null"); } catch { return null; }
 }
-function applyPanels({ left: l, right: r }) {
-  app.classList.toggle("no-left", !l);
-  app.classList.toggle("no-right", !r);
-  scrim.hidden = !((r && narrowRight()) || (l && narrowLeft()));
-  if (!narrowRight()) {
-    try { localStorage.setItem(PANELS_KEY, JSON.stringify({ left: l, right: r })); } catch { /* per-viewer convenience only */ }
-  }
-}
 const panels = { left: true, right: true, ...(savedPanels() || {}) };
-if (narrowLeft()) panels.left = false;
-if (narrowRight()) panels.right = false;
-applyPanels(panels);
-function toggleLeft() { panels.left = !panels.left; applyPanels(panels); }
-function toggleRight() { panels.right = !panels.right; applyPanels(panels); }
+function applyPanels() {
+  app.classList.toggle("no-left", !panels.left);
+  app.classList.toggle("no-right", !panels.right);
+  scrim.hidden = !((panels.right && narrowRight()) || (panels.left && narrowLeft()));
+  if (!narrowRight()) {
+    try { localStorage.setItem(PANELS_KEY, JSON.stringify(panels)); } catch { /* per-viewer convenience only */ }
+  }
+  if (state.meta) renderMenubar(menubar, ctx);
+}
+function toggleLeft() { panels.left = !panels.left; applyPanels(); }
+function toggleRight() { panels.right = !panels.right; applyPanels(); }
 scrim.addEventListener("click", () => {
   if (narrowLeft()) panels.left = false;
   if (narrowRight()) panels.right = false;
-  applyPanels(panels);
+  applyPanels();
 });
 
 // ── Context the renderers share ──
 const ctx = {
   theme,
+  panels,
   toggleLeft,
   toggleRight,
   refresh,
-  refreshMeta: async () => { state.meta = await api.get("/api/meta"); },
-  redrawRight: () => renderRight(right, ctx),
+  setTheme(t) { theme.set(t); renderMenubar(menubar, ctx); if (state.right === "settings") renderRight(right, ctx); },
+  newScan(kind, project) { closeMenus(); newScan(ctx, { kind, project }); },
+  about() { about(); },
+  setup() { closeMenus(); setup(ctx); },
+  setUx(ux) {
+    try { localStorage.setItem(UX_KEY, ux); } catch { /* this page only */ }
+    set({ ux, tab: "findings", filter: null });
+    announce(`${ux === "simple" ? "Simple" : "Advanced"} mode`);
+  },
+  /** Setup closed: keep what was chosen, Simple if nothing was. */
+  finishSetup(ux) { ctx.setUx(ux || "simple"); },
+  openTab(tab, project) {
+    const patch = { tab };
+    if (project) patch.sel = { kind: "project", key: project };
+    else if (state.sel.kind !== "all" && state.sel.kind !== "project") patch.sel = { kind: "all", key: null };
+    set(patch);
+  },
   openFinding(f) {
     set({ finding: { id: f.id, project: f.project }, right: "finding" });
-    if (!panels.right) { panels.right = true; applyPanels(panels); }
+    if (!panels.right) { panels.right = true; applyPanels(); }
     for (const b of document.querySelectorAll("#findings-list .row")) {
       b.setAttribute("aria-current", String(b.dataset.id === f.id && b.dataset.project === f.project));
     }
-  },
-  focusBar(kind) {
-    if (kind && kind !== state.mode) set({ mode: kind });
-    if (narrowLeft() && panels.left) { panels.left = false; applyPanels(panels); }
-    const input = document.getElementById("bar-input");
-    (input && !input.disabled ? input : document.querySelector(".bar .btn.primary"))?.focus();
   },
 };
 
 async function refresh() {
   const [overview, findings, runs] = await Promise.all([api.get("/api/overview"), api.get("/api/findings"), api.get("/api/runs")]);
-  set({ overview, findings: findings.findings, runs });
+  const live = runs.live.find((r) => r.status === "running" && r.pending);
+  set({ overview, findings: findings.findings, runs, ...(live && !state.pending ? { pending: { index: live.pending.index, total: live.pending.total } } : {}) });
 }
 
-// ── Redraw on state changes, one column at a time ──
+// ── Redraw on state changes, one window at a time ──
 on((patch) => {
   const keys = Object.keys(patch);
   if (keys.includes("query") && keys.length === 1) { refreshList(ctx); return; }
-  if (keys.some((k) => ["overview", "runs", "sel", "meta", "right"].includes(k))) renderLeft(left, { onNewScan: () => ctx.focusBar("scan"), toggleLeft, theme });
-  if (keys.some((k) => ["overview", "findings", "sel", "mode"].includes(k))) {
-    // A live transcript is rebuilt only when the selection changes; data refreshes redraw the bar.
-    if (state.sel.kind === "run" && !keys.includes("sel")) renderBar(center, ctx);
-    else renderCenter(center, ctx);
-    if (keys.includes("sel") && narrowLeft() && panels.left) { panels.left = false; applyPanels(panels); }
+  if (keys.some((k) => ["overview", "runs", "sel", "meta", "right", "tab", "pending", "ux"].includes(k))) renderMenubar(menubar, ctx);
+  if (keys.some((k) => ["overview", "runs", "sel", "meta"].includes(k))) renderLeft(left, ctx);
+  if (keys.some((k) => ["overview", "sel"].includes(k))) app.dataset.risk = String(riskLevel(countsInView()));
+  if (keys.some((k) => ["overview", "findings", "sel", "tab", "filter", "ux"].includes(k))) {
+    // A live transcript is rebuilt only when the selection changes, never on a data refresh.
+    if (!(state.sel.kind === "run" && !keys.includes("sel"))) renderCenter(center, ctx);
+    if (keys.includes("sel") && narrowLeft() && panels.left) { panels.left = false; applyPanels(); }
   }
-  if (keys.some((k) => ["sel", "right", "finding"].includes(k)) || (keys.includes("runs") && state.right === "cards")) {
-    if (patch.openRight && !panels.right) { panels.right = true; applyPanels(panels); }
+  if (keys.some((k) => ["sel", "right", "finding", "ux"].includes(k)) || (keys.includes("overview") && state.right === "none")) {
+    if (state.right !== "none" && !panels.right) { panels.right = true; applyPanels(); }
     renderRight(right, ctx);
   }
 });
@@ -103,30 +119,52 @@ function isTyping(e) {
   const t = e.target;
   return t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
 }
+document.addEventListener("pointerdown", (e) => { if (!menubar.contains(e.target)) closeMenus(); });
 document.addEventListener("keydown", (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (document.querySelector("dialog[open]")) return; // the dialog owns the keyboard
   if (e.key === "Escape") {
+    if (closeMenus()) return;
     const q = document.getElementById("q");
     if (document.activeElement === q && q.value) { q.value = ""; set({ query: "" }); return; }
-    if (state.right !== "cards") { set({ right: "cards", finding: null }); return; }
+    if (state.right !== "none") { set({ right: "none", finding: null }); return; }
     if ((narrowRight() && panels.right) || (narrowLeft() && panels.left)) scrim.click();
     return;
   }
-  if (isTyping(e)) return;
+  if (isTyping(e) || menubar.contains(e.target)) return;
   if (answerPending(e.key)) { e.preventDefault(); return; }
-  if (e.key === "/") { const q = document.getElementById("q"); if (q) { e.preventDefault(); q.focus(); } return; }
+  const tab = state.ux === "advanced" && TABS.find((t) => t.key === e.key);
+  if (tab) { e.preventDefault(); ctx.openTab(tab.id); return; }
+  if (e.key === "n") { e.preventDefault(); ctx.newScan(); return; }
+  if (e.key === "/") {
+    e.preventDefault();
+    if (state.tab !== "findings" || !(state.sel.kind === "all" || state.sel.kind === "project")) ctx.openTab("findings");
+    document.getElementById("q")?.focus();
+    return;
+  }
   if (e.key === "j" || e.key === "k") { e.preventDefault(); moveFinding(e.key === "j" ? 1 : -1, ctx); return; }
   if (e.key === "[") { e.preventDefault(); toggleLeft(); return; }
   if (e.key === "]") { e.preventDefault(); toggleRight(); }
 });
+
+if (narrowLeft()) panels.left = false;
+if (narrowRight()) panels.right = false;
+applyPanels();
+
+let savedUx = null;
+try { savedUx = localStorage.getItem(UX_KEY); } catch { /* storage off */ }
+state.ux = savedUx === "advanced" ? "advanced" : "simple";
 
 (async function boot() {
   document.body.append(patternDefs());
   try {
     await signIn();
     state.meta = await api.get("/api/meta");
+    renderMenubar(menubar, ctx);
+    renderRight(right, ctx);
     await refresh();
-    document.title = `penthera ui${state.meta.demo ? " :: demo" : ""}`;
+    document.title = `Penthera${state.meta.demo ? " :: demo" : ""}`;
+    if (!savedUx) ctx.setup(); // first visit in this browser
   } catch (e) {
     clear(center).append(h("div", { class: "col" },
       h("h1", {}, "Not signed in"),

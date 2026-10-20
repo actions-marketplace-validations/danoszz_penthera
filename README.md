@@ -20,9 +20,9 @@
 
 <br/><br/>
 
-| `penthera ui`, dark | `penthera ui`, light |
+| `penthera ui`, Simple, dark | `penthera ui`, Advanced, light |
 |---|---|
-| ![The dashboard in the dark theme: projects, findings, and a finding's detail](assets/dashboard/ui-dark.jpg) | ![The dashboard in the light theme: all projects and the side cards](assets/dashboard/ui-light.jpg) |
+| ![The dashboard in Simple mode, dark: the verdict, problems in plain words and one problem open](assets/dashboard/ui-dark.jpg) | ![The dashboard in Advanced mode, light: a project's tabs, the triage matrix and a finding open](assets/dashboard/ui-light.jpg) |
 
 </div>
 
@@ -107,7 +107,7 @@ Penthera needs Node.js 22 or later. To run it in a container:
 | Job | What Penthera does | Command |
 |---|---|---|
 | Report and prove | Writes reports for developers, owners, and auditors; a hashed, signable evidence bundle; NIS2 and CRA readiness reports and drafts | [`penthera <url> --audience auditor --evidence out/`](docs/evidence.md) |
-| See it all | A local dashboard on 127.0.0.1: one view with your projects, findings in plain words, history, side panels for dependencies, AI tooling and evidence, and the fix loop with Apply, Skip, and Stop per diff | [`penthera ui`](docs/dashboard.md) |
+| See it all | A local dashboard on 127.0.0.1 with a Simple mode for non-programmers: a one-sentence verdict, problems in plain words, a guided setup, and the fix loop with Apply, Skip, and Stop per change. Advanced adds dependencies, AI tooling, history and evidence | [`penthera ui`](docs/dashboard.md) |
 | Keep watching | Scheduled checks of your production for drift: certificates, headers, new endpoints, keys in bundles, new CVEs in your SBOM | on the [roadmap](ROADMAP.md) |
 
 Every finding carries a severity, a confidence label (`confirmed`, `likely`,

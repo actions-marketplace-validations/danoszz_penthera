@@ -312,6 +312,23 @@ describe("ui server: binding, token and session", () => {
       expect(r.status).toBe(200);
       expect(r.headers["content-type"]).toMatch(/^text\/javascript/);
     });
+
+    it("serves the self-hosted font and the logo as static files, with no active content", async () => {
+      const files = loadStatic();
+      for (const p of ["/fonts/DepartureMono-Regular.woff2", "/logo.svg", "/mark.svg", "/favicon.svg"]) expect(files.has(p), p).toBe(true);
+      // Static files hold no data and need no session; the API is where the session is checked.
+      const font = await raw(ui.port, { path: "/fonts/DepartureMono-Regular.woff2" });
+      expect(font.status).toBe(200);
+      expect(font.headers["content-type"]).toBe("font/woff2");
+      const logo = await raw(ui.port, { path: "/logo.svg" });
+      expect(logo.headers["content-type"]).toMatch(/^image\/svg\+xml/);
+      expect(logo.body).not.toMatch(/<script|on[a-z]+=|href=/i);
+    });
+
+    it("the stylesheet loads fonts and masks from this server only", () => {
+      const css = readFileSync(join(STATIC_DIR, "app.css"), "utf-8");
+      for (const [, u] of css.matchAll(/url\(\s*["']?([^"')]+)/g)) expect(u, u).toMatch(/^(\/|#)/);
+    });
   });
 
   describe("API (demo data)", () => {

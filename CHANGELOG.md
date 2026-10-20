@@ -107,6 +107,21 @@ is recommended.
 
 ### Changed
 
+- **`penthera ui` redesigned for people who are not programmers.** A first
+  visit runs a three-screen setup (what Penthera does, Simple or Advanced, the
+  project and a first check). Simple mode, the default, leads every project
+  with a one-sentence verdict ("Not ready to ship: 1 critical problem to fix
+  first."), lists problems in plain words, explains each one as what is wrong,
+  how sure and what to do, and tells a run as one sentence. Advanced keeps
+  everything, now as project tabs (Findings, Dependencies, AI tooling, History,
+  Proof) with a severity by confidence triage matrix. A menu bar replaces the
+  prompt bar and carries every action with its shortcut and the run status;
+  runs start from a New scan window; every change waits in its own window
+  (`y`, `n`, `q`). New look: a 1-bit "System" register of tiled windows, dither
+  patterns instead of greys, `#0000ed` as the one accent, Departure Mono (OFL,
+  self-hosted) for chrome, the serif Penthera wordmark, and a halftone field
+  whose density is the open risk. Both themes pass WCAG AA in every state.
+  `scripts/dashboard-screenshots.mjs` regenerates the docs screenshots.
 - Smaller npm package: 797 kB to 657 kB packed, 2.3 MB to 1.7 MB unpacked. The
   package ships only `docs/examples/` (the documentation lives on GitHub, and
   README links resolve there), and the popular-package lists for the typosquat

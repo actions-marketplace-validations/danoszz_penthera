@@ -1,15 +1,14 @@
 # The local dashboard: `penthera ui`
 
-`penthera ui` opens one view in your browser for what Penthera knows about
-your projects, laid out like the Claude Code desktop app: projects and runs on
-the left, the selected project or run in the middle, and details on the right.
-It can also run scans and the fix loop for you, stopping at every diff. It runs
-on `127.0.0.1` only, reads only the folders you give it and `~/.penthera`, and
-never contacts the network.
+`penthera ui` opens Penthera in your browser: whether your app is safe to
+ship, what to fix first, in plain words, and the fix loop that proposes a
+change and waits for your OK. It looks like a small 1-bit computer: a menu
+bar over three windows. It runs on `127.0.0.1` only, reads only the folders
+you give it and `~/.penthera`, and never contacts the network.
 
-| Dark | Light |
+| Simple, dark | Advanced, light |
 |---|---|
-| ![Projects, findings, and a finding's detail in the dark theme](../assets/dashboard/ui-dark.jpg) | ![All projects and the side cards in the light theme](../assets/dashboard/ui-light.jpg) |
+| ![Simple mode in the dark theme: the verdict, problems in plain words, and one problem open](../assets/dashboard/ui-dark.jpg) | ![Advanced mode in the light theme: a project with its tabs, the triage matrix and a finding open](../assets/dashboard/ui-light.jpg) |
 
 ## Start it
 
@@ -34,80 +33,114 @@ the token stops working, so a second browser or a link that leaked into
 history is refused. Restart `penthera ui` for a new link. Ctrl-C stops the
 server.
 
+## First visit: setup
+
+The first time a browser opens the dashboard, a three-screen setup runs (run
+it again from **Penthera ▸ Set up…**):
+
+1. What Penthera does, in two sentences, and the rule: only check apps you own
+   or have written permission to test.
+2. **Simple** or **Advanced**. Simple answers "is my app safe, and what do I
+   do?" in plain words with one button at a time. Advanced shows everything.
+   Switch any time in the Penthera menu or Settings; the choice is remembered
+   in this browser.
+3. Your project: the folder (one of the `--project` folders) and, optionally,
+   where the app runs. **Check my app now** starts a first scan; **Skip** closes
+   setup. Closing it early keeps Simple.
+
+![Setup, choosing Simple or Advanced](../assets/dashboard/ui-setup.jpg)
+
 ## The view
 
-**Left sidebar** (`[` to hide or show). "+ New scan" on top. Then every
-project with its A to F grade, open findings and last scan, with "All
-projects" first; project folders you passed with `--project` show up even
-before their first scan. Below them, recent runs grouped by project, like the
-session list in Claude Code: live runs from this session (a green dot while
-running) and past fix-loop runs from the reports folder. The gear in the
-footer opens settings; the half-moon switches the theme.
+**Menu bar.** The Penthera menu (the wordmark; the P alone on small screens)
+holds About, Set up, Settings, the mode and the theme. Simple mode adds
+**Check** (Check my app, Fix problems for me, the running check) and **View**.
+Advanced has **File**, **Scan**, **Fix**, **Evidence** and **View** instead.
+Every item shows its shortcut. On the right: the run in progress (blue, "Fix 1
+of 3 waiting for you", when a change waits), and **Offline** or **Online** for
+scans started here (click to switch).
 
-**Centre.** One scrolling stream for what you selected:
+**Projects** (left, `[` to hide). **New scan…** on top, then "All projects"
+and every project with its A to F grade, open problems and last check. A
+project with a run in progress shows a blinking square.
 
-- a project (or all of them): a compact header with the grade, a severity bar
-  drawn in 1-bit shades, the trend sparkline and open vs fixed; what changed
-  since the last scan (new and fixed); then the findings, "Fix first"
-  (critical and high) before the rest. `/` searches, `j` and `k` move through
-  findings and open each one on the right.
-- a run: its output streams in as a transcript, typed out as it arrives. Each
-  diff of the fix loop appears inline as a small dialog: the recipe, the files,
-  what memory knows about the recipe, the diff, and Apply (`y`), Skip (`n`) or
-  Stop (`q`). A diff over 60,000 characters is cut, and the dialog says so;
-  Apply then stays off until you tick that you have not seen all of it.
-  Every Apply names the SHA-256 of the diff it showed, and the server applies
-  nothing else.
-- a past fix-loop run: rebuilt from its `loopRun` file, round by round, with
-  each fix's decision, result and commit.
+**The document** (centre). For a project, or all of them:
 
-At the bottom, a prompt-style bar starts things: **Scan** (with an optional
-URL), **Deps**, **AI tooling** or **Fix loop**, always for the selected
-project's folder. These are plain controls, not a chat: there is no model
-behind them. There is one primary button on screen at a time; while a run is
-going, its dialog owns it and the bar waits.
+- **The verdict**: one sentence that answers "can I ship?", such as "Not ready
+  to ship: 1 critical problem to fix first.", with the age of the check it is
+  based on and one button to open the first problem. When something critical
+  is open the box is inverted, so the loudest state is the one with the most
+  at stake.
+- **Simple**: the problems, in plain words (Critical, Serious, Worth fixing,
+  Minor), "Fix first" before "When you have time". No paths, categories or
+  charts.
+- **Advanced**: five tabs (`1` to `5`). **Findings** has what changed since
+  the last scan, a triage matrix of severity against how sure Penthera is
+  (Confirmed, Likely, Needs a person; pick a cell to filter) and the full list
+  (`/` searches, `j` and `k` move). **Dependencies** has the capability diff,
+  typosquats and install firewall decisions. **AI tooling** has the grade,
+  `penthera.lock` drift and hidden-content hits. **History** has open findings
+  per scan, every run, the commits the fix loop made and the memory chain.
+  **Proof** has the hosts the last scan contacted and evidence bundles: create,
+  verify, and download the auditor, owner or developer report.
 
-**Right panel** (`]` to hide or show). Stacked cards, each one collapsible:
+A run streams into the centre. In Simple mode it is one sentence ("Fix 2 of 3
+is waiting for you to approve it.", "Done. 2 fixes applied and checked, 1
+undone.") with the raw output folded under "Show what it is doing". In Advanced
+it is the transcript, with a gutter square per step: filled when done, hollow
+on the step in progress.
 
-| Card | What it shows |
+**The inspector** (right, `]` to hide) shows one thing. With a problem picked:
+in Simple, what is wrong, how sure Penthera is and what to do, then **Fix it
+for me…**, with the evidence and the code change behind "Show the details"; in
+Advanced, the same in plain words plus where, the evidence, sources and the
+fix-recipe diff. `Esc` goes back. With nothing picked it shows the **halftone
+field**: dark with dots when something serious is open, plain paper when
+nothing is. The dotted desktop between the windows follows the same rule.
+
+**Every change waits in a window.** When the fix loop has a change, a
+pinstriped window opens over a heavy blur: "Penthera wants to change 1 file to
+fix this:", the problem, what it will do, and the change (folded in Simple).
+**Apply** (`y`), **Skip** (`n`) or **Stop** (`q`). Closing the window decides
+nothing; the change stays waiting, in the transcript and the menu bar. A diff
+over 60,000 characters is cut, and the window says so; Apply (and `y`) then
+stays off until you tick that you have not seen all of it. Every Apply names
+the SHA-256 of the diff it showed, and the server applies nothing else.
+
+![A change waiting for a decision](../assets/dashboard/ui-run.jpg)
+
+Below 1180px the inspector becomes a drawer; below 760px the projects window
+does too. A tap outside closes them.
+
+| Narrow, dark | Narrow, light, a problem open |
 |---|---|
-| Environment | Offline or online for scans started here (switch it here), the project folder, its git branch and HEAD, and the hosts the last scan contacted (and the ones offline mode blocked) |
-| Memory | Chain status, events, verified and failed fixes, median time to fix, recipe success rates |
-| Dependencies | Package count and ecosystem, the capability diff against your base, typosquats, capabilities in the tree, install firewall decisions |
-| AI tooling | The A to F grade and its history, `penthera.lock` drift, inventory, hidden-content hits |
-| Evidence | Create a bundle from the latest scan, download the auditor, owner or developer report, verify any bundle in one click |
-| Changes | Fixes the loop committed, with their local commits, and the `penthera/fix-*` branches in the folder |
-
-Picking a finding replaces the cards with its detail: "In plain words" (how
-serious, how sure and what that means, what to do, the OWASP mapping), what
-was seen, the evidence, sources, and the exact fix-recipe diff with a button
-that starts the fix loop on that project. `Esc` goes back to the cards.
-
-Below 1180px the right panel becomes a drawer; below 760px the sidebar does
-too. A tap outside closes them.
-
-| Narrow, dark | Narrow, light, a finding open |
-|---|---|
-| <img src="../assets/dashboard/narrow-dark.jpg" alt="The view at 390px, dark" width="280"> | <img src="../assets/dashboard/narrow-light.jpg" alt="A finding in the drawer at 390px, light" width="280"> |
+| <img src="../assets/dashboard/narrow-dark.jpg" alt="Simple mode at 390px, dark" width="280"> | <img src="../assets/dashboard/narrow-light.jpg" alt="A problem in the drawer at 390px, light" width="280"> |
 
 ## User stories
 
 | Story | Where it lives |
 |---|---|
-| *As a solo founder before launch, I want to know what to do first when there is no data yet.* | With no reports, the centre shows the wordmark and three steps (scan, dependencies, AI tooling); each focuses the bar on that action. ![First run](../assets/dashboard/ui-start.jpg) |
-| *As a developer who does not live in the terminal, I want to start a scan from the page and watch it work.* | The bar at the bottom; the run streams into the centre and appears in the sidebar. |
-| *As a founder with no security engineer, I want fixes applied only when I approve them.* | The fix loop's inline dialog: Apply, Skip or Stop on every diff; verified fixes land as local commits, failed ones are reverted, nothing is pushed. ![A diff waiting for a decision](../assets/dashboard/ui-run.jpg) |
-| *As a product owner, I want one finding explained in plain words.* | Pick it: the right panel opens with "In plain words", the evidence, sources and the fix diff. |
-| *As a tech lead after a release, I want to see what changed.* | The project header's sparkline, "Since the last scan" (new, fixed), and the runs in the sidebar. |
-| *As the person answering the NIS2 questionnaire, I want evidence an auditor can check.* | The Evidence card: create a bundle, verify it, download the auditor report. |
-| *As a developer reviewing a lockfile bump, I want to see what packages gained.* | The Dependencies card: the capability diff and install firewall decisions. |
-| *As someone who installs skills and MCP servers, I want to know if any hide instructions or drifted.* | The AI tooling card: grade, hidden content, `penthera.lock` drift. |
-| *As someone on a bright screen, I want a light theme.* | The half-moon in the sidebar footer, or Settings; the first visit follows your system. |
+| *As someone who is not a programmer, I want to know if my app is safe without learning security words.* | Simple mode: the verdict sentence, problems as Critical, Serious, Worth fixing or Minor, and one button at a time. |
+| *As a solo founder before launch, I want one sentence that says whether I can ship.* | The verdict at the top of every project. |
+| *As a first-time user, I want to be walked through setting up my project.* | The three-screen setup on the first visit. ![First run](../assets/dashboard/ui-start.jpg) |
+| *As a founder with no security engineer, I want fixes applied only when I approve them.* | The approval window: Apply, Skip or Stop on every change; verified fixes land as local commits on a separate branch, failed ones are undone, nothing is pushed. |
+| *As a developer, I want to start a scan and be stopped before I hit a host I do not own.* | New scan…: a remote hostname must be typed back before the run starts. |
+| *As a product owner, I want one problem explained in plain words.* | Pick it: the inspector leads with what is wrong, how sure and what to do. |
+| *As a returning user, I want to see if something is waiting for me wherever I am.* | The menu bar: "Fix 1 of 3 waiting for you". |
+| *As a tech lead, I want to triage by how serious and how sure.* | Advanced ▸ Findings: the triage matrix. |
+| *As a tech lead after a release, I want to see what changed.* | "Since the last scan" and Advanced ▸ History. |
+| *As the person answering the NIS2 questionnaire, I want evidence an auditor can check.* | Advanced ▸ Proof: create and verify a bundle, download the auditor report. |
+| *As a developer reviewing a lockfile bump, I want to see what packages gained.* | Advanced ▸ Dependencies. |
+| *As someone who installs skills and MCP servers, I want to know if any hide instructions or drifted.* | Advanced ▸ AI tooling. |
+| *As a keyboard user, I want every action without the mouse.* | Every menu item shows its shortcut; the menus, tabs and windows follow the WAI-ARIA patterns. |
 
 ## Running things from the page
 
-The bar calls the same functions as the CLI (`executeScan`, `scanDeps`,
-`scanAgents`, `runLoop`) with the same rules. The fix loop needs a clean git
+**New scan…** (or `n`) opens a window: what to run, the folder, an optional
+URL and the offline switch. In Simple mode it offers two things, "Check my
+app" and "Fix problems for me"; Advanced offers scan, dependencies, AI tooling
+and the fix loop. It calls the same functions as the CLI (`executeScan`,
+`scanDeps`, `scanAgents`, `runLoop`) with the same rules. The fix loop needs a clean git
 tree on a branch, works on a local `penthera/fix-<yyyymmdd-hhmm>` branch, runs
 only allow-listed local git commands with hooks off, is always offline with
 egress limited to the URL's host, and never pushes. On top of that:
@@ -116,8 +149,9 @@ egress limited to the URL's host, and never pushes. On top of that:
 - A URL that is not on this machine (anything but `localhost`, `127.x.x.x`,
   `[::1]` and `*.localhost`) needs its hostname typed back before the run
   starts. Only scan what you own or have written permission to test.
-- One run at a time. Closing the tab does not stop a run; pick it in the
-  sidebar and its transcript replays and continues. Stop finishes the current step, and the fix branch holds only
+- One run at a time. Closing the tab does not stop a run; open it from the
+  menu bar or the project's History tab and its transcript replays and
+  continues. Stop finishes the current step, and the fix branch holds only
   verified commits.
 - Reports land in the reports folder (`loop-<timestamp>.json`,
   `deps_<timestamp>.json`, and so on), so every screen picks them up. A write
@@ -183,25 +217,45 @@ path traversal.
 
 ## Design
 
-Calm, terminal-native, and close to the Claude Code desktop app: hairlines
-instead of boxes, one stream in the middle, details on the side. The 1-bit
-register from earlier versions stays in the details: severity as a word plus a
-pattern swatch (solid, hatched, half-tone, dotted, empty), bars drawn with the
-shade characters `█ ▓ ▒ ░`, the pinstriped title bar on the approval dialog,
-and the CLI's `#0000ed` block-letter wordmark on the empty state.
+System 1-bit, blue ink: ink, paper and `#0000ed`, and nothing else. It should
+feel like a security instrument from a calmer era of computing, honest about
+what it knows.
 
-- **One accent.** `#0000ed` marks the primary button, the selected finding,
-  links and chart lines. On black it measures 2.2:1, so there it is only a fill
-  with white on it (9.5:1), a frame or a glow; text in that hue uses `#7a7aff`
-  (6.1:1). On white, `#0000ed` is text-safe (9.3:1). Green is kept for the
-  cursor, the prompt and "OK".
-- **Both themes pass WCAG AA** for every text node in every state (all
-  projects with every card open, a project with a finding open, settings, a
-  past run), measured in the browser, composited.
-- **Motion.** Run output types itself out and the cursor blinks; with
-  `prefers-reduced-motion` both stop and output appears whole. Nothing else
-  animates.
-- **Keyboard.** `/` search, `j`/`k` findings, `[`/`]` side panels, `y`/`n`/`q`
-  answer a diff, `Esc` closes the detail, clears the search or closes a
-  drawer. Every control is a real button or link; the approval dialog takes
-  focus when a diff arrives; screen readers get each log line whole.
+- **Windows.** Every pane is a window with a 1px frame and a title bar. The
+  window that holds focus has the solid title bar, so you can see which one
+  `j`, `k` and `Esc` act on. Only floating windows (setup, New scan, About,
+  the approval) have the hard 3px shadow, over a heavy blur. The approval alone
+  is pinstriped: pinstripes mean "waiting on you".
+- **No greys.** Shades are dither patterns: solid, hatched, half, sparse,
+  dotted, empty. Severity is a word plus its pattern, never colour alone.
+- **One accent.** `#0000ed` marks selection, the default button (with the
+  classic outer ring), the focus ring, chart lines and links, and the menu bar
+  when a change waits for you. On black it measures 2.2:1, so there it is only
+  a fill with white on it (9.5:1), a frame or a ring; text in that hue uses
+  `#7a7aff` (6.1:1). On paper `#0000ed` is text-safe (9.3:1). Green is retired:
+  OK is a ✓ and a word.
+- **Type, three roles.** [Departure Mono](https://departuremono.com) (OFL,
+  self-hosted, 11 and 22px) for chrome, labels and numbers; `ui-monospace` for
+  paths, evidence, diffs and transcripts; the system sans for sentences meant
+  for people.
+- **The logo, once per surface.** The horizontal wordmark in the menu bar (the
+  P mark below 760px), the P on a blue tile as the favicon, the wordmark large
+  in About, setup and the first-run screen. Never the mark and the wordmark side
+  by side, never in a window's title bar.
+- **The halftone field.** The one strange element, and it carries data: its
+  density is the open risk. Blobs are seeded by the project, so each keeps its
+  shape. Drawn on a canvas once per size or theme change, never animated.
+- **Both themes pass WCAG AA** for every text node in every state (Simple and
+  Advanced, every tab, a finding open, settings, menus, setup, New scan,
+  About), measured in the browser, composited.
+- **Motion.** Almost none. Run output types itself out and the cursor and the
+  live squares blink; with `prefers-reduced-motion` all of that stops. With
+  `prefers-reduced-transparency` the blur becomes a plain dark backdrop.
+- **Keyboard.** `n` new scan, `/` search, `j`/`k` findings, `1` to `5` tabs
+  (Advanced), `[`/`]` side windows, `y`/`n`/`q` answer a change, `Esc` closes a
+  menu, the detail, the search or a drawer. Every control is a real button or
+  link; dialogs trap focus and give it back; screen readers get each log line
+  whole.
+
+The screenshots in `assets/dashboard/` come from the demo data:
+`node scripts/dashboard-screenshots.mjs` regenerates them with a local Chrome.

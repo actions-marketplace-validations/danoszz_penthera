@@ -11,17 +11,17 @@
  *     the scanned repo's hooks never run (a repo can ship hooks that do anything);
  *   - signing off (commit/tag.gpgsign=false, every gpg.*.program and
  *     gpg.ssh.defaultKeyCommand overridden), so a repo cannot name a signer;
- *   - no attributes from the work tree or the user's attributes file
- *     (--attr-source=<empty tree>, core.attributesFile=/dev/null), and every
- *     filter driver the config defines emptied, so no clean/smudge/process
- *     filter runs ($GIT_DIR/info/attributes is still read, hence the latter);
+ *   - no attributes from the user's attributes file (core.attributesFile=/dev/null)
+ *     or, on git >= 2.40, from the work tree (--attr-source=<empty tree>), and
+ *     every filter driver the config defines emptied, so no clean/smudge/process
+ *     filter runs whatever selects it ($GIT_DIR/info/attributes is always read);
  *   - GIT_LITERAL_PATHSPECS=1, so a file named `[id].js` or `:(glob)x` is only
  *     ever that file;
  *   - GIT_TERMINAL_PROMPT=0 and an empty credential helper, so nothing asks for
  *     or hands out credentials.
- * Subcommands that write (checkout, add, commit, reset) also need git >= 2.40
- * (for --attr-source) and are refused while the repo's own config sets any
- * filter.*, gpg.*, include.* or includeIf.* key.
+ * Subcommands that write (checkout, add, commit, reset) also need git >= 2.31
+ * (for GIT_CONFIG_KEY_n, which empties the filters) and are refused while the
+ * repo's own config sets any filter.*, gpg.*, include.* or includeIf.* key.
  */
 import { execFileSync } from "node:child_process";
 
@@ -33,8 +33,11 @@ export const ALLOWED_SUBCOMMANDS = Object.freeze([
 /** Subcommands that change the work tree, the index or refs. */
 export const WRITE_SUBCOMMANDS = Object.freeze(["checkout", "add", "commit", "reset"]);
 
-/** --attr-source arrived in git 2.40. */
-export const MIN_WRITE_VERSION = Object.freeze([2, 40]);
+/** GIT_CONFIG_COUNT/KEY_n/VALUE_n arrived in git 2.31: below it, filters cannot be emptied. */
+export const MIN_WRITE_VERSION = Object.freeze([2, 31]);
+
+/** --attr-source arrived in git 2.40; older git still reads the work tree's .gitattributes. */
+export const ATTR_SOURCE_VERSION = Object.freeze([2, 40]);
 
 /** The empty tree: as an attribute source it means "no .gitattributes anywhere". */
 export const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
@@ -192,12 +195,6 @@ export function createGit(cwd, { exec = execFileSync, env = process.env } = {}) 
     const sub = args[0];
     const v = version();
     if (WRITE_SUBCOMMANDS.includes(sub)) {
-      if (!atLeast(v, MIN_WRITE_VERSION)) {
-        throw new GitPolicyError(
-          `git ${sub} refused: git ${v ? v.join(".") : "(unknown version)"} is older than ${MIN_WRITE_VERSION.join(".")}, which penthera needs to keep the repo's .gitattributes from selecting filters. Upgrade git.`,
-          "GIT_TOO_OLD",
-        );
-      }
       probed = probe(); // fresh before every write
       if (probed.repoKeys.length) {
         throw new GitPolicyError(
@@ -205,13 +202,19 @@ export function createGit(cwd, { exec = execFileSync, env = process.env } = {}) 
           "GIT_UNSAFE_CONFIG",
         );
       }
+      if (!atLeast(v, MIN_WRITE_VERSION)) {
+        throw new GitPolicyError(
+          `git ${sub} refused: git ${v ? v.join(".") : "(unknown version)"} is older than ${MIN_WRITE_VERSION.join(".")}, which penthera needs to switch off filter drivers. Upgrade git.`,
+          "GIT_TOO_OLD",
+        );
+      }
     } else if (!probed) {
       probed = probe();
     }
-    if (probed.filters.length && !atLeast(v, [2, 31])) {
-      throw new GitPolicyError("git: this repo's config defines filter drivers, and git older than 2.31 cannot override them safely. Upgrade git.", "GIT_TOO_OLD");
+    if (probed.filters.length && !atLeast(v, MIN_WRITE_VERSION)) {
+      throw new GitPolicyError(`git: this repo's config defines filter drivers, and git older than ${MIN_WRITE_VERSION.join(".")} cannot switch them off. Upgrade git.`, "GIT_TOO_OLD");
     }
-    const pre = atLeast(v, MIN_WRITE_VERSION) ? [...SAFE_CONFIG, `--attr-source=${EMPTY_TREE}`] : SAFE_CONFIG;
+    const pre = atLeast(v, ATTR_SOURCE_VERSION) ? [...SAFE_CONFIG, `--attr-source=${EMPTY_TREE}`] : SAFE_CONFIG;
     const full = sub === "commit" ? ["commit", "--no-verify", ...args.slice(1)] : args;
     let childEnv = envFor(probed.filters);
     // check-ignore takes paths, not pathspecs, and rejects the literal flag; callers pass "./<path>".

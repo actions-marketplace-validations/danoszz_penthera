@@ -125,8 +125,48 @@ describe("git runner: config the scanned repo sets never runs", () => {
     expect(ran(markers)).toEqual([]);
   });
 
-  it("refuses to write with a git too old for --attr-source, and parses version and config output", () => {
-    const exec = (cmd, args) => (args[0] === "--version" ? "git version 2.39.5 (Apple Git-154)\n" : "");
+  /** The real git, reporting an older version, as Xcode's git (2.39) or Ubuntu 22.04's (2.34) would. */
+  const fakeVersion = (version) => (cmd, args, o) => (args[0] === "--version" ? `git version ${version}\n` : execFileSync(cmd, args, o));
+
+  it.skipIf(!unix)("git 2.31-2.39 (no --attr-source): writes refused because of the repo's config, not the version", () => {
+    const markers = tempDir("penthera-markers-");
+    const dir = repoWith({ "app.js": "x\n", ".gitattributes": "*.js filter=ev\n" });
+    git(dir, "config", "filter.ev.clean", marker(markers, "clean"));
+    git(dir, "config", "filter.ev.smudge", marker(markers, "smudge"));
+    const exec = fakeVersion("2.39.5 (Apple Git-154)");
+    const g = createGit(dir, { exec });
+    touchAll(dir, ["app.js"]);
+    expect(g.run("status", "--porcelain")).toBe("");
+    expect(() => g.run("checkout", "-b", "x")).toThrow(expect.objectContaining({ code: "GIT_UNSAFE_CONFIG", message: expect.stringMatching(/filter\.ev\.clean/) }));
+    expect(git(dir, "rev-parse", "--abbrev-ref", "HEAD").trim()).toBe("main");
+    expect(ran(markers)).toEqual([]);
+  });
+
+  it.skipIf(!unix)("git 2.31-2.39: a filter defined only globally and applied by .git/info/attributes is emptied", () => {
+    const markers = tempDir("penthera-markers-");
+    const dir = repoWith({ "app.js": "x\n" });
+    writeFileSync(join(dir, ".git", "info", "attributes"), "*.js filter=gl\n");
+    const globalCfg = join(tempDir(), "gitconfig");
+    writeFileSync(globalCfg, `[filter "gl"]\n\tclean = ${marker(markers, "clean")}\n\tsmudge = ${marker(markers, "smudge")}\n\trequired = true\n`);
+    const calls = [];
+    const real = fakeVersion("2.34.1");
+    const exec = (cmd, args, o) => { calls.push(args); return real(cmd, args, o); };
+    const g = createGit(dir, { exec, env: { ...process.env, GIT_CONFIG_GLOBAL: globalCfg } });
+    touchAll(dir, ["app.js"]);
+    expect(g.run("status", "--porcelain")).toBe("");
+    g.run("checkout", "-b", "fix");
+    writeFileSync(join(dir, "app.js"), "y\n");
+    g.run("commit", "-q", "--only", "-m", "fix", "--", "app.js");
+    writeFileSync(join(dir, "app.js"), "z\n");
+    g.run("checkout", "--", "app.js");
+    expect(readFileSync(join(dir, "app.js"), "utf-8")).toBe("y\n");
+    expect(git(dir, "show", "HEAD:app.js")).toBe("y\n");
+    expect(calls.flat().some((a) => a.startsWith("--attr-source"))).toBe(false);
+    expect(ran(markers)).toEqual([]);
+  });
+
+  it("refuses to write below git 2.31, and parses version and config output", () => {
+    const exec = (cmd, args) => (args[0] === "--version" ? "git version 2.30.9\n" : "");
     const g = createGit("/nowhere", { exec });
     expect(() => g.run("commit", "-m", "x", "--", "a.js")).toThrow(expect.objectContaining({ code: "GIT_TOO_OLD" }));
     expect(() => g.run("status", "--porcelain")).not.toThrow();

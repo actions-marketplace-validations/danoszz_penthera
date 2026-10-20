@@ -1,6 +1,7 @@
 name: Demo media
 
-# Re-renders the demo GIFs from assets/tapes/*.tape with VHS and opens a PR with
+# Re-renders the demo GIFs from assets/tapes/*.tape with VHS and the
+# walkthrough video with scripts/media/walkthrough.mjs, and opens a PR with
 # the result. Never pushes to main: the GIFs land on a media/* branch and a
 # person merges the PR. Runs on every published release and on demand.
 # Turn off: disable this workflow in the Actions tab. See docs/marketing.md.
@@ -10,7 +11,7 @@ name: Demo media
 # reopen the PR to run it.
 #
 # Dry run: Actions → Demo media → Run workflow with dry-run checked renders the
-# GIFs and uploads them as a workflow artifact without opening a PR.
+# GIFs and the video and uploads them as a workflow artifact without opening a PR.
 
 on:
   release:
@@ -68,14 +69,28 @@ jobs:
           done
           git status --short assets/
 
-      - name: Upload GIFs
+      # Setup, a scan, `penthera ui --demo` in headless Chrome (preinstalled on
+      # ubuntu-latest), the report. Demo data only; every server binds
+      # 127.0.0.1. Fails if the video is over 8 MB.
+      - name: Render the walkthrough video
+        env:
+          CHROME: google-chrome
+        run: |
+          set -euo pipefail
+          node scripts/media/walkthrough.mjs
+          git status --short assets/
+
+      - name: Upload media
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: demo-media
-          path: assets/*.gif
+          path: |
+            assets/*.gif
+            assets/walkthrough.*
+            assets/walkthrough-poster.jpg
           retention-days: 14
 
-      - name: Open a PR with the new GIFs
+      - name: Open a PR with the new media
         if: github.event_name == 'release' || !inputs.dry-run
         env:
           GH_TOKEN: ${{ github.token }}
@@ -83,17 +98,17 @@ jobs:
         run: |
           set -euo pipefail
           if git diff --quiet -- assets/; then
-            echo "GIFs unchanged; no PR." >> "$GITHUB_STEP_SUMMARY"
+            echo "Media unchanged; no PR." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           branch="media/demo-$TAG-$GITHUB_RUN_ID"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$branch"
-          git add assets/*.gif
-          git commit -m "chore(media): re-render demo GIFs ($TAG)"
+          git add assets/*.gif assets/walkthrough.mp4 assets/walkthrough.vtt assets/walkthrough-poster.jpg
+          git commit -m "chore(media): re-render demo media ($TAG)"
           gh auth setup-git
           git push origin "$branch"
           gh pr create --base main --head "$branch" \
-            --title "chore(media): re-render demo GIFs ($TAG)" \
-            --body "Rendered by the Demo media workflow from \`assets/tapes/*.tape\` ([run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)). Watch each GIF before merging; post the best one as a clip."
+            --title "chore(media): re-render demo media ($TAG)" \
+            --body "Rendered by the Demo media workflow from \`assets/tapes/*.tape\` ([run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)). The walkthrough video comes from \`scripts/media/walkthrough.mjs\`. Watch each GIF and the video before merging; post the best one as a clip."

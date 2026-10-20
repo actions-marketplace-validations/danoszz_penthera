@@ -19,6 +19,10 @@ pre-registered experiments, and the results are published, good or bad. What
 holds up ships in the next release, so Penthera keeps pace with new attacks and
 with EU rules such as NIS2 and the Cyber Resilience Act.
 
+[![Walkthrough video: setup, a scan, the dashboard in Simple and Advanced mode, one fix approved, the report](../assets/walkthrough-poster.jpg)](../assets/walkthrough.mp4)
+
+[Watch the 80-second walkthrough](../assets/walkthrough.mp4) of `npx penthera`, a scan, `penthera ui --demo`, a fix approved and the report. Demo data, no sound, captions in the video ([as text](../assets/walkthrough.vtt)).
+
 ## Start here
 
 Each step answers one question. Start at the top and stop when you have what

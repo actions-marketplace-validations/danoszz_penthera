@@ -202,11 +202,16 @@ Each further calibration round draws a fresh 60.
 | Secrets | `--repo` secret scan | A source or config file | A finding's file and line | A random file of a type the secret scan reads, not flagged |
 | Route and auth boundary | `--repo` route and trust-boundary analysis | A route handler (method + path + file) | A finding on that route | A random discovered route with no finding |
 | Code pattern | `--repo` risky-pattern analysis | A route handler file | A finding on that file | A random discovered route file with no finding |
-| Dependency capability | `deps` | A (package@version, capability) pair | A reported capability | A random (package, capability) pair from the capability catalogue that was not reported, for a package whose source was readable |
+| Dependency capability | `deps` | A (package@version, capability) pair, or (package@version, typosquat) | A non-info `deps` finding, keyed by its package and first capability | A random (package, capability) pair from the capability catalogue for which Penthera reports neither a finding nor an inventory entry, for a package whose source was readable |
 | Agent configuration | `agents` | A configuration file (skill, MCP config, hook, settings, instruction file) | A finding's file and rule | A random discovered agent config file with no finding |
 
 Info-severity findings are not units (they are inventory, not claims). A
 finding that names several locations is one unit at its first location.
+Several findings on the same unit (two secret patterns in one file) make one
+flagged unit; its confidence label is the highest of them. `deps` also lists
+capabilities in its inventory without raising a finding (an HTTP client's
+`network`); such pairs are neither flagged nor eligible for the unflagged
+sample, because Penthera neither warns about them nor stays silent on them.
 
 Coverage limits that are known now and reported, not hidden:
 

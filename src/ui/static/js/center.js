@@ -1,22 +1,17 @@
-// The centre: one scrolling stream. A project (or all of them) as a compact
-// header, "Fix first" and the findings; a run as a transcript of tool output
-// with inline Apply / Skip / Stop; and the prompt bar that starts actions.
+// The centre window: the document you are looking at. A project (or all of
+// them) is a header and five tabs :: Findings, Dependencies, AI tooling,
+// History, Proof. A run is a transcript of tool output with inline Apply /
+// Skip / Stop. Runs start from the New scan dialog, not from here.
 import { h, clear, empty, sevBadge, diffBlock, announce } from "./dom.js";
 import { api } from "./api.js";
-import { state, set, projectOf, folderFor } from "./state.js";
+import { state, set, projectOf, TABS } from "./state.js";
 import { createTyper } from "./typer.js";
 import { stackedBar, sparkline, wordmark } from "./charts.js";
 import { ago, duration, shortProject, plural, SEVERITIES } from "./format.js";
-import { START, KINDS, NOTES, EMPTY } from "./copy.js";
+import { START, EMPTY } from "./copy.js";
+import { depsTab, aiTab, historyTab, proofTab } from "./panels.js";
 
-const LOCAL = /^(localhost|127\.\d+\.\d+\.\d+|\[::1\]|[a-z0-9-]+\.localhost)$/i;
 const SEV_RANK = Object.fromEntries(SEVERITIES.map((s, i) => [s, i]));
-
-function hostOf(raw) {
-  const v = String(raw || "").trim();
-  if (!v) return null;
-  try { return new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(v) ? v : `http://${v}`).hostname; } catch { return null; }
-}
 
 // ── Stream state that outlives a redraw: the live run's typer and SSE ──
 let typer = null;
@@ -38,28 +33,23 @@ export function renderCenter(el, ctx) {
   const title = state.sel.kind === "all" ? "All projects"
     : state.sel.kind === "project" ? shortProject(state.sel.key)
       : state.sel.kind === "run" ? `Run :: ${state.sel.run?.kind || ""}` : "Fix loop run";
+  const doc = state.sel.kind === "all" || state.sel.kind === "project";
   const toolbar = h("div", { class: "win-bar" },
-    h("button", { type: "button", class: "icon", "aria-label": "Toggle the sidebar ([)", title: "Sidebar  [", onclick: toggleLeft }, "☰"),
+    h("button", { type: "button", class: "icon", "aria-label": "Show or hide the projects window ([)", title: "Projects  [", onclick: toggleLeft }, "☰"),
     h("span", { class: "title" }, title),
     h("span", { class: "grow" }),
-    state.sel.kind === "all" || state.sel.kind === "project" ? search : null,
-    h("button", { type: "button", class: "icon", "aria-label": "Toggle the details panel (])", title: "Details  ]", onclick: toggleRight }, "◫"),
+    doc && state.tab === "findings" ? search : null,
+    h("button", { type: "button", class: "icon", "aria-label": "Show or hide the inspector (])", title: "Inspector  ]", onclick: toggleRight }, "◫"),
   );
-  const stream = h("div", { class: "stream", id: "stream" });
+  const stream = h("div", { class: "stream pane-body", id: "stream" });
   const col = h("div", { class: "col" });
   stream.append(col);
-  clear(el).append(toolbar, stream, promptBar(ctx));
+  clear(el).append(toolbar, stream);
 
   if (state.sel.kind === "run") return runView(col, ctx);
   stopStream();
   if (state.sel.kind === "past") return pastRunView(col, ctx);
   return projectView(col, ctx);
-}
-
-/** Redraw only the prompt bar (a refresh while a run is on screen must not rebuild its transcript). */
-export function renderBar(el, ctx) {
-  const old = el.querySelector(".bar");
-  if (old) old.replaceWith(promptBar(ctx));
 }
 
 /** Re-render only the findings list (search typing must not rebuild the toolbar). */
@@ -95,9 +85,17 @@ function projectView(col, ctx) {
     ),
   ));
 
-  // Since the last scan (the old History page, condensed).
+  col.append(tabStrip(ctx));
+  const panel = h("div", { class: "tab-panel", role: "tabpanel", id: `tab-${state.tab}`, "aria-labelledby": `tabbtn-${state.tab}` });
+  col.append(panel);
+  if (state.tab === "deps") return depsTab(panel);
+  if (state.tab === "ai") return aiTab(panel);
+  if (state.tab === "history") return historyTab(panel, all ? null : key);
+  if (state.tab === "proof") return proofTab(panel, all ? null : key);
+
+  // Since the last scan.
   const since = h("div");
-  col.append(since);
+  panel.append(since);
   if (!all && p.trend.length > 1) {
     api.get(`/api/history?project=${encodeURIComponent(key)}`).then((hst) => {
       if (state.sel.key !== key) return;
@@ -115,8 +113,29 @@ function projectView(col, ctx) {
   }
 
   const list = h("ul", { class: "rows", id: "findings-list", "aria-label": "Findings" });
-  col.append(h("section", { class: "section" }, h("h2", {}, h("span", {}, "Findings"), h("span", { id: "findings-count" })), list));
+  panel.append(h("section", { class: "section" }, h("h2", {}, h("span", {}, "Findings"), h("span", { id: "findings-count" })), list));
   fillFindings(list, ctx);
+}
+
+/** Folder tabs: the selected one joins the page below it. Arrow keys move between them. */
+function tabStrip(ctx) {
+  const strip = h("div", { class: "tabs", role: "tablist", "aria-label": "Project views" });
+  const btns = TABS.map((t, i) => {
+    const b = h("button", {
+      type: "button", role: "tab", class: "tab", id: `tabbtn-${t.id}`, "aria-selected": String(state.tab === t.id),
+      "aria-controls": `tab-${t.id}`, tabindex: state.tab === t.id ? "0" : "-1", title: `${t.label}  ${t.key}`, onclick: () => ctx.openTab(t.id),
+    }, t.label);
+    b.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      e.preventDefault();
+      const n = TABS[(i + (e.key === "ArrowRight" ? 1 : -1) + TABS.length) % TABS.length];
+      ctx.openTab(n.id);
+      queueMicrotask(() => document.getElementById(`tabbtn-${n.id}`)?.focus());
+    });
+    return b;
+  });
+  strip.append(...btns, h("span", { class: "tab-rest" }));
+  return strip;
 }
 
 function fillFindings(list, ctx) {
@@ -183,7 +202,7 @@ function startView(col, ctx) {
     h("div", { class: "steps" }, START.steps.map((st, i) => h("div", { class: "step" },
       h("span", { class: "n" }, `${i + 1}.`),
       h("h3", {}, st.title),
-      h("button", { type: "button", class: "btn", onclick: () => ctx.focusBar(st.kind) }, "Choose ▸"),
+      h("button", { type: "button", class: "btn", onclick: () => ctx.newScan(st.kind) }, `${st.title}…`),
       h("p", {}, st.body)))),
     h("p", { class: "muted" }, `${START.demo} `, h("code", {}, "penthera ui --demo"), "."),
   ));
@@ -193,8 +212,8 @@ function notScannedView(col, key, ctx) {
   col.append(h("div", { class: "start" },
     h("h1", {}, shortProject(key)),
     h("p", { class: "muted" }, key),
-    h("p", {}, "Not scanned yet. Pick what to run in the bar below; the folder is this project."),
-    h("div", { class: "actions" }, h("button", { type: "button", class: "btn", onclick: () => ctx.focusBar("scan") }, "Choose Scan ▸")),
+    h("p", {}, "Not scanned yet. Start with a scan of this folder; it reads only what is inside it."),
+    h("div", { class: "actions start" }, h("button", { type: "button", class: "btn primary", onclick: () => ctx.newScan("scan", key) }, "New scan…")),
   ));
 }
 
@@ -242,6 +261,7 @@ function runView(col, ctx) {
       }
       case "approval": {
         pending = d;
+        set({ pending: { index: d.index, total: d.total } });
         typer.flush();
         tail.append(approvalDialog(run, d, typer));
         setStatus("awaiting you");
@@ -251,12 +271,14 @@ function runView(col, ctx) {
       }
       case "decision": {
         pending = null;
+        set({ pending: null });
         clear(tail);
         setStatus("running");
         break;
       }
       case "status": {
         if (d.status === "running") break;
+        if (state.pending) set({ pending: null });
         setStatus(d.status);
         clear(tail);
         const sum = d.summary;
@@ -341,48 +363,4 @@ function pastRunView(col, ctx) {
     ),
     h("div", { class: "actions" }, h("button", { type: "button", class: "btn", onclick: () => set({ sel: { kind: "project", key: l.target.repo } }) }, "Open the project ▸")),
   );
-}
-
-// ── The prompt bar ──────────────────────────────────────────────────────
-
-function promptBar(ctx) {
-  const kind = state.mode;
-  const def = KINDS.find((k) => k.kind === kind);
-  const usesUrl = kind === "scan" || kind === "loop";
-  const input = h("input", { type: "text", id: "bar-input", autocomplete: "off", spellcheck: "false", placeholder: def.placeholder, "aria-label": usesUrl ? "Running app URL (optional)" : "Project folder", disabled: !usesUrl });
-  if (usesUrl && state.sel.kind === "project" && /^https?:/.test(state.sel.key || "")) input.value = state.sel.key;
-  const confirm = h("input", { type: "text", id: "bar-confirm", autocomplete: "off", spellcheck: "false", "aria-label": "Type the hostname to confirm" });
-  const confirmRow = h("div", { class: "confirm", hidden: true }, h("span", { id: "confirm-q" }), confirm);
-  const err = h("p", { class: "err", role: "alert", hidden: true });
-  const folder = folderFor(state.sel.kind === "project" ? state.sel.key : null);
-  // One primary action at a time: while a run is going, its dialog owns it.
-  const busy = state.runs.live.some((r) => r.status === "running");
-  const run = h("button", { type: "submit", class: busy ? "btn" : "btn primary", disabled: busy, title: busy ? "A run is in progress. Stop it or wait for it to finish." : null }, `${def.button} ▸`);
-  const sync = () => {
-    const host = usesUrl ? hostOf(input.value) : null;
-    const remote = host && !LOCAL.test(host);
-    confirmRow.hidden = !remote;
-    if (remote) document.getElementById("confirm-q").textContent = `${host} is not on this machine. Type its name to confirm you own it or may test it:`;
-  };
-  input.addEventListener("input", sync);
-  const form = h("form", { novalidate: true, "aria-label": "Start a run" }, input, run);
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    err.hidden = true;
-    run.disabled = true;
-    try {
-      const r = await api.post("/api/runs", { kind, repo: folder, url: usesUrl ? input.value : "", confirm: confirm.value, maxIterations: 5 });
-      await ctx.refresh();
-      set({ sel: { kind: "run", key: r.id, run: r } });
-    } catch (ex) {
-      err.textContent = ex.message;
-      err.hidden = false;
-      run.disabled = false;
-      if (ex.status === 428) confirm.focus();
-    }
-  });
-  const modes = KINDS.map((k) => h("button", { type: "button", class: "mode", "aria-pressed": String(k.kind === kind), onclick: () => { set({ mode: k.kind }); ctx.focusBar(); } }, k.label));
-  return h("div", { class: "bar" }, h("div", { class: "bar-inner" },
-    h("div", { class: "modes", role: "group", "aria-label": "What to run" }, modes, h("span", { class: "note" }, `${shortProject(folder) || "no folder"} · ${NOTES[kind]}`)),
-    form, confirmRow, err));
 }

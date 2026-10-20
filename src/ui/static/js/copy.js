@@ -18,10 +18,10 @@ export const START = {
 };
 
 export const KINDS = [
-  { kind: "scan", label: "Scan", button: "Scan", placeholder: "http://localhost:3000 (optional) :: the folder is the selected project" },
-  { kind: "deps", label: "Deps", button: "Check dependencies", placeholder: "reads package-lock.json, uv.lock, poetry.lock, .venv" },
-  { kind: "agents", label: "AI tooling", button: "Audit AI tooling", placeholder: "reads skills, MCP config, hooks and rule files" },
-  { kind: "loop", label: "Fix loop", button: "Run the fix loop", placeholder: "http://localhost:3000 (optional) :: every diff waits for you" },
+  { kind: "scan", label: "Scan", title: "Scan a site or folder", button: "Scan" },
+  { kind: "deps", label: "Deps", title: "Check dependencies", button: "Check dependencies" },
+  { kind: "agents", label: "AI tooling", title: "Audit AI tooling", button: "Audit AI tooling" },
+  { kind: "loop", label: "Fix loop", title: "Run the fix loop", button: "Run the fix loop" },
 ];
 
 export const NOTES = {
@@ -36,8 +36,10 @@ export const EMPTY = {
   runs: "No runs yet.",
   findings: "No open findings in the latest scan.",
   filtered: "Nothing matches the filter. Press Esc to clear it.",
-  deps: "No dependency report yet. Run Deps from the bar below.",
-  ai: "No AI tooling report yet. Run AI tooling from the bar below.",
+  deps: "No dependency report yet. Choose Scan ▸ Check dependencies in the menu bar.",
+  ai: "No AI tooling report yet. Choose Scan ▸ Audit AI tooling in the menu bar.",
+  inspector: "Pick a finding to read it here in plain words, with its evidence and the fix.",
+  history: "No runs for this project yet.",
   evidence: "No bundles yet. Create one from the latest scan.",
   memory: "No memory yet. The fix loop and scans with --memory write it.",
   changes: "No fixes applied yet. Run the fix loop to apply one.",
@@ -48,6 +50,13 @@ export const ERR = {
 };
 
 export const KEYS = [
-  ["/", "search findings"], ["j k", "next / previous finding"], ["[ ]", "toggle side panels"],
-  ["y n q", "apply, skip, stop a diff"], ["Esc", "close the detail"],
+  ["n", "new scan"], ["/", "search findings"], ["j k", "next / previous finding"], ["1-5", "switch tab"],
+  ["[ ]", "toggle the side windows"], ["y n q", "apply, skip, stop a diff"], ["Esc", "close the detail or a menu"],
 ];
+
+export const ABOUT = {
+  line: "Open-source security for the apps and AI systems you ship. This window reads your reports and runs scans on this machine.",
+  license: "MIT",
+  type: "Departure Mono by Helena Zhang (OFL)",
+  local: "Bound to 127.0.0.1. Nothing on this page loads from another host.",
+};

@@ -4,23 +4,27 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { execFileSync } from "node:child_process";
 import { createConnection } from "node:net";
 import { detectProjectFramework } from "../../lib/whitebox/frameworks.js";
 import { HOOK_MARKER } from "../../lib/hook/index.js";
+import { git as runGit, gitToplevel } from "../../lib/git.js";
 
 export const DEV_PORTS = [3000, 5173, 8000, 8080];
 export const NPM_LOCKFILES = ["package-lock.json", "npm-shrinkwrap.json"];
 export const PY_LOCKFILES = ["uv.lock", "poetry.lock", "pdm.lock", "Pipfile.lock", "requirements.txt"];
 export const AGENT_CONFIG = [".mcp.json", ".claude", ".cursor", "CLAUDE.md", "AGENTS.md", "skills"];
 
-function git(cwd, args) {
-  return execFileSync("git", args, { cwd, encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+function git(cwd, args, opts) {
+  return runGit(cwd, args, { stdio: ["ignore", "pipe", "ignore"], ...opts }).trim();
 }
 
-/** The git toplevel for `cwd`, or null outside a repo (or without git). */
+/**
+ * The git toplevel for `cwd`, or null outside a repo (or without git). Git
+ * prints forward slashes on Windows (D:/a/app); resolve() makes it a native
+ * path so prefix checks against resolve()d paths hold.
+ */
 export function gitRoot(cwd) {
-  try { return git(cwd, ["rev-parse", "--show-toplevel"]); } catch { return null; }
+  return gitToplevel(cwd);
 }
 
 /** True when something accepts a TCP connection on host:port within `timeout` ms. */
@@ -57,7 +61,7 @@ export function portsFromEnv(env = process.env) {
 
 function hookInstalled(root) {
   try {
-    const path = join(git(root, ["rev-parse", "--path-format=absolute", "--git-path", "hooks"]), "pre-commit");
+    const path = join(git(root, ["rev-parse", "--path-format=absolute", "--git-path", "hooks"], { raw: true }), "pre-commit");
     return existsSync(path) && readFileSync(path, "utf-8").includes(HOOK_MARKER);
   } catch { return false; }
 }

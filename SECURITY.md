@@ -1,13 +1,16 @@
 # Security Policy
 
+> **Starter and pro.** For "I found a vulnerability in Penthera itself: how do I
+> report it?"
+
 ## Supported versions
 
 Security fixes land on the latest minor release only. Upgrade to get them.
 
 | Version | Supported |
 | ------- | --------- |
-| 1.2.x   | Yes       |
-| < 1.2   | No        |
+| 1.7.x   | Yes       |
+| < 1.7   | No        |
 
 ## Reporting a vulnerability
 
@@ -21,7 +24,7 @@ scanning a target), please report it privately:
 
 Please do **not** open public issues for undisclosed vulnerabilities.
 
-**What to expect.** Penthera is maintained part-time, but security reports come
+**What to expect.** Penthera is maintained part-time, and security reports come
 first:
 
 - Acknowledgement within 3 working days.
@@ -48,6 +51,5 @@ XSS, command injection, API fuzzing).
 
 **Only scan systems you own or have explicit written permission to test.**
 Unauthorized scanning may be illegal in your jurisdiction. Penthera is built for
-defensive research and hardening your own applications — see the full
-[ethical-use policy](README.md#ethical-use--authorization) and
-[disclaimer](README.md#disclaimer) in the README.
+defensive research and hardening your own applications. See
+[Ethics and authorization](README.md#ethics-and-authorization) in the README.

@@ -21,15 +21,17 @@ penthera ui --demo                       # fake data, nothing read from disk
 | Option | Default | What it does |
 |--------|---------|--------------|
 | `--port <n>` | `0` (random free port) | Port on 127.0.0.1 |
-| `--open` | off | Open the one-time URL in your browser |
+| `--open` | off | Open the one-time URL in your browser, through a launcher file only you can read, so the token is not on a command line |
 | `--project <dir>` | the current folder | A folder the dashboard may read and run in. Repeat for more |
-| `--reports <dir>` | `<first project>/reports` | Where report JSON is read from, and where runs started here write theirs |
+| `--reports <dir>` | `<first project>/reports` | Where report JSON is read from, and where runs started here write theirs. The default folder must not be a symlink; name a symlinked folder here to use it on purpose |
 | `--demo` | off | Realistic fake data and a scripted fix loop. For a first look, screenshots and docs |
 
-It prints a URL with a one-time token. Open it once: the token is swapped for
-a session cookie and stops working, so a second browser (or a link that leaked
-into history) gets a 403. Restart `penthera ui` for a new link. Ctrl-C stops
-the server.
+It prints a URL with a one-time token after the `#`, which the browser never
+sends over the network. Open it once: the page swaps the token for a session
+that lives in that tab (a reload keeps it, a new tab or browser does not), and
+the token stops working, so a second browser or a link that leaked into
+history is refused. Restart `penthera ui` for a new link. Ctrl-C stops the
+server.
 
 ## First visit: setup
 
@@ -100,7 +102,10 @@ nothing is. The dotted desktop between the windows follows the same rule.
 pinstriped window opens over a heavy blur: "Penthera wants to change 1 file to
 fix this:", the problem, what it will do, and the change (folded in Simple).
 **Apply** (`y`), **Skip** (`n`) or **Stop** (`q`). Closing the window decides
-nothing; the change stays waiting, in the transcript and the menu bar.
+nothing; the change stays waiting, in the transcript and the menu bar. A diff
+over 60,000 characters is cut, and the window says so; Apply (and `y`) then
+stays off until you tick that you have not seen all of it. Every Apply names
+the SHA-256 of the diff it showed, and the server applies nothing else.
 
 ![A change waiting for a decision](../assets/dashboard/ui-run.jpg)
 
@@ -144,11 +149,15 @@ egress limited to the URL's host, and never pushes. On top of that:
 - A URL that is not on this machine (anything but `localhost`, `127.x.x.x`,
   `[::1]` and `*.localhost`) needs its hostname typed back before the run
   starts. Only scan what you own or have written permission to test.
-- One run at a time. Closing the tab does not stop a run; pick it in the
-  sidebar and its transcript replays and continues. Stop finishes the current step, and the fix branch holds only
+- One run at a time. Closing the tab does not stop a run; open it from the
+  menu bar or the project's History tab and its transcript replays and
+  continues. Stop finishes the current step, and the fix branch holds only
   verified commits.
 - Reports land in the reports folder (`loop-<timestamp>.json`,
-  `deps_<timestamp>.json`, and so on), so every screen picks them up.
+  `deps_<timestamp>.json`, and so on), so every screen picks them up. A write
+  is refused when the reports folder (or `evidence/` in it) no longer resolves
+  to the folder checked at startup, and evidence bundles are built in a
+  private temp folder and renamed into place.
 
 ## Security model
 
@@ -163,10 +172,17 @@ browser can send it requests. Every request passes, in this order:
 2. **Path check.** No dot segments, encoded dots or slashes, backslashes or NUL
    bytes. Static files come from an allowlist built at startup; no part of a
    request path is ever joined onto a filesystem path.
-3. **Session.** The one-time URL token is exchanged for an `HttpOnly;
-   SameSite=Strict` cookie and a redirect to `/`, so the token leaves the
-   address bar. Every request, static files included, needs the cookie.
-   Requests without it are rate-limited (429 with `Retry-After`).
+3. **Session.** The one-time token sits in the URL fragment, so it never
+   reaches a server or a log. The page posts it to `/api/session` once, gets
+   a session id back, removes the token from the address bar and keeps the id
+   in that tab's `sessionStorage`. Every `/api` request sends it as
+   `Authorization: Bearer`; the server keeps only its SHA-256 and compares in
+   constant time. There is no cookie: cookies are not bound to a port, so
+   every other server on 127.0.0.1 you visit would receive one. The run
+   transcript is read with `fetch`, not `EventSource`, so it carries the
+   header too. The page and its scripts are served without a session (they
+   hold no data). Requests without a session are rate-limited (429 with
+   `Retry-After`).
 4. **Origin.** Every `POST` needs an `Origin` equal to the server's own (and
    `Sec-Fetch-Site: same-origin` when the browser sends it) and a JSON body, so
    a cross-site form or `fetch` cannot change anything.
@@ -189,9 +205,14 @@ come from the sites and repos you scanned, so they are only ever set as text.
 Report downloads are served as `text/markdown` attachments from the same
 checks; the audience is one of `auditor`, `owner` or `developer`, nothing else.
 
+Limits: a request body over 64 KB gets a 413, a request must arrive within 30
+seconds, and an idle connection closes after two minutes (the run transcript
+excepted; it sends a keep-alive line instead). At most 16 transcripts stream
+at once, and the 20 most recent finished runs are kept for replay.
+
 Penthera scans its own dashboard clean with `--profile standard`, signed in and
 not; `tests/ui.test.js` runs that scan on every test run, alongside tests for
-the Host check, the token and cookie, Origin, the headers, the rate limit and
+the Host check, the token and bearer session, Origin, the headers, the rate limit and
 path traversal.
 
 ## Design

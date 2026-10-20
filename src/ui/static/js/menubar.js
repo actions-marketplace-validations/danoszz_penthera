@@ -17,7 +17,10 @@ export function renderMenubar(el, ctx) {
   const scanned = state.overview?.projects?.some((p) => p.key === project);
   const run = liveRun();
   const inDoc = state.sel.kind === "all" || state.sel.kind === "project";
-  const report = (a) => ({ label: `Download ${a} report`, href: scanned ? `/api/report?${new URLSearchParams({ project, audience: a })}` : null, disabled: !scanned });
+  const report = (a) => ({
+    label: `Download ${a} report`, disabled: !scanned,
+    run: () => api.download(`/api/report?${new URLSearchParams({ project, audience: a })}`).catch((e) => announce(e.message)),
+  });
 
   const easy = simple();
   const all = [
@@ -84,11 +87,9 @@ export function renderMenubar(el, ctx) {
       if (it === "-") { pop.append(h("li", { role: "separator", class: "sep" })); continue; }
       const kids = [h("span", { class: "check", "aria-hidden": "true" }, it.check ? "✓" : ""), h("span", { class: "grow" }, it.label), it.key ? h("kbd", {}, it.key) : null];
       const role = it.check != null ? "menuitemcheckbox" : "menuitem";
-      const item = it.href
-        ? h("a", { class: "menu-item", role, href: it.href, download: "", tabindex: "-1" }, kids)
-        : h("button", { type: "button", class: "menu-item", role, tabindex: "-1", disabled: it.disabled || null, "aria-checked": it.check != null ? String(it.check) : null }, kids);
-      if (it.disabled && it.href == null) item.setAttribute("aria-disabled", "true");
-      item.addEventListener("click", () => { close(); if (!it.href) it.run?.(); });
+      const item = h("button", { type: "button", class: "menu-item", role, tabindex: "-1", disabled: it.disabled || null, "aria-checked": it.check != null ? String(it.check) : null }, kids);
+      if (it.disabled) item.setAttribute("aria-disabled", "true");
+      item.addEventListener("click", () => { close(); it.run?.(); });
       pop.append(h("li", { role: "none" }, item));
     }
     title.addEventListener("click", () => (openIdx === i ? close() : open(i)));

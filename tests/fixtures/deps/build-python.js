@@ -160,7 +160,7 @@ function write(path, data) {
 }
 
 /** Files of an installed distribution, including its dist-info. */
-function distFiles(name, version, files) {
+export function distFiles(name, version, files) {
   const info = `${distName(name)}-${version}.dist-info`;
   const out = { ...files };
   out[`${info}/METADATA`] = `Metadata-Version: 2.1\nName: ${name}\nVersion: ${version}\n\n`;
@@ -172,7 +172,7 @@ function distFiles(name, version, files) {
 }
 
 /** A stored (uncompressed) zip: enough for a wheel. */
-function zip(files) {
+export function zip(files) {
   const locals = [];
   const centrals = [];
   let off = 0;

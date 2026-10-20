@@ -1,5 +1,7 @@
 # Auditing your AI tooling: `penthera agents`
 
+> **Starter.** For "is this MCP server or skill safe?"
+
 ## Audit your agent setup
 
 Your AI tools run code too. `penthera agents` audits the skills, MCP servers,

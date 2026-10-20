@@ -80,6 +80,8 @@ const HELP = `
         --nuclei <path>         + Community Nuclei YAML templates (alias for --templates)
         --templates <paths>     Comma-separated dirs of Nuclei-compatible YAML templates
         --rules <dir>           + Signed rule pack (repeatable; scans, agents, deps)
+        --rules-signers <file>  Also trust packs signed by these keys (allowed_signers)
+        --allow-unsigned-rules  Load a pack whose signature does not verify (warns)
         --adaptive              Knowledge-graph adaptive probes on discovered routes
         --all                   Enable all modes (recon + deep + fuzz)
         --machine               macOS machine audit (keyloggers, trojans, rootkits)

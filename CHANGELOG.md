@@ -4,6 +4,95 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Security
+
+Fixes from a second independent review. Most also apply to 1.7.0; upgrading
+is recommended.
+
+- **Dependency scans fail closed.** An npm or Python package that could not be
+  read in full (a code file over 64 MB, more files than the reader takes, an
+  archive with inconsistent sizes or other structural anomalies, a matched
+  artifact that cannot be opened) is now `unscanned`: a high "could not be
+  scanned" finding that `penthera install` always holds for approval. The
+  Python scanner gained this state. Wheels are capped on the bytes actually
+  inflated. Pax global headers that set a size or path are refused. Deeply
+  nested `uv.lock`/`poetry.lock` files are a parse error, not a crash.
+- **The fix loop and `fix --apply` run git hardened.** Commit and tag signing,
+  signing programs, attribute files and every configured filter driver are
+  overridden on every call (`--attr-source` on git 2.40+). Pathspecs are
+  literal. Writes are refused when the repository's own config sets
+  `filter.*`, `gpg.*` or `include.*`, or on git older than 2.31; the loop then
+  does not start, and its one message names the key and how to go on.
+- **The fix loop keeps your uncommitted work.** Dirty files are read with
+  `status -z` and re-checked right before every write and commit. Reverts
+  restore the exact bytes from before the fix, and only while the file still
+  holds what penthera wrote (otherwise the fix is a `conflict` and the file is
+  left alone). Commits use `--only`. Plans that touch untracked or ignored
+  files are skipped, and every revert step runs even when one fails.
+- **`applyDiff` is all-or-nothing and writes only regular files in the repo.**
+  Duplicate and nested paths are refused, a failed apply puts back what it
+  wrote, files are replaced through a temp file (never written through a hard
+  link), NTFS stream names and 8.3 aliases are refused, and added lines may not
+  contain control characters. Approval prompts show control characters as
+  escapes.
+- **The pre-commit hook checks everything it should.** Staged content is read
+  by object id from NUL-separated output, type changes are included, files
+  with NUL bytes are scanned, and a staged file over 16 MB blocks the commit
+  (or warns, with `"largeFiles": "warn"`). `hook install` no longer writes
+  through a symlinked `pre-commit`.
+- **Secret scanning checks every match.** A placeholder no longer hides a real
+  secret of the same rule later in the file. Only regular files are read, with
+  a per-file size cap.
+- **Dashboard sessions are bound to the page.** The one-time token travels in
+  the URL fragment and is exchanged for a per-tab session sent as an
+  `Authorization` header; no cookie is set or accepted. Approvals carry the
+  sha256 of the diff shown, and a cut diff says so and needs an explicit
+  acknowledgement. A symlinked default `reports/` is refused and every write
+  re-checks the folder. Event ids keep counting past the buffer; requests,
+  bodies (413), finished runs and open streams are bounded. `--open` no
+  longer puts the token on a command line.
+- **Evidence bundles** are built in a private folder and renamed into place,
+  and verification never follows a symlinked folder and caps what it reads.
+- **HTTP responses are bounded.** Every body is read with a size cap (counted
+  after decompression) and a deadline that covers the body, not just the
+  headers. `--offline` compares host and port, and cross-origin redirects drop
+  credentials and do not replay request bodies.
+- **Linear-time matching on untrusted text.** Agent-config exec patterns and
+  other agent and hook checks no longer backtrack on long input. The rule-pack
+  regex guard refuses ambiguous alternation and optional items inside repeated
+  groups and end-anchored rescans; community templates use the same guard.
+- **Hostile repos no longer hang or crash scans**: a FIFO is never read, and
+  deeply nested JSON is handled; one unreadable agent config becomes a finding
+  instead of aborting the run.
+- `--fix-model` never sends a file from outside the repo as context.
+- Installing the hook through pre-commit.com no longer runs the test suite:
+  the `prepack` script is gone (publishing still runs `npm test`).
+- Workflows that push or only read no longer keep credentials in the checkout.
+
+### Added
+
+- Release checks in CI (`.github/workflows/install-matrix.yml`): the packed
+  tarball is installed into an empty project and run with `npx penthera` on
+  Linux, macOS and Windows with Node 22 and 24 (setup wizard dry run, deps,
+  agents, repo scan, the pre-commit hook on a real commit, the dashboard's
+  token check, bundled rule pack signatures). An upgrade job installs 1.7.0
+  from npm, writes memory and dashboard state, upgrades to the tarball and
+  checks the old memory chain still verifies and grows. All of it runs under a
+  network guard that fails on anything past loopback.
+- Docs as tests: `scripts/docs-commands.mjs` checks every command in the
+  README, `docs/` and the skill against `--help` and runs the offline ones on a
+  fixture, in `npm test` and against the installed package.
+
+### Fixed
+
+- Windows: `npx penthera` / `penthera init` in a git repository failed with
+  "Refusing to write outside the project" for its own `reports/` folder, because
+  git prints the repo root with forward slashes. Git roots are now native paths.
+  Found by the new Windows install checks.
+- `penthera --help` lists `--rules-signers` and `--allow-unsigned-rules`. Both
+  worked and were documented in `docs/rule-packs.md`, but the help left them
+  out.
+
 ### Changed
 
 - **`penthera ui` redesigned for people who are not programmers.** A first
@@ -25,8 +114,39 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   package ships only `docs/examples/` (the documentation lives on GitHub, and
   README links resolve there), and the popular-package lists for the typosquat
   check are stored gzipped. No behaviour change.
+- Code cleanup, no behaviour change: one git runner (`lib/git.js`), one
+  temp-folder helper, one Markdown table-cell escape and one JSON fetch
+  helper replace their copies; unused exports and helpers are gone. CI now
+  runs `npm run lint` (ESLint, dev-only, minimal rules). Still one runtime
+  dependency.
 
 ### Docs
+
+- **Penthera is described as an open R&D project with a usable tool:** "an
+  open-source cyber security agent you can use today, and verify yourself."
+  The README, `docs/index.md`, `package.json`, the plugin and marketplace
+  manifests, the Agent Skill (trigger phrases kept), the GitHub Action and the
+  repository description carry the approved wording. The README has a "How it
+  is measured" section (method, evidence, tool) with Wilson intervals next to
+  the benchmark numbers, and stays under 14 KB.
+- **One roadmap, one research plan.** `ROADMAP.md` now says what ships next,
+  starting with the 1.8.0 feature freeze. `docs/vision-2.0.md` is the research
+  plan and holds the quality gates from `docs/plan.md`. `docs/plan.md`,
+  `docs/release-plan.md` (v1.2 to v1.4) and the Socket positioning notes moved
+  to `docs/archive/`.
+- **Every user-facing page names the question it answers**, for a starter ("is
+  my app safe to ship?") or a pro ("how do I put it in CI?"), and
+  `docs/index.md` has a Start here path from starter to pro.
+- **Voice guide** (`docs/voice.md`): plain words, short sentences, numbers with
+  intervals over adjectives, limits next to claims, no hype. Every user-facing
+  page was edited against it.
+- **Release cadence** in CONTRIBUTING: at most one minor release every 2 to 4
+  weeks, always through an `-rc.N` on npm's `next` tag, patches for fixes only,
+  and a feature freeze before each minor. Current freeze: 1.8.0 = main + #63.
+- Fixed stale facts: SECURITY.md's supported versions (1.2.x to 1.7.x), README
+  anchors that no longer existed, Agent Skill links into `docs/` that broke in
+  the npm package since the docs stopped shipping there, and the partner brief
+  and due diligence notes that still called shipped features "in review".
 
 - Limitations stated in full: the methodology's "Known limitations" now covers
   every module (deps, AI tooling, fix loop), the evidence (small sample, wide

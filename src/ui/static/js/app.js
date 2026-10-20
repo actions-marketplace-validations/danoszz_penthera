@@ -2,7 +2,7 @@
 // selected project (five tabs) or run in the centre, the inspector on the
 // right. Runs start from the New scan dialog; every action is also in a menu.
 import { h, clear, announce } from "./dom.js";
-import { api } from "./api.js";
+import { api, signIn } from "./api.js";
 import { patternDefs, riskLevel } from "./charts.js";
 import { state, set, on, TABS, countsInView } from "./state.js";
 import { renderMenubar, closeMenus } from "./menubar.js";
@@ -158,6 +158,7 @@ state.ux = savedUx === "advanced" ? "advanced" : "simple";
 (async function boot() {
   document.body.append(patternDefs());
   try {
+    await signIn();
     state.meta = await api.get("/api/meta");
     renderMenubar(menubar, ctx);
     renderRight(right, ctx);

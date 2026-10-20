@@ -14,3 +14,11 @@ export function mdInline(s) {
     .replace(/>/g, "&gt;")
     .replace(/\|/g, "\\|");
 }
+
+/**
+ * A Markdown table cell for our own CI reports (text we wrote, not scanned
+ * input): backslashes first, then pipes, newlines folded to a space.
+ */
+export function mdCell(s) {
+  return String(s).replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\r?\n|\r/g, " ");
+}

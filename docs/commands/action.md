@@ -1,5 +1,7 @@
 # The GitHub Action
 
+> **Pro.** For "how do I put it in CI?"
+
 ### Use as a GitHub Action
 
 ```yaml

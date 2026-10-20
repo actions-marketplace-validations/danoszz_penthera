@@ -56,7 +56,7 @@ import { probeJwt } from "../lib/blackbox/jwt.js";
 import { probeEmailDns } from "../lib/blackbox/email-dns.js";
 import { resolveAuth } from "./utils/auth.js";
 import { normalizeBaseUrl, isPrivateHost, joinUrl } from "./utils/url.js";
-import { safeFetch, createEgressContext, runWithEgress, egressSummary, probeErrors } from "./utils/http.js";
+import { safeFetch, readBody, createEgressContext, runWithEgress, egressSummary, probeErrors } from "./utils/http.js";
 import { RECON_HOSTS } from "../lib/recon.js";
 import { dedupeFindings } from "./cli/merge-results.js";
 
@@ -261,7 +261,7 @@ async function scanUrlInContext(target, opts) {
     unchecked.map(async (file) => {
       const res = await safeFetch(joinUrl(target, file.path), { timeout: 5_000, probe: "sensitive-files" });
       if (!res || res.status !== 200) return;
-      const text = await res.text().catch(() => "");
+      const text = await readBody(res).catch(() => "");
 
       if (file.severity === "info") {
         result.findings.push({

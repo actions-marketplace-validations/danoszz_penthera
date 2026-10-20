@@ -89,7 +89,7 @@ async function connect(wsUrl) {
     },
     /** Pin the theme on the page as theme.js would, so a stale preference never leaks into a shot. */
     async pin() {
-      await this.call((theme) => document.documentElement.setAttribute("data-theme", theme), this.theme === "light" ? "light" : "dark");
+      await this.call((theme) => globalThis.document.documentElement.setAttribute("data-theme", theme), this.theme === "light" ? "light" : "dark");
       await sleep(150);
     },
     /** Run a function in the page with values passed as arguments, never pasted into source. */
@@ -104,7 +104,7 @@ async function connect(wsUrl) {
     },
     /** Replace the dashboard's saved preferences in this browser. */
     async prefs(values) {
-      await this.call((o) => { localStorage.clear(); for (const [k, v] of Object.entries(o)) localStorage.setItem(k, v); }, values);
+      await this.call((o) => { const ls = globalThis.localStorage; ls.clear(); for (const [k, v] of Object.entries(o)) ls.setItem(k, v); }, values);
     },
     async shot(file, { scale = 1, width, height } = {}) {
       const clip = { x: 0, y: 0, width, height, scale };
@@ -134,9 +134,9 @@ async function main() {
   const profile = mkdtempSync(join(tmpdir(), "penthera-chrome-"));
   const procs = [];
   try {
-    const demo = await launch(process.execPath, ["bin/penthera.js", "ui", "--demo", "--port", "0"], /(http:\/\/127\.0\.0\.1:\d+\/\?token=\S+)/);
+    const demo = await launch(process.execPath, ["bin/penthera.js", "ui", "--demo", "--port", "0"], /(http:\/\/127\.0\.0\.1:\d+\/#t=\S+)/);
     procs.push(demo.child);
-    const blank = await launch(process.execPath, ["bin/penthera.js", "ui", "--project", empty, "--port", "0"], /(http:\/\/127\.0\.0\.1:\d+\/\?token=\S+)/);
+    const blank = await launch(process.execPath, ["bin/penthera.js", "ui", "--project", empty, "--port", "0"], /(http:\/\/127\.0\.0\.1:\d+\/#t=\S+)/);
     procs.push(blank.child);
     const chrome = await launch(CHROME, ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "--hide-scrollbars", "--force-color-profile=srgb", "about:blank"], /DevTools listening on (ws:\/\/\S+)/);
     procs.push(chrome.child);
@@ -147,7 +147,7 @@ async function main() {
     // Sign in once: the token is swapped for a session cookie.
     await b.size(desktop.width, desktop.height);
     await b.go(demo.match[1]);
-    const base = demo.match[1].replace(/\/\?token=.*/, "/");
+    const base = demo.match[1].replace(/\/#t=.*/, "/");
 
     // ui-dark: Simple mode, all projects, the first problem open.
     await b.scheme("dark");

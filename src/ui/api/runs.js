@@ -13,11 +13,13 @@
  * Output is an append-only event list per run, streamed over SSE. Events are
  * plain data; the frontend renders them as text.
  */
-import { randomBytes } from "node:crypto";
+import { randomBytes, createHash } from "node:crypto";
 import { normalizeBaseUrl, urlToFilename } from "../../utils/url.js";
 import { confineDir } from "./data.js";
 
 const MAX_EVENTS = 5000;
+const MAX_FINISHED = 20; // finished runs kept for replay; older ones are dropped
+export const MAX_DIFF = 60000;
 const LOCAL_HOST = /^(localhost|127\.\d+\.\d+\.\d+|\[::1\]|[a-z0-9-]+\.localhost)$/i;
 const ANSI = /\x1b\[[0-9;?]*[ -/]*[@-~]/g;
 const CONTROL = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/g;
@@ -30,6 +32,8 @@ export class RunError extends Error {
 }
 
 export const cleanLine = (s) => String(s ?? "").replace(ANSI, "").replace(CONTROL, "").slice(0, 4000);
+
+export const diffSha256 = (s) => createHash("sha256").update(String(s), "utf-8").digest("hex");
 
 export function isLocalHost(hostname) {
   return LOCAL_HOST.test(hostname);
@@ -91,7 +95,9 @@ export function createRunManager(deps) {
   let active = null;
 
   function emit(run, type, data = {}) {
-    const ev = { seq: run.events.length + 1, type, ts: new Date().toISOString(), data };
+    // Ids keep counting after the buffer drops old events, so a reconnect
+    // with Last-Event-ID replays exactly what it missed.
+    const ev = { seq: ++run.nextSeq, type, ts: new Date().toISOString(), data };
     run.events.push(ev);
     if (run.events.length > MAX_EVENTS) run.events.splice(0, run.events.length - MAX_EVENTS);
     for (const fn of run.listeners) fn(ev);
@@ -126,17 +132,21 @@ export function createRunManager(deps) {
         ask: (q) => new Promise((resolveAnswer) => {
           const approvalId = randomBytes(8).toString("hex");
           const p = q.plan || {};
+          // The page shows at most MAX_DIFF characters. It says so (truncated,
+          // fullLength), and an approval names the SHA-256 of what it showed.
+          const fullDiff = String(p.diff || "");
+          const diff = fullDiff.slice(0, MAX_DIFF);
           const request = {
             approvalId, iteration: q.iteration, index: q.index, total: q.total, memory: q.memory || null,
             plan: {
               title: cleanLine(p.title), recipe: cleanLine(p.recipe), framework: p.framework ? cleanLine(p.framework) : null,
               confidence: cleanLine(p.confidence), source: cleanLine(p.source),
-              files: (p.files || []).map(cleanLine), diff: String(p.diff || "").slice(0, 60000),
+              files: (p.files || []).map(cleanLine), diff, truncated: diff.length < fullDiff.length, fullLength: fullDiff.length,
               findings: (p.findings || []).map((f) => ({ title: cleanLine(f.title), severity: cleanLine(f.severity) })),
               ownerActions: (p.ownerActions || []).map(cleanLine), redacted: Boolean(p.redacted),
             },
           };
-          run.pending = { request, resolve: resolveAnswer };
+          run.pending = { request, resolve: resolveAnswer, diffSha256: diffSha256(diff), truncated: diff.length < fullDiff.length };
           emit(run, "approval", request);
         }),
       });
@@ -185,9 +195,11 @@ export function createRunManager(deps) {
     start(body) {
       if (active && active.status === "running") throw new RunError("A run is already in progress. Stop it first.", 409);
       const req = validateRunRequest(body, deps.projectRoots, deps.confineDir);
+      const finished = [...runs.values()].filter((r) => r.status !== "running");
+      for (const old of finished.slice(0, Math.max(0, finished.length - MAX_FINISHED + 1))) runs.delete(old.id);
       const run = {
         id: randomBytes(8).toString("hex"), kind: req.kind, repo: req.repo, url: req.url, status: "running",
-        startedAt: new Date().toISOString(), events: [], listeners: new Set(), pending: null, summary: null,
+        startedAt: new Date().toISOString(), events: [], nextSeq: 0, listeners: new Set(), pending: null, summary: null,
         controller: new AbortController(),
       };
       runs.set(run.id, run);
@@ -205,13 +217,26 @@ export function createRunManager(deps) {
       return publicRun(run);
     },
 
-    decide(id, { approvalId, answer } = {}) {
+    /**
+     * An approval must name the SHA-256 of the diff the page showed
+     * (`diffSha256`), and for a diff cut at MAX_DIFF characters also
+     * `acknowledgeTruncated: true`. Skip and stop need neither.
+     */
+    decide(id, { approvalId, answer, diffSha256: shown, acknowledgeTruncated } = {}) {
       const run = runs.get(id);
       if (!run) throw new RunError("No such run.", 404);
       if (!run.pending || run.pending.request.approvalId !== approvalId) throw new RunError("Nothing is waiting for that decision.", 409);
       const map = { approve: "y", y: "y", skip: "n", n: "n", later: "skip", stop: "quit", quit: "quit" };
-      const a = map[answer];
+      const a = typeof answer === "string" && Object.hasOwn(map, answer) ? map[answer] : null;
       if (!a) throw new RunError("answer must be approve, skip or stop.");
+      if (a === "y") {
+        if (typeof shown !== "string" || shown.toLowerCase() !== run.pending.diffSha256) {
+          throw new RunError("This approval does not match the diff on offer. Reload the run and review the diff again.", 409);
+        }
+        if (run.pending.truncated && acknowledgeTruncated !== true) {
+          throw new RunError(`The diff is ${run.pending.request.plan.fullLength} characters and only the first ${MAX_DIFF} were shown. Acknowledge that to apply it, or skip it and review the change in the repo.`, 409);
+        }
+      }
       const { resolve: done } = run.pending;
       run.pending = null;
       emit(run, "decision", { approvalId, answer: a });

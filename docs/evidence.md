@@ -1,16 +1,18 @@
 # Evidence bundles and audience reports
 
+> **Pro.** For "what do I give my auditor?"
+
 Penthera can write the results of one scan as an **evidence bundle**: every
 report, a manifest with the SHA-256 of each file, and an optional SSH
 signature over the manifest. An auditor checks the bundle with one command.
-No hosted service is involved, and nothing needs to be installed beyond Node
-(or `shasum` and `jq`) and OpenSSH 8.0 or later.
+No hosted service is involved. The auditor needs only Node (or `shasum` and
+`jq`) and OpenSSH 8.0 or later.
 
 ## For auditors: verify a bundle
 
 You need the bundle directory and an **allowed signers file** that names the
 key you expect the bundle to be signed with. Get that public key from the
-organisation through a channel other than the bundle itself (their security
+organization through a channel other than the bundle itself (their security
 page, an email you can authenticate, or in person).
 
 ```bash
@@ -19,7 +21,7 @@ npx penthera evidence verify ./evidence --allowed-signers allowed_signers --requ
 
 Exit code `0` means every file matches the manifest and the manifest was signed
 by a key in `allowed_signers`. Exit code `1` means something changed, is
-missing, was added, or the signature does not check out; the output says which.
+missing, was added, or the signature does not check out. The output says which.
 
 An `allowed_signers` file is one line per key:
 
@@ -55,7 +57,7 @@ symlinked files.
   manifest. It does not prove that the scan was run against the system you
   care about, or with the options you expect. Read the manifest's `command`,
   `target`, `scan` and `git` fields, and the auditor report's scope section.
-- A signed bundle only verifies with `--allowed-signers`. Without it,
+- A signed bundle verifies only with `--allowed-signers`. Without it,
   `verify` cannot tell whose key made the signature (anyone can re-sign a
   rewritten manifest with their own key), so it fails with status
   `unverified`. A manifest that declares a signature with no `.sig` file
@@ -104,7 +106,7 @@ The command line in the manifest has the values of `--auth-cookie`,
 ## Audience reports
 
 `--audience developer|owner|auditor` picks who the Markdown report is for. It
-applies to `--markdown <file>`; without `--markdown` the report goes to stdout.
+applies to `--markdown <file>`. Without `--markdown`, the report goes to stdout.
 The default report (no `--audience`) is unchanged.
 
 ```bash
@@ -114,13 +116,13 @@ penthera https://example.com --repo . --audience auditor --markdown audit.md
 
 When a scan used `--memory`, the owner report shows the trend across recent
 scans. When the result has an agent loop run (`loopRun`) or memory has fix
-events, the developer, owner and auditor reports show a fix timeline:
-found → fixed → verified, with time to fix.
+events, the developer, owner and auditor reports show a fix timeline
+(found, fixed, verified) with the time to fix.
 
 ## Your own template
 
 `--report-template file.md` renders your own Markdown from the same data the
-audience reports use. The language is deliberately tiny:
+audience reports use. The template language is small on purpose:
 
 ```markdown
 # Security status for {{summary.target}}
@@ -144,7 +146,7 @@ Nothing suppressed.
 - `{{#each list}}…{{/each}}` loops; inside, `{{this}}` is the item and
   `{{@index}}` its 0-based index. Names not found on the item are looked up in
   the enclosing scope.
-- `{{#if value}}…{{else}}…{{/if}}`; an empty list counts as false.
+- `{{#if value}}…{{else}}…{{/if}}` branches. An empty list counts as false.
 
 There are no helpers, no expressions, no raw output, no partials and no file
 includes. Paths containing `__proto__`, `constructor` or `prototype` are

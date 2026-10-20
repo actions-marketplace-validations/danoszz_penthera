@@ -145,7 +145,7 @@ async function settingsView(el, ctx, my) {
         mem.projects.length ? h("ul", { class: "mini" }, mem.projects.map((p) => h("li", {}, h("span", { class: p.chain === "ok" ? "t1" : "bad" }, p.chain === "ok" ? "✓" : "[!]"), h("span", { class: "grow" }, p.label), h("span", { class: "muted" }, `${p.events} events`)))) : empty(EMPTY.memory)),
       h("section", {}, h("p", { class: "label" }, "Keys"), h("dl", { class: "kv" }, KEYS.flatMap(([k, v]) => [h("dt", {}, h("kbd", {}, k)), h("dd", {}, v)]))),
       h("section", {}, h("p", { class: "label" }, "Session"),
-        h("p", { class: "muted" }, `127.0.0.1 only · one-time link swapped for an HttpOnly, SameSite=Strict cookie · Host and Origin checked · strict CSP · ${state.meta.demo ? "demo data" : "local reports"}`)),
+        h("p", { class: "muted" }, `127.0.0.1 only · one-time link swapped for a session kept in this tab only · Host and Origin checked · strict CSP · ${state.meta.demo ? "demo data" : "local reports"}`)),
     ),
   );
 }

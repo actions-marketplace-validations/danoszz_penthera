@@ -1,36 +1,44 @@
-# Penthera 2.0: the plan to become the best
+# Penthera 2.0: research plan
 
-Written 2026-10-19, after v1.7.0. This is the public plan for Penthera 2.0: the
-gaps we see, how we intend to close them, and the research we will run to prove
-each step works. Challenge any of it in
-[Discussions](https://github.com/danoszz/penthera/discussions). The reasoning
-behind current decisions is in [MANIFESTO.md](MANIFESTO.md).
+> **Project page.** For researchers, funders and pros asking "how do you know
+> it works, and what will you measure next?"
 
-## What "the best" means
+Written 2026-10-19, after v1.7.0; consolidated 2026-10-20. This is the long-term
+plan: the gaps we see, the experiments that decide how to close them, and the
+quality gates every release must pass. What ships next, in order, is in the
+[roadmap](../ROADMAP.md); the reasoning behind today's decisions is in the
+[manifesto](MANIFESTO.md). Challenge any of it in
+[Discussions](https://github.com/danoszz/penthera/discussions).
 
-Not the most features or the most AI. Penthera 2.0 is the best open-source
-security agent for apps and AI systems if it is, measurably:
+Penthera is an R&D project with a usable tool. Every feature follows the same
+path: a **method** written down before the work, **evidence** from a
+pre-registered experiment, and then the **tool**, which ships only what held
+up.
 
-1. **The most accurate on real code.** Published precision and recall on a large,
+## Goals for 2.0
+
+Not the most features or the most AI. Penthera 2.0 should be, measurably:
+
+1. **Accurate on real code.** Published precision and recall on a large,
    independently labelled set of real projects, with confidence intervals,
    reproducible by anyone.
-2. **The best at closing issues, not just finding them.** The share of findings
+2. **Good at closing issues, not only finding them.** The share of findings
    fixed *and verified* without breaking tests.
-3. **The most trustworthy.** Local first, no runtime update channel, every
-   decision explainable, and robust when an attacker tries to fool it.
-4. **The easiest to start.** One command, useful in under two minutes.
+3. **Trustworthy.** Local first, no runtime update channel, every decision
+   explainable, and robust when an attacker tries to fool it.
+4. **Easy to start.** One command, useful in under two minutes.
 
 Each goal has a metric and an experiment below. A feature that does not move one
 of these metrics does not ship.
 
-## The biggest gaps, and how 2.0 closes them
+## The gaps, and how 2.0 closes them
 
 | Gap today | Why it matters | 2.0 answer |
 |---|---|---|
 | Accuracy measured on 22 findings in our own labs | We cannot claim real-world quality | **Penthera Bench:** a labelled corpus of real projects (E1) |
 | Finds only what a rule describes | Misses variants of known issues | Model-proposed candidates, verified by deterministic checks (E3) |
 | Fixes only what a built-in recipe covers | Many findings stay open | Propose-and-verify fixing with local models (E3) |
-| "Learning" is counting | The loop does not get smarter in a principled way | Bandit-based ranking of probes and recipes (E2) |
+| "Learning" is counting | The memory counts outcomes; it does not adapt in a principled way | Bandit-based ranking of probes and recipes (E2) |
 | Malicious-package detection is rule-based | New malware families slip past fixed rules | An interpretable, offline classifier over capability features (E4) |
 | No evidence about LLM judges vs rules | Our core decision rests on other people's results | Our own adversarial study (E5) |
 | Hard to start for non-experts | Adoption | Shipped in 1.7.0 (`npx penthera`); next, an MCP server so AI assistants can call Penthera |
@@ -38,8 +46,8 @@ of these metrics does not ship.
 ## AI roadmap
 
 The rule that runs through all of it: **models propose, deterministic checks
-decide.** Penthera's scanner is a verifier, and verifiable feedback is exactly
-what makes AI systems reliable. That is our advantage, not a limitation.
+decide.** Penthera's scanner is a verifier, and verifiable feedback is what
+makes model output reliable enough to use.
 
 ### Phase A: measure (first)
 - Build Penthera Bench (E1). Nothing else is evaluated until it exists.
@@ -172,13 +180,33 @@ These are the known weaknesses of the program itself, and how each is handled.
 - **The tool's own principles still hold:** experiments never add telemetry or a
   runtime update channel to the shipped product.
 
+## Quality gates
+
+Quality is measured, not felt. Each gate is checked by the internal audit
+(`npm run audit:internal`) or CI, or is a stated target with a date it is
+checked.
+
+| Area | Gate |
+|---|---|
+| Accuracy | Benchmark precision and recall never drop by more than 0.02 between releases (audit). Every false positive a user reports becomes a regression test before it is fixed. The benchmark grows beyond the mock server: OWASP Juice Shop, crAPI, a vulnerable Next.js app, and fixture sets for `agents` and `deps` |
+| First run | From `npx penthera` to a useful result in under two minutes on a fresh Next.js or Express app, measured on a clean machine each release. Every error says what happened and what to do next; no stack traces for expected failures. Works on macOS, Linux and Windows |
+| Documentation | Each page answers one user question and follows the [voice guide](voice.md). Every internal link resolves (audit). Each command's `--help` and its docs page are tested against the same source |
+| Stable interfaces | A versioned JSON schema for reports, the policy file and rule packs, checked in CI. One minor release of warnings before anything breaks |
+| Penthera's own security | A clean self-scan on every release (audit). A fuzz or hostile-input test for everything that parses untrusted input. An external review of the fix loop, the install firewall and the dashboard before 2.0 |
+| Real-world use | Three pilot projects run Penthera before each deploy for a month; their feedback sets the next priorities. Findings and fixes are published as short case studies, with permission |
+
 ## Milestones toward 2.0
+
+Research milestones are not tied to version numbers: a result ships in the
+next minor release after it holds up. The 1.8.0 release is frozen (see the
+[roadmap](../ROADMAP.md#now-180-feature-freeze)), so the work below lands in
+1.9 and later.
 
 | Milestone | Contents | Done when |
 |---|---|---|
-| 1.8 | Penthera Bench v1 (E1), MCP server, pre-registrations for E2 to E5 | Real-world precision and recall published with intervals |
-| 1.9 | Bandit ranking (E2), propose-and-verify fixing with local models (E3) | Each beats its baseline in its pre-registered test, or is dropped |
-| 2.0 | Package classifier (E4), adversarial study (E5), stable interfaces | E4 and E5 published; CLI flags, report schema, policy file and rule-pack format frozen |
+| Phase A: measure | Penthera Bench v1 and E1; pre-registrations for E2 to E5; an MCP server | Real-world precision and recall published with intervals |
+| Phases B and C: learn and propose | Bandit ranking (E2), propose-and-verify fixing with local models (E3) | Each beats its baseline in its pre-registered test, or is dropped |
+| 2.0 | Package classifier (E4), adversarial study (E5), stable interfaces | E4 and E5 published; CLI flags, report schema, policy file and rule-pack format frozen and covered by compatibility tests |
 | Research track | RL from verifier feedback; user study (E6); paper | Results published, positive or not |
 
 Negative results are published too. If a model-based approach does not beat the

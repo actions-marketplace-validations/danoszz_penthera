@@ -1,8 +1,11 @@
 # Due diligence checklist
 
+> **Project page.** For funders and sponsors asking "is this project sound to
+> support?"
+
 What a funder, sponsor or acquirer is likely to check, what is already in
-place, and what is still open. Checked on 2026-10-19 against the `main` branch
-at commit 156eda6.
+place, and what is still open. A snapshot, checked on 2026-10-19 against the
+`main` branch at commit 156eda6; counts and open items may have moved since.
 
 Legend: **Done**, **Open** (needs action), **Decide** (maintainer's call).
 
@@ -11,7 +14,7 @@ Legend: **Done**, **Open** (needs action), **Decide** (maintainer's call).
 | Item | Status | Notes |
 |------|--------|-------|
 | Contributors are all known | Done | `git shortlog -sne --all`: 54 commits as "Daan van der Zwaag <daan@devign.it>", 6 as "Daan <daan@devign.it>" (same person, commits made in the GitHub web UI), 1 from dependabot. No outside human contributors. All 8 pull requests so far were opened by the maintainer or dependabot. |
-| DCO sign-off required | Open | The Developer Certificate of Origin 1.1 (https://developercertificate.org/) lets a contributor certify they have the right to submit their code under the project licence. This PR adds a DCO section to CONTRIBUTING.md. Enforcement is not on yet. To enforce, install a DCO check app on the repo, or turn on "Require contributors to sign off on web-based commits" in repository settings. |
+| DCO sign-off required | Open | The Developer Certificate of Origin 1.1 (https://developercertificate.org/) lets a contributor certify they have the right to submit their code under the project license. CONTRIBUTING.md has a DCO section. Enforcement is not on yet. To enforce, install a DCO check app on the repo, or turn on "Require contributors to sign off on web-based commits" in repository settings. |
 | Past commits | Decide | Past commits are not signed off, but all are by the maintainer, so no outside rights are in question. A short statement in the README or this file is enough; rewriting history is not worth it. |
 | Author identity | Open | Add a `.mailmap` mapping "Daan" to "Daan van der Zwaag" so tools show one author. |
 | AI-assisted commits | Done | 45 commit messages carry `Co-Authored-By: Claude ...` trailers, recording which work was AI-assisted. NLnet's GenAI policy names commit messages as one acceptable way to log this (https://nlnet.nl/foundation/policies/generativeAI/). |
@@ -20,13 +23,13 @@ Legend: **Done**, **Open** (needs action), **Decide** (maintainer's call).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Project licence | Done | MIT, in `LICENSE`, `package.json` and `.claude-plugin/plugin.json`. |
+| Project license | Done | MIT, in `LICENSE`, `package.json` and `.claude-plugin/plugin.json`. |
 | Copyright line | Open | `LICENSE` says "Copyright (c) 2026 daan". Change to the full legal name, or to a company if the maintainer moves the project into one: "Copyright (c) 2026 Daan van der Zwaag". |
 | Runtime dependencies | Done | One: `yaml` (ISC). Dev dependency: `vitest` (MIT). Both permissive. |
-| Third-party data in the source | Open | `lib/params.js` has a parameter wordlist with the comment "Curated from SecLists, Arjun defaults, and CommonCrawl analysis." SecLists is MIT and Arjun is AGPL-3.0 (GitHub licence metadata for both repositories). A list of common parameter names like `id` and `page` is unlikely to carry copyright on its own, but an acquirer's lawyer will ask. Options: document which entries came from where, or rebuild the list from MIT sources only and change the comment. Add a `THIRD_PARTY_NOTICES` file crediting SecLists. |
+| Third-party data in the source | Open | `lib/params.js` has a parameter wordlist with the comment "Curated from SecLists, Arjun defaults, and CommonCrawl analysis." SecLists is MIT and Arjun is AGPL-3.0 (GitHub license metadata for both repositories). A list of common parameter names like `id` and `page` is unlikely to carry copyright on its own, but an acquirer's lawyer will ask. Options: document which entries came from where, or rebuild the list from MIT sources only and change the comment. Add a `THIRD_PARTY_NOTICES` file crediting SecLists. |
 | Other inspiration notes | Decide | The same file says "Inspired by: Arjun (6.2k stars), ParamSpider". Inspiration for an algorithm is fine; make sure no code was copied, and keep the note. |
 | Copyright of AI-assisted code | Decide | The US Copyright Office's report "Copyright and Artificial Intelligence, Part 2: Copyrightability" (29 January 2025, https://www.copyright.gov/ai/) addresses protection for AI-generated material. It is a US source; EU and Dutch law may differ. This matters little for an MIT project but may come up in an acquisition. Keep the co-author trailers as the record of human direction and review. Not legal advice. |
-| Assets | Done | `assets/` holds the project's own logo, social image and demo GIF. Confirm the logo was made by the maintainer or under a licence that allows transfer. |
+| Assets | Done | `assets/` holds the project's own logo, social image and demo GIF. Confirm the logo was made by the maintainer or under a license that allows transfer. |
 
 ## 3. Name and trademark
 
@@ -76,4 +79,4 @@ Legend: **Done**, **Open** (needs action), **Decide** (maintainer's call).
 - Pentera: https://en.wikipedia.org/wiki/Pentera , https://trademarks.justia.com/owners/pentera-security-ltd-5403910
 - BOIP fees: https://boip.int/en/node/2163
 - OpenSSF Scorecard result: https://api.scorecard.dev/projects/github.com/danoszz/penthera
-- Arjun licence: https://github.com/s0md3v/Arjun ; SecLists licence: https://github.com/danielmiessler/SecLists
+- Arjun license: https://github.com/s0md3v/Arjun ; SecLists license: https://github.com/danielmiessler/SecLists

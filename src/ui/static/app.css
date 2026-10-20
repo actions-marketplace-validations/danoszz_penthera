@@ -294,7 +294,6 @@ code { font: inherit; }
 .menu-item:hover kbd, .menu-item:focus-visible kbd { color: var(--ground); }
 .menu-item[disabled] { color: var(--text-4); background: none; }
 .menu-item[disabled] kbd { color: var(--text-4); }
-a.menu-item:hover { background: var(--frame); color: var(--ground); }
 .menu .sep { margin: 3px 0; border-top: 1px dotted var(--rule); }
 
 .statuses { display: flex; align-items: stretch; gap: 2px; }

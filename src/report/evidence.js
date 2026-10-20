@@ -11,15 +11,19 @@
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import {
-  readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, lstatSync,
+  readFileSync, mkdirSync, existsSync, readdirSync, lstatSync, mkdtempSync, realpathSync, renameSync, rmdirSync,
+  rmSync, chmodSync, openSync, writeSync, closeSync, fstatSync, readSync, constants as FS,
 } from "node:fs";
-import { join, resolve, relative, sep } from "node:path";
+import { join, resolve, relative, sep, dirname, basename } from "node:path";
 import { createGit } from "../agent/git.js";
 
 export const SCHEMA = "penthera-evidence/1";
 export const NAMESPACE = "penthera-evidence";
 export const MANIFEST = "manifest.json";
 export const SIGNATURE = "manifest.json.sig";
+
+/** Largest artifact or manifest verify will read; a bundle holds reports, not data dumps. */
+export const MAX_VERIFY_BYTES = 64 * 1024 * 1024;
 
 const SAFE_PATH = /^[A-Za-z0-9][A-Za-z0-9._-]*(?:\/[A-Za-z0-9][A-Za-z0-9._-]*)*$/;
 const SECRET_FLAG = /^--?(?:auth-cookie|auth-bearer|cookie|[\w-]*(?:token|secret|password|passwd|api-key|apikey)[\w-]*)$/i;
@@ -106,26 +110,66 @@ export function assertEmptyDir(dir) {
   if (readdirSync(dir).length) throw new Error(`--evidence ${dir} is not empty; use a new directory per run`);
 }
 
+/** Create `file` and write `buf`: never over an existing file, never through a symlink. */
+function writeExclusive(file, buf) {
+  const fd = openSync(file, FS.O_WRONLY | FS.O_CREAT | FS.O_EXCL | (FS.O_NOFOLLOW || 0), 0o644);
+  try {
+    let off = 0;
+    while (off < buf.length) off += writeSync(fd, buf, off, buf.length - off);
+  } finally {
+    closeSync(fd);
+  }
+}
+
 /**
- * Write a bundle.
+ * Write a bundle. It is built in a private temp folder next to `dir` and
+ * renamed into place at the end, so a half-written bundle is never visible
+ * and no write lands outside that folder.
  * @param {string} dir
  * @param {{ path: string, content: string|Buffer, kind?: string }[]} artifacts
  * @param {{ version: string, argv: string[], target: string, generatedAt: string,
- *           scan?: object, repo?: string|null, signKey?: string|null }} meta
+ *           scan?: object, repo?: string|null, signKey?: string|null,
+ *           parentReal?: string|null }} meta  parentReal: the real path the
+ *           parent folder must still resolve to (the dashboard's reports/evidence)
  * @returns {{ manifest: object, signed: boolean, dir: string }}
  */
 export function writeEvidenceBundle(dir, artifacts, meta) {
   const root = resolve(dir);
   assertEmptyDir(root);
-  mkdirSync(root, { recursive: true });
-
-  const entries = [];
   for (const a of artifacts) {
     if (!SAFE_PATH.test(a.path) || a.path === MANIFEST || a.path === SIGNATURE) throw new Error(`Bad artifact path ${a.path}`);
+  }
+  const parent = dirname(root);
+  mkdirSync(parent, { recursive: true });
+  const parentReal = realpathSync(parent);
+  const checkParent = () => {
+    const now = realpathSync(parent);
+    if (now !== parentReal || (meta.parentReal && now !== meta.parentReal)) {
+      throw new Error(`Refusing to write the bundle: ${parent} now resolves to ${now}`);
+    }
+  };
+  checkParent();
+  const tmp = mkdtempSync(join(parentReal, `.${basename(root)}.tmp-`));
+  try {
+    const out = buildBundle(tmp, artifacts, meta);
+    chmodSync(tmp, 0o755);
+    checkParent();
+    if (existsSync(root)) rmdirSync(root); // assertEmptyDir allowed an existing empty folder
+    renameSync(tmp, join(parentReal, basename(root)));
+    return { ...out, dir: root };
+  } catch (e) {
+    rmSync(tmp, { recursive: true, force: true });
+    throw e;
+  }
+}
+
+function buildBundle(root, artifacts, meta) {
+  const entries = [];
+  for (const a of artifacts) {
     const buf = Buffer.isBuffer(a.content) ? a.content : Buffer.from(String(a.content), "utf-8");
     const file = join(root, ...a.path.split("/"));
-    mkdirSync(resolve(file, ".."), { recursive: true });
-    writeFileSync(file, buf);
+    mkdirSync(dirname(file), { recursive: true });
+    writeExclusive(file, buf);
     entries.push({ path: a.path, kind: a.kind || null, bytes: buf.length, sha256: sha256(buf) });
   }
   entries.sort((x, y) => x.path.localeCompare(y.path));
@@ -145,10 +189,10 @@ export function writeEvidenceBundle(dir, artifacts, meta) {
     signature: signKey ? { namespace: NAMESPACE, file: SIGNATURE, public_key: publicKeyFor(signKey) } : null,
   };
   const manifestPath = join(root, MANIFEST);
-  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+  writeExclusive(manifestPath, Buffer.from(JSON.stringify(manifest, null, 2) + "\n", "utf-8"));
 
   if (signKey) signManifest(manifestPath, signKey);
-  return { manifest, signed: Boolean(signKey), dir: root };
+  return { manifest, signed: Boolean(signKey) };
 }
 
 /** ssh-keygen -Y sign; writes <manifest>.sig. A passphrase prompt goes to the terminal. */
@@ -159,6 +203,42 @@ export function signManifest(manifestPath, keyPath) {
   });
   if (r.error) throw new Error(`Signing needs ssh-keygen (OpenSSH 8.0+): ${r.error.message}`);
   if (r.status !== 0) throw new Error(`ssh-keygen -Y sign failed: ${(r.stderr || "").trim()}`);
+}
+
+/**
+ * Read `rel` (a SAFE_PATH below `root`) only when every component is a real
+ * folder or, for the last, a regular file no larger than MAX_VERIFY_BYTES.
+ * Returns { buf } or { reason }.
+ */
+function readInside(root, rel, maxBytes = MAX_VERIFY_BYTES) {
+  let cur = root;
+  const parts = rel.split("/");
+  for (let i = 0; i < parts.length; i++) {
+    cur = join(cur, parts[i]);
+    let st;
+    try { st = lstatSync(cur); } catch { return { reason: "missing" }; }
+    const last = i === parts.length - 1;
+    if (st.isSymbolicLink()) return { reason: last ? "not a regular file" : "inside a symlinked folder" };
+    if (!last && !st.isDirectory()) return { reason: "missing" };
+    if (last && !st.isFile()) return { reason: "not a regular file" };
+    if (last && st.size > maxBytes) return { reason: `larger than ${maxBytes} bytes` };
+  }
+  let fd;
+  try { fd = openSync(cur, FS.O_RDONLY | (FS.O_NOFOLLOW || 0)); } catch { return { reason: "unreadable" }; }
+  try {
+    const size = fstatSync(fd).size;
+    if (size > maxBytes) return { reason: `larger than ${maxBytes} bytes` };
+    const buf = Buffer.alloc(size);
+    let off = 0;
+    while (off < size) {
+      const n = readSync(fd, buf, off, size - off, off);
+      if (!n) break;
+      off += n;
+    }
+    return { buf: buf.subarray(0, off) };
+  } finally {
+    closeSync(fd);
+  }
 }
 
 function listFiles(root, dir = root, out = []) {
@@ -218,17 +298,20 @@ function checkSignature(root, manifestBuf, manifest, allowedSigners) {
  * `warnings` carries the UNSIGNED notice for a bundle that passes without a
  * signature; `requireSignature` turns that into a failure.
  * @param {string} dir
- * @param {{ allowedSigners?: string, requireSignature?: boolean }} opts
+ * @param {{ allowedSigners?: string, requireSignature?: boolean, maxBytes?: number }} opts
+ *   maxBytes: largest file read (default MAX_VERIFY_BYTES); every path
+ *   component is lstat'ed, so a symlinked folder is never followed
  */
-export function verifyEvidence(dir, { allowedSigners = null, requireSignature = false } = {}) {
+export function verifyEvidence(dir, { allowedSigners = null, requireSignature = false, maxBytes = MAX_VERIFY_BYTES } = {}) {
   const root = resolve(dir);
   const problems = [];
   const files = [];
   const fail = (msg) => ({ ok: false, problems: [msg], warnings: [], files, unlisted: [], signature: null, manifest: null });
 
-  const manifestPath = join(root, MANIFEST);
-  if (!existsSync(manifestPath)) return fail(`${MANIFEST} not found in ${dir}`);
-  const manifestBuf = readFileSync(manifestPath);
+  const read = readInside(root, MANIFEST, maxBytes);
+  if (read.reason === "missing") return fail(`${MANIFEST} not found in ${dir}`);
+  if (!read.buf) return fail(`${MANIFEST}: ${read.reason}`);
+  const manifestBuf = read.buf;
   let manifest;
   try {
     manifest = JSON.parse(manifestBuf.toString("utf-8"));
@@ -238,18 +321,19 @@ export function verifyEvidence(dir, { allowedSigners = null, requireSignature = 
   if (manifest?.schema !== SCHEMA || !Array.isArray(manifest.artifacts)) return fail(`${MANIFEST} is not a ${SCHEMA} manifest`);
 
   const listed = new Set();
+  const folded = new Set(); // case-insensitive file systems: REPORT.json is report.json
   for (const a of manifest.artifacts) {
     const path = a?.path;
-    if (typeof path !== "string" || !SAFE_PATH.test(path) || path === MANIFEST || path === SIGNATURE || listed.has(path)) {
+    const lower = typeof path === "string" ? path.toLowerCase() : null;
+    if (typeof path !== "string" || !SAFE_PATH.test(path) || lower === MANIFEST || lower === SIGNATURE || folded.has(lower)) {
       problems.push(`unsafe or duplicate artifact path ${JSON.stringify(path)}`);
       continue;
     }
     listed.add(path);
-    const file = join(root, ...path.split("/"));
-    const st = existsSync(file) ? lstatSync(file) : null;
-    if (!st) { files.push({ path, ok: false, reason: "missing" }); continue; }
-    if (!st.isFile()) { files.push({ path, ok: false, reason: "not a regular file" }); continue; }
-    const actual = sha256(readFileSync(file));
+    folded.add(lower);
+    const got = readInside(root, path, maxBytes);
+    if (!got.buf) { files.push({ path, ok: false, reason: got.reason }); continue; }
+    const actual = sha256(got.buf);
     if (typeof a.sha256 !== "string" || actual !== a.sha256.toLowerCase()) {
       files.push({ path, ok: false, reason: "hash mismatch", expected: a.sha256, actual });
     } else {

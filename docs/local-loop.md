@@ -1,9 +1,13 @@
 # The local loop
 
-Penthera v1.4 adds a loop that runs entirely on your machine: scan, fix on a
-local branch, verify, learn, repeat. Nothing in it talks to a Penthera server,
-because there isn't one. This page covers the loop itself (`penthera agent
---loop`) and the part that makes it improve over time: the local learning store.
+> **Pro.** For "how do I run the fix loop, and what does it remember?"
+
+Since v1.4, Penthera has a loop that runs entirely on your machine: scan, fix on
+a local branch, verify, record the outcome, repeat. Nothing in it talks to a
+Penthera server, because there isn't one. This page covers the loop itself
+(`penthera agent --loop`) and the local learning store it records into. The
+store counts which fix recipes worked for which framework. It re-orders and
+suppresses findings. It does not train a model.
 
 ## The agent loop
 
@@ -29,8 +33,11 @@ One iteration:
 6. **Learn**: `scan`, `fix_applied` and `fix_verified` or `fix_failed` go to
    memory.
 7. **Commit** each verified fix on its own, with a message that lists the
-   findings, the recipe, and how it was verified. A fix that fails is reverted
-   (`git checkout` of the files it changed; files it created are removed).
+   findings, the recipe, and how it was verified. A fix that fails is reverted:
+   each file gets back the bytes it had before the fix, and files it created
+   are removed. A file that changed again after the fix was written (you saved
+   it meanwhile) is left alone and the fix is marked `conflict`. The commit
+   contains only the fix's own files (`git commit --only`).
 
 Plans are applied one at a time and re-planned against the tree after each
 fix, since two recipes can touch the same file. The loop repeats until nothing
@@ -56,16 +63,23 @@ Each of these has a test in `tests/agent.test.js`.
   `GIT_NO_LAZY_FETCH=1`, so no transport can work. The loop never runs `gh`
   and never opens a pull request.
 - **The repo's hooks never run.** Git runs with `core.hooksPath=/dev/null`,
-  `core.fsmonitor=false` and `commit --no-verify`: a scanned repo can ship hooks
-  that run anything.
-- **Network.** The whole run is one W1 egress context with `--offline` always
-  on: the URL target is the only host. Loopback is added only when
+  `core.fsmonitor=false` and `commit --no-verify`, because a scanned repo can ship
+  hooks that run anything.
+- **Network.** The whole run shares one egress context with `--offline` always
+  on, so the URL target is the only host. Loopback is added only when
   `--fix-model` is set, and the model client then accepts only
   `http://127.0.0.1:11434`.
 - **Clean start.** A dirty tree (untracked files included), a detached HEAD, a
   repo without commits, or a directory that is not a git repo is refused.
   `--allow-dirty` lets the loop start anyway, but it never patches a file that
-  had uncommitted changes.
+  has uncommitted changes; this is checked again right before each write and
+  each commit. Plans that touch untracked or git-ignored files are skipped.
+- **Git.** The loop's git calls ignore hooks, fsmonitor, signing, and any
+  filter the repository configures, and treat paths literally. Writes are
+  refused when the repository's own config sets `filter.*`, `gpg.*` or
+  `include.*` keys, and on git older than 2.31: the loop stops before its first
+  write with one message naming the key and the way forward (move it to your
+  global config, or apply fixes by hand from `penthera fix --plan`).
 - **Approval.** Every diff is shown, secrets masked, with
   `[y]es / [n]o / [s]kip / [q]uit`. When input runs out (piped stdin), the
   answer is `n`. `--auto low` applies a diff without asking only when it comes
@@ -82,7 +96,8 @@ does, including network calls. It is off by default for that reason.
 
 ### The loopRun object
 
-`-o <file>` writes `{ "loopRun": { ... } }`. W6's report timeline renders it.
+`-o <file>` writes `{ "loopRun": { ... } }`. The fix timeline in the audience
+reports ([evidence.md](evidence.md#audience-reports)) renders it.
 Every step carries `startedAt` and `durationMs`.
 
 ```js
@@ -197,15 +212,15 @@ Memory can do two things to a report, and nothing else:
 The learning store is an attack surface. An agent loop that learns from its own
 past is open to memory poisoning (OWASP Agentic Security Initiative, ASI06): if
 an attacker can write to what the loop remembers, they can steer what it does
-next. In Penthera's case the obvious targets are hiding a real finding and
-getting the loop to run something. The store is designed so neither works
-quietly.
+next. In Penthera's case the two goals would be hiding a real finding and
+getting the loop to run something. The store is built so that neither can
+happen unnoticed.
 
 ### Why it never executes
 
 Memory is data. No value read from it is ever executed, evaluated, imported,
 used as a file path, or passed to a shell. A recipe id in memory is only a
-string that gets counted; the recipe code lives in Penthera's own source
+string that gets counted. The recipe code lives in Penthera's own source
 (`lib/fix/`) and is chosen by Penthera, not by the log. Every field a view reads
 is type- and length-checked, and an event that fails a check is ignored rather
 than interpreted. Strings shown in the terminal have control characters stripped,
@@ -227,11 +242,11 @@ ranking are not applied, nothing new is appended, and the scan prints a warning
 telling you to run `penthera memory verify`. You can then inspect the log or
 start over with `penthera memory forget`.
 
-What the chain does not do: it is tamper-evident, not tamper-proof. Anyone who
+The limit: the chain is tamper-evident, not tamper-proof. Anyone who
 can write to your home directory can rewrite the whole log and recompute every
 hash. Keying the chain would not help, since the key would sit in the same home
 directory. The chain is there to catch a partial edit, an accidental truncation,
-or a tool that writes where it should not; it is not a defence against malware
+or a tool that writes where it should not. It is not a defense against malware
 already running as you.
 
 ### Why it lives in your home directory

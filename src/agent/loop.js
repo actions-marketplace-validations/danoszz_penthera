@@ -14,20 +14,26 @@
  *   Nothing is pushed, fetched or opened as a pull request.
  * - Everything runs in one egress context limited to the URL target, always
  *   offline. Loopback is added only with --fix-model, for Ollama.
- * - A dirty tree or a detached HEAD is refused unless allowDirty is set.
+ * - A dirty tree or a detached HEAD is refused unless allowDirty is set. A fix
+ *   that touches a file with uncommitted changes (checked right before writing),
+ *   an untracked file or a git-ignored path is never applied.
+ * - A revert puts back the bytes each file had before the fix, and only while
+ *   the file still holds exactly what the fix wrote; a commit includes only the
+ *   fix's files, and only while they still hold what the fix wrote. Anything
+ *   edited meanwhile is left alone and the fix is reported as a conflict.
  * - Every diff is approved by `ask` unless --auto low and memory shows the
  *   recipe verified at least 3 times on this framework with no failures.
  * - When `signal` aborts, the fix in flight is verified and committed or
  *   reverted before the loop returns; the branch holds only verified commits.
  */
 import { randomUUID, createHash } from "node:crypto";
-import { existsSync, unlinkSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { scanRepo as defaultScanRepo } from "../scan-repo.js";
 import { scanUrl as defaultScanUrl } from "../scan-url.js";
 import { createEgressContext, runWithEgress, request } from "../utils/http.js";
 import {
-  planFixes, probeRepo, applyDiff, redactPlan, findingKey, createModelFixer,
+  planFixes, probeRepo, applyDiff, restoreFiles, redactPlan, findingKey, createModelFixer, parsePatch,
 } from "../../lib/fix/index.js";
 import { assertLocalModelUrl } from "../../lib/fix/model.js";
 import { detectFramework } from "../../lib/fix/util.js";
@@ -101,6 +107,25 @@ async function timed(list, step, fn) {
   }
 }
 
+/**
+ * Parse `git status --porcelain=v1 -z` into [{ xy, path }]. Paths are taken
+ * verbatim (no C-quoting in -z mode), made relative to `prefix` when the repo
+ * is a subdirectory of the work tree; a rename lists both of its paths.
+ */
+export function parseStatusZ(out, prefix = "") {
+  const parts = String(out || "").split("\0");
+  const entries = [];
+  const rel = (p) => (prefix && p.startsWith(prefix) ? p.slice(prefix.length) : p);
+  for (let i = 0; i < parts.length; i++) {
+    const e = parts[i];
+    if (e.length < 4) continue;
+    const xy = e.slice(0, 2);
+    entries.push({ xy, path: rel(e.slice(3)) });
+    if (/[RC]/.test(xy) && i + 1 < parts.length) entries.push({ xy, path: rel(parts[++i]) });
+  }
+  return entries;
+}
+
 function clean(obj) {
   return JSON.parse(JSON.stringify(obj)); // drops undefined so memory's canonical JSON accepts it
 }
@@ -149,12 +174,9 @@ export async function runLoop(opts = {}) {
   if (!base && !opts.allowDirty) {
     throw new LoopError("HEAD is detached. Check out a branch first (the fix branch starts from it), or pass --allow-dirty.", "DETACHED");
   }
-  const prefix = git.run("rev-parse", "--show-prefix").trim();
-  const dirtyFiles = new Set(
-    git.run("status", "--porcelain", "--untracked-files=all", "--", ".").split("\n").filter(Boolean)
-      .map((l) => l.slice(3).replace(/^"|"$/g, "").split(" -> ").pop())
-      .map((p) => (prefix && p.startsWith(prefix) ? p.slice(prefix.length) : p)),
-  );
+  const prefix = git.run("rev-parse", "--show-prefix").replace(/\n$/, "");
+  const statusNow = () => parseStatusZ(git.run("status", "--porcelain=v1", "-z", "--untracked-files=all", "--", "."), prefix);
+  const dirtyFiles = new Set(statusNow().map((e) => e.path));
   if (dirtyFiles.size && !opts.allowDirty) {
     throw new LoopError(`${repo} has uncommitted changes (${[...dirtyFiles].slice(0, 5).join(", ")}${dirtyFiles.size > 5 ? ", ..." : ""}). Commit or stash them first, or pass --allow-dirty.`, "DIRTY");
   }
@@ -211,7 +233,7 @@ export async function runLoop(opts = {}) {
     stopReason: null,
     error: null,
     findings: { initial: null, final: null },
-    totals: { iterations: 0, planned: 0, applied: 0, verified: 0, failed: 0, declined: 0, skipped: 0, commits: [] },
+    totals: { iterations: 0, planned: 0, applied: 0, verified: 0, failed: 0, conflicts: 0, declined: 0, skipped: 0, commits: [] },
     memory: { projectId, chain: chainOk ? "ok" : "broken", eventsAppended: 0 },
     iterations: [],
   };
@@ -227,20 +249,63 @@ export async function runLoop(opts = {}) {
   loopRun.branch.fix = branch;
   log(`  on ${branch} (from ${base || baseSha.slice(0, 12)})`);
 
-  // The fix in flight, so a second Ctrl-C can put the files back.
+  /**
+   * Why a plan must not be applied right now, or null. Run immediately before
+   * writing: files with uncommitted changes (including ones saved while the
+   * prompt was open), untracked files and git-ignored paths are all off limits,
+   * since the loop could neither revert nor commit them cleanly.
+   */
+  const guardFiles = (files) => {
+    const status = statusNow();
+    const set = new Set(files);
+    const untracked = status.filter((e) => e.xy === "??" && set.has(e.path)).map((e) => e.path);
+    const dirty = status.filter((e) => e.xy !== "??" && set.has(e.path)).map((e) => e.path);
+    if (dirty.length) return `touches files with uncommitted changes (${dirty.join(", ")}); fix them by hand`;
+    if (untracked.length) return `touches untracked files (${untracked.join(", ")}); commit them first or fix them by hand`;
+    // One file per call: the exit code is the answer, so no quoted path output to parse.
+    const ignored = files.filter((f) => {
+      try {
+        git.run("check-ignore", "-q", "--", `./${f}`);
+        return true;
+      } catch (e) {
+        if (e?.status === 1) return false; // not ignored
+        throw e;
+      }
+    });
+    if (ignored.length) return `touches git-ignored files (${ignored.join(", ")}), which git can neither commit nor restore; fix them by hand`;
+    return null;
+  };
+
+  // The fix in flight ({ files: applyDiff's result, staged }), so a second Ctrl-C can put the files back.
   let pending = null;
-  const revert = (files, created) => {
-    const tracked = files.filter((f) => !created.includes(f));
-    if (tracked.length) git.run("checkout", "--", ...tracked);
-    for (const f of created) {
-      const p = join(repo, f);
-      if (existsSync(p)) unlinkSync(p);
+  /** Restore every file of a fix from its saved bytes; never throws, reports what it could not do. */
+  const revert = (fix) => {
+    const r = restoreFiles(repo, fix.files);
+    if (fix.staged && r.restored.length) {
+      try {
+        git.run("reset", "-q", "--", ...r.restored);
+      } catch (e) {
+        r.errors.push({ path: r.restored.join(", "), message: `could not unstage: ${e.message}` });
+      }
+    }
+    return r;
+  };
+  const revertProblems = (r) => [
+    ...(r.conflicts.length ? [`left as they are because they changed after the fix was written: ${r.conflicts.join(", ")}`] : []),
+    ...r.errors.map((e) => `could not restore ${e.path}: ${e.message}`),
+  ].join("; ");
+  const currentSha = (file) => {
+    try {
+      return sha256(readFileSync(join(repo, file)));
+    } catch {
+      return null;
     }
   };
   if (opts.handle) {
     opts.handle.revertPending = () => {
-      if (pending) revert(pending.files, pending.created);
+      const r = pending ? revert(pending) : null;
       pending = null;
+      return r;
     };
   }
 
@@ -389,27 +454,28 @@ export async function runLoop(opts = {}) {
         if (answer !== "y" && answer !== "auto") { entry.decision = "skipped"; loopRun.totals.skipped++; continue; }
         entry.decision = answer === "auto" ? "auto" : "approved";
 
-        const touchesDirty = p.files.filter((f) => dirtyFiles.has(f));
-        if (touchesDirty.length) {
-          entry.reason = `touches files with uncommitted changes (${touchesDirty.join(", ")}); fix them by hand`;
+        // ── Patch: re-check the files right before writing (the prompt may have been open a while) ──
+        let applied;
+        try {
+          applied = await timed(entry.steps, "patch", async () => {
+            const targets = [...new Set([...p.files, ...parsePatch(p.diff).map((f) => f.newPath).filter(Boolean)])];
+            const refused = guardFiles(targets);
+            if (refused) return { refused };
+            return applyDiff(repo, p.diff, { allowDirty: Boolean(opts.allowDirty) });
+          });
+        } catch (e) {
+          if (e?.name === "GitPolicyError") throw e;
+          applied = { refused: `did not apply: ${e.message}` };
+        }
+        if (applied.refused) {
+          entry.reason = applied.refused;
           tried.add(planKey(p));
           log(`    not applied: ${entry.reason}`);
           continue;
         }
-
-        // ── Patch ──
-        let applied;
-        try {
-          applied = await timed(entry.steps, "patch", async () => applyDiff(repo, p.diff, { allowDirty: Boolean(opts.allowDirty) }));
-        } catch (e) {
-          entry.reason = `did not apply: ${e.message}`;
-          tried.add(planKey(p));
-          log(`    not applied: ${e.message}`);
-          continue;
-        }
         const files = applied.files.map((f) => f.path);
         const created = applied.files.filter((f) => f.created).map((f) => f.path);
-        pending = { files, created };
+        pending = { files: applied.files, staged: false };
         loopRun.totals.applied++;
         appliedHere++;
         const primary = originals[0];
@@ -443,11 +509,24 @@ export async function runLoop(opts = {}) {
         });
         entry.verify = verdict.summary;
 
-        if (verdict.ok) {
+        // Files edited by someone else since the fix was written: neither commit nor revert them.
+        const changed = applied.files.filter((f) => currentSha(f.path) !== f.sha256).map((f) => f.path);
+        if (verdict.ok && changed.length) {
+          pending = null;
+          entry.status = "conflict";
+          entry.reason = `verified, but ${changed.join(", ")} changed while it was being verified; left as they are and nothing was committed`;
+          tried.add(planKey(p));
+          loopRun.totals.conflicts++;
+          log(`    not committed: ${entry.reason}`);
+        } else if (verdict.ok) {
           const [subject, msg] = commitMessage(p, entry, entry.decision);
           await timed(entry.steps, "commit", async () => {
-            git.run("add", "--", ...files);
-            git.run("commit", "-q", "-m", subject, "-m", msg, "--", ...files);
+            if (created.length) {
+              pending.staged = true;
+              git.run("add", "--", ...created);
+            }
+            // --only: the fix's files as they are on disk, nothing else that happens to be staged.
+            git.run("commit", "-q", "--only", "-m", subject, "-m", msg, "--", ...files);
           });
           pending = null;
           entry.commit = git.run("rev-parse", "HEAD").trim();
@@ -459,14 +538,17 @@ export async function runLoop(opts = {}) {
           const live = entry.verify.liveRemaining ? `; ${entry.verify.liveRemaining} still served by the running app until it restarts` : "";
           log(`    verified and committed ${entry.commit.slice(0, 10)}${live}`);
         } else {
-          await timed(entry.steps, "revert", async () => revert(files, created));
+          const r = await timed(entry.steps, "revert", async () => revert(pending));
           pending = null;
-          entry.status = "failed";
+          entry.status = r.conflicts.length ? "conflict" : "failed";
           entry.reason = verdict.reasons.join("; ");
+          const problems = revertProblems(r);
+          if (problems) entry.reason += `; revert: ${problems}`;
           tried.add(planKey(p));
           loopRun.totals.failed++;
+          if (r.conflicts.length) loopRun.totals.conflicts++;
           await timed(entry.steps, "learn", async () => remember("fix_failed", { ...learnData, reason: entry.reason }));
-          log(`    failed verification, reverted: ${entry.reason}`);
+          log(`    failed verification, ${problems ? "not fully reverted" : "reverted"}: ${entry.reason}`);
         }
         if (stopped()) { stopReason = "interrupted"; break; }
       }
@@ -488,12 +570,13 @@ export async function runLoop(opts = {}) {
   try {
     await runWithEgress(ctx, body);
   } catch (e) {
+    let problems = "";
     if (pending) {
-      try { revert(pending.files, pending.created); } catch { /* reported below */ }
+      problems = revertProblems(revert(pending));
       pending = null;
     }
     stopReason = "error";
-    loopRun.error = e.message;
+    loopRun.error = problems ? `${e.message}; revert: ${problems}` : e.message;
   }
 
   loopRun.stopReason = stopReason;

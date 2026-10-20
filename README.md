@@ -4,7 +4,7 @@
 
 <br/><br/>
 
-**Penthera: Cyber Security Agent. Open-source security for the apps and AI systems you ship.**
+**Penthera: an open-source cyber security agent you can use today, and verify yourself.**
 
 <br/>
 
@@ -28,15 +28,21 @@
 
 ---
 
-## The problem
+## What Penthera is
 
-Teams now ship apps and AI agents faster than anyone can secure them. AI writes
-much of the code and pulls in the packages, MCP servers, and skills, and on most
-teams nobody works on security full time. Attackers have adapted: 2025 and 2026
-brought self-spreading npm worms that hijacked AI coding tools, malicious MCP
-servers, poisoned agent skills, and leaked AI provider keys. Penthera does the
-repeatable security work on your own machine, with rules you can read, so the
-people you have can spend their time on judgement.
+Teams ship apps and AI agents faster than anyone can check them, and most
+security scanners offer no evidence of how well they actually work. Penthera is
+an open-source R&D project that tackles both.
+
+**Use it today.** A cyber security agent for your coding tools that runs
+offline on your own machine: it checks your app, its dependencies and your AI
+tooling, and fixes what it can with your approval, through a dashboard that
+works for first-timers and pros alike.
+
+**Trust it because it's measured.** Every check is tested in public,
+pre-registered experiments, and the results are published, good or bad. What
+holds up ships in the next release, so Penthera keeps pace with new attacks and
+with EU rules such as NIS2 and the Cyber Resilience Act.
 
 ## Get started
 
@@ -110,74 +116,69 @@ Reports come out as Markdown, JSON, and SARIF for GitHub code scanning. Exit
 code `1` means critical or high findings. Every command and flag is in
 [docs/commands/](docs/commands/README.md).
 
-Penthera is not a human pentester, a 24/7 SOC, or incident response. It does
-the checks that can be automated reliably and says plainly which ones need a
-person.
+## How it is measured
+
+Each feature goes through the same path: **method → evidence → tool.**
+
+- **Method.** The [methodology](docs/METHODOLOGY.md) states the threat model,
+  what black-box (HTTP) and white-box (source) analysis can and cannot see, the
+  confidence model, and the false-positive controls on each probe. Each design
+  choice cites the research or standard it rests on: 49 verified references, in
+  APA style, in [docs/references.md](docs/references.md).
+- **Evidence.** A benchmark runs on every release, and the release gate fails
+  if precision or recall drops by more than 0.02. Experiments that decide what
+  ships next are pre-registered in [docs/research/prereg/](docs/research/prereg/)
+  before any data is collected, and the results are published either way.
+- **Tool.** What holds up ships in a reviewed, signed release. What does not
+  hold up is dropped, and the rules stay.
+
+| Measure | Result today |
+|---|---|
+| Precision on the bundled benchmark | 0.86, 95% CI 0.67 to 0.95 (19 true positives, 3 false positives) |
+| Recall on the bundled benchmark | 0.90, 95% CI 0.71 to 0.97 (2 misses, [each one explained](bench/RESULTS.md)) |
+| Requests to non-loopback hosts during the benchmark | 0 |
+| Detection rules, all readable | 14 URL scan templates, 20 secret and AI-key patterns, 15 dependency capabilities, 39 AI-tooling rules, 5 fix recipes |
+
+These numbers come from 22 findings in small labs that we wrote ourselves, so
+they catch regressions; they do not measure real-world accuracy. Measuring that
+on real projects is experiment E1, the first step of the
+[research plan](docs/vision-2.0.md). Intervals are Wilson. What Penthera cannot
+see is listed under [Known limitations](docs/METHODOLOGY.md#known-limitations).
+Counts as of 2026-10-19; refresh them with `npm run docs:numbers` and
+`npm run bench`.
+
+**Cite this repository** with the button on GitHub or
+[CITATION.cff](CITATION.cff). APA and BibTeX forms are in the
+[methodology](docs/METHODOLOGY.md#how-to-cite).
 
 ## Why you can trust it
 
 - **Local and offline.** No account, no telemetry, no cloud. `--offline` limits
   network traffic to the target you named, and every report lists the hosts it
-  contacted.
-- **Deterministic.** Rules you can read, with `file:line` evidence. No model
-  decides what is malicious.
+  contacted ([network use](docs/privacy.md)).
+- **Deterministic.** Rules you can read, with `file:line` evidence. A local
+  model may propose a fix; a deterministic re-scan and your tests decide.
 - **Non-destructive by default.** The default scan sends only requests a
   browser would send. Payload testing (`--deep`, `--fuzz`, `--all`) is opt-in
   and asks for confirmation.
-- **Never acts behind your back.** The fix loop works on a local branch, asks
-  before every change by default, and never pushes or opens pull requests.
-- **No update channel to hijack.** Detection rules and IOC lists ship inside
-  reviewed releases as signed, versioned [rule packs](docs/rule-packs.md). You
-  can add your own by path (`--rules <dir>`). Nothing is downloaded and
-  executed at run time.
+- **Asks before it changes anything.** The fix loop works on a local branch,
+  asks before every change by default, and never pushes or opens pull requests.
+- **No update channel to hijack.** Detection rules ship inside reviewed
+  releases as signed, versioned [rule packs](docs/rule-packs.md). You can add
+  your own by path (`--rules <dir>`). Nothing is downloaded and run at run time.
 - **Releases you can verify.** npm provenance through trusted publishing, a
   maintainer approval with 2FA for every version, SHA-pinned CI, CodeQL, and
   OpenSSF Scorecard. Every release passes an
   [internal audit](docs/internal-audit.md) of eight gates
   ([latest report](audit/REPORT.md)).
 
-## What it is today, and where it is going
-
-Penthera does the routine, repeatable checks well. It does not find novel bugs,
-it is not an autonomous AI, and its accuracy is measured so far only on a small
-benchmark of our own. AI is optional and never the judge: models may propose,
-deterministic checks decide. The full, honest picture, every design decision and
-how to challenge it, is in the [manifesto and FAQ](docs/MANIFESTO.md). The plan
-for 2.0 (real-world accuracy, local models that propose fixes the scanner
-verifies, and the research to prove each step) is in the
-[2.0 vision](docs/vision-2.0.md).
-
-## Research and methodology
-
-Penthera's method is written down and tied to the literature. The
-[methodology](docs/METHODOLOGY.md) states the threat model, separates what
-black-box (HTTP) and white-box (source) analysis can and cannot observe, and
-defines a confidence model that keeps heuristics from posing as facts. Each
-probe has explicit false-positive controls, such as randomized canaries and
-repeated timing measurement, and each design choice cites the research or
-standard it rests on: 49 verified references, listed in APA style in
-[docs/references.md](docs/references.md).
-
-| Measure | Result |
-|---|---|
-| Precision on the bundled benchmark | 0.86 (19 true positives, 3 false positives) |
-| Recall on the bundled benchmark | 0.90 (2 misses, [each one explained](bench/RESULTS.md)) |
-| Requests to non-loopback hosts during the benchmark | 0 |
-| Detection rules, all readable | 14 URL scan templates, 20 secret and AI-key patterns, 15 dependency capabilities, 39 AI-tooling rules, 5 fix recipes |
-
-The benchmark targets are small and were written by the same people as the
-scanner, so the numbers catch regressions rather than measure real-world
-accuracy. The full list of what Penthera cannot see, and how far its evidence
-reaches, is in [Known limitations](docs/METHODOLOGY.md#known-limitations). Counts as of
-2026-10-19; refresh them with `npm run docs:numbers` and `npm run bench`.
-
-**Cite this repository.** Use the button on GitHub, or the metadata in
-[CITATION.cff](CITATION.cff). The APA and BibTeX forms are in the
-[methodology](docs/METHODOLOGY.md#how-to-cite).
+Penthera finds known classes of problems, not novel ones, and it does not
+replace a human pentester or incident response. The decisions behind it, its
+limits, and how to challenge them are in the [manifesto and FAQ](docs/MANIFESTO.md).
 
 ## How it fits with other tools
 
-Penthera works next to the tools you already use. Its SARIF output goes
+Penthera works next to the tools you already use; its SARIF output goes
 straight into GitHub code scanning, for example. Each comparison page says where
 the other tool goes further and how to run the two together.
 
@@ -190,29 +191,19 @@ the other tool goes further and how to run the two together.
 | [OWASP ZAP](docs/compare/zap.md) | Dynamic testing of web apps | Your machine or CI | Active and passive scan rules |
 | [Semgrep](docs/compare/semgrep.md) | Static analysis of your own code | Your machine, CI, cloud platform | Pattern rules, plus a paid cross-file engine |
 
-All comparisons: [docs/compare/](docs/compare/README.md). Corrections are
-welcome by pull request.
+## Start here
 
-## Use cases
-
-| You are | Start here |
+| You want to know | Read |
 |---|---|
-| A solo founder or vibecoder about to launch | [Before launch](docs/use-cases/solo-founder.md) |
-| A team adopting Claude Code or Cursor | [The AI-tooling supply chain](docs/use-cases/ai-coding-teams.md) |
-| An open-source maintainer | [For maintainers](docs/use-cases/open-source-maintainers.md) |
-| An EU SME with NIS2 or CRA duties | [Evidence for NIS2 and the CRA](docs/use-cases/eu-sme-compliance.md) ([NIS2 guide](docs/compliance-nis2.md), [CRA guide](docs/compliance-cra.md)) |
-| An agency shipping client apps | [A repeatable handover check](docs/use-cases/agencies.md) |
+| Is my app safe to ship? | [Before launch](docs/use-cases/solo-founder.md), then [scan](docs/commands/scan.md) |
+| Is this package or MCP server safe? | [deps](docs/commands/deps.md), [install](docs/commands/install.md), [agents](docs/commands/agents.md) |
+| How do I put it in CI? | [The GitHub Action](docs/commands/action.md), [scan in CI](docs/commands/scan.md#ci-integration) |
+| What do I give my auditor? | [Evidence bundles](docs/evidence.md), [NIS2](docs/compliance-nis2.md), [CRA](docs/compliance-cra.md) |
+| How do I run the fix loop? | [Fix and verify](docs/commands/fix.md), [the local loop](docs/local-loop.md) |
 
-Compliance output is readiness tooling. It is not a certification and not
-legal advice.
-
-## Privacy
-
-Penthera has no telemetry and does not phone home. Scan traffic goes to the
-target you name, reports stay on your machine, and every scan lists any
-third-party host it contacted. With `--offline`, the HTTP client refuses every
-host except the target. Which hosts a normal scan may contact, and why, is in
-[docs/privacy.md](docs/privacy.md).
+The full map, by situation and from first scan to pro use, is in
+[docs/index.md](docs/index.md). Compliance output is readiness tooling. It is
+not a certification and not legal advice.
 
 ## Ethics and authorization
 
@@ -224,9 +215,9 @@ or harm anyone. Unauthorized testing may break computer-misuse laws such as the
 US CFAA, the UK Computer Misuse Act, and their EU equivalents. When in doubt, do
 not scan.
 
-The software is provided "as is", without warranty, for defensive testing of
-systems you own or are authorized to test. The author accepts no liability for
-misuse, and you are responsible for making sure every scan you run is lawful.
+The software is provided "as is", without warranty. The author accepts no
+liability for misuse, and you are responsible for making sure every scan you
+run is lawful.
 
 ## How Penthera is built
 
@@ -239,13 +230,31 @@ product, models only ever propose; deterministic checks decide. The full
 disclosure, and the rules for AI-assisted contributions, are in
 [docs/genai.md](docs/genai.md).
 
+## Building in public
+
+What changed, what we are measuring, and what comes next, in one place.
+
+| | Where it stands | Read more |
+|---|---|---|
+| **Latest release** | 1.7.0 (2026-10-19): one-command setup (`npx penthera`), the dashboard, signed rule packs | [CHANGELOG](CHANGELOG.md) |
+| **On main, unreleased** | Release checks on Linux, macOS and Windows, docs tested as code, a smaller package, security hardening | [Unreleased](CHANGELOG.md#unreleased) |
+| **Now** | 1.8.0 feature freeze: fixes only, a release candidate on npm's `next` tag first | [Roadmap: now](ROADMAP.md#now-180-feature-freeze) |
+| **Research** | E1, accuracy on real code, is pre-registered; the benchmark tooling is in review | [E1 pre-registration](docs/research/prereg/E1-real-world-accuracy.md), [plan](docs/research/plan-1.8.md) |
+| **Next** | Real-world precision and recall with intervals, published whatever the result | [Roadmap: next](ROADMAP.md#next), [research plan](docs/vision-2.0.md) |
+
+Releases are deliberately slow: a feature freeze, an independent review, the
+release checks, and a release candidate before any new minor version. To
+follow along, watch the repository for releases or join the
+[Discussions](https://github.com/danoszz/penthera/discussions).
+
 ## Contributing and support
 
 Clone the repository and run `npm install`, then `npm test` for the suite and
 `npm run bench` for precision and recall.
-[CONTRIBUTING.md](CONTRIBUTING.md) covers the project layout and the release
-checklist, and the [roadmap](ROADMAP.md) shows what is next. Issues and pull
-requests are welcome.
+[CONTRIBUTING.md](CONTRIBUTING.md) covers the project layout, the release
+cadence and the release checklist. The [roadmap](ROADMAP.md) shows what ships
+next, and the [research plan](docs/vision-2.0.md) what we measure. Issues and
+pull requests are welcome.
 
 Penthera is free. If it caught something before you shipped it, you can
 [sponsor its maintenance](https://github.com/sponsors/danoszz). Sponsorship pays

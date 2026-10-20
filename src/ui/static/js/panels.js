@@ -162,9 +162,11 @@ export async function proofTab(el, project) {
   el.append(section("Evidence bundle", plural(ev.bundles.length, "bundle"),
     h("p", { class: "prose" }, "A bundle holds the latest scan, its inputs and a hash of every file, so an auditor can check nothing changed after the fact."),
     h("div", { class: "actions start" }, create,
-      ...["auditor", "owner", "developer"].map((a) => (scanned
-        ? h("a", { class: "btn", href: `/api/report?${new URLSearchParams({ project: target, audience: a })}`, download: "" }, `${a} report`)
-        : h("button", { type: "button", class: "btn", disabled: true }, `${a} report`)))),
+      // A download through the API carries the session header; a plain link could not.
+      ...["auditor", "owner", "developer"].map((a) => h("button", {
+        type: "button", class: "btn", disabled: !scanned,
+        onclick: () => api.download(`/api/report?${new URLSearchParams({ project: target, audience: a })}`).catch((e) => { msg.textContent = e.message; }),
+      }, `${a} report`))),
     msg,
     ev.bundles.length ? h("ul", { class: "mini" }, ev.bundles.map((b) => {
       const res = h("span", { class: "muted" }, b.signed ? "signed" : "unsigned");

@@ -289,6 +289,23 @@ function snapshot(root) {
   return out;
 }
 
+/**
+ * Packages whose payload sits where a capped scanner would not look: behind
+ * 9 MB of padding, last of 5,001 files, or in a file too large to scan.
+ */
+function unreadCodePackages() {
+  const j = (...s) => s.join("");
+  const gh = `const { execSync } = require('${j("child", "_process")}');\nconst t = execSync('${j("gh auth ", "tok", "en")}');\n`;
+  const many = {};
+  for (let i = 0; i < 5000; i++) many[`a/f${String(i).padStart(4, "0")}.js`] = "module.exports = 1;\n";
+  many["zz/index.js"] = gh;
+  return {
+    "padded-pkg@1.0.0": { "index.js": `/*${" ".repeat(9 * 1024 * 1024)}*/\n${gh}` },
+    "many-files@1.0.0": many,
+    "huge-pkg@1.0.0": { "index.js": `${" ".repeat(64 * 1024 * 1024)}\n${gh}` },
+  };
+}
+
 let n = 0;
 /** A fresh copy of the base project: tiny-format@1.0.0 and color-helper@1.0.0, installed. */
 function project(policy = null) {
@@ -302,7 +319,7 @@ const installed = (p, name) => JSON.parse(readFileSync(join(p, "node_modules", n
 beforeAll(async () => {
   dir = mkdtempSync(join(tmpdir(), "penthera-install-test-"));
   marker = join(dir, "POSTINSTALL_RAN");
-  reg = await startRegistry(installPackages(marker));
+  reg = await startRegistry({ ...installPackages(marker), ...unreadCodePackages() });
   env = npmEnv(reg.url, join(dir, "npm"));
   template = await createProject(join(dir, "template"), { "tiny-format": "1.0.0", "color-helper": "1.0.0" }, env);
 });
@@ -417,6 +434,18 @@ describe("penthera install (fixture registry)", () => {
     expect(r.stdout).toContain("postinstall: node postinstall.js");
     expect(r.stdout).toMatch(/sneaky-pkg@1\.0\.0 {2}needs approval: install script/);
     expect(existsSync(marker)).toBe(false);
+    expect(snapshot(p)).toEqual(before);
+  });
+
+  it("holds packages whose code is padded, spread over 5,001 files, or too large to scan", async () => {
+    const p = project();
+    const before = snapshot(p);
+    const r = await penthera(p, ["padded-pkg@1.0.0", "many-files@1.0.0", "huge-pkg@1.0.0", "--yes"]);
+    expect(r.code).toBe(1);
+    expect(r.stdout).toMatch(/padded-pkg@1\.0\.0 {2}needs approval: GitHub token harvesting/);
+    expect(r.stdout).toMatch(/many-files@1\.0\.0 {2}needs approval: GitHub token harvesting/);
+    expect(r.stdout).toMatch(/huge-pkg@1\.0\.0 {2}needs approval: could not be scanned/);
+    expect(r.stdout).toContain("Project untouched");
     expect(snapshot(p)).toEqual(before);
   });
 

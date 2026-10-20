@@ -296,7 +296,6 @@ function runView(col, ctx) {
   stopStream();
   typer = createTyper(lines);
   pending = null;
-  es = new EventSource(`/api/runs/${run.id}/stream`);
   const scroll = () => { const st = document.getElementById("stream"); if (st) st.scrollTop = st.scrollHeight; };
   const onEvent = (ev) => {
     const d = ev.data;
@@ -364,10 +363,19 @@ function runView(col, ctx) {
       default: break;
     }
   };
-  for (const type of ["log", "approval", "decision", "fix", "status"]) {
-    es.addEventListener(type, (m) => { try { onEvent(JSON.parse(m.data)); } catch { /* malformed event */ } });
-  }
-  es.addEventListener("end", () => { es?.close(); es = null; });
+  // fetch-based stream (api.js): it carries the session header, EventSource cannot.
+  es = api.stream(`/api/runs/${run.id}/stream`, (type, data) => {
+    if (type === "end") { es?.close(); es = null; return; }
+    if (type === "error") { typer?.push("error: the run's event stream closed. Reload to reconnect.", "bad"); return; }
+    if (!["log", "approval", "decision", "fix", "status"].includes(type)) return;
+    try { onEvent(JSON.parse(data)); } catch { /* malformed event */ }
+  });
+}
+
+/** Hex SHA-256 of the diff text as shown; the server only applies the diff whose hash matches. */
+async function sha256Hex(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 // ── The approval: a floating window, pinstriped because it waits on you ──
@@ -383,18 +391,30 @@ function closeApproval() {
 
 function decider(run, d, ty) {
   let busy = false;
-  return async (answer) => {
+  const p = d.plan;
+  const shownDiff = String(p.diff || "");
+  const fn = async (answer) => {
     if (busy) return;
+    // A cut diff is never applied by accident: Apply needs the box in the window ticked first.
+    if (answer === "approve" && p.truncated && !fn.acknowledged) { openApproval(run, d, ty); return; }
     busy = true;
     approval?.el?.querySelectorAll("button").forEach((b) => { b.disabled = true; });
     try {
-      await api.post(`/api/runs/${run.id}/decision`, { approvalId: d.approvalId, answer });
+      const body = { approvalId: d.approvalId, answer };
+      if (answer === "approve") {
+        body.diffSha256 = await sha256Hex(shownDiff);
+        if (p.truncated) body.acknowledgeTruncated = fn.acknowledged === true;
+      }
+      await api.post(`/api/runs/${run.id}/decision`, body);
     } catch (e) {
       ty.push(`error: ${e.message}`, "bad");
       approval?.el?.querySelectorAll("button").forEach((b) => { b.disabled = false; });
+      if (approval?.apply && p.truncated && !fn.acknowledged) approval.apply.disabled = true;
       busy = false;
     }
   };
+  fn.acknowledged = false;
+  return fn;
 }
 
 /** Inline in the transcript: what is waiting, and a way back to the window. */
@@ -410,19 +430,26 @@ function openApproval(run, d, ty) {
   if (approval) return;
   const p = d.plan;
   const easy = simple();
-  const decide = decideFn || decider(run, d, ty);
+  const decide = decideFn || (decideFn = decider(run, d, ty));
   const files = p.files.length;
-  const diff = diffBlock(p.diff);
+  const shownDiff = String(p.diff || "");
+  const diff = diffBlock(shownDiff);
+  const ack = p.truncated ? h("input", { type: "checkbox", id: "ap-ack", checked: decide.acknowledged || null }) : null;
   const body = h("div", { class: "approval" },
     h("h3", { id: "ap-h" }, easy ? `Penthera wants to change ${plural(files, "file")} to fix this:` : p.title),
     h("ul", { class: "mini" }, p.findings.map((f) => h("li", {}, easy ? h("span", { class: `sev sev-${f.severity}` }, SEV_WORD[f.severity]) : sevBadge(f.severity), h("span", { class: "grow t1" }, f.title)))),
     h("p", { id: "ap-d", class: easy ? "prose" : "muted" }, easy
       ? `${p.title}. It changes ${p.files.join(", ")} on a separate branch, checks the problem is gone, and undoes the change if it is not. Nothing is published.`
       : `${p.recipe}${p.framework ? ` (${p.framework})` : ""} · ${p.files.join(", ")} · ${d.memory ? `memory: ${d.memory.verified} verified, ${d.memory.failed} failed` : "no history for this recipe yet"}`),
-    easy ? h("details", { class: "more" }, h("summary", {}, "Show the exact change"), diff) : diff,
+    easy && !p.truncated ? h("details", { class: "more" }, h("summary", {}, "Show the exact change"), diff) : diff,
+    p.truncated ? h("p", { class: "bad", role: "note" }, easy
+      ? "[!] This change is too long to show in full here. Ask a developer to look at the rest in the project before you apply it."
+      : `[!] Diff cut: showing the first ${shownDiff.length.toLocaleString()} of ${Number(p.fullLength).toLocaleString()} characters. Review the rest in the repo before applying.`) : null,
+    p.truncated ? h("label", { class: "check", for: "ap-ack" }, ack, h("span", { class: "prose" }, " I have not seen the whole change and want to apply it anyway")) : null,
     p.redacted ? h("p", { class: "muted" }, "Secret values are masked here; the real patch uses them.") : null,
   );
-  const apply = h("button", { type: "button", class: "btn primary", onclick: () => decide("approve") }, easy ? "Apply this fix" : "Apply", h("kbd", {}, "y"));
+  const apply = h("button", { type: "button", class: "btn primary", disabled: Boolean(ack && !ack.checked), onclick: () => decide("approve") }, easy ? "Apply this fix" : "Apply", h("kbd", {}, "y"));
+  ack?.addEventListener("change", () => { decide.acknowledged = ack.checked; apply.disabled = !ack.checked; });
   body.append(h("div", { class: "actions" },
     h("button", { type: "button", class: "btn", onclick: () => decide("stop") }, easy ? "Stop fixing" : "Stop", h("kbd", {}, "q")),
     h("span", { class: "grow" }),
@@ -436,9 +463,9 @@ function openApproval(run, d, ty) {
     if (a) { e.preventDefault(); decide(a); }
   });
   win.el.addEventListener("close", () => { approval = null; }, { once: true });
-  approval = { win, el: win.el };
+  approval = { win, el: win.el, apply };
   announce(`Fix ${d.index} of ${d.total} is waiting for you: ${p.title}`);
-  apply.focus();
+  (ack && !ack.checked ? ack : apply).focus();
 }
 
 /** y / n / q while a diff waits and its window is closed. */

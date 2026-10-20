@@ -9,9 +9,14 @@
  * A scan runs inside an egress context (see `runWithEgress`). The context
  * names the scan target and records every host contacted, every request it
  * refused, and every probe request that failed. Under `offline: true` the
- * client refuses any host other than the target; a redirect may only move to
- * a host on the target's registrable domain. Outside a context (unit tests,
- * library use) requests are unrestricted and nothing is recorded.
+ * client refuses any host (or port) other than the target's; a redirect may
+ * only move to a host on the target's registrable domain. Outside a context
+ * (unit tests, library use) requests are unrestricted and nothing is recorded.
+ *
+ * Response bodies are read through `readBody`, which caps the decoded size
+ * and keeps the request's timeout running until the last byte, so a server
+ * that drips, floods or sends a decompression bomb cannot stall or exhaust a
+ * scan.
  */
 import { AsyncLocalStorage } from "node:async_hooks";
 import { readFileSync } from "node:fs";
@@ -19,6 +24,13 @@ import { registrableDomain } from "./url.js";
 
 const DEFAULT_TIMEOUT = 8_000;
 const MAX_REDIRECTS = 10;
+/** Default cap on a decoded response body (bytes). */
+export const DEFAULT_MAX_BODY = 5 * 1024 * 1024;
+// Set on every Response `request` returns: when its timeout expires, and how
+// to stop that timer once the body has been read.
+const BODY_DEADLINE = Symbol("penthera.bodyDeadline");
+// Request headers that carry credentials; never forwarded to another origin.
+const CREDENTIAL_HEADERS = ["authorization", "cookie", "proxy-authorization"];
 const REPO_URL = "https://github.com/danoszz/penthera";
 
 const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf-8"));
@@ -47,9 +59,11 @@ export class EgressBlockedError extends Error {
  * @param {string[]} [opts.allowHosts] - extra hosts to allow under offline
  */
 export function createEgressContext(opts = {}) {
-  const targetHost = opts.target ? new URL(opts.target).hostname.toLowerCase() : null;
+  const target = opts.target ? new URL(opts.target) : null;
+  const targetHost = target ? target.hostname.toLowerCase() : null;
   return {
     targetHost,
+    targetPort: target ? effectivePort(target) : null,
     targetDomain: targetHost ? registrableDomain(targetHost) : null,
     offline: opts.offline === true,
     userAgent: opts.userAgent || DEFAULT_USER_AGENT,
@@ -85,18 +99,44 @@ function isThirdParty(ctx, host) {
  */
 export function checkEgress(url, opts = {}, ctx = currentEgress()) {
   if (!ctx || !ctx.offline) return { allowed: true };
-  let host;
+  let parsed;
   try {
-    host = new URL(url).hostname.toLowerCase();
+    parsed = new URL(url);
   } catch {
     return { allowed: false, reason: "unparseable URL" };
   }
-  if (host === ctx.targetHost || ctx.allowHosts.has(host)) return { allowed: true };
+  const host = parsed.hostname.toLowerCase();
+  if (ctx.allowHosts.has(host)) return { allowed: true };
+  const sameHost = host === ctx.targetHost;
   // A redirect may move within the target's registrable domain (apex -> www).
-  if (opts.redirect && ctx.targetDomain && !isIpLike(host) && registrableDomain(host) === ctx.targetDomain) {
+  const sameSite = opts.redirect && ctx.targetDomain && !isIpLike(host) && registrableDomain(host) === ctx.targetDomain;
+  if (!sameHost && !sameSite) {
+    return { allowed: false, reason: `${host} is not the scan target (${ctx.targetHost})` };
+  }
+  // Same host is not enough: another port is another service. The one
+  // exception is the scheme's default port on both sides (http -> https).
+  const port = effectivePort(parsed);
+  if (ctx.targetPort == null || port === ctx.targetPort || (isDefaultPort(port) && isDefaultPort(ctx.targetPort))) {
     return { allowed: true };
   }
-  return { allowed: false, reason: `${host} is not the scan target (${ctx.targetHost})` };
+  return { allowed: false, reason: `${host}:${port} is not the scan target (${ctx.targetHost}:${ctx.targetPort})` };
+}
+
+function effectivePort(u) {
+  if (u.port) return Number(u.port);
+  return u.protocol === "https:" ? 443 : u.protocol === "http:" ? 80 : null;
+}
+
+function isDefaultPort(port) {
+  return port === 80 || port === 443;
+}
+
+function sameOrigin(a, b) {
+  try {
+    return new URL(a).origin === new URL(b).origin;
+  } catch {
+    return false;
+  }
 }
 
 function isIpLike(host) {
@@ -145,6 +185,10 @@ export async function request(url, opts = {}) {
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
+  const deadline = Date.now() + timeout;
+  // The timer keeps running after the headers arrive so the body is covered
+  // too; it is cleared here on failure or by readBody once the body is read.
+  let handedOff = false;
   const combined = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
 
   let current = String(url);
@@ -164,23 +208,114 @@ export async function request(url, opts = {}) {
 
       const location = res.headers.get("location");
       const isRedirect = res.status >= 300 && res.status < 400 && location;
-      if (redirect !== "follow" || !isRedirect) return res;
+      const next = isRedirect ? new URL(location, current).toString() : null;
+      const crossOrigin = next && !sameOrigin(current, next);
+      // A 307/308 replays the method and body; never replay a body to
+      // another origin, hand the redirect back to the caller instead.
+      const replaysBody = (res.status === 307 || res.status === 308) && init.body != null;
+      if (redirect !== "follow" || !isRedirect || (crossOrigin && replaysBody)) {
+        handedOff = true;
+        timer.unref?.();
+        res[BODY_DEADLINE] = { at: deadline, release: () => clearTimeout(timer) };
+        return res;
+      }
       if (hop >= MAX_REDIRECTS) throw new Error(`too many redirects (${MAX_REDIRECTS})`);
 
       // Follow by hand so every hop passes the egress check.
       await res.body?.cancel().catch(() => {});
-      current = new URL(location, current).toString();
+      current = next;
       const method = (init.method || "GET").toUpperCase();
       if (res.status === 303 || ((res.status === 301 || res.status === 302) && method === "POST")) {
         init = { ...init, method: "GET", body: undefined };
+      }
+      if (crossOrigin) {
+        // Credentials belong to the origin they were set for.
+        const headers = new Headers(init.headers);
+        for (const name of CREDENTIAL_HEADERS) headers.delete(name);
+        init = { ...init, headers };
       }
     }
   } catch (err) {
     recordError(ctx, probe, current, err instanceof EgressBlockedError ? err.message : describeError(err, timeout));
     throw err;
   } finally {
-    clearTimeout(timer);
+    if (!handedOff) clearTimeout(timer);
   }
+}
+
+/** Thrown by readBody when a body is too large or too slow. */
+export class BodyLimitError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "BodyLimitError";
+    this.code = "BODY_LIMIT";
+  }
+}
+
+/**
+ * Read a response body as text with a size cap and a deadline.
+ *
+ * Counts decoded bytes (after Content-Encoding), so a small compressed body
+ * that inflates past the cap is stopped as soon as it crosses it. The
+ * deadline defaults to the one `request` set from its `timeout`, so headers
+ * and body share one budget. Rejects with BodyLimitError on either limit and
+ * cancels the stream.
+ *
+ * @param {Response} res
+ * @param {{ maxBytes?: number, deadline?: number, timeout?: number, binary?: boolean }} [opts]
+ *   deadline: absolute epoch ms; timeout: ms from now. The earliest wins.
+ *   binary: return the raw bytes as a Buffer instead of text.
+ * @returns {Promise<string|Buffer>}
+ */
+export async function readBody(res, opts = {}) {
+  const { maxBytes = DEFAULT_MAX_BODY, binary = false } = opts;
+  const attached = res?.[BODY_DEADLINE];
+  let at = Infinity;
+  if (attached) at = attached.at;
+  if (opts.deadline != null) at = Math.min(at, opts.deadline);
+  if (opts.timeout != null) at = Math.min(at, Date.now() + opts.timeout);
+
+  let timer;
+  let reader;
+  try {
+    if (!res?.body) return binary ? Buffer.alloc(0) : "";
+    const declared = Number(res.headers?.get("content-length"));
+    if (!res.headers?.get("content-encoding") && declared > maxBytes) {
+      throw new BodyLimitError(`response body exceeds ${maxBytes} bytes`);
+    }
+    reader = res.body.getReader();
+    const expired = new Promise((_, reject) => {
+      if (at === Infinity) return;
+      timer = setTimeout(() => reject(new BodyLimitError("response body timed out")), Math.max(0, at - Date.now()));
+    });
+    expired.catch(() => {});
+
+    const decoder = new TextDecoder();
+    const parts = [];
+    let total = 0;
+    for (;;) {
+      const { done, value } = await Promise.race([reader.read(), expired]);
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) throw new BodyLimitError(`response body exceeds ${maxBytes} bytes`);
+      parts.push(binary ? value : decoder.decode(value, { stream: true }));
+    }
+    if (binary) return Buffer.concat(parts);
+    parts.push(decoder.decode());
+    return parts.join("");
+  } catch (err) {
+    if (reader) reader.cancel().catch(() => {});
+    else res?.body?.cancel?.().catch(() => {});
+    throw err;
+  } finally {
+    clearTimeout(timer);
+    attached?.release();
+  }
+}
+
+/** readBody, then JSON.parse. */
+export async function readJson(res, opts) {
+  return JSON.parse(await readBody(res, opts));
 }
 
 function safeHost(url) {
@@ -203,6 +338,20 @@ export async function safeFetch(url, opts = {}) {
 }
 
 /**
+ * Fetch and parse JSON, never throwing: null on a network error, a non-2xx
+ * status, a body over `maxBytes`, or JSON that does not parse.
+ */
+export async function fetchJson(url, { maxBytes, ...opts } = {}) {
+  const res = await safeFetch(url, opts);
+  if (!res || !res.ok) return null;
+  try {
+    return await readJson(res, { maxBytes });
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Fetch helper that always returns status, body text, and headers
  * (null on failure).
  */
@@ -210,7 +359,7 @@ export async function probeFetch(url, opts = {}) {
   const res = await safeFetch(url, opts);
   if (!res) return null;
 
-  const body = await res.text().catch(() => "");
+  const body = await readBody(res).catch(() => "");
   const headers = Object.fromEntries(res.headers.entries());
 
   return {
@@ -231,7 +380,7 @@ export async function fetchText(url, opts = {}) {
   const start = Date.now();
   try {
     const res = await request(url, opts);
-    const body = await res.text().catch(() => "");
+    const body = await readBody(res).catch(() => "");
     return {
       status: res.status,
       body,

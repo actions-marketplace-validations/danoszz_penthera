@@ -75,3 +75,17 @@ describe("onboarding (piped stdin)", () => {
     expect([0, 1, 2]).toContain(exitCode);
   });
 });
+
+describe("init writes stay inside the project (inside)", () => {
+  it("accepts a Windows root in git's forward-slash spelling, refuses escapes", async () => {
+    const { win32, posix } = await import("node:path");
+    const { inside } = await import("../src/cli/onboarding.js");
+    expect(inside("C:/a/app", "reports\\penthera-2026-10-20", win32)).toBe("C:\\a\\app\\reports\\penthera-2026-10-20");
+    expect(inside("C:/a/app", ".gitignore", win32)).toBe("C:\\a\\app\\.gitignore");
+    expect(inside("C:\\a\\app", ".github/workflows/penthera.yml", win32)).toBe("C:\\a\\app\\.github\\workflows\\penthera.yml");
+    expect(inside("C:/a/app", "..foo", win32)).toBe("C:\\a\\app\\..foo");
+    for (const p of ["..\\x", "../x", "D:\\x", "C:/a/app2/x"]) expect(() => inside("C:/a/app", p, win32), p).toThrow(/outside the project/);
+    expect(inside("/a/app/", "reports", posix)).toBe("/a/app/reports");
+    expect(() => inside("/a/app", "../app2", posix)).toThrow(/outside the project/);
+  });
+});

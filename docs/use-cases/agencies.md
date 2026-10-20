@@ -1,5 +1,7 @@
 # A repeatable handover check: for agencies shipping client apps
 
+> **Pro.** For "how do I run the same check on every client app before handover?"
+
 ## The problem
 
 An agency ships many similar apps for clients who assume security was handled.
@@ -52,8 +54,9 @@ could use today.
 ```
 
 The auditor version covers scope and method, every finding with its evidence and
-confidence, the hosts contacted, and the probes that could not run. The evidence bundle hashes every file in a
-signed manifest, so the client can check later that nothing was edited.
+confidence, the hosts contacted, and the probes that could not run. The evidence
+bundle hashes every file in a signed manifest, so the client can check later
+that nothing was edited.
 `--report-template` puts the same data into your own Markdown template.
 [More on reports and evidence](../evidence.md).
 

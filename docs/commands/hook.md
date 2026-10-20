@@ -1,5 +1,7 @@
 # Pre-commit hook: `penthera hook`
 
+> **Pro.** For "how do I put it in CI?"
+
 ## Block it before it's committed
 
 Once a secret is pushed, rotating it is the only fix. The pre-commit hook runs
@@ -39,6 +41,10 @@ Configure it in `penthera.policy.json`:
 { "hook": { "blockOn": "high", "ignore": ["tests/fixtures/**"],
             "checks": { "secrets": true, "agents": true, "deps": true, "licenses": true } } }
 ```
+
+A staged file larger than 16 MB is not read, and it blocks the commit with a
+warning that names it, since it could hold a secret nobody checked. Add it to
+`ignore`, or set `"largeFiles": "warn"` in the `hook` section to only warn.
 
 If husky or lefthook manage your hooks (`core.hooksPath` is set),
 `penthera hook install` says so instead of overwriting them. Add one line to

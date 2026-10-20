@@ -1,5 +1,5 @@
 name: "Penthera: Cyber Security Agent"
-description: "Offline security review on PRs: risky dependency changes and AI agent config (MCP, skills, hooks), with SARIF."
+description: "Offline cyber security agent for your apps and AI coding tools. Open R&D: measured in public, improved every release."
 author: danoszz
 branding:
   icon: shield

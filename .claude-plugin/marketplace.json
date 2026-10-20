@@ -5,13 +5,13 @@
     "url": "https://github.com/danoszz"
   },
   "metadata": {
-    "description": "Open-source security for the apps and AI systems you ship",
+    "description": "Offline cyber security agent for your apps and AI coding tools. Open R&D: measured in public, improved every release.",
     "version": "1.7.0"
   },
   "plugins": [
     {
       "name": "penthera",
-      "description": "Open-source security for the apps and AI systems you ship. Before you deploy: scan your app and repo, fix on a local branch and verify. What you build with: vet npm dependencies, guard installs, audit skills, MCP servers and hooks. After you ship: reports, evidence bundles, NIS2 and CRA readiness. Offline, deterministic, no telemetry. Authorized testing only.",
+      "description": "Offline cyber security agent for your apps and AI coding tools. Open R&D: measured in public, improved every release.",
       "source": "./",
       "strict": false,
       "skills": [

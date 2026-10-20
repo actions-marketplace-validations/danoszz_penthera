@@ -1,5 +1,7 @@
 # Penthera and Socket
 
+> **Pro.** For "how does Penthera compare to Socket, and how do I run both?"
+
 *Last checked: 2026-10-19 against Socket's public docs and pricing page.*
 
 ## Use them together
@@ -30,7 +32,7 @@ and the evidence, and anywhere a network call or an account is not an option.
 | AI tooling | Audits the skills, MCP servers, hooks, permissions and plugins already on disk | An MCP server agents can use to look up package scores ([MCP guide](https://docs.socket.dev/docs/guide-to-socket-mcp)); firewall coverage for agent skills and AI models as downloads ([firewall](https://socket.dev/features/firewall)) |
 | App security | URL and repo scans, fix recipes | Not its focus; SAST and secrets are on the Enterprise plan ([pricing](https://socket.dev/pricing)) |
 | SBOM | CycloneDX SBOM and AI-BOM, free | Business plan and up ([pricing](https://socket.dev/pricing)) |
-| Licence | MIT | `socket` CLI and MCP server MIT; `sfw` under PolyForm Shield 1.0.0 (source-available) ([sfw-free](https://github.com/SocketDev/sfw-free)) |
+| License | MIT | `socket` CLI and MCP server MIT; `sfw` under PolyForm Shield 1.0.0 (source-available) ([sfw-free](https://github.com/SocketDev/sfw-free)) |
 | Cost | Free | Free plan (1 seat, 1,000 scans a month); free Business plan for OSI-licensed public projects ([announcement](https://socket.dev/blog/free-business-plan-upgrades-for-open-source)); paid seats from $25 a month ([pricing](https://socket.dev/pricing)) |
 
 ## Where Socket goes further

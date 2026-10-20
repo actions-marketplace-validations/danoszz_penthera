@@ -83,6 +83,14 @@ describe("regex guard", () => {
     "(a|aa)+$": /alternation/,
     "(a|a)*b": /alternation/,
     "(.|\\s)*x": /alternation/,
+    "(?:a|a){1,40}x": /start alike/,
+    "(?:ab|ac){2,8}x": /start alike/,
+    "x(?:(?:a|a)b){1,20}": /start alike/,
+    "(?:a?a){1,40}x": /optional/,
+    "(?:a?){2,40}x": /empty string/,
+    "\\s+$": /starts with an unbounded/,
+    "a+$": /starts with an unbounded/,
+    "x[a-z]+$": /rescanned/,
     "\\s*x": /starts with an unbounded/,
     ".*@": /starts with an unbounded/,
     "[^a]{1,40}\\S[ab]* ": /rescanned/,
@@ -414,7 +422,7 @@ describe("pack rules in the engines", () => {
     expect(findSecretsInText(token)).toEqual([]);
     expect(findExecPatterns(cmd)).toEqual([]);
     addRulePack(SIGNED, { signers: testSigners() });
-    expect(findSecretsInText(token)).toEqual([{ name: "Acme fixture token", severity: "critical", match: token }]);
+    expect(findSecretsInText(token)).toEqual([{ name: "Acme fixture token", severity: "critical", match: token, index: 0 }]);
     expect(findExecPatterns(cmd).map((m) => m.rule)).toEqual(["fixture-pipe-to-node-eval"]);
     expect(activeSecretPatterns().at(-1)).toMatchObject({ name: "Acme fixture token", pack: "fixture-signed" });
     resetRulePacks();

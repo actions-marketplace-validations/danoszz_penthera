@@ -1,24 +1,28 @@
 /**
  * `penthera ui` (src/ui): the local dashboard is an attack surface, so most of
  * these tests are about the gate: Host (DNS rebinding), the one-time token and
- * session cookie, Origin on state changes, CSP and other headers, no CORS, and
+ * bearer session (no cookie), Origin on state changes, CSP and other headers, no CORS, and
  * path traversal on the static route. Then the data confinement and the run
  * manager's approval flow.
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { request as httpRequest } from "node:http";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, symlinkSync, rmSync, realpathSync, existsSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { createHash } from "node:crypto";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, symlinkSync, rmSync, realpathSync, existsSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { startUiServer, loadStatic, STATIC_DIR } from "../src/ui/server.js";
-import { CSP, hostAllowed, originAllowed, createSession, readCookie, COOKIE_NAME } from "../src/ui/security.js";
+import { CSP, hostAllowed, originAllowed, createSession } from "../src/ui/security.js";
 import { createDataSource, confineDir, isInside, writeNewFile, assertNoSymlinks } from "../src/ui/api/data.js";
 import { validateRunRequest, createRunManager, RunError, cleanLine } from "../src/ui/api/runs.js";
 import { classify, buildOverview, buildFindings } from "../src/ui/api/summarize.js";
 import { writeEvidenceBundle } from "../src/report/evidence.js";
 import { scanUrl } from "../src/scan-url.js";
 import { resolveScanOptions } from "../src/cli/profiles.js";
+
+/** What the page sends with an approval: the hex SHA-256 of the diff text it showed. */
+const diffSha256 = (s) => createHash("sha256").update(s, "utf-8").digest("hex");
 
 const temps = [];
 const tempDir = (p = "penthera-ui-") => { const d = mkdtempSync(join(tmpdir(), p)); temps.push(d); return d; };
@@ -38,84 +42,108 @@ function raw(port, { method = "GET", path = "/", headers = {}, body = null } = {
   });
 }
 
+const bootstrapOf = (ui) => new URL(ui.url).hash.replace(/^#t=/, "");
+const redeem = (ui, token, headers = {}) => raw(ui.port, {
+  method: "POST", path: "/api/session", body: JSON.stringify({ token }),
+  headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${ui.port}`, ...headers },
+});
+
+/** Sign in the way the page does; returns the Authorization header value. */
 async function signIn(ui) {
-  const bootstrap = new URL(ui.url).searchParams.get("token");
-  const r = await raw(ui.port, { path: `/?token=${bootstrap}` });
-  const cookie = String(r.headers["set-cookie"]?.[0] || "").split(";")[0];
-  return { r, cookie };
+  const r = await redeem(ui, bootstrapOf(ui));
+  const sid = r.status === 200 ? JSON.parse(r.body).session : "";
+  return { r, sid, auth: `Bearer ${sid}` };
 }
 
 describe("ui server: binding, token and session", () => {
   let ui;
-  let cookie;
+  let auth;
   beforeAll(async () => {
     ui = await startUiServer({ demo: true, version: "test" });
-    ({ cookie } = await signIn(ui));
+    ({ auth } = await signIn(ui));
   });
   afterAll(() => ui?.close());
 
-  it("listens on 127.0.0.1 only, on a random port", () => {
+  it("listens on 127.0.0.1 only, on a random port, with the token in the URL fragment", () => {
     expect(ui.server.address().address).toBe("127.0.0.1");
     expect(ui.port).toBeGreaterThan(0);
-    expect(ui.url).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/\?token=[A-Za-z0-9_-]{43}$/);
+    expect(ui.url).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/#t=[A-Za-z0-9_-]{43}$/);
   });
 
-  it("refuses every route without the session cookie", async () => {
+  it("serves the page without a session, but refuses every API route without one", async () => {
     const fresh = await startUiServer({ demo: true });
     try {
-      for (const path of ["/", "/index.html", "/js/app.js", "/api/meta", "/api/findings"]) {
-        expect((await raw(fresh.port, { path })).status).toBe(401);
+      for (const path of ["/", "/index.html", "/js/app.js"]) expect((await raw(fresh.port, { path })).status, path).toBe(200);
+      for (const path of ["/api/meta", "/api/findings", "/api/runs", "/api/nope"]) expect((await raw(fresh.port, { path })).status, path).toBe(401);
+    } finally { await fresh.close(); }
+  });
+
+  it("swaps the one-time token for a bearer session id, and never sets a cookie", async () => {
+    const fresh = await startUiServer({ demo: true });
+    try {
+      const { r, sid, auth: a } = await signIn(fresh);
+      expect(r.status).toBe(200);
+      expect(r.headers["set-cookie"]).toBeUndefined();
+      expect(sid).toMatch(/^[A-Za-z0-9_-]{43}$/);
+      expect(sid).not.toBe(bootstrapOf(fresh)); // the session id is not the URL token
+      expect((await raw(fresh.port, { path: "/api/meta", headers: { Authorization: a } })).status).toBe(200);
+    } finally { await fresh.close(); }
+  });
+
+  it("a valid session in a cookie is refused: only the Authorization header counts", async () => {
+    const fresh = await startUiServer({ demo: true });
+    try {
+      const { sid } = await signIn(fresh);
+      // Cookies are not bound to a port, so another 127.0.0.1 server could replay one.
+      for (const name of ["penthera_ui", "session", "sid"]) {
+        const r = await raw(fresh.port, { path: "/api/meta", headers: { Cookie: `${name}=${sid}` } });
+        expect(r.status, name).toBe(401);
+        expect(r.body).not.toMatch(/"version"/);
       }
+      const post = await raw(fresh.port, {
+        method: "POST", path: "/api/settings", body: '{"offline":false}',
+        headers: { Cookie: `penthera_ui=${sid}`, Origin: `http://127.0.0.1:${fresh.port}`, "Content-Type": "application/json" },
+      });
+      expect(post.status).toBe(401);
+      expect((await raw(fresh.port, { path: "/api/meta", headers: { Authorization: `Bearer ${sid}` } })).status).toBe(200);
+      expect((await raw(fresh.port, { path: "/api/meta", headers: { Authorization: sid } })).status).toBe(401);
     } finally { await fresh.close(); }
   });
 
-  it("swaps the one-time token for an HttpOnly, SameSite=Strict cookie and redirects off the token URL", async () => {
+  it("the URL token works once; a wrong token or a forged session is refused", async () => {
     const fresh = await startUiServer({ demo: true });
     try {
-      const { r, cookie: c } = await signIn(fresh);
-      expect(r.status).toBe(303);
-      expect(r.headers.location).toBe("/");
-      const set = r.headers["set-cookie"][0];
-      expect(set).toMatch(/HttpOnly/);
-      expect(set).toMatch(/SameSite=Strict/);
-      expect(set).toMatch(/Path=\//);
-      expect(c).toMatch(new RegExp(`^${COOKIE_NAME}=`));
-      // The cookie value is not the URL token.
-      expect(c.split("=")[1]).not.toBe(new URL(fresh.url).searchParams.get("token"));
-      expect((await raw(fresh.port, { path: "/api/meta", headers: { Cookie: c } })).status).toBe(200);
+      const token = bootstrapOf(fresh);
+      expect((await redeem(fresh, `${token}x`)).status).toBe(403);
+      expect((await redeem(fresh, token, { Origin: "https://evil.example" })).status).toBe(403); // sign-in is Origin-checked too
+      expect((await redeem(fresh, token)).status).toBe(200);
+      expect((await redeem(fresh, token)).status).toBe(403);
+      expect((await raw(fresh.port, { path: "/api/meta", headers: { Authorization: `Bearer ${token}` } })).status).toBe(401);
+      expect((await raw(fresh.port, { path: "/api/meta", headers: { Authorization: "Bearer " } })).status).toBe(401);
+      // The old query-string link redeems nothing.
+      expect((await raw(fresh.port, { path: `/?token=${token}` })).headers["set-cookie"]).toBeUndefined();
     } finally { await fresh.close(); }
   });
 
-  it("the URL token works once; a wrong token or a forged cookie is refused", async () => {
-    const fresh = await startUiServer({ demo: true });
-    try {
-      const token = new URL(fresh.url).searchParams.get("token");
-      expect((await raw(fresh.port, { path: `/?token=${token}x` })).status).toBe(403);
-      expect((await raw(fresh.port, { path: `/?token=${token}` })).status).toBe(303);
-      expect((await raw(fresh.port, { path: `/?token=${token}` })).status).toBe(403);
-      expect((await raw(fresh.port, { path: "/api/meta", headers: { Cookie: `${COOKIE_NAME}=${token}` } })).status).toBe(401);
-      expect((await raw(fresh.port, { path: "/api/meta", headers: { Cookie: `${COOKIE_NAME}=` } })).status).toBe(401);
-    } finally { await fresh.close(); }
-  });
-
-  it("session helpers compare in constant time and parse cookies exactly", () => {
-    const s = createSession({ bootstrap: "boot", mint: () => "sec" });
-    expect(s.check(`${COOKIE_NAME}=sec`)).toBe(false); // nothing is valid before the link is redeemed
+  it("session helpers compare in constant time and parse the header exactly", () => {
+    const s = createSession({ bootstrap: "boot", mint: () => "sec-0123456789abcdef" });
+    expect(s.check("Bearer sec-0123456789abcdef")).toBe(false); // nothing is valid before the link is redeemed
     expect(s.redeem("boo")).toBeNull();
-    expect(s.redeem("boot")).toBe("sec");
+    expect(s.redeem("boot")).toBe("sec-0123456789abcdef");
     expect(s.redeem("boot")).toBeNull();
-    expect(s.check(`a=b; ${COOKIE_NAME}=sec`)).toBe(true);
-    expect(s.check(`${COOKIE_NAME}=sec2`)).toBe(false);
-    expect(s.check(`x${COOKIE_NAME}=sec`)).toBe(false);
-    expect(s.cookie("sec")).toBe(`${COOKIE_NAME}=sec; HttpOnly; SameSite=Strict; Path=/`);
-    expect(readCookie("a=1; b=2", "b")).toBe("2");
+    expect(s.check("Bearer sec-0123456789abcdef")).toBe(true);
+    expect(s.check("Bearer sec-0123456789abcdeg")).toBe(false);
+    expect(s.check("bearer sec-0123456789abcdef")).toBe(false);
+    expect(s.check("Basic sec-0123456789abcdef")).toBe(false);
+    expect(s.check(undefined)).toBe(false);
+    expect(s.check("Bearer sec-0123456789abcdef x")).toBe(false);
   });
 
   it("rate-limits requests without a session (429 + Retry-After), never the signed-in browser", async () => {
     const fresh = await startUiServer({ demo: true, limits: { maxReads: 3, maxWrites: 2 } });
     try {
-      const { cookie: c } = await signIn(fresh);
-      const post = () => raw(fresh.port, { method: "POST", path: "/api/login", body: "{}", headers: { "Content-Type": "application/json" } });
+      const { auth: a } = await signIn(fresh);
+      const post = () => raw(fresh.port, { method: "POST", path: "/api/login", body: "{}", headers: { "Content-Type": "application/json", Origin: fresh.origin } });
       expect((await post()).status).toBe(401);
       expect((await post()).status).toBe(401);
       const limited = await post();
@@ -123,19 +151,28 @@ describe("ui server: binding, token and session", () => {
       expect(Number(limited.headers["retry-after"])).toBeGreaterThan(0);
       for (let i = 0; i < 4; i++) await raw(fresh.port, { path: "/api/meta" });
       expect((await raw(fresh.port, { path: "/api/meta" })).status).toBe(429);
-      expect((await raw(fresh.port, { path: "/api/meta", headers: { Cookie: c } })).status).toBe(200);
+      expect((await raw(fresh.port, { path: "/api/meta", headers: { Authorization: a } })).status).toBe(200);
+    } finally { await fresh.close(); }
+  });
+
+  it("guessing the sign-in token is rate-limited", async () => {
+    const fresh = await startUiServer({ demo: true, limits: { maxReads: 3, maxWrites: 2 } });
+    try {
+      expect((await redeem(fresh, "x".repeat(43))).status).toBe(403);
+      expect((await redeem(fresh, "y".repeat(43))).status).toBe(403);
+      expect((await redeem(fresh, "z".repeat(43))).status).toBe(429);
     } finally { await fresh.close(); }
   });
 
   describe("Host header (DNS rebinding)", () => {
     it("accepts 127.0.0.1:<port> and localhost:<port>", async () => {
-      expect((await raw(ui.port, { path: "/api/meta", headers: { Cookie: cookie } })).status).toBe(200);
-      expect((await raw(ui.port, { path: "/api/meta", headers: { Cookie: cookie, Host: `localhost:${ui.port}` } })).status).toBe(200);
+      expect((await raw(ui.port, { path: "/api/meta", headers: { Authorization: auth } })).status).toBe(200);
+      expect((await raw(ui.port, { path: "/api/meta", headers: { Authorization: auth, Host: `localhost:${ui.port}` } })).status).toBe(200);
     });
 
     it("refuses any other Host, even with a valid session", async () => {
       for (const host of ["evil.example", `evil.example:${ui.port}`, "127.0.0.1", `127.0.0.1:${ui.port + 1}`, `127.0.0.1:${ui.port}.evil.example`, `[::1]:${ui.port}`, `0.0.0.0:${ui.port}`, `localhost.evil.example:${ui.port}`]) {
-        const r = await raw(ui.port, { path: "/api/meta", headers: { Cookie: cookie, Host: host } });
+        const r = await raw(ui.port, { path: "/api/meta", headers: { Authorization: auth, Host: host } });
         expect(r.status, host).toBe(421);
         expect(r.body).not.toMatch(/"version"/);
       }
@@ -144,9 +181,9 @@ describe("ui server: binding, token and session", () => {
     it("checks Host before the token, so a rebinding page cannot redeem it", async () => {
       const fresh = await startUiServer({ demo: true });
       try {
-        const token = new URL(fresh.url).searchParams.get("token");
-        expect((await raw(fresh.port, { path: `/?token=${token}`, headers: { Host: `attacker.example:${fresh.port}` } })).status).toBe(421);
-        expect((await raw(fresh.port, { path: `/?token=${token}` })).status).toBe(303); // still unused
+        const token = bootstrapOf(fresh);
+        expect((await redeem(fresh, token, { Host: `attacker.example:${fresh.port}` })).status).toBe(421);
+        expect((await redeem(fresh, token)).status).toBe(200); // still unused
       } finally { await fresh.close(); }
     });
 
@@ -161,7 +198,7 @@ describe("ui server: binding, token and session", () => {
   describe("Origin on state-changing requests", () => {
     const post = (headers, body = '{"offline":true}') => raw(ui.port, {
       method: "POST", path: "/api/settings", body,
-      headers: { Cookie: cookie, "Content-Type": "application/json", ...headers },
+      headers: { Authorization: auth, "Content-Type": "application/json", ...headers },
     });
 
     it("accepts this server's own origin", async () => {
@@ -193,10 +230,10 @@ describe("ui server: binding, token and session", () => {
   describe("headers: CSP, framing, no CORS", () => {
     it("sends the strict CSP and friends on every kind of response", async () => {
       const responses = [
-        await raw(ui.port, { path: "/", headers: { Cookie: cookie } }),
-        await raw(ui.port, { path: "/js/app.js", headers: { Cookie: cookie } }),
-        await raw(ui.port, { path: "/api/overview", headers: { Cookie: cookie } }),
-        await raw(ui.port, { path: "/nope", headers: { Cookie: cookie } }),
+        await raw(ui.port, { path: "/", headers: { Authorization: auth } }),
+        await raw(ui.port, { path: "/js/app.js", headers: { Authorization: auth } }),
+        await raw(ui.port, { path: "/api/overview", headers: { Authorization: auth } }),
+        await raw(ui.port, { path: "/nope", headers: { Authorization: auth } }),
         await raw(ui.port, { path: "/api/meta" }),
         await raw(ui.port, { path: "/", headers: { Host: "evil.example" } }),
       ];
@@ -256,7 +293,7 @@ describe("ui server: binding, token and session", () => {
 
     it("serves only allowlisted files and 404s every traversal attempt", async () => {
       for (const path of attempts) {
-        const r = await raw(ui.port, { path, headers: { Cookie: cookie } });
+        const r = await raw(ui.port, { path, headers: { Authorization: auth } });
         expect([400, 404], path).toContain(r.status);
         expect(r.body, path).not.toMatch(/"name": "penthera"|root:|startUiServer|import /);
       }
@@ -271,21 +308,21 @@ describe("ui server: binding, token and session", () => {
     });
 
     it("serves real files with the right type", async () => {
-      const r = await raw(ui.port, { path: "/js/app.js", headers: { Cookie: cookie } });
+      const r = await raw(ui.port, { path: "/js/app.js", headers: { Authorization: auth } });
       expect(r.status).toBe(200);
       expect(r.headers["content-type"]).toMatch(/^text\/javascript/);
     });
 
-    it("serves the self-hosted font and the logo, and only with a session", async () => {
+    it("serves the self-hosted font and the logo as static files, with no active content", async () => {
       const files = loadStatic();
       for (const p of ["/fonts/DepartureMono-Regular.woff2", "/logo.svg", "/mark.svg", "/favicon.svg"]) expect(files.has(p), p).toBe(true);
-      const font = await raw(ui.port, { path: "/fonts/DepartureMono-Regular.woff2", headers: { Cookie: cookie } });
+      // Static files hold no data and need no session; the API is where the session is checked.
+      const font = await raw(ui.port, { path: "/fonts/DepartureMono-Regular.woff2" });
       expect(font.status).toBe(200);
       expect(font.headers["content-type"]).toBe("font/woff2");
-      const logo = await raw(ui.port, { path: "/logo.svg", headers: { Cookie: cookie } });
+      const logo = await raw(ui.port, { path: "/logo.svg" });
       expect(logo.headers["content-type"]).toMatch(/^image\/svg\+xml/);
       expect(logo.body).not.toMatch(/<script|on[a-z]+=|href=/i);
-      expect((await raw(ui.port, { path: "/fonts/DepartureMono-Regular.woff2" })).status).not.toBe(200);
     });
 
     it("the stylesheet loads fonts and masks from this server only", () => {
@@ -295,7 +332,7 @@ describe("ui server: binding, token and session", () => {
   });
 
   describe("API (demo data)", () => {
-    const get = (path) => raw(ui.port, { path, headers: { Cookie: cookie } }).then((r) => ({ ...r, json: JSON.parse(r.body) }));
+    const get = (path) => raw(ui.port, { path, headers: { Authorization: auth } }).then((r) => ({ ...r, json: JSON.parse(r.body) }));
 
     it("every screen's endpoint answers", async () => {
       for (const path of ["/api/meta", "/api/overview", "/api/findings", "/api/deps", "/api/ai", "/api/memory", "/api/evidence", "/api/settings", "/api/runs"]) {
@@ -313,7 +350,7 @@ describe("ui server: binding, token and session", () => {
       const d = (await get(`/api/findings/${csp.id}?project=${encodeURIComponent(csp.project)}`)).json;
       expect(d.fix.diff).toMatch(/Content-Security-Policy/);
       expect((await get("/api/findings/0000000000000000")).status).toBe(404);
-      expect([400, 404]).toContain((await raw(ui.port, { path: "/api/findings/../meta", headers: { Cookie: cookie } })).status);
+      expect([400, 404]).toContain((await raw(ui.port, { path: "/api/findings/../meta", headers: { Authorization: auth } })).status);
     });
 
     it("history compares two scans: new, fixed, still open", async () => {
@@ -353,14 +390,14 @@ describe("ui server: binding, token and session", () => {
     });
 
     it("downloads the auditor report as a Markdown attachment", async () => {
-      const r = await raw(ui.port, { path: `/api/report?project=${encodeURIComponent("http://localhost:3000")}&audience=auditor`, headers: { Cookie: cookie } });
+      const r = await raw(ui.port, { path: `/api/report?project=${encodeURIComponent("http://localhost:3000")}&audience=auditor`, headers: { Authorization: auth } });
       expect(r.status).toBe(200);
       expect(r.headers["content-type"]).toMatch(/^text\/markdown/);
       expect(r.headers["content-disposition"]).toMatch(/^attachment; filename="penthera-auditor-[a-z0-9-]+\.md"$/);
       expect(r.headers["content-security-policy"]).toBe(CSP);
       expect(r.body.length).toBeGreaterThan(200);
-      expect((await raw(ui.port, { path: "/api/report?project=x&audience=auditor", headers: { Cookie: cookie } })).status).toBe(404);
-      expect((await raw(ui.port, { path: `/api/report?project=${encodeURIComponent("http://localhost:3000")}&audience=root`, headers: { Cookie: cookie } })).status).toBe(404);
+      expect((await raw(ui.port, { path: "/api/report?project=x&audience=auditor", headers: { Authorization: auth } })).status).toBe(404);
+      expect((await raw(ui.port, { path: `/api/report?project=${encodeURIComponent("http://localhost:3000")}&audience=root`, headers: { Authorization: auth } })).status).toBe(404);
     });
 
     it("finding detail explains the finding in plain words", async () => {
@@ -373,22 +410,25 @@ describe("ui server: binding, token and session", () => {
 
     it("unknown API routes 404 and wrong methods 405", async () => {
       expect((await get("/api/nope")).status).toBe(404);
-      const r = await raw(ui.port, { method: "DELETE", path: "/api/settings", headers: { Cookie: cookie, Origin: `http://127.0.0.1:${ui.port}` } });
+      const r = await raw(ui.port, { method: "DELETE", path: "/api/settings", headers: { Authorization: auth, Origin: `http://127.0.0.1:${ui.port}` } });
       expect(r.status).toBe(405);
     });
   });
 });
 
 describe("ui self-scan: penthera scans its own dashboard clean", () => {
-  it("--profile standard finds nothing, with and without the session cookie", async () => {
+  it("--profile standard finds nothing, with and without the session", async () => {
     const ui = await startUiServer({ demo: true });
     try {
-      const { cookie } = await signIn(ui);
+      const { sid } = await signIn(ui);
       const profile = resolveScanOptions({ profile: "standard" });
-      for (const authCookie of [null, cookie]) {
-        const r = await scanUrl(ui.origin, { ...profile, offline: true, timeout: 5000, concurrency: 8, authCookie, onPhase: () => {} });
+      for (const authBearer of [null, sid]) {
+        const r = await scanUrl(ui.origin, { ...profile, offline: true, timeout: 5000, concurrency: 8, authBearer, onPhase: () => {} });
         expect(r.reachable).toBe(true);
-        expect(r.findings.filter((f) => f.severity !== "info").map((f) => f.title), authCookie ? "signed in" : "anonymous").toEqual([]);
+        // The session id is an opaque random token, not a JWT; the JWT probe's
+        // note about that is about the scan's configuration, not the dashboard.
+        const real = r.findings.filter((f) => f.severity !== "info" && f.source !== "jwt-probe");
+        expect(real.map((f) => f.title), authBearer ? "signed in" : "anonymous").toEqual([]);
       }
     } finally { await ui.close(); }
   });
@@ -569,7 +609,7 @@ describe("ui runs: authorization and the approval flow", () => {
     expect(first.plan.title).toBe("Add headers "); // terminal escapes stripped
     expect(() => mgr.decide(run.id, { approvalId: "wrong", answer: "approve" })).toThrow(/Nothing is waiting/);
     expect(() => mgr.decide(run.id, { approvalId: first.approvalId, answer: "rm -rf" })).toThrow(/approve, skip or stop/);
-    mgr.decide(run.id, { approvalId: first.approvalId, answer: "approve" });
+    mgr.decide(run.id, { approvalId: first.approvalId, answer: "approve", diffSha256: diffSha256(first.plan.diff) });
 
     // Stop while the second approval is pending: wait for it, not for a fixed delay.
     let secondAsked;
@@ -611,5 +651,223 @@ describe("ui stream: a run that already finished", () => {
     expect(unsubscribed).toBe(1);
     req.emit("close"); // a late close must not unsubscribe or end twice
     expect(unsubscribed).toBe(1);
+  });
+});
+
+describe("ui reports folder: symlinks at startup and swapped in later", () => {
+  it("refuses a default reports folder that is a symlink, unless --reports names it", async () => {
+    const project = realpathSync(tempDir());
+    const elsewhere = realpathSync(tempDir());
+    symlinkSync(elsewhere, join(project, "reports"));
+    await expect(startUiServer({ projects: [project], memoryRoot: join(tempDir(), "memory") })).rejects.toThrow(/symlink.*--reports/);
+    const ui = await startUiServer({ projects: [project], reportsDir: join(project, "reports"), memoryRoot: join(tempDir(), "memory") });
+    await ui.close();
+  });
+
+  it("refuses every write once reports/ (or reports/evidence) no longer resolves to the folder checked at startup", () => {
+    const project = realpathSync(tempDir());
+    const reports = join(project, "reports");
+    mkdirSync(reports);
+    writeFileSync(join(reports, "s.json"), JSON.stringify({ target: "http://localhost:3000", mode: "url", timestamp: "2026-10-01T00:00:00Z", findings: [{ severity: "high", title: "x" }] }));
+    const src = createDataSource({ projects: [project], reportsDir: reports, home: tempDir(), memoryRoot: join(tempDir(), "memory"), settings: { get: () => ({}) } });
+    expect(src.writeReport("before.json", {})).toBe("before.json");
+    const made = src.createEvidence("http://localhost:3000");
+    expect(made.path).toMatch(/^evidence\//);
+
+    // reports/evidence swapped for a symlink after startup.
+    const outEv = realpathSync(tempDir());
+    rmSync(join(reports, "evidence"), { recursive: true });
+    symlinkSync(outEv, join(reports, "evidence"));
+    expect(() => src.createEvidence("http://localhost:3000")).toThrow(/symlink|resolves/);
+    expect(readdirSync(outEv)).toEqual([]);
+
+    // reports/ itself swapped for a symlink after startup.
+    const out = realpathSync(tempDir());
+    writeFileSync(join(out, "s.json"), readFileSync(join(reports, "s.json")));
+    rmSync(reports, { recursive: true });
+    symlinkSync(out, reports);
+    expect(() => src.writeReport("after.json", {})).toThrow(/resolves to/);
+    expect(src.saveLoopRun({ startedAt: "2026-10-19T10:00:00.000Z" })).toBeNull();
+    expect(() => src.createEvidence("http://localhost:3000")).toThrow();
+    expect(readdirSync(out)).toEqual(["s.json"]);
+  });
+});
+
+describe("ui runs: approval is bound to the diff shown", () => {
+  const root = tempDir();
+  const roots = [realpathSync(root)];
+  mkdirSync(join(root, "repo"));
+
+  /** A run manager whose loop asks once with `diff` and reports the answer. */
+  async function asking(diff, logs = 0) {
+    let answered;
+    const answer = new Promise((r) => { answered = r; });
+    const runLoop = async ({ ask, log }) => {
+      for (let i = 0; i < logs; i++) log(`line ${i}`);
+      answered(await ask({ plan: { title: "t", recipe: "r", files: ["a.js"], diff, findings: [] }, iteration: 1, index: 1, total: 1 }));
+      return { stopReason: "done", error: null, totals: {}, findings: {}, branch: null, durationMs: 1, iterations: [] };
+    };
+    const mgr = createRunManager({ runLoop, settings: () => ({ offline: true }), projectRoots: roots });
+    const run = mgr.start({ kind: "loop", repo: join(root, "repo") });
+    const ap = await new Promise((done) => mgr.subscribe(run.id, 0, (ev) => { if (ev?.type === "approval") done(ev.data); }));
+    return { mgr, run, ap, answer };
+  }
+
+  it("a 70,000-character diff says it is cut, and cannot be approved without the matching hash and an acknowledgement", async () => {
+    const diff = `${"+a\n".repeat(20000)}+HIDDEN_TAIL_LINE\n${"+b\n".repeat(3330)}`.slice(0, 70000);
+    expect(diff.length).toBe(70000);
+    const { mgr, run, ap, answer } = await asking(diff);
+    expect(ap.plan.truncated).toBe(true);
+    expect(ap.plan.fullLength).toBe(70000);
+    expect(ap.plan.diff.length).toBe(60000);
+    expect(ap.plan.diff).not.toContain("HIDDEN_TAIL_LINE");
+    const shown = diffSha256(ap.plan.diff);
+    const base = { approvalId: ap.approvalId, answer: "approve" };
+    expect(() => mgr.decide(run.id, base)).toThrow(/does not match/);
+    expect(() => mgr.decide(run.id, { ...base, diffSha256: diffSha256(diff) })).toThrow(/does not match/);
+    expect(() => mgr.decide(run.id, { ...base, diffSha256: shown })).toThrow(/Acknowledge/);
+    expect(() => mgr.decide(run.id, { ...base, diffSha256: shown, acknowledgeTruncated: "yes" })).toThrow(/Acknowledge/);
+    expect(mgr.get(run.id).pending).not.toBeNull(); // still waiting
+    mgr.decide(run.id, { ...base, diffSha256: shown, acknowledgeTruncated: true });
+    expect(await answer).toBe("y");
+  });
+
+  it("a whole diff still needs its hash to be approved; skip and stop need none", async () => {
+    const a = await asking("+x\n");
+    expect(a.ap.plan.truncated).toBe(false);
+    expect(a.ap.plan.fullLength).toBe(3);
+    expect(() => a.mgr.decide(a.run.id, { approvalId: a.ap.approvalId, answer: "approve" })).toThrow(/does not match/);
+    a.mgr.decide(a.run.id, { approvalId: a.ap.approvalId, answer: "approve", diffSha256: diffSha256("+x\n") });
+    expect(await a.answer).toBe("y");
+    const b = await asking("+y\n".repeat(30000));
+    b.mgr.decide(b.run.id, { approvalId: b.ap.approvalId, answer: "skip" });
+    expect(await b.answer).toBe("n");
+  });
+
+  it("prototype keys are not answers", async () => {
+    const { mgr, run, ap, answer } = await asking("+x\n");
+    for (const bad of ["__proto__", "constructor", "toString", "hasOwnProperty"]) {
+      expect(() => mgr.decide(run.id, { approvalId: ap.approvalId, answer: bad }), bad).toThrow(/approve, skip or stop/);
+    }
+    mgr.decide(run.id, { approvalId: ap.approvalId, answer: "stop" });
+    expect(await answer).toBe("quit");
+  });
+
+  it("event ids keep counting past the 5,000-event buffer, so a reconnect replays exactly what it missed", async () => {
+    const { mgr, run, ap } = await asking("+x\n", 6000);
+    const seqs = [];
+    mgr.subscribe(run.id, 0, (ev) => { if (ev) seqs.push(ev.seq); })?.();
+    expect(seqs.length).toBe(5000);
+    expect(new Set(seqs).size).toBe(seqs.length);
+    for (let i = 1; i < seqs.length; i++) expect(seqs[i]).toBe(seqs[i - 1] + 1);
+    const last = seqs.at(-1);
+    expect(last).toBeGreaterThan(6000);
+    const missed = [];
+    mgr.subscribe(run.id, last - 3, (ev) => { if (ev) missed.push(ev.seq); })?.();
+    expect(missed).toEqual([last - 2, last - 1, last]);
+    mgr.decide(run.id, { approvalId: ap.approvalId, answer: "stop" });
+  });
+
+  it("keeps a bounded number of finished runs", async () => {
+    const executeScan = async () => ({ merged: { findings: [] } });
+    const mgr = createRunManager({ executeScan, writeReport: () => null, settings: () => ({ offline: true }), projectRoots: roots });
+    for (let i = 0; i < 30; i++) {
+      const run = mgr.start({ kind: "scan", url: "http://localhost:3000" });
+      await new Promise((done) => mgr.subscribe(run.id, 0, (ev) => { if (!ev) done(); }));
+    }
+    expect(mgr.list().length).toBeLessThanOrEqual(20);
+  });
+});
+
+describe("ui server: limits", () => {
+  /** POST that resolves with the status as soon as the response starts; write errors after that are expected. */
+  function postBig(port, auth, body, headers = {}) {
+    return new Promise((resolveReq, reject) => {
+      const req = httpRequest({ host: "127.0.0.1", port, method: "POST", path: "/api/settings", headers: {
+        Host: `127.0.0.1:${port}`, Origin: `http://127.0.0.1:${port}`, "Content-Type": "application/json", Authorization: auth, ...headers,
+      } }, (res) => { res.resume(); resolveReq({ status: res.statusCode, headers: res.headers }); });
+      req.on("error", (e) => reject(e));
+      req.end(body);
+    });
+  }
+
+  it("answers 413 to an oversized body instead of dropping the connection", async () => {
+    const ui = await startUiServer({ demo: true });
+    try {
+      const { auth } = await signIn(ui);
+      const big = JSON.stringify({ offline: true, pad: "x".repeat(200 * 1024) });
+      const chunked = await postBig(ui.port, auth, big);
+      expect(chunked.status).toBe(413);
+      const declared = await postBig(ui.port, auth, big, { "Content-Length": Buffer.byteLength(big) });
+      expect(declared.status).toBe(413);
+      expect(declared.headers.connection).toBe("close");
+      expect((await raw(ui.port, { path: "/api/meta", headers: { Authorization: auth } })).status).toBe(200);
+    } finally { await ui.close(); }
+  });
+
+  it("bounds request time and idle sockets, but not the run event stream", async () => {
+    let finish;
+    const executeScan = () => new Promise((r) => { finish = () => r({ merged: { findings: [] } }); });
+    const ui = await startUiServer({ demo: true, runDeps: { executeScan, writeReport: () => null }, timeouts: { idle: 300 } });
+    try {
+      expect(ui.server.requestTimeout).toBeGreaterThan(0);
+      const { auth } = await signIn(ui);
+      const started = await raw(ui.port, { method: "POST", path: "/api/runs", body: JSON.stringify({ kind: "scan", url: "http://localhost:3000" }), headers: { Authorization: auth, Origin: ui.origin, "Content-Type": "application/json" } });
+      expect(started.status).toBe(200);
+      const { id } = JSON.parse(started.body);
+      // The stream opens first, then a socket that sends half a request and goes quiet.
+      const streamRes = await new Promise((resolveRes, reject) => {
+        const req = httpRequest({ host: "127.0.0.1", port: ui.port, path: `/api/runs/${id}/stream`, headers: { Host: `127.0.0.1:${ui.port}`, Authorization: auth } }, resolveRes);
+        req.on("error", reject);
+        req.end();
+      });
+      expect(streamRes.statusCode).toBe(200);
+      streamRes.resume();
+      const { connect } = await import("node:net");
+      const slow = connect(ui.port, "127.0.0.1");
+      slow.on("error", () => {});
+      // Signed in, so the server is waiting on the body rather than answering at once.
+      slow.write(`POST /api/settings HTTP/1.1\r\nHost: 127.0.0.1:${ui.port}\r\nOrigin: ${ui.origin}\r\nAuthorization: ${auth}\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{`);
+      await new Promise((r) => slow.once("close", r)); // the idle socket is closed by the server
+      expect(streamRes.socket.destroyed).toBe(false); // the stream, idle for longer, is not
+      streamRes.destroy();
+    } finally { finish?.(); await ui.close(); }
+  });
+
+  it("caps open run streams", async () => {
+    const { createApi } = await import("../src/ui/api/routes.js");
+    const { EventEmitter } = await import("node:events");
+    const runs = { get: () => ({}), subscribe: () => () => {} };
+    const handle = createApi({ source: {}, runs, version: "t", settings: { get: () => ({}) }, maxStreams: 2 });
+    const open = () => {
+      const req = new EventEmitter();
+      req.headers = {};
+      req.method = "GET";
+      const res = { status: 0, writableEnded: false, setHeader() {}, writeHead(s) { this.status = s; }, write() {}, end() { this.writableEnded = true; } };
+      return { req, res };
+    };
+    const a = open();
+    const b = open();
+    const c = open();
+    for (const x of [a, b, c]) await handle(x.req, x.res, "/api/runs/0123456789abcdef/stream", new URLSearchParams());
+    expect([a.res.status, b.res.status, c.res.status]).toEqual([200, 200, 429]);
+    a.req.emit("close"); // a closed stream frees its slot
+    const d = open();
+    await handle(d.req, d.res, "/api/runs/0123456789abcdef/stream", new URLSearchParams());
+    expect(d.res.status).toBe(200);
+    for (const x of [b, d]) x.req.emit("close");
+  });
+});
+
+describe("ui --open: the token stays off the command line", () => {
+  it("writes a launcher page only this user can read, which forwards to the one-time URL", async () => {
+    const { writeLauncher } = await import("../src/cli/ui.js");
+    const dir = tempDir();
+    const url = "http://127.0.0.1:4321/#t=abcdefghijklmnopqrstuvwxyz0123456789_-ABCDE";
+    const { file } = writeLauncher(url, dir);
+    const html = readFileSync(file, "utf-8");
+    expect(html).toContain(`content="0;url=${url}"`);
+    if (process.platform !== "win32") expect(statSync(file).mode & 0o777).toBe(0o600);
+    expect(() => writeLauncher(url, dir)).toThrow(/EEXIST/); // never over an existing file
   });
 });

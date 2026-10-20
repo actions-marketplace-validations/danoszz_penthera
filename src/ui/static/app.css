@@ -706,3 +706,89 @@ dialog.window > .win-bar .icon.close-box:hover::before { background: var(--groun
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
   .cursor, .item .dot.live { opacity: 1; }
 }
+
+/* ── Phase 3: verdict, simple list, triage matrix, setup, approval ────── */
+
+/* The verdict: one sentence and one button. Critical inverts the box, so the
+   loudest state is the one with the most at stake. */
+.verdict { margin: 0 3px 8px 0; padding: 14px 16px; border: 1px solid var(--frame); box-shadow: 3px 3px 0 var(--frame); display: grid; gap: 6px; }
+.verdict p { margin: 0; }
+.verdict-text { font: 600 20px / 1.3 var(--sans); color: var(--text-1); }
+.verdict-sub { font: 13px / 1.4 var(--sans); }
+.verdict .actions { margin-top: 6px; }
+.verdict.v-stop { background: var(--frame); }
+.verdict.v-stop .verdict-text { color: var(--ground); }
+.verdict.v-stop .verdict-sub { color: var(--ground); opacity: 0.75; }
+.verdict.v-stop .btn:not(.primary) { border-color: var(--ground); }
+.verdict.v-stop .btn.primary { box-shadow: 0 0 0 2px var(--frame), 0 0 0 3px var(--ground); }
+
+.rows.simple .row { grid-template-columns: 9em minmax(0, 1fr) auto; padding: 12px 8px; align-items: center; }
+.rows.simple .row .t { font: 15px / 1.35 var(--sans); }
+.rows.simple .row.b .t { font-weight: 600; }
+p.more { margin-top: 28px; font-size: 13px; }
+details.more { display: grid; gap: 10px; }
+details.more > summary { cursor: default; font: 11px / 1 var(--px); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-1); padding: 8px 0; list-style: none; }
+details.more > summary::-webkit-details-marker { display: none; }
+details.more > summary::before { content: "▸ "; }
+details.more[open] > summary::before { content: "▾ "; }
+details.more > summary:hover { text-decoration: underline; }
+details.more[open] > * + * { margin-top: 10px; }
+.linkish { font: inherit; text-transform: inherit; letter-spacing: inherit; color: var(--text-1); background: none; border: 0; padding: 0; text-decoration: underline; cursor: default; }
+
+/* Triage matrix: severity down, how sure across. */
+.matrix { border-collapse: collapse; width: 100%; max-width: 560px; }
+.matrix th { font: 11px / 1 var(--px); color: var(--text-3); font-weight: 400; text-align: left; padding: 0 8px 6px 0; }
+.matrix thead th { text-align: center; }
+.matrix tbody th { padding: 0 12px 0 0; white-space: nowrap; }
+.matrix td { padding: 0; border: 1px solid var(--frame); }
+.matrix .cell { display: grid; place-items: center; width: 100%; height: 36px; border: 0; background: var(--ground); color: var(--text-1); cursor: default; }
+.matrix .cell[disabled] { color: var(--text-4); }
+.matrix .cell .n { font: 11px / 1 var(--px); padding: 3px 6px; background: var(--ground); }
+.matrix .cell.fill-critical { background: var(--pt-solid); }
+.matrix .cell.fill-high { background: var(--pt-hatch); }
+.matrix .cell.fill-medium { background: var(--pt-half); }
+.matrix .cell.fill-low { background: var(--pt-sparse); }
+.matrix .cell:not([disabled]):hover .n { background: var(--frame); color: var(--ground); }
+.matrix .cell[aria-pressed="true"] { box-shadow: inset 0 0 0 3px var(--accent); }
+.matrix .cell[aria-pressed="true"] .n { background: var(--accent); color: var(--on-accent); }
+.matrix .cell:focus-visible { outline: 2px solid var(--focus); outline-offset: -4px; }
+
+/* Setup: three screens in one window. */
+dialog.window.wide { width: min(640px, calc(100vw - 32px)); }
+.setup { display: grid; gap: 14px; justify-items: stretch; }
+.setup > .logotype.xl { justify-self: start; color: var(--text-1); margin: 4px 0 2px; }
+.setup h2 { margin: 0; font: 600 20px / 1.3 var(--sans); color: var(--text-1); }
+.setup p { margin: 0; }
+.setup .gate { border-left: 3px solid var(--frame); padding-left: 10px; color: var(--text-1); }
+.setup .form .field:first-child { margin-top: 0; }
+.choice.big { padding: 14px 12px; }
+.choice.big .t1 { font: 600 16px / 1.3 var(--sans); }
+.win-bar .progress { font: 11px / 1 var(--px); padding-right: 6px; }
+
+/* The approval window: pinstripes mean it waits on you. */
+.win-bar.striped,
+dialog.window > .win-bar.striped {
+  background: repeating-linear-gradient(to bottom, var(--frame) 0 1px, transparent 1px 2px) 0 8px / 100% 11px no-repeat, var(--ground);
+  color: var(--text-1);
+}
+.win-bar.striped .title { background: var(--ground); padding: 0 8px; margin: 0 auto; }
+dialog.window > .win-bar.striped .icon.close-box::before { background: var(--ground); border-color: var(--frame); }
+dialog.window > .win-bar.striped .icon.close-box { background: var(--ground); }
+.approval { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); }
+.approval > * { min-width: 0; }
+.approval h3 { margin: 0; font: 600 16px / 1.35 var(--sans); color: var(--text-1); }
+.approval p { margin: 0; }
+.approval .actions { margin-top: 6px; }
+.approval kbd, .btn kbd { border-color: currentColor; }
+.wait-note { display: flex; align-items: center; gap: 10px; margin: 14px 3px 14px 0; padding: 10px 12px; border: 1px solid var(--frame); box-shadow: 3px 3px 0 var(--frame); color: var(--text-1); flex-wrap: wrap; }
+
+/* Step gutter: every line done gets a filled square; the line being worked on is hollow. */
+.transcript.gutter { padding-left: 20px; }
+.transcript.gutter .ln { position: relative; }
+.transcript.gutter .ln::after { content: ""; position: absolute; left: -20px; top: 0.4em; width: 9px; height: 9px; border: 1px solid var(--frame); background: var(--frame); }
+.transcript.gutter:not(.done) .ln:last-child::after { background: none; animation: blink 1s steps(1, end) infinite; }
+
+@media (max-width: 760px) {
+  .rows.simple .row { grid-template-columns: minmax(0, 1fr) auto; }
+  .verdict-text { font-size: 18px; }
+}

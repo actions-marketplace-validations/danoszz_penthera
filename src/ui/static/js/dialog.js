@@ -3,9 +3,9 @@
 // inert. Focus returns to whatever opened it.
 import { h, announce } from "./dom.js";
 import { api } from "./api.js";
-import { state, set, folderFor, liveRun } from "./state.js";
+import { state, set, folderFor, liveRun, simple } from "./state.js";
 import { shortProject } from "./format.js";
-import { KINDS, NOTES, ABOUT } from "./copy.js";
+import { KINDS, NOTES, ABOUT, SIMPLE_KINDS } from "./copy.js";
 
 const LOCAL = /^(localhost|127\.\d+\.\d+\.\d+|\[::1\]|[a-z0-9-]+\.localhost)$/i;
 
@@ -16,12 +16,12 @@ function hostOf(raw) {
 }
 
 /** Open a modal window. Returns { el, close }. */
-export function openWindow({ title, label, body, wide = false }) {
+export function openWindow({ title, label, body, wide = false, striped = false }) {
   const opener = document.activeElement;
   const dlg = h("dialog", { class: ["window", wide ? "wide" : null], "aria-label": label || title });
   const close = () => { if (dlg.open) dlg.close(); };
   dlg.append(
-    h("div", { class: "win-bar" },
+    h("div", { class: ["win-bar", striped ? "striped" : null] },
       h("button", { type: "button", class: "icon close-box", "aria-label": "Close (Esc)", title: "Close  Esc", onclick: close }),
       h("span", { class: "title" }, title)),
     h("div", { class: "window-body" }, body),
@@ -50,10 +50,13 @@ export function newScan(ctx, { kind = "scan", project = null } = {}) {
   const folders = state.meta?.projects || [];
   const busy = liveRun();
 
-  const radios = KINDS.map((k) => {
+  const easy = simple();
+  const kinds = easy ? SIMPLE_KINDS : KINDS.map((k) => ({ ...k, body: NOTES[k.kind] }));
+  if (!kinds.some((k) => k.kind === kind)) kind = kinds[0].kind;
+  const radios = kinds.map((k) => {
     const input = h("input", { type: "radio", name: "kind", value: k.kind, checked: k.kind === kind });
     return h("label", { class: "choice" }, input,
-      h("span", {}, h("span", { class: "t1" }, k.title), h("span", { class: "note prose" }, NOTES[k.kind])));
+      h("span", {}, h("span", { class: "t1" }, k.title), h("span", { class: "note prose" }, k.body)));
   });
   const kindNow = () => radios.map((r) => r.querySelector("input")).find((i) => i.checked)?.value || "scan";
 
@@ -61,7 +64,7 @@ export function newScan(ctx, { kind = "scan", project = null } = {}) {
     folders.map((f) => h("option", { value: f, selected: f === folderFor(selected) }, shortProject(f))));
   const url = h("input", { type: "text", id: "ns-url", autocomplete: "off", spellcheck: "false", placeholder: "http://localhost:3000" });
   if (selected && /^https?:/.test(selected)) url.value = selected;
-  const urlRow = h("div", { class: "field" }, h("label", { for: "ns-url" }, "Running app URL ", h("span", { class: "muted" }, "(optional)")), url);
+  const urlRow = h("div", { class: "field" }, h("label", { for: "ns-url" }, easy ? "Where your app runs " : "Running app URL ", h("span", { class: "muted" }, "(optional)")), url);
 
   const confirm = h("input", { type: "text", id: "ns-confirm", autocomplete: "off", spellcheck: "false" });
   const confirmQ = h("label", { for: "ns-confirm", class: "prose" });
@@ -82,7 +85,7 @@ export function newScan(ctx, { kind = "scan", project = null } = {}) {
 
   const sync = () => {
     const k = kindNow();
-    const def = KINDS.find((x) => x.kind === k);
+    const def = kinds.find((x) => x.kind === k);
     const usesUrl = k === "scan" || k === "loop";
     urlRow.hidden = !usesUrl;
     const host = usesUrl ? hostOf(url.value) : null;
@@ -95,8 +98,8 @@ export function newScan(ctx, { kind = "scan", project = null } = {}) {
   url.addEventListener("input", sync);
 
   const form = h("form", { class: "form", novalidate: true },
-    h("fieldset", {}, h("legend", {}, "What to run"), h("div", { class: "choices" }, radios)),
-    h("div", { class: "field" }, h("label", { for: "ns-folder" }, "Project folder"), folders.length ? folder : h("p", { class: "muted" }, "No folders. Start penthera ui with --project <dir>."),
+    h("fieldset", {}, h("legend", {}, easy ? "What do you want to do?" : "What to run"), h("div", { class: "choices" }, radios)),
+    h("div", { class: "field" }, h("label", { for: "ns-folder" }, easy ? "Your app's folder" : "Project folder"), folders.length ? folder : h("p", { class: "muted" }, "No folders. Start penthera ui with --project <dir>."),
       h("p", { id: "ns-folder-note", class: "muted prose" }, "Runs read and write only inside this folder.")),
     urlRow,
     confirmRow,
@@ -105,7 +108,7 @@ export function newScan(ctx, { kind = "scan", project = null } = {}) {
     err,
     h("div", { class: "actions" }, h("span", { class: "grow muted" }, "Only scan what you own or may test."), cancel, start),
   );
-  const win = openWindow({ title: "New scan", body: form });
+  const win = openWindow({ title: easy ? "Check my app" : "New scan", body: form });
   cancel.addEventListener("click", win.close);
   sync();
 

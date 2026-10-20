@@ -7,7 +7,7 @@
 // opens one, Up / Down move inside it, Esc closes and returns to the title.
 import { h, clear, announce } from "./dom.js";
 import { api } from "./api.js";
-import { state, set, TABS, currentProject, liveRun } from "./state.js";
+import { state, set, TABS, currentProject, liveRun, simple } from "./state.js";
 import { shortProject } from "./format.js";
 
 let openIdx = -1;
@@ -19,13 +19,25 @@ export function renderMenubar(el, ctx) {
   const inDoc = state.sel.kind === "all" || state.sel.kind === "project";
   const report = (a) => ({ label: `Download ${a} report`, href: scanned ? `/api/report?${new URLSearchParams({ project, audience: a })}` : null, disabled: !scanned });
 
-  const menus = [
+  const easy = simple();
+  const all = [
     { id: "app", label: "Penthera", logo: true, items: [
       { label: "About Penthera…", run: () => ctx.about() },
-      { label: "Settings…", run: () => set({ right: "settings" }), key: "" },
+      { label: "Set up…", run: () => ctx.setup() },
+      { label: "Settings…", run: () => set({ right: "settings" }) },
+      "-",
+      { label: "Simple mode", check: easy, run: () => ctx.setUx("simple") },
+      { label: "Advanced mode", check: !easy, run: () => ctx.setUx("advanced") },
       "-",
       { label: "Light theme", check: ctx.theme.get() === "light", run: () => ctx.setTheme("light") },
       { label: "Dark theme", check: ctx.theme.get() === "dark", run: () => ctx.setTheme("dark") },
+    ] },
+    { id: "check", label: "Check", simple: true, items: [
+      { label: "Check my app…", key: "n", run: () => ctx.newScan("scan") },
+      { label: "Fix problems for me…", run: () => ctx.newScan("loop") },
+      "-",
+      { label: "Show the running check", disabled: !run, run: () => set({ sel: { kind: "run", key: run.id, run } }) },
+      { label: "Stop it", disabled: !run, run: () => api.post(`/api/runs/${run.id}/stop`).then(() => announce("Stopping after the current step")) },
     ] },
     { id: "file", label: "File", items: [
       { label: "New scan…", key: "n", run: () => ctx.newScan() },
@@ -48,14 +60,16 @@ export function renderMenubar(el, ctx) {
       "-",
       report("auditor"), report("owner"), report("developer"),
     ] },
-    { id: "view", label: "View", items: [
+    { id: "view", label: "View", simple: true, items: [
       { label: "Projects window", key: "[", check: ctx.panels.left, run: ctx.toggleLeft },
       { label: "Inspector window", key: "]", check: ctx.panels.right, run: ctx.toggleRight },
       { label: "Search findings", key: "/", disabled: !inDoc, run: () => { ctx.openTab("findings"); queueMicrotask(() => document.getElementById("q")?.focus()); } },
       "-",
-      ...TABS.map((t) => ({ label: t.label, key: t.key, check: inDoc && state.tab === t.id, disabled: !inDoc, run: () => ctx.openTab(t.id) })),
+      ...(easy ? [] : TABS.map((t) => ({ label: t.label, key: t.key, check: inDoc && state.tab === t.id, disabled: !inDoc, run: () => ctx.openTab(t.id) }))),
     ] },
   ];
+  // Simple mode keeps three menus: Penthera, Check, View. Advanced has everything but Check.
+  const menus = all.filter((m) => m.logo || (easy ? m.simple : m.id !== "check"));
 
   const titles = [];
   const bar = h("ul", { class: "menus", role: "menubar", "aria-label": "Menu bar" });

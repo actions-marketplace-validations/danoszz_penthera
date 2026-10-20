@@ -10,9 +10,11 @@ import { renderLeft } from "./left.js";
 import { renderCenter, refreshList, moveFinding, answerPending } from "./center.js";
 import { renderRight } from "./right.js";
 import { newScan, about } from "./dialog.js";
+import { setup } from "./onboarding.js";
 import { ERR } from "./copy.js";
 
 const THEME_KEY = "penthera-ui-theme";
+const UX_KEY = "penthera-ui-mode";
 const PANELS_KEY = "penthera-ui-panels";
 const app = document.getElementById("app");
 const menubar = document.getElementById("menubar");
@@ -65,6 +67,14 @@ const ctx = {
   setTheme(t) { theme.set(t); renderMenubar(menubar, ctx); if (state.right === "settings") renderRight(right, ctx); },
   newScan(kind, project) { closeMenus(); newScan(ctx, { kind, project }); },
   about() { about(); },
+  setup() { closeMenus(); setup(ctx); },
+  setUx(ux) {
+    try { localStorage.setItem(UX_KEY, ux); } catch { /* this page only */ }
+    set({ ux, tab: "findings", filter: null });
+    announce(`${ux === "simple" ? "Simple" : "Advanced"} mode`);
+  },
+  /** Setup closed: keep what was chosen, Simple if nothing was. */
+  finishSetup(ux) { ctx.setUx(ux || "simple"); },
   openTab(tab, project) {
     const patch = { tab };
     if (project) patch.sel = { kind: "project", key: project };
@@ -90,14 +100,14 @@ async function refresh() {
 on((patch) => {
   const keys = Object.keys(patch);
   if (keys.includes("query") && keys.length === 1) { refreshList(ctx); return; }
-  if (keys.some((k) => ["overview", "runs", "sel", "meta", "right", "tab", "pending"].includes(k))) renderMenubar(menubar, ctx);
+  if (keys.some((k) => ["overview", "runs", "sel", "meta", "right", "tab", "pending", "ux"].includes(k))) renderMenubar(menubar, ctx);
   if (keys.some((k) => ["overview", "runs", "sel", "meta"].includes(k))) renderLeft(left, ctx);
-  if (keys.some((k) => ["overview", "findings", "sel", "tab"].includes(k))) {
+  if (keys.some((k) => ["overview", "findings", "sel", "tab", "filter", "ux"].includes(k))) {
     // A live transcript is rebuilt only when the selection changes, never on a data refresh.
     if (!(state.sel.kind === "run" && !keys.includes("sel"))) renderCenter(center, ctx);
     if (keys.includes("sel") && narrowLeft() && panels.left) { panels.left = false; applyPanels(); }
   }
-  if (keys.some((k) => ["sel", "right", "finding"].includes(k))) {
+  if (keys.some((k) => ["sel", "right", "finding", "ux"].includes(k))) {
     if (state.right !== "none" && !panels.right) { panels.right = true; applyPanels(); }
     renderRight(right, ctx);
   }
@@ -122,7 +132,7 @@ document.addEventListener("keydown", (e) => {
   }
   if (isTyping(e) || menubar.contains(e.target)) return;
   if (answerPending(e.key)) { e.preventDefault(); return; }
-  const tab = TABS.find((t) => t.key === e.key);
+  const tab = state.ux === "advanced" && TABS.find((t) => t.key === e.key);
   if (tab) { e.preventDefault(); ctx.openTab(tab.id); return; }
   if (e.key === "n") { e.preventDefault(); ctx.newScan(); return; }
   if (e.key === "/") {
@@ -140,6 +150,10 @@ if (narrowLeft()) panels.left = false;
 if (narrowRight()) panels.right = false;
 applyPanels();
 
+let savedUx = null;
+try { savedUx = localStorage.getItem(UX_KEY); } catch { /* storage off */ }
+state.ux = savedUx === "advanced" ? "advanced" : "simple";
+
 (async function boot() {
   document.body.append(patternDefs());
   try {
@@ -148,6 +162,7 @@ applyPanels();
     renderRight(right, ctx);
     await refresh();
     document.title = `Penthera${state.meta.demo ? " :: demo" : ""}`;
+    if (!savedUx) ctx.setup(); // first visit in this browser
   } catch (e) {
     clear(center).append(h("div", { class: "col" },
       h("h1", {}, "Not signed in"),

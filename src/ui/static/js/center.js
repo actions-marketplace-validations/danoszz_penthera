@@ -4,11 +4,12 @@
 // Skip / Stop. Runs start from the New scan dialog, not from here.
 import { h, clear, empty, sevBadge, diffBlock, announce } from "./dom.js";
 import { api } from "./api.js";
-import { state, set, projectOf, TABS } from "./state.js";
+import { state, set, projectOf, TABS, simple } from "./state.js";
 import { createTyper } from "./typer.js";
-import { stackedBar, sparkline, wordmark } from "./charts.js";
+import { stackedBar, sparkline, wordmark, matrix } from "./charts.js";
 import { ago, duration, shortProject, plural, SEVERITIES } from "./format.js";
-import { START, EMPTY } from "./copy.js";
+import { START, EMPTY, SEV_WORD, verdict } from "./copy.js";
+import { openWindow } from "./dialog.js";
 import { depsTab, aiTab, historyTab, proofTab } from "./panels.js";
 
 const SEV_RANK = Object.fromEntries(SEVERITIES.map((s, i) => [s, i]));
@@ -20,6 +21,7 @@ let pending = null;
 let visible = [];
 
 export function stopStream() {
+  closeApproval();
   es?.close();
   es = null;
   typer?.stop();
@@ -74,16 +76,39 @@ function projectView(col, ctx) {
   const open = all ? o.open : p.open;
   const fixed = all ? o.fixed : p.fixed;
   const trend = all ? combinedTrend(o.projects) : p.trend.map((t) => t.total);
+  const easy = simple();
+  const when = ago(all ? o.lastScans[0]?.ts : p.lastScan);
   col.append(h("header", { class: "head" },
     h("span", { class: `grade lg grade-${all ? "x" : p.grade}`, title: all ? "" : `score ${p.score}/100` }, all ? "∑" : p.grade),
     h("h1", { title: key || "" }, all ? "All projects" : shortProject(key)),
-    h("div", { class: "meta" }, all ? `${plural(o.projects.length, "project")} · newest scan ${ago(o.lastScans[0]?.ts)}` : `${p.mode || "scan"} · last scan ${ago(p.lastScan)} · ${plural(p.trend.length, "scan")}`),
+    h("div", { class: "meta" }, easy
+      ? (all ? `${plural(o.projects.length, "project")} · last checked ${when}` : `last checked ${when}`)
+      : (all ? `${plural(o.projects.length, "project")} · newest scan ${when}` : `${p.mode || "scan"} · last scan ${when} · ${plural(p.trend.length, "scan")}`)),
     h("div", { class: "right-bits" },
-      stackedBar(counts, { width: 24 }),
-      sparkline(trend, { label: "open findings per scan" }),
-      h("div", { class: "counts" }, h("b", {}, String(open)), " open · ", h("span", { class: "ok" }, String(fixed)), " fixed"),
+      easy ? null : stackedBar(counts, { width: 24 }),
+      easy ? null : sparkline(trend, { label: "open findings per scan" }),
+      h("div", { class: "counts" }, h("b", {}, String(open)), easy ? " to fix · " : " open · ", h("span", { class: "ok" }, String(fixed)), " fixed"),
     ),
   ));
+
+  // The verdict: one sentence, one button.
+  const mine = sorted(state.findings.filter((f) => !f.suppressed && (all || f.project === key)));
+  const v = verdict({ counts, open, top: mine[0], scanned: true, when });
+  col.append(h("section", { class: ["verdict", `v-${v.level}`], "aria-label": "Verdict" },
+    h("p", { class: "verdict-text" }, v.text),
+    h("p", { class: "verdict-sub muted" }, v.sub),
+    v.top ? h("div", { class: "actions start" },
+      h("button", { type: "button", class: "btn primary", onclick: () => ctx.openFinding(v.top) }, easy ? "Show me the first one ▸" : `Open: ${v.top.title}`),
+      easy && v.level !== "clear" ? h("button", { type: "button", class: "btn", onclick: () => ctx.newScan("loop", all ? null : key) }, "Fix problems for me…") : null) : null,
+  ));
+
+  if (easy) {
+    const list = h("ul", { class: "rows simple", id: "findings-list", "aria-label": "Problems to fix" });
+    col.append(h("section", { class: "section" }, h("h2", {}, h("span", {}, "To fix"), h("span", { id: "findings-count" })), list));
+    fillFindings(list, ctx);
+    col.append(h("p", { class: "muted prose more" }, "Looking for dependencies, AI tooling, history or evidence for an auditor? Switch to Advanced in the Penthera menu."));
+    return;
+  }
 
   col.append(tabStrip(ctx));
   const panel = h("div", { class: "tab-panel", role: "tabpanel", id: `tab-${state.tab}`, "aria-labelledby": `tabbtn-${state.tab}` });
@@ -112,10 +137,17 @@ function projectView(col, ctx) {
       h("div", { class: "cols2" }, miniList(o.columns.newest, "Nothing new."), miniList(o.columns.fixed, "Nothing fixed.", true))));
   }
 
+  const pool = state.findings.filter((f) => !f.suppressed && (all || f.project === key));
+  panel.append(h("section", { class: "section" },
+    h("h2", {}, h("span", {}, "Triage :: severity × how sure"), h("span", {}, state.filter ? h("button", { type: "button", class: "linkish", onclick: () => set({ filter: null }) }, "clear filter ×") : "pick a cell to filter")),
+    matrix(pool, state.filter, (cell) => set({ filter: cell }))));
+
   const list = h("ul", { class: "rows", id: "findings-list", "aria-label": "Findings" });
   panel.append(h("section", { class: "section" }, h("h2", {}, h("span", {}, "Findings"), h("span", { id: "findings-count" })), list));
   fillFindings(list, ctx);
 }
+
+const sorted = (rows) => [...rows].sort((a, b) => SEV_RANK[a.severity] - SEV_RANK[b.severity] || a.title.localeCompare(b.title));
 
 /** Folder tabs: the selected one joins the page below it. Arrow keys move between them. */
 function tabStrip(ctx) {
@@ -141,33 +173,36 @@ function tabStrip(ctx) {
 function fillFindings(list, ctx) {
   const all = state.sel.kind === "all";
   const q = state.query.trim().toLowerCase();
-  const rows = state.findings
+  const easy = simple();
+  const fl = easy ? null : state.filter;
+  const rows = sorted(state.findings
     .filter((f) => !f.suppressed && (all || f.project === state.sel.key))
-    .filter((f) => !q || `${f.title} ${f.category} ${f.location} ${f.project}`.toLowerCase().includes(q))
-    .sort((a, b) => SEV_RANK[a.severity] - SEV_RANK[b.severity] || a.title.localeCompare(b.title));
+    .filter((f) => !fl || (f.severity === fl.severity && (f.confidence || "likely") === fl.confidence))
+    .filter((f) => !q || `${f.title} ${f.category} ${f.location} ${f.project}`.toLowerCase().includes(q)));
   visible = rows;
   clear(list);
   let group = null;
   for (const f of rows) {
     const fixFirst = f.severity === "critical" || f.severity === "high";
-    const g = fixFirst ? "Fix first" : "Then";
+    const g = fixFirst ? "Fix first" : easy ? "When you have time" : "Then";
     if (g !== group) {
       group = g;
-      list.append(h("li", { class: "group-h" }, g === "Fix first" ? `Fix first :: ${rows.filter((x) => x.severity === "critical" || x.severity === "high").length}` : `Then :: ${rows.filter((x) => !(x.severity === "critical" || x.severity === "high")).length}`));
+      const n = rows.filter((x) => (x.severity === "critical" || x.severity === "high") === fixFirst).length;
+      list.append(h("li", { class: "group-h" }, `${g} :: ${n}`));
     }
     const cur = state.finding && state.finding.id === f.id && state.finding.project === f.project;
     list.append(h("li", {}, h("button", {
       type: "button", class: ["row", fixFirst ? "b" : null], "aria-current": String(Boolean(cur)), dataset: { id: f.id, project: f.project },
       onclick: () => ctx.openFinding(f),
     },
-    sevBadge(f.severity),
+    easy ? h("span", { class: `sev sev-${f.severity}` }, SEV_WORD[f.severity] || f.severity) : sevBadge(f.severity),
     h("span", { class: "t" }, f.title),
-    h("span", { class: "tag" }, all ? shortProject(f.project) : f.category || ""),
-    f.location ? h("span", { class: "where" }, f.location) : null)));
+    h("span", { class: "tag" }, easy ? (all ? shortProject(f.project) : "▸") : all ? shortProject(f.project) : f.category || ""),
+    !easy && f.location ? h("span", { class: "where" }, f.location) : null)));
   }
   if (!rows.length) list.append(h("li", {}, empty(state.findings.length && q ? `${EMPTY.filtered}` : EMPTY.findings)));
   const count = document.getElementById("findings-count");
-  if (count) count.textContent = q ? `${rows.length} match` : plural(rows.length, "open finding");
+  if (count) count.textContent = q || fl ? `${rows.length} match` : easy ? plural(rows.length, "problem") : plural(rows.length, "open finding");
 }
 
 /** j / k: move the selection and open the finding in the right panel. */
@@ -224,14 +259,22 @@ function runView(col, ctx) {
   if (!run) return;
   const status = h("span", { class: "chip" }, run.status);
   const stop = h("button", { type: "button", class: "btn small", disabled: run.status !== "running" }, "Stop");
-  const lines = h("div", { class: "transcript", role: "log", "aria-live": "off", "aria-label": "Run output" });
+  const lines = h("div", { class: ["transcript", "gutter", run.status === "running" ? null : "done"], role: "log", "aria-live": "off", "aria-label": "Run output" });
   const tail = h("div");
+  const easy = simple();
+  // Simple mode: one sentence on what is happening, the raw output folded away.
+  const said = h("p", { class: "verdict-text", "aria-live": "polite" }, run.kind === "loop" ? "Looking for problems it can fix…" : "Checking your app… this takes a minute or two.");
+  const saidSub = h("p", { class: "verdict-sub muted" }, "You can leave this page; it keeps going.");
+  const tally = { verified: 0, failed: 0 };
   col.append(
     h("div", { class: "run-head" },
-      h("h1", {}, `${({ scan: "Scan", deps: "Dependency check", agents: "AI tooling audit", loop: "Fix loop" })[run.kind] || run.kind}`),
+      h("h1", {}, easy ? ({ scan: "Checking your app", loop: "Fixing problems", deps: "Checking dependencies", agents: "Checking AI tooling" })[run.kind] || run.kind
+        : `${({ scan: "Scan", deps: "Dependency check", agents: "AI tooling audit", loop: "Fix loop" })[run.kind] || run.kind}`),
       h("span", { class: "muted" }, `${shortProject(run.repo || run.url)}${run.url && run.repo ? ` + ${run.url}` : ""} · ${ago(run.startedAt)}`),
-      h("span", { class: "grow" }), status, stop),
-    lines, tail,
+      h("span", { class: "grow" }), easy ? null : status, stop),
+    easy ? h("section", { class: "verdict" }, said, saidSub) : null,
+    tail,
+    easy ? h("details", { class: "more" }, h("summary", {}, "Show what it is doing"), lines) : lines,
   );
   const setStatus = (st) => {
     status.textContent = st;
@@ -263,32 +306,51 @@ function runView(col, ctx) {
         pending = d;
         set({ pending: { index: d.index, total: d.total } });
         typer.flush();
-        tail.append(approvalDialog(run, d, typer));
+        clear(tail).append(waitingNote(run, d, typer));
+        said.textContent = `Fix ${d.index} of ${d.total} is waiting for you to approve it.`;
         setStatus("awaiting you");
         scroll();
-        announce(`Fix ${d.index} of ${d.total} is waiting for you: ${d.plan.title}`);
+        // Replayed approvals are followed at once by their decision: open the window only if this one is still waiting.
+        setTimeout(() => { if (pending === d) openApproval(run, d, typer); }, 60);
         break;
       }
       case "decision": {
         pending = null;
         set({ pending: null });
+        closeApproval();
         clear(tail);
         setStatus("running");
+        said.textContent = d.answer === "y" ? "Applying the fix and checking it worked…" : "Moving on…";
+        break;
+      }
+      case "fix": {
+        if (d.status === "verified") tally.verified++;
+        else if (d.status === "failed") tally.failed++;
+        saidSub.textContent = `${plural(tally.verified, "fix", "fixes")} applied and checked so far${tally.failed ? `, ${tally.failed} undone because it did not work` : ""}.`;
         break;
       }
       case "status": {
         if (d.status === "running") break;
         if (state.pending) set({ pending: null });
+        closeApproval();
+        lines.classList.add("done");
         setStatus(d.status);
         clear(tail);
         const sum = d.summary;
+        if (d.status === "error") said.textContent = "Something went wrong. Open “Show what it is doing” for the reason.";
+        else if (d.status === "stopped") said.textContent = "Stopped. Everything applied so far was checked; nothing was published.";
+        else if (sum?.totals) {
+          const t = sum.totals;
+          said.textContent = `Done. ${plural(t.verified, "fix", "fixes")} applied and checked${t.failed ? `, ${t.failed} undone` : ""}${t.declined ? `, ${t.declined} skipped` : ""}.`;
+        } else said.textContent = "Done. Your project is up to date.";
+        saidSub.textContent = run.kind === "loop" ? "The changes are on a separate branch on this computer. Nothing was published." : "";
         if (sum?.totals) {
           const t = sum.totals;
           typer.push(`done: ${sum.stopReason} after ${plural(t.iterations, "round")} (${duration(sum.durationMs)})`, "ok");
           typer.push(`${t.verified} verified and committed :: ${t.failed} failed and reverted :: ${t.declined} skipped${sum.branch ? ` :: branch ${sum.branch}` : ""}`, t.failed ? "bad" : "ok");
         }
         tail.append(h("div", { class: "actions" },
-          run.repo || run.url ? h("button", { type: "button", class: "btn primary", onclick: () => ctx.refresh().then(() => set({ sel: { kind: "project", key: run.repo || run.url } })) }, "Open the project ▸") : null));
+          run.repo || run.url ? h("button", { type: "button", class: "btn primary", onclick: () => ctx.refresh().then(() => set({ sel: { kind: "project", key: run.repo || run.url } })) }, easy ? "See my project ▸" : "Open the project ▸") : null));
         ctx.refresh();
         announce(`Run ${d.status}`);
         break;
@@ -296,50 +358,89 @@ function runView(col, ctx) {
       default: break;
     }
   };
-  for (const type of ["log", "approval", "decision", "status"]) {
+  for (const type of ["log", "approval", "decision", "fix", "status"]) {
     es.addEventListener(type, (m) => { try { onEvent(JSON.parse(m.data)); } catch { /* malformed event */ } });
   }
   es.addEventListener("end", () => { es?.close(); es = null; });
 }
 
-function approvalDialog(run, d, ty) {
-  const p = d.plan;
-  const decide = async (answer, box) => {
-    for (const b of box.querySelectorAll("button")) b.disabled = true;
+// ── The approval: a floating window, pinstriped because it waits on you ──
+
+let approval = null;   // { win, decide } while the window is open
+let decideFn = null;   // answers the waiting diff, window open or not
+
+function closeApproval() {
+  approval?.win.close();
+  approval = null;
+  decideFn = null;
+}
+
+function decider(run, d, ty) {
+  let busy = false;
+  return async (answer) => {
+    if (busy) return;
+    busy = true;
+    approval?.el?.querySelectorAll("button").forEach((b) => { b.disabled = true; });
     try {
       await api.post(`/api/runs/${run.id}/decision`, { approvalId: d.approvalId, answer });
     } catch (e) {
       ty.push(`error: ${e.message}`, "bad");
-      for (const b of box.querySelectorAll("button")) b.disabled = false;
+      approval?.el?.querySelectorAll("button").forEach((b) => { b.disabled = false; });
+      busy = false;
     }
   };
-  const box = h("section", { class: "dialog", role: "alertdialog", "aria-labelledby": "ap-h", "aria-describedby": "ap-d" });
-  const apply = h("button", { type: "button", class: "btn primary", onclick: () => decide("approve", box) }, "Apply", h("span", { class: "k" }, "y"));
-  box.append(
-    h("div", { class: "dialog-bar" }, h("span", {}, `Fix ${d.index} of ${d.total}`)),
-    h("div", { class: "dialog-body" },
-      h("h3", { id: "ap-h" }, p.title),
-      h("p", { id: "ap-d", class: "muted" }, `${p.recipe}${p.framework ? ` (${p.framework})` : ""} · ${p.files.join(", ")} · ${d.memory ? `memory: ${d.memory.verified} verified, ${d.memory.failed} failed` : "no history for this recipe yet"}`),
-      h("div", {}, p.findings.map((f) => h("div", {}, sevBadge(f.severity), " ", h("span", { class: "t1" }, f.title)))),
-      diffBlock(p.diff),
-      p.redacted ? h("p", { class: "muted" }, "Secret values are masked here; the real patch uses them.") : null,
-      h("div", { class: "actions" },
-        h("button", { type: "button", class: "btn", onclick: () => decide("stop", box) }, "Stop", h("span", { class: "k" }, "q")),
-        h("button", { type: "button", class: "btn", onclick: () => decide("skip", box) }, "Skip", h("span", { class: "k" }, "n")),
-        apply),
-    ),
-  );
-  queueMicrotask(() => apply.focus({ preventScroll: true }));
-  return box;
 }
 
-/** y / n / q while a diff waits. */
+/** Inline in the transcript: what is waiting, and a way back to the window. */
+function waitingNote(run, d, ty) {
+  decideFn = decider(run, d, ty);
+  return h("div", { class: "wait-note" },
+    h("span", { class: "lamp live", "aria-hidden": "true" }),
+    h("span", { class: "grow" }, `Fix ${d.index} of ${d.total} is waiting for you: ${d.plan.title}`),
+    h("button", { type: "button", class: "btn primary", onclick: () => openApproval(run, d, ty) }, "Review the change…"));
+}
+
+function openApproval(run, d, ty) {
+  if (approval) return;
+  const p = d.plan;
+  const easy = simple();
+  const decide = decideFn || decider(run, d, ty);
+  const files = p.files.length;
+  const diff = diffBlock(p.diff);
+  const body = h("div", { class: "approval" },
+    h("h3", { id: "ap-h" }, easy ? `Penthera wants to change ${plural(files, "file")} to fix this:` : p.title),
+    h("ul", { class: "mini" }, p.findings.map((f) => h("li", {}, easy ? h("span", { class: `sev sev-${f.severity}` }, SEV_WORD[f.severity]) : sevBadge(f.severity), h("span", { class: "grow t1" }, f.title)))),
+    h("p", { id: "ap-d", class: easy ? "prose" : "muted" }, easy
+      ? `${p.title}. It changes ${p.files.join(", ")} on a separate branch, checks the problem is gone, and undoes the change if it is not. Nothing is published.`
+      : `${p.recipe}${p.framework ? ` (${p.framework})` : ""} · ${p.files.join(", ")} · ${d.memory ? `memory: ${d.memory.verified} verified, ${d.memory.failed} failed` : "no history for this recipe yet"}`),
+    easy ? h("details", { class: "more" }, h("summary", {}, "Show the exact change"), diff) : diff,
+    p.redacted ? h("p", { class: "muted" }, "Secret values are masked here; the real patch uses them.") : null,
+  );
+  const apply = h("button", { type: "button", class: "btn primary", onclick: () => decide("approve") }, easy ? "Apply this fix" : "Apply", h("kbd", {}, "y"));
+  body.append(h("div", { class: "actions" },
+    h("button", { type: "button", class: "btn", onclick: () => decide("stop") }, easy ? "Stop fixing" : "Stop", h("kbd", {}, "q")),
+    h("span", { class: "grow" }),
+    h("button", { type: "button", class: "btn", onclick: () => decide("skip") }, easy ? "Skip this one" : "Skip", h("kbd", {}, "n")),
+    apply));
+  const win = openWindow({ title: `Fix ${d.index} of ${d.total}`, label: `Fix ${d.index} of ${d.total} waiting for you`, body, wide: true, striped: true });
+  win.el.setAttribute("aria-describedby", "ap-d");
+  win.el.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || e.target instanceof HTMLInputElement) return;
+    const a = { y: "approve", n: "skip", q: "stop" }[e.key];
+    if (a) { e.preventDefault(); decide(a); }
+  });
+  win.el.addEventListener("close", () => { approval = null; }, { once: true });
+  approval = { win, el: win.el };
+  announce(`Fix ${d.index} of ${d.total} is waiting for you: ${p.title}`);
+  apply.focus();
+}
+
+/** y / n / q while a diff waits and its window is closed. */
 export function answerPending(key) {
-  if (!pending) return false;
-  const btns = document.querySelectorAll(".dialog .actions button");
-  const i = { q: 0, n: 1, y: 2 }[key];
-  if (i == null || !btns[i] || btns[i].disabled) return false;
-  btns[i].click();
+  if (!pending || !decideFn) return false;
+  const a = { y: "approve", n: "skip", q: "stop" }[key];
+  if (!a) return false;
+  decideFn(a);
   return true;
 }
 

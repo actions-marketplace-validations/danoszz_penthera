@@ -9,8 +9,12 @@ export const state = {
   finding: null,                     // { id, project } open in the inspector
   right: "none",                     // none | finding | settings
   query: "",
+  filter: null,                      // { severity, confidence } from the triage matrix, advanced only
   pending: null,                     // the live run's diff waiting for a decision, if any
+  ux: "simple",                      // simple | advanced, chosen in setup, remembered per browser
 };
+
+export const simple = () => state.ux === "simple";
 
 export const TABS = [
   { id: "findings", label: "Findings", key: "1" },

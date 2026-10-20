@@ -2,8 +2,8 @@
 // settings, or a short note on what goes here. Nothing else lives on the right.
 import { h, clear, empty, sevBadge, diffBlock } from "./dom.js";
 import { api } from "./api.js";
-import { state, set } from "./state.js";
-import { EMPTY, KEYS } from "./copy.js";
+import { state, set, simple } from "./state.js";
+import { EMPTY, KEYS, SEV_WORD } from "./copy.js";
 
 let seq = 0;
 
@@ -48,6 +48,34 @@ async function findingView(el, ctx, my) {
   if (my !== seq) return;
   const x = d.explain || {};
   const section = (label, ...body) => h("section", {}, h("p", { class: "label" }, label), ...body);
+  const canFix = d.fix && f.project.startsWith("/");
+  if (simple()) {
+    // Plain words first, one action, the detail folded away.
+    const sure = { confirmed: "Penthera is sure about this one.", likely: "Penthera is fairly sure; worth checking.", "needs-human-review": "Penthera cannot be sure; a person should look." }[d.confidence] || "";
+    clear(el).append(
+      head("Problem", ctx),
+      h("div", { class: "pane-body detail" },
+        h("div", {}, h("span", { class: `sev sev-${d.severity}` }, SEV_WORD[d.severity] || d.severity)),
+        h("h2", { tabindex: "-1" }, d.title),
+        h("div", { class: "plain", "aria-label": "In plain words" },
+          d.description ? h("p", {}, h("b", {}, "What is wrong :: "), d.description) : null,
+          h("p", {}, h("b", {}, "How sure :: "), sure),
+          x.fixText || d.remediation ? h("p", {}, h("b", {}, "What to do :: "), x.fixText || d.remediation) : null),
+        canFix
+          ? h("div", { class: "actions start" }, h("button", { type: "button", class: "btn primary", onclick: () => ctx.newScan("loop", f.project) }, "Fix it for me…"),
+            h("p", { class: "muted prose" }, "You will see the change and approve it first."))
+          : h("p", { class: "muted prose" }, "Penthera has no automatic fix for this one. The steps above say what to change; a developer can do it in minutes."),
+        h("details", { class: "more" }, h("summary", {}, "Show the details"),
+          h("dl", { class: "kv" },
+            h("dt", {}, "where"), h("dd", {}, d.location || "-"),
+            h("dt", {}, "project"), h("dd", {}, f.project)),
+          d.evidence ? section("Evidence", h("pre", { class: "block" }, d.evidence)) : null,
+          d.fix ? section("The change", diffBlock(d.fix.diff)) : null,
+          d.sources?.length ? section("Read more", h("ul", { class: "mini" }, d.sources.map((s) => h("li", {}, h("a", { href: s.url, target: "_blank", rel: "noopener noreferrer" }, s.cite))))) : null),
+      ),
+    );
+    return;
+  }
   clear(el).append(
     head("Finding", ctx),
     h("div", { class: "pane-body detail" },
@@ -88,6 +116,14 @@ async function settingsView(el, ctx, my) {
   clear(el).append(
     head("Settings", ctx),
     h("div", { class: "pane-body detail" },
+      h("section", {}, h("p", { class: "label" }, "Mode"),
+        h("div", { class: "seg", role: "radiogroup", "aria-label": "Mode" }, ["simple", "advanced"].map((m) => {
+          const r = h("input", { type: "radio", name: "ux", value: m, checked: state.ux === m });
+          r.addEventListener("change", () => ctx.setUx(m));
+          return h("label", {}, r, h("span", {}, m === "simple" ? "Simple" : "Advanced"));
+        })),
+        h("p", { class: "muted prose" }, "Simple shows what to fix in plain words. Advanced adds dependencies, AI tooling, history, evidence and the raw detail."),
+        h("div", { class: "actions start" }, h("button", { type: "button", class: "btn", onclick: () => ctx.setup() }, "Run setup again…"))),
       h("section", {}, h("p", { class: "label" }, "Theme"), h("div", { class: "seg", role: "radiogroup", "aria-label": "Theme" }, radios),
         h("p", { class: "muted" }, "Remembered in this browser. The first visit follows your system.")),
       h("section", {}, h("p", { class: "label" }, "Where data comes from"),

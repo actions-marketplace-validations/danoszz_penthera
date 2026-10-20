@@ -205,3 +205,31 @@ export function ganttChart(rows, scans, { width = 1100 } = {}) {
   });
   return svg;
 }
+
+const CONFIDENCE = [["confirmed", "Confirmed"], ["likely", "Likely"], ["needs-human-review", "Needs a person"]];
+
+/**
+ * Triage matrix: severity down, how sure across. Each cell is a button with
+ * its count; the cell is filled with the severity's pattern when it has
+ * findings, so the dangerous, certain corner reads first. Picking a cell
+ * filters the list; picking it again clears the filter.
+ */
+export function matrix(findings, current, onPick) {
+  const table = h("table", { class: "matrix" });
+  table.append(h("thead", {}, h("tr", {}, h("th", { scope: "col" }, h("span", { class: "sr" }, "Severity")), CONFIDENCE.map(([, label]) => h("th", { scope: "col" }, label)))));
+  const body = h("tbody");
+  for (const sev of SEVERITIES) {
+    const row = h("tr", {}, h("th", { scope: "row" }, h("span", { class: `sev sev-${sev}` }, sev)));
+    for (const [conf, label] of CONFIDENCE) {
+      const n = findings.filter((f) => f.severity === sev && (f.confidence || "likely") === conf).length;
+      const on = current && current.severity === sev && current.confidence === conf;
+      row.append(h("td", {}, h("button", {
+        type: "button", class: ["cell", n ? `fill-${sev}` : null], disabled: !n, "aria-pressed": String(Boolean(on)),
+        "aria-label": `${n} ${sev}, ${label.toLowerCase()}`, onclick: () => onPick(on ? null : { severity: sev, confidence: conf }),
+      }, h("span", { class: "n" }, n ? String(n) : "·"))));
+    }
+    body.append(row);
+  }
+  table.append(body);
+  return table;
+}

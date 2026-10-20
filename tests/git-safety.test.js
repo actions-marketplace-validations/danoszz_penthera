@@ -79,7 +79,7 @@ describe("git runner: config the scanned repo sets never runs", () => {
     expect(gitInfo(dir)).toMatchObject({ dirty: false });
     // The loop reads, then refuses its first write with a clear reason.
     await expect(runLoop({ repo: dir, memoryRoot: tempDir(), ask: async () => "y", maxIterations: 1 }))
-      .rejects.toMatchObject({ code: "GIT_UNSAFE_CONFIG", message: expect.stringMatching(/filter\.ev\.clean.*can make git run programs/) });
+      .rejects.toMatchObject({ code: "GIT_UNSAFE_CONFIG", message: expect.stringMatching(/filter\.ev\.clean.*can run programs/) });
     expect(git(dir, "rev-parse", "--abbrev-ref", "HEAD").trim()).toBe("main");
     expect(ran(markers)).toEqual([]);
   });
@@ -92,8 +92,21 @@ describe("git runner: config the scanned repo sets never runs", () => {
     git(dir, "config", "gpg.ssh.defaultKeyCommand", marker(markers, "ssh-keycmd"));
     const g = createGit(dir);
     expect(g.run("status", "--porcelain")).toBe("");
-    expect(() => g.run("checkout", "-b", "x")).toThrow(/gpg\.format.*can make git run programs/);
+    expect(() => g.run("checkout", "-b", "x")).toThrow(/gpg\.format.*can run programs/);
     expect(ran(markers)).toEqual([]);
+  });
+
+  it.skipIf(!unix)("the refusal names the repo's key and says how to go on", () => {
+    const dir = repoWith({ "server.js": "x\n" });
+    git(dir, "config", "gpg.format", "ssh");
+    const g = createGit(dir);
+    let message = "";
+    try { g.run("checkout", "-b", "x"); } catch (e) { message = e.message; }
+    expect(message).toMatch(/sets gpg\.format,/);
+    expect(message).toContain("git config --global gpg.format");
+    expect(message).toContain("git config --unset gpg.format");
+    expect(message).toMatch(/penthera fix --plan/);
+    expect(message).toMatch(/Scans and reports still work/);
   });
 
   it.skipIf(!unix)("commit, add, checkout and status never run a filter or signer, wherever it is configured", () => {
@@ -168,7 +181,7 @@ describe("git runner: config the scanned repo sets never runs", () => {
   it("refuses to write below git 2.31, and parses version and config output", () => {
     const exec = (cmd, args) => (args[0] === "--version" ? "git version 2.30.9\n" : "");
     const g = createGit("/nowhere", { exec });
-    expect(() => g.run("commit", "-m", "x", "--", "a.js")).toThrow(expect.objectContaining({ code: "GIT_TOO_OLD" }));
+    expect(() => g.run("commit", "-m", "x", "--", "a.js")).toThrow(expect.objectContaining({ code: "GIT_TOO_OLD", message: expect.stringMatching(/git 2\.30 is older than 2\.31.*Upgrade git/) }));
     expect(() => g.run("status", "--porcelain")).not.toThrow();
     expect(parseGitVersion("git version 2.43.0.windows.1")).toEqual([2, 43]);
     expect(parseScopedConfig("local\0filter.a.b.clean\nx\0global\0include.path\n~/x\0local\0gpg.bare\0"))

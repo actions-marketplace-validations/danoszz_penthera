@@ -108,6 +108,9 @@ const atLeast = (v, min) => Boolean(v) && (v[0] > min[0] || (v[0] === min[0] && 
 
 const versionCache = new WeakMap(); // exec -> [major, minor] | null
 
+/** How to get past a GIT_UNSAFE_CONFIG refusal. */
+const WAY_FORWARD = "Move the setting to your global config (`git config --global <key> ...`) and remove it here (`git config --unset <key>`), or apply fixes by hand from the report (`penthera fix --plan` prints each diff). Scans and reports still work.";
+
 /** Keys in the repo's own config that make a write unsafe. */
 const UNSAFE_REPO_KEY = /^(filter|gpg)\.|^include(if)?\./i;
 const FILTER_KEY = /^filter\.(.+)\.(clean|smudge|process|required)$/i;
@@ -197,14 +200,15 @@ export function createGit(cwd, { exec = execFileSync, env = process.env } = {}) 
     if (WRITE_SUBCOMMANDS.includes(sub)) {
       probed = probe(); // fresh before every write
       if (probed.repoKeys.length) {
+        const keys = probed.repoKeys.slice(0, 5).join(", ") + (probed.repoKeys.length > 5 ? ", ..." : "");
         throw new GitPolicyError(
-          `git ${sub} refused: this repo's own git config sets ${probed.repoKeys.slice(0, 5).join(", ")}${probed.repoKeys.length > 5 ? ", ..." : ""}, which can make git run programs. Remove those keys from .git/config (or work on a fresh clone), then run again.`,
+          `penthera won't write in this repo: its own git config sets ${keys}, and repo-level git config can run programs during checkout and commit. ${WAY_FORWARD.replaceAll("<key>", probed.repoKeys[0])}`,
           "GIT_UNSAFE_CONFIG",
         );
       }
       if (!atLeast(v, MIN_WRITE_VERSION)) {
         throw new GitPolicyError(
-          `git ${sub} refused: git ${v ? v.join(".") : "(unknown version)"} is older than ${MIN_WRITE_VERSION.join(".")}, which penthera needs to switch off filter drivers. Upgrade git.`,
+          `penthera won't write in this repo: git ${v ? v.join(".") : "(unknown version)"} is older than ${MIN_WRITE_VERSION.join(".")}, the minimum it needs to switch off filters the repo configures. Upgrade git, or apply fixes by hand from the report (\`penthera fix --plan\` prints each diff). Scans and reports still work.`,
           "GIT_TOO_OLD",
         );
       }

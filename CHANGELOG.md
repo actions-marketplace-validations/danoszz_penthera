@@ -21,7 +21,8 @@ is recommended.
   signing programs, attribute files and every configured filter driver are
   overridden on every call (`--attr-source` on git 2.40+). Pathspecs are
   literal. Writes are refused when the repository's own config sets
-  `filter.*`, `gpg.*` or `include.*`, or on git older than 2.31.
+  `filter.*`, `gpg.*` or `include.*`, or on git older than 2.31; the loop then
+  does not start, and its one message names the key and how to go on.
 - **The fix loop keeps your uncommitted work.** Dirty files are read with
   `status -z` and re-checked right before every write and commit. Reverts
   restore the exact bytes from before the fix, and only while the file still

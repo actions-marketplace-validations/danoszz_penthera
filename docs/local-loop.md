@@ -77,7 +77,9 @@ Each of these has a test in `tests/agent.test.js`.
 - **Git.** The loop's git calls ignore hooks, fsmonitor, signing, and any
   filter the repository configures, and treat paths literally. Writes are
   refused when the repository's own config sets `filter.*`, `gpg.*` or
-  `include.*` keys, and on git older than 2.31.
+  `include.*` keys, and on git older than 2.31: the loop stops before its first
+  write with one message naming the key and the way forward (move it to your
+  global config, or apply fixes by hand from `penthera fix --plan`).
 - **Approval.** Every diff is shown, secrets masked, with
   `[y]es / [n]o / [s]kip / [q]uit`. When input runs out (piped stdin), the
   answer is `n`. `--auto low` applies a diff without asking only when it comes

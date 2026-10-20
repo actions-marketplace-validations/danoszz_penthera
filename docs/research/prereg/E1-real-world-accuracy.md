@@ -238,10 +238,12 @@ Coverage limits that are known now and reported, not hidden:
    the public registry set explicitly and `--ignore-scripts`. This downloads
    and integrity-checks tarballs; it runs no package code. Git, file and
    tarball-URL dependencies are not fetched and are reported as not readable.
-   For Python, wheels pinned by the lockfile are downloaded with
-   `pip download --only-binary=:all: --no-deps`, with `--cache-dir` set to an
-   isolated pip cache (Penthera reads wheels from pip's HTTP cache); sdists
-   are not built (that would run `setup.py`). Projects without a
+   For Python, for every package whose lockfile pins sha256 hashes, the
+   matching wheel is downloaded from PyPI (located through PyPI's JSON API),
+   its sha256 checked against the lockfile, and stored in an isolated pip
+   cache folder where Penthera reads it. Nothing is installed and sdists are
+   never built (that would run `setup.py`). Packages without hashes or without
+   a matching wheel are reported as not readable. Projects without a
    lockfile get lockfile-free results only, as Penthera does for a user.
 3. **Scan.** The frozen Penthera version (§ 6.3) runs as a child process, once
    per project:

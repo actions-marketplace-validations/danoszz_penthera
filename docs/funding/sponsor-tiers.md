@@ -1,5 +1,8 @@
 # GitHub Sponsors tiers (proposal)
 
+> **Project page.** For users and companies asking "how can I support Penthera,
+> and what does that buy?"
+
 Status: proposal. The tiers below still need to be created on the GitHub
 Sponsors dashboard once the profile is approved. Prices are in US dollars
 because GitHub Sponsors tiers are priced in USD.
@@ -40,7 +43,7 @@ Written down so nobody is surprised:
 - **No certification or endorsement.** A logo in the README means the company
   supports the project. It does not mean Penthera has assessed or approved that
   company's security, and the README will say so next to the logos.
-- **No change to the principles.** No telemetry, offline first, MIT licence.
+- **No change to the principles.** No telemetry, offline first, MIT license.
   Sponsorship will never add a feature that sends data off the user's machine.
 
 ## Logo rules (Company tier)
@@ -56,7 +59,7 @@ Written down so nobody is surprised:
 ## Fees and money, for transparency
 
 From the GitHub Sponsors docs: GitHub charges no fees on sponsorships from
-personal accounts. Sponsorships from organisation accounts carry up to 6% in
+personal accounts. Sponsorships from organization accounts carry up to 6% in
 fees (3% card processing and 3% GitHub service fee; invoiced billing avoids the
 card fee). Tier prices cannot be edited after publishing; a tier has to be
 retired and replaced. Source:
@@ -64,12 +67,6 @@ https://docs.github.com/en/sponsors/receiving-sponsorships-through-github-sponso
 
 The maintainer intends to publish a short yearly note on total sponsorship
 income and what it paid for.
-
-## Proposed edits in this PR
-
-- `.github/FUNDING.yml`: adds a `custom` link to this page, so the Sponsor
-  button explains the tiers before the GitHub Sponsors profile is live.
-- `README.md`, "Support Penthera": lists the tiers in short and links here.
 
 ## Open questions for the maintainer
 

@@ -1,19 +1,19 @@
 ---
 name: penthera
 description: >
-  Open-source security for the apps and AI systems the user ships, run locally with
-  the Penthera CLI. Sets it up in one command ("set up penthera in this repo").
-  Scans the user's own live URL and repo (TLS, headers, auth, OpenAPI, secrets incl. AI keys,
-  opt-in injection); checks npm and Python dependencies offline ("is this dependency safe?",
-  "what changed in my deps?", "install X safely", "any AGPL in our deps?"); blocks
-  secrets and risky agent config before they are committed ("add a pre-commit hook");
-  audits AI tooling ("audit my MCP servers / skills / hooks", "check this skill
-  before I install it"); fixes findings
-  on a local branch and re-scans to verify ("scan and fix my app"); and writes
+  Offline cyber security agent for the user's own apps and AI coding tools, run
+  locally with the Penthera CLI; open R&D, measured in public. Sets it up in one
+  command ("set up penthera in this repo"). Scans the user's own live URL and repo
+  (TLS, headers, auth, OpenAPI, secrets incl. AI keys, opt-in injection); checks npm
+  and Python dependencies offline ("is this dependency safe?", "what changed in my
+  deps?", "install X safely", "any AGPL in our deps?"); blocks secrets and risky
+  agent config before commit ("add a pre-commit hook"); audits AI tooling ("audit
+  my MCP servers / skills / hooks", "check this skill before I install it"); fixes
+  findings on a local branch and re-scans to verify ("scan and fix my app"); writes
   reports and evidence ("report for my auditor / manager", NIS2, SARIF, baseline
-  diff). Use when the user asks to scan, audit, harden, fix, or review the security of
-  their own app, staging URL, localhost, repo, dependencies, or agent setup. Do NOT
-  use for targets without explicit authorization.
+  diff). Use when the user asks to scan, audit, harden, fix, or review the security
+  of their own app, staging URL, localhost, repo, dependencies, or agent setup. Do
+  NOT use for targets without explicit authorization.
 license: MIT
 compatibility: Node.js 22+, network access to target, Penthera CLI (npm link or node bin/penthera.js from repo). macOS only for --machine.
 allowed-tools: "Bash(node:*) Bash(npm:*) Bash(penthera:*) Read Write Edit"
@@ -253,7 +253,7 @@ penthera <url> --repo . --framework nis2 --audience auditor --markdown reports/a
 penthera <url> --repo . --framework nis2 --evidence reports/evidence-$(date +%F) --sign-key ~/.ssh/id_ed25519
 penthera evidence verify reports/evidence-$(date +%F)
 ```
-   Tell the user to send the public key to the auditor separately (an `allowed_signers` line) and point them to `docs/evidence.md` for the one-command check.
+   Tell the user to send the public key to the auditor separately (an `allowed_signers` line) and point them to [docs/evidence.md](https://github.com/danoszz/penthera/blob/main/docs/evidence.md) for the one-command check.
 4. A house format: write a template with `{{summary.critical}}`, `{{#each findings}}…{{/each}}` and `{{#if x}}…{{/if}}` (no other syntax), then `--report-template reports/template.md --markdown reports/custom.md`.
 5. Summarize what the report says in two or three sentences. Never describe a bundle as an audit or a certification: it is technical evidence.
 
@@ -355,7 +355,7 @@ penthera ui --demo --open                            # fake data, to look around
 2. It reads only the `--project` folders, the reports folder and `~/.penthera`. If the screens are empty, scan with `-o reports/<name>.json` first (and `penthera deps -o reports/deps.json`, `penthera agents . -o reports/agents.json`).
 3. The bar at the bottom of the view starts scans, dependency checks, AI tooling audits and the fix loop for the selected project. The fix loop is `penthera agent --loop` with the same rules: the user approves every diff in the page, nothing is pushed. A URL that is not on this machine needs its hostname typed to confirm; the authorization gate above still applies.
 
-See [docs/dashboard.md](../../docs/dashboard.md).
+See [docs/dashboard.md](https://github.com/danoszz/penthera/blob/main/docs/dashboard.md).
 
 ## Examples
 

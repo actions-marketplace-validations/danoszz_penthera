@@ -1,145 +1,122 @@
 # Roadmap
 
-What's shipped, what's next, and what's deliberately not being built yet.
+> **Project page.** For anyone asking "what ships next, and when?"
 
-Penthera is maintained part-time. New features are gated on evidence that people
-actually want them, so the list below is ordered by value per hour rather than
-by ambition. Issues and PRs are welcome on anything here.
+This page lists what ships next and what is deliberately not being built. The
+research behind it, the experiments that decide what ships, and the long-term
+plan are in the [research plan](docs/vision-2.0.md). How releases are cut is in
+[CONTRIBUTING.md](CONTRIBUTING.md#release-cadence-and-freeze).
 
-## Shipped
+Penthera is maintained part-time, alongside a PhD. Work is ordered by value per
+hour, and a feature that does not serve a real user question, or does not hold
+up when measured, does not ship. Issues and pull requests are welcome on
+anything here.
 
-- URL scanning: TLS, security headers, CORS, cookies, endpoint and OpenAPI
-  discovery, auth hardening, JWT, IDOR/BOLA, OAuth redirect, client-side auth
-- Repo scanning: API route discovery, trust boundaries, hardcoded secrets,
-  including keys for a dozen AI providers (Anthropic, OpenAI, Google, Groq,
-  Hugging Face, and more)
-- Email authentication: SPF, DMARC, MX
-- Injection probes and property-based API fuzzing (opt-in, payload-based)
-- macOS machine audit
-- Reports: terminal, Markdown, JSON, SARIF, with provenance and an honest
-  confidence label on every finding
-- NIS2 readiness: per-measure report, offline self-assessment, policy pack,
-  incident-report drafts, questionnaire answerer, CycloneDX SBOM, passive
-  supplier rating, remediation and audit-loop tracking
-- Agent Skill with an authorization gate, and a CLI
-- A hardened release pipeline: SHA-pinned actions, least-privilege workflows,
-  CodeQL, OpenSSF Scorecard, npm provenance
+## Now: 1.8.0, feature freeze
+
+1.8.0 is what is on main plus the dashboard redesign
+([#63](https://github.com/danoszz/penthera/pull/63)). From here only fixes go in.
+It ships as `1.8.0-rc.1` on npm's `next` tag first, and as 1.8.0 only after
+the release candidate holds up and the maintainer approves.
+
+| In 1.8.0 | What it means for you |
+|---|---|
+| Dashboard redesign | `penthera ui` gets a Simple mode with a one-sentence verdict for first-timers, and an Advanced mode for pros |
+| Smaller package | 657 kB packed instead of 797 kB; the docs live on GitHub |
+| One set of docs, one voice | Each page answers one question, from "is my app safe to ship?" to "export evidence for an auditor" |
 
 ## Next
 
-Penthera is open-source security for the apps and AI systems you ship: check it
-before you deploy, vet what you build with, keep watching after you ship. All on
-your own machine, deterministic, and free. How quality is measured on the way to
-v2.0 is in the [plan](docs/plan.md).
-The engineering detail, order of work, and acceptance criteria are in the
-[release plan](docs/release-plan.md).
+Ordered, but not dated. Each item names the user question it answers.
 
-**Toward 2.0.** The public plan to become the best, with real-world accuracy,
-local models that propose fixes the scanner verifies, and the pre-registered
-experiments that decide what ships, is in [docs/vision-2.0.md](docs/vision-2.0.md).
-What Penthera is today and why, with an FAQ and every design decision open to
-challenge, is in [docs/MANIFESTO.md](docs/MANIFESTO.md).
+### Measure on real code (research track)
 
-### v1.3.0 "AI toolchain" (shipped in 1.4.0)
+| Item | Question it answers | State |
+|---|---|---|
+| Penthera Bench v1 and experiment E1 | "How accurate is it on code like mine?" | Pre-registered; tooling in review ([#61](https://github.com/danoszz/penthera/pull/61)) |
+| Pre-registrations for E2 to E5 | "Will the next feature actually help?" | Drafts in review |
+| Real-world precision and recall, with intervals | "Can I trust a clean report?" | After E1 runs; published whatever the result |
 
-| Feature | What it does |
-|---------|--------------|
-| `penthera agents` | Offline audit of `.mcp.json`, `~/.claude`, `~/.cursor`, hooks, plugins, skills, and `AGENTS.md` / `CLAUDE.md` / `.cursorrules`, graded A–F, with OWASP MCP and Agentic mapping |
-| Hidden-content engine | Unicode tag / zero-width / bidi characters, whitespace padding, embedded `.pyc` and archives, `curl \| sh`, auto-approve hooks, unpinned `npx -y` MCP servers |
-| `penthera.lock` | Hash-pins skills, MCP tool definitions, and hooks; a diff catches a silent "rug pull" update |
-| `penthera deps` | Static capability detection for every dependency (install scripts, network, shell, env, eval, obfuscation), with file:line evidence |
-| `penthera deps --diff` | What your dependencies can do now that they could not before: "this upgrade added network access" |
-| Typosquat check | Names close to popular packages, against a vendored list. Registry metadata only with `--online` |
-| Methodology and benchmark | `docs/METHODOLOGY.md`, verified citations on every finding category, `CITATION.cff`, and published precision and recall |
+### Before you deploy
 
-### v1.4.0 "Local loop" (shipped in 1.4.0)
+| Item | Question it answers |
+|---|---|
+| `penthera ship` | "Is this build safe to ship?" One gate over repo scan, `deps`, `agents` and a localhost or preview scan, with a pass or fail for any deploy script |
+| Preview-deployment scanning | "Is this pull request safe?" A GitHub Action that waits for the Vercel, Netlify or Cloudflare Pages preview of a PR, scans it and comments the result |
+| Framework presets | "Why is my first scan empty?" Routes, auth flows and headers for Next.js, SvelteKit, Remix, Nuxt and Astro |
+| Authenticated preview scans | "Can it test pages behind a login?" With test accounts from your own seed data, never real credentials |
+| An MCP server | "Can my AI assistant call Penthera directly?" |
 
-| Feature | What it does |
-|---------|--------------|
-| `--offline` egress guard | One HTTP client that can only reach the target you named. Vendored CVE database, recon as explicit opt-in, an identifying User-Agent, and probe errors reported as inconclusive |
-| Local learning store | `~/.penthera/` history of verified fixes, false-positive suppressions, and probe yield. Append-only and hash-chained; it re-ranks and suppresses, never executes |
-| Fix recipes | Deterministic diffs for headers, cookies, CORS, rate limiting, and hardcoded secrets across Next.js, Express, Fastify, and Hono. Optional local model (Ollama) for the rest, labelled as such |
-| `penthera agent --loop` | Scan → fix on a local branch → verify by re-scan and tests → learn → repeat. Never pushes, never opens pull requests, approval on every diff by default |
-| `penthera install` | An install firewall: shows what new capabilities an install brings (install scripts, network, shell) before any script runs, with a policy file |
-| PR-comment GitHub Action | Comments the dependency capability diff on every PR that changes a lockfile, and uploads SARIF |
-| Custom reports and evidence bundle | Templates per audience, a found → fixed → verified timeline, and a SHA-256 manifest you can sign with a local SSH key |
+### After you ship
 
-### v1.5 and v1.6 "AI apps and compliance" (shipped, one item left)
-
-| Feature | Status |
-|---------|--------|
-| Pre-commit hook and license policy | Shipped in 1.6.0 |
-| CRA Art. 14 reporting helper and CycloneDX AI-BOM | Shipped in 1.6.0 |
-| Signed, versioned rule packs (new detection knowledge without a runtime update channel) | Built; waiting for the maintainer's signing key |
-| `penthera deps` for Python (pip, Poetry, uv) | Shipped in 1.6.0 |
-| Local dashboard, `penthera ui` | Shipped in 1.6.0 |
-| Internal testing audit (standing release gate) | Shipped in 1.6.0 |
-| LLM endpoint configuration checks (rate limits, exposed inference and vector stores, unauthenticated remote MCP, CSP exfiltration surface) | Parked; needs a narrower design |
-| JS bundle key scan | Open for contributors ([#6](https://github.com/danoszz/penthera/issues/6)) |
-
-### Next: "Before you deploy"
-
-Test what you are about to ship, where it already runs: on your machine or on a
-preview deployment.
-
-| Feature | Why |
-|---------|-----|
-| `penthera ship` | One pre-deploy gate: repo scan, `deps`, `agents`, and a scan of your localhost or preview URL, with a pass/fail you can wire into any deploy script |
-| Preview-deployment scanning | A GitHub Action that waits for the Vercel, Netlify, or Cloudflare Pages preview URL of a PR, scans it, and comments the result. Your own preview, so authorization is built in |
-| Framework presets | Sensible routes, auth flows, and headers for Next.js, SvelteKit, Remix, Nuxt, and Astro, so the first scan is useful without config |
-| Authenticated preview scans | Test accounts from your own seed data, never real credentials |
-
-### After that: "After you ship"
-
-Keep watching what you shipped, without agents on your servers and without a
-cloud service.
-
-| Feature | Why |
-|---------|-----|
-| `penthera watch` | Scheduled, non-destructive checks of your own production: certificate expiry, header and CSP regressions, newly exposed endpoints, keys appearing in bundles, drift since the last release |
-| New-CVE alerts for your SBOM | Your shipped SBOM checked against new advisories on a schedule, as a reviewed rule-pack update or an opt-in advisory lookup |
-| Alerts where you already look | A GitHub issue, the job summary, or a local notification. Nothing leaves your infrastructure |
+| Item | Question it answers |
+|---|---|
+| `penthera watch` | "Did anything change in production?" Scheduled, non-destructive checks for certificate expiry, header and CSP regressions, new endpoints, keys in bundles |
+| New-CVE alerts for your SBOM | "Is something I shipped now known to be vulnerable?" As a reviewed rule-pack update or an opt-in advisory lookup |
+| Alerts where you already look | A GitHub issue, the job summary or a local notification. Nothing leaves your infrastructure |
 | Dashboard history | Posture over time in `penthera ui`, fed by `watch` runs |
 
-### Scheduled for later
+### Open items from earlier releases
 
-- **Landing page.** One static page, no tracking scripts: what it does, install
-  in 30 seconds, why you can trust it.
-- **Team pack.** Shared policy files, a faster signed rule-pack channel, and a
-  self-hostable dashboard for teams. The single-machine tool stays complete and
-  MIT.
+| Item | State |
+|---|---|
+| Signed rule packs | Built; waiting for the maintainer's signing key |
+| JS bundle key scan | Open for contributors ([#6](https://github.com/danoszz/penthera/issues/6)) |
+| LLM endpoint configuration checks | Parked; needs a narrower design |
+
+## Later
+
+- **A landing page.** One static page with no tracking scripts.
+- **Team pack.** Shared policy files, a faster signed rule-pack channel and a
+  self-hostable dashboard. The single-machine tool stays complete and MIT.
 - **A public, signed registry** of scan results for popular skills and MCP
-  servers. Useful, but it would be a hosted service, so it lives outside the
-  offline core if it happens at all.
-- **Earlier candidates:** risk-contextual prioritisation, the MFA probe, a CyFun
-  adapter for Belgium, exploit-chain storytelling, SBOM transitive dependencies
-  and container images, an authorised-versus-unauthorised IDOR baseline, and
+  servers. It would be a hosted service, so it would live outside the offline
+  core, if it happens at all.
+- **Earlier candidates:** risk-based prioritization, an MFA probe, a CyFun
+  adapter for Belgium, exploit-chain explanations, transitive SBOM entries and
+  container images, an authorised-versus-unauthorised IDOR baseline, and
   document export for non-technical owners.
 
 ## Not planned
 
 - **Workspace API integrations (Microsoft 365, Google).** They would need OAuth,
-  stored tokens, and accounts. Running entirely offline with no accounts is a
-  deliberate property of this tool, not a limitation to fix.
-- **ISO 27001 Annex A mapping.** Mostly organisational controls, and it would
-  dilute the NIS2 focus that makes the compliance output useful.
+  stored tokens and accounts. Running offline with no accounts is a deliberate
+  property of this tool.
+- **ISO 27001 Annex A mapping.** Mostly organizational controls, and it would
+  dilute the NIS2 focus.
 - **Telemetry, or an agent that pushes.** No usage data leaves your machine,
-  and the agent loop never pushes, opens pull requests, or sends your code
+  and the fix loop never pushes, opens pull requests or sends your code
   anywhere. You review and push.
 - **An LLM judge as the primary detector.** Published bypasses show it can be
-  talked out of a finding. Deterministic rules come first; a model may only add
-  context on top.
-- **A hosted service.** Penthera is an open-source tool you run yourself. If a
-  hosted version ever exists it will not remove anything from this one.
+  talked out of a finding. Rules decide; a model may only propose.
+- **A hosted service.** If a hosted version ever exists, it will not remove
+  anything from the local tool.
 
 ## Principles
 
-- Works offline. Where an API adds value it stays optional with a local fallback.
-- Nothing leaves your machine unless you ask for it: no telemetry, no
-  auto-push, no remote learning.
-- Never claims to certify. Output is readiness, evidence, and self-assessment.
-- Honest about confidence. A heuristic is labelled as one.
-- Proportionate. A small organisation should be able to produce appropriate
-  evidence without enterprise overhead.
-- Authorized testing only. Anything touching third parties stays passive and
-  public-data-only.
+- Works offline. Where an online source adds value it stays optional, with a
+  local fallback.
+- Nothing leaves your machine unless you ask: no telemetry, no auto-push, no
+  remote learning.
+- Never claims to certify. Output is readiness, evidence and self-assessment.
+- Honest about confidence. A heuristic is labelled as one, and accuracy comes
+  with an interval.
+- Proportionate. A small organization can produce the evidence it needs without
+  enterprise overhead.
+- Authorized testing only. Anything that touches a third party stays passive
+  and uses public data only.
+
+## Shipped
+
+The full history is in the [CHANGELOG](CHANGELOG.md). In short:
+
+| Release | Theme | Highlights |
+|---|---|---|
+| 1.2.0 | Hardened releases | Trusted publishing with 2FA approval, SHA-pinned CI, CodeQL, OpenSSF Scorecard |
+| 1.4.0 | AI toolchain and local loop | `penthera agents`, `penthera.lock`, `deps` and `deps --diff`, typosquat check, `--offline`, the fix loop, the install firewall, the PR-comment Action, evidence bundles, the methodology and benchmark |
+| 1.5.0 | AI apps and compliance | Pre-commit hook, license policy, CRA helper and AI-BOM (shipped inside 1.6.0) |
+| 1.6.0 | Hardening | Fixes from a full security review, Python `deps`, the internal audit gate, the first dashboard |
+| 1.7.0 | One view, one command | The single-view dashboard, the `npx penthera` setup, the APA-cited methodology |
+
+1.3.0 was folded into 1.4.0. The original release plan for 1.2 to 1.4 and the
+first plan to 2.0 are kept in [docs/archive/](docs/archive/README.md).

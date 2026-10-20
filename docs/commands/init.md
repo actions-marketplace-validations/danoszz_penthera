@@ -1,5 +1,7 @@
 # Set up in one command: `penthera init`
 
+> **Starter.** For "is my app safe to ship?"
+
 ## Start here
 
 New to Penthera? Run it with no arguments in your project folder:

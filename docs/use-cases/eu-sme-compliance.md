@@ -1,8 +1,10 @@
 # Evidence for NIS2 and the CRA: for EU SMEs
 
+> **Pro.** For "what do I give my auditor?"
+
 ## The problem
 
-NIS2 puts a duty of care on in-scope organisations, written into national law
+NIS2 puts a duty of care on in-scope organizations, written into national law
 (the Cyberbeveiligingswet in the Netherlands, the NIS2-wet in Belgium). The
 Cyber Resilience Act adds reporting duties for manufacturers of products with
 digital elements, with deadlines measured in hours. Large customers now send
@@ -55,14 +57,14 @@ self-assessment, cites the evidence, and marks anything it cannot map as
 ## What it does not do
 
 - It is readiness tooling, not a certification and not legal advice. Whether you
-  are in scope, and what is proportionate for you, is for you and your advisers
+  are in scope, and what is proportionate for you, is for you and your advisors
   to decide.
 - It covers the technical, testable part of the duty of care. Policies,
-  training, backups and MFA come from your self-assessment; Penthera records
-  what you attest, it cannot check it.
+  training, backups and MFA come from your self-assessment. Penthera records
+  what you attest. It cannot check it.
 - It does not file anything. Reports to a CSIRT or ENISA are drafts for you to
   review and submit.
-- Jurisdiction details ship for the Netherlands today; other member states are
-  configuration still to be added.
+- Jurisdiction details ship for the Netherlands only. Other member states still
+  need their configuration added.
 
 [All use cases](README.md) · [Back to the README](../../README.md)

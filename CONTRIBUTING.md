@@ -1,10 +1,12 @@
 # Contributing to Penthera
 
-Thanks for helping make Penthera better. This guide covers local setup, how the
-project is organized, and the release/publishing checklist for maintainers.
+> **Project page.** For contributors asking "how do I make a change, and how does it ship?"
+
+This guide covers local setup, how the project is organized, how to write docs,
+the release cadence, and the release checklist for maintainers.
 
 By participating you agree to keep things respectful and to use the tool only
-for **authorized** security testing (see [README — Ethical use](README.md#ethical-use--authorization)).
+for **authorized** security testing (see [Ethics and authorization](README.md#ethics-and-authorization)).
 
 Looking for a first task? Pick an issue labelled
 [`good first issue`](https://github.com/danoszz/penthera/labels/good%20first%20issue),
@@ -33,7 +35,7 @@ Node 22+ is required (see `.nvmrc` for the pinned version).
 | `npm run pentest:mock` | Tests against the local mock vuln API |
 | `npm run pentest:adaptive` | Knowledge-graph adaptive probes |
 | `npm run pentest:wstg` | OWASP WSTG mapping |
-| `npm run pentest:live` | Live playbooks — opt-in: needs `pentest.config.js` or `PENTEST_BASE_URL` + a running server |
+| `npm run pentest:live` | Live playbooks, opt-in: needs `pentest.config.js` or `PENTEST_BASE_URL` and a running server |
 | `npm run mock-server` | Start the mock API on port 8765 |
 | `npm run audit:internal` | The release gate: every check above and more, written to `audit/REPORT.md` ([docs/internal-audit.md](docs/internal-audit.md)) |
 
@@ -192,7 +194,9 @@ re-exports engine pieces via `exports` in `package.json`
 1. Branch from `main`.
 2. Keep changes focused; add or update tests.
 3. Run `npm test`; it must be green on Node 22+.
-4. Update `CHANGELOG.md` and relevant docs.
+4. Update `CHANGELOG.md` and the relevant docs. Docs follow the
+   [voice guide](docs/voice.md): one user question per page, plain words,
+   numbers over adjectives.
 5. Sign off every commit (see below).
 6. Open the PR with a clear description and rationale.
 
@@ -248,7 +252,37 @@ Signed-off-by: Your Name <you@example.com>
 - **Docs and tests only:** if AI only helped with documentation or tests, the
   `Co-Authored-By` trailer is enough.
 
-Report security issues in Penthera itself privately — see [SECURITY.md](SECURITY.md).
+Report security issues in Penthera itself privately; see [SECURITY.md](SECURITY.md).
+
+---
+
+## Release cadence and freeze
+
+Penthera is maintained part-time, so releases follow a fixed rhythm that keeps
+quality from depending on anyone's free evenings.
+
+- **At most one minor release every 2 to 4 weeks**, each with one theme.
+- **Every minor goes through a release candidate first:** `X.Y.0-rc.N`,
+  published on npm's `next` dist-tag. It becomes `latest` only after the
+  release candidate has run on real projects without a blocking issue and the
+  maintainer approves.
+- **Patch releases are for fixes only.** No new flags, rules or commands.
+- **A feature freeze before each minor.** From the freeze, only fixes and docs
+  go into that release; features wait for the next one.
+- **No version bump or tag without the maintainer's go.**
+
+**Current freeze: 1.8.0 = main + [#63](https://github.com/danoszz/penthera/pull/63)**
+(the dashboard redesign). Other open pull requests go into 1.9. See the
+[roadmap](ROADMAP.md#now-180-feature-freeze).
+
+Between releases:
+
+- The internal audit runs weekly and before every tag. A red audit blocks the
+  release.
+- Three to five `good first issue` issues are kept open, so contributors can
+  help without needing the maintainer's time.
+- Anything that needs judgement (a probe that sends payloads, anything that
+  touches third parties) gets a short design note in `docs/` before code.
 
 ---
 
@@ -278,7 +312,11 @@ live once a maintainer approves it with 2FA. **Do not run `npm publish` locally.
 4. Merge to `main` through a PR so CI runs. The PR needs a green
    "install matrix result" (the release checks above), not only `CI`.
 5. Tag the merge commit and push the tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
-   Do not tag a commit whose audit failed.
+   Do not tag a commit whose audit failed. For a minor release, tag the
+   release candidate first (`vX.Y.0-rc.N`, with the same version in every file
+   from step 1) so it lands on the `next` dist-tag. Note: `publish.yml` does
+   not pass `--tag next` for `-rc` tags yet; add that before the first release
+   candidate.
 6. Approve the staged version with 2FA: npmjs.com → penthera → Staged Packages →
    Approve, or `npm stage list penthera` and `npm stage approve <stage-id>`.
    Check the file list and provenance before you approve.

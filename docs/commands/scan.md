@@ -1,6 +1,8 @@
 # Scanning your app: `penthera <url>` and `--repo`
 
-Black-box scans of a running app (localhost, preview, or staging) and white-box scans of its source. The default scan is non-destructive; payload-based testing is opt-in.
+> **Starter.** For "is my app safe to ship?"
+
+Black-box scans of a running app (localhost, preview, or staging) and white-box scans of its source. The default scan is non-destructive. Payload-based testing is opt-in.
 
 ## Scan modes and profiles
 
@@ -9,7 +11,7 @@ Black-box scans of a running app (localhost, preview, or staging) and white-box 
 | **URL scan** | `penthera https://example.com` | TLS, fingerprinting, endpoint discovery, templates, CORS, cookies, JS CVEs, param discovery, OpenAPI/FastAPI probes, security headers, auth hardening |
 | **Repo scan** | `penthera --repo ./my-app` | API route discovery (Next.js, Express, Hono, Fastify), trust-boundary mapping, hardcoded-secret scanning (including Anthropic, OpenAI, Gemini, Groq, Hugging Face and other AI provider keys) |
 | **Combined** | `penthera https://staging.app --repo .` | Black-box and white-box in one run |
-| **Interactive** | `penthera` *(no args)* | Guided wizard (URL plus optional repo scan, Markdown report) |
+| **Interactive** | `penthera` *(no args)* | Setup wizard: detects the project, runs the offline checks, offers the hook and workflow ([init.md](init.md)) |
 | **Machine audit** | `penthera --machine` | macOS checks (keyloggers, persistence, rootkits) |
 | **Dependencies** | `penthera deps` | What each npm or Python package can do (install scripts, shell, network, env, eval, native, obfuscation, `.pth` startup hooks), capability diff on upgrades, typosquats. Offline ([deps.md](deps.md)) |
 
@@ -44,7 +46,7 @@ penthera https://myapp.com --auth-cookie "session=abc123"
 ```
 
 Writing to `-o reports/scan.json` also drops a human-readable `reports/scan.md`
-next to it. Reports are gitignored by default.
+next to it. `penthera init` can add `reports/` to your `.gitignore`.
 
 ### Exit codes
 

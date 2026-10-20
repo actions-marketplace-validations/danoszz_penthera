@@ -1,5 +1,7 @@
 # Penthera and GitHub (Dependabot and code scanning)
 
+> **Pro.** For "how does Penthera compare to Dependabot and code scanning, and how do I run both?"
+
 *Last checked: 2026-10-19 against GitHub's docs and security plans page.*
 
 ## Use them together
@@ -27,8 +29,8 @@ into the same code scanning tab, so findings sit in one place.
 ## Where GitHub goes further
 
 - **Known-vulnerability coverage** across ecosystems, with update pull requests
-  generated for you. Penthera does not open pull requests at all.
-- **CodeQL** is a far deeper code analyser than Penthera's repo scan.
+  generated for you. Penthera never opens pull requests.
+- **CodeQL** is a far deeper code analyzer than Penthera's repo scan.
 - **Push protection** stops secrets on the server side, for every contributor,
   without anyone installing a hook.
 - **Zero setup** for public repositories.
@@ -39,7 +41,7 @@ into the same code scanning tab, so findings sit in one place.
   capability diff shows a new install script or network call on the day it
   appears.
 - **The live app and your agent setup**, which GitHub's tools do not scan.
-- **Private repos without a GitHub Advanced Security licence**, and code that is
+- **Private repos without a GitHub Advanced Security license**, and code that is
   not on GitHub.
 
 ## Run both

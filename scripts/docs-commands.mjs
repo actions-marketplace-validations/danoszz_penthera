@@ -42,7 +42,7 @@ const NET_GUARD = join(ROOT, "scripts", "ci", "net-guard.cjs");
 
 /** Docs whose commands may describe features that don't exist yet. */
 export const PLANNING_DOCS = [
-  "docs/plan.md", "docs/vision-2.0.md", "docs/release-plan.md", "docs/research/", "docs/funding/",
+  "docs/plan.md", "docs/vision-2.0.md", "docs/release-plan.md", "docs/research/", "docs/funding/", "docs/archive/",
 ];
 
 // ── Collect ──────────────────────────────────────────────────────────────────

@@ -1,5 +1,7 @@
 # Accuracy benchmark
 
+> **Pro.** For "how accurate is Penthera, and how do I check that myself?"
+
 A reproducible measure of how often Penthera is right. It runs the scanner
 against local targets whose vulnerabilities are labelled by hand, and scores
 precision and recall. The latest numbers are in [RESULTS.md](RESULTS.md).

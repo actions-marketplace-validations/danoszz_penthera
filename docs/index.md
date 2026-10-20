@@ -1,75 +1,86 @@
 # Penthera documentation
 
-Open-source security for the apps and AI systems you ship: check it before you deploy, vet what you build with, keep watching after you ship. Offline, deterministic, free.
+> **Starter and pro.** For "where do I start, and where do I go next?"
 
-## Getting started
+**Penthera: an open-source cyber security agent you can use today, and verify
+yourself.**
 
-| Guide | Description |
-|-------|-------------|
-| [README](../README.md) | Install, quick start, ethical use |
-| [Run it](../README.md#run-it) | Install + first-time wizard (`penthera` with no args) |
-| [Use cases](./use-cases/README.md) | By situation: [before launch](./use-cases/solo-founder.md), [AI-coding teams](./use-cases/ai-coding-teams.md), [maintainers](./use-cases/open-source-maintainers.md), [EU SMEs](./use-cases/eu-sme-compliance.md), [agencies](./use-cases/agencies.md) |
-| [Comparisons](./compare/README.md) | Using Penthera with [Socket](./compare/socket.md), [Snyk](./compare/snyk.md), [GitHub](./compare/github.md), [ZAP](./compare/zap.md), [Semgrep](./compare/semgrep.md) |
-| [Commands](./commands/README.md) | One page per command: [scan](./commands/scan.md), [agents](./commands/agents.md), [deps](./commands/deps.md), [install](./commands/install.md), [fix](./commands/fix.md), [hook](./commands/hook.md), [action](./commands/action.md), [skill](./commands/skill.md) |
-| [CHANGELOG](../CHANGELOG.md) | Version history |
-| [How Penthera is built (GenAI disclosure)](./genai.md) | Models used, how generated work is checked, contribution rules |
-| [Manifesto and FAQ](./MANIFESTO.md) | What Penthera is today, its design decisions, and how to challenge them |
-| [2.0 vision](./vision-2.0.md) | The plan to become the best: gaps, AI roadmap, research program |
-| [Roadmap](../ROADMAP.md), [plan to v2.0](./plan.md) and [release plan](./release-plan.md) | What ships next, in what order, and how quality is measured |
+Teams ship apps and AI agents faster than anyone can check them, and most
+security scanners offer no evidence of how well they actually work. Penthera is
+an open-source R&D project that tackles both.
 
-## Scanning
+**Use it today.** A cyber security agent for your coding tools that runs
+offline on your own machine: it checks your app, its dependencies and your AI
+tooling, and fixes what it can with your approval, through a dashboard that
+works for first-timers and pros alike.
 
-| Topic | Link |
-|-------|------|
-| Scan profiles | `quick` · `standard` · `deep`, see `--profile` in `penthera --help` |
-| Authenticated scans | `--auth-cookie`, `--auth-bearer`, `PENTHERA_BEARER` env |
-| Adaptive probes | `--adaptive`, knowledge-graph-driven escalation on live routes |
-| Custom templates | `--templates ./my-templates`, Nuclei-compatible YAML dirs |
-| Rule packs | `--rules ./pack`, signed detection data; no runtime fetching. See [rule-packs.md](./rule-packs.md) |
-| Baseline diff | `--baseline reports/previous.json` |
+**Trust it because it's measured.** Every check is tested in public,
+pre-registered experiments, and the results are published, good or bad. What
+holds up ships in the next release, so Penthera keeps pace with new attacks and
+with EU rules such as NIS2 and the Cyber Resilience Act.
 
-## Reports
+## Start here
 
-| Format | Flag |
-|--------|------|
-| Markdown | `-o report.json` (auto `.md`) or `--markdown report.md` |
-| JSON | `-o report.json` or `--json` |
-| SARIF | `--sarif results.sarif`, GitHub Security tab |
+Each step answers one question. Start at the top and stop when you have what
+you need.
 
-## Standards & CI
+### Starter: is it safe?
 
-| Topic | Link |
-|-------|------|
-| OWASP WSTG mapping | [owasp-wstg-coverage.md](./owasp-wstg-coverage.md) |
-| NIS2 compliance guide | [compliance-nis2.md](./compliance-nis2.md) |
-| Local loop and learning store | [local-loop.md](./local-loop.md) |
-| CRA reporting and AI-BOM | [compliance-cra.md](./compliance-cra.md) |
-| Reports and evidence bundles | [evidence.md](./evidence.md) |
-| Privacy, network use, `--offline` | [privacy.md](./privacy.md) |
-| Local dashboard (`penthera ui`) | [dashboard.md](./dashboard.md) |
-| Scan your app in GitHub Actions | [examples/github-actions-scan.yml](./examples/github-actions-scan.yml), set `PENTEST_STAGING_URL` |
-| Penthera's own CI | `.github/workflows/ci.yml` (full tests + mock scan), `codeql.yml`, `scorecard.yml` |
-| Docker | `docker build -t penthera . && docker run penthera https://localhost:3000` |
+| # | Your question | Run | Read |
+|---|---|---|---|
+| 1 | "Is my app safe to ship?" | `npx penthera` | [Set up in one command](commands/init.md), then [before launch](use-cases/solo-founder.md) and [scanning your app](commands/scan.md) |
+| 2 | "Is this package safe to add?" | `npx penthera deps` | [Dependency risk](commands/deps.md), [the install firewall](commands/install.md) |
+| 3 | "Is this MCP server or skill safe?" | `npx penthera agents --home` | [Auditing your AI tooling](commands/agents.md), [the AI-tooling supply chain](use-cases/ai-coding-teams.md) |
+| 4 | "Can I see it all in one place?" | `npx penthera ui` | [The local dashboard](dashboard.md) |
+| 5 | "Can my coding agent run it for me?" | `npx skills add danoszz/penthera` | [Penthera as an Agent Skill](commands/skill.md) |
 
-## Methodology & research
+### Pro: make it part of how you work
 
-| Topic | Link |
-|-------|------|
-| How detection works, confidence model, limits | [METHODOLOGY.md](./METHODOLOGY.md) |
-| Cited research and standards | [references.md](./references.md) ([BibTeX](./references.bib)) |
-| Accuracy benchmark (`npm run bench`) | [bench/README.md](../bench/README.md), latest [results](../bench/RESULTS.md) |
-| Citing Penthera | [CITATION.cff](../CITATION.cff) |
-| Refresh the README's numbers | `npm run docs:numbers` (`-- --tests` to count tests) |
-| How Socket positions itself, and what Penthera took from it | [research/socket-positioning-notes.md](./research/socket-positioning-notes.md) |
+| # | Your question | Read |
+|---|---|---|
+| 6 | "How do I put it in CI?" | [The GitHub Action](commands/action.md), [scan in CI](commands/scan.md#ci-integration), [the pre-commit hook](commands/hook.md), [example workflows](examples/github-actions-scan.yml) |
+| 7 | "How do I tune the rules?" | [Scan configuration](commands/scan.md#configuration), [rule packs](rule-packs.md), [OWASP WSTG coverage](owasp-wstg-coverage.md) |
+| 8 | "How do I run the fix loop?" | [Fixing what it finds](commands/fix.md), [the local loop and its memory](local-loop.md) |
+| 9 | "What do I give my auditor?" | [Evidence bundles and audience reports](evidence.md), [NIS2](compliance-nis2.md), [the CRA and AI-BOM](compliance-cra.md), [EU SMEs](use-cases/eu-sme-compliance.md) |
+| 10 | "What does it send over the network?" | [Privacy and network use](privacy.md) |
 
-## Agent skill
+### Verify it: how do you know it works?
 
-| Topic | Location |
-|-------|----------|
-| Skill files | `skills/penthera/SKILL.md` |
-| Preflight | `bash skills/penthera/scripts/preflight.sh [URL]` |
-| Validate report | `npm run validate:report -- reports/scan.json` |
-| Release zip | `npm run package:skill` |
+| Your question | Read |
+|---|---|
+| "How does it decide, and what can't it see?" | [Methodology](METHODOLOGY.md), [known limitations](METHODOLOGY.md#known-limitations) |
+| "How accurate is it?" | [Benchmark](../bench/README.md), [latest results](../bench/RESULTS.md), [E1 pre-registration](research/prereg/E1-real-world-accuracy.md) |
+| "What research is it based on?" | [References](references.md) ([BibTeX](references.bib)), [how to cite](METHODOLOGY.md#how-to-cite) |
+| "What will you measure next?" | [Research plan](vision-2.0.md), [plan for Phase A](research/plan-1.8.md) |
+| "Why was it built this way?" | [Manifesto and FAQ](MANIFESTO.md) |
+| "How much of it did AI write?" | [Use of generative AI](genai.md) |
+| "How does it compare to the tool I use?" | [Comparisons](compare/README.md) |
+
+## By situation
+
+| You are | Start with |
+|---|---|
+| A solo founder about to launch | [Before launch](use-cases/solo-founder.md) |
+| A team adopting Claude Code or Cursor | [The AI-tooling supply chain](use-cases/ai-coding-teams.md) |
+| An open-source maintainer | [For maintainers](use-cases/open-source-maintainers.md) |
+| An EU SME with NIS2 or CRA duties | [Evidence for NIS2 and the CRA](use-cases/eu-sme-compliance.md) |
+| An agency shipping client apps | [A repeatable handover check](use-cases/agencies.md) |
+
+Every command and flag: [commands/](commands/README.md).
+
+## The project
+
+| Page | For |
+|---|---|
+| [Roadmap](../ROADMAP.md) | What ships next, and the current feature freeze |
+| [CONTRIBUTING](../CONTRIBUTING.md) | Setup, tests, the release cadence and checklist |
+| [Voice guide](voice.md) | How Penthera's docs and messages are written |
+| [Internal audit](internal-audit.md) | The release gate, and its [latest report](../audit/REPORT.md) |
+| [Marketing automation](marketing.md) | What runs on a schedule, and what a person still posts |
+| [Funding](funding/sponsor-tiers.md) | Sponsor tiers, the [partner brief](funding/partner-one-pager.md) and the [due diligence checklist](funding/due-diligence-checklist.md) |
+| [CHANGELOG](../CHANGELOG.md) | Every release |
+| [Archive](archive/README.md) | Finished and superseded plans |
+| [SECURITY](../SECURITY.md) | Reporting a vulnerability in Penthera itself |
 
 ## Programmatic API
 
@@ -78,8 +89,8 @@ import { loadTemplatesFromPaths, runTemplateScan } from "penthera/plugins";
 import { runAdaptiveProbes } from "penthera/adaptive";
 ```
 
-See `lib/plugins.js` and `lib/blackbox/adaptive-scan.js` for exports shipped in the npm package.
+The exports are in `lib/plugins.js` and `lib/blackbox/adaptive-scan.js`, both
+shipped in the npm package. The npm package ships only `docs/examples/` from
+this folder; the rest of the docs live on GitHub.
 
-## Security
-
-Report vulnerabilities in Penthera via [SECURITY.md](../SECURITY.md). Only scan systems you own or have authorization to test.
+Only scan systems you own or are authorized to test.

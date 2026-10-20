@@ -1,22 +1,31 @@
 # Penthera: a one-page brief for security platforms
 
+> **Project page.** For partner teams asking "what is Penthera, and how could it
+> fit next to our platform?"
+
 For: teams at security platforms such as Aikido, Socket, Snyk, GitGuardian and
-Semgrep. Draft, not sent to anyone.
+Semgrep. Draft, not sent to anyone. Product facts updated 2026-10-20 for
+v1.7.0; vendor facts and adoption numbers are as checked on 2026-10-19.
 
 ## What Penthera is
 
-An MIT-licensed security scanner that runs on the developer's own machine, as a
-CLI (`npx penthera`) and as an Agent Skill for Claude Code and Cursor. It has no
-accounts and no telemetry. It does three things:
+An open-source cyber security agent you can use today, and verify yourself.
+Penthera is an MIT-licensed R&D project: a tool that runs on the developer's own
+machine, as a CLI (`npx penthera`) and as an Agent Skill for Claude Code and
+Cursor, and a public research program that measures how well its checks work
+in pre-registered experiments. It has no accounts and no telemetry. The tool
+does three things:
 
 1. **Scans the app.** Black-box checks of a live URL (TLS, headers, CORS,
    cookies, OpenAPI discovery, auth hardening, JWT, IDOR, OAuth redirects, opt-in
    injection probes) and white-box checks of a repo (routes, trust boundaries,
    hardcoded secrets including keys for a dozen AI providers).
-2. **Audits the AI developer toolchain.** `penthera agents` (in review, pull
-   request #12) reads `.mcp.json`, `~/.claude`, `~/.cursor`, hooks, plugins,
+2. **Audits the AI developer toolchain and dependencies.** `penthera agents`
+   reads `.mcp.json`, `~/.claude`, `~/.cursor`, hooks, plugins,
    skills and rule files, and grades them A to F, with SARIF output.
-3. **Produces NIS2 evidence.** A per-measure readiness report, self-assessment,
+   `penthera deps` shows what each npm and Python package can do, and
+   `penthera install` checks a package before its install scripts run.
+3. **Produces NIS2 and CRA evidence.** A per-measure readiness report, self-assessment,
    policy pack, incident report drafts and a CycloneDX SBOM. It never claims
    certification.
 
@@ -29,9 +38,9 @@ approach, not claims that one is better.
 |----------|--------------------------------|
 | **Offline, deterministic audit of agent configuration.** Rules decide findings; nothing about the user's setup leaves the machine; MCP servers are read from config, not started. | Snyk Agent Scan (formerly Invariant mcp-scan) covers MCP servers, skills and agent harnesses, but sends tool descriptions, server configs and skill content to a remote API, needs a Snyk token, and starts stdio servers to read their tools ([repo](https://github.com/snyk/agent-scan)). GitGuardian added AI hooks and an agent and MCP inventory in September 2026, focused on secrets in prompts and tool calls ([changelog](https://docs.gitguardian.com/releases/saas/2026/09/07/changelog)). We found no MCP or skill audit product in Socket's getting-started docs ([docs](https://docs.socket.dev/docs/getting-started)), though Socket does publish audits of individual skills listed on skills.sh. |
 | **App DAST inside the coding agent, with a scan, fix, verify loop.** The skill scans, proposes a framework-aware fix, and re-scans to prove it, all locally. | Aikido offers DAST, API scanning, AI pentesting and fix and verify agents as a hosted platform ([aikido.dev](https://www.aikido.dev/)). Snyk has DAST through its 2024 Probely acquisition ([Snyk news](https://snyk.io/news/snyk-acquires-developer-first-dast-provider-probely/)). Semgrep's product list covers SAST, supply chain and secrets, with no DAST listed ([semgrep.dev](https://semgrep.dev/)). |
-| **NIS2 and CRA evidence for small organisations.** Output is readiness and evidence for the Dutch Cyberbeveiligingswet and NIS2 Article 21, plus a CRA Article 14 reporting helper on the roadmap. | Aikido's homepage cites its own SOC 2 Type II and ISO 27001 status but does not mention NIS2 or CRA ([aikido.dev](https://www.aikido.dev/)). Semgrep's homepage does not mention them either ([semgrep.dev](https://semgrep.dev/)). We did not check Socket, Snyk or GitGuardian for this, and a homepage check can miss features documented elsewhere. |
+| **NIS2 and CRA evidence for small organizations.** Output is readiness and evidence for the Dutch Cyberbeveiligingswet and NIS2 Article 21, plus a CRA Article 14 reporting helper and a CycloneDX AI-BOM. | Aikido's homepage cites its own SOC 2 Type II and ISO 27001 status but does not mention NIS2 or CRA ([aikido.dev](https://www.aikido.dev/)). Semgrep's homepage does not mention them either ([semgrep.dev](https://semgrep.dev/)). We did not check Socket, Snyk or GitGuardian for this, and a homepage check can miss features documented elsewhere. |
 
-Where Penthera does not compete: hosted dashboards, organisation-wide policy,
+Where Penthera does not compete: hosted dashboards, organization-wide policy,
 runtime protection, cloud posture, container scanning, and broad SAST rule sets.
 The platforms above are far ahead there, and Penthera has no plans to build
 them ([ROADMAP.md, "Not planned"](../../ROADMAP.md)).
@@ -48,9 +57,9 @@ them ([ROADMAP.md, "Not planned"](../../ROADMAP.md)).
 - **The offline option for customers who need it.** For teams that cannot send
   code or configuration to a vendor, Penthera can be the documented local
   fallback.
-- **Planned: a "use alongside" guide** (`docs/use-alongside.md`, not yet
-  written) showing how to run Penthera with each platform without duplicate
-  findings.
+- **Comparison pages** ([docs/compare/](../compare/README.md)) show how to run
+  Penthera next to Socket, Snyk, GitHub, ZAP and Semgrep, and where each goes
+  further.
 
 ## Possible ways to work together
 

@@ -1,7 +1,10 @@
 # Use cases
 
-Each page starts from a situation, not a feature: the problem, what to run, what
-the output looks like, and what Penthera does not do for you.
+> **Starter and pro.** For "which page fits my situation?"
+
+Each page starts from a situation: the problem, what to run, what the output
+looks like, and what Penthera does not do for you. The first two pages are for
+starters; the last three are for pros wiring Penthera into a process.
 
 | You are | Page |
 |---|---|

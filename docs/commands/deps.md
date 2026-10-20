@@ -1,5 +1,7 @@
 # Dependency risk: `penthera deps`
 
+> **Starter.** For "is this package safe to add?"
+
 ## Dependency risk: what can your packages do?
 
 A lockfile change is code you did not write, about to run with your app's access
@@ -25,9 +27,9 @@ penthera deps --pr-comment deps.md     # short Markdown diff for a PR comment
 |---|---|
 | Install scripts | `preinstall` / `install` / `postinstall`, and `binding.gyp` (npm runs `node-gyp` implicitly). Flagged as risky when the hook pipes a download to a shell or runs a file with network or decoding code |
 | Shell, network, dynamic code | `child_process`; `http`/`https`/`net`/`dgram`/`tls`/`http2`, `fetch`, `WebSocket`; `eval`, `new Function`, `vm` |
-| Environment | `process.env` reads, and bulk access (`JSON.stringify(process.env)`, enumeration). Serialising the environment next to network code is reported as likely exfiltration |
+| Environment | `process.env` reads, and bulk access (`JSON.stringify(process.env)`, enumeration). Serializing the environment next to network code is reported as likely exfiltration |
 | Files, modules, native | Writes near home-directory or system paths; computed `require()`/`import()`; `.node` addons and `binding.gyp` |
-| Obfuscation | Obfuscator identifiers (`_0x…`), `\x`-escape density, encoded blobs that are decoded and run (embedded WebAssembly and ANSI colour codes are recognised and ignored) |
+| Obfuscation | Obfuscator identifiers (`_0x…`), `\x`-escape density, encoded blobs that are decoded and run (embedded WebAssembly and ANSI color codes are recognized and ignored) |
 | Attack indicators | Writes to `~/.claude`, `~/.cursor`, `.mcp.json` or the Claude Desktop config; running the `claude`, `gemini` or `q` CLIs (the s1ngularity pattern); GitHub token harvesting |
 | Typosquats | Edit distance, separator and suffix tricks against ~7,800 popular npm names, vendored in the package and refreshed at release time |
 | Known-bad versions | Package versions, exfil endpoints and dropped files from named campaigns (s1ngularity, Shai-Hulud, Shai-Hulud 2.0, postmark-mcp), from the signed [rule packs](../rule-packs.md) that ship with each release. Matched against the lockfile, so a bad version is reported even when it is not installed |
@@ -36,7 +38,7 @@ Every capability carries `file:line` evidence. It is a regex-and-tokenizer pass,
 not a full parser: deterministic, never executes package code, and fast enough
 for every PR (0.4 s for Penthera's own 61 packages, 5 to 16 s for real app
 trees of 500 to 1,700 packages). A capability is what code
-*can* do, not proof that it is malicious; the findings carry honest confidence
+*can* do, not proof that it is malicious; the findings carry confidence
 labels (`potential` for obfuscation and typosquats).
 
 **Offline by default.** Old versions for the diff come from the base tree's
@@ -71,7 +73,7 @@ base64/zlib-decoded payload, installed files that no longer match their
 `RECORD` hash, and `.pth` files no distribution owns. Old versions for the diff
 come from pip's HTTP cache (matched by the lockfile's sha256) or uv's cache
 (by recorded hash), otherwise they are marked "not compared". Typosquats are
-checked against the top 8,000 PyPI projects, PEP 503 normalised.
+checked against the top 8,000 PyPI projects, PEP 503 normalized.
 `--online` registry checks are npm-only for now.
 
 ### License policy
@@ -111,6 +113,6 @@ package that says `AGPL-3.0`. A breach and `UNLICENSED` (no rights granted)
 are high. A missing, custom (`SEE LICENSE IN ...`) or non-SPDX license is
 medium, or high with `"unknown": "block"`. `allowPackages` exempts packages your
 legal review has cleared. Findings use category `license` and appear in every
-output format, and `--sbom` now records each component's license.
+output format, and `--sbom` records each component's license.
 
 [Back to the README](../../README.md) · [All commands](README.md)

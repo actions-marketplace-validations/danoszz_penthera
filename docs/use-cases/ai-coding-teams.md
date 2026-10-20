@@ -1,12 +1,14 @@
 # The AI-tooling supply chain: for teams adopting Claude Code or Cursor
 
+> **Starter.** For "is this MCP server or skill safe?"
+
 ## The problem
 
 A coding agent runs with your developer's permissions. What it can do is decided
 by files that rarely get reviewed: `.mcp.json`, `.claude/settings.json`, hooks,
 skills, plugins, `CLAUDE.md`, `AGENTS.md` and `.cursor/` rules. Some of these
 arrive from a teammate's pull request, some from a marketplace, some from a
-blog post. In 2025 and 2026 attackers used exactly these paths: skills with
+blog post. In 2025 and 2026 attackers used these paths: skills with
 instructions hidden from human reviewers, MCP servers launched with `npx -y` on
 whatever version was latest, and npm worms that wrote to `~/.claude` and ran the
 `claude` CLI on the victim's machine.

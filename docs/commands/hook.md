@@ -1,5 +1,7 @@
 # Pre-commit hook: `penthera hook`
 
+> **Pro.** For "how do I put it in CI?"
+
 ## Block it before it's committed
 
 Once a secret is pushed, rotating it is the only fix. The pre-commit hook runs

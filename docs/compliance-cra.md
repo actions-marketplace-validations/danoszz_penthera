@@ -1,7 +1,8 @@
 # Compliance: the Cyber Resilience Act (CRA)
 
-Back to the [README](../README.md). NIS2 lives in
-[compliance-nis2.md](compliance-nis2.md).
+> **Pro.** For "what must I report under the CRA, and what is in my AI-BOM?"
+
+NIS2 is covered in [compliance-nis2.md](compliance-nis2.md).
 
 The Cyber Resilience Act, [Regulation (EU) 2024/2847](https://eur-lex.europa.eu/eli/reg/2024/2847/oj/eng),
 puts security duties on manufacturers of products with digital elements, which
@@ -14,7 +15,7 @@ Penthera helps with two pieces of CRA evidence, offline:
 
 | Command | What you get |
 |---------|--------------|
-| `--cra-init cra.json` then `--cra cra.json` | Article 14 timeline with real due dates, overdue flags, and drafts of every report |
+| `--cra-init cra.json` then `--cra cra.json` | Article 14 timeline with due dates, overdue flags and a draft of every report |
 | `--repo . --aibom aibom.cdx.json` | CycloneDX 1.6 AI-BOM: AI SDKs, models referenced in code, MCP servers, skills, prompt files |
 
 Penthera does not make you CRA compliant and does not certify anything. The
@@ -62,7 +63,7 @@ report (`due in 21h 30m`, `submitted`, `submitted late`, `OVERDUE`,
 `waiting for a fix`), a draft of each report with `NEEDS INPUT` for every fact
 still missing, and a draft user advisory for Art. 14(8). Record what you've sent
 in `submitted.early_warning` / `submitted.notification` / `submitted.final_report`
-and re-run; for a severe incident the final report then counts from the real
+and re-run. For a severe incident, the final report then counts from the actual
 submission time instead of the 72-hour deadline.
 
 **Prefill from your scan and SBOM.** Name the affected dependency in
@@ -83,9 +84,9 @@ penthera https://staging.example.com --repo . --sbom sbom.cdx.json -o scan.json
 ```
 
 From the SBOM it fills the product name and version and the component's version
-and purl; from the scan, matching CVE ids, the scanner severity, and the finding
-titles. Prefilled values are marked *verify* in the draft, and anything you wrote
-yourself is never overwritten. A full example lives in `tests/fixtures/cra/`.
+and purl. From the scan it fills matching CVE ids, the scanner severity and the
+finding titles. Prefilled values are marked *verify* in the draft, and anything you wrote
+yourself is never overwritten. A full example is in `tests/fixtures/cra/` in the repository.
 
 ### How the deadlines are counted
 
@@ -108,7 +109,7 @@ if the type or time zone is unknown.
 
 ## AI-BOM (CycloneDX 1.6)
 
-Customers and auditors increasingly ask what AI a product contains: which
+Customers and auditors ask what AI a product contains: which
 providers get your data, which models, which agent tooling. `--aibom`
 inventories it from the repo, offline:
 
@@ -124,18 +125,18 @@ penthera --repo . --aibom aibom.cdx.json
 | Agent Skills | `SKILL.md` folders | `data` with SHA-256 |
 | Prompt files | `*.prompt`, `*.prompty`, `*.prompt.md`, anything under a `prompts/` folder | `data` with SHA-256 |
 
-Every item hangs off the root component in `dependencies`. The BOM is only the
-AI slice; use `--sbom` for all dependencies.
+Every item hangs off the root component in `dependencies`. The BOM covers only
+AI components. Use `--sbom` for all dependencies.
 
 Spec references: the [CycloneDX 1.6 JSON reference](https://cyclonedx.org/docs/1.6/json/),
 the [ML-BOM capability page](https://cyclonedx.org/capabilities/mlbom/), and the
 [official schema](https://github.com/CycloneDX/specification/blob/master/schema/bom-1.6.schema.json).
 That schema (with its SPDX and JSF dependencies) is vendored in
 `tests/fixtures/cyclonedx/`, and the tests validate every generated AI-BOM
-against it without network. Penthera emits 1.6 (ML-BOM first appeared in 1.5);
-CycloneDX 1.7 is also published and is a later upgrade.
+against it without network. Penthera writes 1.6 (ML-BOM first appeared in 1.5).
+CycloneDX 1.7 is also published, and support for it is not built yet.
 
 **Limits.** A model string in code means the model is referenced, not that it
-runs in production; the evidence lines let a reviewer check. Model ids built at
+runs in production. The evidence lines let a reviewer check. Model ids built at
 runtime (`` `claude-${tier}` ``) are not detected. The `modelCard` is a stub:
 fill in task, datasets and considerations from the provider's model card.

@@ -1,5 +1,7 @@
 # Internal testing audit
 
+> **Pro.** For "how do I know a Penthera release is sound?"
+
 Penthera is a security tool, so its own release bar has to be easy to check.
 The internal audit is that bar: one command that runs every check a release
 needs and writes the result to [`audit/REPORT.md`](../audit/REPORT.md).

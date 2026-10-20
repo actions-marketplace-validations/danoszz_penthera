@@ -2,7 +2,7 @@
   "name": "penthera",
   "version": "1.7.0",
   "type": "module",
-  "description": "Open-source security for the apps and AI systems you ship. Check it before you deploy, vet what you build with (dependencies, MCP servers, skills), keep watching after you ship. Offline, deterministic, free.",
+  "description": "Offline cyber security agent for your apps and AI coding tools. Open R&D: measured in public, improved every release.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/danoszz/penthera.git"

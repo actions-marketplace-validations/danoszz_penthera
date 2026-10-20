@@ -5,16 +5,19 @@
  *
  *   1. Host check   Host must be 127.0.0.1:<port> or localhost:<port>. Blocks
  *                   DNS rebinding (attacker.com resolving to 127.0.0.1).
- *   2. Session      The one-time URL token is swapped for an HttpOnly,
- *                   SameSite=Strict cookie; every other request needs it.
+ *   2. Session      The one-time token travels in the URL fragment (never
+ *                   sent over the network), the page swaps it for a session
+ *                   id through POST /api/session and keeps that in
+ *                   sessionStorage. Every other /api request needs it as
+ *                   `Authorization: Bearer`. No cookie: cookies are not bound
+ *                   to a port, so every other server on 127.0.0.1 would get
+ *                   one. The id lives in this origin's sessionStorage only.
  *   3. Origin       State-changing requests need an Origin equal to the
  *                   server's own and a JSON body (no simple cross-site POSTs).
  *
  * No CORS headers are ever sent. Every response carries a strict CSP.
  */
 import { randomBytes, timingSafeEqual, createHash } from "node:crypto";
-
-export const COOKIE_NAME = "penthera_ui";
 
 export const CSP = [
   "default-src 'self'",
@@ -70,14 +73,11 @@ export function hostAllowed(hostHeader, port) {
   return typeof hostHeader === "string" && allowedHosts(port).has(hostHeader.toLowerCase());
 }
 
-export function readCookie(header, name) {
+/** The token of an `Authorization: Bearer <token>` header, or null. */
+export function readBearer(header) {
   if (typeof header !== "string") return null;
-  for (const part of header.split(";")) {
-    const i = part.indexOf("=");
-    if (i < 0) continue;
-    if (part.slice(0, i).trim() === name) return part.slice(i + 1).trim();
-  }
-  return null;
+  const m = /^Bearer ([A-Za-z0-9_-]{16,128})$/.exec(header.trim());
+  return m ? m[1] : null;
 }
 
 /**
@@ -100,7 +100,7 @@ export function isStateChanging(method) {
 
 /**
  * Fixed-window limiter for requests that fail the session check. A signed-in
- * browser never hits it (it always has the cookie), so anything that does is
+ * browser never hits it (it always sends its session), so anything that does is
  * another page or process guessing. Unauthenticated state-changing requests
  * have no legitimate source at all and get a much smaller budget.
  */
@@ -120,11 +120,11 @@ export function createAuthLimiter({ windowMs = 60_000, maxReads = 120, maxWrites
 }
 
 /**
- * Session state: one bootstrap token (single use, printed in the URL) and the
- * session cookie. The cookie value is minted when the link is redeemed, handed
- * to the browser once in Set-Cookie, and never kept: the server holds only its
- * SHA-256, so nothing readable from this process (or a heap dump) is a
- * working session.
+ * Session state: one bootstrap token (single use, printed in the URL fragment)
+ * and the session id. The id is minted when the link is redeemed, handed to
+ * the page once in the POST /api/session response, and never kept: the server
+ * holds only its SHA-256, so nothing readable from this process (or a heap
+ * dump) is a working session.
  */
 export function createSession({ bootstrap = randomToken(), mint = () => randomBytes(32).toString("base64url") } = {}) {
   let used = false;
@@ -141,13 +141,10 @@ export function createSession({ bootstrap = randomToken(), mint = () => randomBy
       return sid;
     },
     get redeemed() { return used; },
-    check(cookieHeader) {
-      const v = readCookie(cookieHeader, COOKIE_NAME);
+    /** True for an `Authorization: Bearer <session id>` header that matches. */
+    check(authorizationHeader) {
+      const v = readBearer(authorizationHeader);
       return digest != null && typeof v === "string" && safeEqual(hash(v), digest);
-    },
-    /** The Set-Cookie header for a session id that redeem() just returned. */
-    cookie(sid) {
-      return `${COOKIE_NAME}=${sid}; HttpOnly; SameSite=Strict; Path=/`;
     },
   };
 }

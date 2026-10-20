@@ -136,7 +136,7 @@ function prepareWork() {
 }
 
 /**
- * Start `penthera ui --demo`, poll / until it answers 401 (no token), stop it,
+ * Start `penthera ui --demo`, poll /api/meta until it answers 401 (no session), stop it,
  * and check the port is closed again.
  */
 async function checkUi(name) {
@@ -150,11 +150,11 @@ async function checkUi(name) {
   const deadline = Date.now() + 90_000;
   let status = null;
   while (Date.now() < deadline) {
-    const m = out.replace(ANSI, "").match(/http:\/\/127\.0\.0\.1:(\d+)\/\?token=\S+/);
+    const m = out.replace(ANSI, "").match(/http:\/\/127\.0\.0\.1:(\d+)\/#t=\S+/);
     if (m) {
       base = `http://127.0.0.1:${m[1]}`;
       try {
-        status = (await fetch(`${base}/`, { redirect: "manual" })).status;
+        status = (await fetch(`${base}/api/meta`, { redirect: "manual" })).status;
         if (status === 401) break;
       } catch { /* not listening yet */ }
     }
@@ -162,7 +162,7 @@ async function checkUi(name) {
     await new Promise((r) => setTimeout(r, 250));
   }
   if (!base) problems.push("no one-time URL printed");
-  else if (status !== 401) problems.push(`GET / without token answered ${status}, want 401`);
+  else if (status !== 401) problems.push(`GET /api/meta without a session answered ${status}, want 401`);
 
   // Stop it the way a user would (Ctrl-C / SIGTERM); Windows has no signals for
   // a console-less child, so end the process tree.

@@ -364,20 +364,92 @@ are generated from [references.bib](references.bib) by
 
 ## Known limitations
 
-- No authenticated crawling beyond the bearer token or cookie you pass, so
-  pages behind multi-step flows are not reached (Doupé et al., 2010).
-- No stored or second-order injection testing (Bau et al., 2010).
-- No DOM-based XSS analysis, because Penthera does not run JavaScript (Lekies et
-  al., 2013; Stock et al., 2014).
-- No business logic testing. IDOR/BOLA findings need a human to confirm them.
-- Secret detection is pattern-based and skips Markdown and other documentation
-  files, so unprefixed secrets and secrets in notes are missed.
-- The bundled benchmark was written by the same people as the scanner. Its
-  numbers measure regressions and the false-positive controls, not accuracy on
-  arbitrary applications. Independent benchmarks such as the OWASP Benchmark
-  (OWASP Foundation, n.d.-a) and the benchmarking approach of Antunes and Vieira
-  (2010, 2015) are the model for a fairer comparison. Scoring against labelled
-  third-party targets (Juice Shop, crAPI) is the next step.
-- Compliance output for the NIS2 Directive (European Parliament and Council of
-  the European Union, 2022) is evidence toward a duty of care, not a
-  certification.
+This section states what Penthera cannot do and how far its evidence reaches.
+It is meant to be read before relying on any result. Challenges and additions
+are welcome (see [MANIFESTO.md](MANIFESTO.md)).
+
+### What the scanners cannot see
+
+- **URL scanning.**
+  - No authenticated crawling beyond the bearer token or cookie you pass, so
+    pages behind multi-step flows are not reached (Doupé et al., 2010).
+  - No stored or second-order injection testing (Bau et al., 2010).
+  - No DOM-based XSS analysis, because Penthera does not run JavaScript (Lekies et
+    al., 2013; Stock et al., 2014).
+- **Logic and authorization.** No business logic testing. IDOR/BOLA findings are
+  heuristics that need a human to confirm them.
+- **Secrets.** Detection is pattern-based and skips Markdown and other
+  documentation files, so unprefixed secrets and secrets in notes are missed.
+- **Dependencies (`deps`, `install`).**
+  - Analysis is static. Behaviour that is only decided at run time (code
+    fetched or decrypted on execution, heavily obfuscated or minified bundles,
+    logic inside native binaries) can be reported as a capability or as
+    "unscanned", but not understood.
+  - A package that hides its intent well can look ordinary.
+  - The typosquat list and the vendored data are snapshots and age between
+    releases.
+- **AI tooling (`agents`).**
+  - Rules recognise known patterns of hidden content and risky configuration.
+  - A new phrasing of a prompt injection, or a malicious skill that behaves
+    normally until a later update, can pass.
+  - `penthera.lock` detects changes after you pin, not malice present before.
+- **Fix loop.**
+  - A fix counts as verified when the finding disappears and the project's own
+    tests pass. Weak or missing tests mean weak verification.
+  - Built-in recipes cover a handful of frameworks and finding types.
+- **Live AI features.** LLM endpoint checks (rate limits on chat endpoints,
+  exposed model servers) are not yet available.
+
+### How far the evidence reaches
+
+- **Small sample.** The bundled benchmark scores 22 findings. Precision 0.86 and
+  recall 0.90 come with wide 95% Wilson intervals (0.67–0.95 and 0.71–0.97), so
+  small changes in either are not meaningful.
+- **Built by the same team.** The benchmark targets, their labels, and the
+  scanner were written by the same people, so the numbers measure regressions
+  and the false-positive controls, not accuracy on arbitrary applications.
+  Independent benchmarks such as the OWASP Benchmark (OWASP Foundation, n.d.-a)
+  and the benchmarking approach of Antunes and Vieira (2010, 2015) are the model
+  for a fairer comparison.
+- **Possible overfitting.** Probes were tuned while looking at these targets, so
+  they may perform better here than elsewhere.
+- **Single labeller.** Ground truth was labelled without a second, independent
+  labeller, so label errors are not measured.
+- **Recall is only partly known.** Recall counts misses of issues we planted. On
+  real code, the full set of issues is unknown.
+- **No head-to-head comparison** with other tools under the same conditions has
+  been run.
+- **Confidence labels are not calibrated.** The labels (confirmed, likely,
+  potential, needs human review) are expert judgement about each probe's
+  method, not measured probabilities. Severity mappings are judgement too.
+- **References support the design, not the outcome.** The literature cited here
+  explains why each choice was made. It does not show that Penthera's
+  implementation achieves what the cited work describes. Some incident
+  descriptions in the docs rely on vendor and industry reports that were not
+  independently verified.
+- Measuring real-world accuracy with an independent, pre-registered study is the
+  first goal of the [2.0 plan](vision-2.0.md#research-program).
+
+### Reproducibility
+
+- Timing-based probes depend on network and machine load. Results can vary
+  between runs, and the confirmation rules trade some sensitivity for stability.
+- Benchmark runs are seeded, but live scans of real applications are not
+  deterministic, because the applications are not.
+- The full test suite can be flaky on a heavily loaded machine. CI runs it on
+  clean runners.
+
+### How it is built
+
+- Most of the code (107 of 117 non-merge commits up to v1.7.0) was written with
+  generative AI under the maintainer's direction ([details](genai.md)).
+- Generated code passes the same tests, static analysis, and release gates.
+  But it has had less line-by-line human scrutiny than hand-written code would.
+  An independent review on 2026-10-19 found and fixed three high-severity bugs,
+  and no external security audit has been done yet.
+
+### Compliance output
+
+Compliance output for the NIS2 Directive (European Parliament and Council of the
+European Union, 2022) and the Cyber Resilience Act is evidence toward a duty of
+care, not a certification and not legal advice.

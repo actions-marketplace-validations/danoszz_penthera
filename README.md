@@ -167,7 +167,8 @@ standard it rests on: 49 verified references, listed in APA style in
 
 The benchmark targets are small and were written by the same people as the
 scanner, so the numbers catch regressions rather than measure real-world
-accuracy ([limits](bench/RESULTS.md#limits-of-these-numbers)). Counts as of
+accuracy. The full list of what Penthera cannot see, and how far its evidence
+reaches, is in [Known limitations](docs/METHODOLOGY.md#known-limitations). Counts as of
 2026-10-19; refresh them with `npm run docs:numbers` and `npm run bench`.
 
 **Cite this repository.** Use the button on GitHub, or the metadata in
@@ -226,6 +227,17 @@ not scan.
 The software is provided "as is", without warranty, for defensive testing of
 systems you own or are authorized to test. The author accepts no liability for
 misuse, and you are responsible for making sure every scan you run is lawful.
+
+## How Penthera is built
+
+Penthera is developed with substantial help from generative AI: 91% of the
+commits up to v1.7.0 were written with Claude (Anthropic) through Claude Code,
+directed and reviewed by the maintainer, and marked with a co-author trailer.
+Generated code passes the same gates as any change: tests, CodeQL, an
+independent review, the internal audit, and a 2FA-approved release. Inside the
+product, models only ever propose; deterministic checks decide. The full
+disclosure, and the rules for AI-assisted contributions, are in
+[docs/genai.md](docs/genai.md).
 
 ## Contributing and support
 

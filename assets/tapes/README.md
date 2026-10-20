@@ -11,13 +11,21 @@ vhs assets/tapes/scan.tape
 
 | Tape | Output | Shows |
 |------|--------|-------|
-| `scan.tape` | `assets/demo.gif` (the README hero) | Offline URL scan of the local mock server |
+| `scan.tape` | `assets/demo-scan.gif` | Offline URL scan of the local mock server |
 | `agents.tape` | `assets/demo-agents.gif` | `penthera agents` on a malicious AI-tooling fixture |
 | `deps-diff.tape` | `assets/demo-deps-diff.gif` | `penthera deps --diff` between two lockfile trees |
 
 `_settings.tape` holds the shared size and the black and white theme with the
 `#0000ed` accent. A tape whose name starts with `_` is not rendered on its own.
 To add a clip, add a tape here; the workflow picks up every `*.tape`.
+
+## The README hero loop
+
+`bash scripts/media/hero-gif.sh` cuts `assets/demo.gif` from the walkthrough
+video: setup, a scan, the dashboard in Simple and Advanced mode, a fix
+applied, then a crossfade back to the start so it loops without a jump. About
+12 seconds, no captions, 10 fps, a 32-colour palette. The cut points follow the
+video's scenes; adjust `SCENES` in the script if the walkthrough changes.
 
 ## The walkthrough video
 

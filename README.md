@@ -230,6 +230,23 @@ product, models only ever propose; deterministic checks decide. The full
 disclosure, and the rules for AI-assisted contributions, are in
 [docs/genai.md](docs/genai.md).
 
+## Building in public
+
+What changed, what we are measuring, and what comes next, in one place.
+
+| | Where it stands | Read more |
+|---|---|---|
+| **Latest release** | 1.7.0 (2026-10-19): one-command setup (`npx penthera`), the dashboard, signed rule packs | [CHANGELOG](CHANGELOG.md) |
+| **On main, unreleased** | Release checks on Linux, macOS and Windows, docs tested as code, a smaller package, security hardening | [Unreleased](CHANGELOG.md#unreleased) |
+| **Now** | 1.8.0 feature freeze: fixes only, a release candidate on npm's `next` tag first | [Roadmap: now](ROADMAP.md#now-180-feature-freeze) |
+| **Research** | E1, accuracy on real code, is pre-registered; the benchmark tooling is in review | [E1 pre-registration](docs/research/prereg/E1-real-world-accuracy.md), [plan](docs/research/plan-1.8.md) |
+| **Next** | Real-world precision and recall with intervals, published whatever the result | [Roadmap: next](ROADMAP.md#next), [research plan](docs/vision-2.0.md) |
+
+Releases are deliberately slow: a feature freeze, an independent review, the
+release checks, and a release candidate before any new minor version. To
+follow along, watch the repository for releases or join the
+[Discussions](https://github.com/danoszz/penthera/discussions).
+
 ## Contributing and support
 
 Clone the repository and run `npm install`, then `npm test` for the suite and

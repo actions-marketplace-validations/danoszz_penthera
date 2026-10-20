@@ -1,0 +1,206 @@
+name: Install matrix
+
+# Tests Penthera the way users install it: the packed tarball, installed into
+# an empty project and run with `npx penthera`, on Linux, macOS and Windows with
+# Node 22 and 24. Also an upgrade from the last release on npm with existing
+# ~/.penthera state, and every documented command against the installed package.
+#
+# Network: npm fetches the tarball's one runtime dependency (yaml) from the
+# registry during install, as any user install does, and the upgrade job
+# installs penthera@1.7.0 from npm. Penthera itself runs offline: every
+# Penthera process here is started under scripts/ci/net-guard.cjs, which fails
+# any connection or DNS query past loopback.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: install-matrix-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pack:
+    name: npm pack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      # --ignore-scripts skips prepack (`npm test`), which ci.yml already runs.
+      - name: Pack
+        run: |
+          mkdir dist
+          npm pack --ignore-scripts --pack-destination dist
+          mv dist/penthera-*.tgz dist/penthera.tgz
+          ls -l dist
+
+      - name: Check the tarball's contents
+        run: |
+          tar -tzf dist/penthera.tgz | sort > dist/files.txt
+          echo "$(wc -l < dist/files.txt) files"
+          for f in package/package.json package/bin/penthera.js package/bin/scan.js \
+                   package/lib/rules/core/pack.json.sig package/lib/rules/ioc-2025-2026/pack.json.sig \
+                   package/lib/rules/allowed_signers package/skills/penthera/SKILL.md \
+                   package/docs/examples/github-actions-deps.yml package/src/ui/server.js; do
+            grep -qx "$f" dist/files.txt || { echo "::error::missing from the tarball: $f"; exit 1; }
+          done
+          if grep -E '^package/(tests|\.github|\.claude|\.cursor|bench|audit)/' dist/files.txt; then
+            echo "::error::the tarball ships repo-only folders"; exit 1
+          fi
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: penthera-tarball
+          path: dist/penthera.tgz
+          retention-days: 7
+          if-no-files-found: error
+
+  fresh-install:
+    name: ${{ matrix.os }} · node ${{ matrix.node }}
+    needs: pack
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [22, 24]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # The checkout supplies scripts/ci and the fixture only. What is tested is
+      # the tarball, installed outside the checkout.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: penthera-tarball
+          path: ${{ runner.temp }}/pkg
+
+      - name: Install the tarball into an empty project
+        working-directory: ${{ runner.temp }}
+        run: |
+          mkdir proj home
+          cd proj
+          echo '{ "name": "penthera-smoke", "private": true }' > package.json
+          npm install ../pkg/penthera.tgz --ignore-scripts --no-audit --no-fund
+          npm ls penthera
+
+      - name: Smoke-test the installed CLI
+        env:
+          HOME: ${{ runner.temp }}/home
+          USERPROFILE: ${{ runner.temp }}/home
+        run: node scripts/ci/smoke-installed.mjs --prefix "$RUNNER_TEMP/proj" --work "$RUNNER_TEMP/work"
+
+      - name: Documented commands against the installed package
+        if: matrix.node == 22
+        env:
+          HOME: ${{ runner.temp }}/home
+          USERPROFILE: ${{ runner.temp }}/home
+        run: node scripts/docs-commands.mjs --bin "$RUNNER_TEMP/proj/node_modules/penthera/bin/penthera.js" --report "$GITHUB_STEP_SUMMARY"
+
+      # .cursor/skills/penthera is a symlink to skills/penthera, for people
+      # working on Penthera itself in Cursor. Git for Windows checks symlinks
+      # out as plain text files unless core.symlinks is on (CONTRIBUTING.md,
+      # "Windows"). The npm package does not ship .cursor/, so users are not
+      # affected; this step records what a Windows checkout gets.
+      - name: Cursor skill link in a Windows checkout
+        if: runner.os == 'Windows'
+        run: |
+          git ls-files -s .cursor/skills/penthera
+          if [ -L .cursor/skills/penthera ] || [ -d .cursor/skills/penthera ]; then
+            echo "symlink checked out as a link"
+          else
+            echo "::notice title=Cursor skill link::.cursor/skills/penthera is a plain file in this checkout (core.symlinks=$(git config core.symlinks || echo unset)) containing: $(cat .cursor/skills/penthera). Documented in CONTRIBUTING.md; not part of the npm package."
+          fi
+
+  upgrade:
+    name: upgrade from 1.7.0 · ${{ matrix.os }}
+    needs: pack
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    env:
+      FROM_VERSION: 1.7.0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: penthera-tarball
+          path: ${{ runner.temp }}/pkg
+
+      # The one deliberate download in this workflow: the last release, from npm.
+      - name: Install penthera@${{ env.FROM_VERSION }} from npm
+        working-directory: ${{ runner.temp }}
+        run: |
+          mkdir proj home
+          cd proj
+          echo '{ "name": "penthera-upgrade", "private": true }' > package.json
+          npm install "penthera@$FROM_VERSION" --ignore-scripts --no-audit --no-fund
+          npm ls penthera
+
+      - name: Old release writes state (--memory scan, ui --demo)
+        env:
+          HOME: ${{ runner.temp }}/home
+          USERPROFILE: ${{ runner.temp }}/home
+        run: node scripts/ci/smoke-installed.mjs --prefix "$RUNNER_TEMP/proj" --work "$RUNNER_TEMP/work" --phase upgrade-before
+
+      - name: Upgrade to the packed tarball
+        working-directory: ${{ runner.temp }}/proj
+        run: |
+          npm install ../pkg/penthera.tgz --ignore-scripts --no-audit --no-fund
+          npm ls penthera
+          node -e '
+            const r = require("./package-lock.json").packages["node_modules/penthera"].resolved;
+            console.log("resolved:", r);
+            if (!String(r).startsWith("file:")) { console.error("the tarball did not replace the npm release"); process.exit(1); }'
+
+      - name: New code reads the old state
+        env:
+          HOME: ${{ runner.temp }}/home
+          USERPROFILE: ${{ runner.temp }}/home
+        run: node scripts/ci/smoke-installed.mjs --prefix "$RUNNER_TEMP/proj" --work "$RUNNER_TEMP/work" --phase upgrade-after
+
+  # One required check for branch protection.
+  install-matrix:
+    name: install matrix result
+    if: always()
+    needs: [pack, fresh-install, upgrade]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All jobs passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "$RESULTS"
+          for r in $RESULTS; do [ "$r" = success ] || exit 1; done

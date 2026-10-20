@@ -20,6 +20,10 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ### Fixed
 
+- Windows: `npx penthera` / `penthera init` in a git repository failed with
+  "Refusing to write outside the project" for its own `reports/` folder, because
+  git prints the repo root with forward slashes. Git roots are now native paths.
+  Found by the new Windows install checks.
 - `penthera --help` lists `--rules-signers` and `--allow-unsigned-rules`. Both
   worked and were documented in `docs/rule-packs.md`, but the help left them
   out.

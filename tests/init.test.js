@@ -18,6 +18,7 @@ const BIN = join(import.meta.dirname, "..", "bin", "penthera.js");
 const FIXTURE = join(import.meta.dirname, "fixtures", "init", "app");
 
 let dir, home, mock, requests;
+const children = new Set();
 
 const git = (...args) => execFileSync("git", args, { cwd: dir, encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"], env: gitEnv() }).trim();
 const gitEnv = () => ({ ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1" });
@@ -30,11 +31,12 @@ function wizard(args, answers = []) {
       env: { ...gitEnv(), NO_COLOR: "1", HOME: home, PENTHERA_HOME: join(home, ".penthera"), PENTHERA_INIT_PORTS: String(mock.port) },
       stdio: ["pipe", "pipe", "pipe"],
     });
+    children.add(child);
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (d) => { stdout += d; });
     child.stderr.on("data", (d) => { stderr += d; });
-    child.on("close", (code) => resolve({ code, stdout, stderr }));
+    child.on("close", (code) => { children.delete(child); resolve({ code, stdout, stderr }); });
     child.stdin.end(answers.length ? answers.join("\n") + "\n" : "");
   });
 }
@@ -60,6 +62,9 @@ beforeEach(() => {
   git("-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "fixture");
 });
 afterEach(() => {
+  // A wizard still running here means the test failed or timed out: don't leave it behind.
+  for (const child of children) child.kill("SIGKILL");
+  children.clear();
   rmSync(dir, { recursive: true, force: true });
   rmSync(home, { recursive: true, force: true });
 });
@@ -121,7 +126,7 @@ describe("penthera init (scripted stdin)", () => {
     // What next
     expect(r.stdout).toContain("What next");
     expect(r.stdout).toContain("penthera agent --loop");
-  }, 90_000);
+  });
 
   it("runs nothing and writes nothing when every step is declined", async () => {
     const r = await wizard(["init"], [
@@ -141,7 +146,7 @@ describe("penthera init (scripted stdin)", () => {
     expect(existsSync(join(dir, WORKFLOW_PATH))).toBe(false);
     expect(existsSync(join(dir, ".gitignore"))).toBe(false);
     expect(git("status", "--porcelain")).toBe("");
-  }, 60_000);
+  });
 
   it("scans the running app only after the user confirms they own it", async () => {
     const r = await wizard(["init"], [
@@ -154,14 +159,22 @@ describe("penthera init (scripted stdin)", () => {
     expect(r.stdout).toMatch(/✓ Running app\s+[A-F]/);
     expect(summary().checks.map((c) => c.id)).toEqual(["app"]);
     expect(r.stdout).toContain(`penthera http://localhost:${mock.port} --offline`);
-  }, 90_000);
+  });
+
+  it("does not start the dashboard when piped answers run out", async () => {
+    // Before: the dashboard defaulted to yes, so exhausted stdin started
+    // `penthera ui --open`, which runs until Ctrl-C, and init never exited.
+    const r = await wizard(["init"], ["1,2,3"]); // nothing to check, then every later prompt gets EOF
+    expect(r.code, r.stderr).toBe(0);
+    expect(r.stdout).toMatch(/Open the dashboard \(penthera ui --open\)\? \[y\/N\]/);
+  });
 
   it("re-prompts on a bad checklist answer instead of guessing", async () => {
     const r = await wizard(["init"], ["9", "1,2,3", "n", "n", "n", "n"]);
     expect(r.stdout).toContain("Type item numbers from 1 to 5");
     expect(r.stdout).toContain("Nothing selected to check.");
     expect(existsSync(join(dir, "reports"))).toBe(false);
-  }, 60_000);
+  });
 });
 
 describe("penthera init --yes (smoke)", () => {
@@ -178,13 +191,13 @@ describe("penthera init --yes (smoke)", () => {
     expect(r.stdout).toContain("Dashboard: not opened with --yes");
     expect(git("branch", "--list", "penthera/*")).toBe("");
     expect(git("rev-list", "--count", "HEAD")).toBe("1");
-  }, 90_000);
+  });
 
   it("bare `penthera --yes` runs the same wizard", async () => {
     const r = await wizard(["--yes", "--dry-run"]);
     expect(r.code, r.stderr).toBe(0);
     expect(r.stdout).toContain("Would run");
-  }, 60_000);
+  });
 
   it("--dry-run --yes prints the plan and changes nothing", async () => {
     const r = await wizard(["init", "--yes", "--dry-run"]);
@@ -199,7 +212,7 @@ describe("penthera init --yes (smoke)", () => {
     expect(existsSync(hookPath())).toBe(false);
     expect(existsSync(join(dir, WORKFLOW_PATH))).toBe(false);
     expect(git("status", "--porcelain")).toBe("");
-  }, 60_000);
+  });
 
   it("skips the hook and workflow outside a git repository", async () => {
     rmSync(join(dir, ".git"), { recursive: true, force: true });
@@ -208,7 +221,7 @@ describe("penthera init --yes (smoke)", () => {
     expect(r.stdout).toContain("not a git repository");
     expect(r.stdout).toContain("Pre-commit hook: not a git repository");
     expect(r.stdout).toContain("GitHub workflow: not a git repository");
-  }, 60_000);
+  });
 
   it("rejects unknown flags", async () => {
     const r = await wizard(["init", "--push"]);

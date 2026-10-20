@@ -102,7 +102,9 @@ export function startMockServer(port = 0) {
         server,
         port: resolvedPort,
         url: `http://127.0.0.1:${resolvedPort}`,
-        close: () => new Promise((r) => server.close(() => r())),
+        // closeAllConnections: a probe that timed out can leave a socket open, and
+        // close() alone would wait for it.
+        close: () => new Promise((r) => { server.close(() => r()); server.closeAllConnections(); }),
       });
     });
   });

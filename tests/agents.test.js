@@ -24,6 +24,7 @@ import { discoverAgentConfig, parseJsonc, parseFrontmatter, claudeDesktopConfigP
 import { canonicalJson, diffLock, computeLockEntries } from "../lib/agents/lock.js";
 import { scanAgents, gradeFindings, toFinding } from "../lib/agents/index.js";
 import { RULE_OWASP, OWASP_NAMES } from "../lib/agents/owasp.js";
+import { cpuMs } from "./fixtures/cpu-time.js";
 
 const FIXTURES = resolve("tests/fixtures/agents");
 const BIN = resolve("bin/penthera.js");
@@ -112,9 +113,7 @@ describe("hidden content: whitespace inflation", () => {
   });
 
   it("stays linear on hostile input (no ReDoS)", () => {
-    const t0 = Date.now();
-    scanHiddenContent(" ".repeat(1_000_000) + "\n" + "\n".repeat(200_000) + "x".repeat(500_000));
-    expect(Date.now() - t0).toBeLessThan(3000);
+    expect(cpuMs(() => scanHiddenContent(" ".repeat(1_000_000) + "\n" + "\n".repeat(200_000) + "x".repeat(500_000)))).toBeLessThan(3000);
   });
 });
 

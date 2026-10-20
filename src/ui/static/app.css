@@ -652,7 +652,16 @@ dialog.window {
   flex-direction: column;
 }
 dialog.window:not([open]) { display: none; }
-dialog.window::backdrop { background: rgba(0, 0, 0, 0.45); }
+/* A heavy blur behind every floating window: the page is there, but out of reach. */
+dialog.window::backdrop {
+  background: rgba(0, 0, 0, 0.35);
+  -webkit-backdrop-filter: blur(48px) saturate(0.6);
+  backdrop-filter: blur(48px) saturate(0.6);
+}
+:root[data-theme="light"] dialog.window::backdrop { background: rgba(253, 253, 250, 0.35); }
+@media (prefers-reduced-transparency: reduce) {
+  dialog.window::backdrop { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(0, 0, 0, 0.7); }
+}
 dialog.window > .win-bar { background: var(--frame); color: var(--ground); padding-left: 4px; }
 dialog.window > .win-bar .icon.close-box::before { background: var(--frame); border-color: var(--ground); }
 dialog.window > .win-bar .icon.close-box:hover::before { background: var(--ground); }

@@ -466,6 +466,17 @@ describe("hostile Python input stays cheap", () => {
     expect(() => parseToml("[[package]]\nname = \n")).toThrow(/TOML/);
     expect(() => parseToml("a = [1, 2")).toThrow(/TOML/);
   });
+
+  it("a deeply nested lockfile is a parse error, not a stack overflow", async () => {
+    const deep = `version = 1\n[[package]]\nname = "x"\nversion = "1"\nwheels = ${"[".repeat(200_000)}\n`;
+    expect(() => parseToml(deep)).toThrow(/TOML: nested deeper than 200 levels/);
+    expect(() => parseToml(`a = ${"{ b = ".repeat(300)}1${" }".repeat(300)}`)).toThrow(/nested deeper/);
+    expect(parseToml(`a = ${"[".repeat(150)}1${"]".repeat(150)}`).a).toBeDefined();
+    const root = join(dir, "deep-lock");
+    mkdirSync(root, { recursive: true });
+    writeFileSync(join(root, "uv.lock"), deep);
+    await expect(scanDeps(root, { pipCacheDir: emptyCache, uvCacheDir: emptyCache })).rejects.toThrow(/uv\.lock could not be parsed: TOML: nested deeper/);
+  });
 });
 
 // ── Python sources fail closed ────────────────────────────────────────────

@@ -32,6 +32,7 @@ Node 22+ is required (see `.nvmrc` for the pinned version).
 | Command | What it covers |
 |---------|----------------|
 | `npm test` | Everything (vitest) |
+| `npm run lint` | ESLint with a minimal config (`eslint.config.js`): unused code, undefined names, unreachable code. No style rules |
 | `npm run pentest:mock` | Tests against the local mock vuln API |
 | `npm run pentest:adaptive` | Knowledge-graph adaptive probes |
 | `npm run pentest:wstg` | OWASP WSTG mapping |
@@ -39,7 +40,7 @@ Node 22+ is required (see `.nvmrc` for the pinned version).
 | `npm run mock-server` | Start the mock API on port 8765 |
 | `npm run audit:internal` | The release gate: every check above and more, written to `audit/REPORT.md` ([docs/internal-audit.md](docs/internal-audit.md)) |
 
-CI runs the full `npm test` suite on Node 22 and 24, checks that every version
+CI runs `npm run lint` and the full `npm test` suite on Node 22 and 24, checks that every version
 string is in sync, and self-scans the mock server (`.github/workflows/ci.yml`).
 CodeQL and OpenSSF Scorecard run on their own workflows. Keep new tests offline:
 no test may reach the public internet, so CI stays deterministic.

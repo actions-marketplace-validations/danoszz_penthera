@@ -10,7 +10,7 @@ import { request as httpRequest } from "node:http";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, symlinkSync, rmSync, realpathSync, existsSync, statSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { startUiServer, loadStatic, STATIC_DIR } from "../src/ui/server.js";
 import { CSP, hostAllowed, originAllowed, createSession } from "../src/ui/security.js";

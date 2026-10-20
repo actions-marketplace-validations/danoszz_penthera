@@ -16,10 +16,11 @@
  *
  * `gh` is injected so tests run without GitHub (tests/marketing.test.js).
  */
-import { readFileSync, existsSync, appendFileSync } from "node:fs";
+import { existsSync, appendFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { parseArgs } from "node:util";
 import { pathToFileURL } from "node:url";
+import { mdCell } from "../../src/report/md-escape.js";
 
 export const LABEL = "incident-radar";
 export const BATCH_TITLE = "Incident radar: other new malware advisories";
@@ -65,7 +66,7 @@ export function plan(advisories, { seen, popular = new Set(), cap = 5, mode = "n
 }
 
 const tick = (s) => `\`${String(s).replace(/`/g, "'")}\``;
-const cell = (s) => String(s).replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\n/g, " ");
+const cell = mdCell;
 
 export function issueTitle(adv) {
   const pkgs = packagesOf(adv);

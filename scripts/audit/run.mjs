@@ -23,6 +23,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 import { startMockServer } from "../../tests/fixtures/mock-server.js";
+import { mdCell } from "../../src/report/md-escape.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const AUDIT_DIR = join(ROOT, "audit");
@@ -832,7 +833,7 @@ function renderReport(data, previous) {
   for (const g of GATES) {
     const r = data.gates[g.id];
     if (!r) continue;
-    L.push(`| ${g.title} | ${ICON[r.status]} | ${metricLine(r.metrics).replace(/\\/g, "\\\\").replace(/\|/g, "\\|")} |`);
+    L.push(`| ${g.title} | ${ICON[r.status]} | ${mdCell(metricLine(r.metrics))} |`);
   }
   L.push("");
   L.push("## Changes since the previous report");

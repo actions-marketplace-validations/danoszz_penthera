@@ -99,6 +99,11 @@ is recommended.
   package ships only `docs/examples/` (the documentation lives on GitHub, and
   README links resolve there), and the popular-package lists for the typosquat
   check are stored gzipped. No behaviour change.
+- Code cleanup, no behaviour change: one git runner (`lib/git.js`), one
+  temp-folder helper, one Markdown table-cell escape and one JSON fetch
+  helper replace their copies; unused exports and helpers are gone. CI now
+  runs `npm run lint` (ESLint, dev-only, minimal rules). Still one runtime
+  dependency.
 
 ### Docs
 

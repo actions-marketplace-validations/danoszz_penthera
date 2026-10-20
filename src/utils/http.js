@@ -338,6 +338,20 @@ export async function safeFetch(url, opts = {}) {
 }
 
 /**
+ * Fetch and parse JSON, never throwing: null on a network error, a non-2xx
+ * status, a body over `maxBytes`, or JSON that does not parse.
+ */
+export async function fetchJson(url, { maxBytes, ...opts } = {}) {
+  const res = await safeFetch(url, opts);
+  if (!res || !res.ok) return null;
+  try {
+    return await readJson(res, { maxBytes });
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Fetch helper that always returns status, body text, and headers
  * (null on failure).
  */

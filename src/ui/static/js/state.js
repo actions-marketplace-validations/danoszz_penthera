@@ -57,3 +57,10 @@ export function currentProject() {
 
 /** The live run that is still going, if any. */
 export const liveRun = () => state.runs.live.find((r) => r.status === "running") || null;
+
+/** Severity counts for what is on screen: the selected project, or all of them. */
+export function countsInView() {
+  const key = currentProject();
+  if (key) return projectOf(key)?.counts || null;
+  return state.overview?.mix || null;
+}

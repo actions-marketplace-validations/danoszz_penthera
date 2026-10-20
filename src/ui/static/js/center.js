@@ -6,7 +6,7 @@ import { h, clear, empty, sevBadge, diffBlock, announce } from "./dom.js";
 import { api } from "./api.js";
 import { state, set, projectOf, TABS, simple } from "./state.js";
 import { createTyper } from "./typer.js";
-import { stackedBar, sparkline, wordmark, matrix } from "./charts.js";
+import { stackedBar, sparkline, matrix, halftone } from "./charts.js";
 import { ago, duration, shortProject, plural, SEVERITIES } from "./format.js";
 import { START, EMPTY, SEV_WORD, verdict } from "./copy.js";
 import { openWindow } from "./dialog.js";
@@ -229,16 +229,22 @@ function combinedTrend(projects) {
 }
 
 function startView(col, ctx) {
+  const easy = simple();
+  const steps = easy ? [] : START.steps;
   col.append(h("div", { class: "start" },
-    wordmark(),
-    h("p", { class: "muted" }, START.gate),
+    h("span", { class: "logotype xl", role: "img", "aria-label": "Penthera" }),
+    halftone({ risk: 1, seed: "penthera" }),
     h("h1", {}, START.title),
-    h("p", {}, START.intro),
-    h("div", { class: "steps" }, START.steps.map((st, i) => h("div", { class: "step" },
+    h("p", { class: "prose" }, easy ? START.introSimple : START.intro),
+    h("div", { class: "actions start" },
+      h("button", { type: "button", class: "btn primary", onclick: () => ctx.setup() }, "Set up my project…"),
+      h("button", { type: "button", class: "btn", onclick: () => ctx.newScan("scan") }, easy ? "Check my app…" : "New scan…")),
+    steps.length ? h("div", { class: "steps" }, steps.map((st, i) => h("div", { class: "step" },
       h("span", { class: "n" }, `${i + 1}.`),
       h("h3", {}, st.title),
       h("button", { type: "button", class: "btn", onclick: () => ctx.newScan(st.kind) }, `${st.title}…`),
-      h("p", {}, st.body)))),
+      h("p", {}, st.body)))) : null,
+    h("p", { class: "muted gate prose" }, START.gate),
     h("p", { class: "muted" }, `${START.demo} `, h("code", {}, "penthera ui --demo"), "."),
   ));
 }

@@ -2,7 +2,9 @@
 // settings, or a short note on what goes here. Nothing else lives on the right.
 import { h, clear, empty, sevBadge, diffBlock } from "./dom.js";
 import { api } from "./api.js";
-import { state, set, simple } from "./state.js";
+import { state, set, simple, countsInView, currentProject } from "./state.js";
+import { halftone, riskLevel } from "./charts.js";
+import { SEVERITIES } from "./format.js";
 import { EMPTY, KEYS, SEV_WORD } from "./copy.js";
 
 let seq = 0;
@@ -26,11 +28,17 @@ function head(title, ctx, extra, closable = true) {
 // ── Nothing selected ────────────────────────────────────────────────────
 
 function emptyView(el, ctx) {
+  const counts = countsInView();
+  const risk = riskLevel(counts);
+  const said = counts ? SEVERITIES.filter((s) => counts[s]).map((s) => `${counts[s]} ${s}`).join(", ") : "";
   clear(el).append(
     head("Inspector", ctx, null, false),
-    h("div", { class: "pane-body detail" },
+    h("div", { class: "pane-body detail inspector-empty" },
       h("p", { class: "prose" }, EMPTY.inspector),
-      h("section", {}, h("p", { class: "label" }, "Keys"), h("dl", { class: "kv" }, KEYS.flatMap(([k, v]) => [h("dt", {}, h("kbd", {}, k)), h("dd", {}, v)]))),
+      simple() ? null : h("section", {}, h("p", { class: "label" }, "Keys"), h("dl", { class: "kv" }, KEYS.flatMap(([k, v]) => [h("dt", {}, h("kbd", {}, k)), h("dd", {}, v)]))),
+      // The field: dark with dots when something serious is open, plain paper when nothing is.
+      halftone({ risk, seed: currentProject() || "all projects", label: risk ? `Open risk: ${said}` : "Nothing open" }),
+      h("p", { class: "muted field-note" }, risk ? "The darker this field, the more serious what is open." : "Nothing open: the field is clear."),
     ),
   );
 }

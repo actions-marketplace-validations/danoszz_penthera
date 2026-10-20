@@ -3,8 +3,8 @@
 // right. Runs start from the New scan dialog; every action is also in a menu.
 import { h, clear, announce } from "./dom.js";
 import { api } from "./api.js";
-import { patternDefs } from "./charts.js";
-import { state, set, on, TABS } from "./state.js";
+import { patternDefs, riskLevel } from "./charts.js";
+import { state, set, on, TABS, countsInView } from "./state.js";
 import { renderMenubar, closeMenus } from "./menubar.js";
 import { renderLeft } from "./left.js";
 import { renderCenter, refreshList, moveFinding, answerPending } from "./center.js";
@@ -102,12 +102,13 @@ on((patch) => {
   if (keys.includes("query") && keys.length === 1) { refreshList(ctx); return; }
   if (keys.some((k) => ["overview", "runs", "sel", "meta", "right", "tab", "pending", "ux"].includes(k))) renderMenubar(menubar, ctx);
   if (keys.some((k) => ["overview", "runs", "sel", "meta"].includes(k))) renderLeft(left, ctx);
+  if (keys.some((k) => ["overview", "sel"].includes(k))) app.dataset.risk = String(riskLevel(countsInView()));
   if (keys.some((k) => ["overview", "findings", "sel", "tab", "filter", "ux"].includes(k))) {
     // A live transcript is rebuilt only when the selection changes, never on a data refresh.
     if (!(state.sel.kind === "run" && !keys.includes("sel"))) renderCenter(center, ctx);
     if (keys.includes("sel") && narrowLeft() && panels.left) { panels.left = false; applyPanels(); }
   }
-  if (keys.some((k) => ["sel", "right", "finding", "ux"].includes(k))) {
+  if (keys.some((k) => ["sel", "right", "finding", "ux"].includes(k)) || (keys.includes("overview") && state.right === "none")) {
     if (state.right !== "none" && !panels.right) { panels.right = true; applyPanels(); }
     renderRight(right, ctx);
   }

@@ -8,6 +8,7 @@ export const TAGLINE = "Open-source security for the apps and AI systems you shi
 export const START = {
   title: "Welcome",
   intro: "No reports yet. Start with a scan of something you own :: your localhost, a preview URL, or this repo. Results land in the reports folder and this view fills in.",
+  introSimple: "Nothing checked yet. Set up your project and run a first check: it takes a minute or two, and everything stays on this computer.",
   gate: "Only scan apps you own or have written permission to test.",
   steps: [
     { kind: "scan", title: "Scan your app", body: "TLS, headers, cookies, CORS, auth, exposed APIs and leaked secrets." },

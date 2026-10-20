@@ -144,24 +144,77 @@ export function bigGrade(letter) {
   return h("pre", { class: `grade-big grade-${letter}`, "aria-hidden": "true" }, rows.join("\n"));
 }
 
-// The CLI's wordmark (src/cli/ansi.js LOGO_BIG), ANSI Shadow block letters.
-const LOGO = [
-  "██████╗ ███████╗███╗   ██╗████████╗██╗  ██╗███████╗██████╗  █████╗ ",
-  "██╔══██╗██╔════╝████╗  ██║╚══██╔══╝██║  ██║██╔════╝██╔══██╗██╔══██╗",
-  "██████╔╝█████╗  ██╔██╗ ██║   ██║   ███████║█████╗  ██████╔╝███████║",
-  "██╔═══╝ ██╔══╝  ██║╚██╗██║   ██║   ██╔══██║██╔══╝  ██╔══██╗██╔══██║",
-  "██║     ███████╗██║ ╚████║   ██║   ██║  ██║███████╗██║  ██║██║  ██║",
-  "╚═╝     ╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝",
-];
+// ── The halftone field ──────────────────────────────────────────────────
+//
+// The one strange element: a field of halftone dots whose density is the
+// open risk. A clean project shows plain paper; a critical one is dark with
+// dots. The blobs are placed by a seed (the project key), so each project
+// keeps its own shape between visits. Drawn once per size or theme change,
+// never animated.
 
-/** The wordmark: solid blocks in #0000ed, the box-drawing shadow in a second tone. */
-export function wordmark() {
-  const pre = h("pre", { class: "wordmark", "aria-hidden": "true" });
-  for (const row of LOGO) {
-    for (const run of row.match(/█+|[^█]+/g)) pre.append(h("span", { class: run[0] === "█" ? "fill" : "edge" }, run));
-    pre.append("\n");
-  }
-  return pre;
+function seeded(str) {
+  let a = 2166136261;
+  for (const c of String(str)) a = Math.imul(a ^ c.charCodeAt(0), 16777619);
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Risk 0 (nothing open) to 4 (something critical), from severity counts. */
+export function riskLevel(counts) {
+  if (!counts) return 0;
+  if (counts.critical) return 4;
+  if (counts.high) return 3;
+  if (counts.medium) return 2;
+  if (counts.low || counts.info) return 1;
+  return 0;
+}
+
+export function halftone({ risk = 0, seed = "penthera", label = "" } = {}) {
+  const canvas = h("canvas", { class: "halftone", "aria-hidden": "true", dataset: { risk: String(risk) } });
+  const wrap = h("div", { class: "halftone-wrap", role: label ? "img" : null, "aria-label": label || null }, canvas);
+  if (!risk) return wrap;
+  const rnd = seeded(seed);
+  const blobs = Array.from({ length: 2 + risk }, () => ({ x: rnd(), y: rnd(), r: 0.12 + rnd() * 0.22 }));
+  const strength = [0, 0.35, 0.55, 0.75, 1][risk];
+  const draw = () => {
+    if (!canvas.isConnected) { ro.disconnect(); mo.disconnect(); return; }
+    const w = wrap.clientWidth;
+    const hgt = wrap.clientHeight;
+    if (!w || !hgt) return;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(hgt * dpr);
+    const g = canvas.getContext("2d");
+    g.scale(dpr, dpr);
+    g.clearRect(0, 0, w, hgt);
+    g.fillStyle = getComputedStyle(canvas).color;
+    const cell = 6;
+    const span = Math.max(w, hgt);
+    for (let y = cell / 2; y < hgt; y += cell) {
+      for (let x = cell / 2; x < w; x += cell) {
+        let v = 0;
+        for (const b of blobs) {
+          const dx = (x - b.x * w) / (b.r * span);
+          const dy = (y - b.y * hgt) / (b.r * span);
+          v = Math.max(v, Math.exp(-(dx * dx + dy * dy) * 2.2));
+        }
+        const r = v * strength * cell * 0.48;
+        if (r < 0.45) continue;
+        g.beginPath();
+        g.arc(x, y, r, 0, Math.PI * 2);
+        g.fill();
+      }
+    }
+  };
+  const ro = new ResizeObserver(draw);
+  const mo = new MutationObserver(draw);
+  ro.observe(wrap);
+  mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  return wrap;
 }
 
 /**

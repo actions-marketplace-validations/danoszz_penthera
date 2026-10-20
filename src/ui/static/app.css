@@ -557,11 +557,12 @@ svg.chart { display: block; width: 100%; height: auto; }
 }
 .empty { font-size: 13px; }
 
-/* The old ASCII wordmark stays on the empty state until phase 4. */
-.wordmark { margin: 0 0 12px; font-size: clamp(5px, 1.1vw, 11px); line-height: 1.08; white-space: pre; user-select: none; overflow: hidden; }
-.wordmark .fill { color: var(--accent-ink); }
-.wordmark .edge { color: var(--text-3); }
-.start h1 { margin: 0 0 6px; font: 22px / 1.1 var(--px); color: var(--text-1); }
+/* First run: the wordmark large, a quiet field, one primary action. */
+.start { display: grid; gap: 14px; }
+.start > .logotype.xl { width: 279px; height: 63px; color: var(--text-1); margin-top: 12px; }
+.start > .halftone-wrap { height: 120px; border-block: 1px solid var(--frame); }
+.start > p { margin: 0; }
+.start h1 { margin: 6px 0 0; font: 22px / 1.1 var(--px); color: var(--text-1); }
 .start .steps { display: grid; gap: 0; margin-top: 18px; border-top: 1px solid var(--frame); }
 .start .step { display: grid; grid-template-columns: 3ch minmax(0, 1fr) auto; gap: 2px 12px; align-items: baseline; padding: 12px 0; border-bottom: 1px solid var(--hair); }
 .start .step .n { color: var(--text-3); font-family: var(--px); }
@@ -801,3 +802,19 @@ dialog.window > .win-bar.striped .icon.close-box { background: var(--ground); }
   .rows.simple .row { grid-template-columns: minmax(0, 1fr) auto; }
   .verdict-text { font-size: 18px; }
 }
+
+/* ── Phase 4: the halftone field ───────────────────────────────────────── */
+
+.halftone-wrap { position: relative; min-height: 0; overflow: hidden; }
+.halftone { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--frame); }
+.inspector-empty { display: flex; flex-direction: column; gap: 14px; }
+.inspector-empty > .halftone-wrap { flex: 1; min-height: 160px; margin: 0 -14px; border-block: 1px solid var(--frame); }
+.field-note { margin: 0; font-size: 12px; }
+
+/* The desktop between the windows: denser dots for more serious open risk,
+   plain paper when nothing is open. */
+.app[data-risk="0"] { background: var(--ground); }
+.app[data-risk="1"] { background: conic-gradient(from 90deg at 1px 1px, transparent 75%, var(--desk) 0) 0 0 / 6px 6px, var(--ground); }
+.app[data-risk="2"] { background: conic-gradient(from 90deg at 1px 1px, transparent 75%, var(--desk) 0) 0 0 / 4px 4px, var(--ground); }
+.app[data-risk="3"] { background: conic-gradient(from 90deg at 1px 1px, transparent 75%, var(--desk) 0) 0 0 / 3px 3px, var(--ground); }
+.app[data-risk="4"] { background: conic-gradient(from 90deg at 1px 1px, transparent 50%, var(--desk) 0 75%, transparent 0) 0 0 / 2px 2px, conic-gradient(var(--desk) 25%, transparent 0) 0 0 / 2px 2px, var(--ground); }

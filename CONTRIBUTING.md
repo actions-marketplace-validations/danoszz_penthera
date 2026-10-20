@@ -42,6 +42,50 @@ string is in sync, and self-scans the mock server (`.github/workflows/ci.yml`).
 CodeQL and OpenSSF Scorecard run on their own workflows. Keep new tests offline:
 no test may reach the public internet, so CI stays deterministic.
 
+### Release checks: the package as users install it
+
+`npm test` runs Penthera from this checkout. `.github/workflows/install-matrix.yml`
+tests what npm users get, on every PR and push to `main`:
+
+- **Fresh install.** `npm pack` once, then on Ubuntu, macOS and Windows with
+  Node 22 and 24: install the tarball into an empty project and run
+  `npx penthera` against a copy of `tests/fixtures/init/app` (`--version`,
+  `--help`, `init --yes --dry-run`, `deps`, `deps --base`, `agents`, `--repo`,
+  `hook install` plus a real `git commit` through the hook, `ui --demo`
+  answering 401 without a token, `rules verify` on the bundled packs). The
+  checks live in `scripts/ci/smoke-installed.mjs`.
+- **Upgrade.** `penthera@1.7.0` from npm writes `~/.penthera` state (a
+  `--memory` scan, `ui --demo`), then the tarball is installed over it and must
+  verify and extend the same memory chain. Move `FROM_VERSION` to the latest
+  release after each release.
+- **Docs as tests.** `scripts/docs-commands.mjs` reads every command in
+  `README.md`, `docs/**/*.md` and `skills/penthera/SKILL.md`, checks each
+  subcommand and flag against `--help`, and runs the offline-safe ones on the
+  fixture. It runs in `npm test` (`tests/docs-commands.test.js`) and in the
+  matrix against the installed package. If you document a command, it must
+  exist; if you add a flag, list it in `--help`. Run it alone with
+  `node scripts/docs-commands.mjs` (add `--report out.md` for the
+  runnable/placeholder/external breakdown).
+
+Every Penthera process in these checks runs under `scripts/ci/net-guard.cjs`,
+which fails any connection or DNS query past loopback. The only internet use is
+npm installing the package's dependency and the old release for the upgrade
+job. To run the smoke checks locally:
+
+```bash
+npm pack --ignore-scripts --pack-destination /tmp/pkg
+```
+
+then `npm install /tmp/pkg/penthera-<version>.tgz` in an empty folder and
+`node scripts/ci/smoke-installed.mjs --prefix <that folder>`.
+
+**Windows.** `.cursor/skills/penthera` is a symlink to `skills/penthera` so
+Cursor picks up the skill when you work on Penthera itself. Git for Windows
+checks it out as a plain text file unless symlinks are enabled: turn on
+Developer Mode, then clone with `git clone -c core.symlinks=true …`. Without
+it, Cursor just doesn't see the skill in this repo. The npm package does not
+include `.cursor/`, so users are not affected.
+
 ### Writing tests that stay reliable
 
 The suite runs fully parallel, often on a laptop that is busy with dev servers,
@@ -231,7 +275,8 @@ live once a maintainer approves it with 2FA. **Do not run `npm publish` locally.
    and read its "Changes since the previous report". A new self-scan finding
    is fixed, or accepted in `audit/baseline.json` with a reason in review;
    never by loosening a threshold to make the gate pass.
-4. Merge to `main` through a PR so CI runs.
+4. Merge to `main` through a PR so CI runs. The PR needs a green
+   "install matrix result" (the release checks above), not only `CI`.
 5. Tag the merge commit and push the tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
    Do not tag a commit whose audit failed.
 6. Approve the staged version with 2FA: npmjs.com → penthera → Staged Packages →

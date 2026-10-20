@@ -71,6 +71,7 @@ export function writeEvidence(result, opts, { version, template, mdOpts, sbom, a
     },
     repo: opts.repo ? resolve(opts.repo) : null,
     signKey: opts["sign-key"] || null,
+    parentReal: opts.evidenceParent || null,
   });
 }
 

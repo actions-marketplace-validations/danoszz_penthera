@@ -8,7 +8,8 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 - GenAI disclosure: `docs/genai.md` states how Penthera is built with
   generative AI (models, scale, review gates, licensing, logs), the README has a
-  short "How Penthera is built" section, and CONTRIBUTING requires an
+  short "How Penthera is built" section (107 of 117 non-merge commits up to
+  v1.7.0 written with Claude), and CONTRIBUTING requires an
   `AI-Assisted` trailer on AI-assisted commits. Follows NLnet's generative AI
   policy.
 - `docs/MANIFESTO.md`: what Penthera is today (and is not), seven design

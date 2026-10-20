@@ -229,7 +229,7 @@ misuse, and you are responsible for making sure every scan you run is lawful.
 
 ## How Penthera is built
 
-Penthera is developed with substantial help from generative AI: 92% of the
+Penthera is developed with substantial help from generative AI: 91% of the
 commits up to v1.7.0 were written with Claude (Anthropic) through Claude Code,
 directed and reviewed by the maintainer, and marked with a co-author trailer.
 Generated code passes the same gates as any change: tests, CodeQL, an

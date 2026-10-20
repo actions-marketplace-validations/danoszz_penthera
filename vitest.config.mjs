@@ -24,6 +24,7 @@ const SPAWN_HEAVY = [
   "tests/egress.test.js",
   "tests/evidence.test.js",
   "tests/fix.test.js",
+  "tests/git-safety.test.js",
   "tests/hook.test.js",
   "tests/init.test.js",
   "tests/install.test.js",

@@ -14,7 +14,7 @@ import { existsSync, statSync, writeFileSync, mkdirSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { runLoop, LoopError } from "../agent/loop.js";
 import { normalizeBaseUrl } from "../utils/url.js";
-import { printPlan } from "./fix.js";
+import { printPlan, visible } from "./fix.js";
 import { bold, dim, green, red, yellow } from "./ansi.js";
 
 const HELP = `
@@ -136,7 +136,10 @@ export async function runAgent(argv) {
       controller.abort();
       return;
     }
-    try { handle.revertPending?.(); } catch { /* best effort */ }
+    let r = null;
+    try { r = handle.revertPending?.(); } catch (e) { process.stdout.write(`\n  ${red("Revert failed")} ${visible(e.message)}\n`); }
+    for (const f of r?.conflicts || []) process.stdout.write(`\n  ${yellow("Left as is")} ${visible(f)}: it changed after the fix was written\n`);
+    for (const e of r?.errors || []) process.stdout.write(`\n  ${red("Not restored")} ${visible(e.path)}: ${visible(e.message)}\n`);
     process.stdout.write(`\n  ${red("Stopped.")} The fix branch holds only verified commits.\n`);
     process.exit(130);
   };
@@ -151,7 +154,7 @@ export async function runAgent(argv) {
     run = await runLoop({
       repo, url, maxIterations, auto: opts.auto || "off", runTests: opts["run-tests"],
       fixModel: opts["fix-model"] || null, allowDirty: opts["allow-dirty"],
-      ask: asker.ask, log: (l) => process.stdout.write(`${l}\n`), signal: controller.signal, handle,
+      ask: asker.ask, log: (l) => process.stdout.write(`${String(l).split("\n").map((x) => visible(x)).join("\n")}\n`), signal: controller.signal, handle,
     });
   } catch (e) {
     asker.close();
@@ -170,9 +173,9 @@ export async function runAgent(argv) {
 
   const t = run.totals;
   process.stdout.write(`\n  ${bold("Done")}: ${run.stopReason} after ${t.iterations} iteration${t.iterations === 1 ? "" : "s"} (${(run.durationMs / 1000).toFixed(1)}s)\n`);
-  process.stdout.write(`  ${green(`${t.verified} verified`)}, ${t.failed ? red(`${t.failed} failed and reverted`) : "0 failed"}, ${t.declined} declined, ${t.skipped} skipped\n`);
+  process.stdout.write(`  ${green(`${t.verified} verified`)}, ${t.failed ? red(`${t.failed} failed and reverted`) : "0 failed"}, ${t.conflicts ? `${yellow(`${t.conflicts} left for you (files changed meanwhile)`)}, ` : ""}${t.declined} declined, ${t.skipped} skipped\n`);
   process.stdout.write(`  findings: ${run.findings.initial ?? "?"} → ${run.findings.final ?? "?"} (non-info)\n`);
-  if (run.error) process.stdout.write(`  ${red("Error")} ${run.error}\n`);
+  if (run.error) process.stdout.write(`  ${red("Error")} ${visible(run.error)}\n`);
   process.stdout.write(`  branch ${bold(run.branch.fix)}: review with  git log --stat ${run.branch.base || run.branch.baseSha.slice(0, 12)}..${run.branch.fix}\n`);
   if (opts.output) process.stdout.write(`  loopRun written to ${opts.output}\n`);
   process.stdout.write(`  Nothing was pushed. Merge or push the branch yourself when you are happy with it.\n\n`);

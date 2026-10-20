@@ -1,0 +1,45 @@
+WEBVTT
+
+1
+00:00:00.300 --> 00:00:07.450
+npx penthera: one command finds your framework, lockfiles and AI tooling
+
+2
+00:00:07.500 --> 00:00:19.570
+It checks offline by default, then asks before it installs anything
+
+3
+00:00:19.620 --> 00:00:28.310
+A scan of the local mock server, offline: only 127.0.0.1 is contacted
+
+4
+00:00:28.360 --> 00:00:36.146
+penthera ui --demo: the local dashboard on 127.0.0.1, with fake data
+
+5
+00:00:36.196 --> 00:00:38.909
+Simple mode: one sentence on whether you can ship
+
+6
+00:00:38.959 --> 00:00:42.710
+Each problem in plain words: what is wrong, how sure Penthera is, what to do
+
+7
+00:00:42.760 --> 00:00:52.027
+Advanced mode: severity against confidence, and every finding
+
+8
+00:00:52.077 --> 00:00:59.244
+The fix loop proposes one change at a time and waits for your OK
+
+9
+00:00:59.294 --> 00:01:05.259
+Apply: Penthera patches, re-scans, and keeps the commit only if the fix holds
+
+10
+00:01:05.309 --> 00:01:12.343
+Proof: the report for the owner, an auditor or a developer
+
+11
+00:01:12.393 --> 00:01:21.803
+The owner report: what to fix first, in plain words

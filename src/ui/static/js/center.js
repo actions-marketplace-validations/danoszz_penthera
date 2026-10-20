@@ -278,7 +278,8 @@ function runView(col, ctx) {
         : `${({ scan: "Scan", deps: "Dependency check", agents: "AI tooling audit", loop: "Fix loop" })[run.kind] || run.kind}`),
       h("span", { class: "muted" }, `${shortProject(run.repo || run.url)}${run.url && run.repo ? ` + ${run.url}` : ""} · ${ago(run.startedAt)}`),
       h("span", { class: "grow" }), easy ? null : status, stop),
-    easy ? h("section", { class: "verdict" }, said, saidSub) : null,
+    // Node.append() would print a null as the text "null", so leave it out.
+    ...(easy ? [h("section", { class: "verdict" }, said, saidSub)] : []),
     tail,
     easy ? h("details", { class: "more" }, h("summary", {}, "Show what it is doing"), lines) : lines,
   );

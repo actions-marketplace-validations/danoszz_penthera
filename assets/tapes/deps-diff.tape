@@ -6,7 +6,7 @@ Require node
 Source assets/tapes/_settings.tape
 
 Hide
-Type "export PENTHERA_NO_ONBOARDING=1 && alias penthera='node bin/penthera.js'" Enter
+Type `export PENTHERA_NO_ONBOARDING=1 && alias penthera="node $PWD/bin/penthera.js"` Enter
 Type "rm -rf /tmp/penthera-demo && node tests/fixtures/deps/build.js /tmp/penthera-demo >/dev/null && cd /tmp/penthera-demo && clear" Enter
 Sleep 1s
 Show

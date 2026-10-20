@@ -24,6 +24,10 @@
 |---|---|
 | ![The dashboard in Simple mode, dark: the verdict, problems in plain words and one problem open](assets/dashboard/ui-dark.jpg) | ![The dashboard in Advanced mode, light: a project's tabs, the triage matrix and a finding open](assets/dashboard/ui-light.jpg) |
 
+<a href="assets/walkthrough.mp4"><img src="assets/walkthrough-poster.jpg" alt="Walkthrough video: setup, a scan, the dashboard in Simple and Advanced mode, one fix approved, the report" width="760"></a>
+
+[Watch the 80-second walkthrough](assets/walkthrough.mp4): setup, a scan, the dashboard, a fix approved, the report. Demo data, no sound, captions in the video.
+
 </div>
 
 ---

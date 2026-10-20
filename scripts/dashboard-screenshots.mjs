@@ -88,7 +88,24 @@ async function connect(wsUrl) {
       await page("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value }] });
     },
     /** Pin the theme on the page as theme.js would, so a stale preference never leaks into a shot. */
-    async pin() { await this.js(`document.documentElement.setAttribute("data-theme", ${JSON.stringify(this.theme || "dark")}); await new Promise((r) => setTimeout(r, 150));`); },
+    async pin() {
+      await this.call((theme) => document.documentElement.setAttribute("data-theme", theme), this.theme === "light" ? "light" : "dark");
+      await sleep(150);
+    },
+    /** Run a function in the page with values passed as arguments, never pasted into source. */
+    async call(fn, ...args) {
+      const { result: global } = await page("Runtime.evaluate", { expression: "globalThis" });
+      const r = await page("Runtime.callFunctionOn", {
+        functionDeclaration: fn.toString(), objectId: global.objectId,
+        arguments: args.map((value) => ({ value })), awaitPromise: true, returnByValue: true,
+      });
+      if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description || r.exceptionDetails.text);
+      return r.result.value;
+    },
+    /** Replace the dashboard's saved preferences in this browser. */
+    async prefs(values) {
+      await this.call((o) => { localStorage.clear(); for (const [k, v] of Object.entries(o)) localStorage.setItem(k, v); }, values);
+    },
     async shot(file, { scale = 1, width, height } = {}) {
       const clip = { x: 0, y: 0, width, height, scale };
       const { data } = await page("Page.captureScreenshot", { format: "jpeg", quality: 82, clip });
@@ -109,7 +126,6 @@ const H = `
   };
   const project = async (name) => { [...document.querySelectorAll(".item")].find((b) => b.textContent.includes(name)).click(); await sleep(400); };
 `;
-const prefs = (o) => `${H} localStorage.clear(); ${Object.entries(o).map(([k, v]) => `localStorage.setItem(${JSON.stringify(k)}, ${JSON.stringify(v)});`).join(" ")}`;
 
 async function main() {
   const scratch = mkdtempSync(join(tmpdir(), "penthera-shots-"));
@@ -135,27 +151,27 @@ async function main() {
 
     // ui-dark: Simple mode, all projects, the first problem open.
     await b.scheme("dark");
-    await b.js(prefs({ "penthera-ui-mode": "simple", "penthera-ui-theme": "dark", "penthera-ui-panels": '{"left":true,"right":true}' }));
+    await b.prefs({ "penthera-ui-mode": "simple", "penthera-ui-theme": "dark", "penthera-ui-panels": '{"left":true,"right":true}' });
     await b.reload();
     await b.js(`${H} document.querySelector(".verdict .btn.primary").click(); await sleep(600);`);
     await b.shot("ui-dark.jpg", desktop);
 
     // ui-light: Advanced mode, one project, a triage cell picked, a finding open.
     await b.scheme("light");
-    await b.js(prefs({ "penthera-ui-mode": "advanced", "penthera-ui-theme": "light", "penthera-ui-panels": '{"left":true,"right":true}' }));
+    await b.prefs({ "penthera-ui-mode": "advanced", "penthera-ui-theme": "light", "penthera-ui-panels": '{"left":true,"right":true}' });
     await b.reload();
     await b.js(`${H} await project("staging.acme.test"); document.querySelector(".matrix .cell.fill-medium").click(); await sleep(200); document.querySelector("#findings-list .row").click(); await sleep(600);`);
     await b.shot("ui-light.jpg", desktop);
 
     // ui-setup: the first-visit setup, on the mode screen.
     await b.scheme("dark");
-    await b.js(prefs({ "penthera-ui-theme": "dark", "penthera-ui-panels": '{"left":true,"right":true}' }));
+    await b.prefs({ "penthera-ui-theme": "dark", "penthera-ui-panels": '{"left":true,"right":true}' });
     await b.reload();
     await b.js(`${H} document.querySelector("dialog[open] .btn.primary").click(); await sleep(300);`);
     await b.shot("ui-setup.jpg", desktop);
 
     // ui-run: Simple mode, a fix waiting in its window.
-    await b.js(prefs({ "penthera-ui-mode": "simple", "penthera-ui-theme": "dark", "penthera-ui-panels": '{"left":true,"right":true}' }));
+    await b.prefs({ "penthera-ui-mode": "simple", "penthera-ui-theme": "dark", "penthera-ui-panels": '{"left":true,"right":true}' });
     await b.reload();
     await b.js(`${H} await project("code/acme-shop"); key("n"); await sleep(200);
       document.querySelector("input[name=kind][value=loop]").click(); document.querySelector("dialog[open] .btn.primary").click();
@@ -166,11 +182,11 @@ async function main() {
 
     // narrow-dark and narrow-light: the phone layout, then a problem in its drawer.
     await b.size(phone.width, phone.height, true);
-    await b.js(prefs({ "penthera-ui-mode": "simple", "penthera-ui-theme": "dark" }));
+    await b.prefs({ "penthera-ui-mode": "simple", "penthera-ui-theme": "dark" });
     await b.go(base);
     await b.shot("narrow-dark.jpg", { ...phone, scale: 1 });
     await b.scheme("light");
-    await b.js(prefs({ "penthera-ui-mode": "simple", "penthera-ui-theme": "light" }));
+    await b.prefs({ "penthera-ui-mode": "simple", "penthera-ui-theme": "light" });
     await b.go(base);
     await b.js(`${H} document.querySelector(".verdict .btn.primary").click(); await sleep(600);`);
     await b.shot("narrow-light.jpg", { ...phone, scale: 1 });
@@ -178,7 +194,7 @@ async function main() {
     // ui-start: a fresh install with no reports, setup closed.
     await b.size(desktop.width, desktop.height);
     await b.go(blank.match[1]);
-    await b.js(prefs({ "penthera-ui-mode": "simple", "penthera-ui-theme": "light", "penthera-ui-panels": '{"left":true,"right":true}' }));
+    await b.prefs({ "penthera-ui-mode": "simple", "penthera-ui-theme": "light", "penthera-ui-panels": '{"left":true,"right":true}' });
     await b.reload();
     await b.shot("ui-start.jpg", desktop);
     b.close();

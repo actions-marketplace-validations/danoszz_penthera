@@ -36,6 +36,7 @@ Ordered, but not dated. Each item names the user question it answers.
 | Penthera Bench v1 and experiment E1 | "How accurate is it on code like mine?" | Pre-registered; tooling in review ([#61](https://github.com/danoszz/penthera/pull/61)) |
 | Pre-registrations for E2 to E5 | "Will the next feature actually help?" | Drafts in review |
 | Real-world precision and recall, with intervals | "Can I trust a clean report?" | After E1 runs; published whatever the result |
+| Harness audit: a checklist for running agents, planned `harness-*`, `sandbox-*` and `scorer-*` rules, experiments E7 and E8 | "Am I running my AI agents properly?" | Specs in review: [checklist](docs/agents-safely.md), [rule spec](docs/research/spec-harness-rules.md), [E8 draft](docs/research/prereg/E8-harness-guardrails.md), [background](docs/research/agent-incidents-2026.md). No rule code before approval |
 
 ### Before you deploy
 

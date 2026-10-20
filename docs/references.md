@@ -4,6 +4,8 @@ The research and standards that Penthera's [methodology](METHODOLOGY.md) and per
 
 Every entry was checked against the publisher or standards body (Crossref DOI metadata, USENIX, NDSS, arXiv, the RFC Editor, OWASP, MITRE, OASIS, the EU Publications Office) on 2026-10-19. Entries that could not be verified were left out, and so were fields (pages, volume, issue, editors) that the publisher's metadata does not record. Each entry has an anchor named after its BibTeX key, for example [`#bau2010state`](#bau2010state), which is also the key reports and SARIF use.
 
+Entries marked † are further reading: they inform the work but are not cited in the methodology.
+
 ## Black-box scanning and benchmarking
 
 <a id="antunes2010benchmarking"></a>Antunes, N., & Vieira, M. (2010). Benchmarking vulnerability detection tools for web services. In *2010 IEEE International Conference on Web Services (ICWS)* (pp. 203–210). IEEE. <https://doi.org/10.1109/ICWS.2010.76>
@@ -19,6 +21,8 @@ Every entry was checked against the publisher or standards body (Crossref DOI me
 ## Security design principles
 
 <a id="saltzer1975protection"></a>Saltzer, J. H., & Schroeder, M. D. (1975). The protection of information in computer systems. *Proceedings of the IEEE*, *63*(9), 1278–1308. <https://doi.org/10.1109/PROC.1975.9939>
+
+<a id="schneier1999secure"></a>† Schneier, B., & Kelsey, J. (1999). Secure audit logs to support computer forensics. *ACM Transactions on Information and System Security*, *2*(2), 159–176. <https://doi.org/10.1145/317087.317089>
 
 ## Threat modeling
 
@@ -90,11 +94,21 @@ Every entry was checked against the publisher or standards body (Crossref DOI me
 
 ## LLM and agent security
 
+<a id="amodei2016concrete"></a>† Amodei, D., Olah, C., Steinhardt, J., Christiano, P., Schulman, J., & Mané, D. (2016). *Concrete problems in AI safety* [Preprint]. arXiv. <https://doi.org/10.48550/arXiv.1606.06565>
+
+<a id="anthropic2026incidents"></a>† Anthropic. (2026, July 30). *Investigating three real-world incidents in our cybersecurity evaluations*. Retrieved October 20, 2026, from <https://www.anthropic.com/news/investigating-incidents-cybersecurity-evals>
+
+<a id="baker2025monitoring"></a>† Baker, B., Huizinga, J., Gao, L., Dou, Z., Guan, M. Y., Madry, A., Zaremba, W., Pachocki, J., & Farhi, D. (2025). *Monitoring reasoning models for misbehavior and the risks of promoting obfuscation* [Preprint]. arXiv. <https://doi.org/10.48550/arXiv.2503.11926>
+
 <a id="greshake2023signed"></a>Greshake, K., Abdelnabi, S., Mishra, S., Endres, C., Holz, T., & Fritz, M. (2023). Not what you've signed up for: Compromising real-world LLM-integrated applications with indirect prompt injection. In *Proceedings of the 16th ACM Workshop on Artificial Intelligence and Security (AISec '23)* (pp. 79–90). ACM. <https://doi.org/10.1145/3605764.3623985>
 
 <a id="liu2023prompt"></a>Liu, Y., Deng, G., Li, Y., Wang, K., Wang, Z., Wang, X., Zhang, T., Liu, Y., Wang, H., Zheng, Y., Zhang, L. Y., & Liu, Y. (2023). *Prompt injection attack against LLM-integrated applications* [Preprint]. arXiv. <https://doi.org/10.48550/arXiv.2306.05499>
 
+<a id="metr2026investigation"></a>† METR, & Redwood Research. (2026, August 26). *Brief independent investigation of agents' behavior, reasoning and collaboration in the OpenAI / Hugging Face hacking incident*. Retrieved October 20, 2026, from <https://metr.org/hugging-face-incident-report-aug-2026.pdf>
+
 <a id="mitreatlas"></a>The MITRE Corporation. (n.d.-b). *MITRE ATLAS: Adversarial Threat Landscape for AI Systems*. Retrieved October 19, 2026, from <https://atlas.mitre.org/>
+
+<a id="openai2026incident"></a>† OpenAI. (2026, August 26). *OpenAI–Hugging Face incident: Technical report*. Retrieved October 20, 2026, from <https://cdn.openai.com/pdf/67869394-cb91-4c12-888c-5cbd85c7814c/OpenAI-Hugging-Face%20Incident-Technical-Report.pdf>
 
 <a id="owasp2024llmtop10"></a>OWASP Foundation. (2024, November 17). *OWASP Top 10 for LLM applications 2025*. OWASP Gen AI Security Project. Retrieved October 19, 2026, from <https://genai.owasp.org/resource/owasp-top-10-for-llm-applications-2025/>
 
@@ -105,6 +119,8 @@ Every entry was checked against the publisher or standards body (Crossref DOI me
 <a id="perez2022ignore"></a>Perez, F., & Ribeiro, I. (2022). *Ignore previous prompt: Attack techniques for language models* [Preprint]. arXiv. <https://doi.org/10.48550/arXiv.2211.09527>
 
 <a id="spracklen2025package"></a>Spracklen, J., Wijewickrama, R., Sakib, A. H. M. N., Maiti, A., Viswanath, B., & Jadliwala, M. (2025). We have a package for you! A comprehensive analysis of package hallucinations by code generating LLMs. In *34th USENIX Security Symposium (USENIX Security 25)* (pp. 3687–3706). USENIX Association. <https://www.usenix.org/conference/usenixsecurity25/presentation/spracklen>
+
+<a id="zhong2025impossiblebench"></a>† Zhong, Z., Raghunathan, A., & Carlini, N. (2025). *ImpossibleBench: Measuring LLMs' propensity of exploiting test cases* [Preprint]. arXiv. <https://doi.org/10.48550/arXiv.2510.20270>
 
 ## Standards and regulation
 
@@ -117,3 +133,5 @@ Every entry was checked against the publisher or standards body (Crossref DOI me
 <a id="scarfone2008sp800115"></a>Scarfone, K. A., Souppaya, M. P., Cody, A., & Orebaugh, A. D. (2008). *Technical guide to information security testing and assessment* (NIST Special Publication 800-115). National Institute of Standards and Technology. <https://doi.org/10.6028/NIST.SP.800-115>
 
 <a id="spdxlicenselist"></a>SPDX Workgroup, The Linux Foundation. (n.d.). *SPDX License List*. Retrieved October 19, 2026, from <https://spdx.org/licenses/>
+
+<a id="tabassi2023airmf"></a>† Tabassi, E. (2023). *Artificial intelligence risk management framework (AI RMF 1.0)* (NIST AI 100-1). National Institute of Standards and Technology. <https://doi.org/10.6028/NIST.AI.100-1>

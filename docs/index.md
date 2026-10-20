@@ -62,6 +62,7 @@ you need.
 |---|---|
 | A solo founder about to launch | [Before launch](use-cases/solo-founder.md) |
 | A team adopting Claude Code or Cursor | [The AI-tooling supply chain](use-cases/ai-coding-teams.md) |
+| Running AI agents on your code, in CI or in an eval | [Running AI agents safely](agents-safely.md) |
 | An open-source maintainer | [For maintainers](use-cases/open-source-maintainers.md) |
 | An EU SME with NIS2 or CRA duties | [Evidence for NIS2 and the CRA](use-cases/eu-sme-compliance.md) |
 | An agency shipping client apps | [A repeatable handover check](use-cases/agencies.md) |

@@ -167,7 +167,8 @@ standard it rests on: 49 verified references, listed in APA style in
 
 The benchmark targets are small and were written by the same people as the
 scanner, so the numbers catch regressions rather than measure real-world
-accuracy ([limits](bench/RESULTS.md#limits-of-these-numbers)). Counts as of
+accuracy. The full list of what Penthera cannot see, and how far its evidence
+reaches, is in [Known limitations](docs/METHODOLOGY.md#known-limitations). Counts as of
 2026-10-19; refresh them with `npm run docs:numbers` and `npm run bench`.
 
 **Cite this repository.** Use the button on GitHub, or the metadata in

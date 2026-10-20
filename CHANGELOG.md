@@ -24,6 +24,11 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ### Docs
 
+- Limitations stated in full: the methodology's "Known limitations" now covers
+  every module (deps, AI tooling, fix loop), the evidence (small sample, wide
+  intervals, same-team benchmark, single labeller, uncalibrated confidence
+  labels), reproducibility, AI-assisted development, and compliance output. The
+  2.0 research program adds "Threats to validity".
 - GenAI disclosure: `docs/genai.md` states how Penthera is built with
   generative AI (models, scale, review gates, licensing, logs), the README has a
   short "How Penthera is built" section (107 of 117 non-merge commits up to

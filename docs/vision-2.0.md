@@ -114,6 +114,35 @@ We run our own research, to the standard we would expect in a paper.
 Sample sizes are planning minimums from standard power calculations; each
 pre-registration states the exact calculation and assumptions.
 
+### Threats to validity
+
+These are the known weaknesses of the program itself, and how each is handled.
+
+- **Selection bias.** Public, permissively licensed repositories differ from
+  private company code. Results generalise to similar open-source projects, not
+  to every codebase. Mitigation: stratify by framework and project size, and
+  report per stratum.
+- **Labeller bias.** The maintainer built the tool and is a labeller. Mitigation:
+  a second, independent labeller; blind labelling (labellers do not see which
+  tool raised a finding); κ ≥ 0.70 before results count.
+- **Incomplete ground truth.** Nobody knows every issue in a real project, so
+  recall is estimated, not measured. Each pre-registration states its estimation
+  method (for example a blind labelled sample of code Penthera did not flag) and
+  its error.
+- **Temporal leakage** in the malicious-package study (E4): training on data from
+  after the test period would inflate results. Mitigation: a strict date split.
+- **Adversarial sets built by us** (E5) may not reflect what real attackers do.
+  Mitigation: use published evasion techniques and invite outside contributions
+  of test cases.
+- **Model drift.** Hosted models change without notice, and local models change
+  between versions. Each run records exact model names, versions, and settings.
+- **Researcher incentives.** The maintainer benefits if Penthera looks good.
+  Mitigation: pre-registration, publishing negative results, and releasing
+  labels and code so others can re-run the analysis.
+- **Small user study (E6).** 24 to 30 participants, likely students and
+  early-career developers. Results indicate usability for newcomers, not for
+  experienced security teams.
+
 ### Data sources
 - Real projects: permissively licensed public repositories, analysed **statically
   on a local clone**. No live scanning of anyone else's systems.

@@ -241,6 +241,11 @@
       "title": "The Protection of Information in Computer Systems",
       "url": "https://doi.org/10.1109/PROC.1975.9939"
     },
+    "schneier1999secure": {
+      "cite": "Schneier & Kelsey 1999",
+      "title": "Secure Audit Logs to Support Computer Forensics",
+      "url": "https://doi.org/10.1145/317087.317089"
+    },
     "shostack2014threat": {
       "cite": "Shostack 2014",
       "title": "Threat Modeling: Designing for Security",
@@ -421,6 +426,36 @@
       "title": "OWASP Top 10 for Agentic Applications for 2026",
       "url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
     },
+    "amodei2016concrete": {
+      "cite": "Amodei et al. 2016",
+      "title": "Concrete Problems in AI Safety",
+      "url": "https://doi.org/10.48550/arXiv.1606.06565"
+    },
+    "baker2025monitoring": {
+      "cite": "Baker et al. 2025",
+      "title": "Monitoring Reasoning Models for Misbehavior and the Risks of Promoting Obfuscation",
+      "url": "https://doi.org/10.48550/arXiv.2503.11926"
+    },
+    "anthropic2026incidents": {
+      "cite": "Anthropic incidents (2026)",
+      "title": "Investigating Three Real-World Incidents in Our Cybersecurity Evaluations",
+      "url": "https://www.anthropic.com/news/investigating-incidents-cybersecurity-evals"
+    },
+    "openai2026incident": {
+      "cite": "OpenAI incident report (2026)",
+      "title": "OpenAI–Hugging Face Incident: Technical Report",
+      "url": "https://cdn.openai.com/pdf/67869394-cb91-4c12-888c-5cbd85c7814c/OpenAI-Hugging-Face%20Incident-Technical-Report.pdf"
+    },
+    "metr2026investigation": {
+      "cite": "METR and Redwood (2026)",
+      "title": "Brief Independent Investigation of Agents' Behavior, Reasoning and Collaboration in the OpenAI / Hugging Face Hacking Incident",
+      "url": "https://metr.org/hugging-face-incident-report-aug-2026.pdf"
+    },
+    "zhong2025impossiblebench": {
+      "cite": "Zhong et al. 2025",
+      "title": "ImpossibleBench: Measuring LLMs' Propensity of Exploiting Test Cases",
+      "url": "https://doi.org/10.48550/arXiv.2510.20270"
+    },
     "owasp2025mcptop10": {
       "cite": "OWASP MCP Top 10",
       "title": "OWASP MCP Top 10",
@@ -450,6 +485,11 @@
       "cite": "SPDX License List",
       "title": "SPDX License List",
       "url": "https://spdx.org/licenses/"
+    },
+    "tabassi2023airmf": {
+      "cite": "NIST AI RMF",
+      "title": "Artificial Intelligence Risk Management Framework (AI RMF 1.0)",
+      "url": "https://doi.org/10.6028/NIST.AI.100-1"
     }
   }
 }

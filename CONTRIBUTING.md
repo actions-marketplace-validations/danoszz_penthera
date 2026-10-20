@@ -242,6 +242,10 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Signed-off-by: Your Name <you@example.com>
 ```
 
+CI checks every commit in a pull request (`scripts/ci/provenance.mjs`): a
+commit that names an AI co-author needs the `AI-Assisted` line, and the other
+way round.
+
 - **Summarise the prompt** in the `AI-Assisted` line: what you asked for, not
   the full transcript. For grant-funded work, the full prompts and outputs also
   go in `docs/genai-logs/` (see [docs/genai.md](docs/genai.md)).
@@ -315,9 +319,9 @@ live once a maintainer approves it with 2FA. **Do not run `npm publish` locally.
 5. Tag the merge commit and push the tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
    Do not tag a commit whose audit failed. For a minor release, tag the
    release candidate first (`vX.Y.0-rc.N`, with the same version in every file
-   from step 1) so it lands on the `next` dist-tag. Note: `publish.yml` does
-   not pass `--tag next` for `-rc` tags yet; add that before the first release
-   candidate.
+   from step 1). `publish.yml` stages any tag with a `-` in it (`-rc.N`) on
+   the `next` dist-tag and marks its GitHub release as a prerelease; `latest`
+   is untouched until the final `vX.Y.0` tag.
 6. Approve the staged version with 2FA: npmjs.com → penthera → Staged Packages →
    Approve, or `npm stage list penthera` and `npm stage approve <stage-id>`.
    Check the file list and provenance before you approve.

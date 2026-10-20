@@ -17,6 +17,10 @@ Last updated 2026-10-20.
   were written with Claude and carry a `Co-Authored-By: Claude …` trailer naming
   the model. Most of v1.2 to v1.7, released on 2026-10-19, was implemented by
   Claude Code sessions that the maintainer directed, often several in parallel.
+  Since v1.7.0, all 57 non-merge commits up to 2026-10-20 name Claude as
+  co-author; 12 of them lack the `AI-Assisted` summary line, 6 of those
+  written before that rule existed. Commit history is not rewritten; CI now
+  enforces the rule on every pull request (see below).
 - **What the maintainer did.** Set the direction and requirements, made the
   design and security decisions, reviewed and approved changes, handled
   everything that needs a human account (npm 2FA approvals, signing keys,
@@ -54,12 +58,33 @@ anyone's use of the project. We check that generated code does not reproduce
 third-party code under incompatible terms. Penthera has one runtime
 dependency.
 
+## How the agents that build Penthera are contained
+
+Penthera is built by AI coding agents, so it follows its own
+[advice for running agents](agents-safely.md):
+
+- **No release rights.** Agent sessions cannot publish to npm or sign rule
+  packs: publishing needs the maintainer's 2FA approval, and the signing key
+  never leaves his machine. Tagging and version bumps are the maintainer's
+  call, a standing rule for every session.
+- **Changes go through review.** Agents work on branches and open pull
+  requests. Every pull request passes the same checks as human work, and the
+  maintainer decides what merges and what ships.
+- **Judges are reviewed like code.** CI, CodeQL and the release checks run on
+  GitHub. A change to a test or a workflow is a pull request like any other,
+  and is called out in review.
+- **Private findings stay private.** Security review reports of unreleased
+  fixes are kept outside the repository until a fix ships.
+
 ## Rules from now on
 
 Every AI-assisted commit names the model and version in its trailer and
 summarizes how AI was used. Commits that are entirely human-written carry no AI
 trailer. See [CONTRIBUTING.md](../CONTRIBUTING.md#use-of-generative-ai) for the
-exact format, which applies to the maintainer and to all contributors.
+exact format, which applies to the maintainer and to all contributors. CI
+checks it on every pull request with `scripts/ci/provenance.mjs`: a commit
+that names an AI co-author without an `AI-Assisted` line, or the other way
+round, fails the check.
 
 Work *on* generative AI inside Penthera (for example, the local-model fix
 proposals in the [research plan](vision-2.0.md)) is described openly in the

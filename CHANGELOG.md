@@ -68,6 +68,15 @@ is recommended.
 - Installing the hook through pre-commit.com no longer runs the test suite:
   the `prepack` script is gone (publishing still runs `npm test`).
 - Workflows that push or only read no longer keep credentials in the checkout.
+- **The fix loop cannot game its own checker.** A fix diff, from a local
+  model or a recipe, may not edit tests, test runner config or the test
+  script, Penthera's policy, suppressions, baseline, lock or memory, CI
+  workflows, git hooks or lockfiles; `applyDiff` refuses it with `PROTECTED`
+  and says to make that change by hand. The loop verifies only against the
+  checker the run began with. "Could not fix" is now a recorded outcome
+  (`gave_up` in memory, `loopRun.gaveUp`, a summary line): the finding is not
+  retried in that run, and a give-up never counts against a recipe. Older
+  Penthera versions report a memory chain with `gave_up` events as malformed.
 
 ### Added
 
@@ -82,6 +91,9 @@ is recommended.
 - Docs as tests: `scripts/docs-commands.mjs` checks every command in the
   README, `docs/` and the skill against `--help` and runs the offline ones on a
   fixture, in `npm test` and against the installed package.
+- Provenance check in CI (`scripts/ci/provenance.mjs`): every commit in a pull
+  request that names an AI co-author must carry an `AI-Assisted` line, and the
+  other way round.
 
 ### Fixed
 
@@ -147,7 +159,6 @@ is recommended.
   anchors that no longer existed, Agent Skill links into `docs/` that broke in
   the npm package since the docs stopped shipping there, and the partner brief
   and due diligence notes that still called shipped features "in review".
-
 - Limitations stated in full: the methodology's "Known limitations" now covers
   every module (deps, AI tooling, fix loop), the evidence (small sample, wide
   intervals, same-team benchmark, single labeller, uncalibrated confidence
@@ -162,6 +173,20 @@ is recommended.
 - `docs/MANIFESTO.md`: what Penthera is today (and is not), seven design
   decisions with their costs and what would change them, and an FAQ. Written to
   be challenged in Discussions.
+- **After the 2026 agent incidents:** `docs/research/agent-incidents-2026.md`
+  says what the OpenAI–Hugging Face and Anthropic evaluation incidents mean
+  for Penthera, with sources and caveats. `docs/agents-safely.md` is a
+  one-page checklist for running AI agents. `docs/research/spec-harness-rules.md`
+  specifies planned `harness-*`, `sandbox-*` and `scorer-*` rules (not built
+  yet), and the research plan adds E7 and a draft pre-registration for E8
+  (do harness guardrails reduce judge tampering?).
+- README: a "Building in public" section linking the CHANGELOG, the freeze, the
+  research in progress and the roadmap. Counts refreshed (57 references);
+  `npm run docs:numbers` now also counts the secret patterns in the core rule
+  pack (20, as the README says, not 8).
+- `docs/genai.md` covers commits since v1.7.0 and how the agents that build
+  Penthera are contained; the manifesto says the fix loop cannot edit what
+  judges it.
 - `docs/vision-2.0.md`: the plan for 2.0, covering the biggest gaps, an AI roadmap
   (models propose, deterministic checks decide; local models first) and a
   pre-registered research program with sample sizes and safety rules.

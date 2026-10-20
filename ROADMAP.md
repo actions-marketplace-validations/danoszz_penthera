@@ -14,15 +14,17 @@ anything here.
 
 ## Now: 1.8.0, feature freeze
 
-1.8.0 is what is on main plus the dashboard redesign
-([#63](https://github.com/danoszz/penthera/pull/63)). From here only fixes go in.
+1.8.0 is what is on main, including the security hardening, plus the dashboard
+redesign ([#63](https://github.com/danoszz/penthera/pull/63)). From here only fixes go in.
 It ships as `1.8.0-rc.1` on npm's `next` tag first, and as 1.8.0 only after
 the release candidate holds up and the maintainer approves.
 
 | In 1.8.0 | What it means for you |
 |---|---|
 | Dashboard redesign | `penthera ui` gets a Simple mode with a one-sentence verdict for first-timers, and an Advanced mode for pros |
-| Smaller package | 657 kB packed instead of 797 kB; the docs live on GitHub |
+| Security hardening | Fixes from a second independent review: dependency scans fail closed, the fix loop keeps your uncommitted work, the hook and dashboard are harder to bypass |
+| A fix loop that cannot game its checker | Fixes may not edit tests, CI or Penthera's own settings; "could not fix" is a recorded outcome |
+| Smaller package | About 700 kB packed instead of 797 kB; the docs live on GitHub |
 | One set of docs, one voice | Each page answers one question, from "is my app safe to ship?" to "export evidence for an auditor" |
 
 ## Next
@@ -36,6 +38,7 @@ Ordered, but not dated. Each item names the user question it answers.
 | Penthera Bench v1 and experiment E1 | "How accurate is it on code like mine?" | Pre-registered; tooling in review ([#61](https://github.com/danoszz/penthera/pull/61)) |
 | Pre-registrations for E2 to E5 | "Will the next feature actually help?" | Drafts in review |
 | Real-world precision and recall, with intervals | "Can I trust a clean report?" | After E1 runs; published whatever the result |
+| Harness audit: a checklist for running agents, planned `harness-*`, `sandbox-*` and `scorer-*` rules, experiments E7 and E8 | "Am I running my AI agents properly?" | Specs in review: [checklist](docs/agents-safely.md), [rule spec](docs/research/spec-harness-rules.md), [E8 draft](docs/research/prereg/E8-harness-guardrails.md), [background](docs/research/agent-incidents-2026.md). No rule code before approval |
 
 ### Before you deploy
 

@@ -4,6 +4,13 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Changed
+
+- Smaller npm package: 797 kB to 657 kB packed, 2.3 MB to 1.7 MB unpacked. The
+  package ships only `docs/examples/` (the documentation lives on GitHub, and
+  README links resolve there), and the popular-package lists for the typosquat
+  check are stored gzipped. No behaviour change.
+
 ### Docs
 
 - Limitations stated in full: the methodology's "Known limitations" now covers

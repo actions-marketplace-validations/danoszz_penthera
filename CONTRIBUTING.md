@@ -225,7 +225,7 @@ live once a maintainer approves it with 2FA. **Do not run `npm publish` locally.
    - `docs/METHODOLOGY.md` (the "How to cite" block)
 2. Move the `[Unreleased]` notes in `CHANGELOG.md` under the new version.
    Refresh the typosquat list with `npm run refresh:popular` and commit
-   `lib/deps/popular-packages.json` if it changed (the only time it is fetched).
+   `lib/deps/popular-packages.json.gz` if it changed (the only time it is fetched).
 3. Run the internal audit on the release branch: `npm run audit:internal`.
    **It must pass.** Commit the regenerated `audit/REPORT.md` with the release
    and read its "Changes since the previous report". A new self-scan finding

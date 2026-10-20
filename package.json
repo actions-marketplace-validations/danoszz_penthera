@@ -20,7 +20,7 @@
     "src",
     "lib",
     "skills",
-    "docs",
+    "docs/examples",
     "scripts/rules",
     "pentest.config.example.js",
     "CHANGELOG.md",

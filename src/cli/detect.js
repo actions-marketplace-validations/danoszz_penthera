@@ -28,7 +28,10 @@ function listening(host, port, timeout) {
   return new Promise((resolve) => {
     const sock = createConnection({ host, port });
     const done = (ok) => { sock.destroy(); resolve(ok); };
-    sock.setTimeout(timeout, () => done(false));
+    // On a starved machine the timer and a connect that already completed can
+    // be ready in the same loop turn, and timers run first. setImmediate runs
+    // after pending I/O, so a connection made within the deadline still wins.
+    sock.setTimeout(timeout, () => setImmediate(() => done(false)));
     sock.once("connect", () => done(true));
     sock.once("error", () => done(false));
   });

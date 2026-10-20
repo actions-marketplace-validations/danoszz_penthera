@@ -4,6 +4,16 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Docs
+
+- **README hero is a 12-second loop** of the terminal and the dashboard
+  (setup, an offline scan, Simple and Advanced mode, a fix approved), cut from
+  the walkthrough video by `scripts/media/hero-gif.sh`, and it loops without a
+  jump. The terminal-only scan clip is now `assets/demo-scan.gif`. The Demo
+  media workflow re-cuts the loop on every release.
+- **The README diagram is back**, updated: what Penthera checks, where the
+  findings go, and that the fix loop asks first and cannot edit its own tests.
+
 ## [1.8.0-rc.1] - 2026-10-20
 
 Release candidate for 1.8.0, published on npm's `next` dist-tag

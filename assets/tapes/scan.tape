@@ -1,7 +1,7 @@
 # URL scan of the local mock server (tests/fixtures/mock-server.js), offline.
 # This is the README hero GIF.
 # Run from the repo root: vhs assets/tapes/scan.tape
-Output assets/demo.gif
+Output assets/demo-scan.gif
 Require node
 Source assets/tapes/_settings.tape
 

@@ -16,7 +16,7 @@
 
 <br/>
 
-<img src="assets/demo.gif" alt="Penthera running an interactive security scan in the terminal" width="760">
+<img src="assets/demo.gif" alt="A 12-second loop: npx penthera sets up a project, an offline scan runs in the terminal, the dashboard shows the verdict in Simple mode and the triage matrix in Advanced mode, and a fix is approved" width="760">
 
 <br/><br/>
 
@@ -88,6 +88,29 @@ Penthera needs Node.js 22 or later. To run it in a container:
 
 
 ## What it does
+
+```mermaid
+flowchart LR
+    U["You or your AI agent"] --> P(("Penthera<br/>on your machine"))
+
+    P --> APP["Your app<br/>URL scan, repo scan"]
+    P --> DEP["Your dependencies<br/>capabilities, install firewall<br/>typosquats, upgrade diff"]
+    P --> AI["Your AI tooling<br/>skills, MCP, hooks<br/>plugins, rule files"]
+
+    APP --> F[["Findings<br/>severity, confidence<br/>evidence at file:line"]]
+    DEP --> F
+    AI --> F
+
+    F --> FIX["Fix loop<br/>asks first, local branch<br/>cannot edit its own tests"]
+    FIX -. "re-scan proves it" .-> F
+    F --> R["Reports and dashboard<br/>terminal, Markdown, SARIF<br/>penthera ui"]
+    F --> E["Evidence<br/>signed bundle<br/>NIS2 and CRA drafts"]
+
+    classDef core fill:#0000ed,stroke:#0000ed,color:#ffffff
+    classDef box fill:#ffffff,stroke:#000000,color:#000000
+    class P core
+    class U,APP,DEP,AI,F,FIX,R,E box
+```
 
 ### Before you deploy
 

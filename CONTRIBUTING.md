@@ -242,6 +242,10 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Signed-off-by: Your Name <you@example.com>
 ```
 
+CI checks every commit in a pull request (`scripts/ci/provenance.mjs`): a
+commit that names an AI co-author needs the `AI-Assisted` line, and the other
+way round.
+
 - **Summarise the prompt** in the `AI-Assisted` line: what you asked for, not
   the full transcript. For grant-funded work, the full prompts and outputs also
   go in `docs/genai-logs/` (see [docs/genai.md](docs/genai.md)).

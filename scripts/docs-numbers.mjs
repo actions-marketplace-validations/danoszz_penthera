@@ -18,7 +18,10 @@ const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 
 const secretsSrc = read("lib/whitebox/secrets.js");
 const patternsBlock = secretsSrc.slice(secretsSrc.indexOf("const SECRET_PATTERNS = ["));
-const secretPatterns = (patternsBlock.slice(0, patternsBlock.indexOf("\n];")).match(/\bname: "/g) || []).length;
+// Inline patterns in secrets.js plus the ones it pulls from the core rule pack.
+const corePack = JSON.parse(read("lib/rules/core/secrets.json"));
+const secretPatterns = (patternsBlock.slice(0, patternsBlock.indexOf("\n];")).match(/\bname: "/g) || []).length
+  + (Array.isArray(corePack) ? corePack : corePack.rules || []).length;
 
 const recipes = readdirSync(new URL("../lib/fix/recipes", import.meta.url)).filter((f) => f.endsWith(".js")).length;
 const references = (read("docs/references.bib").match(/^@/gm) || []).length;

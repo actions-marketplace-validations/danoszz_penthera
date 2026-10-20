@@ -14,15 +14,17 @@ anything here.
 
 ## Now: 1.8.0, feature freeze
 
-1.8.0 is what is on main plus the dashboard redesign
-([#63](https://github.com/danoszz/penthera/pull/63)). From here only fixes go in.
+1.8.0 is what is on main, including the security hardening, plus the dashboard
+redesign ([#63](https://github.com/danoszz/penthera/pull/63)). From here only fixes go in.
 It ships as `1.8.0-rc.1` on npm's `next` tag first, and as 1.8.0 only after
 the release candidate holds up and the maintainer approves.
 
 | In 1.8.0 | What it means for you |
 |---|---|
 | Dashboard redesign | `penthera ui` gets a Simple mode with a one-sentence verdict for first-timers, and an Advanced mode for pros |
-| Smaller package | 657 kB packed instead of 797 kB; the docs live on GitHub |
+| Security hardening | Fixes from a second independent review: dependency scans fail closed, the fix loop keeps your uncommitted work, the hook and dashboard are harder to bypass |
+| A fix loop that cannot game its checker | Fixes may not edit tests, CI or Penthera's own settings; "could not fix" is a recorded outcome |
+| Smaller package | About 700 kB packed instead of 797 kB; the docs live on GitHub |
 | One set of docs, one voice | Each page answers one question, from "is my app safe to ship?" to "export evidence for an auditor" |
 
 ## Next

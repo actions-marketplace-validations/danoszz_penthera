@@ -45,7 +45,10 @@ The agent does the routine, repeatable checks a security engineer would do:
 - **"Agent" means a loop with guard rails, not an autonomous AI.**
   `penthera agent --loop` scans, plans a fix, applies it on a local branch,
   verifies it, and records the outcome. It asks before every change by
-  default, never pushes, and only talks to the target you named.
+  default, never pushes, and only talks to the target you named. It cannot
+  edit the tests, CI or settings that judge its fixes, and "could not fix" is
+  an accepted outcome, not a failure to work around. See
+  [what the 2026 agent incidents mean for Penthera](research/agent-incidents-2026.md).
 - **"Learning" means bookkeeping, not machine learning.** The local memory
   counts which fix recipes worked for which framework, which findings you marked
   as false positives, and which probes found things. It re-orders and

@@ -52,6 +52,18 @@ jobs:
       - name: Accuracy benchmark (offline, local targets)
         run: npm run bench -- --check --no-write
 
+  provenance:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: AI disclosure trailers (CONTRIBUTING.md#use-of-generative-ai)
+        run: node scripts/ci/provenance.mjs "origin/${{ github.base_ref }}" HEAD
+
   scan:
     runs-on: ubuntu-latest
 

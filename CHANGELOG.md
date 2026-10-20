@@ -4,6 +4,26 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Added
+
+- Release checks in CI (`.github/workflows/install-matrix.yml`): the packed
+  tarball is installed into an empty project and run with `npx penthera` on
+  Linux, macOS and Windows with Node 22 and 24 (setup wizard dry run, deps,
+  agents, repo scan, the pre-commit hook on a real commit, the dashboard's
+  token check, bundled rule pack signatures). An upgrade job installs 1.7.0
+  from npm, writes memory and dashboard state, upgrades to the tarball and
+  checks the old memory chain still verifies and grows. All of it runs under a
+  network guard that fails on anything past loopback.
+- Docs as tests: `scripts/docs-commands.mjs` checks every command in the
+  README, `docs/` and the skill against `--help` and runs the offline ones on a
+  fixture, in `npm test` and against the installed package.
+
+### Fixed
+
+- `penthera --help` lists `--rules-signers` and `--allow-unsigned-rules`. Both
+  worked and were documented in `docs/rule-packs.md`, but the help left them
+  out.
+
 ### Changed
 
 - Smaller npm package: 797 kB to 657 kB packed, 2.3 MB to 1.7 MB unpacked. The

@@ -640,8 +640,8 @@ describe("--online registry checks", () => {
     })()));
     const fetchImpl = async (url) => {
       urls.push(url);
-      if (url.endsWith(".tgz")) return { ok: true, arrayBuffer: async () => tgz };
-      return { ok: true, json: async () => ({ time: { created: iso(NOW - 400 * day) }, versions: {} }) };
+      if (url.endsWith(".tgz")) return new Response(tgz);
+      return Response.json({ time: { created: iso(NOW - 400 * day) }, versions: {} });
     };
     const r = await scanDeps(fx.head, { diff: join(fx.baseLockOnly, "package-lock.json"), cacheDir: noCache(), online: true, fetchImpl, now: NOW });
     expect(urls.every((u) => u.startsWith("https://registry.npmjs.org/"))).toBe(true);

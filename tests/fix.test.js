@@ -311,7 +311,7 @@ describe("local-model fallback", () => {
       calls.push({ url, body: JSON.parse(init.body) });
       const before = readFileSync(join(dir, "server.js"), "utf-8");
       const diff = createPatch("server.js", before, before.replace('app.use(express.json());', 'app.use(express.json({ limit: "100kb" }));'));
-      return { ok: true, json: async () => ({ response: "```diff\n" + diff + "```" }) };
+      return Response.json({ response: "```diff\n" + diff + "```" });
     };
     const model = createModelFixer({ model: "qwen2.5-coder", fetch: fakeFetch });
     const { plans } = await planFixes(dir, [
@@ -329,9 +329,16 @@ describe("local-model fallback", () => {
   it("drops model output that does not apply or leaves the repo", async () => {
     const dir = repoFrom("express");
     for (const response of ["NO_FIX", "--- a/../x.js\n+++ b/../x.js\n@@ -1,1 +1,1 @@\n-a\n+b\n", "--- a/server.js\n+++ b/server.js\n@@ -1,1 +1,1 @@\n-nope\n+b\n"]) {
-      const model = createModelFixer({ model: "m", fetch: async () => ({ ok: true, json: async () => ({ response }) }) });
+      const model = createModelFixer({ model: "m", fetch: async () => Response.json({ response }) });
       expect(await model.plan(dir, { title: "x", category: "dos", severity: "high", url: "server.js" })).toBeNull();
     }
+  });
+
+  it("stops reading a model response that never ends", async () => {
+    const dir = repoFrom("express");
+    const endless = new ReadableStream({ pull(c) { c.enqueue(new TextEncoder().encode(" ".repeat(64 * 1024))); } });
+    const model = createModelFixer({ model: "m", fetch: async () => new Response(endless) });
+    await expect(model.plan(dir, { title: "x", category: "dos", severity: "high", url: "server.js" })).rejects.toThrow(/exceeds/);
   });
 });
 
@@ -487,7 +494,7 @@ describe("local-model context stays in the repo", () => {
     const outside = join(outsideDir, "private.js");
     writeFileSync(outside, "PRIVATE MATERIAL OUTSIDE THE REPO\n");
     const prompts = [];
-    const model = createModelFixer({ model: "m", fetch: async (url, init) => { prompts.push(JSON.parse(init.body).prompt); return { ok: true, json: async () => ({ response: "NO_FIX" }) }; } });
+    const model = createModelFixer({ model: "m", fetch: async (url, init) => { prompts.push(JSON.parse(init.body).prompt); return Response.json({ response: "NO_FIX" }); } });
 
     const viaMain = tempDir();
     writeFileSync(join(viaMain, "package.json"), JSON.stringify({ name: "x", main: `../${outsideDir.split(/[\\/]/).pop()}/private.js` }));

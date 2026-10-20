@@ -262,12 +262,13 @@ export class BodyLimitError extends Error {
  * cancels the stream.
  *
  * @param {Response} res
- * @param {{ maxBytes?: number, deadline?: number, timeout?: number }} [opts]
+ * @param {{ maxBytes?: number, deadline?: number, timeout?: number, binary?: boolean }} [opts]
  *   deadline: absolute epoch ms; timeout: ms from now. The earliest wins.
- * @returns {Promise<string>}
+ *   binary: return the raw bytes as a Buffer instead of text.
+ * @returns {Promise<string|Buffer>}
  */
 export async function readBody(res, opts = {}) {
-  const { maxBytes = DEFAULT_MAX_BODY } = opts;
+  const { maxBytes = DEFAULT_MAX_BODY, binary = false } = opts;
   const attached = res?.[BODY_DEADLINE];
   let at = Infinity;
   if (attached) at = attached.at;
@@ -277,7 +278,7 @@ export async function readBody(res, opts = {}) {
   let timer;
   let reader;
   try {
-    if (!res?.body) return "";
+    if (!res?.body) return binary ? Buffer.alloc(0) : "";
     const declared = Number(res.headers?.get("content-length"));
     if (!res.headers?.get("content-encoding") && declared > maxBytes) {
       throw new BodyLimitError(`response body exceeds ${maxBytes} bytes`);
@@ -297,8 +298,9 @@ export async function readBody(res, opts = {}) {
       if (done) break;
       total += value.byteLength;
       if (total > maxBytes) throw new BodyLimitError(`response body exceeds ${maxBytes} bytes`);
-      parts.push(decoder.decode(value, { stream: true }));
+      parts.push(binary ? value : decoder.decode(value, { stream: true }));
     }
+    if (binary) return Buffer.concat(parts);
     parts.push(decoder.decode());
     return parts.join("");
   } catch (err) {

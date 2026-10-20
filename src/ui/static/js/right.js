@@ -23,8 +23,8 @@ function card(title, aside, open, ...body) {
 }
 
 function head(title, ctx, extra) {
-  return h("div", { class: "detail-head" },
-    h("span", { class: "t1" }, title),
+  return h("div", { class: "win-bar" },
+    h("span", { class: "title" }, title),
     h("span", { class: "grow" }),
     extra || null,
     h("button", { type: "button", class: "icon", "aria-label": "Close (Esc)", title: "Close  Esc", onclick: () => set({ right: "cards", finding: null }) }, "×"));
@@ -40,7 +40,9 @@ async function cardsView(el, ctx, my) {
   ]).catch((e) => { clear(el).append(h("p", { class: "pad error" }, e.message)); return []; });
   if (my !== seq || !env) return;
 
-  clear(el).append(h("div", { class: "cards" },
+  clear(el).append(h("div", { class: "win-bar" }, h("span", { class: "title" }, "Details"), h("span", { class: "grow" }),
+    h("button", { type: "button", class: "icon", "aria-label": "Hide the details panel (])", title: "Hide details  ]", onclick: ctx.toggleRight }, "⇥")),
+  h("div", { class: "pane-body cards" },
     envCard(env, settings, project, ctx),
     memoryCard(mem.projects),
     depsCard(deps),
@@ -213,7 +215,7 @@ async function findingView(el, ctx, my) {
   const section = (label, ...body) => h("section", {}, h("p", { class: "label" }, label), ...body);
   clear(el).append(
     head("Finding", ctx),
-    h("div", { class: "detail" },
+    h("div", { class: "pane-body detail" },
       h("div", {}, sevBadge(d.severity), " ", h("span", { class: "chip" }, d.confidence || "unrated"), " ", d.category ? h("span", { class: "chip" }, d.category) : null),
       h("h2", { tabindex: "-1" }, d.title),
       h("dl", { class: "kv" },
@@ -250,7 +252,7 @@ async function settingsView(el, ctx, my) {
   });
   clear(el).append(
     head("Settings", ctx),
-    h("div", { class: "detail" },
+    h("div", { class: "pane-body detail" },
       h("section", {}, h("p", { class: "label" }, "Theme"), h("div", { class: "seg", role: "radiogroup", "aria-label": "Theme" }, radios),
         h("p", { class: "muted" }, "Remembered in this browser. The first visit follows your system.")),
       h("section", {}, h("p", { class: "label" }, "Where data comes from"),

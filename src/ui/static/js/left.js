@@ -1,6 +1,6 @@
 // Left sidebar: brand, "+ New scan", projects with their grade, runs grouped
 // by project (like the session list in Claude Code), and the footer gear.
-import { h, s, clear } from "./dom.js";
+import { h, clear } from "./dom.js";
 import { state, set, projectKeys, projectOf } from "./state.js";
 import { ago, shortProject } from "./format.js";
 import { EMPTY } from "./copy.js";
@@ -59,13 +59,7 @@ export function renderLeft(el, { onNewScan, toggleLeft, theme }) {
   }
   if (!runs.length) runList.append(h("li", { class: "group-h" }, EMPTY.runs));
 
-  clear(el).append(
-    h("div", { class: "brand" },
-      s("svg", { width: 14, height: 16, viewBox: "0 0 7 8", "aria-hidden": "true", "shape-rendering": "crispEdges" },
-        s("path", { class: "px", d: "M0 0h5v1h1v1h1v2H6v1H5v1H2v2H0zM2 2v2h3V2z" })),
-      h("span", { class: "grow" }, "penthera"),
-      h("button", { type: "button", class: "icon", "aria-label": "Hide the sidebar ([)", title: "Hide the sidebar  [", onclick: toggleLeft }, "⇤"),
-    ),
+  const body = h("div", { class: "pane-body" },
     h("button", { type: "button", class: "btn new-scan", onclick: onNewScan }, "+ New scan"),
     h("div", { class: "side-label" }, h("span", {}, "Projects")),
     projectList,
@@ -79,5 +73,14 @@ export function renderLeft(el, { onNewScan, toggleLeft, theme }) {
       h("span", {}, state.meta?.demo ? "demo · " : ""),
       h("span", {}, `v${state.meta?.version || ""}`),
     ),
+  );
+  clear(el).append(
+    h("div", { class: "win-bar" },
+      h("span", { class: "mark", "aria-hidden": "true" }),
+      h("span", { class: "logotype", role: "img", "aria-label": "Penthera" }),
+      h("span", { class: "grow" }),
+      h("button", { type: "button", class: "icon", "aria-label": "Hide the sidebar ([)", title: "Hide the sidebar  [", onclick: toggleLeft }, "⇤"),
+    ),
+    body,
   );
 }

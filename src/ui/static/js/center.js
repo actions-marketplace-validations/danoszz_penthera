@@ -38,7 +38,7 @@ export function renderCenter(el, ctx) {
   const title = state.sel.kind === "all" ? "All projects"
     : state.sel.kind === "project" ? shortProject(state.sel.key)
       : state.sel.kind === "run" ? `Run :: ${state.sel.run?.kind || ""}` : "Fix loop run";
-  const toolbar = h("div", { class: "toolbar" },
+  const toolbar = h("div", { class: "win-bar" },
     h("button", { type: "button", class: "icon", "aria-label": "Toggle the sidebar ([)", title: "Sidebar  [", onclick: toggleLeft }, "☰"),
     h("span", { class: "title" }, title),
     h("span", { class: "grow" }),

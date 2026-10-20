@@ -11,8 +11,6 @@ import { writeMarkdownReport, markdownPathFromJson } from "../report/markdown.js
 import { prepareReportOptions, customReport, writeEvidence } from "./report-outputs.js";
 import { compareWithBaseline } from "./baseline.js";
 
-export const DEPS_FLAGS = ["diff", "base", "online", "pr-comment", "prod", "license-policy", "venv"];
-
 /**
  * Scan-command flags that mean nothing for a dependency scan. Rejected rather
  * than ignored: a flag that silently does nothing reads as a check that ran.

@@ -1,5 +1,7 @@
 # Rule packs
 
+> **Pro.** For "how do I tune the rules?"
+
 A rule pack is a directory of detection data that Penthera verifies before it
 uses a single rule. This is how new knowledge about attacks (a new key format,
 a worm's package list, a fresh prompt-injection trick) reaches Penthera without
@@ -37,14 +39,14 @@ A rule feed is a path from somebody else's server into a tool that runs with
 your network access, and often with your credentials and your source code. Rule
 updates are exactly the kind of channel attackers go after: compromise the feed
 and every scanner that trusts it runs your rules, or reports your malware as
-clean. Securing such a channel properly takes signed metadata, key rotation,
+clean. Securing such a channel takes signed metadata, key rotation,
 freshness guarantees and trust delegation (TUF, in-toto) [samuel2010survivable,
 torresarias2019intoto]. Penthera already has a channel with those properties
 for its code: the release. Shipping rules through that same channel adds no new
 way in, and the rules you ran are the rules in the version you installed.
 
-The cost is latency: a new IOC reaches you when you upgrade, not within the
-hour. For the campaigns these packs target, an IOC is most useful in the days
+The cost is latency: a new IOC (indicator of compromise) reaches you when you
+upgrade, not within the hour. For the campaigns these packs target, an IOC is most useful in the days
 and weeks after disclosure, while compromised versions sit in lockfiles and
 npm caches. If you need something faster, write a pack yourself, sign it with
 your own key, and pass it with `--rules` and `--rules-signers`. Penthera never
@@ -71,8 +73,8 @@ In order, and a failure refuses the whole pack (there is no partial load):
 
 An unsigned pack, or one whose signature does not verify against a trusted
 key, is refused unless you pass `--allow-unsigned-rules`. That flag prints a
-loud warning on every run. It skips the signature check only: hash, schema and
-ReDoS failures are refused with or without it.
+warning on every run. It skips only the signature check. Hash, schema and ReDoS
+failures are refused with or without it.
 
 Bundled packs are hash-checked and schema-checked on every start. A failure
 there means the installation is damaged, and Penthera stops rather than run
@@ -140,7 +142,7 @@ the lockfile, so it reports a bad version even when it is not installed.
 ## The ReDoS guard
 
 Packs scan hostile input: dependency source, agent configs, HTTP responses. A
-pack with a catastrophically backtracking regex could hang every scan that
+pack with a regex that backtracks exponentially could hang every scan that
 loads it. V8's regex engine backtracks, and its linear-time mode refuses
 ordinary bounded repeats like `{64}`, so `lib/rules/regex-guard.js` checks the
 pattern's structure when the pack loads and refuses:
@@ -155,14 +157,14 @@ pattern's structure when the pack loads and refuses:
 7. chains of quantifiers over overlapping characters (`.*b.*`, `\s+\S*\s*`),
    unless all of them are bounded and their product stays under 1,024.
 
-It is deliberately conservative and refuses some safe patterns. Rewrite those
+The guard is conservative on purpose and refuses some safe patterns. Rewrite those
 with a mandatory literal first, or with bounded windows such as
 `[^\n]{0,80}`. Rule 6 took its current form after seeded fuzzing found
 quadratic patterns that the narrower "no leading quantifier" version let
 through. The fuzz test
 (`tests/rule-packs.test.js`) generates random patterns and requires everything
 the guard accepts to finish in under 250 ms on 10 KB of input built to make it
-backtrack. In practice they finish in milliseconds; quadratic patterns take
+backtrack. In practice they finish in milliseconds. Quadratic patterns take
 seconds. Regexes from packs added with `--rules` also see at most 1 MB of input
 per match.
 
@@ -176,8 +178,8 @@ existing user templates keep working.
 
 | Pack | Contents |
 |---|---|
-| `core` | Detections that were hardcoded before rule packs, moved here so the mechanism is used for real: 12 AI-provider key formats, the credential-path hidden-instruction pattern, two process-substitution exec patterns, and the `.env` exposure template. Engines splice them back in at their old positions; a test compares the result with a snapshot of the old built-ins. |
-| `ioc-2025-2026` | Named npm campaigns: **s1ngularity** (nx and @nx/* versions, from GHSA-cxm3-wv7p-598c), **Shai-Hulud** (484 package versions from StepSecurity's table, the webhook.site exfil URL, and `bundle.js` by SHA-256), **Shai-Hulud 2.0** (1,089 package versions from Wiz Research's CSV, plus `setup_bun.js` and `bun_environment.js`), and **postmark-mcp** 1.0.16 to 1.0.18 with its exfil domain. Every rule cites the list it came from; entries that could not be checked against a primary source were dropped. |
+| `core` | Detections that were hardcoded before rule packs, moved here so the built-in rules go through the same loader: 12 AI-provider key formats, the credential-path hidden-instruction pattern, two process-substitution exec patterns, and the `.env` exposure template. Engines splice them back in at their old positions, and a test compares the result with a snapshot of the old built-ins. |
+| `ioc-2025-2026` | Named npm campaigns: **s1ngularity** (nx and @nx/* versions, from GHSA-cxm3-wv7p-598c), **Shai-Hulud** (484 package versions from StepSecurity's table, the webhook.site exfil URL, and `bundle.js` by SHA-256), **Shai-Hulud 2.0** (1,089 package versions from Wiz Research's CSV, plus `setup_bun.js` and `bun_environment.js`), and **postmark-mcp** 1.0.16 to 1.0.18 with its exfil domain. Every rule cites the list it came from. We dropped entries we could not check against a primary source. |
 
 ## Writing and signing a pack
 
@@ -214,4 +216,4 @@ that file changes Penthera's trust root, and gets the same review as a change
 to the verifier. To rotate keys, add the new key, re-sign the bundled packs, and
 remove the old key in a later release. Packs other people signed with the old
 key keep working until it is removed. A hardware-backed key (`sk-ssh-ed25519`)
-is not supported by the verifier yet; use ed25519 or RSA.
+is not supported by the verifier yet. Use ed25519 or RSA.

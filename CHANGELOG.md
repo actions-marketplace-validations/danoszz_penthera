@@ -13,6 +13,32 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ### Docs
 
+- **Penthera is described as an open R&D project with a usable tool:** "an
+  open-source cyber security agent you can use today, and verify yourself."
+  The README, `docs/index.md`, `package.json`, the plugin and marketplace
+  manifests, the Agent Skill (trigger phrases kept), the GitHub Action and the
+  repository description carry the approved wording. The README has a "How it
+  is measured" section (method, evidence, tool) with Wilson intervals next to
+  the benchmark numbers, and stays under 14 KB.
+- **One roadmap, one research plan.** `ROADMAP.md` now says what ships next,
+  starting with the 1.8.0 feature freeze. `docs/vision-2.0.md` is the research
+  plan and holds the quality gates from `docs/plan.md`. `docs/plan.md`,
+  `docs/release-plan.md` (v1.2 to v1.4) and the Socket positioning notes moved
+  to `docs/archive/`.
+- **Every user-facing page names the question it answers**, for a starter ("is
+  my app safe to ship?") or a pro ("how do I put it in CI?"), and
+  `docs/index.md` has a Start here path from starter to pro.
+- **Voice guide** (`docs/voice.md`): plain words, short sentences, numbers with
+  intervals over adjectives, limits next to claims, no hype. Every user-facing
+  page was edited against it.
+- **Release cadence** in CONTRIBUTING: at most one minor release every 2 to 4
+  weeks, always through an `-rc.N` on npm's `next` tag, patches for fixes only,
+  and a feature freeze before each minor. Current freeze: 1.8.0 = main + #63.
+- Fixed stale facts: SECURITY.md's supported versions (1.2.x to 1.7.x), README
+  anchors that no longer existed, Agent Skill links into `docs/` that broke in
+  the npm package since the docs stopped shipping there, and the partner brief
+  and due diligence notes that still called shipped features "in review".
+
 - Limitations stated in full: the methodology's "Known limitations" now covers
   every module (deps, AI tooling, fix loop), the evidence (small sample, wide
   intervals, same-team benchmark, single labeller, uncalibrated confidence

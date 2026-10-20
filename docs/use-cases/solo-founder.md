@@ -1,5 +1,7 @@
 # Before launch: for solo founders and vibecoders
 
+> **Starter.** For "is my app safe to ship?"
+
 ## The problem
 
 You built the app in weeks, much of it with an AI assistant. It works. You have
@@ -52,14 +54,18 @@ re-scanned afterwards to confirm the finding is gone.
 
 ## What it does not do
 
-- It is not a penetration test by a person. It checks known classes of problem;
-  it will not find a flaw in your business logic, such as a coupon that can be
+- It is not a penetration test by a person. It checks known classes of problem.
+  It will not find a flaw in your business logic, such as a coupon that can be
   applied twice.
-- It does not fix IDOR or auth design for you. It points at the route; the fix
+- It does not fix IDOR or auth design for you. It points at the route. The fix
   is yours.
 - It does not watch production yet. Scheduled checks are on the
   [roadmap](../../ROADMAP.md).
 - A clean scan is not proof of safety. Every finding has a confidence label, and
   probes that could not run are listed as inconclusive rather than passed.
+- Its accuracy is measured only on labs we wrote ourselves: precision 0.86
+  (95% CI 0.67 to 0.95) and recall 0.90 (95% CI 0.71 to 0.97) on 22 findings
+  ([results](../../bench/RESULTS.md)). Accuracy on real apps is not measured
+  yet. That is [experiment E1](../research/prereg/E1-real-world-accuracy.md).
 
 [All use cases](README.md) · [Back to the README](../../README.md)

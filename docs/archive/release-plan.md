@@ -1,6 +1,8 @@
 # Release plan: v1.2.0 → v1.4.0
 
-The engineering plan behind the [roadmap](../ROADMAP.md): what ships in each
+> **Archived 2026-10-20.** The historic plan for v1.2 to v1.4, all shipped as 1.4.0 on 2026-10-19. What ships next is in the [roadmap](../../ROADMAP.md).
+
+The engineering plan behind the [roadmap](../../ROADMAP.md): what ships in each
 release, in what order, what each piece depends on, and how we know it is done.
 Dates are targets, not promises. Building is fast; review, real-world testing,
 and the 2FA release approval set the pace.
@@ -222,7 +224,7 @@ with the no-telemetry principle.
 
 ## v1.5.0 and beyond
 
-Staged on the [roadmap](../ROADMAP.md): LLM endpoint probes, OWASP LLM
+Staged on the [roadmap](../../ROADMAP.md): LLM endpoint probes, OWASP LLM
 mapping, the CRA Article 14 helper, the AI-BOM, a pre-commit hook, license
 policy, and signed rule packs. After that: the local dashboard (`penthera ui`)
 and a team pack.

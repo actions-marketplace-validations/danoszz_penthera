@@ -1,5 +1,8 @@
 # Marketing automation
 
+> **Project page.** For maintainers asking "what runs on a schedule, and what
+> does a person still post?"
+
 Penthera is maintained by one person with no budget, so the routine parts of
 getting the word out run by themselves. The rule is simple: **automation drafts
 and collects, a person posts.**

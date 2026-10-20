@@ -1,18 +1,24 @@
 # What Penthera is, what it is not, and why
 
+> **Project page.** For "why was it built this way?"
+
 This page states plainly what Penthera does today, the decisions behind it, and
 the questions people ask. It is written to be argued with. If you think a
 decision is wrong, [open a discussion](https://github.com/danoszz/penthera/discussions)
 with the label "challenge": say which decision, what you would do instead, and
 what evidence would settle it. Decisions here change when the evidence does.
 
-Written 2026-10-19, for v1.7.0. The forward-looking plan is in
-[vision-2.0.md](vision-2.0.md).
+Written 2026-10-19, for v1.7.0. What we plan to measure next is in the
+[research plan](vision-2.0.md).
 
 ## What Penthera is today
 
-Penthera is open-source security for the apps and AI systems you ship. It does
-the routine, repeatable checks a security engineer would do, on your machine:
+Penthera is an open R&D project with two parts. One is a security agent you
+can run today, offline, on your own machine. The other is a set of public,
+pre-registered experiments that measure how well its checks work (Penthera
+Bench, E1 to E6 in the [research plan](vision-2.0.md)).
+
+The agent does the routine, repeatable checks a security engineer would do:
 
 - **Before you deploy:** scans your running app (localhost or a preview URL) and
   your source for common weaknesses, fixes what it can on a local branch, and
@@ -26,7 +32,7 @@ the routine, repeatable checks a security engineer would do, on your machine:
 ### The honest limits
 
 - **It finds known classes of problems, not novel ones.** Misconfigured
-  headers, leaked keys, risky dependency behaviour, unsafe agent setups, common
+  headers, leaked keys, risky dependency behavior, unsafe agent setups, common
   injection patterns. It does not find business-logic flaws, complex
   authorization bugs, or zero-days. It is not a replacement for a human
   penetration test.
@@ -34,8 +40,8 @@ the routine, repeatable checks a security engineer would do, on your machine:
   precision 0.86 and recall 0.90, but on 22 scored findings in labs we built
   ourselves. The 95% confidence intervals are wide: precision 0.67 to 0.95,
   recall 0.71 to 0.97 (Wilson). Real-world accuracy on other people's code is
-  not yet measured. Closing that gap is the first goal of
-  [2.0](vision-2.0.md).
+  not yet measured. Closing that gap is the first goal of the
+  [research plan](vision-2.0.md) (experiment E1).
 - **"Agent" means a loop with guard rails, not an autonomous AI.**
   `penthera agent --loop` scans, plans a fix, applies it on a local branch,
   verifies it, and records the outcome. It asks before every change by
@@ -72,11 +78,11 @@ mind.
   check has the final word.
 - **Why.** Rules can be read, tested, and reproduced. Published research shows
   scanners built on LLM judges can be talked out of a finding, and one such
-  judge labelled Penthera itself as malware because it contains test payloads.
-- **Cost.** Rules miss what nobody wrote a rule for. Models generalise better.
+  judge labeled Penthera itself as malware because it contains test payloads.
+- **Cost.** Rules miss what nobody wrote a rule for. Models generalize better.
 - **What would change our mind.** A pre-registered experiment where a model-based
   verdict beats rules on precision and recall, *and* stays robust under
-  adversarial inputs (see Experiment E5 in the vision).
+  adversarial inputs (see experiment E5 in the research plan).
 
 ### 3. No runtime update channel
 - **Choice.** Detection rules ship inside reviewed, signed releases. Penthera
@@ -129,7 +135,7 @@ and remembers outcomes, inside strict limits. It is not an AI that decides on
 its own. AI models are optional helpers for proposing fixes.
 
 **Does it use machine learning, reinforcement learning, or deep learning?**
-Not yet. The memory is counting, not training. The [2.0 vision](vision-2.0.md)
+Not yet. The memory is counting, not training. The [research plan](vision-2.0.md)
 adds light reinforcement learning (bandits) for choosing what to try first, a
 classical classifier for suspicious packages, and model-proposed fixes checked
 by the scanner. Each one has to beat the current rules in a pre-registered
@@ -146,7 +152,7 @@ and only for fix proposals. Planned: other local runtimes (llama.cpp, MLX on
 Apple silicon) and small open-weight models for embeddings and fixes. Hosted
 models, including fast structured-decision models such as Typesafe's Jev, are
 interesting for calibrated triage, but they send data off your machine. They
-would only ever be opt-in, clearly labelled, and evaluated against the local
+would only ever be opt-in, clearly labeled, and evaluated against the local
 baseline first.
 
 **Why not use an LLM to judge whether code is malicious?**
@@ -155,23 +161,23 @@ Models are useful to *propose*; something deterministic has to *verify*.
 
 **How accurate is it?**
 On our own benchmark: precision 0.86, recall 0.90, on a small sample with wide
-intervals (see above). Measuring accuracy on real-world code is the first piece
-of 2.0 work.
+intervals (see above). Measuring accuracy on real-world code is the first
+experiment in the research plan (E1).
 
 **Is it a replacement for a penetration test or a security team?**
 No. It covers the routine checks so people can spend their time on the work
-that needs judgement.
+that needs judgment.
 
 **Why open source?**
-Because security tools should be inspectable, because the community finds
-mistakes faster than one maintainer, and because the people who need it most
-cannot always pay.
+Security tools should be open to inspection. Outside reviewers find mistakes
+faster than one maintainer does. And the people who need it most cannot always
+pay.
 
 **Will there be a hosted version?**
 Maybe, for teams, later. If it exists, it will not remove anything from the
 local tool. See [ROADMAP.md](../ROADMAP.md).
 
 **How do I challenge a decision?**
-Open a [discussion](https://github.com/danoszz/penthera/discussions) labelled
+Open a [discussion](https://github.com/danoszz/penthera/discussions) labeled
 "challenge". The best challenges come with a proposed experiment: what you
 would measure and what result would prove you right.

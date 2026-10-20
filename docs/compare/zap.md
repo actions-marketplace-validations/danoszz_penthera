@@ -1,5 +1,7 @@
 # Penthera and OWASP ZAP
 
+> **Pro.** For "how does Penthera compare to OWASP ZAP, and how do I run both?"
+
 *Last checked: 2026-10-19 against zaproxy.org and the ZAP GitHub repositories.*
 
 ## Use them together
@@ -27,7 +29,7 @@ exploration through its proxy, and anything that needs a logged-in browser crawl
 | Fixes | Framework-aware fix recipes, re-scanned to verify | Reports alerts |
 | Automation | CLI, GitHub Action, SARIF | YAML Automation Framework, Docker packaged scans, the ZAP Baseline Scan action ([automate](https://www.zaproxy.org/docs/automate/)) |
 | Runtime | Node.js 22+ | Java 17+, or Docker ([download](https://www.zaproxy.org/download/)) |
-| Licence | MIT | Apache 2.0 |
+| License | MIT | Apache 2.0 |
 
 ## Where ZAP goes further
 

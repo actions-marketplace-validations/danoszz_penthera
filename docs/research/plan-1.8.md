@@ -2,6 +2,10 @@
 
 Written 2026-10-19. Status: **decisions made 2026-10-19; approved when this PR is merged.**
 
+> **Note, 2026-10-20.** The 1.8.0 release is frozen as main plus the dashboard
+> redesign, so the Phase A work below lands in 1.9 or later. The plan itself is
+> unchanged. See the [roadmap](../../ROADMAP.md#now-180-feature-freeze).
+
 This is the execution plan for the first milestone of
 [vision-2.0.md](../vision-2.0.md): measure Penthera's accuracy on real code
 (experiment E1) before anything else is built or evaluated. It covers the work

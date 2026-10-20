@@ -7,7 +7,7 @@ labels: bug
 
 <!--
 For a security vulnerability in Penthera itself, do NOT open a public issue.
-Use a private report instead — see SECURITY.md.
+Use a private report instead; see SECURITY.md.
 -->
 
 ## What happened

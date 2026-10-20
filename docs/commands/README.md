@@ -1,6 +1,8 @@
 # Commands
 
-One page per command, with every flag that matters and an example. The
+> **Pro.** For "which command and flag do I need?"
+
+One page per command, with the main flags and an example. The
 [README](../../README.md) has the short version; `penthera <command> --help`
 has the full flag list.
 

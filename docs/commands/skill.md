@@ -1,11 +1,13 @@
 # Penthera as an Agent Skill
 
+> **Starter.** For "can my coding agent run it for me?"
+
 ## For your AI coding agent
 
 Penthera ships as an [Agent Skill](https://agentskills.io), the open format used
 by Cursor, Claude Code, Claude.ai, and [40+ agent tools](https://agentskills.io/clients).
 The skill teaches an agent to run authorized scans, pick the right profile, and
-summarize findings, so you can just describe what you want.
+summarize findings, so you can describe what you want in plain words.
 
 **Install** (any of these):
 

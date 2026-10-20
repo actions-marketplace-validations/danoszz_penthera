@@ -1,5 +1,7 @@
 # How Socket positions itself: notes for Penthera's docs
 
+> **Archived 2026-10-20.** Research notes behind the docs structure of v1.7.0. Penthera's current positioning is in the [README](../../README.md) and the [voice guide](../voice.md).
+
 *Read on 2026-10-19. Everything below is paraphrased; the few quoted words are
 marked. Socket's pages change often, so treat numbers as a snapshot.*
 

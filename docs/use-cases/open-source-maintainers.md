@@ -1,5 +1,7 @@
 # For open-source maintainers
 
+> **Pro.** For "how do I check every pull request and release?"
+
 ## The problem
 
 Your project is someone else's dependency. A compromised maintainer account, a
@@ -49,12 +51,12 @@ is the shape of most credential-stealing packages. The diff shows it with
 [More on `penthera deps`](../commands/deps.md) and [the action](../commands/action.md).
 
 If your project ships agent skills or MCP configuration, `penthera agents` on
-your own repo is a reasonable release check too: it is what your users' tools
-will load.
+your own repo is a reasonable release check too. It reads what your users'
+tools will load.
 
 ## How Penthera handles its own releases
 
-The same practices are worth copying. Penthera releases are published with npm
+You can copy these practices. Penthera releases are published with npm
 provenance through trusted publishing and are staged: each version waits on npm
 until a maintainer approves it with 2FA. CI actions are pinned by SHA, CodeQL
 runs on every push, and the
@@ -70,6 +72,6 @@ is public. See [`.github/workflows/publish.yml`](../../.github/workflows/publish
 - It does not watch the registry for your package being republished by someone
   else. Enable 2FA and trusted publishing on npm for that.
 - A capability is what code *can* do, not proof of intent. Many good packages
-  use the network; the diff is there so a person can look.
+  use the network. The diff is there so a person can look.
 
 [All use cases](README.md) · [Back to the README](../../README.md)

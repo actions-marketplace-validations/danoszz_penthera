@@ -1,5 +1,7 @@
 # Methodology
 
+> **Pro.** For "how does it decide, and what can't it see?"
+
 ## Abstract
 
 Penthera is an open-source, offline security scanner for web applications,
@@ -13,9 +15,10 @@ comparison, and repeated timing measurement) and the non-destructive defaults
 that follow from fail-safe design. Detection rules are distributed only in
 reviewed, versioned releases, never through a live feed, which removes an
 update channel from the attack surface. Each design choice is tied to prior
-research or a published standard. On a bundled benchmark of labelled local
-targets, Penthera reaches a precision of 0.86 and a recall of 0.90. Because the
-same authors wrote the scanner and the targets, these figures measure
+research or a published standard. On a bundled benchmark of labeled local
+targets, Penthera reaches a precision of 0.86 (95% CI 0.67 to 0.95) and a recall
+of 0.90 (95% CI 0.71 to 0.97) on 22 scored findings. Because the same authors
+wrote the scanner and the targets, these figures measure
 regressions, not accuracy on arbitrary applications.
 
 ## How to cite
@@ -149,7 +152,7 @@ Penthera's design responds to each point:
   a missing check is never presented as a pass.
 - **State and logic.** Penthera does not claim to find business logic flaws,
   which no scanner in the study by Doupé et al. (2010) found either. IDOR/BOLA
-  results are labelled `needs-human-review` because a scanner cannot know
+  results are labeled `needs-human-review` because a scanner cannot know
   whether user A is allowed to read object B.
 - **Stored and second-order flaws.** Not tested. They need a write followed by
   a read elsewhere, which conflicts with the non-destructive default.
@@ -163,8 +166,8 @@ Secret detection uses provider-specific prefixes (for example `AKIA` for AWS
 and `sk-ant-` for Anthropic) plus a small number of assignment patterns such as
 `api_key = "..."` with a placeholder filter. Meli et al. (2019) took the same
 conservative route and restricted detection to private keys and API keys with
-distinctive formats. The cost is recall: a secret with no recognisable format
-is invisible to this approach. SecretBench, a labelled dataset of real secrets
+distinctive formats. The cost is recall: a secret with no recognizable format
+is invisible to this approach. SecretBench, a labeled dataset of real secrets
 across many formats, is the natural yardstick for that gap (Basak et al.,
 2023). The bundled benchmark includes an unprefixed signing key that Penthera
 misses for this reason.
@@ -200,7 +203,7 @@ The benchmark reports precision per confidence label, which tests whether the
 labels mean what they say. On the current run, all `likely` and
 `needs-human-review` findings were true positives and the one `potential`
 finding was a false positive. The two `confirmed` false positives are cases
-where the evidence is real but the judgement is wrong: a health endpoint that
+where the evidence is real but the judgment is wrong: a health endpoint that
 is public by design, and AWS's published example key. See
 [bench/RESULTS.md](../bench/RESULTS.md).
 
@@ -264,7 +267,8 @@ written rules of engagement before the latter (Scarfone et al., 2008).
 Penthera does not phone home. It sends no usage data, analytics, or crash
 reports, and it has no accounts. Reports are written to local files.
 
-Network traffic goes to the target you name, with two documented exceptions:
+Network traffic goes to the target you name, with the exceptions below. The
+full list of hosts is in [privacy.md](privacy.md):
 
 1. `--recon` (and the `deep` profile) queries public OSINT sources (crt.sh, the
    Wayback Machine, AlienVault OTX) with the target domain. It is skipped for
@@ -275,7 +279,9 @@ Network traffic goes to the target you name, with two documented exceptions:
    vulnerabilities (Lauinger et al., 2017). The database is data, not code: it
    is parsed as JSON and never executed. It is the one place a detection input
    arrives at run time. Under `--offline`, and whenever the download fails,
-   Penthera uses the snapshot vendored in the release instead.
+   Penthera uses the snapshot vendored in the release instead. When a script's
+   version can only be read from its contents, the check also fetches that
+   public script from its CDN (not under `--offline`).
 
 The benchmark enforces offline operation mechanically. It wraps `fetch` so any
 request to a non-loopback host is refused and counted, and it fails if the
@@ -317,7 +323,7 @@ Penthera keeps up through reviewed releases, not live updates:
   [lib/references.json](../lib/references.json); the built-in rules that
   predate this policy are being backfilled.
 - **Every new rule comes with a benchmark case.** A detection rule is added
-  together with a labelled true positive and, where a false positive is
+  together with a labeled true positive and, where a false positive is
   plausible, a decoy in [bench/](../bench/). The CI floor in the benchmark
   stops a rule that adds false positives.
 - **Your own templates stay local.** `--nuclei <path>` and `--templates <dirs>`
@@ -381,7 +387,7 @@ are welcome (see [MANIFESTO.md](MANIFESTO.md)).
 - **Secrets.** Detection is pattern-based and skips Markdown and other
   documentation files, so unprefixed secrets and secrets in notes are missed.
 - **Dependencies (`deps`, `install`).**
-  - Analysis is static. Behaviour that is only decided at run time (code
+  - Analysis is static. Behavior that is only decided at run time (code
     fetched or decrypted on execution, heavily obfuscated or minified bundles,
     logic inside native binaries) can be reported as a capability or as
     "unscanned", but not understood.
@@ -389,7 +395,7 @@ are welcome (see [MANIFESTO.md](MANIFESTO.md)).
   - The typosquat list and the vendored data are snapshots and age between
     releases.
 - **AI tooling (`agents`).**
-  - Rules recognise known patterns of hidden content and risky configuration.
+  - Rules recognize known patterns of hidden content and risky configuration.
   - A new phrasing of a prompt injection, or a malicious skill that behaves
     normally until a later update, can pass.
   - `penthera.lock` detects changes after you pin, not malice present before.
@@ -403,7 +409,7 @@ are welcome (see [MANIFESTO.md](MANIFESTO.md)).
 ### How far the evidence reaches
 
 - **Small sample.** The bundled benchmark scores 22 findings. Precision 0.86 and
-  recall 0.90 come with wide 95% Wilson intervals (0.67–0.95 and 0.71–0.97), so
+  recall 0.90 come with wide 95% Wilson intervals (0.67 to 0.95 and 0.71 to 0.97), so
   small changes in either are not meaningful.
 - **Built by the same team.** The benchmark targets, their labels, and the
   scanner were written by the same people, so the numbers measure regressions
@@ -413,22 +419,22 @@ are welcome (see [MANIFESTO.md](MANIFESTO.md)).
   for a fairer comparison.
 - **Possible overfitting.** Probes were tuned while looking at these targets, so
   they may perform better here than elsewhere.
-- **Single labeller.** Ground truth was labelled without a second, independent
-  labeller, so label errors are not measured.
+- **Single labeler.** Ground truth was labeled without a second, independent
+  labeler, so label errors are not measured.
 - **Recall is only partly known.** Recall counts misses of issues we planted. On
   real code, the full set of issues is unknown.
 - **No head-to-head comparison** with other tools under the same conditions has
   been run.
 - **Confidence labels are not calibrated.** The labels (confirmed, likely,
-  potential, needs human review) are expert judgement about each probe's
-  method, not measured probabilities. Severity mappings are judgement too.
+  potential, needs human review) are expert judgment about each probe's
+  method, not measured probabilities. Severity mappings are judgment too.
 - **References support the design, not the outcome.** The literature cited here
   explains why each choice was made. It does not show that Penthera's
   implementation achieves what the cited work describes. Some incident
   descriptions in the docs rely on vendor and industry reports that were not
   independently verified.
 - Measuring real-world accuracy with an independent, pre-registered study is the
-  first goal of the [2.0 plan](vision-2.0.md#research-program).
+  first goal of the [research plan](vision-2.0.md#research-program) (experiment E1).
 
 ### Reproducibility
 

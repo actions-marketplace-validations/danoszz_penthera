@@ -1,5 +1,7 @@
 # Install firewall: `penthera install`
 
+> **Starter.** For "is this package safe to add?"
+
 ### Install firewall: `penthera install`
 
 `penthera deps` tells you what changed after the fact. `penthera install` asks
@@ -42,7 +44,7 @@ penthera install --yes                # CI: install only if nothing breaches the
 }
 ```
 
-`deny` and `requireApproval` take capability ids from the table above
+`deny` and `requireApproval` take capability ids from the [capability table](deps.md)
 (`install-scripts`, `shell`, `network`, `env-bulk`, `obfuscated`, ...) plus
 `typosquat` and `unscanned`. The `requireApproval` list shown is the default.
 `allow` takes names or globs, optionally pinned to a version, and overrides

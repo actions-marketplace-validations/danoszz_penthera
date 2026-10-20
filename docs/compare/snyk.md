@@ -1,5 +1,7 @@
 # Penthera and Snyk
 
+> **Pro.** For "how does Penthera compare to Snyk, and how do I run both?"
+
 *Last checked: 2026-10-19 against Snyk's public docs, pricing page and GitHub.*
 
 ## Use them together
@@ -12,7 +14,7 @@ only which CVEs it has), how does the running app behave, and what is in your
 AI tooling config. It does this offline and without an account.
 
 A reasonable setup: Snyk for known-vulnerability coverage across your stack.
-Penthera for the behaviour diff on lockfile changes, the scan of your preview
+Penthera for the behavior diff on lockfile changes, the scan of your preview
 URL before a deploy, and the agent-config audit.
 
 ## Side by side
@@ -27,7 +29,7 @@ URL before a deploy, and the agent-config audit.
 | Account | None | Required for the CLI ([authenticate](https://docs.snyk.io/developer-tools/snyk-cli/authenticate-to-use-the-cli)) |
 | Fixes | Deterministic recipes as local diffs, re-scanned to verify; never pushes | Fix pull requests through SCM integrations ([fix PRs](https://docs.snyk.io/scan-with-snyk/pull-requests/snyk-fix-pull-or-merge-requests)) |
 | Editor | Through your coding agent (Agent Skill) | Plugins for VS Code, JetBrains, Visual Studio, Eclipse ([IDE](https://docs.snyk.io/developer-tools/snyk-ide-plugins-and-extensions)) |
-| Licence | MIT | CLI is Apache-2.0 ([repo](https://github.com/snyk/cli)); the platform is commercial |
+| License | MIT | CLI is Apache-2.0 ([repo](https://github.com/snyk/cli)); the platform is commercial |
 | Cost | Free | Free plan with 5 projects and 100 Snyk Code tests a month; Team from $25 a month ([plans](https://snyk.io/plans/)) |
 
 ## Where Snyk goes further
@@ -37,15 +39,16 @@ URL before a deploy, and the agent-config audit.
   dependencies beyond the vendored Retire.js database for front-end scripts.
 - **Breadth**: containers, infrastructure as code, many more languages.
 - **Reachability analysis** to cut a CVE list down to what you call.
-- **Organisation features**: dashboards, policies across many repos, reporting.
+- **Organization features**: dashboards, policies across many repos, reporting.
 
 ## Where Penthera adds something
 
-- **Behaviour, not only known issues.** A new install script or a package that
+- **Behavior, not only known issues.** A new install script or a package that
   suddenly reads your whole environment shows up even when no CVE exists yet.
 - **The running app**, free, on localhost.
-- **Fully local.** No account, no API calls, nothing about your code leaves the
-  machine. The AI-tooling audit is local too.
+- **Fully local.** No account and no vendor API. Nothing about your code leaves
+  the machine, and `--offline` limits traffic to the scan target. The AI-tooling
+  audit is local too.
 - **EU evidence**: NIS2 readiness, CRA report drafts, SBOM and AI-BOM, and a
   signable evidence bundle.
 

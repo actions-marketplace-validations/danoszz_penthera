@@ -36,8 +36,8 @@ describe("CLI smoke (offline commands)", () => {
     }
   });
 
-  it("docs/plan.md claims for v1.5.0 only what v1.5.0 shipped (360 review)", () => {
-    const row = readFileSync(join(REPO, "docs/plan.md"), "utf-8").split("\n").find((l) => l.startsWith("| v1.5.0 |"));
+  it("ROADMAP.md claims for 1.5.0 only what 1.5.0 shipped (360 review)", () => {
+    const row = readFileSync(join(REPO, "ROADMAP.md"), "utf-8").split("\n").find((l) => l.startsWith("| 1.5.0 |"));
     expect(row).toMatch(/hook.*license policy.*CRA.*AI-BOM/);
     expect(row).not.toMatch(/rule pack|dashboard|Python|internal audit/i);
   });

@@ -1,8 +1,10 @@
 # Fixing what it finds: `penthera fix` and `penthera agent --loop`
 
+> **Pro.** For "how do I run the fix loop?"
+
 ## Scan and fix
 
-Penthera does not just report problems. It closes the loop: ask your agent to fix what it finds, and it detects the issue, applies a framework-aware fix to your code (shown as a diff for you to approve), and re-scans to prove it is resolved.
+Ask your agent to fix what Penthera finds. It detects the issue, applies a framework-aware fix to your code (shown as a diff for you to approve), and re-scans to prove it is resolved.
 
 ```
 "Scan my app and fix what you find"
@@ -10,7 +12,7 @@ Penthera does not just report problems. It closes the loop: ask your agent to fi
 "Find and fix hardcoded secrets in this repo"
 ```
 
-Fixes come from a [remediation playbook](../../skills/penthera/references/remediation.md) covering Next.js, Express, Fastify, Hono, and FastAPI. They are always shown as diffs for your approval and verified by a re-scan; nothing is applied blindly, and nothing touches production. To build secure-by-default in the first place, see [secure defaults](../../skills/penthera/references/secure-defaults.md).
+Fixes come from a [remediation playbook](../../skills/penthera/references/remediation.md) covering Next.js, Express, Fastify, Hono, and FastAPI. They are always shown as diffs for your approval and verified by a re-scan, and nothing touches production. To build secure-by-default in the first place, see [secure defaults](../../skills/penthera/references/secure-defaults.md).
 
 ### Fix recipes
 
@@ -33,12 +35,12 @@ penthera fix --apply <id> --repo .            # apply one diff after you approve
 How it stays safe:
 
 - **Planning never writes.** Applying is a separate step: it needs a plan id plus a `y/N` confirmation (or `--yes`), refuses a dirty git tree unless you pass `--allow-dirty`, refuses any path outside the repo, and writes nothing unless every hunk applies. It never commits or pushes.
-- **Conservative edits.** No AST rewriting: each recipe edits at an anchor it recognises exactly (`const app = express()`, the exported Next.js config object, a one-line `res.cookie(...)`). If the anchor isn't there, or the code already does something custom (an existing `headers()`, cookie options in a variable), the recipe returns no plan instead of a risky diff.
+- **Conservative edits.** No AST rewriting: each recipe edits at an anchor it recognizes exactly (`const app = express()`, the exported Next.js config object, a one-line `res.cookie(...)`). If the anchor isn't there, or the code already does something custom (an existing `headers()`, cookie options in a variable), the recipe returns no plan instead of a risky diff.
 - **Owner actions are listed, not done.** A recipe can move a secret out of the code but can never rotate it, so every secret fix says "rotate this secret". Other recipes flag what is still on you, such as tightening the starter CSP or setting `CORS_ALLOWED_ORIGINS`.
 - **Secrets stay masked.** The secret's value is masked in printed and `--json` plans.
 - **Verified.** After `--apply`, Penthera re-scans the repo and says whether each finding is gone. Headers, cookies, CORS and rate limits are checked statically from source, so re-run your URL scan to confirm against the live app.
 
-No recipe for a finding? `--fix-model <name>` can ask a model running in [Ollama](https://ollama.com) on `127.0.0.1:11434`, and nowhere else. It is off by default and only used when no recipe matches. Its diffs are labelled `needs-human-review`.
+No recipe for a finding? `--fix-model <name>` can ask a model running in [Ollama](https://ollama.com) on `127.0.0.1:11434`, and nowhere else. It is off by default and only used when no recipe matches. Its diffs are labeled `needs-human-review`.
 
 ### The local loop: `penthera agent --loop`
 

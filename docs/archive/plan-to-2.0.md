@@ -1,7 +1,9 @@
 # Plan to v2.0
 
+> **Archived 2026-10-20.** Superseded: the milestones moved to the [roadmap](../../ROADMAP.md), the quality gates to the [research plan](../vision-2.0.md#quality-gates), and the release rhythm to [CONTRIBUTING](../../CONTRIBUTING.md#release-cadence-and-freeze).
+
 How Penthera gets from "many features, shipped fast" to a tool a team can rely
-on without thinking about it. Written 2026-10-19. The [roadmap](../ROADMAP.md)
+on without thinking about it. Written 2026-10-19. The [roadmap](../../ROADMAP.md)
 says *what* ships; this says *how well*, and in what order.
 
 Penthera is maintained part-time alongside a PhD, so the plan is built around

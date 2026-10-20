@@ -1,11 +1,13 @@
 # Penthera and Semgrep
 
+> **Pro.** For "how does Penthera compare to Semgrep, and how do I run both?"
+
 *Last checked: 2026-10-19 against Semgrep's docs, GitHub and pricing page.*
 
 ## Use them together
 
-[Semgrep](https://semgrep.dev) is a static analyser for your own code. The
-Community Edition engine is open source (LGPL-2.1) and runs locally; the
+[Semgrep](https://semgrep.dev) is a static analyzer for your own code. The
+Community Edition engine is open source (LGPL-2.1) and runs locally. The
 commercial AppSec Platform adds cross-file analysis, supply-chain reachability,
 secrets and AI triage ([CE vs platform](https://docs.semgrep.dev/semgrep-pro-vs-oss)).
 Penthera's repo scan is narrower than Semgrep's. What Penthera adds is the rest

@@ -593,3 +593,23 @@ describe("ui runs: authorization and the approval flow", () => {
     expect(cleanLine("\u001b[2Jhi\u0007 there\u009b")).toBe("hi there");
   });
 });
+
+describe("ui stream: a run that already finished", () => {
+  it("ends the event stream cleanly instead of throwing", async () => {
+    const { stream } = await import("../src/ui/api/routes.js");
+    const { EventEmitter } = await import("node:events");
+    const req = new EventEmitter();
+    req.headers = {};
+    const written = [];
+    const res = { writableEnded: false, writeHead() {}, write(s) { written.push(s); }, end() { this.writableEnded = true; } };
+    let unsubscribed = 0;
+    // Like the real manager for a finished run: replay, then fn(null), synchronously.
+    const runs = { subscribe(_id, _after, fn) { fn({ seq: 1, type: "log", data: "done" }); fn(null); return () => { unsubscribed++; }; } };
+    expect(() => stream(req, res, runs, "0123456789abcdef")).not.toThrow();
+    expect(res.writableEnded).toBe(true);
+    expect(written.join("")).toContain("event: end");
+    expect(unsubscribed).toBe(1);
+    req.emit("close"); // a late close must not unsubscribe or end twice
+    expect(unsubscribed).toBe(1);
+  });
+});

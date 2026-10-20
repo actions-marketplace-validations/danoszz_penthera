@@ -30,11 +30,12 @@
  * failed, 1 otherwise.
  */
 import { spawn, spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync, mkdirSync, realpathSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, realpathSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { tmpdir, availableParallelism } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
+import { mdCell } from "../src/report/md-escape.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const FIXTURE = join(ROOT, "tests", "fixtures", "init", "app");
@@ -269,7 +270,6 @@ export function classify(argv, model, { file = "" } = {}) {
     return { kind: "placeholder", reason: `names \`${sub} verify\` without its <dir>`, problems, sub, action, flags, positionals };
   }
   const has = (n) => flags.some((f) => f.name === n);
-  const val = (n) => flags.find((f) => f.name === n)?.value;
   const url = positionals.find(isUrl);
   const res = (kind, reason) => ({ kind, reason, problems, sub, action, flags, positionals });
 
@@ -466,8 +466,7 @@ function otherReason(tokens) {
 
 // ── Report ───────────────────────────────────────────────────────────────────
 
-/** Text for a Markdown table cell: backslashes first, then the pipes. */
-const cell = (s) => String(s).replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+const cell = mdCell;
 const code = (s) => "`" + cell(String(s).replace(/`/g, "'")) + "`";
 
 export function report({ results, failures }) {

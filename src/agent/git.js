@@ -24,6 +24,7 @@
  * repo's own config sets any filter.*, gpg.*, include.* or includeIf.* key.
  */
 import { execFileSync } from "node:child_process";
+import { safeEnv, SAFE_CONFIG } from "../../lib/git.js";
 
 export const ALLOWED_SUBCOMMANDS = Object.freeze([
   "rev-parse", "symbolic-ref", "status", "diff", "log", "show-ref", "checkout", "add", "commit", "config",
@@ -41,8 +42,6 @@ export const ATTR_SOURCE_VERSION = Object.freeze([2, 40]);
 
 /** The empty tree: as an attribute source it means "no .gitattributes anywhere". */
 export const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
-
-const NULL_DEVICE = process.platform === "win32" ? "NUL" : "/dev/null";
 
 /** Arguments that would make an allowed subcommand reach outside the repo. */
 const FORBIDDEN_ARGS = [
@@ -82,21 +81,6 @@ export function assertAllowed(args) {
   return true;
 }
 
-const SAFE_CONFIG = [
-  "-c", "protocol.allow=never",
-  "-c", `core.hooksPath=${NULL_DEVICE}`,
-  "-c", "core.fsmonitor=false",
-  "-c", "credential.helper=",
-  "-c", "commit.gpgsign=false",
-  "-c", "tag.gpgsign=false",
-  "-c", "log.showSignature=false",
-  "-c", "gpg.program=false",
-  "-c", "gpg.openpgp.program=false",
-  "-c", "gpg.x509.program=false",
-  "-c", "gpg.ssh.program=false",
-  "-c", "gpg.ssh.defaultKeyCommand=",
-  "-c", `core.attributesFile=${NULL_DEVICE}`,
-];
 
 /** "git version 2.43.0.windows.1" -> [2, 43], or null. */
 export function parseGitVersion(text) {
@@ -138,9 +122,7 @@ export function parseScopedConfig(out) {
  * @returns {{ run(...args: string[]): string, tryRun(...args: string[]): string|null }}
  */
 export function createGit(cwd, { exec = execFileSync, env = process.env } = {}) {
-  const baseEnv = {
-    ...env, GIT_NO_LAZY_FETCH: "1", GIT_TERMINAL_PROMPT: "0", GIT_OPTIONAL_LOCKS: "0", GIT_LITERAL_PATHSPECS: "1",
-  };
+  const baseEnv = { ...safeEnv(env), GIT_OPTIONAL_LOCKS: "0", GIT_LITERAL_PATHSPECS: "1" };
   const opts = (extra = {}) => ({
     cwd, encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 32 * 1024 * 1024, ...extra,
   });

@@ -22,7 +22,7 @@ afterAll(() => {
 describe("User-Agent header", () => {
   it("has the penthera/<version> format", () => {
     expect(DEFAULT_USER_AGENT).toMatch(
-      /^penthera\/\d+\.\d+\.\d+ \(\+https:\/\/github\.com\/danoszz\/penthera\)$/,
+      /^penthera\/\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)? \(\+https:\/\/github\.com\/danoszz\/penthera\)$/,
     );
   });
 

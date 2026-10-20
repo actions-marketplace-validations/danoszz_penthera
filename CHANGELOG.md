@@ -4,6 +4,12 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+## [1.8.0-rc.1] - 2026-10-20
+
+Release candidate for 1.8.0, published on npm's `next` dist-tag
+(`npm install penthera@next`). It becomes 1.8.0 on `latest` after it has run
+on real projects without a blocking issue.
+
 ### Security
 
 Fixes from a second independent review. Most also apply to 1.7.0; upgrading

@@ -110,6 +110,8 @@ is recommended.
 - `penthera --help` lists `--rules-signers` and `--allow-unsigned-rules`. Both
   worked and were documented in `docs/rule-packs.md`, but the help left them
   out.
+- `penthera ui`, Advanced mode: a run's transcript no longer shows a stray
+  "null" under its title.
 
 ### Changed
 
@@ -196,6 +198,17 @@ is recommended.
 - `docs/vision-2.0.md`: the plan for 2.0, covering the biggest gaps, an AI roadmap
   (models propose, deterministic checks decide; local models first) and a
   pre-registered research program with sample sizes and safety rules.
+- **An 80-second walkthrough video** (`assets/walkthrough.mp4`, with a poster
+  and `walkthrough.vtt` captions) shows `npx penthera`, an offline scan of the
+  mock server, `penthera ui --demo` in Simple and Advanced mode, one fix
+  approved and the owner report. It is linked from the README and
+  `docs/index.md`. `scripts/media/walkthrough.mjs` renders it from demo data
+  only, and the Demo media workflow re-renders it on every release.
+- **The terminal GIFs are re-rendered** in the dashboard's black and white
+  look. `scan.tape` now writes the README hero (`assets/demo.gif`) directly
+  and scans with `--offline`. The `agents` and `deps --diff` tapes rendered a
+  "Cannot find module" error, because they ran `bin/penthera.js` by a
+  relative path after changing folder; they use an absolute path now.
 
 ## [1.7.0] - 2026-10-19
 

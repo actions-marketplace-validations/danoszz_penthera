@@ -75,8 +75,10 @@ or `footer: "false"` (GitHub Action).
 
 Tapes live in `assets/tapes/` (see its README). The workflow installs
 [VHS](https://github.com/charmbracelet/vhs) with `charmbracelet/vhs-action`,
-renders every tape, uploads the GIFs as a workflow artifact and, unless it is a
-dry run, opens a PR from a `media/*` branch. It needs **Settings → Actions →
+renders every tape, then renders the walkthrough video with
+`scripts/media/walkthrough.mjs` (headless Chrome on `penthera ui --demo`), uploads
+the GIFs and the video as a workflow artifact and, unless it is a dry run,
+opens a PR from a `media/*` branch. It needs **Settings → Actions →
 General → Allow GitHub Actions to create and approve pull requests**. PRs
 opened by `GITHUB_TOKEN` do not trigger CI; close and reopen the PR to run it.
 

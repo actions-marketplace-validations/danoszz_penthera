@@ -16,7 +16,7 @@ import { createHash } from "node:crypto";
 import { buildFixtures, tarEntry, desyncTarball, tarball, sri } from "./fixtures/deps/build.js";
 import { blankComments, scanSource, scanPackage, obfuscationSignals, entropy, nodeScriptTargets } from "../lib/deps/capabilities.js";
 import { parseLockfile, directDependencies } from "../lib/deps/lockfile.js";
-import { DirSource, untar, verifyIntegrity, sourceFromNpmCache, sourceFromTarball, parseIntegrity, MAX_UNPACKED_BYTES } from "../lib/deps/source.js";
+import { DirSource, MapSource, untar, verifyIntegrity, sourceFromNpmCache, sourceFromTarball, parseIntegrity, MAX_UNPACKED_BYTES } from "../lib/deps/source.js";
 import { editDistance, checkName, findTyposquats, loadPopular } from "../lib/deps/typosquat.js";
 import { diffTrees, compareVersions } from "../lib/deps/diff.js";
 import { registrySignals, fetchPackument } from "../lib/deps/online.js";
@@ -333,6 +333,18 @@ describe("tar parsing (360 review)", () => {
     expect(scanPackage(src).unscanned).toMatch(/end-of-archive/);
   });
 
+  it("refuses a pax global header that sets size, path or linkpath", () => {
+    const rec = (k, v) => { const r = ` ${k}=${v}\n`; let n = r.length + 1; n += String(n).length - 1; return `${n}${r}`; };
+    const body = tarEntry("package/package.json", Buffer.from(pkgJson));
+    for (const [k, v] of [["size", "0"], ["path", "package/other.js"], ["linkpath", "x"]]) {
+      const g = tarEntry("package/GlobalHead", Buffer.from(rec(k, v)), { type: "g" });
+      expect(() => untar(tar(g, body)), k).toThrow(new RegExp(`pax global header sets ${k}`));
+    }
+    // Other global keys (a comment, mtime) do not change framing and are fine.
+    const g = tarEntry("package/GlobalHead", Buffer.from(rec("comment", "hi")), { type: "g" });
+    expect([...untar(tar(g, body)).keys()]).toEqual(["package.json"]);
+  });
+
   it("a package without a readable package.json is unscanned", () => {
     const files = untar(tar(tarEntry("package/index.js", Buffer.from("module.exports = 1;"))));
     const src = { files: () => [...files.keys()], size: (r) => files.get(r).length, read: (r) => files.get(r) };
@@ -373,6 +385,57 @@ describe("scanDeps fails closed (360 review)", () => {
     const r = await scanDeps(root, { cacheDir: cache });
     expect(r.findings.find((x) => /install script the scan did not find/.test(x.title))).toMatchObject({ severity: "high", package: "liar" });
     expect(r.deps.scriptMismatch).toEqual(["liar@1.0.0"]);
+  });
+
+  const GH = `const { execSync } = require('${CP}');\nconst t = execSync('${j("gh auth ", "tok", "en")}');\n`;
+  const manifest = (name) => JSON.stringify({ name, version: "1.0.0", main: "index.js" });
+
+  it("scans a 9 MB index.js to the end instead of skipping it", () => {
+    const padded = `/*${" ".repeat(9 * 1024 * 1024)}*/\n${GH}`;
+    const tgz = tarball({ "package.json": manifest("padded"), "index.js": padded });
+    const r = scanPackage(sourceFromTarball(tgz, sri(tgz)));
+    expect(r.skipped).toEqual([]);
+    expect(Object.keys(r.capabilities)).toContain("token-harvest");
+  });
+
+  it("a code file too large to scan makes the package unscanned, not clean", async () => {
+    const huge = Buffer.alloc(64 * 1024 * 1024 + 1, 0x20);
+    GH.split("").forEach((c, i) => { huge[huge.length - GH.length + i] = c.charCodeAt(0); });
+    const tgz = tarball({ "package.json": manifest("huge"), "index.js": huge });
+    const r = scanPackage(sourceFromTarball(tgz, sri(tgz)));
+    expect(r.unscanned).toMatch(/over 64 MB were not scanned \(index\.js\)/);
+    const { root, cache } = project("huge", tgz);
+    const d = await scanDeps(root, { cacheDir: cache });
+    expect(d.findings.find((x) => /could not be scanned/.test(x.title))).toMatchObject({ severity: "high", package: "huge" });
+    expect(d.deps.packages[0].capabilities).toBeNull();
+  });
+
+  it("scans every file of a 5,001-file package, so a payload sorted last is found", () => {
+    const files = { "package.json": manifest("many") };
+    for (let i = 0; i < 5000; i++) files[`a/f${String(i).padStart(4, "0")}.js`] = "module.exports = 1;\n";
+    files["zz/index.js"] = GH;
+    const tgz = tarball(files);
+    const r = scanPackage(sourceFromTarball(tgz, sri(tgz)));
+    expect(r.unscanned).toBeNull();
+    expect(r.filesScanned).toBe(5001);
+    expect(Object.keys(r.capabilities)).toContain("token-harvest");
+  });
+
+  it("a package with more files than the source lists is unscanned, not clean", () => {
+    const root = mkdtempSync(join(tmpdir(), "penthera-many-"));
+    try {
+      writeFileSync(join(root, "package.json"), manifest("many"));
+      for (const f of ["a.js", "b.js", "c.js"]) writeFileSync(join(root, f), "module.exports = 1;\n");
+      mkdirSync(join(root, "zz"));
+      writeFileSync(join(root, "zz", "index.js"), GH);
+      const dirSrc = new DirSource(root, { maxFiles: 4 });
+      expect(scanPackage(dirSrc).unscanned).toMatch(/more than 4 files/);
+      const files = untar(gunzipSync(tarball({ "package.json": manifest("many"), "a.js": "1", "b.js": "2", "zz/index.js": GH })));
+      expect(scanPackage(new MapSource(files, "npm-cache", { maxFiles: 3 })).unscanned).toMatch(/more than 3 files/);
+      expect(scanPackage(new MapSource(files, "npm-cache")).unscanned).toBeNull();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("does not flag a prebuilt-only native package the registry marks hasInstallScript (fsevents 2.x)", async () => {

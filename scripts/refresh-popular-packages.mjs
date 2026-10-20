@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Refresh lib/deps/popular-packages.json, the vendored list of popular npm
+ * Refresh lib/deps/popular-packages.json.gz, the vendored list of popular npm
  * package names that `penthera deps` checks for typosquats.
  *
  * Run at release time only. This is the one place the typosquat list touches
@@ -16,13 +16,14 @@
  *   node scripts/refresh-popular-packages.mjs [--count 5000]
  */
 import { writeFileSync } from "node:fs";
+import { gzipSync } from "node:zlib";
 import { gunzipSync } from "node:zlib";
 import { untar, verifyIntegrity } from "../lib/deps/source.js";
 
 const SOURCE = "npm-high-impact";
 const countArg = process.argv.indexOf("--count");
 const COUNT = countArg > -1 ? parseInt(process.argv[countArg + 1], 10) : 5000;
-const OUT = new URL("../lib/deps/popular-packages.json", import.meta.url);
+const OUT = new URL("../lib/deps/popular-packages.json.gz", import.meta.url);
 
 const meta = await (await fetch(`https://registry.npmjs.org/${SOURCE}/latest`)).json();
 const tgz = Buffer.from(await (await fetch(meta.dist.tarball)).arrayBuffer());
@@ -52,11 +53,11 @@ if (unique.length < 1000) {
   process.exit(1);
 }
 
-writeFileSync(OUT, JSON.stringify({
+writeFileSync(OUT, gzipSync(JSON.stringify({
   source: `${SOURCE}@${meta.version}`,
   license: meta.license,
   description: `Top ${COUNT} most-downloaded plus all most-depended-on npm package names, interleaved by rank. Refreshed at release time by scripts/refresh-popular-packages.mjs.`,
   count: unique.length,
   names: unique,
-}, null, 0) + "\n");
-console.log(`Wrote ${unique.length} names from ${SOURCE}@${meta.version} to lib/deps/popular-packages.json`);
+}, null, 0) + "\n"));
+console.log(`Wrote ${unique.length} names from ${SOURCE}@${meta.version} to lib/deps/popular-packages.json.gz`);

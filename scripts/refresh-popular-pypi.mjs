@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Refresh lib/deps/popular-pypi.json, the vendored list of popular PyPI
+ * Refresh lib/deps/popular-pypi.json.gz, the vendored list of popular PyPI
  * project names that `penthera deps` checks Python dependencies against for
  * typosquats.
  *
@@ -16,11 +16,12 @@
  *   node scripts/refresh-popular-pypi.mjs [--count 8000]
  */
 import { writeFileSync } from "node:fs";
+import { gzipSync } from "node:zlib";
 
 const URL_ = "https://hugovk.github.io/top-pypi-packages/top-pypi-packages.min.json";
 const countArg = process.argv.indexOf("--count");
 const COUNT = countArg > -1 ? parseInt(process.argv[countArg + 1], 10) : 8000;
-const OUT = new URL("../lib/deps/popular-pypi.json", import.meta.url);
+const OUT = new URL("../lib/deps/popular-pypi.json.gz", import.meta.url);
 
 const res = await fetch(URL_);
 if (!res.ok) {
@@ -37,11 +38,11 @@ if (names.length < 1000) {
 }
 const updated = String(data.last_update || "").slice(0, 10) || "unknown";
 
-writeFileSync(OUT, JSON.stringify({
+writeFileSync(OUT, gzipSync(JSON.stringify({
   source: `top-pypi-packages@${updated}`,
   license: "Project names only (factual data) from the public PyPI downloads dataset, ranked by top-pypi-packages",
   description: `Top ${names.length} most-downloaded PyPI projects (30 days), PEP 503 normalised, in rank order. Refreshed at release time by scripts/refresh-popular-pypi.mjs.`,
   count: names.length,
   names,
-}, null, 0) + "\n");
-console.log(`Wrote ${names.length} names (data from ${updated}) to lib/deps/popular-pypi.json`);
+}, null, 0) + "\n"));
+console.log(`Wrote ${names.length} names (data from ${updated}) to lib/deps/popular-pypi.json.gz`);

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { loadPopular } from "../lib/deps/typosquat.js";
 // Prints the counts quoted in the README's "By the numbers" block, so they can
 // be refreshed from the source instead of edited by hand. Offline, read-only.
 //
@@ -21,8 +22,8 @@ const secretPatterns = (patternsBlock.slice(0, patternsBlock.indexOf("\n];")).ma
 
 const recipes = readdirSync(new URL("../lib/fix/recipes", import.meta.url)).filter((f) => f.endsWith(".js")).length;
 const references = (read("docs/references.bib").match(/^@/gm) || []).length;
-const popular = JSON.parse(read("lib/deps/popular-packages.json")).names.length;
-const popularPypi = JSON.parse(read("lib/deps/popular-pypi.json")).names.length;
+const popular = loadPopular("npm").names.length;
+const popularPypi = loadPopular("pypi").names.length;
 
 const total = read("bench/RESULTS.md").match(/\| \*\*Total\*\* \|[^\n]*/)?.[0] ?? "";
 const [tp, fp, fn, precision, recall] = total.replace(/\*/g, "").split("|").map((s) => s.trim()).filter(Boolean).slice(1);

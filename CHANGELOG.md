@@ -21,6 +21,10 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   self-hosted) for chrome, the serif Penthera wordmark, and a halftone field
   whose density is the open risk. Both themes pass WCAG AA in every state.
   `scripts/dashboard-screenshots.mjs` regenerates the docs screenshots.
+- Smaller npm package: 797 kB to 657 kB packed, 2.3 MB to 1.7 MB unpacked. The
+  package ships only `docs/examples/` (the documentation lives on GitHub, and
+  README links resolve there), and the popular-package lists for the typosquat
+  check are stored gzipped. No behaviour change.
 
 ### Docs
 

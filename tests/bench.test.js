@@ -90,5 +90,5 @@ describe("bench run (offline, bundled targets)", () => {
     // The decoy lab is not vulnerable by construction: any finding is a FP.
     expect(report.targets.find((t) => t.name === "decoy-lab").score.fp).toBe(0);
     expect(renderResults(report)).toMatch(/## Summary/);
-  }, 60_000);
+  });
 });

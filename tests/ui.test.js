@@ -554,8 +554,15 @@ describe("ui runs: authorization and the approval flow", () => {
     expect(() => mgr.decide(run.id, { approvalId: first.approvalId, answer: "rm -rf" })).toThrow(/approve, skip or stop/);
     mgr.decide(run.id, { approvalId: first.approvalId, answer: "approve" });
 
-    const ended = new Promise((done) => mgr.subscribe(run.id, events.length, (ev) => { if (!ev) done(); else events.push(ev); }));
-    await new Promise((r) => setTimeout(r, 10));
+    // Stop while the second approval is pending: wait for it, not for a fixed delay.
+    let secondAsked;
+    const second = new Promise((r) => { secondAsked = r; });
+    const ended = new Promise((done) => mgr.subscribe(run.id, events.length, (ev) => {
+      if (!ev) return done();
+      events.push(ev);
+      if (ev.type === "approval" && ev.data.approvalId !== first.approvalId) secondAsked();
+    }));
+    await second;
     mgr.stop(run.id);
     await ended;
     expect(asked).toEqual(["y", "quit"]);

@@ -112,7 +112,7 @@ export async function startRegistry(packages) {
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const url = `http://127.0.0.1:${server.address().port}`;
   reg = buildRegistry(packages, url);
-  return { url, requests, close: () => new Promise((r) => server.close(() => r())) };
+  return { url, requests, close: () => new Promise((r) => { server.close(() => r()); server.closeAllConnections(); }) };
 }
 
 /**

@@ -10,12 +10,9 @@ import { mdInline } from "../src/report/md-escape.js";
 import { formatQuestionnaireMarkdown } from "../lib/compliance/questionnaire.js";
 import { formatMarkdownReport } from "../src/report/markdown.js";
 import { extractScripts } from "../lib/retirejs.js";
+import { cpuMs } from "./fixtures/cpu-time.js";
 
-const elapsed = (fn) => {
-  const t = performance.now();
-  fn();
-  return performance.now() - t;
-};
+const elapsed = cpuMs;
 
 describe("template regex guard (js/polynomial-redos)", () => {
   it("still refuses nested quantifiers", () => {

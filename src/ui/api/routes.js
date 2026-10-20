@@ -33,7 +33,7 @@ export function readJson(req) {
   });
 }
 
-function stream(req, res, runs, id) {
+export function stream(req, res, runs, id) {
   const last = Number(req.headers["last-event-id"]) || 0;
   res.writeHead(200, {
     "Content-Type": "text/event-stream; charset=utf-8",
@@ -43,11 +43,23 @@ function stream(req, res, runs, id) {
   });
   res.write(": penthera\n\n");
   const beat = setInterval(() => res.write(": keep-alive\n\n"), 15_000);
-  const end = () => { clearInterval(beat); unsubscribe?.(); if (!res.writableEnded) res.end(); };
-  const unsubscribe = runs.subscribe(id, last, (ev) => {
+  // subscribe() replays history synchronously and calls fn(null) at once for a
+  // run that already finished, so end() can run before subscribe() returns.
+  let unsubscribe = null;
+  let ended = false;
+  const end = () => {
+    if (ended) return;
+    ended = true;
+    clearInterval(beat);
+    unsubscribe?.();
+    if (!res.writableEnded) res.end();
+  };
+  unsubscribe = runs.subscribe(id, last, (ev) => {
+    if (ended) return;
     if (!ev) { res.write("event: end\ndata: {}\n\n"); end(); return; }
     res.write(`id: ${ev.seq}\nevent: ${ev.type}\ndata: ${JSON.stringify(ev)}\n\n`);
   });
+  if (ended) unsubscribe?.();
   req.on("close", end);
 }
 

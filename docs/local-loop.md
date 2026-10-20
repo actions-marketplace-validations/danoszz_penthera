@@ -30,8 +30,12 @@ One iteration:
 5. **Verify**: re-scan. A fix passes when the findings it targeted are gone from
    the repo scan, no new finding appeared, and, with `--run-tests`, the
    project's `test` script exits 0 (`node --run test`).
+   Verification uses the checker the run began with: no fix may edit tests,
+   test config or Penthera's own files (see [the protected files](#what-it-guarantees)),
+   and if any of them changed since the run began, the fix fails without the
+   tests being run.
 6. **Learn**: `scan`, `fix_applied` and `fix_verified` or `fix_failed` go to
-   memory.
+   memory, and `gave_up` when the loop could not fix a finding.
 7. **Commit** each verified fix on its own, with a message that lists the
    findings, the recipe, and how it was verified. A fix that fails is reverted:
    each file gets back the bytes it had before the fix, and files it created
@@ -42,8 +46,17 @@ One iteration:
 Plans are applied one at a time and re-planned against the tree after each
 fix, since two recipes can touch the same file. The loop repeats until nothing
 fixable is left, `--max-iterations` (default 5) is reached, or you stop it.
-A fix you decline (`n`) or that fails verification is not proposed again in
-the same run; `s` skips it until the next iteration.
+A fix you decline (`n`) is not proposed again in the same run; `s` skips it
+until the next iteration.
+
+**The safe exit.** "Could not fix" is a normal outcome, not something to work
+around. When a fix fails verification, its diff is refused, or the local model
+has no usable fix, the loop gives up on those findings for the rest of the run
+and does not try them again. Each give-up is a `gave_up` event in memory with
+the reason, is listed in `loopRun.gaveUp`, and is printed in the summary
+(`gave up on N (not retried this run; fix by hand): title (reason); ...`).
+A give-up never counts as a recipe failure, so neither the ranking nor
+`--auto low` can learn to avoid it.
 
 A live URL serves the code it was started with, so a fix to response headers
 shows up in the URL scan only after the app restarts. The loop counts those as
@@ -80,6 +93,17 @@ Each of these has a test in `tests/agent.test.js`.
   `include.*` keys, and on git older than 2.31: the loop stops before its first
   write with one message naming the key and the way forward (move it to your
   global config, or apply fixes by hand from `penthera fix --plan`).
+- **The checker stays as it was.** A fix diff, from a recipe or the model, may
+  not touch tests (`test/`, `tests/`, `__tests__/`, `*.test.*`, `*.spec.*`,
+  `conftest.py`), test runner config or the test script (`vitest.*`,
+  `jest.*`, `playwright.*`, `pytest.ini`, `pyproject.toml`, `setup.cfg`,
+  `tox.ini`, `package.json`), Penthera's own files (`penthera.*`,
+  `audit/baseline.json`, `.penthera/`), `.github/workflows/`, git hooks
+  (`.husky/`, `.githooks/`, lefthook, pre-commit), lockfiles or `.gitmodules`,
+  in any case. `applyDiff` refuses it with `PROTECTED` and the finding is given
+  up. Before the tests run and again before the verdict, the loop checks that
+  every protected file is as it was when the run began; if not, the fix fails.
+  A real fix that needs a test change is yours to make by hand.
 - **Approval.** Every diff is shown, secrets masked, with
   `[y]es / [n]o / [s]kip / [q]uit`. When input runs out (piped stdin), the
   answer is `n`. `--auto low` applies a diff without asking only when it comes
@@ -110,6 +134,7 @@ Every step carries `startedAt` and `durationMs`.
   stopReason: "no-fixable-findings" | "declined-or-failed-left" | "max-iterations"
             | "user-quit" | "interrupted" | "error",
   error,                                     // message when stopReason is "error"
+  gaveUp: [{ fid, title, reason }],          // findings the loop could not fix; not retried this run
   findings: { initial, final },              // non-info, unsuppressed
   totals: { iterations, planned, applied, verified, failed, declined, skipped, commits: [sha] },
   memory: { projectId, chain: "ok" | "broken", eventsAppended },
@@ -188,6 +213,7 @@ keys sorted. The first line's `prev` is derived from the project id.
 | `probe_yield` | probe id, stack, findings count |
 | `fix_applied` | finding id, recipe id, framework, category, diff SHA-256 |
 | `fix_verified` / `fix_failed` | finding id (recipe and framework are joined from `fix_applied`) |
+| `gave_up` | finding id, reason, source, loop run id. Never counted in recipe success |
 | `fp_suppressed` | finding id, reason, actor, optional expiry |
 | `loop_run` | one `penthera agent --loop` run: the [loopRun](#the-looprun-object) without test output, finding ids only |
 

@@ -273,7 +273,7 @@ if (blockedNet) console.log(blockedNet);
 if (process.env.GITHUB_STEP_SUMMARY) {
   const title = `${args.phase} · ${process.platform} · node ${process.version} · penthera ${installed.version}`;
   appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### ${title}\n\n| | check | detail |\n|---|---|---|\n${
-    results.map((r) => `| ${r.ok ? "✅" : "❌"} | \`${r.name}\` | ${r.detail.replace(/\|/g, "\\|")} |`).join("\n")}\n\n`);
+    results.map((r) => `| ${r.ok ? "✅" : "❌"} | \`${r.name}\` | ${r.detail.replace(/\\/g, "\\\\").replace(/\|/g, "\\|")} |`).join("\n")}\n\n`);
 }
 console.log(`\n${results.length - failed}/${results.length} checks passed`);
 process.exit(failed ? 1 : 0);

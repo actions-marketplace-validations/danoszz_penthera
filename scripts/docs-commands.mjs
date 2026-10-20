@@ -466,7 +466,9 @@ function otherReason(tokens) {
 
 // ── Report ───────────────────────────────────────────────────────────────────
 
-const code = (s) => "`" + String(s).replace(/`/g, "'").replace(/\|/g, "\\|") + "`";
+/** Text for a Markdown table cell: backslashes first, then the pipes. */
+const cell = (s) => String(s).replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+const code = (s) => "`" + cell(String(s).replace(/`/g, "'")) + "`";
 
 export function report({ results, failures }) {
   const count = (k) => results.filter((r) => r.kind === k).length;
@@ -485,7 +487,7 @@ export function report({ results, failures }) {
     lines.push("### Failures", "", "| where | command | problem |", "|---|---|---|");
     for (const f of failures) {
       const why = [...f.problems, ...(f.run && !f.run.ok ? [`exit ${f.run.status}${f.run.net ? `; network: ${f.run.net}` : ""}`] : [])].join("; ");
-      lines.push(`| ${f.file}:${f.line} | ${code(f.text)} | ${why.replace(/\|/g, "\\|")} |`);
+      lines.push(`| ${f.file}:${f.line} | ${code(f.text)} | ${cell(why)} |`);
     }
     lines.push("");
   }
@@ -497,7 +499,7 @@ export function report({ results, failures }) {
     for (const r of rows) byReason.set(r.reason, [...(byReason.get(r.reason) ?? []), r]);
     lines.push(`### ${kind[0].toUpperCase()}${kind.slice(1)} (${rows.length})`, "", "| reason | n | example |", "|---|---|---|");
     for (const [reason, rs] of [...byReason].sort((a, b) => b[1].length - a[1].length)) {
-      lines.push(`| ${reason.replace(/\|/g, "\\|")} | ${rs.length} | ${code(rs[0].text)} (${rs[0].file}:${rs[0].line}) |`);
+      lines.push(`| ${cell(reason)} | ${rs.length} | ${code(rs[0].text)} (${rs[0].file}:${rs[0].line}) |`);
     }
     lines.push("");
   }

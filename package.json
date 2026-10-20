@@ -38,6 +38,7 @@
   },
   "scripts": {
     "test": "vitest run --reporter=verbose",
+    "test:load": "node scripts/test-under-load.mjs",
     "scan": "node bin/penthera.js",
     "scan:full": "node bin/scan.js",
     "pentest": "vitest run --reporter=verbose",

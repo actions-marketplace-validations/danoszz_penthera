@@ -20,20 +20,20 @@ const write = (path, text) => {
 const commit = (msg) => spawnSync("git", ["commit", "-m", msg], { cwd: repo, encoding: "utf-8", env: { ...process.env, NO_COLOR: "1" } });
 const committed = () => git("ls-tree", "-r", "--name-only", "HEAD").split("\n").filter(Boolean);
 
-beforeEach(() => {
-  repo = realpathSync(mkdtempSync(join(tmpdir(), "penthera-hook-test-")));
-  git("init", "-q", "-b", "main");
-  git("config", "user.email", "test@example.com");
-  git("config", "user.name", "Test");
-  git("config", "core.hooksPath", ".git/hooks"); // isolate from a global hooksPath
-  git("config", "--unset", "core.hooksPath");
-  write("README.md", "# test\n");
-  git("add", ".");
-  git("commit", "-q", "-m", "init", "--no-verify");
-});
-afterEach(() => rmSync(repo, { recursive: true, force: true }));
+/** A fresh committed repo per test. Global git config is already ignored (tests/setup/isolate-env.js). */
+function withRepo() {
+  beforeEach(() => {
+    repo = realpathSync(mkdtempSync(join(tmpdir(), "penthera-hook-test-")));
+    git("init", "-q", "-b", "main");
+    write("README.md", "# test\n");
+    git("add", ".");
+    git("commit", "-q", "-m", "init", "--no-verify");
+  });
+  afterEach(() => rmSync(repo, { recursive: true, force: true }));
+}
 
 describe("penthera hook run", () => {
+  withRepo();
   it("blocks a commit that stages a secret, and the commit does not happen", () => {
     installHook(repo);
     write("src/config.js", `export const key = "${FAKE_KEY}";\n`);
@@ -167,6 +167,7 @@ describe("penthera hook run", () => {
 });
 
 describe("penthera hook install / uninstall", () => {
+  withRepo();
   const hookPath = () => join(repo, ".git", "hooks", "pre-commit");
 
   it("chains an existing hook, which still runs, and restores it on uninstall", () => {

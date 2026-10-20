@@ -23,6 +23,7 @@ import { EXEC_PATTERNS, INSTRUCTION_PATTERNS, findExecPatterns, looksLikeInstruc
 import { BUILT_IN_TEMPLATES } from "../lib/templates.js";
 import { findTyposquats } from "../lib/deps/typosquat.js";
 import { scanDeps } from "../lib/deps/index.js";
+import { cpuMs } from "./fixtures/cpu-time.js";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const FIX = join(ROOT, "tests/fixtures/rules");
@@ -140,9 +141,7 @@ describe("regex guard", () => {
     for (const c of cases) if (V111.test(c)) expect(hasNestedQuantifier(c), c).toBe(true);
     expect(hasNestedQuantifier("((a+))+")).toBe(true); // deeper than the old regex looked
     for (const c of ["(a+)?", "(a)+", "a+b*", "\\(a+\\)+", "[(]+", "(?:https?://)+"]) expect(hasNestedQuantifier(c), c).toBe(false);
-    const t = performance.now();
-    for (const ch of ["(", "*", "[", "((", "(*", "[]"]) hasNestedQuantifier(ch.repeat(100_000));
-    expect(performance.now() - t).toBeLessThan(500);
+    expect(cpuMs(() => { for (const ch of ["(", "*", "[", "((", "(*", "[]"]) hasNestedQuantifier(ch.repeat(100_000)); })).toBeLessThan(500);
   });
 
   it("never throws on random input (fuzz)", () => {
@@ -183,14 +182,10 @@ describe("regex guard", () => {
       accepted++;
       const re = new RegExp(src);
       for (const input of INPUTS) {
-        // Best of three for slow runs: a parallel test worker can stall one
-        // run, but a quadratic pattern is slow every time.
+        // CPU time, best of three: a stalled or descheduled worker doesn't
+        // count, but a quadratic pattern is slow every time.
         let ms = Infinity;
-        for (let tries = 0; tries < 3 && ms > 50; tries++) {
-          const t = performance.now();
-          re.test(input);
-          ms = Math.min(ms, performance.now() - t);
-        }
+        for (let tries = 0; tries < 3 && ms > 50; tries++) ms = Math.min(ms, cpuMs(() => re.test(input)));
         if (ms > worst.ms) worst = { ms, src };
       }
     }
@@ -305,9 +300,8 @@ describe("verifyPack", () => {
 
   it("rejects a pack with a hostile regex, signed or not, without hanging", () => {
     const d = makePack({ "secrets.json": secretRule({ pattern: "(x+x+)+y" }) });
-    const t = performance.now();
-    const v = verifyPack(d);
-    expect(performance.now() - t).toBeLessThan(1000);
+    let v;
+    expect(cpuMs(() => { v = verifyPack(d); })).toBeLessThan(1000);
     expect(v.ok).toBe(false);
     expect(v.errors[0]).toMatch(/rejected by the ReDoS guard: nested quantifier/);
     expect(() => addRulePack(d, { allowUnsigned: true })).toThrow(/ReDoS guard/);

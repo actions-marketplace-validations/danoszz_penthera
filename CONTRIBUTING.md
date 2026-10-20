@@ -42,6 +42,48 @@ string is in sync, and self-scans the mock server (`.github/workflows/ci.yml`).
 CodeQL and OpenSSF Scorecard run on their own workflows. Keep new tests offline:
 no test may reach the public internet, so CI stays deterministic.
 
+### Writing tests that stay reliable
+
+The suite runs fully parallel, often on a laptop that is busy with dev servers,
+builds and other test runs. A test that passes alone but fails under load is a
+bug in the test. Follow these rules:
+
+- **No shared paths.** Make every directory with `mkdtempSync(join(tmpdir(), "penthera-<area>-"))`
+  inside the test or its `beforeEach`, and remove it afterwards. Never write
+  into `tests/fixtures/` or the repo: copy the fixture to a temp dir first.
+- **No fixed ports.** Servers listen on port 0 (`startMockServer(0)`,
+  `server.listen(0, "127.0.0.1")`) and the test reads the port back.
+- **No real machine state.** `tests/setup/isolate-env.js` gives every worker a
+  private `HOME`, `PENTHERA_HOME`, npm cache, `GIT_CONFIG_GLOBAL=/dev/null` and
+  `GIT_CONFIG_NOSYSTEM=1`. Spawn children with `env: { ...process.env, ... }`
+  (or no `env` at all) so they inherit it; don't build an env from scratch.
+  Give npm its own cache dir (`npmEnv()` in `tests/fixtures/install/registry.js`).
+- **Don't block a process that serves.** If the mock server or fixture registry
+  runs in the test's own process, spawn with async `spawn`/`execFile`, never
+  `spawnSync`/`execFileSync`: the child would wait on a server that can't answer.
+- **Wait for conditions, not time.** Await the event, file or output you need;
+  no `setTimeout(r, 100)` "should be enough". Performance guards
+  (no-ReDoS, linear-time tests) measure CPU time with `cpuMs()` from
+  `tests/fixtures/cpu-time.js`, never wall-clock time.
+- **Spawn-heavy files go in `SPAWN_HEAVY`** in `vitest.config.mjs`. A file
+  belongs there if its tests start `node bin/penthera.js`, `git` or `npm`, or
+  run whole scans against a local server. Those files get a long timeout (a hang
+  detector, not a performance budget) and only a few run at once. Don't add
+  per-test timeouts there; everything else keeps the tight defaults.
+- **Keep pure tests out of slow hooks.** A `beforeEach` that creates a git repo
+  belongs inside the `describe` that needs it, not at file level.
+
+To check a change against a loaded machine, run the suite repeatedly while busy
+loops hold every core:
+
+```bash
+npm run test:load -- 10
+```
+
+`node scripts/test-under-load.mjs <runs> <busy threads> [--background]` takes
+the same arguments; `--background` (macOS) also runs vitest at background QoS,
+like a suite started from an app that is not in front.
+
 ---
 
 ## Project layout

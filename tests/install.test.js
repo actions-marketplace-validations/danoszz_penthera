@@ -305,7 +305,7 @@ beforeAll(async () => {
   reg = await startRegistry(installPackages(marker));
   env = npmEnv(reg.url, join(dir, "npm"));
   template = await createProject(join(dir, "template"), { "tiny-format": "1.0.0", "color-helper": "1.0.0" }, env);
-}, 60_000);
+});
 
 afterAll(async () => {
   await reg?.close();
@@ -314,7 +314,7 @@ afterAll(async () => {
 
 beforeEach(() => rmSync(marker, { force: true }));
 
-describe("penthera install (fixture registry)", { timeout: 60_000 }, () => {
+describe("penthera install (fixture registry)", () => {
   it("stops a package that gains a postinstall script before the script runs (--yes)", async () => {
     const p = project();
     const before = snapshot(p);

@@ -608,7 +608,9 @@ export async function runInit(argv, { version = pkg.version } = {}) {
   // Dashboard (never in --yes: it runs until Ctrl-C)
   let dashboard = false;
   if (auto) skip("Dashboard: not opened with --yes (penthera ui --open)");
-  else dashboard = await yesNo("Open the dashboard (penthera ui --open)?", true);
+  // Default yes only on a terminal: piped answers that run out must not start
+  // something that runs until Ctrl-C (and opens a browser).
+  else dashboard = await yesNo("Open the dashboard (penthera ui --open)?", process.stdin.isTTY === true);
 
   // ── 5. What next ───────────────────────────────────────────────────────
   out(`\n  ${bold("What next")}`);

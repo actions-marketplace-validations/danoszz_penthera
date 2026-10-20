@@ -33,8 +33,11 @@ One iteration:
 6. **Learn**: `scan`, `fix_applied` and `fix_verified` or `fix_failed` go to
    memory.
 7. **Commit** each verified fix on its own, with a message that lists the
-   findings, the recipe, and how it was verified. A fix that fails is reverted
-   (`git checkout` of the files it changed; files it created are removed).
+   findings, the recipe, and how it was verified. A fix that fails is reverted:
+   each file gets back the bytes it had before the fix, and files it created
+   are removed. A file that changed again after the fix was written (you saved
+   it meanwhile) is left alone and the fix is marked `conflict`. The commit
+   contains only the fix's own files (`git commit --only`).
 
 Plans are applied one at a time and re-planned against the tree after each
 fix, since two recipes can touch the same file. The loop repeats until nothing
@@ -69,7 +72,14 @@ Each of these has a test in `tests/agent.test.js`.
 - **Clean start.** A dirty tree (untracked files included), a detached HEAD, a
   repo without commits, or a directory that is not a git repo is refused.
   `--allow-dirty` lets the loop start anyway, but it never patches a file that
-  had uncommitted changes.
+  has uncommitted changes; this is checked again right before each write and
+  each commit. Plans that touch untracked or git-ignored files are skipped.
+- **Git.** The loop's git calls ignore hooks, fsmonitor, signing, and any
+  filter the repository configures, and treat paths literally. Writes are
+  refused when the repository's own config sets `filter.*`, `gpg.*` or
+  `include.*` keys, and on git older than 2.31: the loop stops before its first
+  write with one message naming the key and the way forward (move it to your
+  global config, or apply fixes by hand from `penthera fix --plan`).
 - **Approval.** Every diff is shown, secrets masked, with
   `[y]es / [n]o / [s]kip / [q]uit`. When input runs out (piped stdin), the
   answer is `n`. `--auto low` applies a diff without asking only when it comes

@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, mkdirSync, chmodSync, realpathSync, symlinkSync } from "node:fs";
+import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, mkdirSync, chmodSync, realpathSync, symlinkSync, lstatSync, readlinkSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync, spawnSync } from "node:child_process";
-import { runHook, installHook, uninstallHook, BACKUP_NAME, HOOK_MARKER, isAgentConfig } from "../lib/hook/index.js";
+import { runHook, installHook, uninstallHook, fixHint, BACKUP_NAME, HOOK_MARKER, isAgentConfig } from "../lib/hook/index.js";
+import { cpuMs } from "./fixtures/cpu-time.js";
 import { globToRegExp, normalizeHookPolicy } from "../lib/hook/policy.js";
 
 const BIN = join(import.meta.dirname, "..", "bin", "penthera.js");
@@ -157,6 +158,88 @@ describe("penthera hook run", () => {
     }
   });
 
+  describe("staged secrets cannot slip past the hook", () => {
+    // Built at runtime: an AWS-shaped access key id.
+    const AWS = ["AK", "IA", "QWERTYUIOPASDFGH"].join("");
+    const LINE = `aws_key = "${AWS}"\n`;
+    const run = () => spawnSync(process.execPath, [BIN, "hook", "run", "--json"], { cwd: repo, encoding: "utf-8" });
+    const blockedOn = (r, url) => {
+      expect(r.status, r.stderr).toBe(1);
+      expect(JSON.parse(r.stdout).blocking.map((f) => f.url)).toContain(url);
+    };
+
+    it("a file whose name looks like index-stage syntax", () => {
+      write("x.env", "x=1\n");
+      git("add", "x.env");
+      git("commit", "-q", "-m", "base", "--no-verify");
+      write("0:x.env", LINE);
+      git("add", "--", "0:x.env");
+      blockedOn(run(), "0:x.env");
+    });
+
+    it.skipIf(process.platform === "win32")("a symlink replaced by a regular file (typechange)", () => {
+      symlinkSync("/nonexistent", join(repo, "config.js"));
+      git("add", "config.js");
+      git("commit", "-q", "-m", "base", "--no-verify");
+      rmSync(join(repo, "config.js"));
+      write("config.js", LINE);
+      git("add", "config.js");
+      expect(git("diff", "--cached", "--name-status")).toMatch(/^T\s+config\.js/);
+      blockedOn(run(), "config.js");
+    });
+
+    it("a NUL byte before the key", () => {
+      write("settings.json", `\0\n${LINE}`);
+      git("add", "settings.json");
+      blockedOn(run(), "settings.json");
+    });
+
+    it("a key in a file larger than 2 MB", () => {
+      write("data.json", LINE + " ".repeat(2.1 * 1024 * 1024));
+      git("add", "data.json");
+      blockedOn(run(), "data.json");
+    });
+
+    it.skipIf(process.platform === "win32")("a newline in the file name", () => {
+      write("a\nb.js", LINE);
+      git("add", "-A");
+      blockedOn(run(), "a\nb.js");
+    });
+
+    it("a placeholder of the same rule earlier in the file", () => {
+      write("app.js", `const a = { api_key: "your-api-key-here" };\nconst b = { api_key: "${"Zx81kQ2m" + "P0vLr7Tn"}" };\n`);
+      git("add", "app.js");
+      const r = run();
+      blockedOn(r, "app.js");
+      expect(JSON.parse(r.stdout).blocking[0].line).toBe(2);
+    });
+
+    it("a file over the size limit blocks by default and only warns when the policy says so", async () => {
+      write("big.json", "x".repeat(4096) + LINE);
+      git("add", "big.json");
+      const r = await runHook(repo, { maxBlobBytes: 1024 });
+      expect(r.blocking).toMatchObject([{ url: "big.json", category: "unchecked", severity: "critical" }]);
+      expect(r.warnings.join("\n")).toMatch(/big\.json is \d+ bytes, over the .* limit, so it was not checked \(this blocks the commit\)/);
+      write("penthera.policy.json", JSON.stringify({ hook: { largeFiles: "warn" } }));
+      git("add", "penthera.policy.json");
+      const w = await runHook(repo, { maxBlobBytes: 1024 });
+      expect(w.blocking).toEqual([]);
+      expect(w.warnings.join("\n")).toMatch(/big\.json .* not checked$/m);
+    });
+
+    it.skipIf(process.platform === "win32")("still does not follow a staged symlink", async () => {
+      const outside = realpathSync(mkdtempSync(join(tmpdir(), "penthera-hook-outside-")));
+      try {
+        writeFileSync(join(outside, "k.js"), LINE);
+        symlinkSync(join(outside, "k.js"), join(repo, "k.js"));
+        git("add", "k.js");
+        expect((await runHook(repo)).blocking).toEqual([]);
+      } finally {
+        rmSync(outside, { recursive: true, force: true });
+      }
+    });
+  });
+
   it("prints JSON and exits 1 when blocked", () => {
     write("a.js", `const k = "${FAKE_KEY}";\n`);
     git("add", "a.js");
@@ -219,6 +302,35 @@ describe("penthera hook install / uninstall", () => {
   it("uninstall without a hook is a no-op", () => {
     expect(uninstallHook(repo)).toMatchObject({ removed: false });
   });
+
+  it.skipIf(process.platform === "win32")("moves a symlinked pre-commit aside instead of writing through it", () => {
+    const shared = realpathSync(mkdtempSync(join(tmpdir(), "penthera-hook-shared-")));
+    try {
+      // A dangling link: install must not create its target.
+      symlinkSync(join(shared, "team-hook"), hookPath());
+      const r = installHook(repo);
+      expect(existsSync(join(shared, "team-hook"))).toBe(false);
+      expect(lstatSync(hookPath()).isFile()).toBe(true);
+      expect(readFileSync(hookPath(), "utf-8")).toContain(HOOK_MARKER);
+      expect(r.chained).toBe(join(repo, ".git", "hooks", BACKUP_NAME));
+      expect(lstatSync(r.chained).isSymbolicLink()).toBe(true);
+      uninstallHook(repo);
+      expect(readlinkSync(hookPath())).toBe(join(shared, "team-hook"));
+      rmSync(hookPath());
+
+      // A link to a shared hook that carries our marker is still not ours.
+      const team = "#!/bin/sh\n# penthera-hook: team copy\nrun-team-lint\n";
+      writeFileSync(join(shared, "shared-hook"), team);
+      symlinkSync(join(shared, "shared-hook"), hookPath());
+      expect(installHook(repo).updated).toBe(false);
+      expect(readFileSync(join(shared, "shared-hook"), "utf-8")).toBe(team);
+      uninstallHook(repo);
+      expect(readlinkSync(hookPath())).toBe(join(shared, "shared-hook"));
+      expect(readFileSync(join(shared, "shared-hook"), "utf-8")).toBe(team);
+    } finally {
+      rmSync(shared, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("hook helpers", () => {
@@ -234,8 +346,16 @@ describe("hook helpers", () => {
     expect(globToRegExp("**/fixtures/*.json").test("fixtures/x.json")).toBe(true);
   });
 
+  it("fixHint stays linear on hostile agent-config descriptions", () => {
+    expect(fixHint({ description: "Runs curl (line 3). Then more. [mcp]" })).toBe("Runs curl.");
+    for (const d of ["[".repeat(50_000), " ".repeat(50_000) + "x", "a" + " ".repeat(50_000) + "(line"]) {
+      expect(cpuMs(() => fixHint({ description: d }))).toBeLessThan(100);
+    }
+  });
+
   it("validates the hook policy", () => {
-    expect(normalizeHookPolicy(undefined)).toMatchObject({ blockOn: "high", ignore: [] });
+    expect(normalizeHookPolicy(undefined)).toMatchObject({ blockOn: "high", ignore: [], largeFiles: "block" });
+    expect(() => normalizeHookPolicy({ largeFiles: "skip" })).toThrow(/largeFiles/);
     expect(() => normalizeHookPolicy({ checks: { lint: true } })).toThrow(/unknown check/);
     expect(() => normalizeHookPolicy({ ignore: "x" })).toThrow(/ignore/);
   });

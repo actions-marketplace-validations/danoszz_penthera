@@ -57,8 +57,24 @@ async function gatherFindings(repo, input) {
   return { findings, fresh: true };
 }
 
+const NAMED = { "\0": "\\0", "\b": "\\b", "\t": "\\t", "\n": "\\n", "\v": "\\v", "\f": "\\f", "\r": "\\r", "\x1b": "\\e" };
+
+/**
+ * `s` with every control character (C0 except tab, DEL, C1) and every bidi
+ * override shown as an escape such as \r or \e, so text from a scanned repo or
+ * a model cannot move the cursor, erase a line or reorder what the reviewer sees.
+ */
+export function visible(s, { keepTabs = true } = {}) {
+  return String(s ?? "").replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, (c) => {
+    if (c === "\t" && keepTabs) return c;
+    const code = c.charCodeAt(0);
+    return NAMED[c] || (code <= 0xff ? `\\x${code.toString(16).padStart(2, "0")}` : `\\u{${code.toString(16)}}`);
+  });
+}
+
 export function colorDiff(diff) {
-  return diff.split("\n").map((l) => {
+  return String(diff).split("\n").map((raw) => {
+    const l = visible(raw);
     if (/^(---|\+\+\+) /.test(l)) return bold(l);
     if (l.startsWith("@@")) return cyan(l);
     if (l.startsWith("+")) return green(l);
@@ -68,10 +84,11 @@ export function colorDiff(diff) {
 }
 
 export function printPlan(plan) {
-  const conf = plan.confidence === "needs-human-review" ? yellow(plan.confidence) : plan.confidence;
-  process.stdout.write(`\n  ${bold(plan.id)}  ${plan.title}${plan.framework ? dim(` (${plan.framework})`) : ""}  confidence: ${conf}  source: ${plan.source}\n`);
-  for (const f of plan.findings) process.stdout.write(`    ${dim("fixes")} [${f.severity || "?"}] ${f.title}${f.url ? dim(` ${f.url}`) : ""}\n`);
-  for (const a of plan.ownerActions) process.stdout.write(`    ${yellow("owner action")} ${a}\n`);
+  const v = (s) => visible(s, { keepTabs: false });
+  const conf = plan.confidence === "needs-human-review" ? yellow(v(plan.confidence)) : v(plan.confidence);
+  process.stdout.write(`\n  ${bold(v(plan.id))}  ${v(plan.title)}${plan.framework ? dim(` (${v(plan.framework)})`) : ""}  confidence: ${conf}  source: ${v(plan.source)}\n`);
+  for (const f of plan.findings) process.stdout.write(`    ${dim("fixes")} [${v(f.severity || "?")}] ${v(f.title)}${f.url ? dim(` ${v(f.url)}`) : ""}\n`);
+  for (const a of plan.ownerActions) process.stdout.write(`    ${yellow("owner action")} ${v(a)}\n`);
   process.stdout.write("\n" + colorDiff(plan.diff).replace(/^/gm, "    ").trimEnd() + "\n");
 }
 
@@ -146,7 +163,7 @@ export async function runFix(argv) {
     const manual = unmatched.filter((f) => f.severity !== "info");
     if (manual.length) {
       process.stdout.write(`\n  ${dim(`${manual.length} finding${manual.length === 1 ? "" : "s"} without a recipe; fix by hand (see the report's action plan)${model ? "" : " or try --fix-model <name>"}:`)}\n`);
-      for (const f of manual.slice(0, 20)) process.stdout.write(`    [${f.severity}] ${f.title}\n`);
+      for (const f of manual.slice(0, 20)) process.stdout.write(`    [${visible(f.severity)}] ${visible(f.title)}\n`);
     }
     if (plans.length) process.stdout.write(`\n  Apply one:  penthera fix --apply <id>${opts.repo ? ` --repo ${opts.repo}` : ""}${opts.input ? ` -o ${opts.input}` : ""}\n\n`);
     process.exit(0);

@@ -4,7 +4,7 @@
  * (skipped when ssh-keygen is not installed).
  */
 import { describe, it, expect, afterAll, beforeAll } from "vitest";
-import { mkdtempSync, rmSync, readFileSync, writeFileSync, symlinkSync, existsSync, mkdirSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync, writeFileSync, symlinkSync, existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync, spawnSync } from "node:child_process";
@@ -110,6 +110,60 @@ describe("evidence bundle", () => {
       expect(r.ok).toBe(false);
       expect(r.problems.some((x) => x.startsWith("unsafe or duplicate artifact path"))).toBe(true);
     }
+  });
+
+  it("never reads through a symlinked folder, and reports nothing about the file behind it", () => {
+    const dir = join(tmp(), "ev");
+    writeEvidenceBundle(dir, [{ path: "report.json", content: "{}\n" }, { path: "sub/r.md", content: "# r\n" }], META);
+    const outside = tmp();
+    writeFileSync(join(outside, "r.md"), "# r\n"); // identical content, so a followed link would hash fine
+    rmSync(join(dir, "sub"), { recursive: true });
+    symlinkSync(outside, join(dir, "sub"));
+    const r = verifyEvidence(dir);
+    expect(r.ok).toBe(false);
+    const f = r.files.find((x) => x.path === "sub/r.md");
+    expect(f.ok).toBe(false);
+    expect(f.reason).toBe("inside a symlinked folder");
+    expect(f.actual).toBeUndefined();
+
+    // The manifest itself as a symlink is refused too.
+    const m = join(tmp(), "ev");
+    writeEvidenceBundle(m, [{ path: "report.json", content: "{}\n" }], META);
+    const real = join(tmp(), "manifest.json");
+    writeFileSync(real, readFileSync(join(m, MANIFEST)));
+    rmSync(join(m, MANIFEST));
+    symlinkSync(real, join(m, MANIFEST));
+    expect(verifyEvidence(m).ok).toBe(false);
+  });
+
+  it("caps how much it reads and treats paths that differ only in case as duplicates", () => {
+    const dir = bundle();
+    const big = verifyEvidence(dir, { maxBytes: 4 });
+    expect(big.ok).toBe(false);
+    expect(big.problems.some((p) => /larger than 4 bytes/.test(p))).toBe(true);
+
+    const m = readManifest(dir);
+    const json = m.artifacts.find((a) => a.path === "report.json");
+    writeManifest(dir, { ...m, artifacts: [...m.artifacts, { ...json, path: "REPORT.json" }, { ...json, path: "Manifest.JSON" }] });
+    const r = verifyEvidence(dir);
+    expect(r.ok).toBe(false);
+    expect(r.problems).toContain('unsafe or duplicate artifact path "REPORT.json"');
+    expect(r.problems).toContain('unsafe or duplicate artifact path "Manifest.JSON"');
+  });
+
+  it("builds the bundle in a private temp folder and renames it into place", () => {
+    const parent = tmp();
+    const dir = join(parent, "ev");
+    mkdirSync(dir); // an existing empty folder is allowed, as before
+    writeEvidenceBundle(dir, [{ path: "a/b.md", content: "x" }], META);
+    expect(verifyEvidence(dir).ok).toBe(true);
+    expect(readdirSync(parent)).toEqual(["ev"]); // no temp folder left behind
+
+    // The parent must still resolve where the caller expects; nothing is written otherwise.
+    const other = tmp();
+    expect(() => writeEvidenceBundle(join(parent, "ev2"), [{ path: "a.md", content: "x" }], { ...META, parentReal: other })).toThrow(/resolves to/);
+    expect(readdirSync(parent)).toEqual(["ev"]);
+    expect(readdirSync(other)).toEqual([]);
   });
 
   it("fails cleanly on a missing or broken manifest", () => {

@@ -30,6 +30,10 @@
       "meli2019bad",
       "basak2023secretbench"
     ],
+    "unchecked": [
+      "meli2019bad",
+      "basak2023secretbench"
+    ],
     "sqli": [
       "owaspwstg42",
       "owasp2025top10",

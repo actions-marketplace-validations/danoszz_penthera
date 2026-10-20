@@ -8,7 +8,7 @@
  * findings and bundles are addressed by ids this module hands out.
  */
 import { readdirSync, readFileSync, lstatSync, realpathSync, existsSync, statSync, mkdirSync, openSync, writeSync, closeSync, constants as FS } from "node:fs";
-import { join, resolve, relative, sep, isAbsolute, dirname } from "node:path";
+import { join, resolve, relative, sep, isAbsolute, dirname, basename } from "node:path";
 import { createHash } from "node:crypto";
 import { openMemory, buildViews, buildHistory } from "../../../lib/memory/index.js";
 import { referencesFor } from "../../../lib/references.js";
@@ -79,9 +79,27 @@ export function assertNoSymlinks(root, target) {
 }
 
 /**
- * Write a new file in `dir` (which must be `root` or below it): exclusive
- * create, never through a symlink, never over an existing file. A name is a
- * single path segment.
+ * Throws unless `dir` still resolves to itself: `dir` is a real path checked
+ * at startup, and a folder swapped for a symlink since then would send the
+ * write somewhere else.
+ */
+export function assertResolvesTo(dir, { missingOk = false } = {}) {
+  let real;
+  try {
+    real = realpathSync(dir);
+  } catch (e) {
+    // Not created yet: its parent must resolve to itself, so mkdir lands here.
+    if (missingOk && e.code === "ENOENT") return assertResolvesTo(dirname(dir));
+    throw new Error(`Refusing to write into ${dir}: ${e.code || e.message}`);
+  }
+  if (real !== dir) throw new Error(`Refusing to write into ${dir}: it now resolves to ${real}`);
+}
+
+/**
+ * Write a new file in `dir` (which must be `root` or below it, as a real
+ * path): exclusive create, never through a symlink, never over an existing
+ * file, and only while `dir` still resolves to itself. A name is a single
+ * path segment.
  */
 export function writeNewFile(root, dir, name, content) {
   if (typeof name !== "string" || !name || name.includes("/") || name.includes("\\") || name.includes("\0") || name === "." || name === "..") {
@@ -89,8 +107,10 @@ export function writeNewFile(root, dir, name, content) {
   }
   const target = join(dir, name);
   assertNoSymlinks(root, target);
+  assertResolvesTo(root, { missingOk: true });
   mkdirSync(dir, { recursive: true });
   assertNoSymlinks(root, target); // again, after mkdir
+  assertResolvesTo(dir);
   const fd = openSync(target, FS.O_WRONLY | FS.O_CREAT | FS.O_EXCL | (FS.O_NOFOLLOW || 0), 0o644);
   try {
     const buf = Buffer.from(content, "utf-8");
@@ -104,9 +124,16 @@ export function writeNewFile(root, dir, name, content) {
 
 const idFor = (s) => createHash("sha256").update(s).digest("hex").slice(0, 16);
 
+/** Real path of `p`; for a missing folder, its parent's real path plus its name. */
+function realOrPlanned(p) {
+  const abs = resolve(p);
+  try { return realpathSync(abs); } catch { /* missing */ }
+  try { return join(realpathSync(dirname(abs)), basename(abs)); } catch { return abs; }
+}
+
 export function createDataSource({ projects, reportsDir, home, memoryRoot, settings, version = "dev" }) {
   const projectRoots = realRoots(projects);
-  const reportsReal = realRoots([reportsDir])[0];
+  const reportsReal = realOrPlanned(reportsDir);
   const roots = realRoots([...projects, reportsDir, home]);
   let cache = null;
 
@@ -257,7 +284,13 @@ export function createDataSource({ projects, reportsDir, home, memoryRoot, setti
       const dir = join(reportsReal, "evidence", `${slug(project)}-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}`);
       if (dirname(dirname(dir)) !== reportsReal) return null;
       assertNoSymlinks(reportsReal, dir); // reports/evidence must not be a planted symlink
-      writeEvidence(latest.data, { evidence: dir }, { version, mdOpts: { version }, argv: ["ui", "evidence", "create"] });
+      assertResolvesTo(reportsReal, { missingOk: true });
+      mkdirSync(dirname(dir), { recursive: true });
+      assertNoSymlinks(reportsReal, dir);
+      assertResolvesTo(dirname(dir));
+      // The bundle is built in a private temp folder under reports/evidence and
+      // renamed into place only while that folder still resolves to itself.
+      writeEvidence(latest.data, { evidence: dir, evidenceParent: dirname(dir) }, { version, mdOpts: { version }, argv: ["ui", "evidence", "create"] });
       cache = null;
       return { id: idFor(dir), path: relative(reportsReal, dir) };
     },

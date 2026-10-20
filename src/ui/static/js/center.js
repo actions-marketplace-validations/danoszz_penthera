@@ -228,8 +228,8 @@ function runView(col, ctx) {
   stopStream();
   typer = createTyper(lines);
   pending = null;
-  es = new EventSource(`/api/runs/${run.id}/stream`);
-  const scroll = () => { const st = document.getElementById("stream"); if (st) st.scrollTop = st.scrollHeight; };
+  const scrollEl = () => document.getElementById("stream");
+  const scroll = () => { const st = scrollEl(); if (st) st.scrollTop = st.scrollHeight; };
   const onEvent = (ev) => {
     const d = ev.data;
     switch (ev.type) {
@@ -274,32 +274,53 @@ function runView(col, ctx) {
       default: break;
     }
   };
-  for (const type of ["log", "approval", "decision", "status"]) {
-    es.addEventListener(type, (m) => { try { onEvent(JSON.parse(m.data)); } catch { /* malformed event */ } });
-  }
-  es.addEventListener("end", () => { es?.close(); es = null; });
+  // fetch-based stream (api.js): it carries the session header, EventSource cannot.
+  es = api.stream(`/api/runs/${run.id}/stream`, (type, data) => {
+    if (type === "end") { es?.close(); es = null; return; }
+    if (type === "error") { typer?.push("error: the run's event stream closed. Reload to reconnect.", "bad"); return; }
+    if (!["log", "approval", "decision", "status"].includes(type)) return;
+    try { onEvent(JSON.parse(data)); } catch { /* malformed event */ }
+  });
+}
+
+/** Hex SHA-256 of the diff text as shown; the server only applies the diff whose hash matches. */
+async function sha256Hex(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function approvalDialog(run, d, ty) {
   const p = d.plan;
+  const shownDiff = String(p.diff || "");
+  // A cut diff is never applied by accident: Apply stays off until the box is ticked.
+  const ack = p.truncated ? h("input", { type: "checkbox", id: "ap-ack" }) : null;
   const decide = async (answer, box) => {
     for (const b of box.querySelectorAll("button")) b.disabled = true;
     try {
-      await api.post(`/api/runs/${run.id}/decision`, { approvalId: d.approvalId, answer });
+      const body = { approvalId: d.approvalId, answer };
+      if (answer === "approve") {
+        body.diffSha256 = await sha256Hex(shownDiff);
+        if (p.truncated) body.acknowledgeTruncated = ack.checked === true;
+      }
+      await api.post(`/api/runs/${run.id}/decision`, body);
     } catch (e) {
       ty.push(`error: ${e.message}`, "bad");
       for (const b of box.querySelectorAll("button")) b.disabled = false;
+      if (ack && !ack.checked) apply.disabled = true;
     }
   };
   const box = h("section", { class: "dialog", role: "alertdialog", "aria-labelledby": "ap-h", "aria-describedby": "ap-d" });
-  const apply = h("button", { type: "button", class: "btn primary", onclick: () => decide("approve", box) }, "Apply", h("span", { class: "k" }, "y"));
+  const apply = h("button", { type: "button", class: "btn primary", disabled: Boolean(ack), onclick: () => decide("approve", box) }, "Apply", h("span", { class: "k" }, "y"));
+  ack?.addEventListener("change", () => { apply.disabled = !ack.checked; });
   box.append(
     h("div", { class: "dialog-bar" }, h("span", {}, `Fix ${d.index} of ${d.total}`)),
     h("div", { class: "dialog-body" },
       h("h3", { id: "ap-h" }, p.title),
       h("p", { id: "ap-d", class: "muted" }, `${p.recipe}${p.framework ? ` (${p.framework})` : ""} · ${p.files.join(", ")} · ${d.memory ? `memory: ${d.memory.verified} verified, ${d.memory.failed} failed` : "no history for this recipe yet"}`),
       h("div", {}, p.findings.map((f) => h("div", {}, sevBadge(f.severity), " ", h("span", { class: "t1" }, f.title)))),
-      diffBlock(p.diff),
+      diffBlock(shownDiff),
+      p.truncated ? h("p", { class: "bad", role: "note" }, `[!] Diff cut: showing the first ${shownDiff.length.toLocaleString()} of ${Number(p.fullLength).toLocaleString()} characters. Review the rest in the repo before applying.`) : null,
+      p.truncated ? h("label", { class: "muted", for: "ap-ack" }, ack, " I have not seen the whole diff and want to apply it anyway") : null,
       p.redacted ? h("p", { class: "muted" }, "Secret values are masked here; the real patch uses them.") : null,
       h("div", { class: "actions" },
         h("button", { type: "button", class: "btn", onclick: () => decide("stop", box) }, "Stop", h("span", { class: "k" }, "q")),
@@ -307,7 +328,7 @@ function approvalDialog(run, d, ty) {
         apply),
     ),
   );
-  queueMicrotask(() => apply.focus({ preventScroll: true }));
+  if (!ack) queueMicrotask(() => apply.focus({ preventScroll: true }));
   return box;
 }
 

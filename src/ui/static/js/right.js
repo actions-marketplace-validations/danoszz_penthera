@@ -177,7 +177,10 @@ function evidenceCard(bundles, project, ctx) {
     target ? h("div", { class: "actions" },
       h("span", { class: "muted grow" }, shortProject(target)),
       create,
-      ...["auditor", "owner", "developer"].map((a) => h("a", { class: "btn small", href: `/api/report?${new URLSearchParams({ project: target, audience: a })}`, download: "" }, `${a}.md`)),
+      ...["auditor", "owner", "developer"].map((a) => h("button", {
+        type: "button", class: "btn small",
+        onclick: () => api.download(`/api/report?${new URLSearchParams({ project: target, audience: a })}`).catch((e) => { msg.textContent = e.message; }),
+      }, `${a}.md`)),
     ) : null,
     msg,
     bundles.length ? list : empty(EMPTY.evidence),
@@ -264,7 +267,7 @@ async function settingsView(el, ctx, my) {
         mem.projects.length ? h("ul", { class: "mini" }, mem.projects.map((p) => h("li", {}, h("span", { class: p.chain === "ok" ? "ok" : "bad" }, p.chain === "ok" ? "[OK]" : "[!]"), h("span", { class: "grow" }, p.label), h("span", { class: "muted" }, `${p.events} events`)))) : empty(EMPTY.memory)),
       h("section", {}, h("p", { class: "label" }, "Keys"), h("dl", { class: "kv" }, KEYS.flatMap(([k, v]) => [h("dt", {}, h("kbd", {}, k)), h("dd", {}, v)]))),
       h("section", {}, h("p", { class: "label" }, "Session"),
-        h("p", { class: "muted" }, `127.0.0.1 only · one-time link swapped for an HttpOnly, SameSite=Strict cookie · Host and Origin checked · strict CSP · ${state.meta.demo ? "demo data" : "local reports"}`)),
+        h("p", { class: "muted" }, `127.0.0.1 only · one-time link swapped for a session kept in this tab only · Host and Origin checked · strict CSP · ${state.meta.demo ? "demo data" : "local reports"}`)),
     ),
   );
 }

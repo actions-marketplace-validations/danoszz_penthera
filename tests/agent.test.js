@@ -60,7 +60,8 @@ describe("agent loop: end to end", () => {
     const memoryRoot = tempDir("penthera-mem-");
     const gitCalls = [];
     const gitExec = (cmd, args, o) => {
-      gitCalls.push(args.slice(args.findIndex((a) => !a.startsWith("-") && !a.includes("=")))[0]);
+      // `git --version` is the runner's own version check, not a subcommand.
+      if (args[0] !== "--version") gitCalls.push(args.slice(args.findIndex((a) => !a.startsWith("-") && !a.includes("=")))[0]);
       return execFileSync(cmd, args, o);
     };
     const run = await runLoop({ repo, url: mock.url, memoryRoot, ask: yes, deps: { gitExec } });
@@ -156,12 +157,13 @@ describe("agent loop: no remote operations", () => {
 
   it("never spawns git for a forbidden subcommand, and hardens the ones it runs", () => {
     const calls = [];
-    const g = createGit("/nowhere", { exec: (cmd, args) => { calls.push([cmd, args]); return ""; } });
+    const exec = (cmd, args) => { calls.push([cmd, args]); return args[0] === "--version" ? "git version 2.54.0\n" : ""; };
+    const g = createGit("/nowhere", { exec });
     expect(() => g.run("push", "origin", "HEAD")).toThrow(GitPolicyError);
     expect(() => g.tryRun("fetch")).toThrow(GitPolicyError);
     expect(calls).toEqual([]);
     g.run("commit", "-m", "x", "--", "a.js");
-    const [cmd, args] = calls[0];
+    const [cmd, args] = calls.at(-1);
     expect(cmd).toBe("git");
     expect(args).toEqual(expect.arrayContaining(["protocol.allow=never", "core.hooksPath=/dev/null", "core.fsmonitor=false"]));
     expect(args.slice(args.indexOf("commit"))).toEqual(["commit", "--no-verify", "-m", "x", "--", "a.js"]);

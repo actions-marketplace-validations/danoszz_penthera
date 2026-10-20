@@ -9,7 +9,7 @@
  * wizard (runScanWizard).
  */
 import { existsSync, mkdirSync, writeFileSync, appendFileSync } from "node:fs";
-import { resolve, join, relative, sep } from "node:path";
+import { resolve, join, relative, isAbsolute, sep } from "node:path";
 import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -284,10 +284,16 @@ function today(now = new Date()) {
   return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
 }
 
-/** Refuse any write that would land outside the project root. */
-function inside(root, path) {
-  const full = resolve(root, path);
-  if (full !== root && !full.startsWith(root + sep)) throw new Error(`Refusing to write outside the project: ${full}`);
+/**
+ * Refuse any write that would land outside the project root. Both sides are
+ * resolved first, so a root in another spelling (git prints D:/a/app on
+ * Windows) still compares equal. `p` is the path module (path.win32 in tests).
+ */
+export function inside(root, path, p = { resolve, relative, isAbsolute, sep }) {
+  const base = p.resolve(root);
+  const full = p.resolve(base, path);
+  const rel = p.relative(base, full);
+  if (rel === ".." || rel.startsWith(`..${p.sep}`) || p.isAbsolute(rel)) throw new Error(`Refusing to write outside the project: ${full}`);
   return full;
 }
 

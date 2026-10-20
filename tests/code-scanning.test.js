@@ -39,6 +39,16 @@ describe("template regex guard (js/polynomial-redos)", () => {
     expect(ms).toBeLessThan(250);
   });
 
+  it("refuses alternation and rescanning shapes too, not only nested quantifiers", () => {
+    const ctx = { body: `${"a".repeat(30_000)}!${" ".repeat(30_000)}!`, headers: "", status: 200 };
+    for (const p of ["(a|a)*!", "\\s+$", ".*a.*a.*a.*z", "(?:a|a){1,40}x"]) {
+      expect(elapsed(() => {
+        expect(runMatcher({ type: "regex", regex: [p] }, ctx), p).toBe(false);
+        expect(runExtractor({ type: "regex", regex: [p] }, ctx), p).toBe(null);
+      }), p).toBeLessThan(250);
+    }
+  });
+
   it("still matches and extracts with ordinary patterns", () => {
     const ctx = { body: "server: nginx/1.25.3", headers: "", status: 200 };
     expect(runMatcher({ type: "regex", regex: ["nginx/[0-9.]+"] }, ctx)).toBe(true);

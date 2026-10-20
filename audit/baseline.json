@@ -3,6 +3,20 @@
   "selfScan": {
     "repo": [
       {
+        "fingerprint": "3c60d75a39b500d2",
+        "severity": "high",
+        "title": "Generic API key assignment in source",
+        "location": "tests/detection-hardening.test.js",
+        "reason": "Deliberate fixture: fake secrets that check the secret scanner tells placeholders from real-looking values (tests/detection-hardening.test.js). Reported since the scanner checks every match, not only the first placeholder. Never a real credential."
+      },
+      {
+        "fingerprint": "380ecd59238f04f6",
+        "severity": "high",
+        "title": "Hardcoded password in source",
+        "location": "tests/detection-hardening.test.js",
+        "reason": "Deliberate fixture: fake secrets that check the secret scanner tells placeholders from real-looking values (tests/detection-hardening.test.js). Reported since the scanner checks every match, not only the first placeholder. Never a real credential."
+      },
+      {
         "fingerprint": "8649b788e4112b44",
         "severity": "high",
         "title": "Generic API key assignment in source",
@@ -20,6 +34,20 @@
     "agents": [],
     "deps": [],
     "hook": [
+      {
+        "fingerprint": "3c60d75a39b500d2",
+        "severity": "high",
+        "title": "Generic API key assignment in source",
+        "location": "tests/detection-hardening.test.js",
+        "reason": "Deliberate fixture: fake secrets that check the secret scanner tells placeholders from real-looking values (tests/detection-hardening.test.js). Reported since the scanner checks every match, not only the first placeholder. Never a real credential."
+      },
+      {
+        "fingerprint": "380ecd59238f04f6",
+        "severity": "high",
+        "title": "Hardcoded password in source",
+        "location": "tests/detection-hardening.test.js",
+        "reason": "Deliberate fixture: fake secrets that check the secret scanner tells placeholders from real-looking values (tests/detection-hardening.test.js). Reported since the scanner checks every match, not only the first placeholder. Never a real credential."
+      },
       {
         "fingerprint": "8649b788e4112b44",
         "severity": "high",

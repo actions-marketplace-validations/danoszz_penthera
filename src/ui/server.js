@@ -7,14 +7,15 @@
  * request goes through the gate in ./security.js first.
  */
 import { createServer } from "node:http";
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, lstatSync } from "node:fs";
 import { join, relative, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
 import {
   SECURITY_HEADERS, createSession, createAuthLimiter, hostAllowed, originAllowed, isStateChanging,
 } from "./security.js";
-import { createApi, sendJson } from "./api/routes.js";
+import { createApi, sendJson, readJson } from "./api/routes.js";
+import { RunError } from "./api/runs.js";
 import { createRunManager } from "./api/runs.js";
 import { createDataSource } from "./api/data.js";
 import { memoryRoot as defaultMemoryRoot } from "../../lib/memory/index.js";
@@ -70,16 +71,26 @@ export function createSettings(initial = {}) {
  * @param {object} opts
  * @param {number} [opts.port=0]
  * @param {string[]} [opts.projects]   folders the dashboard may read and run in (default: cwd)
- * @param {string} [opts.reportsDir]   report JSON folder (default: <first project>/reports)
+ * @param {string} [opts.reportsDir]   report JSON folder (default: <first project>/reports, which
+ *                                     must not be a symlink; an explicit folder may be one)
  * @param {boolean} [opts.demo]        seed realistic fake data, no disk reads
  * @param {string} [opts.version]
  * @param {object} [opts.source]       data source override (tests)
  * @param {object} [opts.runDeps]      run manager deps override (tests)
+ * @param {{ request?: number, idle?: number }} [opts.timeouts]  ms; the event stream is exempt from idle
  * @returns {Promise<{ server, port, url, origin, session, close }>}
  */
 export async function startUiServer(opts = {}) {
   const projects = (opts.projects?.length ? opts.projects : [process.cwd()]).map((p) => resolve(p));
   const reportsDir = resolve(opts.reportsDir || join(projects[0], "reports"));
+  // A cloned repo can ship `reports -> ../elsewhere`. The default folder is
+  // taken only when it is a real folder (or missing); --reports is the user's
+  // own choice and may point anywhere.
+  if (!opts.reportsDir && !opts.demo && !opts.source) {
+    let st = null;
+    try { st = lstatSync(reportsDir); } catch { /* missing: created on first write */ }
+    if (st?.isSymbolicLink()) throw new Error(`${reportsDir} is a symlink. Pass --reports <dir> to use it on purpose.`);
+  }
   const home = process.env.PENTHERA_HOME ? resolve(process.env.PENTHERA_HOME) : join(homedir(), ".penthera");
   const memoryRoot = opts.memoryRoot || defaultMemoryRoot();
   const settings = createSettings({ offline: true, memoryRoot, reportsDir });
@@ -130,43 +141,56 @@ export async function startUiServer(opts = {}) {
       const url = new URL(req.url, `http://127.0.0.1:${port}`);
       if (req.method === "OPTIONS") return plain(res, 405, "Method not allowed.", { Allow: "GET, POST" });
 
-      // 2. Session: the one-time URL token becomes an HttpOnly cookie.
-      const token = url.searchParams.get("token");
-      if (token != null && req.method === "GET" && url.pathname === "/") {
-        const sid = session.redeem(token);
-        if (!sid) { const wait = limiter.hit(req.method); if (wait) return tooMany(res, wait); }
-        if (!sid) return plain(res, 403, "This link was already used or is wrong. Restart `penthera ui` for a new one.");
-        res.writeHead(303, { "Set-Cookie": session.cookie(sid), Location: "/" });
-        return res.end();
-      }
-      if (!session.check(req.headers.cookie)) {
-        const wait = limiter.hit(req.method);
-        if (wait) return tooMany(res, wait);
-        return url.pathname.startsWith("/api/")
-          ? sendJson(res, 401, { error: "Not signed in. Open the one-time URL printed by penthera ui." })
-          : plain(res, 401, "Open the one-time URL printed by `penthera ui` in the terminal.");
+      // Static files: the page and its scripts hold no data, so they need no
+      // session (there is no cookie to carry one). Everything under /api does.
+      if (!url.pathname.startsWith("/api/")) {
+        if (req.method !== "GET" && req.method !== "HEAD") return plain(res, 405, "Method not allowed.", { Allow: "GET" });
+        const file = files.get(url.pathname);
+        if (!file) return plain(res, 404, "Not found.");
+        res.writeHead(200, { "Content-Type": file.type, "Content-Length": file.body.length });
+        return res.end(req.method === "HEAD" ? undefined : file.body);
       }
 
-      // 3. Origin on anything that changes state.
+      // 3. Origin on anything that changes state, the sign-in included.
       if (isStateChanging(req.method) && !originAllowed(req, port)) {
+        const wait = session.check(req.headers.authorization) ? 0 : limiter.hit(req.method);
+        if (wait) return tooMany(res, wait);
         return sendJson(res, 403, { error: "Cross-origin request refused." });
       }
 
-      if (await api(req, res, url.pathname, url.searchParams)) return;
+      // 2. Session: the page posts the one-time token from the URL fragment
+      // and gets the session id back, once.
+      if (url.pathname === "/api/session" && req.method === "POST") {
+        let body;
+        try { body = await readJson(req); } catch (e) { return sendJson(res, e instanceof RunError ? e.status : 400, { error: e.message }, e.close ? { Connection: "close" } : undefined); }
+        const sid = session.redeem(typeof body?.token === "string" ? body.token : "");
+        if (!sid) {
+          const wait = limiter.hit(req.method);
+          if (wait) return tooMany(res, wait);
+          return sendJson(res, 403, { error: "This link was already used or is wrong. Restart penthera ui for a new one." });
+        }
+        return sendJson(res, 200, { session: sid });
+      }
+      if (!session.check(req.headers.authorization)) {
+        const wait = limiter.hit(req.method);
+        if (wait) return tooMany(res, wait);
+        return sendJson(res, 401, { error: "Not signed in. Open the one-time URL printed by penthera ui." });
+      }
 
-      if (req.method !== "GET" && req.method !== "HEAD") return plain(res, 405, "Method not allowed.", { Allow: "GET" });
-      const file = files.get(url.pathname);
-      if (!file) return plain(res, 404, "Not found.");
-      res.writeHead(200, { "Content-Type": file.type, "Content-Length": file.body.length });
-      res.end(req.method === "HEAD" ? undefined : file.body);
+      if (await api(req, res, url.pathname, url.searchParams)) return;
+      return sendJson(res, 404, { error: "Not found." });
     } catch (e) {
       process.stderr.write(`  penthera ui: ${e.stack || e.message}\n`);
       if (!res.headersSent) plain(res, 500, "Internal error.");
       else res.end();
     }
   });
+  // Bounded request reads and idle sockets; the run event stream turns the
+  // idle timeout off for its own socket (routes.js) and keeps itself alive.
   server.headersTimeout = 20_000;
-  server.requestTimeout = 0; // SSE streams stay open
+  server.requestTimeout = opts.timeouts?.request ?? 30_000;
+  server.timeout = opts.timeouts?.idle ?? 120_000;
+  if (server.requestTimeout) server.headersTimeout = Math.min(server.headersTimeout, server.requestTimeout);
 
   await new Promise((resolveListen, reject) => {
     server.once("error", reject);
@@ -178,7 +202,7 @@ export async function startUiServer(opts = {}) {
     server,
     port,
     origin,
-    url: `${origin}/?token=${session.bootstrap}`,
+    url: `${origin}/#t=${session.bootstrap}`,
     session,
     runs,
     close: () => new Promise((r) => { server.closeAllConnections?.(); server.close(() => r()); }),

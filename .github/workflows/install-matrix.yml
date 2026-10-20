@@ -38,7 +38,7 @@ jobs:
         with:
           node-version: 22
 
-      # --ignore-scripts skips prepack (`npm test`), which ci.yml already runs.
+      # --ignore-scripts: packing must never run package scripts.
       - name: Pack
         run: |
           mkdir dist

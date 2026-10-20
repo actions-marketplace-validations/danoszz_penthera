@@ -1,7 +1,7 @@
 // penthera ui: one view. Left: projects and runs. Centre: the selected project
 // or run. Right: cards, or the open finding, or settings.
 import { h, clear, announce } from "./dom.js";
-import { api } from "./api.js";
+import { api, signIn } from "./api.js";
 import { patternDefs } from "./charts.js";
 import { state, set, on } from "./state.js";
 import { renderLeft } from "./left.js";
@@ -123,6 +123,7 @@ document.addEventListener("keydown", (e) => {
 (async function boot() {
   document.body.append(patternDefs());
   try {
+    await signIn();
     state.meta = await api.get("/api/meta");
     await refresh();
     document.title = `penthera ui${state.meta.demo ? " :: demo" : ""}`;

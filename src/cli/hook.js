@@ -31,7 +31,8 @@ const HELP = `
 
   ${dim("Policy")}  ${dim("(penthera.policy.json)")}
     { "hook": { "blockOn": "high", "ignore": ["tests/fixtures/**"],
-                "checks": { "secrets": true, "agents": true, "deps": true, "licenses": true } } }
+                "checks": { "secrets": true, "agents": true, "deps": true, "licenses": true },
+                "largeFiles": "block" } }   ${dim("// staged files over 16 MB: block or warn")}
 
   ${dim("Other hook managers")}
     pre-commit:  repo: https://github.com/danoszz/penthera, hooks: [{ id: penthera }]

@@ -4,6 +4,71 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Security
+
+Fixes from a second independent review. Most also apply to 1.7.0; upgrading
+is recommended.
+
+- **Dependency scans fail closed.** An npm or Python package that could not be
+  read in full (a code file over 64 MB, more files than the reader takes, an
+  archive with inconsistent sizes or other structural anomalies, a matched
+  artifact that cannot be opened) is now `unscanned`: a high "could not be
+  scanned" finding that `penthera install` always holds for approval. The
+  Python scanner gained this state. Wheels are capped on the bytes actually
+  inflated. Pax global headers that set a size or path are refused. Deeply
+  nested `uv.lock`/`poetry.lock` files are a parse error, not a crash.
+- **The fix loop and `fix --apply` run git hardened.** Commit and tag signing,
+  signing programs, attribute files and every configured filter driver are
+  overridden on every call (`--attr-source` on git 2.40+). Pathspecs are
+  literal. Writes are refused when the repository's own config sets
+  `filter.*`, `gpg.*` or `include.*`, or on git older than 2.31; the loop then
+  does not start, and its one message names the key and how to go on.
+- **The fix loop keeps your uncommitted work.** Dirty files are read with
+  `status -z` and re-checked right before every write and commit. Reverts
+  restore the exact bytes from before the fix, and only while the file still
+  holds what penthera wrote (otherwise the fix is a `conflict` and the file is
+  left alone). Commits use `--only`. Plans that touch untracked or ignored
+  files are skipped, and every revert step runs even when one fails.
+- **`applyDiff` is all-or-nothing and writes only regular files in the repo.**
+  Duplicate and nested paths are refused, a failed apply puts back what it
+  wrote, files are replaced through a temp file (never written through a hard
+  link), NTFS stream names and 8.3 aliases are refused, and added lines may not
+  contain control characters. Approval prompts show control characters as
+  escapes.
+- **The pre-commit hook checks everything it should.** Staged content is read
+  by object id from NUL-separated output, type changes are included, files
+  with NUL bytes are scanned, and a staged file over 16 MB blocks the commit
+  (or warns, with `"largeFiles": "warn"`). `hook install` no longer writes
+  through a symlinked `pre-commit`.
+- **Secret scanning checks every match.** A placeholder no longer hides a real
+  secret of the same rule later in the file. Only regular files are read, with
+  a per-file size cap.
+- **Dashboard sessions are bound to the page.** The one-time token travels in
+  the URL fragment and is exchanged for a per-tab session sent as an
+  `Authorization` header; no cookie is set or accepted. Approvals carry the
+  sha256 of the diff shown, and a cut diff says so and needs an explicit
+  acknowledgement. A symlinked default `reports/` is refused and every write
+  re-checks the folder. Event ids keep counting past the buffer; requests,
+  bodies (413), finished runs and open streams are bounded. `--open` no
+  longer puts the token on a command line.
+- **Evidence bundles** are built in a private folder and renamed into place,
+  and verification never follows a symlinked folder and caps what it reads.
+- **HTTP responses are bounded.** Every body is read with a size cap (counted
+  after decompression) and a deadline that covers the body, not just the
+  headers. `--offline` compares host and port, and cross-origin redirects drop
+  credentials and do not replay request bodies.
+- **Linear-time matching on untrusted text.** Agent-config exec patterns and
+  other agent and hook checks no longer backtrack on long input. The rule-pack
+  regex guard refuses ambiguous alternation and optional items inside repeated
+  groups and end-anchored rescans; community templates use the same guard.
+- **Hostile repos no longer hang or crash scans**: a FIFO is never read, and
+  deeply nested JSON is handled; one unreadable agent config becomes a finding
+  instead of aborting the run.
+- `--fix-model` never sends a file from outside the repo as context.
+- Installing the hook through pre-commit.com no longer runs the test suite:
+  the `prepack` script is gone (publishing still runs `npm test`).
+- Workflows that push or only read no longer keep credentials in the checkout.
+
 ### Added
 
 - Release checks in CI (`.github/workflows/install-matrix.yml`): the packed

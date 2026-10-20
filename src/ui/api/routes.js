@@ -1,40 +1,56 @@
 /**
  * JSON API for the dashboard. Every route here runs after the gate in
- * ../security.js (Host, session cookie, Origin), so handlers only validate
+ * ../security.js (Host, Origin, bearer session), so handlers only validate
  * their own input.
  */
 import { RunError } from "./runs.js";
 
 const MAX_BODY = 64 * 1024;
+const MAX_STREAMS = 16;
 const ID = /^[0-9a-f]{16}$/;
 
-export function sendJson(res, status, body) {
+export function sendJson(res, status, body, headers = {}) {
   const buf = Buffer.from(JSON.stringify(body));
-  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8", "Content-Length": buf.length });
+  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8", "Content-Length": buf.length, ...headers });
   res.end(buf);
+}
+
+/** A 413 that the client can read: the rest of the body is not read, and the connection closes after the answer. */
+function tooLarge() {
+  const e = new RunError("Request body too large.", 413);
+  e.close = true;
+  return e;
 }
 
 export function readJson(req) {
   return new Promise((resolve, reject) => {
     const type = String(req.headers["content-type"] || "").split(";")[0].trim().toLowerCase();
     if (type !== "application/json") { reject(new RunError("Send JSON (Content-Type: application/json).", 415)); return; }
+    if (Number(req.headers["content-length"]) > MAX_BODY) { reject(tooLarge()); return; }
     let size = 0;
+    let over = false;
     const chunks = [];
     req.on("data", (c) => {
+      if (over) return;
       size += c.length;
-      if (size > MAX_BODY) { reject(new RunError("Request body too large.", 413)); req.destroy(); return; }
+      if (size > MAX_BODY) { over = true; chunks.length = 0; reject(tooLarge()); return; }
       chunks.push(c);
     });
     req.on("end", () => {
+      if (over) return;
       if (!size) { resolve({}); return; }
       try { resolve(JSON.parse(Buffer.concat(chunks).toString("utf-8"))); } catch { reject(new RunError("Body is not valid JSON.")); }
     });
-    req.on("error", reject);
+    // A client that hangs up (or an idle socket the server times out) is not an internal error.
+    req.on("error", () => reject(new RunError("The request body did not arrive.", 400)));
   });
 }
 
-export function stream(req, res, runs, id) {
+export function stream(req, res, runs, id, onEnd = () => {}) {
   const last = Number(req.headers["last-event-id"]) || 0;
+  // The stream is long-lived by design: no idle timeout on its socket. The
+  // keep-alive comment below keeps proxies and the browser from giving up.
+  req.socket?.setTimeout?.(0);
   res.writeHead(200, {
     "Content-Type": "text/event-stream; charset=utf-8",
     "Cache-Control": "no-store",
@@ -52,6 +68,7 @@ export function stream(req, res, runs, id) {
     ended = true;
     clearInterval(beat);
     unsubscribe?.();
+    onEnd();
     if (!res.writableEnded) res.end();
   };
   unsubscribe = runs.subscribe(id, last, (ev) => {
@@ -66,7 +83,8 @@ export function stream(req, res, runs, id) {
 /**
  * @returns {(req, res, path: string, query: URLSearchParams) => Promise<boolean>} true when handled
  */
-export function createApi({ source, runs, version, settings }) {
+export function createApi({ source, runs, version, settings, maxStreams = MAX_STREAMS }) {
+  let streams = 0;
   const routes = [
     ["GET", /^\/api\/meta$/, () => ({ version, demo: source.demo, ...source.meta(), settings: settings.get() })],
     ["GET", /^\/api\/overview$/, () => source.overview()],
@@ -122,7 +140,10 @@ export function createApi({ source, runs, version, settings }) {
     const sse = path.match(/^\/api\/runs\/([0-9a-f]{16})\/stream$/);
     if (sse && req.method === "GET") {
       if (!runs.get(sse[1])) { sendJson(res, 404, { error: "No such run." }); return true; }
-      stream(req, res, runs, sse[1]);
+      if (streams >= maxStreams) { sendJson(res, 429, { error: "Too many open run streams. Close a dashboard tab." }, { "Retry-After": "5" }); return true; }
+      streams++;
+      let counted = true;
+      stream(req, res, runs, sse[1], () => { if (counted) { counted = false; streams--; } });
       return true;
     }
     const matching = routes.filter(([, re]) => re.test(path));
@@ -139,7 +160,7 @@ export function createApi({ source, runs, version, settings }) {
       sendJson(res, 200, out);
     } catch (e) {
       const status = e instanceof RunError ? e.status : 500;
-      sendJson(res, status, { error: status === 500 ? "Internal error. Check the terminal running penthera ui." : e.message });
+      sendJson(res, status, { error: status === 500 ? "Internal error. Check the terminal running penthera ui." : e.message }, e.close ? { Connection: "close" } : {});
       if (status === 500) process.stderr.write(`  penthera ui: ${e.stack || e.message}\n`);
     }
     return true;

@@ -175,6 +175,9 @@ export async function runAgent(argv) {
   process.stdout.write(`\n  ${bold("Done")}: ${run.stopReason} after ${t.iterations} iteration${t.iterations === 1 ? "" : "s"} (${(run.durationMs / 1000).toFixed(1)}s)\n`);
   process.stdout.write(`  ${green(`${t.verified} verified`)}, ${t.failed ? red(`${t.failed} failed and reverted`) : "0 failed"}, ${t.conflicts ? `${yellow(`${t.conflicts} left for you (files changed meanwhile)`)}, ` : ""}${t.declined} declined, ${t.skipped} skipped\n`);
   process.stdout.write(`  findings: ${run.findings.initial ?? "?"} → ${run.findings.final ?? "?"} (non-info)\n`);
+  if (run.gaveUp.length) {
+    process.stdout.write(`  ${yellow(`gave up on ${run.gaveUp.length}`)} (not retried this run; fix by hand): ${run.gaveUp.map((g) => `${visible(g.title)} (${visible(g.reason)})`).join("; ")}\n`);
+  }
   if (run.error) process.stdout.write(`  ${red("Error")} ${visible(run.error)}\n`);
   process.stdout.write(`  branch ${bold(run.branch.fix)}: review with  git log --stat ${run.branch.base || run.branch.baseSha.slice(0, 12)}..${run.branch.fix}\n`);
   if (opts.output) process.stdout.write(`  loopRun written to ${opts.output}\n`);

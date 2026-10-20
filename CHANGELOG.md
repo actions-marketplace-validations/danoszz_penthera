@@ -69,6 +69,16 @@ is recommended.
   the `prepack` script is gone (publishing still runs `npm test`).
 - Workflows that push or only read no longer keep credentials in the checkout.
 
+- **The fix loop cannot game its own checker.** A fix diff, from a local
+  model or a recipe, may not edit tests, test runner config or the test
+  script, Penthera's policy, suppressions, baseline, lock or memory, CI
+  workflows, git hooks or lockfiles; `applyDiff` refuses it with `PROTECTED`
+  and says to make that change by hand. The loop verifies only against the
+  checker the run began with. "Could not fix" is now a recorded outcome
+  (`gave_up` in memory, `loopRun.gaveUp`, a summary line): the finding is not
+  retried in that run, and a give-up never counts against a recipe. Older
+  Penthera versions report a memory chain with `gave_up` events as malformed.
+
 ### Added
 
 - Release checks in CI (`.github/workflows/install-matrix.yml`): the packed

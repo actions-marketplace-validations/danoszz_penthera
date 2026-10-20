@@ -7,15 +7,15 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdtempSync, readFileSync, writeFileSync, rmSync, existsSync, readdirSync, chmodSync } from "node:fs";
+import { cpSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, existsSync, readdirSync, chmodSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { startMockServer } from "./fixtures/mock-server.js";
 import { runLoop, loopEgressContext, localModelFetch, fixBranchName, LoopError, LOOP_RUN_SCHEMA } from "../src/agent/loop.js";
 import { assertAllowed, createGit, GitPolicyError, ALLOWED_SUBCOMMANDS } from "../src/agent/git.js";
 import { checkEgress, currentEgress } from "../src/utils/http.js";
-import { planFixes, probeRepo } from "../lib/fix/index.js";
-import { openMemory, projectIdFor } from "../lib/memory/index.js";
+import { planFixes, probeRepo, createPatch } from "../lib/fix/index.js";
+import { openMemory, projectIdFor, buildViews } from "../lib/memory/index.js";
 
 const FIXTURE = resolve("tests/fixtures/fix/express");
 const temps = [];
@@ -419,5 +419,133 @@ describe("penthera agent CLI", () => {
     expect(status).toBe(1);
     expect(git(repo, "rev-list", "--count", "HEAD").trim()).toBe("1");
     expect(git(repo, "status", "--porcelain")).toBe("");
+  });
+});
+
+describe("agent loop: verifier integrity and the safe exit", () => {
+  const BODY = { severity: "critical", category: "dos", title: "Unbounded request body", url: "server.js" };
+  /** scanRepo that always reports BODY, which no recipe fixes. */
+  const withBody = async () => {
+    const { scanRepo } = await import("../src/scan-repo.js");
+    return async (p, o) => {
+      const r = await scanRepo(p, o);
+      r.findings.push({ ...BODY });
+      return r;
+    };
+  };
+  const onlyModel = async ({ plan }) => (plan.source === "local-model" ? "y" : "n");
+  const withTest = (dir) => {
+    mkdirSync(join(dir, "tests"), { recursive: true });
+    writeFileSync(join(dir, "tests/app.test.js"), "expect(bodyLimit()).toBe(true);\n");
+  };
+
+  it("refuses a model diff that edits a test file to make it pass, gives the finding up and records gave_up", async () => {
+    const repo = fixtureRepo(withTest);
+    const memoryRoot = tempDir("penthera-mem-");
+    const diff = "--- a/tests/app.test.js\n+++ b/tests/app.test.js\n@@ -1,1 +1,1 @@\n-expect(bodyLimit()).toBe(true);\n+expect(true).toBe(true);\n";
+    let calls = 0;
+    const model = { plan: async () => { calls++; return { diff, files: ["tests/app.test.js"], confidence: "needs-human-review", source: "local-model" }; } };
+    const run = await runLoop({ repo, memoryRoot, ask: onlyModel, fixModel: "m", deps: { model, scanRepo: await withBody() } });
+
+    const m = fixes(run).filter((f) => f.source === "local-model");
+    expect(m).toHaveLength(1);
+    expect(m[0].status).toBe("not-applied");
+    expect(m[0].reason).toMatch(/never edit tests.*by hand/);
+    expect(readFileSync(join(repo, "tests/app.test.js"), "utf-8")).toBe("expect(bodyLimit()).toBe(true);\n");
+    expect(calls).toBe(1); // not asked again in later iterations
+    expect(run.gaveUp).toEqual([expect.objectContaining({ title: BODY.title, reason: expect.stringMatching(/PROTECTED|never edit tests/) })]);
+    const events = openMemory(projectIdFor({ repo }).id, { root: memoryRoot }).events();
+    expect(events.filter((e) => e.type === "gave_up").map((e) => e.data.reason)).toEqual([m[0].reason]);
+    expect(events.some((e) => e.type === "fix_failed")).toBe(false);
+  });
+
+  it("does not retry a finding after one honest failure in a run", async () => {
+    const repo = fixtureRepo();
+    const before = readFileSync(join(repo, "server.js"), "utf-8");
+    let calls = 0;
+    // A real edit that does not fix anything: verification fails because BODY is still reported.
+    const model = { plan: async () => { calls++; return { diff: createPatch("server.js", before, `${before}// bounded\n`), files: ["server.js"], confidence: "needs-human-review", source: "local-model" }; } };
+    const run = await runLoop({ repo, memoryRoot: tempDir(), ask: onlyModel, fixModel: "m", deps: { model, scanRepo: await withBody() } });
+
+    expect(run.iterations.length).toBeGreaterThan(1);
+    expect(calls).toBe(1);
+    expect(fixes(run).filter((f) => f.source === "local-model").map((f) => f.status)).toEqual(["failed"]);
+    expect(run.gaveUp).toEqual([expect.objectContaining({ title: BODY.title, reason: expect.stringMatching(/still reported/) })]);
+    expect(run.stopReason).toBe("declined-or-failed-left");
+  });
+
+  it("records a model that gives no usable fix as gave_up, once", async () => {
+    const repo = fixtureRepo();
+    const memoryRoot = tempDir("penthera-mem-");
+    const model = { plan: async () => null }; // NO_FIX
+    const run = await runLoop({ repo, memoryRoot, ask: async () => "n", fixModel: "m", maxIterations: 2, deps: { model, scanRepo: await withBody() } });
+    expect(run.gaveUp).toEqual([expect.objectContaining({ title: BODY.title, reason: expect.stringMatching(/no usable fix/) })]);
+    const events = openMemory(projectIdFor({ repo }).id, { root: memoryRoot }).events();
+    expect(events.filter((e) => e.type === "gave_up")).toHaveLength(1);
+  });
+
+  it("never counts a give-up as a recipe failure in memory", async () => {
+    // The project's tests reject any Content-Security-Policy, so the headers fix fails once and is given up.
+    const repo = fixtureRepo((dir) => {
+      const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf-8"));
+      pkg.scripts = { test: "node check.js" };
+      writeFileSync(join(dir, "package.json"), JSON.stringify(pkg, null, 2));
+      writeFileSync(join(dir, "check.js"), `import { readFileSync } from "node:fs";\nprocess.exit(readFileSync("server.js", "utf-8").includes("Content-Security-Policy") ? 1 : 0);\n`);
+    });
+    const memoryRoot = tempDir("penthera-mem-");
+    const run = await runLoop({ repo, memoryRoot, ask: yes, runTests: true });
+    expect(run.gaveUp.length).toBeGreaterThan(0);
+    expect(run.gaveUp.every((g) => /project tests failed/.test(g.reason))).toBe(true);
+
+    const events = openMemory(projectIdFor({ repo }).id, { root: memoryRoot }).events();
+    const headers = buildViews(events).recipeSuccess.find((r) => r.recipe === "security-headers");
+    expect(headers.failed).toBe(1); // the one fix_failed; the gave_up events add nothing
+    const onlyGiveUps = events.filter((e) => e.type === "gave_up");
+    expect(onlyGiveUps.length).toBe(run.gaveUp.length);
+    expect(buildViews(onlyGiveUps).recipeSuccess).toEqual([]);
+  });
+
+  it("does not verify a fix when tests changed during the run, and never runs them", async () => {
+    const repo = fixtureRepo((dir) => {
+      withTest(dir);
+      const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf-8"));
+      pkg.scripts = { test: "node tests/app.test.js" };
+      writeFileSync(join(dir, "package.json"), JSON.stringify(pkg, null, 2));
+    });
+    let testRuns = 0;
+    let n = 0;
+    const run = await runLoop({
+      repo, memoryRoot: tempDir(), runTests: true, allowDirty: true, maxIterations: 1,
+      // Something rewrites the test while the first fix is being approved.
+      ask: async () => {
+        if (++n === 1) { writeFileSync(join(repo, "tests/app.test.js"), "// passes\n"); return "y"; }
+        return "n";
+      },
+      deps: { runTests: async () => { testRuns++; return { ok: true, exitCode: 0, durationMs: 0, output: "" }; } },
+    });
+    const first = fixes(run)[0];
+    expect(first.status).toBe("failed");
+    expect(first.reason).toMatch(/tests, test config or Penthera's own files changed/);
+    expect(first.commit).toBeNull();
+    expect(testRuns).toBe(0);
+    expect(readFileSync(join(repo, "tests/app.test.js"), "utf-8")).toBe("// passes\n");
+  });
+
+  it("prints what it gave up and why in the run summary", () => {
+    const repo = fixtureRepo((dir) => {
+      const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf-8"));
+      pkg.scripts = { test: "node check.js" };
+      writeFileSync(join(dir, "package.json"), JSON.stringify(pkg, null, 2));
+      writeFileSync(join(dir, "check.js"), `import { readFileSync } from "node:fs";\nprocess.exit(readFileSync("server.js", "utf-8").includes("Content-Security-Policy") ? 1 : 0);\n`);
+    });
+    let stdout = "";
+    try {
+      execFileSync(process.execPath, [resolve("bin/penthera.js"), "agent", "--loop", "--repo", repo, "--run-tests", "--max-iterations", "2"], {
+        input: "y\ny\ny\ny\ny\ny\n", encoding: "utf-8", env: { ...process.env, NO_COLOR: "1", PENTHERA_HOME: tempDir() },
+      });
+    } catch (e) {
+      stdout = e.stdout;
+    }
+    expect(stdout).toMatch(/gave up on \d+ \(not retried this run; fix by hand\): .*project tests failed/);
   });
 });

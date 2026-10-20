@@ -25,6 +25,12 @@
  *   recipe verified at least 3 times on this framework with no failures.
  * - When `signal` aborts, the fix in flight is verified and committed or
  *   reverted before the loop returns; the branch holds only verified commits.
+ * - The judge stays as it was: no fix may edit tests, test config or
+ *   Penthera's own files (applyDiff refuses with PROTECTED), and a fix is not
+ *   verified if any of them changed since the run began.
+ * - A finding that failed once in a run is given up (event gave_up, with the
+ *   reason) and not retried in that run. A give-up never counts against a
+ *   recipe in memory.
  */
 import { randomUUID, createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -36,6 +42,7 @@ import {
   planFixes, probeRepo, applyDiff, restoreFiles, redactPlan, findingKey, createModelFixer, parsePatch,
 } from "../../lib/fix/index.js";
 import { assertLocalModelUrl } from "../../lib/fix/model.js";
+import { protectedReason } from "../../lib/fix/apply.js";
 import { detectFramework } from "../../lib/fix/util.js";
 import {
   openMemory, projectIdFor, buildViews, rankFindings, isSuppressed, withRepoSuppressions,
@@ -232,6 +239,7 @@ export async function runLoop(opts = {}) {
     },
     stopReason: null,
     error: null,
+    gaveUp: [],
     findings: { initial: null, final: null },
     totals: { iterations: 0, planned: 0, applied: 0, verified: 0, failed: 0, conflicts: 0, declined: 0, skipped: 0, commits: [] },
     memory: { projectId, chain: chainOk ? "ok" : "broken", eventsAppended: 0 },
@@ -301,6 +309,13 @@ export async function runLoop(opts = {}) {
       return null;
     }
   };
+  // Protected files (the judge) that differ from the base commit, with their hashes; must not change during the run.
+  const judgeState = () => [...new Set([
+    ...git.run("diff", "--name-only", "-z", "--relative", baseSha, "--", ".").split("\0"),
+    ...statusNow().filter((e) => e.xy === "??").map((e) => e.path),
+  ])].filter((f) => f && protectedReason(f)).sort().map((f) => `${f} ${currentSha(f)}`).join("\n");
+  const judgeAtStart = judgeState();
+
   if (opts.handle) {
     opts.handle.revertPending = () => {
       const r = pending ? revert(pending) : null;
@@ -343,15 +358,28 @@ export async function runLoop(opts = {}) {
     return { ranked: chainOk ? rankFindings(kept, views, { framework: stack }) : kept, suppressed };
   }
 
-  let heldBack = 0; // plans left out of the last plan() because they were declined or failed
+  let heldBack = 0; // plans and findings left out of the last plan() because they were declined or given up
   const tried = new Set(); // plan keys declined or failed in this run: never proposed again
+  const gaveUp = new Set(); // finding keys the loop could not fix in this run: never retried
+  /** The safe exit: record that the loop could not fix these findings, and why. Never a recipe failure. */
+  const giveUp = (findings, reason, source) => {
+    for (const f of findings) {
+      if (gaveUp.has(findingKey(f))) continue;
+      gaveUp.add(findingKey(f));
+      loopRun.gaveUp.push({ fid: findingId(f), title: f.title, reason });
+      remember("gave_up", { id: findingId(f), reason: String(reason).slice(0, 1_000), source: source || null, loop: loopRun.id });
+    }
+  };
   const planKey = (p) => (p.source === "recipe" ? `recipe:${p.recipe}` : `model:${p.findings.map(findingKey).sort().join("|")}`);
 
   async function plan(ranked) {
-    const byKey = new Map(ranked.map((f) => [findingKey(f), f]));
-    const { plans } = await planFixes(repo, ranked, { model });
-    const order = new Map(ranked.map((f, i) => [findingKey(f), i]));
-    heldBack = plans.filter((p) => tried.has(planKey(p))).length;
+    const open = ranked.filter((f) => !gaveUp.has(findingKey(f)));
+    const byKey = new Map(open.map((f) => [findingKey(f), f]));
+    const { plans, unmatched, refused } = await planFixes(repo, open, { model });
+    for (const r of refused) giveUp([r.finding], r.reason, "local-model");
+    if (model) giveUp(actionable(unmatched), "no recipe matched and the local model gave no usable fix", "local-model");
+    const order = new Map(open.map((f, i) => [findingKey(f), i]));
+    heldBack = plans.filter((p) => tried.has(planKey(p))).length + ranked.filter((f) => gaveUp.has(findingKey(f))).length;
     return plans
       .filter((p) => !tried.has(planKey(p)))
       .map((p) => {
@@ -470,6 +498,7 @@ export async function runLoop(opts = {}) {
         if (applied.refused) {
           entry.reason = applied.refused;
           tried.add(planKey(p));
+          giveUp(originals, entry.reason, p.source);
           log(`    not applied: ${entry.reason}`);
           continue;
         }
@@ -495,13 +524,17 @@ export async function runLoop(opts = {}) {
           const targetedRemaining = p.findings.filter((f) => staticNow.has(findingKey(f))).length;
           const liveRemaining = p.findings.filter((f) => liveNow.has(findingKey(f))).length;
           const introduced = actionable(after.all).filter((f) => !beforeKeys.has(findingKey(f)));
+          // The judge must be the one the run began with, before and after the tests run.
+          let judgeOk = judgeState() === judgeAtStart;
           let tests = null;
-          if (opts.runTests && hasTestScript(repo)) {
+          if (judgeOk && opts.runTests && hasTestScript(repo)) {
             const r = await testsFn(repo);
             tests = { ok: r.ok, exitCode: r.exitCode, durationMs: r.durationMs };
             if (!r.ok) entry.testOutput = r.output?.slice(-2_000);
           }
+          judgeOk &&= judgeState() === judgeAtStart;
           const reasons = [];
+          if (!judgeOk) reasons.push("tests, test config or Penthera's own files changed during the run, so the fix was not verified");
           if (targetedRemaining) reasons.push(`${targetedRemaining} targeted finding(s) still reported`);
           if (introduced.length) reasons.push(`new finding(s): ${introduced.slice(0, 3).map((f) => f.title).join("; ")}`);
           if (tests && !tests.ok) reasons.push(`project tests failed (exit ${tests.exitCode})`);
@@ -547,7 +580,10 @@ export async function runLoop(opts = {}) {
           tried.add(planKey(p));
           loopRun.totals.failed++;
           if (r.conflicts.length) loopRun.totals.conflicts++;
-          await timed(entry.steps, "learn", async () => remember("fix_failed", { ...learnData, reason: entry.reason }));
+          await timed(entry.steps, "learn", async () => {
+            remember("fix_failed", { ...learnData, reason: entry.reason });
+            giveUp(originals, entry.reason, p.source);
+          });
           log(`    failed verification, ${problems ? "not fully reverted" : "reverted"}: ${entry.reason}`);
         }
         if (stopped()) { stopReason = "interrupted"; break; }

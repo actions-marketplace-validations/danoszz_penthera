@@ -11,7 +11,7 @@ Last updated 2026-10-20.
 
 - **Models.** Anthropic Claude, used through Claude Code: Claude Opus 4.8 for
   the August 2026 work, Claude Opus 5.5 for the October 2026 work.
-- **Scale.** Of the 121 non-merge commits on `main` up to v1.7.0, 111 (92%)
+- **Scale.** Of the 117 non-merge commits up to the v1.7.0 tag, 107 (91%)
   were written with Claude and carry a `Co-Authored-By: Claude …` trailer naming
   the model. Most of v1.2 to v1.7, released on 2026-10-19, was implemented by
   Claude Code sessions directed by the maintainer, often several in parallel.

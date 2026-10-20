@@ -118,6 +118,8 @@ We run our own research, to the standard we would expect in a paper.
 | **E4** | Does a classifier catch malicious packages that rules miss? | Temporal split on public malicious-package data plus a benign sample | AUC, precision at fixed recall, vs rules alone (DeLong test) | ≥ 500 malicious and ≥ 5,000 benign packages in the test period |
 | **E5** | Are deterministic checks more robust than LLM judges? | Adversarial set of skills and MCP configs using published evasion techniques; both detectors on every item | Evasion rate (paired, McNemar) | 155 adversarial items for the effect above; more if discordance is lower |
 | **E6** | Does Penthera save time for real users? | Small user study: newcomers secure a seeded app with and without Penthera | Issues fixed in 30 minutes; SUS usability score | 24 to 30 participants, crossover design |
+| **E7** | Does a deterministic audit find agent-environment misconfigurations? | Labelled corpus of public agent setups (devcontainers, agent CI workflows, MCP configs); two labellers. Proposed in [agent-incidents-2026.md](research/agent-incidents-2026.md) | Precision and recall of the planned harness rules ([spec](research/spec-harness-rules.md)) | To be set in its pre-registration |
+| **E8** | Do harness guardrails reduce judge tampering? | 2×2: `AGENTS.md` block × protected judges, benign coding tasks with one third unsolvable, local open-weight models offline. [Draft pre-registration](research/prereg/E8-harness-guardrails.md) | Tamper-attempt rate and safe-exit rate on unsolvable tasks | 960 unsolvable runs (≥ 138 effective per level after clustering) |
 
 Sample sizes are planning minimums from standard power calculations; each
 pre-registration states the exact calculation and assumptions.

@@ -3,7 +3,7 @@
  * files under the project, `git` plumbing, and TCP connects to 127.0.0.1 / ::1.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import { createConnection } from "node:net";
 import { detectProjectFramework } from "../../lib/whitebox/frameworks.js";
@@ -18,9 +18,13 @@ function git(cwd, args) {
   return execFileSync("git", args, { cwd, encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"] }).trim();
 }
 
-/** The git toplevel for `cwd`, or null outside a repo (or without git). */
+/**
+ * The git toplevel for `cwd`, or null outside a repo (or without git). Git
+ * prints forward slashes on Windows (D:/a/app); resolve() makes it a native
+ * path so prefix checks against resolve()d paths hold.
+ */
 export function gitRoot(cwd) {
-  try { return git(cwd, ["rev-parse", "--show-toplevel"]); } catch { return null; }
+  try { return resolve(git(cwd, ["rev-parse", "--show-toplevel"])); } catch { return null; }
 }
 
 /** True when something accepts a TCP connection on host:port within `timeout` ms. */

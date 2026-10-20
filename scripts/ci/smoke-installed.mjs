@@ -150,7 +150,8 @@ async function checkUi(name) {
   const deadline = Date.now() + 90_000;
   let status = null;
   while (Date.now() < deadline) {
-    const m = out.replace(ANSI, "").match(/http:\/\/127\.0\.0\.1:(\d+)\/#t=\S+/);
+    // 1.8 prints /#t=<token>; 1.7.0 (the upgrade job's "before") printed /?token=<token>.
+    const m = out.replace(ANSI, "").match(/http:\/\/127\.0\.0\.1:(\d+)\/(?:#t|\?token)=\S+/);
     if (m) {
       base = `http://127.0.0.1:${m[1]}`;
       try {

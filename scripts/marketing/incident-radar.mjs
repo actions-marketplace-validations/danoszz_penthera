@@ -10,7 +10,7 @@
  * inside the look-back window. No state file, no branch, no extra token.
  *
  * mode "notable" (default) opens one issue per advisory that hits a popular
- * npm package (lib/deps/popular-packages.json) and rolls every other new
+ * npm package (lib/deps/popular-packages.json.gz) and rolls every other new
  * advisory into one standing batch issue as a comment. mode "all" opens one
  * issue per advisory. Either way at most `cap` issues per run.
  *
@@ -208,8 +208,8 @@ if (import.meta.url === pathToFileURL(process.argv[1] || "").href) {
     console.error("Usage: incident-radar.mjs --repo owner/name [--since-hours 48] [--cap 5] [--mode notable|all] [--dry-run]");
     process.exit(2);
   }
-  const popularFile = new URL("../../lib/deps/popular-packages.json", import.meta.url);
-  const popular = new Set(existsSync(popularFile) ? JSON.parse(readFileSync(popularFile, "utf-8")).names : []);
+  let popular = new Set();
+  try { popular = new Set((await import("../../lib/deps/typosquat.js")).loadPopular("npm").names); } catch { /* list missing: treat every advisory as not notable */ }
   const lines = [];
   const log = (s) => { console.log(s); lines.push(s); };
   try {

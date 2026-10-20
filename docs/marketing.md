@@ -44,7 +44,7 @@ approving.
 Reads `/advisories?type=malware&ecosystem=npm` and `ecosystem=pip` from the
 public GitHub Advisory Database, published in the last 48 hours. About 20
 malware advisories appear every day and most are typosquats nobody installs,
-so by default only advisories for packages in `lib/deps/popular-packages.json`
+so by default only advisories for packages in `lib/deps/popular-packages.json.gz`
 get their own issue (with the checklist and a draft "check if you're affected
 with one command" post). The rest go into one standing issue, "Incident radar:
 other new malware advisories", one comment per run. Set `mode: all` on a manual

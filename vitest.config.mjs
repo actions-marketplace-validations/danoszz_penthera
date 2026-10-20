@@ -20,6 +20,7 @@ const SPAWN_HEAVY = [
   "tests/cli-smoke.test.js",
   "tests/deps-python.test.js",
   "tests/deps.test.js",
+  "tests/docs-commands.test.js",
   "tests/egress.test.js",
   "tests/evidence.test.js",
   "tests/fix.test.js",

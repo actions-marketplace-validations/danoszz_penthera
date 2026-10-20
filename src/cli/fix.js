@@ -150,16 +150,17 @@ export async function runFix(argv) {
     process.stderr.write(`  ${red("Error")} Could not read findings: ${e.message}\n`);
     process.exit(2);
   }
-  const { plans, unmatched } = await planFixes(repo, gathered.findings, { model });
+  const { plans, unmatched, refused } = await planFixes(repo, gathered.findings, { model });
 
   if (!opts.apply) {
     if (opts.json) {
-      console.log(JSON.stringify({ repo, plans: plans.map(redactPlan), unmatched: unmatched.map((f) => ({ title: f.title, category: f.category, severity: f.severity, url: f.url || null })) }, null, 2));
+      console.log(JSON.stringify({ repo, plans: plans.map(redactPlan), unmatched: unmatched.map((f) => ({ title: f.title, category: f.category, severity: f.severity, url: f.url || null })), refused: refused.map((r) => ({ title: r.finding.title, reason: r.reason })) }, null, 2));
       process.exit(0);
     }
     process.stdout.write(`\n  ${bold("penthera fix")} ${dim(repo)}\n`);
     process.stdout.write(`  ${plans.length} fix${plans.length === 1 ? "" : "es"} planned for ${gathered.findings.length} finding${gathered.findings.length === 1 ? "" : "s"}${gathered.fresh ? " (fresh repo scan)" : ` (from ${opts.input})`}\n`);
     for (const p of plans) printPlan(redactPlan(p));
+    for (const r of refused) process.stdout.write(`\n  ${yellow("Refused")} the model's fix for ${visible(r.finding.title)}: ${visible(r.reason)}\n`);
     const manual = unmatched.filter((f) => f.severity !== "info");
     if (manual.length) {
       process.stdout.write(`\n  ${dim(`${manual.length} finding${manual.length === 1 ? "" : "s"} without a recipe; fix by hand (see the report's action plan)${model ? "" : " or try --fix-model <name>"}:`)}\n`);

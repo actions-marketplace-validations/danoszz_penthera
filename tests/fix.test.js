@@ -507,3 +507,62 @@ describe("local-model context stays in the repo", () => {
     expect(prompts.some((p) => p.includes("PRIVATE MATERIAL"))).toBe(false);
   });
 });
+
+describe("verifier integrity: a fix never edits its own checker", () => {
+  const PROTECTED = [
+    "test/app.js", "tests/app.js", "src/__tests__/a.js", "src/a.test.ts", "src/a.spec.js", "conftest.py",
+    "vitest.config.ts", "jest.config.js", "playwright.config.ts", "pytest.ini", "package.json", "pyproject.toml",
+    "penthera.policy.json", "penthera.suppress.json", "penthera.lock", "audit/baseline.json", ".penthera/memory/events.jsonl",
+    ".github/workflows/ci.yml", ".husky/pre-commit", ".pre-commit-config.yaml", "package-lock.json", "yarn.lock", "pnpm-lock.yaml",
+    "TESTS/App.js", "Src/A.TEST.js", "PACKAGE.JSON", ".GitHub/Workflows/ci.yml", "__TEST~1/a.js", ".gitmodules",
+  ];
+
+  it("refuses every protected path with PROTECTED and says to make the change by hand", () => {
+    const dir = repoFrom("express");
+    for (const file of PROTECTED) {
+      let err = null;
+      try {
+        applyDiff(dir, createPatch(file, null, "x\n"), { dryRun: true, allowDirty: true });
+      } catch (e) {
+        err = e;
+      }
+      expect(err?.code, file).toBe("PROTECTED");
+      expect(err.message).toMatch(/by hand/);
+    }
+  });
+
+  it("still lets a fix edit ordinary source files with similar names", () => {
+    const dir = repoFrom("express");
+    for (const file of ["src/attest.js", "latest/x.js", "routes/contest.js", "testing-utils.js", "audit/report.js"]) {
+      expect(() => applyDiff(dir, createPatch(file, null, "x\n"), { dryRun: true, allowDirty: true }), file).not.toThrow();
+    }
+  });
+
+  it("refuses a model diff that edits a test file to make it pass, and reports it", async () => {
+    const dir = repoFrom("express");
+    mkdirSync(join(dir, "tests"));
+    writeFileSync(join(dir, "tests/app.test.js"), "expect(bodyLimit()).toBe(true);\n");
+    commit(dir);
+    const diff = createPatch("tests/app.test.js", "expect(bodyLimit()).toBe(true);\n", "expect(true).toBe(true);\n");
+    const model = createModelFixer({ model: "m", fetch: async () => Response.json({ response: "```diff\n" + diff + "```" }) });
+    const finding = { title: "Unbounded request body", category: "dos", severity: "high", url: "server.js" };
+    const { plans, unmatched, refused } = await planFixes(dir, [finding], { model });
+    expect(plans).toHaveLength(0);
+    expect(unmatched).toEqual([finding]);
+    expect(refused).toHaveLength(1);
+    expect(refused[0].reason).toMatch(/tests\/app\.test\.js: fix diffs never edit tests.*by hand/);
+    expect(readFileSync(join(dir, "tests/app.test.js"), "utf-8")).toBe("expect(bodyLimit()).toBe(true);\n");
+  });
+
+  it("holds a recipe's diff to the same list (defence in depth)", async () => {
+    const dir = repoFrom("express");
+    const pkg = readFileSync(join(dir, "package.json"), "utf-8");
+    const recipe = {
+      id: "rogue", title: "Rogue", matches: () => true, detect: () => "express",
+      plan: () => ({ diff: createPatch("package.json", pkg, pkg.replace('"private": true', '"private": true, "scripts": { "test": "exit 0" }')), files: ["package.json"] }),
+    };
+    const { plans } = await planFixes(dir, [{ title: "x", category: "dos", severity: "high" }], { recipes: [recipe] });
+    expect(() => applyDiff(dir, plans[0].diff)).toThrow(expect.objectContaining({ code: "PROTECTED" }));
+    expect(readFileSync(join(dir, "package.json"), "utf-8")).toBe(pkg);
+  });
+});

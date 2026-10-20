@@ -21,6 +21,7 @@ import { checkName, findTyposquats, loadPopular } from "../lib/deps/typosquat.js
 import { scanDeps } from "../lib/deps/index.js";
 import { formatPrComment } from "../lib/deps/report.js";
 import { MapSource } from "../lib/deps/source.js";
+import { cpuMs } from "./fixtures/cpu-time.js";
 
 const j = (...p) => p.join("");
 const SUBPROCESS = j("sub", "process");
@@ -454,10 +455,10 @@ describe("penthera deps CLI (Python)", () => {
 describe("hostile Python input stays cheap", () => {
   it("tokenizes unterminated strings and long lines in linear time", () => {
     const hostile = `x = "${"\\\\".repeat(100_000)}\n'''${"a".repeat(200_000)}`;
-    const t0 = performance.now();
-    blankPython(hostile);
-    scanPythonSource(hostile, "x.py");
-    expect(performance.now() - t0).toBeLessThan(1000);
+    expect(cpuMs(() => {
+      blankPython(hostile);
+      scanPythonSource(hostile, "x.py");
+    })).toBeLessThan(1000);
   });
 
   it("rejects a TOML document it cannot read instead of looping", () => {

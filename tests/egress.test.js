@@ -102,7 +102,7 @@ describe("--offline egress guard", () => {
       expect(result.egress.thirdPartyHosts).toEqual([]);
       expect(result.executedProbes).not.toContain("recon");
       if (profile === "deep") expect(result.executedProbes).toEqual(expect.arrayContaining(["sqli", "xss", "api-fuzzing"]));
-    }, 60_000);
+    });
   }
 
   it("refuses the third-party script and uses the vendored Retire.js snapshot", async () => {
@@ -115,7 +115,7 @@ describe("--offline egress guard", () => {
       message: expect.stringContaining("blocked by --offline"),
     }));
     expect(result.executedProbes).toContain("retirejs");
-  }, 60_000);
+  });
 });
 
 describe("online scan reports third-party egress", () => {
@@ -128,7 +128,7 @@ describe("online scan reports third-party egress", () => {
     expect(third).not.toContain(TARGET_HOST);
     // Both live mirrors returned 503, so the snapshot took over.
     expect(result.retireDb.source).toBe("snapshot");
-  }, 60_000);
+  });
 });
 
 describe("User-Agent", () => {

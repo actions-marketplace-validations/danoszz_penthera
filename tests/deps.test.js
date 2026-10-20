@@ -25,6 +25,7 @@ import { formatPrComment, formatDepsMarkdown } from "../lib/deps/report.js";
 import { mergeResults } from "../src/cli/merge-results.js";
 import { writeSarifReport } from "../src/reporter.js";
 import { formatMarkdownReport } from "../src/report/markdown.js";
+import { cpuMs } from "./fixtures/cpu-time.js";
 
 const j = (...p) => p.join("");
 const CP = j("child", "_process");
@@ -318,7 +319,7 @@ describe("tar parsing (360 review)", () => {
     const src = sourceFromTarball(bomb, sri(bomb));
     expect(src.anomaly).toMatch(/could not be read safely/);
     expect(scanPackage(src).unscanned).toMatch(/could not be read safely/);
-  }, 30_000);
+  });
 
   it("a verified tarball that does not unpack cleanly is unscanned, not missing", () => {
     const tgz = gzipSync(Buffer.concat([Buffer.alloc(512), tarEntry("package/package.json", Buffer.from(pkgJson))]));
@@ -732,9 +733,7 @@ describe("hostile input stays cheap", () => {
     expect(nodeScriptTargets("node scripts/postinstall.js")).toEqual(["scripts/postinstall.js"]);
     expect(nodeScriptTargets("node --no-warnings --max-old-space-size=4096 ./setup.js && echo ok")).toEqual(["./setup.js"]);
     const hostile = "node " + "-- -".repeat(50_000) + "!";
-    const t0 = performance.now();
-    nodeScriptTargets(hostile);
-    expect(performance.now() - t0).toBeLessThan(200);
+    expect(cpuMs(() => nodeScriptTargets(hostile))).toBeLessThan(200);
   });
 
   it("encodes package names for the registry, scoped or not", async () => {

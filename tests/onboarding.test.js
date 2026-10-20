@@ -73,5 +73,5 @@ describe("onboarding (piped stdin)", () => {
 
     // Unreachable target → exit 2, or scan completes → 0/1
     expect([0, 1, 2]).toContain(exitCode);
-  }, 30_000);
+  });
 });

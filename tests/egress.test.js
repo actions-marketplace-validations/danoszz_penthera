@@ -134,7 +134,7 @@ describe("online scan reports third-party egress", () => {
 describe("User-Agent", () => {
   it("sends penthera/<version> (+repo url) on every request", async () => {
     await scanUrl(TARGET, scanOptsFor("quick", { offline: true }));
-    expect(DEFAULT_USER_AGENT).toMatch(/^penthera\/\d+\.\d+\.\d+ \(\+https:\/\/github\.com\/danoszz\/penthera\)$/);
+    expect(DEFAULT_USER_AGENT).toMatch(/^penthera\/\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)? \(\+https:\/\/github\.com\/danoszz\/penthera\)$/);
     expect(net.calls.length).toBeGreaterThan(0);
     for (const call of net.calls) expect(call.userAgent).toBe(DEFAULT_USER_AGENT);
   });

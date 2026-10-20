@@ -6,12 +6,13 @@
  */
 import { describe, it, expect, afterAll } from "vitest";
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdtempSync, readFileSync, writeFileSync, rmSync, symlinkSync, existsSync, mkdirSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, writeFileSync, rmSync, symlinkSync, existsSync, mkdirSync, linkSync, appendFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import {
-  RECIPES, planFixes, probeRepo, redactPlan, applyDiff, createPatch, parsePatch, applyHunks,
+  RECIPES, planFixes, probeRepo, redactPlan, applyDiff, restoreFiles, createPatch, parsePatch, applyHunks,
 } from "../lib/fix/index.js";
+import { printPlan } from "../src/cli/fix.js";
 import { createModelFixer, assertLocalModelUrl, OLLAMA_ORIGIN } from "../lib/fix/model.js";
 import { scanSecrets } from "../lib/whitebox/secrets.js";
 import { scanRepo } from "../src/scan-repo.js";
@@ -373,5 +374,129 @@ describe("penthera fix CLI", () => {
     writeFileSync(report, JSON.stringify({ findings: [{ title: "Missing Content-Security-Policy", category: "headers", severity: "medium" }] }));
     const out = JSON.parse(cli(dir, ["--plan", "--json", "-o", report]).out);
     expect(out.plans.map((p) => p.recipe)).toEqual(["security-headers"]);
+  });
+});
+
+describe("applyDiff: all or nothing, printable, no aliases", () => {
+  const status = (dir) => git(dir, "status", "--porcelain");
+
+  it("refuses a diff that writes one path twice, or a file and a path under it, and writes nothing", () => {
+    const dir = repoFrom("express");
+    const server = readFileSync(join(dir, "server.js"), "utf-8");
+    const edit = createPatch("server.js", server, server + "// patched\n");
+    for (const diff of [
+      edit + createPatch("d", null, "f\n") + createPatch("d/x", null, "y\n"),
+      createPatch("new.js", null, "one\n") + createPatch("new.js", null, "two\n"),
+      edit + createPatch("server.js", server, "// other\n" + server),
+    ]) {
+      expect(() => applyDiff(dir, diff, { dryRun: true })).toThrow(/more than once|both a file and the directory/);
+      expect(() => applyDiff(dir, diff)).toThrow(/more than once|both a file and the directory/);
+      expect(status(dir)).toBe("");
+    }
+  });
+
+  it("puts back every file it wrote when a later write fails", () => {
+    const dir = repoFrom("express");
+    const server = readFileSync(join(dir, "server.js"), "utf-8");
+    const diff = createPatch("server.js", server, server + "// patched\n") + createPatch("lib/new.js", null, "n\n") + createPatch("late.js", null, "y\n");
+    // late.js appears after the checks and before the writes (the dryRun flag is read
+    // exactly there), so the third write fails after two succeeded.
+    const opts = { allowDirty: true, get dryRun() { writeFileSync(join(dir, "late.js"), "theirs\n"); return false; } };
+    expect(() => applyDiff(dir, diff, opts)).toThrow(/late\.js changed on disk/);
+    expect(readFileSync(join(dir, "server.js"), "utf-8")).toBe(server);
+    expect(existsSync(join(dir, "lib"))).toBe(false);
+    expect(readFileSync(join(dir, "late.js"), "utf-8")).toBe("theirs\n");
+  });
+
+  it("refuses to create a file under a path that is a file", () => {
+    const dir = repoFrom("express");
+    expect(() => applyDiff(dir, createPatch("routes/auth.js/x", null, "y\n"), { dryRun: true })).toThrow(/not a directory/);
+  });
+
+  it("refuses added lines with control characters that could hide code in a terminal", () => {
+    const dir = repoFrom("express");
+    const server = readFileSync(join(dir, "server.js"), "utf-8");
+    for (const line of ['console.log("x") /*\r\x1b[2K+app.disable("x-powered-by"); // */', "a\x1b]8;;x\x07b", "a\x08b", "a\u009bb"]) {
+      expect(() => applyDiff(dir, createPatch("server.js", server, server + line + "\n"))).toThrow(/control character/);
+    }
+    // A CRLF line ending and tabs are ordinary.
+    expect(applyDiff(dir, createPatch("server.js", server, server + "\tconst a = 1;\r\n"), { dryRun: true }).applied).toBe(false);
+    expect(status(dir)).toBe("");
+  });
+
+  it("refuses NTFS alternate data stream names and the 8.3 alias of .gitmodules", () => {
+    const dir = repoFrom("express");
+    for (const path of [".git::$INDEX_ALLOCATION/hooks/pre-commit", ".git:$I30:$INDEX_ALLOCATION/config", ".git::$DATA", "GITMOD~1", "sub/gitmod~12", ".gitmodules::$DATA", "a:b.js"]) {
+      expect(() => applyDiff(dir, createPatch(path, null, "x\n"), { dryRun: true, allowDirty: true }), path).toThrow(/Refusing/);
+    }
+  });
+
+  it.skipIf(process.platform === "win32")("replaces a hard-linked file instead of writing through it", () => {
+    const dir = repoFrom("express");
+    const outside = join(tempDir(), "outside.js");
+    writeFileSync(outside, "safe\n");
+    linkSync(outside, join(dir, "linked.js"));
+    expect(applyDiff(dir, createPatch("linked.js", "safe\n", "changed\n"), { allowDirty: true }).applied).toBe(true);
+    expect(readFileSync(join(dir, "linked.js"), "utf-8")).toBe("changed\n");
+    expect(readFileSync(outside, "utf-8")).toBe("safe\n");
+  });
+
+  it("restoreFiles restores what still holds the fix, leaves edited files alone, and tries every file", () => {
+    const dir = repoFrom("express");
+    const server = readFileSync(join(dir, "server.js"), "utf-8");
+    const auth = readFileSync(join(dir, "routes/auth.js"), "utf-8");
+    const res = applyDiff(dir, createPatch("routes/auth.js", auth, auth + "// a\n") + createPatch("server.js", server, server + "// s\n") + createPatch("new.js", null, "n\n"));
+    appendFileSync(join(dir, "routes/auth.js"), "// the user's edit\n");
+    const r = restoreFiles(dir, res.files);
+    expect(r.conflicts).toEqual(["routes/auth.js"]);
+    expect(r.restored.sort()).toEqual(["new.js", "server.js"]);
+    expect(r.errors).toEqual([]);
+    expect(readFileSync(join(dir, "server.js"), "utf-8")).toBe(server);
+    expect(existsSync(join(dir, "new.js"))).toBe(false);
+    expect(readFileSync(join(dir, "routes/auth.js"), "utf-8")).toContain("the user's edit");
+  });
+});
+
+describe("approval prompt rendering", () => {
+  it("shows control characters as escapes in diffs, titles and paths", () => {
+    const hidden = 'console.log("HIDDEN") /*\r\x1b[2K+app.disable("x-powered-by"); // */';
+    let out = "";
+    const write = process.stdout.write;
+    process.stdout.write = (s) => { out += s; return true; };
+    try {
+      printPlan({
+        id: "local-model-1", title: "Fix\x1b[2K", source: "local-model", confidence: "needs-human-review", ownerActions: [],
+        findings: [{ severity: "high", title: "t\rX", url: "a‮b.js" }],
+        diff: `--- a/server.js\n+++ b/server.js\n@@ -1 +1,2 @@\n const app = 1;\n+${hidden}\n`,
+      });
+    } finally {
+      process.stdout.write = write;
+    }
+    const plain = out.replace(/\x1b\[[0-9;]*m/g, ""); // the prompt's own colours
+    expect(plain).not.toMatch(/[\r\x1b‮]/);
+    expect(plain).toContain("/*\\r\\e[2K+app.disable");
+    expect(plain).toContain("Fix\\e[2K");
+    expect(plain).toContain("t\\rX");
+    expect(plain).toContain("a\\u{202e}b.js");
+  });
+});
+
+describe("local-model context stays in the repo", () => {
+  it("never sends a file outside the repo, via package.json main or a symlink", async () => {
+    const outsideDir = tempDir();
+    const outside = join(outsideDir, "private.js");
+    writeFileSync(outside, "PRIVATE MATERIAL OUTSIDE THE REPO\n");
+    const prompts = [];
+    const model = createModelFixer({ model: "m", fetch: async (url, init) => { prompts.push(JSON.parse(init.body).prompt); return { ok: true, json: async () => ({ response: "NO_FIX" }) }; } });
+
+    const viaMain = tempDir();
+    writeFileSync(join(viaMain, "package.json"), JSON.stringify({ name: "x", main: `../${outsideDir.split(/[\\/]/).pop()}/private.js` }));
+    await model.plan(viaMain, { title: "t", category: "x", severity: "high" });
+
+    const viaLink = tempDir();
+    symlinkSync(outside, join(viaLink, "server.js"));
+    await model.plan(viaLink, { title: "t", category: "x", severity: "high" });
+
+    expect(prompts.some((p) => p.includes("PRIVATE MATERIAL"))).toBe(false);
   });
 });

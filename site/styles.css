@@ -200,9 +200,8 @@ h3 > .lock, .eu-list .lock { width: 24px; height: 28px; vertical-align: -4px; ma
 /* ── Bar ──────────────────────────────────────────────────────────────── */
 
 /* The header is static: it scrolls away with the page. It sits on a solid
- * box in the ground colour, which then fades into the field below through a
- * gradient and a blur, so the mark and the controls read on a calm zone
- * while the dots still run to the top behind it. */
+ * box in the ground colour with a hard bottom edge, so the field below starts
+ * on a sharp line. */
 .bar {
   position: absolute; inset: calc(var(--ticker-h) + var(--bar-gap)) 0 auto; z-index: 10;
   display: flex; align-items: center; gap: 8px;
@@ -211,13 +210,11 @@ h3 > .lock, .eu-list .lock { width: 24px; height: 28px; vertical-align: -4px; ma
 }
 .bar::before {
   content: ""; position: absolute; z-index: -1; pointer-events: none;
-  inset: calc(-1 * var(--bar-gap)) 0 -150px;
-  background: linear-gradient(rgb(var(--ground-rgb)) 0 105px, rgba(var(--ground-rgb), 0.6) 150px, rgba(var(--ground-rgb), 0));
-  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
-  -webkit-mask-image: linear-gradient(#000 0 120px, transparent);
-  mask-image: linear-gradient(#000 0 120px, transparent);
+  /* A solid box with a hard edge just below the mark: no fade, no blur. */
+  top: calc(-1 * var(--bar-gap)); left: 0; right: 0;
+  height: calc(var(--bar-gap) + 14px + max(var(--target), var(--logo-h)) + 18px);
+  background: rgb(var(--ground-rgb));
 }
-@media (max-width: 480px) { .bar::before { bottom: -110px; background: linear-gradient(rgb(var(--ground-rgb)) 0 72px, rgba(var(--ground-rgb), 0.6) 110px, rgba(var(--ground-rgb), 0)); -webkit-mask-image: linear-gradient(#000 0 84px, transparent); mask-image: linear-gradient(#000 0 84px, transparent); } }
 /* The mark, four times its old size, hanging below the bar. On phones it
  * takes what the bar leaves. */
 .brand {
@@ -229,8 +226,10 @@ h3 > .lock, .eu-list .lock { width: 24px; height: 28px; vertical-align: -4px; ma
 }
 .brand:hover { background: none; color: var(--accent-ink); }
 .brand:active { transform: translateY(1px); }
-.logotype { --logo-w: 288px; --logo-h: 65px; }
-@media (max-width: 480px) { .logotype { --logo-w: 112px; --logo-h: 25px; } .brand { margin-top: 12px; } }
+/* Up to 288 px, but never more than the controls leave (about 360 px of
+ * bar is theirs), down to 112 px on the smallest phones. */
+.bar { --logo-w: clamp(112px, calc(100vw - 360px), 288px); --logo-h: calc(var(--logo-w) * 63 / 279); }
+@media (max-width: 480px) { .brand { margin-top: 12px; } }
 .logotype {
   display: block; width: var(--logo-w, 72px); height: var(--logo-h, 16px); background: currentColor;
   -webkit-mask: url("/logo.svg") center / contain no-repeat;
@@ -253,6 +252,7 @@ h3 > .lock, .eu-list .lock { width: 24px; height: 28px; vertical-align: -4px; ma
   -webkit-backdrop-filter: blur(22px) saturate(1.6); backdrop-filter: blur(22px) saturate(1.6);
   transition: background-color 160ms var(--out), border-color 160ms var(--out), color 160ms var(--out), transform var(--press) var(--out);
 }
+.glass { flex: none; }
 .glass::after { content: ""; position: absolute; inset: -6px -2px; }
 .glass:active { transform: translateY(1px); }
 .glass > * { display: inline-flex; align-items: center; }
@@ -414,8 +414,19 @@ main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
 .hero-text {
   position: relative; z-index: 1;
   max-width: var(--measure); margin: 0 auto;
-  /* The headline sits in the lower half of the cloud: it overlays the dots. */
+  /* The first screen is at least 90vh; the headline sits in the lower half
+   * of the cloud, over the dots, with the text block at the bottom. */
+  min-height: 90vh;
+  display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start;
   padding-top: clamp(240px, 42vh, 440px);
+}
+/* A long gradient behind the text, full width: the cloud stays visible at
+ * the top and fades to the ground under the headline, so it reads. */
+.hero-text::before {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+  top: 22%; bottom: -12%;
+  left: calc(50% - 50vw); width: 100vw;
+  background: linear-gradient(rgba(var(--ground-rgb), 0), rgba(var(--ground-rgb), 0.8) 32%, rgba(var(--ground-rgb), 0.94) 50%, rgb(var(--ground-rgb)) 85%);
 }
 /* Three separate pills, so the field shows through the gaps between them. */
 .pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 20px; padding: 0; list-style: none; }
@@ -425,11 +436,14 @@ h1 {
   font-size: clamp(42px, 8.2vw, 124px);
   line-height: 0.94;
   letter-spacing: -0.045em;
-  max-width: 13.5ch;
+  max-width: 16ch;
   text-wrap: balance;
 }
 .lede { margin-top: 28px; max-width: 34ch; font-size: clamp(19px, 2.2vw, 26px); line-height: 1.35; color: var(--text-1); letter-spacing: -0.01em; }
-.hero .cmd { margin-top: 36px; }
+/* The two ways in, side by side: the command, or a prompt for your agent. */
+.hero-actions { display: flex; flex-wrap: wrap; align-items: stretch; gap: 12px; margin-top: 36px; }
+.btn-prompt { min-height: var(--target); max-width: 100%; gap: 10px; padding: 8px 16px; white-space: normal; text-align: left; }
+.btn-prompt .tool-icon { width: 14px; height: 14px; margin: 0; }
 .loop { position: relative; z-index: 1; max-width: var(--measure); margin: clamp(64px, 10vw, 128px) auto 0; }
 .loop video, .walk video { display: block; width: 100%; height: auto; border: 1px solid var(--frame); background: var(--ground); }
 figcaption { margin-top: 10px; color: var(--text-3); }
@@ -613,10 +627,21 @@ textarea:focus-visible, select:focus-visible { outline-offset: 0; }
   padding: 16px var(--gutter) 20px;
   border-top: 1px solid var(--frame);
   color: var(--text-3);
-  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 32px;
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px 32px;
   font-size: 12px;
 }
-.foot a { display: inline-block; padding: 12px 0; margin: -12px 0; }
+.foot-main { display: grid; gap: 6px; flex: 1 1 420px; }
+.nowrap { white-space: nowrap; }
+/* The mark again, on the right, closing the page; it links back to the top. */
+.foot-mark {
+  --logo-w: clamp(120px, 18vw, 220px); --logo-h: calc(var(--logo-w) * 63 / 279);
+  display: inline-flex; align-items: center; min-height: var(--target); margin-left: auto;
+  color: var(--text-1); text-decoration: none;
+}
+.foot-mark:hover { background: none; color: var(--accent-ink); }
+.foot p a { display: inline-block; padding: 12px 0; margin: -12px 0; }
+/* The bar's three controls again, so the end of the page has the same ways out. */
+.foot-ctas { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
 /* The maker, at the end of Open R&D. */
 .by {
   justify-self: start;

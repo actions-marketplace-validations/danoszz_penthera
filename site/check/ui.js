@@ -22,9 +22,11 @@ function copyButtons() {
   for (const btn of document.querySelectorAll("[data-copy], [data-copy-from]")) {
     // A .cmd carries its own text and states; a prompt's button copies the <pre> beside it.
     const root = btn.closest("[data-copy-root]");
-    const source = btn.dataset.copy != null ? btn.querySelector("code") : $("[data-copy-text]", root);
+    const source = btn.dataset.copy != null ? btn.querySelector("code") || btn : $("[data-copy-text]", root);
     const status = $("[data-copy-status]", btn);
-    const label = btn.textContent;
+    // A button with an icon swaps only its label's text.
+    const labelEl = $("[data-copy-label]", btn) || btn;
+    const label = labelEl.textContent;
     let timer;
     btn.addEventListener("click", async () => {
       try {
@@ -36,12 +38,12 @@ function copyButtons() {
       }
       btn.dataset.state = "copied";
       if (status) status.textContent = `, ${COPY.copied.toLowerCase()}`;
-      else btn.textContent = COPY.copied;
+      else labelEl.textContent = COPY.copied;
       clearTimeout(timer);
       timer = setTimeout(() => {
         delete btn.dataset.state;
         if (status) status.textContent = ", copy to clipboard";
-        else btn.textContent = label;
+        else labelEl.textContent = label;
       }, 1600);
     });
   }
@@ -250,11 +252,13 @@ function barPalette() {
   observe();
 }
 
-// ── The bottom veil stays off the hero headline and the footer ──────────────
+// ── The bottom veil stays off the hero text and the footer ──────────────
 
 function veilClear() {
   const veil = $(".veil");
-  const targets = [$(".hero h1"), $(".foot")].filter(Boolean);
+  // The whole hero text block (headline, subline, install command), not just
+  // the headline, and the footer.
+  const targets = [$(".hero-text"), $(".foot")].filter(Boolean);
   if (!veil || !targets.length) return;
   const inZone = new Set();
   let io;

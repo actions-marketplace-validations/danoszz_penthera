@@ -14,8 +14,12 @@ check in the page first.
 
 ## Positioning (approved, used verbatim)
 
-- One-liner: "Penthera: an open-source cyber security agent you can use today,
-  and verify yourself."
+- Title (2026-10-21, the hero and README headline): "Penthera: your
+  open-source cyber security agent"
+- Subline: "The security review you never had time for. Offline, rule-based,
+  and you can verify every finding yourself."
+- One-liner, still approved for other copy: "Penthera: an open-source cyber
+  security agent you can use today, and verify yourself."
 - Short line: "Offline cyber security agent for your apps and AI coding tools.
   Open R&D: measured in public, improved every release."
 
@@ -37,7 +41,7 @@ typesafe.ai in spirit, in Penthera's own 1-bit look (`penthera ui` after #63):
 
 ## Structure
 
-1. Hero: one-liner, short line, `npx penthera`, the 12-second loop.
+1. Hero: title, subline, `npx penthera`, the 12-second loop.
 2. The check: drop or paste five kinds of file, Penthera's own rules run in
    the tab. What it cannot do, next to it.
 3. Get it: `npx penthera`, GitHub, npm, prompts for Claude Code, Cursor and

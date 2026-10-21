@@ -22,7 +22,7 @@ node site/serve.mjs     # http://127.0.0.1:4173/ with the production headers
 | `check/shims/` | The Node built-ins `lib/` uses, for the browser: an in-memory `fs`, POSIX `path`, a synchronous SHA-256, and `gunzipSync` fed by DecompressionStream. |
 | `build.mjs` | Bundles `check/` with `lib/` (rolldown), embeds the rule packs and the popular-package list, verifies each pack's signature, and copies the media. |
 | `serve.mjs` | A local preview that sends the headers from `vercel.json`. |
-| `vercel.json` | Build settings and security headers: CSP with `connect-src 'none'`, HSTS, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer`. |
+| `../vercel.json` | At the repo root, so Vercel needs no settings: install, build (`node site/build.mjs`), output (`site/dist`) and the security headers: CSP with `connect-src 'none'`, HSTS, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer`. |
 | `stars.json` | The last GitHub star count the build read, used when the API is rate-limited or offline. Set `GITHUB_TOKEN` in Vercel to avoid the anonymous limit. |
 | `tools/social.mjs` | Renders `media/social/og.png` (1200 × 630, the share card for LinkedIn, X and Facebook) and `square.png` (1080 × 1080, Instagram) with a local Chrome. Re-run it when the headline changes. |
 | `media/` | `field.png` (the hero's 1-bit cloud), `hero.mp4` and its poster, regenerated with `tools/media.sh`; `dvdzwaag.svg`, the maker's wordmark traced with potrace from Daan's own artwork, used as a mask so it takes the ink. |
@@ -94,6 +94,8 @@ top-level `skip` array in `news.json`.
 
 ## Deploying
 
-Vercel project settings: root directory `site`, everything else comes from
-`vercel.json`. The install step runs `npm ci` at the repo root, because the
-build reads `lib/` and uses `rolldown` from the root `package.json`.
+Import the repository in Vercel and deploy; leave the root directory at the
+repository root and the framework preset on "Other". Everything else comes
+from `vercel.json` at the root: it runs `npm ci` there (the build reads
+`lib/` and uses `rolldown` from the root `package.json`), builds with
+`node site/build.mjs` and serves `site/dist`.

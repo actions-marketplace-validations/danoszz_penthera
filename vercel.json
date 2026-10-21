@@ -1,9 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "installCommand": "cd .. && npm ci --ignore-scripts --no-audit --no-fund",
-  "buildCommand": "node build.mjs",
-  "outputDirectory": "dist",
+  "installCommand": "npm ci --ignore-scripts --no-audit --no-fund",
+  "buildCommand": "node site/build.mjs",
+  "outputDirectory": "site/dist",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- site lib src/ui/static assets/walkthrough.mp4 assets/walkthrough-poster.jpg assets/walkthrough.vtt bench/RESULTS.md tests/fixtures/agents/malicious package.json package-lock.json vercel.json",
   "cleanUrls": true,
   "trailingSlash": false,
   "headers": [

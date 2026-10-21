@@ -12,24 +12,26 @@
   var system = window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
   root.setAttribute("data-theme", stored === "light" || stored === "dark" ? stored : system);
 
-  // A switch labelled "Dark theme": on is dark, off is light.
-  function sync(btn) {
+  // Switches labelled "Dark theme" (one in the bar, one in the footer): on is
+  // dark, off is light. They all show the same state.
+  function sync(btns) {
     var dark = root.getAttribute("data-theme") === "dark";
-    btn.setAttribute("aria-checked", dark ? "true" : "false");
+    for (var i = 0; i < btns.length; i++) btns[i].setAttribute("aria-checked", dark ? "true" : "false");
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute("content", dark ? "#000000" : "#fdfdfa");
   }
 
   document.addEventListener("DOMContentLoaded", function () {
-    var btn = document.querySelector("[data-theme-toggle]");
-    if (!btn) return;
-    btn.hidden = false;
-    sync(btn);
-    btn.addEventListener("click", function () {
-      var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
-      root.setAttribute("data-theme", next);
-      try { localStorage.setItem(KEY, next); } catch (e) { /* storage blocked */ }
-      sync(btn);
-    });
+    var btns = document.querySelectorAll("[data-theme-toggle]");
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].hidden = false;
+      btns[i].addEventListener("click", function () {
+        var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        root.setAttribute("data-theme", next);
+        try { localStorage.setItem(KEY, next); } catch (e) { /* storage blocked */ }
+        sync(btns);
+      });
+    }
+    sync(btns);
   });
 })();

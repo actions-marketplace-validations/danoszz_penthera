@@ -102,7 +102,13 @@ export function extractCommands(markdown, file) {
  */
 export function htmlToText(html) {
   const decode = (t) => t.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&");
-  return decode(html.replace(/<code\b[^>]*>([\s\S]*?)<\/code>/g, (m, c) => `\`${c}\``).replace(/<[^>]*>/g, ""));
+  let text = html.replace(/<code\b[^>]*>([\s\S]*?)<\/code>/g, (m, c) => `\`${c}\``);
+  // Strip until nothing changes, so a tag split by another ("<scr<b>ipt") cannot survive.
+  for (let prev = null; prev !== text;) {
+    prev = text;
+    text = text.replace(/<[^<>]*>/g, "");
+  }
+  return decode(text.replace(/[<>]/g, ""));
 }
 
 /** Commands in one doc file, Markdown or the site's HTML. */

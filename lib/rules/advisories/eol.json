@@ -1,0 +1,413 @@
+{
+  "kind": "runtime-eol",
+  "rules": [
+    {
+      "id": "php-eol",
+      "product": "php",
+      "branches": [
+        {
+          "branch": "8.5",
+          "eol": "2029-12-31"
+        },
+        {
+          "branch": "8.4",
+          "eol": "2028-12-31"
+        },
+        {
+          "branch": "8.3",
+          "eol": "2027-12-31"
+        },
+        {
+          "branch": "8.2",
+          "eol": "2026-12-31"
+        },
+        {
+          "branch": "8.1",
+          "eol": "2025-12-31"
+        },
+        {
+          "branch": "8.0",
+          "eol": "2023-11-26"
+        },
+        {
+          "branch": "7.4",
+          "eol": "2022-11-28"
+        },
+        {
+          "branch": "7.3",
+          "eol": "2021-12-06"
+        },
+        {
+          "branch": "7.2",
+          "eol": "2020-11-30"
+        },
+        {
+          "branch": "7.1",
+          "eol": "2019-12-01"
+        },
+        {
+          "branch": "7.0",
+          "eol": "2019-01-10"
+        },
+        {
+          "branch": "5.6",
+          "eol": "2018-12-31"
+        },
+        {
+          "branch": "5.5",
+          "eol": "2016-07-21"
+        },
+        {
+          "branch": "5.4",
+          "eol": "2015-09-14"
+        },
+        {
+          "branch": "5.3",
+          "eol": "2014-08-14"
+        }
+      ],
+      "source": "https://www.php.net/eol.php",
+      "date": "2026-10-21",
+      "confidence": "confirmed",
+      "description": "End-of-life dates from php.net's Unsupported Branches page; supported lines and their security-support end dates from https://www.php.net/supported-versions.php (8.2 until 2026-12-31, 8.3 until 2027-12-31, 8.4 until 2028-12-31, 8.5 until 2029-12-31). Checked 2026-10-21.",
+      "references": [
+        "phpsupported",
+        "endoflifedate"
+      ]
+    },
+    {
+      "id": "nodejs-eol",
+      "product": "nodejs",
+      "branches": [
+        {
+          "branch": "26",
+          "eol": "2029-04-30"
+        },
+        {
+          "branch": "25",
+          "eol": "2026-06-01"
+        },
+        {
+          "branch": "24",
+          "eol": "2028-04-30"
+        },
+        {
+          "branch": "23",
+          "eol": "2025-06-01"
+        },
+        {
+          "branch": "22",
+          "eol": "2027-04-30"
+        },
+        {
+          "branch": "21",
+          "eol": "2024-06-01"
+        },
+        {
+          "branch": "20",
+          "eol": "2026-04-30"
+        },
+        {
+          "branch": "19",
+          "eol": "2023-06-01"
+        },
+        {
+          "branch": "18",
+          "eol": "2025-04-30"
+        },
+        {
+          "branch": "17",
+          "eol": "2022-06-01"
+        },
+        {
+          "branch": "16",
+          "eol": "2023-09-11"
+        },
+        {
+          "branch": "15",
+          "eol": "2021-06-01"
+        },
+        {
+          "branch": "14",
+          "eol": "2023-04-30"
+        },
+        {
+          "branch": "13",
+          "eol": "2020-06-01"
+        },
+        {
+          "branch": "12",
+          "eol": "2022-04-30"
+        },
+        {
+          "branch": "11",
+          "eol": "2019-06-30"
+        },
+        {
+          "branch": "10",
+          "eol": "2021-04-30"
+        },
+        {
+          "branch": "9",
+          "eol": "2018-06-30"
+        },
+        {
+          "branch": "8",
+          "eol": "2019-12-31"
+        },
+        {
+          "branch": "6",
+          "eol": "2019-04-30"
+        },
+        {
+          "branch": "4",
+          "eol": "2018-04-30"
+        }
+      ],
+      "source": "https://nodejs.org/en/about/previous-releases",
+      "date": "2026-10-21",
+      "confidence": "confirmed",
+      "description": "From the Node.js release schedule (https://github.com/nodejs/Release/blob/main/schedule.json): 22, 24 and 26 are supported; 25 ended 2026-06-01 and 20 ended 2026-04-30. Checked 2026-10-21.",
+      "references": [
+        "nodejsreleases",
+        "endoflifedate"
+      ]
+    },
+    {
+      "id": "python-eol",
+      "product": "python",
+      "branches": [
+        {
+          "branch": "3.10",
+          "eol": "2026-10-01"
+        },
+        {
+          "branch": "3.9",
+          "eol": "2025-10-31"
+        },
+        {
+          "branch": "3.8",
+          "eol": "2024-10-07"
+        },
+        {
+          "branch": "3.7",
+          "eol": "2023-06-27"
+        },
+        {
+          "branch": "3.6",
+          "eol": "2021-12-23"
+        },
+        {
+          "branch": "3.5",
+          "eol": "2020-09-30"
+        },
+        {
+          "branch": "3.4",
+          "eol": "2019-03-18"
+        },
+        {
+          "branch": "3.3",
+          "eol": "2017-09-29"
+        },
+        {
+          "branch": "2.7",
+          "eol": "2020-01-01"
+        }
+      ],
+      "source": "https://devguide.python.org/versions/",
+      "date": "2026-10-21",
+      "confidence": "confirmed",
+      "description": "From the Python Developer's Guide status of Python versions: 3.11 to 3.15 are supported; 3.10 reached end of life on 2026-10-01. Only ended lines are listed, since future ends are given to the month. Checked 2026-10-21.",
+      "references": [
+        "pythondevguideversions",
+        "endoflifedate"
+      ]
+    },
+    {
+      "id": "nginx-eol",
+      "product": "nginx",
+      "branches": [
+        {
+          "branch": "1.29",
+          "eol": "2026-05-13"
+        },
+        {
+          "branch": "1.28",
+          "eol": "2026-04-14"
+        },
+        {
+          "branch": "1.27",
+          "eol": "2025-06-24"
+        },
+        {
+          "branch": "1.26",
+          "eol": "2025-04-23"
+        },
+        {
+          "branch": "1.25",
+          "eol": "2024-05-29"
+        },
+        {
+          "branch": "1.24",
+          "eol": "2024-04-23"
+        },
+        {
+          "branch": "1.23",
+          "eol": "2023-05-23"
+        },
+        {
+          "branch": "1.22",
+          "eol": "2023-04-11"
+        },
+        {
+          "branch": "1.21",
+          "eol": "2022-06-21"
+        },
+        {
+          "branch": "1.20",
+          "eol": "2022-05-24"
+        },
+        {
+          "branch": "1.19",
+          "eol": "2021-05-25"
+        },
+        {
+          "branch": "1.18",
+          "eol": "2021-04-20"
+        },
+        {
+          "branch": "1.17",
+          "eol": "2020-05-26"
+        },
+        {
+          "branch": "1.16",
+          "eol": "2020-04-20"
+        },
+        {
+          "branch": "1.15",
+          "eol": "2019-05-21"
+        },
+        {
+          "branch": "1.14",
+          "eol": "2019-04-23"
+        },
+        {
+          "branch": "1.13",
+          "eol": "2018-06-05"
+        },
+        {
+          "branch": "1.12",
+          "eol": "2018-04-17"
+        },
+        {
+          "branch": "1.11",
+          "eol": "2017-04-25"
+        },
+        {
+          "branch": "1.10",
+          "eol": "2017-04-12"
+        }
+      ],
+      "source": "https://nginx.org/en/download.html",
+      "date": "2026-10-21",
+      "confidence": "likely",
+      "description": "nginx supports only the current mainline (1.31) and stable (1.30) lines and lists older ones as legacy versions with no fixes. The dates each line stopped being supported are from endoflife.date (https://endoflife.date/nginx), a secondary source, hence confidence likely. Checked 2026-10-21.",
+      "references": [
+        "nginxadvisories",
+        "endoflifedate"
+      ]
+    },
+    {
+      "id": "apache-httpd-eol",
+      "product": "apache-httpd",
+      "branches": [
+        {
+          "branch": "2.2",
+          "eol": "2017-07-11"
+        },
+        {
+          "branch": "2.0",
+          "eol": "2013-07-10"
+        }
+      ],
+      "source": "https://httpd.apache.org/",
+      "date": "2026-10-21",
+      "confidence": "confirmed",
+      "description": "httpd.apache.org: Apache httpd 2.2 is end of life, the final release was 2.2.34 (July 2017), with no further security updates; only 2.4 is supported. Dates of the final 2.2 and 2.0 releases from endoflife.date. Checked 2026-10-21.",
+      "references": [
+        "httpdvulns24",
+        "endoflifedate"
+      ]
+    },
+    {
+      "id": "openssl-eol",
+      "product": "openssl",
+      "branches": [
+        {
+          "branch": "0.9.8",
+          "eol": "2015-12-31"
+        },
+        {
+          "branch": "1.0.0",
+          "eol": "2015-12-31"
+        },
+        {
+          "branch": "1.0.1",
+          "eol": "2016-12-31"
+        },
+        {
+          "branch": "1.0.2",
+          "eol": "2019-12-31"
+        },
+        {
+          "branch": "1.1.0",
+          "eol": "2019-09-11"
+        },
+        {
+          "branch": "1.1.1",
+          "eol": "2023-09-11"
+        },
+        {
+          "branch": "3.0",
+          "eol": "2026-09-07"
+        },
+        {
+          "branch": "3.1",
+          "eol": "2025-03-14"
+        },
+        {
+          "branch": "3.2",
+          "eol": "2025-11-23"
+        },
+        {
+          "branch": "3.3",
+          "eol": "2026-04-09"
+        },
+        {
+          "branch": "3.4",
+          "eol": "2026-10-22"
+        },
+        {
+          "branch": "3.5",
+          "eol": "2030-04-08"
+        },
+        {
+          "branch": "3.6",
+          "eol": "2026-11-01"
+        },
+        {
+          "branch": "4.0",
+          "eol": "2027-05-14"
+        }
+      ],
+      "source": "https://endoflife.date/openssl",
+      "date": "2026-10-21",
+      "confidence": "confirmed",
+      "description": "Dates from endoflife.date, checked on 2026-10-21 against the OpenSSL release strategy (https://openssl-library.org/policies/releasestrat/), which lists 3.4, 3.5, 3.6 and 4.0 as supported and 3.0, 1.1.1, 1.0.2 and older as no longer supported (paid extended support exists for 3.0, 1.1.1 and 1.0.2).",
+      "references": [
+        "opensslvulns",
+        "endoflifedate"
+      ]
+    }
+  ]
+}

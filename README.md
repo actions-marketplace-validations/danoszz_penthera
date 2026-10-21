@@ -1,10 +1,14 @@
 <div align="center">
 
-<img src="assets/penthera-social.jpg" alt="Penthera: Cyber Security Agent" width="840">
+<img src="assets/penthera-social.jpg" alt="Penthera: your open-source cyber security agent" width="840">
 
 <br/><br/>
 
-**Penthera: an open-source cyber security agent you can use today, and verify yourself.**
+**Penthera: your open-source cyber security agent**
+
+The security review you never had time for. Offline, rule-based, and you can verify every finding yourself.
+
+**[penthera.org](https://penthera.org)**: try the check in your browser. Nothing you paste leaves the page.
 
 <br/>
 
@@ -150,7 +154,7 @@ Each feature goes through the same path: **method → evidence → tool.**
 - **Method.** The [methodology](docs/METHODOLOGY.md) states the threat model,
   what black-box (HTTP) and white-box (source) analysis can and cannot see, the
   confidence model, and the false-positive controls on each probe. Each design
-  choice cites the research or standard it rests on: 57 verified references, in
+  choice cites the research or standard it rests on: 92 verified references, in
   APA style, in [docs/references.md](docs/references.md).
 - **Evidence.** A benchmark runs on every release, and the release gate fails
   if precision or recall drops by more than 0.02. Experiments that decide what
@@ -161,17 +165,17 @@ Each feature goes through the same path: **method → evidence → tool.**
 
 | Measure | Result today |
 |---|---|
-| Precision on the bundled benchmark | 0.86, 95% CI 0.67 to 0.95 (19 true positives, 3 false positives) |
-| Recall on the bundled benchmark | 0.90, 95% CI 0.71 to 0.97 (2 misses, [each one explained](bench/RESULTS.md)) |
+| Precision on the bundled benchmark | 0.88, 95% CI 0.69 to 0.96 (21 true positives, 3 false positives) |
+| Recall on the bundled benchmark | 0.91, 95% CI 0.73 to 0.98 (2 misses, [each one explained](bench/RESULTS.md)) |
 | Requests to non-loopback hosts during the benchmark | 0 |
 | Detection rules, all readable | 14 URL scan templates, 20 secret and AI-key patterns, 15 dependency capabilities, 39 AI-tooling rules, 5 fix recipes |
 
-These numbers come from 22 findings in small labs that we wrote ourselves, so
+These numbers come from 24 findings in small labs that we wrote ourselves, so
 they catch regressions; they do not measure real-world accuracy. Measuring that
 on real projects is experiment E1, the first step of the
 [research plan](docs/vision-2.0.md). Intervals are Wilson. What Penthera cannot
 see is listed under [Known limitations](docs/METHODOLOGY.md#known-limitations).
-Counts as of 2026-10-20; refresh them with `npm run docs:numbers` and
+Counts as of 2026-10-21; refresh them with `npm run docs:numbers` and
 `npm run bench`.
 
 **Cite this repository** with the button on GitHub or
@@ -263,9 +267,9 @@ What changed, what we are measuring, and what comes next, in one place.
 
 | | Where it stands | Read more |
 |---|---|---|
-| **Latest release** | 1.7.0 (2026-10-19): one-command setup (`npx penthera`), the dashboard, signed rule packs | [CHANGELOG](CHANGELOG.md) |
-| **On main, unreleased** | Fixes from a second independent security review, a fix loop that cannot edit the tests that judge it, release checks on Linux, macOS and Windows, docs tested as code | [Unreleased](CHANGELOG.md#unreleased) |
-| **Now** | 1.8.0 feature freeze: fixes only, a release candidate on npm's `next` tag first | [Roadmap: now](ROADMAP.md#now-180-feature-freeze) |
+| **Latest release** | 1.8.0 (2026-10-21): runtime advisories starting with PHP's critical release, fixes from a second security review, a fix loop that cannot edit its own tests, the redesigned dashboard | [CHANGELOG](CHANGELOG.md) |
+| **On main, unreleased** | Whatever lands after 1.8.0 | [Unreleased](CHANGELOG.md#unreleased) |
+| **Now** | Toward 1.9: accuracy on real code (E1) and an MCP server, so coding agents can call Penthera | [Roadmap](ROADMAP.md#next) |
 | **Research** | E1, accuracy on real code, is pre-registered; the benchmark tooling is in review. After the 2026 agent incidents: a checklist for running agents safely and a draft experiment (E8) | [E1 pre-registration](docs/research/prereg/E1-real-world-accuracy.md), [agents safely](docs/agents-safely.md), [what the incidents mean](docs/research/agent-incidents-2026.md) |
 | **Next** | Real-world precision and recall with intervals, published whatever the result | [Roadmap: next](ROADMAP.md#next), [research plan](docs/vision-2.0.md) |
 

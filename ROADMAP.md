@@ -12,15 +12,16 @@ hour, and a feature that does not serve a real user question, or does not hold
 up when measured, does not ship. Issues and pull requests are welcome on
 anything here.
 
-## Now: 1.8.0, feature freeze
+## Just shipped: 1.8.0
 
-1.8.0 is what is on main, including the security hardening, plus the dashboard
-redesign ([#63](https://github.com/danoszz/penthera/pull/63)). From here only fixes go in.
-It ships as `1.8.0-rc.1` on npm's `next` tag first, and as 1.8.0 only after
-the release candidate holds up and the maintainer approves.
+Released on 2026-10-21 (`npx penthera`), after a feature freeze, an
+independent security review and a release candidate. The next minor, 1.9,
+follows the same path: a freeze, a review, then `1.9.0-rc.1` on npm's `next`
+tag.
 
 | In 1.8.0 | What it means for you |
 |---|---|
+| Runtime advisories | Is the PHP, Apache, nginx, Node.js, Python or OpenSSL you run affected? Starts with PHP's critical release of 21 October 2026 |
 | Dashboard redesign | `penthera ui` gets a Simple mode with a one-sentence verdict for first-timers, and an Advanced mode for pros |
 | Security hardening | Fixes from a second independent review: dependency scans fail closed, the fix loop keeps your uncommitted work, the hook and dashboard are harder to bypass |
 | A fix loop that cannot game its checker | Fixes may not edit tests, CI or Penthera's own settings; "could not fix" is a recorded outcome |

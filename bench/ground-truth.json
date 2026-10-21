@@ -31,7 +31,8 @@
         { "id": "xss-reflected", "category": "xss", "title": "Reflected XSS", "path": "/api/products" },
         { "id": "ssti", "category": "ssti", "title": "Server-Side Template Injection", "path": "/api/generate" },
         { "id": "open-redirect", "category": "open-redirect", "title": "Open redirect", "path": "/api/connect" },
-        { "id": "cmdi", "category": "cmdi", "title": "command injection", "path": "/api/ping" }
+        { "id": "cmdi", "category": "cmdi", "title": "command injection", "path": "/api/ping" },
+        { "id": "httpd-banner", "category": "runtime-advisory", "title": "Apache HTTP Server 2\\.4\\.49 is affected by Path traversal", "note": "Server: Apache/2.4.49 on the homepage. CVE-2021-41773 and CVE-2021-42013 affect 2.4.49 and 2.4.50 (httpd.apache.org)." }
       ],
       "notVulnerable": [
         { "id": "script-in-plain-text", "title": "Fuzz", "path": "/api/generate", "reason": "The response is text/plain, so a <script> string in it does not execute. The fuzzer's XSS heuristic does not check Content-Type, which is why it labels this potential." }
@@ -49,7 +50,8 @@
         { "id": "one-slow-response", "path": "/api/events", "reason": "First sleep payload is answered after 3.3s, later ones instantly. Tests timing re-sampling." },
         { "id": "relative-redirect", "path": "/api/download", "reason": "Redirects only to same-site paths and rejects // and /\\. Tests the redirect host check." },
         { "id": "rate-limited-login", "path": "/api/login", "reason": "Returns 429 after three attempts." },
-        { "id": "hardened-headers", "path": "/", "reason": "CSP, XFO, XCTO, Referrer-Policy and Permissions-Policy are all set." }
+        { "id": "hardened-headers", "path": "/", "reason": "CSP, XFO, XCTO, Referrer-Policy and Permissions-Policy are all set." },
+        { "id": "httpd-before-introduced", "path": "/", "reason": "Server: Apache/2.4.48 predates CVE-2021-41773, introduced in 2.4.49. Tests the advisory's introduced version. Real 2.4.48 has other CVEs that the bundled pack does not list." }
       ]
     },
     "repo-fixture": {
@@ -63,14 +65,16 @@
         { "id": "openrouter-key", "category": "secrets", "title": "OpenRouter API key", "file": "notebooks/eval.py" },
         { "id": "db-password", "category": "secrets", "title": "Hardcoded password", "file": "server/db.js" },
         { "id": "token-in-markdown", "category": "secrets", "title": "Hugging Face token", "file": "docs/deploy-notes.md", "note": "Secrets leak through docs and notes too (Meli et al. 2019). Markdown is not in the scanned file types, so this is an expected miss." },
-        { "id": "unprefixed-signing-key", "category": "secrets", "title": ".", "file": "src/webhooks.js", "note": "High-entropy value with no provider prefix and a variable name outside the generic patterns. Pattern-based detection is expected to miss this; it is kept to keep the recall figure honest." }
+        { "id": "unprefixed-signing-key", "category": "secrets", "title": ".", "file": "src/webhooks.js", "note": "High-entropy value with no provider prefix and a variable name outside the generic patterns. Pattern-based detection is expected to miss this; it is kept to keep the recall figure honest." },
+        { "id": "httpd-pinned", "category": "runtime-advisory", "title": "Apache HTTP Server 2\\.4\\.50 is affected by Path traversal", "file": "deploy/Dockerfile" }
       ],
       "notVulnerable": [
         { "id": "env-lookup", "file": "src/env.js", "reason": "Reads keys from process.env." },
         { "id": "env-example", "file": ".env.example", "reason": "Placeholder values." },
         { "id": "placeholders", "file": "src/settings.js", "reason": "Placeholder and masked values." },
         { "id": "docs-redacted", "file": "docs/setup.md", "reason": "Documentation with a redacted value." },
-        { "id": "aws-docs-example", "file": "config/aws.example.yaml", "reason": "AWS's published documentation example key (AKIA...EXAMPLE), which is not a credential." }
+        { "id": "aws-docs-example", "file": "config/aws.example.yaml", "reason": "AWS's published documentation example key (AKIA...EXAMPLE), which is not a credential." },
+        { "id": "httpd-pinned-before", "file": "deploy/legacy.Dockerfile", "reason": "httpd:2.4.48 predates CVE-2021-41773, introduced in 2.4.49." }
       ]
     },
     "juice-shop": {

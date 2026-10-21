@@ -114,3 +114,40 @@ jobs:
         with:
           name: penthera-ci-reports
           path: reports/
+
+  # The website (site/, deployed by Vercel). Builds it the way Vercel does,
+  # holds the browser check to the CLI on the agents and deps fixtures, and
+  # runs Penthera on the site's code and on the served pages.
+  site:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build the site
+        run: node site/build.mjs
+
+      - name: Browser check against the agents and deps fixtures
+        run: npx vitest run tests/site.test.js
+
+      - name: Penthera on the site's code
+        run: |
+          node bin/penthera.js --repo site --offline --no-footer
+          node bin/penthera.js agents site --no-footer
+
+      - name: Penthera on the served site, with its production headers
+        run: |
+          node site/serve.mjs --port 4173 &
+          for i in $(seq 1 30); do
+            curl -sf -o /dev/null http://127.0.0.1:4173/ && break
+            sleep 1
+          done
+          curl -sI http://127.0.0.1:4173/ | grep -i "^content-security-policy: .*connect-src https://penthera.org/_vercel/insights/ https://penthera.org/_vercel/speed-insights/ https://www.penthera.org/_vercel/insights/ https://www.penthera.org/_vercel/speed-insights/;"
+          node bin/penthera.js http://127.0.0.1:4173 --offline --no-footer

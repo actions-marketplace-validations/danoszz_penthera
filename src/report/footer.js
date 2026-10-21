@@ -3,7 +3,7 @@
  * report, audience reports, the PR comment and the evidence bundle README.
  * Never added to SARIF or JSON. `--no-footer` turns it off.
  */
-export const FOOTER = "Checked by Penthera, open-source security for the apps and AI systems you ship · https://github.com/danoszz/penthera";
+export const FOOTER = "Checked by Penthera, an open-source cyber security agent · https://github.com/danoszz/penthera";
 
 /** Lines to push at the very end of a Markdown document, or none when opted out. */
 export function footerLines({ footer = true } = {}) {

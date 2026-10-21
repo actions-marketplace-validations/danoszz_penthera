@@ -4,7 +4,87 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Site
+
+- penthera.org counts anonymous page views and load times with Vercel Web
+  Analytics and Speed Insights (cookieless, served from the same origin). The
+  CSP now allows connections only to those two paths on penthera.org; the
+  browser check still sends nothing, and the page says so. The CLI, the
+  dashboard and the npm package have no telemetry, unchanged.
+
 ### Docs
+
+- The website is live at [penthera.org](https://penthera.org): the README links
+  it, and the npm package's homepage points to it from the next release.
+
+## [1.8.0] - 2026-10-21
+
+1.8.0 is 1.8.0-rc.1 plus the changes below; there was no separate rc.2
+release. Highlights across both: fixes from a second independent security
+review, a fix loop that cannot edit the tests that judge it, the redesigned
+dashboard (Simple and Advanced mode), release checks on Linux, macOS and
+Windows, and now runtime advisories, starting with PHP's critical security
+release of 21 October 2026, in a new signed `advisories` rule pack (1.8.0-rc.1
+cannot load it). The benchmark gained two PHP cases: precision 0.88 (95% CI
+0.69 to 0.96) and recall 0.91 (0.73 to 0.98) on 24 scored findings.
+
+### Added
+
+- **Runtime advisories: is the PHP, Apache, nginx, Node.js, Python or OpenSSL
+  you run affected?** URL scans read `Server` and `X-Powered-By` banners, the
+  `PHPSESSID` cookie name and `.php` pages. Repo scans read Dockerfile and
+  compose images, `.tool-versions`, `.php-version`, `.nvmrc`,
+  `.python-version`, `runtime.txt` and `composer.json`. Each product and
+  version gets one answer: affected, end of life with no fix, check on server,
+  or has the fix (as advertised). A hidden version is never reported as safe.
+  A distribution build (`8.1.2-1ubuntu2.19`, or any version behind a `Server`
+  header that names a distribution) is never reported as affected, because
+  distributions backport fixes under the same version number. Advisories that
+  need more than a version (Windows, CGI) stay `potential`. See
+  [docs/runtime-advisories.md](docs/runtime-advisories.md).
+- **Two rule-pack kinds, `runtime-advisory` and `runtime-eol`**, so a new
+  advisory ships as a signed data pack (`--rules`) the same day, without a
+  release. End of life is judged by the pack's date, not the scan's clock.
+- **A bundled `advisories` pack** with the PHP security release of 21 October
+  2026 (CVE-2026-109618 and CVE-2026-109619, both Critical, CVSS 4.0 9.2,
+  fixed in 8.2.35, 8.3.36, 8.4.27 and 8.5.12, from the php-src advisories),
+  vendor-checked worked examples (CVE-2024-4577 and CVE-2024-8926 for PHP-CGI on Windows, CVE-2021-41773 and
+  CVE-2021-42013 for Apache HTTP Server 2.4.49 and 2.4.50) and end-of-life
+  release lines. Benchmark cases for both URL and repo scans.
+
+### Site
+
+- **A landing page in `site/`**, a static site for Vercel: the positioning,
+  `npx penthera`, prompts for Claude Code, Cursor and Codex, the hero loop and
+  the walkthrough, the limits and the research plan. No third-party scripts,
+  analytics or cookies; fonts are self-hosted or system fonts.
+- **A check in the browser.** Drop or paste a `package.json`, `.mcp.json`,
+  `.claude/settings.json`, `CLAUDE.md` or `AGENTS.md` and Penthera's own
+  `lib/` code runs in the tab: the agent-config rules, the secret patterns,
+  install scripts, typosquats against the vendored popular list, and the
+  bundled IOC pack. `site/build.mjs` bundles `lib/` at build time, so the site
+  and the CLI run the same rules; `tests/site.test.js` holds the page to the
+  CLI on the agents and deps fixtures. The page is served with
+  `connect-src 'none'`, so it cannot send the files anywhere.
+- **Runtime advisories in the browser check.** Drop a `Dockerfile`,
+  `compose.yaml`, `.php-version`, `.tool-versions` or `composer.json`, or
+  paste the response headers `curl -sI` printed for your site (the page never
+  contacts it), and `lib/advisories` runs on them: the same findings and
+  confidence as the CLI, with "check on the server: distributions backport
+  fixes" next to every version-only verdict. `tests/site.test.js` compares
+  pasted headers with a URL scan of a loopback server sending the same
+  headers, and runtime pins with `runtimeAdvisoriesForRepo`.
+- `penthera deps` findings are built in `lib/deps/findings.js` (moved from
+  `lib/deps/index.js`, no behaviour change), so the browser check uses the
+  same wording.
+- `scripts/docs-commands.mjs` also checks every command the site shows.
+
+### Docs
+
+- **New title for the launch:** "Penthera: your open-source cyber security
+  agent", in the README, docs index, `penthera --help`, the GitHub Action name
+  (which renames its Marketplace listing), the dashboard and the report
+  footer.
 
 - **README hero is a 12-second loop** of the terminal and the dashboard
   (setup, an offline scan, Simple and Advanced mode, a fix approved), cut from

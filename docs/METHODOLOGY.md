@@ -16,8 +16,8 @@ that follow from fail-safe design. Detection rules are distributed only in
 reviewed, versioned releases, never through a live feed, which removes an
 update channel from the attack surface. Each design choice is tied to prior
 research or a published standard. On a bundled benchmark of labeled local
-targets, Penthera reaches a precision of 0.86 (95% CI 0.67 to 0.95) and a recall
-of 0.90 (95% CI 0.71 to 0.97) on 22 scored findings. Because the same authors
+targets, Penthera reaches a precision of 0.88 (95% CI 0.69 to 0.96) and a recall
+of 0.91 (95% CI 0.73 to 0.98) on 24 scored findings. Because the same authors
 wrote the scanner and the targets, these figures measure
 regressions, not accuracy on arbitrary applications.
 
@@ -28,7 +28,7 @@ software. The metadata are in [CITATION.cff](../CITATION.cff), which GitHub
 renders as "Cite this repository".
 
 ```text
-van der Zwaag, D. (2026). Penthera: An offline security scanner for web apps and AI-built code (Version 1.8.0-rc.1) [Computer software]. https://github.com/danoszz/penthera
+van der Zwaag, D. (2026). Penthera: An offline security scanner for web apps and AI-built code (Version 1.8.0) [Computer software]. https://github.com/danoszz/penthera
 ```
 
 ```bibtex
@@ -36,7 +36,7 @@ van der Zwaag, D. (2026). Penthera: An offline security scanner for web apps and
   author  = {van der Zwaag, Daan},
   title   = {Penthera: An Offline Security Scanner for Web Apps and {AI}-Built Code},
   year    = {2026},
-  version = {1.8.0-rc.1},
+  version = {1.8.0},
   license = {MIT},
   url     = {https://github.com/danoszz/penthera}
 }
@@ -53,6 +53,7 @@ in [bench/README.md](../bench/README.md).
 
 - [Threat model](#threat-model)
 - [Black-box and white-box: what each can find](#black-box-and-white-box-what-each-can-find)
+- [Runtime advisories](#runtime-advisories)
 - [Confidence model](#confidence-model)
 - [False-positive controls](#false-positive-controls)
 - [Non-destructive by default](#non-destructive-by-default)
@@ -182,6 +183,148 @@ Running both against the same app catches cases neither sees alone: a route
 the repository marks as public that the black-box scan confirms is reachable,
 or a header the code sets that the edge strips. The report keeps the origin of
 each finding (`source`, `method`) so a reader can tell which side produced it.
+
+## Runtime advisories
+
+When a runtime or web server gets a security release, such as the critical PHP
+release announced on 20 October 2026 (The PHP Group, 2026), the question is
+which systems run an affected version. Penthera answers it from two kinds of
+evidence and says what it cannot know. The code is in
+[lib/advisories/](../lib/advisories/), and the advisory data is in signed rule
+packs ([runtime-advisories.md](runtime-advisories.md)).
+
+### Evidence
+
+**Black-box.** The URL scan reads what the homepage says about itself: the
+`Server` and `X-Powered-By` headers, PHP's default `PHPSESSID` cookie name,
+and links to `.php` pages or `.php` paths found by endpoint discovery. These
+are the signals of WSTG-INFO-02 (fingerprint web server) and WSTG-INFO-08
+(fingerprint web application framework) in the OWASP Web Security Testing
+Guide (OWASP Foundation, n.d.-b), and the same ones that common fingerprinting
+templates use (ProjectDiscovery, n.d.). They are widespread. In a scan of the
+top one million websites, over 85% exposed server information in headers,
+`X-Powered-By` appeared in 48% of responses and carried the PHP version in two
+thirds of those, and `PHPSESSID` was the second most common cookie name
+(Lavrenovs & Melon, 2018). PHP adds the version header by default through its
+`expose_php` directive (The PHP Group, n.d.-a). Lauinger et al. (2017) took
+the same version-based approach for JavaScript libraries on websites.
+
+**White-box.** The repository scan reads what the project pins: base images in
+Dockerfiles and compose files, `.tool-versions`, `.php-version`, `.nvmrc`,
+`.python-version`, `runtime.txt`, and `composer.json`. An exact image tag
+(`php:8.3.12-fpm`) names an upstream build. A floating tag (`php:8.3`) names
+only a release line, and `composer.json` only says that PHP is in use.
+
+### Verdicts
+
+Each product and version gets one of four answers:
+
+| Verdict | Evidence | Severity, confidence |
+|---|---|---|
+| Affected | An exact upstream version below the first fixed version on its line | The vendor's severity, `likely` |
+| End of life, no fix | A version on a line the vendor no longer supports | The advisory's severity, `potential`; plus an end-of-life finding |
+| Check on server | The product is in use, but the version is hidden, floating, or a distribution build, or the advisory lists no fix for that line | Medium, `needs-human-review` |
+| Has the fix (as advertised) | The visible version is at or above every fix | Info |
+
+No evidence gives no answer, and the report never treats that as safe.
+
+Four choices keep the verdicts honest.
+
+**A hidden version is unknown, not safe.** Removing or changing the `Server`
+header does not stop identification. Lee et al. (2002) identified web servers
+even where the server information was omitted, and Kar et al. (2022)
+fingerprinted servers regardless of the mitigation applied. PHP's manual calls
+hiding PHP security by obscurity, a weak measure (The PHP Group, n.d.-a). The
+NCSC's guidelines for web applications make the same point: removing the
+version number "helpt ten dele" [helps partly], because fingerprinting can
+often still reveal it. They also note that researchers use a disclosed version
+to warn owners, and ask for a deliberate trade-off (Nationaal Cyber Security
+Centrum, 2024). On the day of the PHP release, the NCSC was quoted as saying
+that every internet-reachable system containing PHP is presumably vulnerable
+until it is updated (NOS, 2026). We found no primary NCSC text for that quote;
+its own website was offline as a precaution.
+
+**A distribution build is never "affected".** Debian, Ubuntu and Red Hat fix
+security issues by backporting patches into the version they shipped, not by
+moving to the upstream release that has the fix (Debian Project, n.d.; Red
+Hat, n.d.; Ubuntu Security Team, n.d.). Red Hat and Ubuntu both say that
+scanners which judge by version number alone produce false positives for this
+reason. Nmap's documentation warns that a version number cannot prove a
+service vulnerable, because fixes are backported, and that administrators can
+spoof it (Lyon, 2009). Zhang and Qian (2018) describe the same divergence for
+downstream Linux kernels and test for the patch itself instead of the version.
+So a version with a distribution suffix (`8.1.2-1ubuntu2.19`), or any version
+behind a `Server` header that names a distribution, gets "check on server",
+with the advice to look up the CVE in the distribution's security tracker. We
+found no peer-reviewed measurement of how many false positives backports cause
+in version-based scanners. The support for this rule is the distributions' own
+statements and the Nmap project's.
+
+**A version match is necessary, not sufficient.** Many advisories need more
+than a version. CVE-2024-4577, an argument injection in PHP-CGI, only
+affected PHP running as CGI on Windows, and DEVCORE (2024), who found it,
+confirmed exploitation under specific Windows code pages. Its 2012
+predecessor did not affect mod_php or php-fpm at all (The PHP Group, 2012).
+Censys (2024) counted about 458,800 exposed PHP instances by version and called
+that count likely an overestimate, because a scan cannot see whether CGI mode
+is on. Durumeric et al. (2014) made the same observation for Heartbleed: an
+early estimate taken from Apache and nginx market share probably overstated
+the vulnerable population, which they measured with an active protocol probe
+instead. A rule can therefore carry a `condition`, and a finding from such a
+rule never goes above `potential`.
+
+**"Has the fix" is information, not a clean bill of health.** A banner can be
+stale, a proxy can rewrite it, and fixes themselves can be incomplete. Li and
+Paxson (2017) found that 7% of the security fixes they studied failed to
+remediate the issue completely. CVE-2024-4577 is itself a bypass of the fix
+for CVE-2012-1823 (The PHP Group, n.d.-b).
+
+### Advisory data
+
+Advisories and end-of-life lines are data, not code, so a new advisory can be
+published as a signed pack and used the same day with `--rules`, without a
+release (see [How new attack techniques are adopted](#how-new-attack-techniques-are-adopted)).
+Speed matters here. Fix commits are often public weeks before the advisory
+(Li & Paxson, 2017), deployment of patches lags far behind their release
+(Nappa et al., 2015), and a working analysis of CVE-2024-4577 was public a day
+after the fix.
+
+Each rule copies its affected and fixed versions from the vendor: the php-src
+security advisories (The PHP Group, n.d.-b), the Apache HTTP Server
+vulnerability list (The Apache Software Foundation, n.d.), and for later packs
+the nginx and OpenSSL advisory pages (nginx, n.d.; OpenSSL Library, n.d.).
+Fixed versions are recorded per release line, because vendors patch each
+supported line separately and a single range would misclassify versions on
+other lines. That is the same per-line shape that the OSV format uses for its
+`introduced` and `fixed` events (Chang & Cox, 2026). Severity is the vendor's,
+with the CVSS score where the vendor gives one (FIRST, 2023). The CISA Known
+Exploited Vulnerabilities catalog, which is CC0-licensed, is a candidate source
+for an exploited-in-the-wild flag (Cybersecurity and Infrastructure Security
+Agency, n.d.).
+
+End-of-life lines come from each vendor's support page (OpenJS Foundation and
+Node.js contributors, n.d.; Python Software Foundation, n.d.; The PHP Group,
+n.d.-c), cross-checked against endoflife.date (endoflife.date contributors,
+n.d.). A line counts as ended only when its end date is on or before the
+date of the rule, so the same scan with the same packs gives the same result on
+any day.
+
+The NCSC-NL publishes signed advisories in the CSAF 2.0 format (Nationaal
+Cyber Security Centrum, n.d.; Rock et al., 2022). We checked whether they could
+drive version matching. They cannot: most 2025 and 2026 entries record the
+affected version as unknown and refer to the vendor's page, and the feed has
+no open license. Penthera uses the vendor pages directly and cites the NCSC
+guidance in the methodology instead.
+
+### What this does not claim
+
+Penthera judges known vulnerable versions, not age. Outdated software is not
+simply more likely to be compromised: in a case-control study of hacked
+webservers, sites running outdated WordPress were less likely to be compromised
+than up-to-date ones (Vasek et al., 2016). An end-of-life finding is about the
+absence of future fixes, not about current compromise. The scanner also does not
+notify third parties. It reports to the owner who runs it, because
+notifications sent to site operators mostly do not arrive (Stock et al., 2016).
 
 ## Confidence model
 
@@ -403,13 +546,20 @@ are welcome (see [MANIFESTO.md](MANIFESTO.md)).
   - A fix counts as verified when the finding disappears and the project's own
     tests pass. Weak or missing tests mean weak verification.
   - Built-in recipes cover a handful of frameworks and finding types.
+- **Runtime advisories.**
+  - Only the homepage response is fingerprinted, so a PHP backend behind a CDN
+    or reverse proxy that strips headers is invisible from outside.
+  - The answers are only as current as the packs. An advisory published after
+    the last pack is not checked until a new pack is loaded.
+  - Distribution builds always need a check on the server; Penthera does not
+    read distribution security trackers.
 - **Live AI features.** LLM endpoint checks (rate limits on chat endpoints,
   exposed model servers) are not yet available.
 
 ### How far the evidence reaches
 
-- **Small sample.** The bundled benchmark scores 22 findings. Precision 0.86 and
-  recall 0.90 come with wide 95% Wilson intervals (0.67 to 0.95 and 0.71 to 0.97), so
+- **Small sample.** The bundled benchmark scores 24 findings. Precision 0.88 and
+  recall 0.91 come with wide 95% Wilson intervals (0.69 to 0.96 and 0.73 to 0.98), so
   small changes in either are not meaningful.
 - **Built by the same team.** The benchmark targets, their labels, and the
   scanner were written by the same people, so the numbers measure regressions

@@ -28,6 +28,7 @@ const TOPICS = [
   ["web", "Web application security"],
   ["llm", "LLM and agent security"],
   ["standards", "Standards and regulation"],
+  ["advisories", "Vulnerability advisories and version data"],
 ];
 
 /** Entries with this keyword may stay uncited in METHODOLOGY.md. */

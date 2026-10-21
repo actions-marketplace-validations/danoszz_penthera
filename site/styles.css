@@ -627,7 +627,9 @@ textarea:focus-visible, select:focus-visible { outline-offset: 0; }
   display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 32px;
   font-size: 12px;
 }
-.foot a { display: inline-block; padding: 12px 0; margin: -12px 0; }
+.foot p a { display: inline-block; padding: 12px 0; margin: -12px 0; }
+/* The bar's three controls again, so the end of the page has the same ways out. */
+.foot-ctas { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
 /* The maker, at the end of Open R&D. */
 .by {
   justify-self: start;

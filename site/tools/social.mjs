@@ -31,10 +31,9 @@ const logo = readFileSync(join(ROOT, "src", "ui", "static", "logo.svg"), "utf8")
   .replace(/fill="currentColor"/g, 'fill="#ffffff"');
 const field = `data:image/png;base64,${readFileSync(join(SITE, "media", "field.png")).toString("base64")}`;
 const font = pathToFileURL(join(ROOT, "src", "ui", "static", "fonts", "DepartureMono-Regular.woff2")).href;
-// The approved title (without the "Penthera:" the logotype already says) and
-// the subline. A non-breaking hyphen keeps "open-source" on one line.
+// The approved title, without the "Penthera:" the logotype already says. A
+// non-breaking hyphen keeps "open-source" on one line.
 const LINE = "Your open\u2011source cyber security agent";
-const SUB = "The security review you never had time for. Offline, rule-based, and you can verify every finding yourself.";
 
 /**
  * One page per image. Two groups with a fixed rhythm between them: the
@@ -48,42 +47,44 @@ const page = (w, h, l) => `<!doctype html><html><head><meta charset="utf-8"><sty
 html, body { width: ${w}px; height: ${h}px; background: #000; color: #fff; overflow: hidden; }
 body { position: relative; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
 .field { position: absolute; ${l.field}; object-fit: cover; object-position: 50% 0; image-rendering: pixelated; -webkit-mask-image: ${l.mask}; }
-.wrap { position: absolute; inset: 0; padding: ${l.pad}px; display: flex; flex-direction: column; justify-content: ${l.mode === "split" ? "space-between" : "flex-end"}; }
+.wrap { position: absolute; inset: 0; padding: ${l.pad}px ${l.pad}px ${l.padBottom}px; display: flex; flex-direction: column; justify-content: ${l.mode === "split" ? "space-between" : "flex-end"}; }
 .logo { display: block; flex: none; width: ${l.logoW}px; height: auto; margin-bottom: ${l.mode === "split" ? 0 : l.logoGap}px; }
 .msg { max-width: ${l.msgW}px; }
 h1 { font-weight: 500; font-size: ${l.h1}px; line-height: 0.98; letter-spacing: -0.04em; max-width: ${l.measure}; text-wrap: balance; }
-.sub { margin-top: ${l.subGap}px; max-width: ${l.subMeasure}; font-size: ${l.sub}px; line-height: 1.4; color: rgba(255, 255, 255, 0.85); }
 .row { display: flex; flex-wrap: wrap; align-items: center; gap: ${l.chipGap}px; margin-top: ${l.rowGap}px; font-family: "Departure Mono", monospace; font-size: ${l.mono}px; letter-spacing: 0.02em; }
-.cmd { padding: ${l.chipPad}; background: #0000ed; border: 1px solid #fff; box-shadow: 6px 6px 0 #fff; margin-right: 6px; }
+.cmd { padding: ${l.chipPad}; background: #0000ed; border: 1px solid #0000ed; }
 .pill { padding: ${l.chipPad}; border: 1px solid #fff; background: #000; }
+/* "Free", above the title: the chips' own size and padding, inverted so it
+ * reads as a label rather than one more chip in the row. */
+.chip.free { display: inline-block; margin-bottom: ${l.freeGap}px; padding: ${l.chipPad}; font-family: "Departure Mono", monospace; font-size: ${l.mono}px; letter-spacing: 0.02em; line-height: normal; color: #000; background: #fff; border: 1px solid #fff; }
 </style></head><body>
 <img class="field" src="${field}" alt="">
 <div class="wrap">
   ${logo}
   <div class="msg">
+    <span class="chip free">Free</span>
     <h1>${LINE}</h1>
-    <p class="sub">${SUB}</p>
     <div class="row"><span class="cmd">$ npx penthera</span><span class="pill">Open source</span><span class="pill">MIT</span><span class="pill">Offline</span></div>
   </div>
 </div>
 </body></html>`;
 
 const SHOTS = [
-  // 1200 × 630: 80 px margins; the logotype top-left, the message bottom-left in
-  // the left half, the field owning the right and fading out before the text.
+  // 1200 × 630: 64 px margins and a deeper bottom one; the logotype top-left,
+  // the title and chips bottom-left, the field owning the right.
   { file: "og.png", w: 1200, h: 630, layout: {
-    mode: "split", pad: 80, msgW: 640,
+    mode: "split", pad: 64, padBottom: 104, msgW: 700,
     field: "top: 0; right: 0; width: 56%; height: 100%", mask: "linear-gradient(to right, transparent, #000 40%)",
-    logoW: 220, logoGap: 0, h1: 56, measure: "620px", subGap: 22, sub: 21, subMeasure: "38ch",
-    rowGap: 34, chipGap: 14, chipPad: "10px 16px", mono: 19,
+    logoW: 220, logoGap: 0, h1: 66, measure: "700px", freeGap: 24,
+    rowGap: 36, chipGap: 14, chipPad: "10px 16px", mono: 19,
   } },
-  // 1080 × 1080: the field across the top, the logotype and message below it with
-  // the same rhythm, 96 px margins.
+  // 1080 × 1080: the field across the top, the logotype, title and chips below
+  // it with the same rhythm.
   { file: "square.png", w: 1080, h: 1080, layout: {
-    mode: "stack", pad: 96, msgW: 860,
+    mode: "stack", pad: 80, padBottom: 120, msgW: 900,
     field: "top: 0; left: 0; width: 100%; height: 36%", mask: "linear-gradient(#000 25%, transparent)",
-    logoW: 300, logoGap: 56, h1: 80, measure: "880px", subGap: 30, sub: 30, subMeasure: "30ch",
-    rowGap: 48, chipGap: 16, chipPad: "12px 20px", mono: 24,
+    logoW: 300, logoGap: 56, h1: 92, measure: "900px", freeGap: 32,
+    rowGap: 52, chipGap: 16, chipPad: "12px 20px", mono: 24,
   } },
 ];
 

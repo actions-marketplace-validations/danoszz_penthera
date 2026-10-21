@@ -229,8 +229,10 @@ h3 > .lock, .eu-list .lock { width: 24px; height: 28px; vertical-align: -4px; ma
 }
 .brand:hover { background: none; color: var(--accent-ink); }
 .brand:active { transform: translateY(1px); }
-.logotype { --logo-w: 288px; --logo-h: 65px; }
-@media (max-width: 480px) { .logotype { --logo-w: 112px; --logo-h: 25px; } .brand { margin-top: 12px; } }
+/* Up to 288 px, but never more than the controls leave (about 360 px of
+ * bar is theirs), down to 112 px on the smallest phones. */
+.logotype { --logo-w: clamp(112px, calc(100vw - 360px), 288px); --logo-h: calc(var(--logo-w) * 63 / 279); }
+@media (max-width: 480px) { .brand { margin-top: 12px; } }
 .logotype {
   display: block; width: var(--logo-w, 72px); height: var(--logo-h, 16px); background: currentColor;
   -webkit-mask: url("/logo.svg") center / contain no-repeat;
@@ -253,6 +255,7 @@ h3 > .lock, .eu-list .lock { width: 24px; height: 28px; vertical-align: -4px; ma
   -webkit-backdrop-filter: blur(22px) saturate(1.6); backdrop-filter: blur(22px) saturate(1.6);
   transition: background-color 160ms var(--out), border-color 160ms var(--out), color 160ms var(--out), transform var(--press) var(--out);
 }
+.glass { flex: none; }
 .glass::after { content: ""; position: absolute; inset: -6px -2px; }
 .glass:active { transform: translateY(1px); }
 .glass > * { display: inline-flex; align-items: center; }
@@ -417,7 +420,7 @@ main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
   /* The first screen is at least 90vh; the headline sits in the lower half
    * of the cloud, over the dots, with the text block at the bottom. */
   min-height: 90vh;
-  display: flex; flex-direction: column; justify-content: flex-end;
+  display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start;
   padding-top: clamp(240px, 42vh, 440px);
 }
 /* A long gradient behind the text, full width: the cloud stays visible at

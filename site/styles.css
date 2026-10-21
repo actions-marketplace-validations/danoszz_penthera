@@ -119,6 +119,7 @@
   --section: clamp(96px, 14vw, 200px);  /* poster spacing: one idea per screen */
   --target: 44px;
   --veil-h: 224px;                      /* the bottom blur; check/ui.js reads it too */
+  --ticker-h: 30px;
   --press: 100ms;
   --out: cubic-bezier(0, 0, .2, 1);
 }
@@ -130,7 +131,7 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html:not(.js) [data-js] { display: none !important; }
-html { background: var(--ground); -webkit-text-size-adjust: 100%; scroll-padding-top: 88px; }
+html { background: var(--ground); -webkit-text-size-adjust: 100%; scroll-padding-top: 118px; }
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 body {
   margin: 0;
@@ -160,12 +161,47 @@ p { margin: 0; }
   letter-spacing: 0.02em;
 }
 
+/* ── Icons ──────────────────────────────────────────────────────────── */
+/* The lock: a 12 × 14 pixel drawing with a dithered body, drawn from one
+ * <symbol> (#i-lock). Integer scales only, so the pixels stay square. */
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.lock { flex: none; width: 12px; height: 14px; fill: currentColor; shape-rendering: crispEdges; vertical-align: -2px; margin-right: 8px; }
+h3 > .lock, .eu-list .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px; }
+
+/* ── Ticker ───────────────────────────────────────────────────────────── */
+/* Sourced security news (site/news.json), inverted, in Departure Mono. It
+ * scrolls; hover or focus pauses it; with reduced motion it stands still and
+ * scrolls by hand. */
+.ticker {
+  position: fixed; inset: 0 0 auto; z-index: 11;
+  height: var(--ticker-h);
+  overflow-x: clip; overflow-y: visible;  /* hit areas reach past the strip */
+  background: rgb(var(--ink-rgb)); color: rgb(var(--ground-rgb));
+  font-family: var(--px); font-size: 12px; letter-spacing: 0.02em;
+}
+.ticker-track { display: flex; width: max-content; height: 100%; animation: ticker 90s linear infinite; }
+.ticker:hover .ticker-track, .ticker:focus-within .ticker-track { animation-play-state: paused; }
+.ticker-list { display: flex; margin: 0; padding: 0; list-style: none; }
+.ticker-list li { display: inline-flex; align-items: center; height: var(--ticker-h); padding: 0 28px 0 0; white-space: nowrap; }
+.ticker time { opacity: 1; margin-right: 10px; text-transform: uppercase; }
+.ticker a { position: relative; color: inherit; text-decoration: none; display: inline-flex; align-items: center; min-height: var(--ticker-h); }
+.ticker a::after { content: ""; position: absolute; inset: -7px 0; }
+.ticker a:hover { background: var(--accent); color: var(--on-accent); text-decoration: none; }
+.ticker a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.ticker .lock { width: 9px; height: 11px; margin-right: 8px; }
+@keyframes ticker { to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) {
+  .ticker { overflow-x: auto; overflow-y: hidden; }
+  .ticker-track { animation: none; }
+  .ticker-list[aria-hidden] { display: none; }
+}
+
 /* ── Bar ──────────────────────────────────────────────────────────────── */
 
 /* No rule and no blur under the bar: the page runs to the top edge, and the
  * controls carry their own glass. */
 .bar {
-  position: fixed; inset: 0 0 auto; z-index: 10;
+  position: fixed; inset: var(--ticker-h) 0 auto; z-index: 10;
   display: flex; align-items: center; gap: 8px;
   height: 60px;                         /* the mark hangs below it */
   padding: 0 var(--gutter);
@@ -183,7 +219,7 @@ p { margin: 0; }
 .brand:active { transform: translateY(1px); }
 .logotype { --logo-w: 288px; --logo-h: 65px; }
 @media (max-width: 480px) { .logotype { --logo-w: 112px; --logo-h: 25px; } .brand { margin-top: 12px; } }
-@media (max-width: 480px) { .hero { --field-top: 56px; } }
+@media (max-width: 480px) { .hero { --field-top: calc(56px + var(--ticker-h)); } }
 .logotype {
   display: block; width: var(--logo-w, 72px); height: var(--logo-h, 16px); background: currentColor;
   -webkit-mask: url("/logo.svg") center / contain no-repeat;
@@ -348,7 +384,7 @@ h3 { font-family: var(--display); font-size: 21px; letter-spacing: -0.01em; line
 main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
 /* The field starts below the mark (the bar has no blur to lift it off the
  * dots) and fades in over its first 18%. */
-.hero { --field-top: 104px; }
+.hero { --field-top: calc(104px + var(--ticker-h)); }
 .field {
   position: absolute; inset: var(--field-top) 0 auto; z-index: 0;
   width: 100%; height: calc(min(78vh, 760px) - var(--field-top));
@@ -377,7 +413,8 @@ main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
 .hero-text {
   position: relative; z-index: 1;
   max-width: var(--measure); margin: 0 auto;
-  padding-top: clamp(200px, 42vh, 420px);
+  /* Below the cloud: the live field has thinned to almost nothing half-way down. */
+  padding-top: max(clamp(200px, 42vh, 420px), calc(var(--field-top) + 0.5 * (min(78vh, 760px) - var(--field-top))));
 }
 .kicker { color: var(--text-1); margin-bottom: 20px; display: inline-block; background: var(--ground); padding: 2px 6px 2px 0; }
 h1 {
@@ -532,7 +569,24 @@ textarea:focus-visible, select:focus-visible { outline-offset: 0; }
 .limits-body { margin-top: 32px; display: grid; gap: 20px; max-width: 64ch; font-size: clamp(17px, 1.6vw, 20px); }
 .limits .method { font-family: var(--px); font-size: 15px; }
 
-/* 6 · Vision: the closing assertion. */
+/* 6 · EU rules */
+.eu-grid { display: grid; gap: 32px; align-items: start; }
+@media (min-width: 860px) { .eu-grid { grid-template-columns: 1fr auto; } }
+.eu-lede { margin-top: 24px; max-width: 46ch; font-size: clamp(17px, 1.6vw, 20px); color: var(--text-1); }
+.eu-mark { margin: 0; }
+.eu-mark svg { display: block; width: 162px; height: 162px; shape-rendering: crispEdges; border: 1px solid var(--frame); box-shadow: 6px 6px 0 var(--frame); }
+.eu-ground { fill: var(--accent); }
+.eu-stars { fill: #ffffff; }
+.eu-list { list-style: none; margin: 56px 0 0; padding: 0; display: grid; border-top: 1px solid var(--frame); }
+@media (min-width: 900px) { .eu-list { grid-template-columns: repeat(3, 1fr); } }
+.eu-list li { display: flex; align-items: flex-start; padding: 24px 24px 24px 0; border-bottom: 1px solid var(--hair); }
+@media (min-width: 900px) { .eu-list li + li { padding-left: 24px; border-left: 1px solid var(--hair); } }
+.eu-list h3 { margin-bottom: 8px; }
+.eu-list p { color: var(--text-2); }
+.eu-list a { display: inline-block; margin-top: 8px; font-family: var(--px); font-size: 13px; }
+.eu-note { margin-top: 24px; max-width: 70ch; font-family: var(--px); font-size: 12px; color: var(--text-3); }
+
+/* 7 · Vision: the closing assertion. */
 .vision-text {
   margin-top: 32px; max-width: 30ch;
   font-family: var(--display); font-size: clamp(24px, 3.4vw, 44px);

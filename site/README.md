@@ -15,6 +15,7 @@ node site/serve.mjs     # http://127.0.0.1:4173/ with the production headers
 | Path | What it is |
 |---|---|
 | `index.html` | The page and all its copy. `{{NAME}}` placeholders are measured numbers the build fills in: rule counts, the popular-list size, the benchmark from `bench/RESULTS.md`, and the GitHub star count (the build's one request; `PENTHERA_SITE_STARS=<n>` or `off` to skip it). |
+| `news.json` | The ticker at the top: dated, one-line items, each with an https source. The build renders it (and refuses an item without a source); edit it to change the news. |
 | `styles.css` | System 1-bit, as in `penthera ui`. Tokens and contrast measurements are in its header. |
 | `theme.js` | Sets the theme before paint. A choice is kept in localStorage, never a cookie. |
 | `check/` | The browser check. `engine.js` calls `lib/`; `ui.js` is the page script; `copy.js` holds its strings; `field.js` is the hero's live field (a dithered cloud, a pointer lens with a soft glow, and a click shockwave on a canvas; off under reduced motion, where `media/field.png` stays). |

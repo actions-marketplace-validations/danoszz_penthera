@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync, readFileSync, mkdirSync, writeFileSync, existsSync
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
-import { buildSite } from "../site/build.mjs";
+import { buildSite, readNews } from "../site/build.mjs";
 import { serve, headersFor } from "../site/serve.mjs";
 import { buildFixtures } from "./fixtures/deps/build.js";
 import { scanAgents } from "../lib/agents/index.js";
@@ -78,6 +78,27 @@ describe("site build", () => {
     for (const api of ["fetch(", "new XMLHttpRequest", "new WebSocket", "sendBeacon(", "new EventSource", "importScripts("]) {
       expect(js.includes(api), api).toBe(false);
     }
+  });
+});
+
+describe("site news ticker", () => {
+  it("every item has a date, one short line and an https source, and the build renders them all", () => {
+    const items = readNews();
+    expect(items.length).toBeGreaterThan(0);
+    const html = readFileSync(join(out, "index.html"), "utf8");
+    for (const n of items) {
+      expect(html).toContain(`datetime="${n.date}"`);
+      expect(n.source).toMatch(/^https:\/\//);
+    }
+    // Two copies for a seamless loop; the second is hidden and out of the tab order.
+    expect(html.match(/class="ticker-list"/g)).toHaveLength(2);
+    expect(html).toMatch(/class="ticker-list" aria-hidden="true">.*tabindex="-1"/s);
+  });
+
+  it("refuses an item without a source", () => {
+    const f = join(dir, "news-bad.json");
+    writeFileSync(f, JSON.stringify({ items: [{ date: "2026-10-21", text: "x", source: "http://plain.example" }] }));
+    expect(() => readNews(f)).toThrow(/https/);
   });
 });
 

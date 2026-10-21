@@ -142,6 +142,32 @@ async function starCount() {
   return n >= 1000 ? `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1).replace(/\.0$/, "")}k` : String(n);
 }
 
+const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+/** Check site/news.json: a date, one short line, an https source. Throws on the first bad item. */
+export function readNews(file = join(SITE, "news.json")) {
+  const { items } = JSON.parse(readFileSync(file, "utf8"));
+  if (!Array.isArray(items) || !items.length) throw new Error("news.json: no items");
+  for (const [i, n] of items.entries()) {
+    const where = `news.json items[${i}]`;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(n.date || "") || Number.isNaN(Date.parse(n.date))) throw new Error(`${where}: date must be YYYY-MM-DD`);
+    if (typeof n.text !== "string" || !n.text.trim() || n.text.length > 120) throw new Error(`${where}: text must be 1 to 120 characters`);
+    if (!/^https:\/\/[^\s"]+$/.test(n.source || "")) throw new Error(`${where}: source must be an https URL`);
+  }
+  return items;
+}
+
+/**
+ * The ticker: the list twice, so the scroll loops without a seam. The second
+ * copy is hidden from assistive tech and from the tab order.
+ */
+function tickerHtml(items) {
+  const fmt = (d) => new Date(`${d}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  const list = (hidden) => `<ul class="ticker-list"${hidden ? ' aria-hidden="true"' : ""}>${items.map((n) =>
+    `<li><svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><use href="#i-lock"/></svg><time datetime="${n.date}">${fmt(n.date)}</time> <a href="${esc(n.source)}"${hidden ? ' tabindex="-1"' : ""}>${esc(n.text)}</a></li>`).join("")}</ul>`;
+  return `<div class="ticker" role="region" aria-label="Security news"><div class="ticker-track">${list(false)}${list(true)}</div></div>`;
+}
+
 const hash = (buf) => createHash("sha256").update(buf).digest("hex").slice(0, 10);
 const kb = (n) => Math.round(n / 1024);
 
@@ -200,6 +226,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
     CHECK_KB: String(kb(checkBytes)),
     ...benchNumbers(),
     STARS: await starCount(),
+    TICKER: tickerHtml(readNews()),
   };
   values.STARS_LABEL = values.STARS ? `, ${values.STARS} stars` : "";
   let html = readFileSync(join(SITE, "index.html"), "utf8");

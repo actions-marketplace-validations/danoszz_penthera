@@ -51,7 +51,7 @@ function shouldRunOnboarding(positionals, opts) {
 }
 
 const HELP = `
-  ${bold("penthera")} v${pkg.version}: Cyber Security Agent. Open-source security for the apps and AI systems you ship
+  ${bold("penthera")} v${pkg.version}: your open-source cyber security agent. The security review you never had time for
 
   ${dim("Usage")}
     $ penthera                        Setup wizard: detect, check, set up (TTY, no args)

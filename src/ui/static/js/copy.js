@@ -3,7 +3,7 @@
 // exclamation marks, verbs first on buttons, empty states name the action
 // that fills them, errors give the cause then the fix.
 
-export const TAGLINE = "Open-source security for the apps and AI systems you ship"; // README headline
+export const TAGLINE = "Your open-source cyber security agent"; // README headline
 
 export const START = {
   title: "Welcome",
@@ -56,7 +56,7 @@ export const KEYS = [
 ];
 
 export const ABOUT = {
-  line: "Open-source security for the apps and AI systems you ship. This window reads your reports and runs scans on this machine.",
+  line: "Your open-source cyber security agent: the security review you never had time for. This window reads your reports and runs scans on this machine.",
   license: "MIT",
   type: "Departure Mono by Helena Zhang (OFL)",
   local: "Bound to 127.0.0.1. Nothing on this page loads from another host.",

@@ -9,10 +9,10 @@ v1.7.0; vendor facts and adoption numbers are as checked on 2026-10-19.
 
 ## What Penthera is
 
-An open-source cyber security agent you can use today, and verify yourself.
-Penthera is an MIT-licensed R&D project: a tool that runs on the developer's own
-machine, as a CLI (`npx penthera`) and as an Agent Skill for Claude Code and
-Cursor, and a public research program that measures how well its checks work
+An open-source cyber security agent: the security review a team never had time
+for. Offline, rule-based, and every finding can be verified. Penthera is an
+MIT-licensed R&D project: a tool that runs on the developer's own machine, as
+a CLI (`npx penthera`) and as an Agent Skill for Claude Code and Cursor, and a public research program that measures how well its checks work
 in pre-registered experiments. It has no accounts and no telemetry. The tool
 does three things:
 

@@ -30,6 +30,11 @@ health. Most production servers hide their version, and a CDN in front of the
 site hides the origin entirely. When a big advisory lands, check your inventory
 on the server itself, not only from outside.
 
+For the PHP release of 21 October 2026, Penthera's verdicts match OpenAI's
+independent [php2shell-checker](https://github.com/openai/php2shell-checker)
+on every branch it lists; a test keeps it that way. See the
+[case study](research/case-study-php-2026-10.md#an-independent-cross-check).
+
 ## Load an advisory before the next release
 
 Advisory data is a signed rule pack, so a new advisory does not need a new

@@ -162,24 +162,13 @@ p { margin: 0; }
 
 /* ── Bar ──────────────────────────────────────────────────────────────── */
 
-/* No rule under the bar: the page dissolves into it. A heavy backdrop blur
- * under a ground gradient, masked so the blur itself fades out below the bar.
- * The one place the page leaves 1-bit, on purpose: chrome over content. */
+/* No rule and no blur under the bar: the page runs to the top edge, and the
+ * controls carry their own glass. */
 .bar {
   position: fixed; inset: 0 0 auto; z-index: 10;
   display: flex; align-items: center; gap: 8px;
   height: 60px;                         /* the mark hangs below it */
   padding: 0 var(--gutter);
-}
-.bar::before {
-  content: ""; position: absolute; z-index: -1; pointer-events: none;
-  -webkit-backdrop-filter: blur(28px); backdrop-filter: blur(28px);
-}
-.bar::before {
-  inset: 0 0 -48px;
-  background: transparent;              /* blur only: the content keeps its own colour */
-  -webkit-mask-image: linear-gradient(#000 50%, transparent);
-  mask-image: linear-gradient(#000 50%, transparent);
 }
 /* The mark, four times its old size, hanging below the bar. On phones it
  * takes what the bar leaves. */
@@ -193,55 +182,74 @@ p { margin: 0; }
 .brand:hover { background: none; color: var(--accent-ink); }
 .brand:active { transform: translateY(1px); }
 .logotype { --logo-w: 288px; --logo-h: 65px; }
-@media (max-width: 480px) { .logotype { --logo-w: 150px; --logo-h: 34px; } .brand { margin-top: 12px; } }
+@media (max-width: 480px) { .logotype { --logo-w: 112px; --logo-h: 25px; } .brand { margin-top: 12px; } }
+@media (max-width: 480px) { .hero { --field-top: 56px; } }
 .logotype {
   display: block; width: var(--logo-w, 72px); height: var(--logo-h, 16px); background: currentColor;
   -webkit-mask: url("/logo.svg") center / contain no-repeat;
   mask: url("/logo.svg") center / contain no-repeat;
 }
-.bar nav { display: flex; gap: 2px; }
-.bar nav a { display: inline-flex; align-items: center; min-height: var(--target); padding: 0 8px; white-space: nowrap; color: var(--text-1); text-decoration: none; }
-.bar nav a:hover { background: var(--accent); color: var(--on-accent); }
 
-/* GitHub, as a button: the star glyph, the word, and the count read at build. */
-.star {
+/* The bar's three controls: one height (34 px), heavy-blur glass, each its
+ * own kind of glass so they read as different things.
+ *   theme     frosted ink: a milky tint, the switch inside
+ *   star      clear glass: barely tinted, a hairline and a divided count
+ *   download  blue glass: the accent, the one primary action
+ * Hit areas reach 44 px through ::after; the optics stay 34. */
+.glass {
   position: relative;
   display: inline-flex; align-items: stretch;
-  min-height: 34px; margin: 0 0 0 4px;
-  border: 1px solid var(--frame);
+  height: 34px;
   color: var(--text-1); text-decoration: none;
   font-family: var(--px); font-size: 13px; letter-spacing: 0.02em;
-  background: rgba(var(--ground-rgb), 0.6);
+  border: 1px solid rgba(var(--ink-rgb), 0.45);
+  -webkit-backdrop-filter: blur(22px) saturate(1.6); backdrop-filter: blur(22px) saturate(1.6);
+  transition: background-color 160ms var(--out), border-color 160ms var(--out), color 160ms var(--out), transform var(--press) var(--out);
 }
-.star::after { content: ""; position: absolute; inset: -6px -2px; }
-.star > * { display: inline-flex; align-items: center; }
+.glass::after { content: ""; position: absolute; inset: -6px -2px; }
+.glass:active { transform: translateY(1px); }
+.glass > * { display: inline-flex; align-items: center; }
+
+.star { background: rgba(var(--ground-rgb), 0.55); box-shadow: inset 0 1px 0 rgba(var(--ink-rgb), 0.18); }
 .star-glyph { width: 11px; height: 11px; margin-left: 10px; fill: currentColor; align-self: center; }
 .star-word { padding: 0 10px 0 7px; }
-.star-count { padding: 0 10px; border-left: 1px solid var(--frame); }
+.star-count { padding: 0 10px; border-left: 1px solid rgba(var(--ink-rgb), 0.45); }
 .star-count:empty { display: none; }
-.star:hover { background: var(--frame); color: var(--ground); }
+.star:hover { background: var(--frame); color: var(--ground); border-color: var(--frame); }
 .star:hover .star-count { border-color: var(--ground); }
+
+.download {
+  gap: 8px; padding: 0 12px;
+  color: #ffffff;
+  background: rgba(0, 0, 237, 0.82);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 18px -6px rgba(0, 0, 237, 0.6);
+}
+.download-glyph { width: 10px; height: 11px; fill: currentColor; align-self: center; }
+.download:hover { background: rgba(42, 42, 255, 0.92); color: #ffffff; }
 @media (max-width: 480px) {
   .star-word { display: none; }
-  .bar nav .nav-get { display: none; }
-  .bar { gap: 2px; padding: 0 12px; }
-  .star { margin: 0 0 0 2px; }
+  .bar { gap: 6px; padding: 0 12px; }
+  .theme { padding: 0 6px; }
+  .download-glyph { display: none; }
   .star-glyph { margin-right: 8px; }
 }
-/* The theme: a switch, no words. On (dark): the knob sits right on a dithered
- * track. Off (light): left, on an empty one. The knob slides; nothing else moves. */
+/* The theme: a switch, no words, in frosted-ink glass. On (dark): the knob
+ * sits right on a dithered track. Off (light): left, on an empty one. */
 .theme {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-height: var(--target); min-width: var(--target); padding: 0 6px;
-  background: none; border: 0; color: var(--text-1); cursor: pointer;
+  align-items: center; justify-content: center;
+  padding: 0 9px; cursor: pointer;
+  background: rgba(var(--ink-rgb), 0.12);
+  box-shadow: inset 0 1px 0 rgba(var(--ink-rgb), 0.25);
 }
+.theme:hover { background: rgba(var(--ink-rgb), 0.22); }
 .theme-track {
   position: relative; display: block;
   width: 34px; height: 18px;
   border: 1px solid var(--frame);
-  background: rgba(var(--ground-rgb), 0.6);
+  background: transparent;
 }
-.theme[aria-checked="true"] .theme-track { background: var(--pt-sparse), rgba(var(--ground-rgb), 0.6); }
+.theme[aria-checked="true"] .theme-track { background: var(--pt-sparse); }
 .theme-knob {
   position: absolute; top: 2px; left: 2px;
   width: 12px; height: 12px;
@@ -338,9 +346,14 @@ h3 { font-family: var(--display); font-size: 21px; letter-spacing: -0.01em; line
 
 /* 1 · Hero: the dithered field, then the one assertion. */
 main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
+/* The field starts below the mark (the bar has no blur to lift it off the
+ * dots) and fades in over its first 18%. */
+.hero { --field-top: 104px; }
 .field {
-  position: absolute; inset: 0 0 auto; z-index: 0;
-  width: 100%; height: min(78vh, 760px);
+  position: absolute; inset: var(--field-top) 0 auto; z-index: 0;
+  width: 100%; height: calc(min(78vh, 760px) - var(--field-top));
+  -webkit-mask-image: linear-gradient(transparent, #000 18%);
+  mask-image: linear-gradient(transparent, #000 18%);
   object-fit: cover; object-position: 50% 0;
   image-rendering: pixelated;
   filter: var(--field-filter);
@@ -351,7 +364,7 @@ main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
  * skips the light theme's invert; the static PNG stays until its first frame. */
 .field-live { filter: none; }
 .field-orb {
-  position: absolute; top: 0; left: 0; z-index: 0;
+  position: absolute; top: var(--field-top); left: 0; z-index: 0;
   width: clamp(240px, 34vw, 520px); aspect-ratio: 1;
   border-radius: 50%;
   background: radial-gradient(closest-side, var(--accent), transparent);

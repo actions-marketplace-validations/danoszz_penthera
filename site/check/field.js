@@ -2,8 +2,7 @@
  * The hero's field, live: a drifting cloud of value noise, ordered-dithered to
  * one bit (8×8 Bayer) on 4 px cells, so it reads like the static field.png it
  * replaces. The pointer is a scanning lens: it parts the cloud around it,
- * lifts the density where it passes, and the dots under its core turn the
- * accent colour, dithered out at its rim so the orb has a soft edge. With no
+ * and a large blurred accent glow follows it under the dots. With no
  * pointer (touch, or idle) the lens drifts on a slow path.
  *
  * A click in the hero sends a shockwave: a ring expands from the point and
@@ -171,7 +170,7 @@ export function liveField(img) {
           if (d < 0 && d > -0.22) trail = Math.max(trail, w.decay * (1 + d / 0.22));
         }
         const n = fbm(sx, sy);
-        let value = ((n - 0.3) * 1.8 * fade + k * 0.16 * fade) * (1 - crater * 0.92);
+        let value = (n - 0.3) * 1.8 * fade * (1 - crater * 0.92);
         // The ring itself, faint even over clear sky.
         value += front * (0.75 * fade + 0.35);
         const th = BAYER[brow + (i & 7)];
@@ -179,8 +178,6 @@ export function liveField(img) {
         let colour = ink;
         if (front > 0.2 && front > BAYER[brow2 + ((i + 4) & 7)]) colour = accent;
         else if (trail > BAYER[brow2 + ((i + 4) & 7)] * 1.4) colour = wake;
-        // The orb: accent dithered by the lens weight, so its rim fades instead of cutting off.
-        else if (k * 1.7 - 0.5 > BAYER[brow2 + ((i + 4) & 7)]) colour = accent;
         pixels[row + i] = colour;
       }
     }

@@ -146,6 +146,10 @@ async function checkUi(name) {
   child.stdout.on("data", (d) => { out += d; });
   child.stderr.on("data", (d) => { out += d; });
   const exited = new Promise((r) => child.once("exit", (code, signal) => r({ code, signal })));
+  // "exit" can fire before the last output is read: "Stopped." comes from the
+  // penthera grandchild (via npx) and may still be in the pipe. "close" fires
+  // once every process holding the pipe has let go of it.
+  const closed = new Promise((r) => child.once("close", r));
   const problems = [];
   let base = null;
   const deadline = Date.now() + 90_000;
@@ -173,6 +177,7 @@ async function checkUi(name) {
   const timer = setTimeout(() => { problems.push("did not stop within 30 s"); try { WIN ? child.kill() : process.kill(-child.pid, "SIGKILL"); } catch { /* gone */ } }, 30_000);
   await exited;
   clearTimeout(timer);
+  await Promise.race([closed, new Promise((r) => setTimeout(r, 5000))]);
   if (base) {
     // The penthera process (a grandchild via npx) must be gone, not orphaned.
     let stillUp = false;

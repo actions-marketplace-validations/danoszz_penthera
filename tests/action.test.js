@@ -35,7 +35,7 @@ describe("action.yml", () => {
   it("is a composite action with a Marketplace-valid name, description and branding", () => {
     // "Penthera" alone is taken by an existing GitHub organization, and the
     // Marketplace rejects descriptions of 125 characters or more.
-    expect(action.name).toBe("Penthera: Cyber Security Agent");
+    expect(action.name).toBe("Penthera: your open-source cyber security agent");
     expect(action.description.length).toBeGreaterThan(0);
     expect(action.description.length).toBeLessThan(125);
     expect(action.runs.using).toBe("composite");

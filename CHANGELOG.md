@@ -38,6 +38,33 @@ methodology quote the new numbers.
   CVE-2021-42013 for Apache HTTP Server 2.4.49 and 2.4.50) and end-of-life
   release lines. Benchmark cases for both URL and repo scans.
 
+### Site
+
+- **A landing page in `site/`**, a static site for Vercel: the positioning,
+  `npx penthera`, prompts for Claude Code, Cursor and Codex, the hero loop and
+  the walkthrough, the limits and the research plan. No third-party scripts,
+  analytics or cookies; fonts are self-hosted or system fonts.
+- **A check in the browser.** Drop or paste a `package.json`, `.mcp.json`,
+  `.claude/settings.json`, `CLAUDE.md` or `AGENTS.md` and Penthera's own
+  `lib/` code runs in the tab: the agent-config rules, the secret patterns,
+  install scripts, typosquats against the vendored popular list, and the
+  bundled IOC pack. `site/build.mjs` bundles `lib/` at build time, so the site
+  and the CLI run the same rules; `tests/site.test.js` holds the page to the
+  CLI on the agents and deps fixtures. The page is served with
+  `connect-src 'none'`, so it cannot send the files anywhere.
+- **Runtime advisories in the browser check.** Drop a `Dockerfile`,
+  `compose.yaml`, `.php-version`, `.tool-versions` or `composer.json`, or
+  paste the response headers `curl -sI` printed for your site (the page never
+  contacts it), and `lib/advisories` runs on them: the same findings and
+  confidence as the CLI, with "check on the server: distributions backport
+  fixes" next to every version-only verdict. `tests/site.test.js` compares
+  pasted headers with a URL scan of a loopback server sending the same
+  headers, and runtime pins with `runtimeAdvisoriesForRepo`.
+- `penthera deps` findings are built in `lib/deps/findings.js` (moved from
+  `lib/deps/index.js`, no behaviour change), so the browser check uses the
+  same wording.
+- `scripts/docs-commands.mjs` also checks every command the site shows.
+
 ### Docs
 
 - **README hero is a 12-second loop** of the terminal and the dashboard

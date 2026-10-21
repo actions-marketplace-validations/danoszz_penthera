@@ -108,4 +108,4 @@ If this report came in an evidence bundle, check that nothing in it changed sinc
 
 *Authorized security testing only. See the Penthera README for ethical use guidelines.*
 
-Checked by Penthera, open-source security for the apps and AI systems you ship · https://github.com/danoszz/penthera
+Checked by Penthera, an open-source cyber security agent · https://github.com/danoszz/penthera

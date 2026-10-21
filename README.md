@@ -1,10 +1,12 @@
 <div align="center">
 
-<img src="assets/penthera-social.jpg" alt="Penthera: Cyber Security Agent" width="840">
+<img src="assets/penthera-social.jpg" alt="Penthera: your open-source cyber security agent" width="840">
 
 <br/><br/>
 
-**Penthera: an open-source cyber security agent you can use today, and verify yourself.**
+**Penthera: your open-source cyber security agent**
+
+The security review you never had time for. Offline, rule-based, and you can verify every finding yourself.
 
 <br/>
 

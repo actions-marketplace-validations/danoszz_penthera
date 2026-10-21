@@ -1,0 +1,692 @@
+/*
+ * Penthera site :: Poster, in System 1-bit (penthera ui after #63).
+ *
+ * Ink, paper and #0000ed. No flat greys: shades are dither patterns. One
+ * window on the page, the browser check, drawn as a penthera ui window on its
+ * dotted desktop; everything else is poster: one assertion per screen.
+ *
+ * Type, three roles:
+ *   --display  Helvetica Neue, tight. A system font: nothing is downloaded,
+ *              Arial where it is missing.
+ *   --px       Departure Mono (OFL, self-hosted) :: commands, labels, buttons
+ *   --sans     the same grotesk at reading sizes
+ *
+ * One theming system: [data-theme] on <html>, set before paint by /theme.js.
+ *
+ * Contrast, measured as in src/ui/static/app.css (WCAG 2.x, on the ground):
+ *   dark  #000: text-1 21.0 · text-2 (ink .72) 10.3 · text-3 (ink .6) 7.2 · accent-ink #7a7aff 6.06
+ *               white on #0000ed 9.45
+ *   light #fdfdfa: text-1 19.4 · text-2 (ink .72) 8.0 · text-3 (ink .6) 5.24 · #0000ed 9.27
+ * #0000ed is 2.22:1 on black, so in the dark theme it is only ever a fill.
+ */
+
+@font-face {
+  font-family: "Departure Mono";
+  src: url("/fonts/DepartureMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/*
+ * Palettes. Each sets raw values only; the derived tokens below are declared
+ * on :root and on every .band, so a section that swaps the raw values gets
+ * its own text, rules and dither patterns. Three palettes:
+ *   ink     black ground, white ink (the dark theme; the inverted band in light)
+ *   paper   #fdfdfa ground, near-black ink (the light theme; inverted in dark)
+ *   blue    #0000ed ground, white ink, in both themes: one band, the call to act
+ * Blue band, measured: white 9.45 · text-2 (white .85) 6.9 · text-3 (white .72) 5.1
+ */
+:root,
+:root[data-theme="dark"],
+:root[data-theme="light"] .band-invert,
+:root[data-theme="light"] .bar[data-over="invert"] {
+  color-scheme: dark;
+  --ground: #000000;
+  --ground-rgb: 0, 0, 0;
+  --ink-rgb: 255, 255, 255;
+  --t2: 0.72;
+  --t3: 0.6;
+  --desk-a: 0.42;
+  --accent: #0000ed;
+  --accent-hover: #2a2aff;
+  --accent-ink: #7a7aff;
+  --on-accent: #ffffff;
+  --focus: #7a7aff;
+  --field-filter: none;              /* field.png is white ink */
+}
+
+:root[data-theme="light"],
+:root:not([data-theme="light"]) .band-invert,
+:root:not([data-theme="light"]) .bar[data-over="invert"] {
+  color-scheme: light;
+  --ground: #fdfdfa;
+  --ground-rgb: 253, 253, 250;
+  --ink-rgb: 10, 10, 10;
+  --t2: 0.72;
+  --t3: 0.6;
+  --desk-a: 0.5;
+  --accent: #0000ed;
+  --accent-hover: #2a2aff;
+  --accent-ink: #0000ed;
+  --on-accent: #ffffff;
+  --focus: #0000ed;
+  --field-filter: invert(1);
+}
+
+:root .band-blue,
+:root .bar[data-over="blue"] {
+  color-scheme: dark;
+  --ground: #0000ed;
+  --ground-rgb: 0, 0, 237;
+  --ink-rgb: 255, 255, 255;
+  --t2: 0.85;
+  --t3: 0.72;
+  --desk-a: 0.5;
+  --accent: #ffffff;
+  --accent-hover: #dcdcff;
+  --accent-ink: #ffffff;
+  --on-accent: #0000ed;
+  --focus: #ffffff;
+}
+
+/* Derived: recomputed wherever a palette changes. The bar takes the palette
+ * of the band under it (data-over, set by the page script), because it has
+ * no background of its own. */
+:root, .band, .bar {
+  --text-1: rgb(var(--ink-rgb));
+  --text-2: rgba(var(--ink-rgb), var(--t2));
+  --text-3: rgba(var(--ink-rgb), var(--t3));
+  --hair: rgba(var(--ink-rgb), 0.2);
+  --frame: rgb(var(--ink-rgb));
+  --desk: rgba(var(--ink-rgb), var(--desk-a));
+
+  /* Dither patterns: the only greys. They invert with the palette. */
+  --pt-solid: linear-gradient(var(--frame), var(--frame));
+  --pt-hatch: repeating-linear-gradient(45deg, var(--frame) 0 1.5px, transparent 1.5px 3px);
+  --pt-half: conic-gradient(from 90deg at 1px 1px, transparent 50%, var(--frame) 0 75%, transparent 0) 0 0 / 2px 2px, conic-gradient(var(--frame) 25%, transparent 0) 0 0 / 2px 2px;
+  --pt-sparse: conic-gradient(from 90deg at 1px 1px, transparent 75%, var(--frame) 0) 0 0 / 3px 3px;
+  --pt-desk: conic-gradient(from 90deg at 1px 1px, transparent 75%, var(--desk) 0) 0 0 / 4px 4px;
+}
+.band { background: var(--ground); color: var(--text-2); }
+
+:root {
+  --display: "Helvetica Neue", Helvetica, Arial, "Nimbus Sans", sans-serif;
+  --sans: "Helvetica Neue", Helvetica, Arial, "Nimbus Sans", sans-serif;
+  --px: "Departure Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --gutter: 16px;
+  --measure: 1240px;
+  --section: clamp(96px, 14vw, 200px);  /* poster spacing: one idea per screen */
+  --target: 44px;
+  --veil-h: 224px;                      /* the bottom blur; check/ui.js reads it too */
+  --ticker-h: 30px;
+  --bar-gap: 12px;                      /* air between the ticker and the bar */
+  --press: 100ms;
+  --out: cubic-bezier(0, 0, .2, 1);
+}
+@media (min-width: 720px) { :root { --gutter: 32px; } }
+@media (min-width: 1100px) { :root { --gutter: 48px; } }
+
+/* ── Base ─────────────────────────────────────────────────────────────── */
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html:not(.js) [data-js] { display: none !important; }
+html { background: var(--ground); -webkit-text-size-adjust: 100%; scroll-padding-top: 24px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--text-2);
+  font: 17px / 1.5 var(--sans);
+  font-variant-numeric: tabular-nums lining-nums;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+::selection { background: var(--accent); color: var(--on-accent); }
+a { color: var(--accent-ink); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { background: var(--accent); color: var(--on-accent); text-decoration: none; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+code, pre, kbd { font-family: var(--px); font-size: 0.82em; }
+code { color: var(--text-1); overflow-wrap: anywhere; }
+h1, h2, h3, h4 { color: var(--text-1); margin: 0; font-weight: 500; }
+p { margin: 0; }
+.sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.skip { position: absolute; left: 8px; top: -60px; z-index: 100; display: inline-flex; align-items: center; min-height: var(--target); background: var(--accent); color: var(--on-accent); padding: 0 12px; font-family: var(--px); font-size: 13px; }
+.skip:focus { top: 8px; }
+
+/* Labels: Departure Mono, the dashboard's chrome voice. */
+.pills, .label, .status, .title, .sev, .drop-sub, figcaption, .note, .foot, .commands dd, .theme, .btn {
+  font-family: var(--px);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+/* ── Icons ──────────────────────────────────────────────────────────── */
+/* The lock: a 12 × 14 pixel drawing with a dithered body, drawn from one
+ * <symbol> (#i-lock). Integer scales only, so the pixels stay square. */
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.lock { flex: none; width: 12px; height: 14px; fill: currentColor; shape-rendering: crispEdges; vertical-align: -2px; margin-right: 8px; }
+h3 > .lock, .eu-list .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px; }
+
+/* ── Ticker ───────────────────────────────────────────────────────────── */
+/* Sourced security news (site/news.json), inverted, in Departure Mono. It
+ * scrolls; hover or focus pauses it; with reduced motion it stands still and
+ * scrolls by hand. */
+.ticker {
+  position: absolute; inset: 0 0 auto; z-index: 11;
+  height: var(--ticker-h);
+  overflow-x: clip; overflow-y: visible;  /* hit areas reach past the strip */
+  background: rgb(var(--ink-rgb)); color: rgb(var(--ground-rgb));
+  font-family: var(--px); font-size: 12px; letter-spacing: 0.02em;
+}
+.ticker-track { display: flex; width: max-content; height: 100%; animation: ticker 90s linear infinite; }
+.ticker:hover .ticker-track, .ticker:focus-within .ticker-track { animation-play-state: paused; }
+.ticker-list { display: flex; margin: 0; padding: 0; list-style: none; }
+.ticker-list li { display: inline-flex; align-items: center; height: var(--ticker-h); padding: 0 28px 0 0; white-space: nowrap; }
+.ticker time { opacity: 1; margin-right: 10px; text-transform: uppercase; }
+.ticker a { position: relative; color: inherit; text-decoration: none; display: inline-flex; align-items: center; min-height: var(--ticker-h); }
+.ticker a::after { content: ""; position: absolute; inset: -7px 0; }
+.ticker a:hover { background: var(--accent); color: var(--on-accent); text-decoration: none; }
+.ticker a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.ticker .lock { width: 9px; height: 11px; margin-right: 8px; }
+@keyframes ticker { to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) {
+  .ticker { overflow-x: auto; overflow-y: hidden; }
+  .ticker-track { animation: none; }
+  .ticker-list[aria-hidden] { display: none; }
+}
+
+/* ── Bar ──────────────────────────────────────────────────────────────── */
+
+/* The header is static: it scrolls away with the page. It sits on a solid
+ * box in the ground colour with a hard bottom edge, so the field below starts
+ * on a sharp line. */
+.bar {
+  position: absolute; inset: calc(var(--ticker-h) + var(--bar-gap)) 0 auto; z-index: 10;
+  display: flex; align-items: center; gap: 8px;
+  height: 60px;                         /* the mark hangs below it */
+  padding: 0 var(--gutter);
+}
+.bar::before {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+  /* A solid box with a hard edge just below the mark: no fade, no blur. */
+  top: calc(-1 * var(--bar-gap)); left: 0; right: 0;
+  height: calc(var(--bar-gap) + 14px + max(var(--target), var(--logo-h)) + 18px);
+  background: rgb(var(--ground-rgb));
+}
+/* The mark, four times its old size, hanging below the bar. On phones it
+ * takes what the bar leaves. */
+.brand {
+  align-self: flex-start; margin: 14px auto 0 0;
+  display: inline-flex; align-items: center;
+  min-height: var(--target);
+  color: var(--text-1);
+  transition: color 160ms var(--out);
+}
+.brand:hover { background: none; color: var(--accent-ink); }
+.brand:active { transform: translateY(1px); }
+/* Up to 288 px, but never more than the controls leave (about 360 px of
+ * bar is theirs), down to 112 px on the smallest phones. */
+.bar { --logo-w: clamp(112px, calc(100vw - 360px), 288px); --logo-h: calc(var(--logo-w) * 63 / 279); }
+@media (max-width: 480px) { .brand { margin-top: 12px; } }
+.logotype {
+  display: block; width: var(--logo-w, 72px); height: var(--logo-h, 16px); background: currentColor;
+  -webkit-mask: url("/logo.svg") center / contain no-repeat;
+  mask: url("/logo.svg") center / contain no-repeat;
+}
+
+/* The bar's three controls: one height (34 px), heavy-blur glass, each its
+ * own kind of glass so they read as different things.
+ *   theme     frosted ink: a milky tint, the switch inside
+ *   star      clear glass: barely tinted, a hairline and a divided count
+ *   download  blue glass: the accent, the one primary action
+ * Hit areas reach 44 px through ::after; the optics stay 34. */
+.glass {
+  position: relative;
+  display: inline-flex; align-items: stretch; justify-content: center;
+  height: 34px; min-width: var(--target);
+  color: var(--text-1); text-decoration: none;
+  font-family: var(--px); font-size: 13px; letter-spacing: 0.02em;
+  border: 1px solid rgba(var(--ink-rgb), 0.45);
+  -webkit-backdrop-filter: blur(22px) saturate(1.6); backdrop-filter: blur(22px) saturate(1.6);
+  transition: background-color 160ms var(--out), border-color 160ms var(--out), color 160ms var(--out), transform var(--press) var(--out);
+}
+.glass { flex: none; }
+.glass::after { content: ""; position: absolute; inset: -6px -2px; }
+.glass:active { transform: translateY(1px); }
+.glass > * { display: inline-flex; align-items: center; }
+
+.star { background: rgba(var(--ground-rgb), 0.55); box-shadow: inset 0 1px 0 rgba(var(--ink-rgb), 0.18); }
+.star-glyph { width: 11px; height: 11px; margin-left: 10px; fill: currentColor; align-self: center; }
+.star-word { padding: 0 10px 0 7px; }
+.star-count { padding: 0 10px; border-left: 1px solid rgba(var(--ink-rgb), 0.45); }
+.star-count:empty { display: none; }
+.star:hover { background: var(--frame); color: var(--ground); border-color: var(--frame); }
+.star:hover .star-count { border-color: var(--ground); }
+
+.download {
+  gap: 8px; padding: 0 12px;
+  color: #ffffff;
+  background: rgba(0, 0, 237, 0.82);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 18px -6px rgba(0, 0, 237, 0.6);
+}
+.download-glyph { width: 10px; height: 11px; fill: currentColor; align-self: center; }
+.download:hover { background: rgba(42, 42, 255, 0.92); color: #ffffff; }
+/* Over the blue band the blue glass would vanish: it turns white. */
+.bar[data-over="blue"] .download { color: #0000ed; background: rgba(255, 255, 255, 0.92); border-color: #ffffff; box-shadow: 0 6px 18px -6px rgba(0, 0, 0, 0.35); }
+.bar[data-over="blue"] .download:hover { background: #ffffff; }
+@media (max-width: 480px) {
+  .star-word { display: none; }
+  .bar { gap: 6px; padding: 0 12px; }
+  .theme { padding: 0 6px; }
+  .download-glyph { display: none; }
+  .star-glyph { margin-right: 8px; }
+}
+/* The theme: a switch, no words, in frosted-ink glass. On (dark): the knob
+ * sits right on a dithered track. Off (light): left, on an empty one. */
+.theme {
+  align-items: center; justify-content: center;
+  padding: 0 9px; cursor: pointer;
+  background: rgba(var(--ink-rgb), 0.12);
+  box-shadow: inset 0 1px 0 rgba(var(--ink-rgb), 0.25);
+}
+.theme:hover { background: rgba(var(--ink-rgb), 0.22); }
+.theme-track {
+  position: relative; display: block;
+  width: 34px; height: 18px;
+  border: 1px solid var(--frame);
+  background: transparent;
+}
+.theme[aria-checked="true"] .theme-track { background: var(--pt-sparse); }
+.theme-knob {
+  position: absolute; top: 2px; left: 2px;
+  width: 12px; height: 12px;
+  background: var(--frame);
+  transition: transform 160ms var(--out), background-color 160ms var(--out);
+}
+.theme[aria-checked="true"] .theme-knob { transform: translateX(16px); }
+.theme:hover .theme-knob { background: var(--accent-ink); }
+.theme:active .theme-knob { width: 14px; }
+
+/* ── Buttons ──────────────────────────────────────────────────────────── */
+/* Variants set tokens, never properties. */
+
+.btn {
+  --btn-bg: var(--ground); --btn-fg: var(--text-1); --btn-bd: var(--frame); --btn-ring: transparent;
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 36px; padding: 0 14px;
+  background: var(--btn-bg); color: var(--btn-fg);
+  border: 1px solid var(--btn-bd);
+  box-shadow: 0 0 0 2px var(--ground), 0 0 0 3px var(--btn-ring);
+  border-radius: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform var(--press) var(--out);
+}
+.btn::after { content: ""; position: absolute; inset: -5px -2px; }   /* 44px hit area, same look */
+.btn:hover { --btn-bg: var(--frame); --btn-fg: var(--ground); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { --btn-fg: var(--text-3); --btn-bd: var(--hair); cursor: not-allowed; transform: none; }
+.btn:disabled:hover { --btn-bg: var(--ground); --btn-fg: var(--text-3); }
+.btn[data-variant="default"] { --btn-bg: var(--accent); --btn-fg: var(--on-accent); --btn-bd: var(--accent); --btn-ring: var(--frame); }
+.btn[data-variant="default"]:hover { --btn-bg: var(--accent-hover); --btn-bd: var(--accent-hover); --btn-fg: var(--on-accent); }
+.btn[data-variant="default"]:disabled { --btn-bg: var(--ground); --btn-fg: var(--text-3); --btn-bd: var(--hair); --btn-ring: transparent; }
+.btn-sm { min-height: 28px; padding: 0 10px; }
+.btn-sm::after { inset: -9px -2px; }
+@media (pointer: coarse) { .btn { min-height: var(--target); } .btn::after { inset: 0; } }
+
+/* ── Commands ─────────────────────────────────────────────────────────── */
+
+/* One component for every install command: the whole thing is the copy
+ * button. Quiet at rest (a hairline, the command in ink); hover firms the
+ * frame and inverts the action; press sinks a pixel; copied fills the action
+ * with the accent for 1.6 s. Variants set tokens, never properties. */
+.cmd {
+  --cmd-bd: var(--hair); --cmd-act-bg: transparent; --cmd-act-fg: var(--text-3); --cmd-act-bd: var(--hair);
+  position: relative;
+  display: inline-flex; align-items: stretch;
+  max-width: 100%; min-height: var(--target);
+  padding: 0;
+  font: 15px / 1 var(--px); letter-spacing: 0.02em;
+  color: var(--text-1); background: transparent;
+  border: 1px solid var(--cmd-bd); border-radius: 0;
+  cursor: pointer; text-align: left;
+  transition: border-color 160ms var(--out), transform var(--press) var(--out);
+}
+.cmd > * { display: inline-flex; align-items: center; }
+.cmd-prompt { padding-left: 14px; color: var(--text-3); }
+.cmd code { padding: 0 16px 0 10px; font-size: inherit; color: inherit; white-space: nowrap; }
+.cmd-act {
+  padding: 0 12px;
+  font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--cmd-act-fg); background: var(--cmd-act-bg);
+  border-left: 1px solid var(--cmd-act-bd);
+  transition: background-color 160ms var(--out), color 160ms var(--out);
+}
+.cmd-done { display: none; }
+.cmd:hover { --cmd-bd: var(--frame); --cmd-act-bg: var(--frame); --cmd-act-fg: var(--ground); --cmd-act-bd: var(--frame); }
+.cmd:active { transform: translateY(1px); --cmd-act-bg: var(--pt-half); }
+.cmd[data-state="copied"] { --cmd-bd: var(--frame); --cmd-act-bg: var(--accent); --cmd-act-fg: var(--on-accent); --cmd-act-bd: var(--frame); }
+.cmd[data-state="copied"] .cmd-copy { display: none; }
+.cmd[data-state="copied"] .cmd-done { display: inline; }
+html:not(.js) .cmd { cursor: text; pointer-events: none; }
+
+/* ── Sections ─────────────────────────────────────────────────────────── */
+
+/* Sections run full width; content keeps the measure through the padding,
+ * so a band's colour reaches the edges. */
+main > section { padding: var(--section) max(var(--gutter), calc((100% - var(--measure)) / 2)) 0; }
+main > .band { margin-top: var(--section); padding-bottom: var(--section); }
+main > .band + .band { margin-top: 0; }
+h2 {
+  font-family: var(--display);
+  font-size: clamp(36px, 6.4vw, 88px);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+  max-width: 14ch;
+  text-wrap: balance;
+}
+h3 { font-family: var(--display); font-size: 21px; letter-spacing: -0.01em; line-height: 1.2; }
+.note { color: var(--text-3); margin-top: 12px; }
+.links { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 32px; font-family: var(--px); font-size: 15px; }
+.links a { display: inline-flex; align-items: center; min-height: var(--target); }
+
+/* 1 · Hero: the dithered field, then the one assertion. */
+main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
+/* The field runs to the very top, behind the ticker and the mark. */
+.hero { --field-top: 0px; }
+.field {
+  position: absolute; inset: var(--field-top) 0 auto; z-index: 0;
+  width: 100%; height: calc(min(100vh, 1000px) - var(--field-top));
+  object-fit: cover; object-position: 50% 0;
+  image-rendering: pixelated;
+  filter: var(--field-filter);
+  pointer-events: none;
+  user-select: none;
+}
+/* The live field (check/field.js) draws in the palette's own colours, so it
+ * skips the light theme's invert; the static PNG stays until its first frame. */
+.field-live { filter: none; }
+.hero.live img.field { visibility: hidden; }
+.hero-text {
+  position: relative; z-index: 1;
+  max-width: var(--measure); margin: 0 auto;
+  /* The first screen is at least 90vh; the headline sits in the lower half
+   * of the cloud, over the dots, with the text block at the bottom. */
+  min-height: 90vh;
+  display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start;
+  padding-top: clamp(240px, 42vh, 440px);
+}
+/* A long gradient behind the text, full width: the cloud stays visible at
+ * the top and fades to the ground under the headline, so it reads. */
+.hero-text::before {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+  top: 22%; bottom: -12%;
+  left: calc(50% - 50vw); width: 100vw;
+  background: linear-gradient(rgba(var(--ground-rgb), 0), rgba(var(--ground-rgb), 0.8) 32%, rgba(var(--ground-rgb), 0.94) 50%, rgb(var(--ground-rgb)) 85%);
+}
+/* Three separate pills, so the field shows through the gaps between them. */
+.pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 20px; padding: 0; list-style: none; }
+.pills li { padding: 4px 10px; color: var(--text-1); background: var(--ground); border: 1px solid var(--frame); }
+h1 {
+  font-family: var(--display);
+  font-size: clamp(42px, 8.2vw, 124px);
+  line-height: 0.94;
+  letter-spacing: -0.045em;
+  max-width: 16ch;
+  text-wrap: balance;
+}
+.lede { margin-top: 28px; max-width: 34ch; font-size: clamp(19px, 2.2vw, 26px); line-height: 1.35; color: var(--text-1); letter-spacing: -0.01em; }
+/* The two ways in, side by side: the command, or a prompt for your agent. */
+.hero-actions { display: flex; flex-wrap: wrap; align-items: stretch; gap: 12px; margin-top: 36px; }
+.btn-prompt { min-height: var(--target); max-width: 100%; gap: 10px; padding: 8px 16px; white-space: normal; text-align: left; }
+.btn-prompt .tool-icon { width: 14px; height: 14px; margin: 0; }
+.loop { position: relative; z-index: 1; max-width: var(--measure); margin: clamp(64px, 10vw, 128px) auto 0; }
+.loop video, .walk video { display: block; width: 100%; height: auto; border: 1px solid var(--frame); background: var(--ground); }
+figcaption { margin-top: 10px; color: var(--text-3); }
+
+/* 2 · The check: one dashboard window on its dotted desktop. */
+main > .desk { max-width: none; padding-left: 0; padding-right: 0; }
+.desk-head { max-width: var(--measure); margin: 0 auto; padding: 0 var(--gutter); }
+.desk-head p { margin-top: 24px; max-width: 62ch; }
+.window {
+  position: relative;
+  max-width: calc(880px + 2 * var(--gutter));
+  margin: 48px auto 0;
+  padding: clamp(16px, 4vw, 48px) var(--gutter);
+  background: var(--pt-desk);
+  border-block: 1px solid var(--frame);
+}
+@media (min-width: 960px) { .window { border-inline: 1px solid var(--frame); } }
+.titlebar, .window-body { max-width: 880px; margin: 0 auto; border: 1px solid var(--frame); background: var(--ground); }
+.titlebar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 30px; padding: 0 10px;
+  background: var(--frame); color: var(--ground);
+  border-bottom: 0;
+}
+.titlebar .title { color: var(--ground); }
+.titlebar .status { color: var(--ground); opacity: 1; }
+.window-body { padding: 16px; box-shadow: 4px 4px 0 var(--frame); }
+@media (min-width: 720px) { .window-body { padding: 24px; } }
+
+.drop {
+  position: relative;
+  display: grid; place-items: center; gap: 6px; text-align: center;
+  min-height: 168px; padding: 24px 16px;
+  border: 1px dashed var(--frame);
+  cursor: pointer;
+}
+.drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.drop-title { font-family: var(--display); font-size: clamp(20px, 3vw, 28px); letter-spacing: -0.02em; color: var(--text-1); }
+.drop-sub { color: var(--text-3); }
+.drop:hover, .drop.over { background: var(--pt-sparse); }
+.drop:hover .drop-title, .drop.over .drop-title { background: var(--ground); }
+.drop:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.paste { margin-top: 16px; }
+.paste summary {
+  display: inline-flex; align-items: center; gap: 8px; min-height: var(--target);
+  font-family: var(--px); font-size: 13px; color: var(--text-1); cursor: pointer; list-style: none;
+}
+.paste summary::-webkit-details-marker { display: none; }
+.paste summary::before { content: "▸"; }
+.paste[open] summary::before { content: "▾"; }
+.paste-body { display: grid; gap: 8px; padding-top: 4px; }
+.paste + .paste { margin-top: 4px; }
+.paste-note { max-width: 62ch; font-size: 15px; color: var(--text-2); }
+.paste-body > .cmd { justify-self: start; margin: 4px 0 8px; }
+.f-note { padding-left: 12px; border-left: 4px solid var(--frame); color: var(--text-1); }
+.label { color: var(--text-3); display: inline-flex; align-items: center; min-height: var(--target); min-width: var(--target); }
+textarea, select {
+  width: 100%; font: 13px / 1.5 var(--px); color: var(--text-1);
+  background: var(--ground); border: 1px solid var(--frame); border-radius: 0; padding: 10px;
+}
+select { min-height: 40px; padding: 0 10px; appearance: none; background: var(--ground) linear-gradient(var(--frame), var(--frame)) right 14px center / 7px 1px no-repeat; }
+textarea:focus-visible, select:focus-visible { outline-offset: 0; }
+.row { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; }
+.row .btn { grid-column: 1 / -1; justify-self: start; }
+@media (min-width: 620px) { .row { grid-template-columns: auto 1fr auto; } .row .btn { grid-column: auto; } }
+
+.staged { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.staged:empty { display: none; }
+.staged li { display: inline-flex; align-items: center; gap: 10px; padding: 4px 4px 4px 10px; border: 1px solid var(--frame); background: var(--pt-sparse); }
+.staged code { background: var(--ground); padding: 0 4px; }
+.notice { margin-top: 8px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
+
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+
+.output { margin-top: 20px; border-top: 1px solid var(--frame); padding-top: 16px; }
+.empty { color: var(--text-3); }
+.error { color: var(--text-1); padding-left: 12px; border-left: 4px solid var(--frame); }
+.summary p { color: var(--text-1); }
+.tally { display: flex; flex-wrap: wrap; gap: 6px 18px; list-style: none; margin: 10px 0 0; padding: 0; font-family: var(--px); font-size: 13px; color: var(--text-1); }
+
+/* Severity: a swatch and a word, as in penthera ui. */
+.sev { display: inline-flex; align-items: center; gap: 8px; color: var(--text-1); text-transform: uppercase; letter-spacing: 0.06em; }
+.sev::before { content: ""; flex: none; width: 11px; height: 11px; border: 1px solid var(--frame); }
+.sev-critical::before { background: var(--pt-solid); }
+.sev-high::before { background: var(--pt-hatch); }
+.sev-medium::before { background: var(--pt-half); }
+.sev-low::before { background: var(--pt-sparse); }
+
+.findings { list-style: none; margin: 16px 0 0; padding: 0; border-top: 1px solid var(--frame); }
+.findings li { border-bottom: 1px solid var(--hair); }
+.findings summary {
+  display: grid; grid-template-columns: 1fr; gap: 4px 16px; align-items: baseline;
+  padding: 12px 4px; min-height: var(--target); cursor: pointer; list-style: none;
+}
+.findings summary::-webkit-details-marker { display: none; }
+.findings summary:hover { background: var(--frame); }
+.findings summary:hover > * { color: var(--ground); }
+.findings summary:hover .sev::before { border-color: var(--ground); }
+.findings details[open] summary { background: var(--accent); }
+.findings details[open] summary > * { color: var(--on-accent); }
+.findings details[open] summary .sev::before { border-color: var(--on-accent); }
+.f-title { font-family: var(--sans); font-weight: 500; font-size: 16px; color: var(--text-1); overflow-wrap: anywhere; }
+.f-file { font-family: var(--px); font-size: 13px; color: var(--text-3); overflow-wrap: anywhere; }
+@media (min-width: 720px) { .findings summary { grid-template-columns: 116px 1fr auto; } }
+.f-body { padding: 12px 4px 20px; display: grid; gap: 12px; }
+.f-body p { color: var(--text-2); overflow-wrap: anywhere; white-space: pre-line; }
+.f-body dl { margin: 0; display: grid; gap: 4px; font-family: var(--px); font-size: 13px; }
+.f-body dl div { display: grid; grid-template-columns: 80px 1fr; gap: 12px; }
+.f-body dt { color: var(--text-3); }
+.f-body dd { margin: 0; color: var(--text-1); overflow-wrap: anywhere; }
+
+.facts { max-width: var(--measure); margin: 56px auto 0; padding: 0 var(--gutter); display: grid; gap: 40px; }
+@media (min-width: 860px) { .facts { grid-template-columns: 1fr 1fr; gap: 64px; } }
+.facts p, .facts ul { margin-top: 12px; max-width: 54ch; }
+.facts ul { padding-left: 0; list-style: none; display: grid; gap: 8px; }
+.facts li { padding-left: 20px; position: relative; }
+.facts li::before { content: ""; position: absolute; left: 0; top: 0.55em; width: 9px; height: 9px; border: 1px solid var(--frame); background: var(--pt-sparse); }
+
+/* 3 · Get it */
+.get .cmd { margin-top: 36px; }
+.get-lede { margin-top: 24px; max-width: 58ch; }
+.commands { margin: 40px 0 0; display: grid; border-top: 1px solid var(--frame); }
+.commands div { display: grid; gap: 4px 32px; padding: 14px 0; border-bottom: 1px solid var(--hair); }
+@media (min-width: 720px) { .commands div { grid-template-columns: minmax(280px, auto) 1fr; align-items: baseline; } }
+.commands dt code { font-size: 16px; }
+.commands dd { margin: 0; color: var(--text-3); }
+.prompts-title { margin-top: 72px; }
+.prompts { margin-top: 20px; display: grid; gap: 16px; }
+@media (min-width: 900px) { .prompts { grid-template-columns: repeat(3, 1fr); } }
+.prompt-card { display: grid; grid-template-rows: auto 1fr auto; gap: 12px; padding: 16px; border: 1px solid var(--frame); }
+.prompt-card h4 { display: flex; align-items: center; font-family: var(--display); font-size: 24px; font-weight: 500; letter-spacing: -0.02em; }
+/* The tools as 9 × 9 pixel glyphs in the site's own style, not their logos. */
+.tool-icon { flex: none; width: 18px; height: 18px; margin-right: 12px; fill: currentColor; shape-rendering: crispEdges; }
+/* The prompt reads as text someone ran a marker over. */
+.prompt-card pre { margin: 0; white-space: pre-wrap; font-size: 13px; line-height: 1.9; color: var(--text-1); }
+.prompt-card mark {
+  padding: 2px 4px; color: var(--on-accent); background: var(--accent);
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+/* The copy button appears on hover or focus; on touch screens it stays. */
+.prompt-card .btn { justify-self: start; opacity: 0; transition: opacity 160ms var(--out), transform var(--press) var(--out); }
+.prompt-card:hover .btn, .prompt-card:focus-within .btn, .prompt-card .btn[data-state="copied"] { opacity: 1; }
+@media (hover: none) { .prompt-card .btn { opacity: 1; } }
+
+/* 4 · Walkthrough */
+.walk figure { margin: 40px 0 0; }
+
+/* 5 · Limits */
+.limits-body { margin-top: 32px; display: grid; gap: 20px; max-width: 64ch; font-size: clamp(17px, 1.6vw, 20px); }
+.limits .method { font-family: var(--px); font-size: 15px; }
+
+/* 6 · EU rules */
+.eu-grid { display: grid; gap: 32px; align-items: start; }
+@media (min-width: 860px) { .eu-grid { grid-template-columns: 1fr auto; } }
+.eu-lede { margin-top: 24px; max-width: 46ch; font-size: clamp(17px, 1.6vw, 20px); color: var(--text-1); }
+.eu-mark { margin: 0; }
+.eu-mark svg { display: block; width: 162px; height: 162px; shape-rendering: crispEdges; border: 1px solid var(--frame); box-shadow: 6px 6px 0 var(--frame); }
+.eu-ground { fill: var(--accent); }
+.eu-stars { fill: #ffffff; }
+.eu-list { list-style: none; margin: 56px 0 0; padding: 0; display: grid; border-top: 1px solid var(--frame); }
+@media (min-width: 900px) { .eu-list { grid-template-columns: repeat(3, 1fr); } }
+.eu-list li { display: flex; align-items: flex-start; padding: 24px 24px 24px 0; border-bottom: 1px solid var(--hair); }
+@media (min-width: 900px) { .eu-list li + li { padding-left: 24px; border-left: 1px solid var(--hair); } }
+.eu-list h3 { margin-bottom: 8px; }
+.eu-list p { color: var(--text-2); }
+.eu-list a { display: inline-block; margin-top: 8px; font-family: var(--px); font-size: 13px; }
+.eu-note { margin-top: 24px; max-width: 70ch; font-family: var(--px); font-size: 12px; color: var(--text-3); }
+
+/* 7 · Vision: the closing assertion. */
+.vision-text {
+  margin-top: 32px; max-width: 30ch;
+  font-family: var(--display); font-size: clamp(24px, 3.4vw, 44px);
+  line-height: 1.12; letter-spacing: -0.025em; color: var(--text-1);
+}
+
+/* ── Footer ───────────────────────────────────────────────────────────── */
+
+/* The footer: one quiet strip. The veil switches off over it (check/ui.js). */
+.foot {
+  padding: 16px var(--gutter) 20px;
+  border-top: 1px solid var(--frame);
+  color: var(--text-3);
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px 32px;
+  font-size: 12px;
+}
+.foot-main { display: grid; gap: 6px; flex: 1 1 420px; }
+.nowrap { white-space: nowrap; }
+/* The mark again, on the right, closing the page; it links back to the top. */
+.foot-mark {
+  --logo-w: clamp(120px, 18vw, 220px); --logo-h: calc(var(--logo-w) * 63 / 279);
+  display: inline-flex; align-items: center; min-height: var(--target); margin-left: auto;
+  color: var(--text-1); text-decoration: none;
+}
+.foot-mark:hover { background: none; color: var(--accent-ink); }
+.foot p a { display: inline-block; padding: 12px 0; margin: -12px 0; }
+/* The bar's three controls again, so the end of the page has the same ways out. */
+.foot-ctas { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+/* The maker, at the end of Open R&D. */
+.by {
+  justify-self: start;
+  display: inline-grid; gap: 12px;
+  margin-top: 72px; padding: 8px 8px 8px 0;
+  color: var(--text-1); text-decoration: none;
+}
+.by-word { font-family: var(--px); font-size: 13px; color: var(--text-3); }
+/* A signature, not a headline. A traced SVG, so it stays sharp. */
+.dvdz {
+  display: block; width: clamp(140px, 18vw, 200px); aspect-ratio: 2738 / 476; background: currentColor;
+  -webkit-mask: url("/media/dvdzwaag.svg") left center / contain no-repeat;
+  mask: url("/media/dvdzwaag.svg") left center / contain no-repeat;
+}
+.by:hover { background: none; color: var(--accent-ink); }
+.by:hover .by-word { color: var(--accent-ink); }
+
+/* The bottom veil: the same blur, rising from the bottom edge of the screen. */
+/* A progressive blur, 0 at the top edge to 32 px at the bottom: six stacked
+ * layers, each blurring twice as much as the last over a band nearer the
+ * bottom, masked so neighbouring bands overlap. One blurred layer under a
+ * fading mask reads as a frosted rectangle; this has no edge. */
+.veil {
+  position: fixed; inset: auto 0 0; z-index: 9;
+  height: var(--veil-h);
+  pointer-events: none;
+  transition: opacity 240ms var(--out);
+}
+.veil > i {
+  position: absolute; inset: 0;
+  -webkit-backdrop-filter: blur(var(--b)); backdrop-filter: blur(var(--b));
+  -webkit-mask-image: linear-gradient(to top, #000 var(--solid), transparent var(--clear));
+  mask-image: linear-gradient(to top, #000 var(--solid), transparent var(--clear));
+}
+.veil > i:nth-child(1) { --b: 1px;  --solid: 66%; --clear: 100%; }
+.veil > i:nth-child(2) { --b: 2px;  --solid: 50%; --clear: 83%; }
+.veil > i:nth-child(3) { --b: 4px;  --solid: 34%; --clear: 66%; }
+.veil > i:nth-child(4) { --b: 8px;  --solid: 18%; --clear: 50%; }
+.veil > i:nth-child(5) { --b: 16px; --solid: 6%;  --clear: 34%; }
+.veil > i:nth-child(6) { --b: 32px; --solid: 0%;  --clear: 18%; }
+
+/* Off while the hero headline is inside the veil's zone, so the first screen
+ * reads clean; it fades in once the headline has scrolled above it. */
+.veil[data-off] { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}

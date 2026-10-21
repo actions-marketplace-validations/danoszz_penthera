@@ -4,6 +4,14 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Fixed
+
+- **`npx penthera ui` stops cleanly on Ctrl-C and SIGTERM.** npm forwards
+  the signal to penthera right after the terminal delivered it, and the
+  second copy could kill the dashboard before it printed "Stopped." and
+  closed its server. Repeated signals are now ignored while it stops. This
+  was the intermittent macOS failure in the install-matrix smoke check.
+
 ## [1.8.0] - 2026-10-21
 
 1.8.0 is 1.8.0-rc.1 plus the changes below; there was no separate rc.2

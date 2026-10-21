@@ -37,9 +37,9 @@ The agent does the routine, repeatable checks a security engineer would do:
   authorization bugs, or zero-days. It is not a replacement for a human
   penetration test.
 - **Its accuracy is measured, but on a small sample.** The benchmark reports
-  precision 0.86 and recall 0.90, but on 22 scored findings in labs we built
-  ourselves. The 95% confidence intervals are wide: precision 0.67 to 0.95,
-  recall 0.71 to 0.97 (Wilson). Real-world accuracy on other people's code is
+  precision 0.88 and recall 0.91, but on 24 scored findings in labs we built
+  ourselves. The 95% confidence intervals are wide: precision 0.69 to 0.96,
+  recall 0.73 to 0.98 (Wilson). Real-world accuracy on other people's code is
   not yet measured. Closing that gap is the first goal of the
   [research plan](vision-2.0.md) (experiment E1).
 - **"Agent" means a loop with guard rails, not an autonomous AI.**
@@ -163,7 +163,7 @@ Because a judge that can be persuaded is a judge an attacker will persuade.
 Models are useful to *propose*; something deterministic has to *verify*.
 
 **How accurate is it?**
-On our own benchmark: precision 0.86, recall 0.90, on a small sample with wide
+On our own benchmark: precision 0.88, recall 0.91, on a small sample with wide
 intervals (see above). Measuring accuracy on real-world code is the first
 experiment in the research plan (E1).
 

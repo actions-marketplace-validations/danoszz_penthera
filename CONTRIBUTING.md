@@ -276,9 +276,9 @@ quality from depending on anyone's free evenings.
   go into that release; features wait for the next one.
 - **No version bump or tag without the maintainer's go.**
 
-**Current freeze: 1.8.0 = main + [#63](https://github.com/danoszz/penthera/pull/63)**
-(the dashboard redesign). Other open pull requests go into 1.9. See the
-[roadmap](ROADMAP.md#now-180-feature-freeze).
+**Current freeze: none.** 1.8.0 shipped on 2026-10-21. The freeze for 1.9 is
+announced here and in the [roadmap](ROADMAP.md#just-shipped-180) when it
+starts.
 
 Between releases:
 

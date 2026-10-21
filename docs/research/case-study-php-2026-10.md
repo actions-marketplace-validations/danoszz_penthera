@@ -8,8 +8,8 @@ their sites offline as a precaution. This page records what happened that day,
 what we built in response, and where any version-based scanner, Penthera
 included, stops being useful.
 
-**Status.** The work described here is on a branch and is not released yet. It
-reaches users only after review, a signed rule pack and a release candidate.
+**Status.** Released in 1.8.0 (`npx penthera`), with the
+rules in the signed `advisories` pack.
 
 ## Timeline
 

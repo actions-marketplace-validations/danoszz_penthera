@@ -16,7 +16,21 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 <a id="doupe2010johnny"></a>Doupé, A., Cova, M., & Vigna, G. (2010). Why Johnny can't pentest: An analysis of black-box web vulnerability scanners. In C. Kreibich & M. Jahnke (Eds.), *Detection of Intrusions and Malware, and Vulnerability Assessment (DIMVA 2010)* (pp. 111–131). Springer. <https://doi.org/10.1007/978-3-642-14215-4_7>
 
+<a id="durumeric2014heartbleed"></a>Durumeric, Z., Li, F., Kasten, J., Amann, J., Beekman, J., Payer, M., Weaver, N., Adrian, D., Paxson, V., Bailey, M., & Halderman, J. A. (2014). The matter of Heartbleed. In *Proceedings of the 2014 Conference on Internet Measurement Conference (IMC '14)* (pp. 475–488). ACM. <https://doi.org/10.1145/2663716.2663755>
+
+<a id="kar2022httpfuzz"></a>Kar, A., Natadze, A., Branca, E., & Stakhanova, N. (2022). HTTPFuzz: Web server fingerprinting with HTTP request fuzzing. In *Proceedings of the 19th International Conference on Security and Cryptography* (pp. 261–271). SCITEPRESS. <https://doi.org/10.5220/0011328900003283>
+
+<a id="lee2002detecting"></a>Lee, D., Rowe, J., Ko, C., & Levitt, K. (2002). Detecting and defending against web-server fingerprinting. In *18th Annual Computer Security Applications Conference, 2002. Proceedings.* (pp. 321–330). IEEE Computer Society. <https://doi.org/10.1109/CSAC.2002.1176304>
+
+<a id="lyon2009nmap"></a>Lyon, G. (2009). *Nmap network scanning: The official Nmap project guide to network discovery and security scanning*. Insecure.Com LLC. <https://nmap.org/book/vscan.html>
+
+<a id="nappa2015clones"></a>Nappa, A., Johnson, R., Bilge, L., Caballero, J., & Dumitras, T. (2015). The attack of the clones: A study of the impact of shared code on vulnerability patching. In *2015 IEEE Symposium on Security and Privacy* (pp. 692–708). IEEE. <https://doi.org/10.1109/SP.2015.48>
+
 <a id="owaspbenchmark"></a>OWASP Foundation. (n.d.-a). *OWASP Benchmark project* (Version 1.2). Retrieved October 19, 2026, from <https://owasp.org/www-project-benchmark/>
+
+<a id="nucleiphpdetect"></a>ProjectDiscovery. (n.d.). *Nuclei-templates: Php-detect.yaml*. Retrieved October 21, 2026, from <https://github.com/projectdiscovery/nuclei-templates/blob/main/http/technologies/php-detect.yaml>
+
+<a id="vasek2016hacking"></a>Vasek, M., Wadleigh, J., & Moore, T. (2016). Hacking is not random: A case-control study of webserver-compromise risk. *IEEE Transactions on Dependable and Secure Computing*, 206–219. <https://doi.org/10.1109/TDSC.2015.2427847>
 
 ## Security design principles
 
@@ -72,6 +86,8 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 <a id="kucherawy2015rfc7489"></a>Kucherawy, M., & Zwicky, E. (2015). *Domain-based message authentication, reporting, and conformance (DMARC)* (RFC 7489). RFC Editor. <https://doi.org/10.17487/RFC7489>
 
+<a id="lavrenovs2018http"></a>Lavrenovs, A., & Melon, F. J. R. (2018). HTTP security headers analysis of top one million websites. In *2018 10th International Conference on Cyber Conflict (CyCon)* (pp. 345–370). IEEE. <https://doi.org/10.23919/CYCON.2018.8405025>
+
 <a id="lekies2013flows"></a>Lekies, S., Stock, B., & Johns, M. (2013). 25 million flows later: Large-scale detection of DOM-based XSS. In *Proceedings of the 2013 ACM SIGSAC Conference on Computer and Communications Security (CCS '13)* (pp. 1193–1204). ACM. <https://doi.org/10.1145/2508859.2516703>
 
 <a id="lodderstedt2025rfc9700"></a>Lodderstedt, T., Bradley, J., Labunets, A., & Fett, D. (2025). *Best current practice for OAuth 2.0 security* (RFC 9700, BCP 240). RFC Editor. <https://doi.org/10.17487/RFC9700>
@@ -84,11 +100,15 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 <a id="owasp2025top10"></a>OWASP Foundation. (2025c). *OWASP Top 10:2025*. Retrieved October 19, 2026, from <https://top10.owasp.org/2025>
 
+<a id="phpexposephp"></a>The PHP Group. (n.d.-a). *Description of core php.ini directives: Expose\_php*. PHP Manual. Retrieved October 21, 2026, from <https://www.php.net/manual/en/ini.core.php>
+
 <a id="sakimura2015rfc7636"></a>Sakimura, N., Bradley, J., & Agarwal, N. (2015). *Proof key for code exchange by OAuth public clients* (RFC 7636). RFC Editor. <https://doi.org/10.17487/RFC7636>
 
 <a id="sheffer2020rfc8725"></a>Sheffer, Y., Hardt, D., & Jones, M. (2020). *JSON web token best current practices* (RFC 8725, BCP 225). RFC Editor. <https://doi.org/10.17487/RFC8725>
 
 <a id="stock2014precise"></a>Stock, B., Lekies, S., Mueller, T., Spiegel, P., & Johns, M. (2014). Precise client-side protection against DOM-based cross-site scripting. In *23rd USENIX Security Symposium (USENIX Security 14)* (pp. 655–670). USENIX Association. <https://www.usenix.org/conference/usenixsecurity14/technical-sessions/presentation/stock>
+
+<a id="stock2016hey"></a>Stock, B., Pellegrino, G., Rossow, C., Johns, M., & Backes, M. (2016). Hey, you have a problem: On the feasibility of Large-Scale web vulnerability notification. In *25th USENIX Security Symposium (USENIX Security 16)* (pp. 1015–1032). USENIX Association. <https://www.usenix.org/conference/usenixsecurity16/technical-sessions/presentation/stock>
 
 <a id="weichselbaum2016csp"></a>Weichselbaum, L., Spagnuolo, M., Lekies, S., & Janc, A. (2016). CSP is dead, long live CSP! On the insecurity of whitelists and the future of Content Security Policy. In *Proceedings of the 2016 ACM SIGSAC Conference on Computer and Communications Security (CCS '16)* (pp. 1376–1387). ACM. <https://doi.org/10.1145/2976749.2978363>
 
@@ -128,10 +148,62 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 <a id="oasis2023sarif"></a>Fanning, M. C., & Golding, L. J. (2023, August 28). *Static Analysis Results Interchange Format (SARIF) version 2.1.0 plus errata 01* [OASIS Standard incorporating Approved Errata]. OASIS. Retrieved October 19, 2026, from <https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/sarif-v2.1.0-errata01-os-complete.html>
 
+<a id="first2023cvss4"></a>FIRST. (2023, November 1). *Common vulnerability scoring system version 4.0: Specification document* (Version 1.2). Retrieved October 21, 2026, from <https://www.first.org/cvss/v4.0/specification-document>
+
 <a id="mitrecwe"></a>The MITRE Corporation. (n.d.-a). *CWE: Common Weakness Enumeration*. Retrieved October 19, 2026, from <https://cwe.mitre.org/>
+
+<a id="ncsc2015webapps"></a>† Nationaal Cyber Security Centrum. (2015). *ICT-beveiligingsrichtlijnen voor webapplicaties: Richtlijnen* [ICT security guidelines for web applications: Guidelines]. Retrieved October 21, 2026, from <https://www.ncsc.nl/binaries/ncsc/documenten/publicaties/2019/mei/01/ict-beveiligingsrichtlijnen-voor-webapplicaties/ICT-Beveiligingsrichtlijnen-voor-Webapplicaties-Richtlijnen-Leesversie.pdf>
+
+<a id="ncsc2024webapps"></a>Nationaal Cyber Security Centrum. (2024). *ICT-beveiligingsrichtlijnen voor webapplicaties* [ICT security guidelines for web applications]. Retrieved October 21, 2026, from <https://www.ncsc.nl/api/media/sites/default/files/Richtlijn%20ICT%20beveiligingsrichtlijnen%20webapplicaties%2007-24_0.pdf>
+
+<a id="oasis2022csaf"></a>Rock, L., Hagen, S., & Schmidt, T. (2022, November 18). *Common security advisory framework version 2.0* [OASIS Standard]. OASIS. Retrieved October 21, 2026, from <https://docs.oasis-open.org/csaf/csaf/v2.0/os/csaf-v2.0-os.html>
 
 <a id="scarfone2008sp800115"></a>Scarfone, K. A., Souppaya, M. P., Cody, A., & Orebaugh, A. D. (2008). *Technical guide to information security testing and assessment* (NIST Special Publication 800-115). National Institute of Standards and Technology. <https://doi.org/10.6028/NIST.SP.800-115>
 
 <a id="spdxlicenselist"></a>SPDX Workgroup, The Linux Foundation. (n.d.). *SPDX License List*. Retrieved October 19, 2026, from <https://spdx.org/licenses/>
 
 <a id="tabassi2023airmf"></a>† Tabassi, E. (2023). *Artificial intelligence risk management framework (AI RMF 1.0)* (NIST AI 100-1). National Institute of Standards and Technology. <https://doi.org/10.6028/NIST.AI.100-1>
+
+## Vulnerability advisories and version data
+
+<a id="httpdvulns24"></a>The Apache Software Foundation. (n.d.). *Apache HTTP Server 2.4 vulnerabilities*. Retrieved October 21, 2026, from <https://httpd.apache.org/security/vulnerabilities_24.html>
+
+<a id="censys2024cve4577"></a>Censys. (2024, June 10). *PHP-CGI argument injection vulnerability could lead to remote code execution*. Retrieved October 21, 2026, from <https://censys.com/advisory/cve-2024-4577/>
+
+<a id="ossfosvschema"></a>Chang, O., & Cox, R. (2026, October 13). *Open source vulnerability format* (Version 1.9.2). OpenSSF. Retrieved October 21, 2026, from <https://ossf.github.io/osv-schema/>
+
+<a id="cisakev"></a>Cybersecurity and Infrastructure Security Agency. (n.d.). *Known exploited vulnerabilities catalog*. Retrieved October 21, 2026, from <https://www.cisa.gov/known-exploited-vulnerabilities-catalog>
+
+<a id="debiansecurityfaq"></a>Debian Project. (n.d.). *Debian security FAQ*. Retrieved October 21, 2026, from <https://www.debian.org/security/faq>
+
+<a id="devcore2024cve4577"></a>DEVCORE. (2024, June 6). *Security alert: CVE-2024-4577 – PHP CGI argument injection vulnerability*. Retrieved October 21, 2026, from <https://devco.re/blog/2024/06/06/security-alert-cve-2024-4577-php-cgi-argument-injection-vulnerability-en/>
+
+<a id="endoflifedate"></a>endoflife.date contributors. (n.d.). *Endoflife.date*. Retrieved October 21, 2026, from <https://endoflife.date/>
+
+<a id="li2017largescale"></a>Li, F., & Paxson, V. (2017). A large-scale empirical study of security patches. In *Proceedings of the 2017 ACM SIGSAC Conference on Computer and Communications Security (CCS '17)* (pp. 2201–2215). ACM. <https://doi.org/10.1145/3133956.3134072>
+
+<a id="ncscadvisories"></a>Nationaal Cyber Security Centrum. (n.d.). *Security advisories*. Retrieved October 21, 2026, from <https://advisories.ncsc.nl/>
+
+<a id="nginxadvisories"></a>nginx. (n.d.). *Nginx security advisories*. Retrieved October 21, 2026, from <https://nginx.org/en/security_advisories.html>
+
+<a id="nos2026phpliveblog"></a>† NOS. (2026, October 21). *Websites kwetsbaar voor softwarelek: RTL nieuws, DigiD en MijnOverheid uit de lucht* [Websites vulnerable to software flaw: RTL Nieuws, DigiD and MijnOverheid offline]. Retrieved October 21, 2026, from <https://nos.nl/liveblog/2636066-websites-kwetsbaar-voor-softwarelek-digid-en-mijnoverheid-uit-de-lucht>
+
+<a id="nodejsreleases"></a>OpenJS Foundation and Node.js contributors. (n.d.). *Node.js releases*. Retrieved October 21, 2026, from <https://nodejs.org/en/about/previous-releases>
+
+<a id="opensslvulns"></a>OpenSSL Library. (n.d.). *Vulnerabilities*. Retrieved October 21, 2026, from <https://openssl-library.org/news/vulnerabilities/>
+
+<a id="phpsrcadvisories"></a>The PHP Group. (n.d.-b). *Security advisories for php/php-src*. Retrieved October 21, 2026, from <https://github.com/php/php-src/security/advisories>
+
+<a id="phpsupported"></a>The PHP Group. (n.d.-c). *Supported versions*. Retrieved October 21, 2026, from <https://www.php.net/supported-versions.php>
+
+<a id="php2012cgi"></a>The PHP Group. (2012, May 6). *PHP 5.3.12 and 5.4.2 and the CGI flaw (CVE-2012-1823)*. Retrieved October 21, 2026, from <https://www.php.net/archive/2012.php#id2012-05-06-1>
+
+<a id="php2026critical"></a>The PHP Group. (2026, October 20). *Upcoming critical PHP security release*. Retrieved October 21, 2026, from <https://www.php.net/archive/2026.php#2026-10-20-1>
+
+<a id="pythondevguideversions"></a>Python Software Foundation. (n.d.). *Status of Python versions*. Python Developer's Guide. Retrieved October 21, 2026, from <https://devguide.python.org/versions/>
+
+<a id="redhatbackporting"></a>Red Hat. (n.d.). *Security backporting practice*. Red Hat Customer Portal. Retrieved October 21, 2026, from <https://access.redhat.com/security/updates/backporting>
+
+<a id="ubuntusecurityfaq"></a>Ubuntu Security Team. (n.d.). *Security/FAQ*. Ubuntu Wiki. Retrieved October 21, 2026, from <https://wiki.ubuntu.com/SecurityTeam/FAQ>
+
+<a id="zhang2018precise"></a>Zhang, H., & Qian, Z. (2018). Precise and accurate patch presence test for binaries. In *27th USENIX Security Symposium (USENIX Security 18)* (pp. 887–902). USENIX Association. <https://www.usenix.org/conference/usenixsecurity18/presentation/zhang-hang>

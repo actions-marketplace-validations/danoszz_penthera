@@ -1,0 +1,102 @@
+{
+  "kind": "runtime-advisory",
+  "rules": [
+    {
+      "id": "php-cve-2024-4577",
+      "product": "php",
+      "title": "PHP-CGI argument injection on Windows (bypass of CVE-2012-1823)",
+      "severity": "high",
+      "cves": [
+        "CVE-2024-4577"
+      ],
+      "ghsa": [
+        "GHSA-3qgc-jrrr-25jv"
+      ],
+      "condition": "PHP runs as CGI (php-cgi, for example through Apache with an Action/SetHandler to php-cgi) on Windows, where code-page conversion of the query string re-enables argument injection",
+      "fixed": [
+        {
+          "branch": "8.1",
+          "version": "8.1.29"
+        },
+        {
+          "branch": "8.2",
+          "version": "8.2.20"
+        },
+        {
+          "branch": "8.3",
+          "version": "8.3.8"
+        }
+      ],
+      "source": "https://github.com/php/php-src/security/advisories/GHSA-3qgc-jrrr-25jv",
+      "date": "2024-06-06",
+      "confidence": "confirmed",
+      "description": "Reported by Orange Tsai (DEVCORE). The php-src advisory rates it High and lists the patched versions 8.1.29, 8.2.20 and 8.3.8 (PHP 8 ChangeLog, 6 June 2024).",
+      "references": [
+        "phpsrcadvisories",
+        "devcore2024cve4577",
+        "censys2024cve4577",
+        "cisakev"
+      ],
+      "kev": "2024-06-12"
+    },
+    {
+      "id": "php-cve-2024-8926",
+      "product": "php",
+      "title": "PHP-CGI parameter injection on Windows (bypass of CVE-2024-4577)",
+      "severity": "medium",
+      "cves": [
+        "CVE-2024-8926"
+      ],
+      "ghsa": [
+        "GHSA-p99j-rfp4-xqvq"
+      ],
+      "condition": "PHP runs as CGI on Windows with a non-standard code-page setting (the ACP code page pointed at an OEM code page in the registry), which php-src calls unlikely in a real environment",
+      "fixed": [
+        {
+          "branch": "8.1",
+          "version": "8.1.30"
+        },
+        {
+          "branch": "8.2",
+          "version": "8.2.24"
+        },
+        {
+          "branch": "8.3",
+          "version": "8.3.12"
+        }
+      ],
+      "source": "https://github.com/php/php-src/security/advisories/GHSA-p99j-rfp4-xqvq",
+      "date": "2024-09-26",
+      "confidence": "confirmed",
+      "description": "The php-src advisory rates it Moderate and lists the patched versions 8.1.30, 8.2.24 and 8.3.12 (PHP 8 ChangeLog, 26 September 2024).",
+      "references": [
+        "phpsrcadvisories"
+      ]
+    },
+    {
+      "id": "httpd-cve-2021-41773-42013",
+      "product": "apache-httpd",
+      "title": "Path traversal and remote code execution in Apache HTTP Server 2.4.49 and 2.4.50",
+      "severity": "critical",
+      "cves": [
+        "CVE-2021-41773",
+        "CVE-2021-42013"
+      ],
+      "condition": "Files outside Alias-like directories are not protected by the default \"require all denied\"; remote code execution also needs CGI enabled for those paths",
+      "fixed": [
+        {
+          "branch": "2.4",
+          "version": "2.4.51",
+          "introduced": "2.4.49"
+        }
+      ],
+      "source": "https://httpd.apache.org/security/vulnerabilities_24.html",
+      "date": "2021-10-07",
+      "confidence": "confirmed",
+      "description": "CVE-2021-41773 affected only 2.4.49 and its fix in 2.4.50 was incomplete (CVE-2021-42013), so 2.4.49 and 2.4.50 are affected and 2.4.51 fixes both, per the Apache HTTP Server 2.4 vulnerabilities page.",
+      "references": [
+        "httpdvulns24"
+      ]
+    }
+  ]
+}

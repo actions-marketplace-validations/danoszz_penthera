@@ -55,6 +55,10 @@ export function fixtureFiles() {
     "src/env.js": `export const key = process.env.OPENAI_API_KEY;\nexport const secret = process.env.JWT_SECRET;\n`,
     ".env.example": `API_KEY="your-api-key-here"\nPASSWORD="changeme"\n`,
     "src/settings.js": `export const apiKey = "<placeholder>";\nexport const password = "********";\n`,
+    // Runtime pins. GT repo-fixture/httpd-pinned: an image on an affected
+    // Apache release. The decoy pins a release before the bug was introduced.
+    "deploy/Dockerfile": "FROM httpd:2.4.50-alpine\nCOPY site/ /usr/local/apache2/htdocs/\n",
+    "deploy/legacy.Dockerfile": "FROM httpd:2.4.48\n",
     "docs/setup.md": "Set `api_key = \"REDACTED\"` in your local config. Never commit real keys.\n",
     // AWS's own documentation example key: credential-shaped, not a credential.
     "config/aws.example.yaml": `# Example from the AWS docs\naws_access_key_id: ${awsDocsExample}\n`,

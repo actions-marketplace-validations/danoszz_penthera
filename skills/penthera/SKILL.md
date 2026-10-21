@@ -70,6 +70,7 @@ All examples below use `penthera`; substitute `node bin/penthera.js` when needed
 | Scan a live URL | `penthera <url> --profile standard -o reports/scan.json` |
 | Scan repo only (secrets, routes) | `penthera --repo . -o reports/repo-scan.json` |
 | Is this dependency safe? / what changed in my deps? | `penthera deps` or `penthera deps --base origin/main` (see **Dependency risk scan**) |
+| Am I affected by a PHP / nginx / Apache / Node.js / Python / OpenSSL advisory? | `penthera <url>` and `penthera --repo .`; for an advisory newer than the release, add `--rules <signed-pack>` (see docs/runtime-advisories.md). Report "check on server" findings as unknown, never as safe |
 | Install X safely / is it safe to add this package? | `penthera install <pkg> --dry-run`, then `penthera install <pkg>` (see **Install firewall**) |
 | Are our dependency licenses OK? / any AGPL? | `penthera deps --license-policy permissive` (see **License policy**) |
 | Add a pre-commit hook / stop me committing secrets | `penthera hook install` (see **Pre-commit hook**) |

@@ -4,6 +4,28 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Added
+
+- **Runtime advisories: is the PHP, Apache, nginx, Node.js, Python or OpenSSL
+  you run affected?** URL scans read `Server` and `X-Powered-By` banners, the
+  `PHPSESSID` cookie name and `.php` pages. Repo scans read Dockerfile and
+  compose images, `.tool-versions`, `.php-version`, `.nvmrc`,
+  `.python-version`, `runtime.txt` and `composer.json`. Each product and
+  version gets one answer: affected, end of life with no fix, check on server,
+  or has the fix (as advertised). A hidden version is never reported as safe.
+  A distribution build (`8.1.2-1ubuntu2.19`, or any version behind a `Server`
+  header that names a distribution) is never reported as affected, because
+  distributions backport fixes under the same version number. Advisories that
+  need more than a version (Windows, CGI) stay `potential`. See
+  [docs/runtime-advisories.md](docs/runtime-advisories.md).
+- **Two rule-pack kinds, `runtime-advisory` and `runtime-eol`**, so a new
+  advisory ships as a signed data pack (`--rules`) the same day, without a
+  release. End of life is judged by the pack's date, not the scan's clock.
+- **A bundled `advisories` pack** with vendor-checked worked examples
+  (CVE-2024-4577 and CVE-2024-8926 for PHP-CGI on Windows, CVE-2021-41773 and
+  CVE-2021-42013 for Apache HTTP Server 2.4.49 and 2.4.50) and end-of-life
+  release lines. Benchmark cases for both URL and repo scans.
+
 ### Docs
 
 - **README hero is a 12-second loop** of the terminal and the dashboard

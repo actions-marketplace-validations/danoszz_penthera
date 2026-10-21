@@ -334,6 +334,10 @@ main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
   pointer-events: none;
   user-select: none;
 }
+/* The live field (check/field.js) draws in the palette's own colours, so it
+ * skips the light theme's invert; the static PNG stays until its first frame. */
+.field-live { filter: none; }
+.hero.live img.field { visibility: hidden; }
 .hero-text {
   position: relative; z-index: 1;
   max-width: var(--measure); margin: 0 auto;

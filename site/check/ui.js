@@ -4,6 +4,7 @@
  */
 import { check, ready, kindForName, guessKind, KINDS, HEADERS } from "./engine.js";
 import { COPY } from "./copy.js";
+import { liveField } from "./field.js";
 import { EXAMPLES } from "virtual:examples";
 
 const MAX_BYTES = 1024 * 1024;
@@ -251,5 +252,6 @@ function barPalette() {
 
 copyButtons();
 heroLoop();
+liveField($(".hero .field"));
 barPalette();
 setupCheck();

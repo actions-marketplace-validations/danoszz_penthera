@@ -5,9 +5,10 @@
  *
  *   node scripts/docs-commands.mjs [--bin <path/to/bin/penthera.js>] [--report <file.md>] [--json] [--no-run]
  *
- * Reads README.md, docs/**\/*.md and skills/penthera/SKILL.md: fenced bash/sh
- * blocks, `run:` lines in fenced yaml, and inline `penthera …` / `npx penthera …`
- * code spans. Each command is classified:
+ * Reads README.md, docs/**\/*.md, skills/penthera/SKILL.md and the site
+ * (site/index.html): fenced bash/sh blocks, `run:` lines in fenced yaml, and
+ * inline `penthera …` / `npx penthera …` code spans (in the site, <code>
+ * elements and backtick spans, such as the copy-paste prompts). Each command is classified:
  *
  *   runnable     offline-safe: run against a copy of tests/fixtures/init/app
  *                (a committed git repo) with substitutions such as
@@ -53,7 +54,7 @@ export function docFiles(root = ROOT) {
     const p = join(d, e.name);
     return e.isDirectory() ? walk(p) : e.name.endsWith(".md") ? [p] : [];
   });
-  return ["README.md", ...walk(join(root, "docs")).map((p) => relative(root, p)), "skills/penthera/SKILL.md"]
+  return ["README.md", ...walk(join(root, "docs")).map((p) => relative(root, p)), "skills/penthera/SKILL.md", "site/index.html"]
     .map((p) => p.split(sep).join("/"))
     .filter((p) => existsSync(join(root, p)));
 }
@@ -93,6 +94,20 @@ export function extractCommands(markdown, file) {
     }
   }
   return out;
+}
+
+/**
+ * The site's HTML as the Markdown extractCommands reads: <code> becomes a
+ * backtick span, other tags go, entities are decoded. Line numbers are kept.
+ */
+export function htmlToText(html) {
+  const decode = (t) => t.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&");
+  return decode(html.replace(/<code\b[^>]*>([\s\S]*?)<\/code>/g, (m, c) => `\`${c}\``).replace(/<[^>]*>/g, ""));
+}
+
+/** Commands in one doc file, Markdown or the site's HTML. */
+export function extractDocCommands(text, file) {
+  return extractCommands(file.endsWith(".html") ? htmlToText(text) : text, file);
 }
 
 // ── Shell-ish parsing ────────────────────────────────────────────────────────
@@ -389,7 +404,7 @@ export async function checkDocs({ bin = join(ROOT, "bin", "penthera.js"), run = 
 
   const results = [];
   for (const file of docFiles(root)) {
-    for (const cmd of extractCommands(readFileSync(join(root, file), "utf8"), file)) {
+    for (const cmd of extractDocCommands(readFileSync(join(root, file), "utf8"), file)) {
       for (const part of splitCommands(stripComment(cmd.text))) {
         const base = { file, line: cmd.line, source: cmd.source, text: part.text };
         const p = parsePenthera(part.tokens);

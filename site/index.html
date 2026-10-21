@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Penthera</title>
+  <meta name="description" content="Offline cyber security agent for your apps and AI coding tools. Open R&amp;D: measured in public, improved every release.">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#000000">
+  <meta property="og:title" content="Penthera">
+  <meta property="og:description" content="An open-source cyber security agent you can use today, and verify yourself.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/fonts/DepartureMono-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/theme.js"></script>
+  <script type="module" src="/check.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="bar">
+    <a class="brand" href="/"><span class="logotype" aria-hidden="true"></span><span class="sr">Penthera, home</span></a>
+    <nav aria-label="Sections">
+      <a href="#check">Check</a>
+      <a href="#get">Get it</a>
+      <a href="https://github.com/danoszz/penthera">GitHub</a>
+    </nav>
+    <button class="theme" type="button" data-theme-toggle aria-label="Theme" hidden>
+      <span class="theme-swatch" aria-hidden="true"></span><span data-theme-label>Light</span>
+    </button>
+  </header>
+
+  <main id="main">
+    <!-- 1 · Hero -->
+    <section class="hero" aria-labelledby="hero-title">
+      <img class="field" src="/media/field.png" alt="" width="360" height="225" aria-hidden="true">
+      <div class="hero-text">
+        <p class="kicker">Open source · MIT · offline</p>
+        <h1 id="hero-title">Penthera: an open-source cyber security agent you can use today, and verify yourself.</h1>
+        <p class="lede">Offline cyber security agent for your apps and AI coding tools. Open R&amp;D: measured in public, improved every release.</p>
+        <div class="cmd" data-copy-root>
+          <span class="prompt" aria-hidden="true">$</span>
+          <code>npx penthera</code>
+          <button class="btn" type="button" data-copy="npx penthera" data-js>Copy</button>
+        </div>
+        <p class="note">Run it in your project folder. No install, no account, Node 22 or later.</p>
+        <p class="note"><a href="#check">Or check one file in this tab first</a></p>
+      </div>
+      <figure class="loop">
+        <video data-loop muted loop playsinline preload="metadata" poster="/media/hero.jpg" width="960" height="526" controls aria-label="A 12-second loop: npx penthera sets up a project, an offline scan runs in the terminal, the dashboard shows the verdict, and a fix is approved">
+          <source src="/media/hero.mp4" type="video/mp4">
+        </video>
+        <figcaption>12 seconds: setup, an offline scan, the dashboard, one fix approved.</figcaption>
+      </figure>
+    </section>
+
+    <!-- 2 · The check -->
+    <section class="desk" id="check" aria-labelledby="check-title">
+      <div class="desk-head">
+        <h2 id="check-title">Check your AI tooling in this tab</h2>
+        <p>Drop or paste a <code>package.json</code>, <code>.mcp.json</code>, <code>.claude/settings.json</code>, <code>CLAUDE.md</code> or <code>AGENTS.md</code>. Penthera's own rules run in the page, bundled from the same code as the CLI: {{RULES}} pack rules ({{PACKS}}), the agent-config and secret rules, and {{POPULAR}} popular npm names for the typosquat check.</p>
+      </div>
+
+      <div class="window" data-check>
+        <div class="titlebar">
+          <span class="title">Check</span>
+          <span class="status">Offline · rules from {{VERSION}}</span>
+        </div>
+        <div class="window-body">
+          <noscript><p class="empty">The check runs Penthera's rules in JavaScript, so it needs JavaScript on. Everything else on this page works without it.</p></noscript>
+
+          <div class="check-ui" data-js>
+          <label class="drop" data-drop>
+            <input type="file" multiple data-file accept=".json,.md,.mdc,text/plain,application/json">
+            <span class="drop-title">Drop files here, or choose files</span>
+            <span class="drop-sub">package.json · .mcp.json · .claude/settings.json · CLAUDE.md · AGENTS.md</span>
+          </label>
+
+          <details class="paste">
+            <summary>Paste text instead</summary>
+            <div class="paste-body">
+              <label for="paste-text" class="label">Text</label>
+              <textarea id="paste-text" rows="8" spellcheck="false" autocomplete="off" data-paste></textarea>
+              <div class="row">
+                <label for="paste-kind" class="label">File</label>
+                <select id="paste-kind" data-paste-kind>
+                  <option value="">Work it out from the text</option>
+                  <option value="package.json">package.json</option>
+                  <option value=".mcp.json">.mcp.json</option>
+                  <option value=".claude/settings.json">.claude/settings.json</option>
+                  <option value="CLAUDE.md">CLAUDE.md</option>
+                  <option value="AGENTS.md">AGENTS.md</option>
+                </select>
+                <button class="btn" type="button" data-paste-add>Add text</button>
+              </div>
+            </div>
+          </details>
+
+          <ul class="staged" data-staged aria-label="Files to check"></ul>
+
+          <div class="actions">
+            <button class="btn" data-variant="default" type="button" data-run disabled>Check files</button>
+            <button class="btn" type="button" data-example>Load an example</button>
+            <button class="btn" type="button" data-clear disabled>Clear</button>
+          </div>
+
+          <div class="output" data-output aria-live="polite">
+            <p class="empty">Add a file to start. It stays in this tab: nothing is uploaded.</p>
+          </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="facts">
+        <div>
+          <h3>Nothing leaves your browser</h3>
+          <p>This page is served with a Content-Security-Policy of <code>connect-src 'none'</code>. Once it has loaded, it cannot send a request, so your files cannot be uploaded. Open your browser's network tab, run a check and see. There are no analytics, no cookies and no third-party scripts.</p>
+        </div>
+        <div>
+          <h3>What this check cannot do</h3>
+          <ul>
+            <li>Read your dependencies' code. It sees the install scripts <code>package.json</code> declares, not what is in <code>node_modules</code>.</li>
+            <li>Read your lockfile, so version ranges are not matched against known-malicious versions.</li>
+            <li>Scan a running app or a URL.</li>
+            <li>Fix anything, or write a report.</li>
+          </ul>
+          <p>The full scan does all of that on your machine, offline too: <code>npx penthera</code>.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 · Get it -->
+    <section class="get" id="get" aria-labelledby="get-title">
+      <h2 id="get-title">Get it</h2>
+      <div class="cmd cmd-lg" data-copy-root>
+        <span class="prompt" aria-hidden="true">$</span>
+        <code>npx penthera</code>
+        <button class="btn" type="button" data-copy="npx penthera" data-js>Copy</button>
+      </div>
+      <p class="get-lede">The guided start. Penthera detects your setup offline, asks what to check, and checks your code, dependencies and AI tooling. It scans your running app only after you confirm the app is yours. Nothing is committed or pushed.</p>
+
+      <dl class="commands">
+        <div><dt><code>npx penthera deps</code></dt><dd>What the packages in this project can do: shell, network, install scripts.</dd></div>
+        <div><dt><code>npx penthera agents --home</code></dt><dd>Audit your Claude Code, Cursor and MCP setup.</dd></div>
+        <div><dt><code>npx penthera ui</code></dt><dd>The local dashboard, on 127.0.0.1.</dd></div>
+      </dl>
+
+      <p class="links">
+        <a href="https://github.com/danoszz/penthera">Source on GitHub</a>
+        <a href="https://www.npmjs.com/package/penthera">Package on npm</a>
+      </p>
+
+      <h3 class="prompts-title">Or ask your coding agent</h3>
+      <div class="prompts">
+        <article class="prompt-card" data-copy-root>
+          <h4>Claude Code</h4>
+          <pre data-copy-text>Set up Penthera in this repo. Run `npx penthera init --dry-run` and show me what it would do. Then run `npx penthera agents` and `npx penthera deps`, and list the findings by severity, with the file for each. Do not change, commit or push anything without asking me.</pre>
+          <button class="btn" type="button" data-copy-from data-js>Copy prompt</button>
+        </article>
+        <article class="prompt-card" data-copy-root>
+          <h4>Cursor</h4>
+          <pre data-copy-text>Set up Penthera in this repo. In the terminal, run `npx penthera init --dry-run` and summarize the plan. Then run `npx penthera agents` to check .cursor/ and the MCP config, and `npx penthera deps` for the dependencies. Ask me before you change any file.</pre>
+          <button class="btn" type="button" data-copy-from data-js>Copy prompt</button>
+        </article>
+        <article class="prompt-card" data-copy-root>
+          <h4>Codex</h4>
+          <pre data-copy-text>Set up Penthera in this repo. Run `npx penthera init --dry-run`, then `npx penthera agents` and `npx penthera deps`. Report each finding with its severity, file and the fix Penthera suggests. Do not edit files or commit.</pre>
+          <button class="btn" type="button" data-copy-from data-js>Copy prompt</button>
+        </article>
+      </div>
+      <p class="note">Each of them can also load Penthera as an Agent Skill: <code>npx skills add danoszz/penthera</code>.</p>
+    </section>
+
+    <!-- 4 · Walkthrough -->
+    <section class="walk" aria-labelledby="walk-title">
+      <h2 id="walk-title">Eighty seconds, start to fix</h2>
+      <figure>
+        <video controls preload="none" playsinline poster="/media/walkthrough.jpg" width="1280" height="800" aria-describedby="walk-cap">
+          <source src="/media/walkthrough.mp4" type="video/mp4">
+          <track kind="captions" src="/media/walkthrough.vtt" srclang="en" label="English" default>
+        </video>
+        <figcaption id="walk-cap">Setup, a scan, the dashboard in Simple and Advanced mode, one fix approved, the report. Demo data, no sound, captions on.</figcaption>
+      </figure>
+    </section>
+
+    <!-- 5 · Limits -->
+    <section class="limits" aria-labelledby="limits-title">
+      <h2 id="limits-title">What it does not do</h2>
+      <div class="limits-body">
+        <p>It finds known classes of problems, not novel ones: misconfigured headers, leaked keys, risky dependency behavior, unsafe agent setups, common injection patterns. It does not find business-logic flaws, complex authorization bugs or zero-days, and it does not replace a human penetration test.</p>
+        <p>Its accuracy is measured, on a small sample: precision {{BENCH_P}} (95% CI {{BENCH_P_CI}}) and recall {{BENCH_R}} (95% CI {{BENCH_R_CI}}), on {{BENCH_N}} findings in labs we wrote ourselves. These numbers catch regressions; they do not measure real-world accuracy.</p>
+        <p class="method"><a href="https://github.com/danoszz/penthera/blob/main/docs/METHODOLOGY.md">How each check works, and what it cannot see: the methodology</a></p>
+      </div>
+    </section>
+
+    <!-- 6 · Vision -->
+    <section class="vision" aria-labelledby="vision-title">
+      <h2 id="vision-title">Open R&amp;D</h2>
+      <p class="vision-text">Penthera is a research project with a tool you can use today. Each check is measured in public, pre-registered experiments, and the results are published, good or bad. What holds up ships in the next release. What does not is dropped.</p>
+      <p class="links">
+        <a href="https://github.com/danoszz/penthera/blob/main/docs/MANIFESTO.md">The manifesto</a>
+        <a href="https://github.com/danoszz/penthera/blob/main/docs/vision-2.0.md">The 2.0 research plan</a>
+      </p>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>MIT license. Scan only what you own or are authorized to test.</p>
+    <p>No cookies, no analytics, no third-party requests. This page and its check are built from Penthera {{VERSION}}: <a href="https://github.com/danoszz/penthera/tree/main/site">site/ on GitHub</a>.</p>
+  </footer>
+</body>
+</html>

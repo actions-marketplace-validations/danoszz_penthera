@@ -4,6 +4,25 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Site
+
+- **A landing page in `site/`**, a static site for Vercel: the positioning,
+  `npx penthera`, prompts for Claude Code, Cursor and Codex, the hero loop and
+  the walkthrough, the limits and the research plan. No third-party scripts,
+  analytics or cookies; fonts are self-hosted or system fonts.
+- **A check in the browser.** Drop or paste a `package.json`, `.mcp.json`,
+  `.claude/settings.json`, `CLAUDE.md` or `AGENTS.md` and Penthera's own
+  `lib/` code runs in the tab: the agent-config rules, the secret patterns,
+  install scripts, typosquats against the vendored popular list, and the
+  bundled IOC pack. `site/build.mjs` bundles `lib/` at build time, so the site
+  and the CLI run the same rules; `tests/site.test.js` holds the page to the
+  CLI on the agents and deps fixtures. The page is served with
+  `connect-src 'none'`, so it cannot send the files anywhere.
+- `penthera deps` findings are built in `lib/deps/findings.js` (moved from
+  `lib/deps/index.js`, no behaviour change), so the browser check uses the
+  same wording.
+- `scripts/docs-commands.mjs` also checks every command the site shows.
+
 ### Docs
 
 - **README hero is a 12-second loop** of the terminal and the dashboard

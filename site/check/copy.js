@@ -1,0 +1,21 @@
+/** Every string the check writes into the page. Voice: docs/voice.md. */
+export const COPY = {
+  severity: { critical: "Critical", high: "High", medium: "Medium", low: "Low", info: "Info" },
+  run: "Check files",
+  running: "Checking…",
+  remove: (path) => `Remove ${path}`,
+  empty: "Add a file to start. It stays in this tab: nothing is uploaded.",
+  summary: (n, files, ms) => `${n} finding${n === 1 ? "" : "s"} in ${files} file${files === 1 ? "" : "s"}, in ${ms} ms, in this tab.`,
+  clean: (files) => `No findings in ${files} file${files === 1 ? "" : "s"}. These rules found nothing; that is not the same as safe. The full scan reads more: npx penthera.`,
+  unknownName: (name) => `${name} is not one of the five files this check reads. Rename it, or paste it and pick the file type.`,
+  tooLarge: (name) => `${name} is over 1 MB, which is more than this check reads. Run npx penthera on your machine for large files.`,
+  unreadable: (name) => `Could not read ${name} as text. Check that it is a text file and try again.`,
+  pasteEmpty: "Paste some text first.",
+  replaced: (path) => `Replaced the earlier ${path}.`,
+  added: (path) => `Added ${path}.`,
+  exampleLoaded: "Loaded an example: a deliberately unsafe .mcp.json, .claude/settings.json and AGENTS.md from Penthera's test fixtures.",
+  failed: (msg) => `The check stopped: ${msg}. Reload the page and try again; if it happens again, open an issue on GitHub.`,
+  copied: "Copied",
+  copy: "Copy",
+  details: { file: "File", rule: "Rule", confidence: "How sure" },
+};

@@ -19,19 +19,29 @@ const el = (tag, cls, text) => {
 
 function copyButtons() {
   for (const btn of document.querySelectorAll("[data-copy], [data-copy-from]")) {
+    // A .cmd carries its own text and states; a prompt's button copies the <pre> beside it.
+    const root = btn.closest("[data-copy-root]");
+    const source = btn.dataset.copy != null ? btn.querySelector("code") : $("[data-copy-text]", root);
+    const status = $("[data-copy-status]", btn);
+    const label = btn.textContent;
+    let timer;
     btn.addEventListener("click", async () => {
-      const text = btn.dataset.copy ?? $("[data-copy-text]", btn.closest("[data-copy-root]")).textContent;
-      const label = btn.textContent;
       try {
-        await navigator.clipboard.writeText(text);
-        btn.textContent = COPY.copied;
+        await navigator.clipboard.writeText(btn.dataset.copy ?? source.textContent);
       } catch {
         // No clipboard permission: select the text so the visitor can copy it.
-        const target = btn.closest("[data-copy-root]").querySelector("code, pre");
-        getSelection().selectAllChildren(target);
+        getSelection().selectAllChildren(source);
         return;
       }
-      setTimeout(() => { btn.textContent = label; }, 1600);
+      btn.dataset.state = "copied";
+      if (status) status.textContent = `, ${COPY.copied.toLowerCase()}`;
+      else btn.textContent = COPY.copied;
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        delete btn.dataset.state;
+        if (status) status.textContent = ", copy to clipboard";
+        else btn.textContent = label;
+      }, 1600);
     });
   }
 }

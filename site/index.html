@@ -21,9 +21,10 @@
 
   <header class="bar">
     <a class="brand" href="/"><span class="logotype" aria-hidden="true"></span><span class="sr">Penthera, home</span></a>
+    <a class="by" href="https://daanvanderzwaag.com"><span class="by-word" aria-hidden="true">by</span><span class="dvdz" aria-hidden="true"></span><span class="sr">Made by Daan van der Zwaag</span></a>
     <nav aria-label="Sections">
       <a href="#check">Check</a>
-      <a href="#get">Get it</a>
+      <a class="nav-get" href="#get">Get it</a>
     </nav>
     <a class="star" href="https://github.com/danoszz/penthera" aria-label="Star Penthera on GitHub{{STARS_LABEL}}">
       <svg class="star-glyph" viewBox="0 0 9 9" aria-hidden="true"><path d="M4 0h1v2h1v1h3v1H8v1H7v1h1v3H7V8H6V7H3v1H2v1H1V6h1V5H1V4H0V3h3V2h1z"/></svg>
@@ -42,11 +43,12 @@
         <p class="kicker">Open source · MIT · offline</p>
         <h1 id="hero-title">Penthera: an open-source cyber security agent you can use today, and verify yourself.</h1>
         <p class="lede">Offline cyber security agent for your apps and AI coding tools. Open R&amp;D: measured in public, improved every release.</p>
-        <div class="cmd" data-copy-root>
-          <span class="prompt" aria-hidden="true">$</span>
+        <button class="cmd" type="button" data-copy="npx penthera">
+          <span class="cmd-prompt" aria-hidden="true">$</span>
           <code>npx penthera</code>
-          <button class="btn" type="button" data-copy="npx penthera" data-js>Copy</button>
-        </div>
+          <span class="cmd-act" aria-hidden="true" data-js><span class="cmd-copy">Copy</span><span class="cmd-done">Copied</span></span>
+          <span class="sr" aria-live="polite" data-copy-status>, copy to clipboard</span>
+        </button>
         <p class="note">Run it in your project folder. No install, no account, Node 22 or later.</p>
         <p class="note"><a href="#check">Or check one file in this tab first</a></p>
       </div>
@@ -134,13 +136,14 @@
     </section>
 
     <!-- 3 · Get it -->
-    <section class="get" id="get" aria-labelledby="get-title">
+    <section class="get band band-blue" id="get" aria-labelledby="get-title">
       <h2 id="get-title">Get it</h2>
-      <div class="cmd cmd-lg" data-copy-root>
-        <span class="prompt" aria-hidden="true">$</span>
+      <button class="cmd" type="button" data-copy="npx penthera">
+        <span class="cmd-prompt" aria-hidden="true">$</span>
         <code>npx penthera</code>
-        <button class="btn" type="button" data-copy="npx penthera" data-js>Copy</button>
-      </div>
+        <span class="cmd-act" aria-hidden="true" data-js><span class="cmd-copy">Copy</span><span class="cmd-done">Copied</span></span>
+        <span class="sr" aria-live="polite" data-copy-status>, copy to clipboard</span>
+      </button>
       <p class="get-lede">The guided start. Penthera detects your setup offline, asks what to check, and checks your code, dependencies and AI tooling. It scans your running app only after you confirm the app is yours. Nothing is committed or pushed.</p>
 
       <dl class="commands">
@@ -176,7 +179,7 @@
     </section>
 
     <!-- 4 · Walkthrough -->
-    <section class="walk" aria-labelledby="walk-title">
+    <section class="walk band band-invert" aria-labelledby="walk-title">
       <h2 id="walk-title">Eighty seconds, start to fix</h2>
       <figure>
         <video controls preload="none" playsinline poster="/media/walkthrough.jpg" width="1280" height="800" aria-describedby="walk-cap">
@@ -198,7 +201,7 @@
     </section>
 
     <!-- 6 · Vision -->
-    <section class="vision" aria-labelledby="vision-title">
+    <section class="vision band band-invert" aria-labelledby="vision-title">
       <h2 id="vision-title">Open R&amp;D</h2>
       <p class="vision-text">Penthera is a research project with a tool you can use today. Each check is measured in public, pre-registered experiments, and the results are published, good or bad. What holds up ships in the next release. What does not is dropped.</p>
       <p class="links">

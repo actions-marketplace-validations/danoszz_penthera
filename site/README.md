@@ -22,7 +22,7 @@ node site/serve.mjs     # http://127.0.0.1:4173/ with the production headers
 | `build.mjs` | Bundles `check/` with `lib/` (rolldown), embeds the rule packs and the popular-package list, verifies each pack's signature, and copies the media. |
 | `serve.mjs` | A local preview that sends the headers from `vercel.json`. |
 | `vercel.json` | Build settings and security headers: CSP with `connect-src 'none'`, HSTS, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer`. |
-| `media/` | `field.png` (the hero's 1-bit cloud), `hero.mp4` and its poster. Regenerate with `tools/media.sh`. |
+| `media/` | `field.png` (the hero's 1-bit cloud), `hero.mp4` and its poster, regenerated with `tools/media.sh`; `dvdzwaag.png`, the maker's wordmark as an alpha mask (from Daan's own artwork). |
 
 ## The browser check
 

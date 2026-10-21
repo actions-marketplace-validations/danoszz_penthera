@@ -115,10 +115,18 @@ export async function runUi(argv, { version }) {
 
   await new Promise((resolve) => {
     // Pipes are asynchronous on macOS, and the caller exits right after this
-    // resolves, so wait for "Stopped." to be written before closing.
-    const stop = () => { process.stdout.write("\n  Stopped.\n", () => ui.close().then(resolve)); };
-    process.once("SIGINT", stop);
-    process.once("SIGTERM", stop);
+    // resolves, so wait for "Stopped." to be written before closing. The
+    // signal can arrive twice (npx forwards it to us, and a process-group kill
+    // sends it too): keep listening, so a repeat cannot fall through to the
+    // default action and kill the process mid-write.
+    let stopping = false;
+    const stop = () => {
+      if (stopping) return;
+      stopping = true;
+      process.stdout.write("\n  Stopped.\n", () => ui.close().then(resolve));
+    };
+    process.on("SIGINT", stop);
+    process.on("SIGTERM", stop);
   });
   return 0;
 }

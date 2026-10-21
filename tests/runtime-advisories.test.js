@@ -240,6 +240,23 @@ describe("bundled pack", () => {
     for (const r of all) expect(r.source).toMatch(/^https:\/\//);
   });
 
+  it("the October 2026 PHP release: below the fix is affected, at the fix patched, 8.1 end of life", () => {
+    const rules = (v) => runtimeAdvisoriesForResponse({ headers: { "x-powered-by": `PHP/${v}` } }).filter((f) => /^php-cve-2026-10961[89]/.test(f.rule || ""));
+    for (const v of ["8.2.34", "8.3.35", "8.4.26", "8.5.11"]) {
+      expect(rules(v).map((f) => [f.rule, f.severity, f.confidence]), v).toEqual([
+        ["php-cve-2026-109618", "critical", "likely"],
+        ["php-cve-2026-109619", "critical", "likely"],
+      ]);
+    }
+    for (const v of ["8.2.35", "8.3.36", "8.4.27", "8.5.12"]) expect(rules(v), v).toEqual([]);
+    const old = runtimeAdvisoriesForResponse({ headers: { "x-powered-by": "PHP/8.1.34" } });
+    expect(old.some((f) => f.rule === "php-cve-2026-109618" && /end-of-life line/.test(f.title))).toBe(true);
+    expect(old.some((f) => f.rule === "php-eol")).toBe(true);
+    // A distro build stays "check on server".
+    const deb = runtimeAdvisoriesForResponse({ headers: { "x-powered-by": "PHP/8.3.6-1ubuntu1.4" } });
+    expect(deb.every((f) => f.severity !== "critical")).toBe(true);
+  });
+
   it("the worked examples behave as documented", () => {
     const one = (headers) => verdicts(runtimeAdvisoriesForResponse({ headers }));
     // CVE-2021-41773 / CVE-2021-42013: Apache 2.4.49 and 2.4.50 only, and only

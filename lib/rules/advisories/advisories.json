@@ -2,6 +2,90 @@
   "kind": "runtime-advisory",
   "rules": [
     {
+      "id": "php-cve-2026-109618",
+      "product": "php",
+      "title": "PHP remote code execution via out-of-memory state corruption",
+      "severity": "critical",
+      "cves": [
+        "CVE-2026-109618"
+      ],
+      "ghsa": [
+        "GHSA-w8hw-w9fx-j79w"
+      ],
+      "cvss": {
+        "version": "4.0",
+        "score": 9.2
+      },
+      "fixed": [
+        {
+          "branch": "8.2",
+          "version": "8.2.35"
+        },
+        {
+          "branch": "8.3",
+          "version": "8.3.36"
+        },
+        {
+          "branch": "8.4",
+          "version": "8.4.27"
+        },
+        {
+          "branch": "8.5",
+          "version": "8.5.12"
+        }
+      ],
+      "source": "https://github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w",
+      "date": "2026-10-21",
+      "confidence": "confirmed",
+      "references": [
+        "phpsrcadvisories",
+        "php2026critical"
+      ],
+      "description": "php-src rates it Critical (CVSS 4.0 9.2): an out-of-memory error during multipart request parsing leaves request memory in an invalid state that shutdown then processes. php-src confirms it on Apache mod_php before any application code runs, finds FPM susceptible by source analysis, and FrankenPHP and LSAPI likely susceptible. Updating is the only complete mitigation; memory_limit=-1 is a partial workaround. Fixed in 8.2.35, 8.3.36, 8.4.27 and 8.5.12 (the PHP 8 ChangeLog dates them 22 Oct 2026; they were published 21 Oct 2026 UTC)."
+    },
+    {
+      "id": "php-cve-2026-109619",
+      "product": "php",
+      "title": "PHP remote code execution via stale global state (use after free across requests)",
+      "severity": "critical",
+      "cves": [
+        "CVE-2026-109619"
+      ],
+      "ghsa": [
+        "GHSA-6wmf-4rv5-p3rp"
+      ],
+      "cvss": {
+        "version": "4.0",
+        "score": 9.2
+      },
+      "fixed": [
+        {
+          "branch": "8.2",
+          "version": "8.2.35"
+        },
+        {
+          "branch": "8.3",
+          "version": "8.3.36"
+        },
+        {
+          "branch": "8.4",
+          "version": "8.4.27"
+        },
+        {
+          "branch": "8.5",
+          "version": "8.5.12"
+        }
+      ],
+      "source": "https://github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp",
+      "date": "2026-10-21",
+      "confidence": "confirmed",
+      "references": [
+        "phpsrcadvisories",
+        "php2026critical"
+      ],
+      "description": "php-src rates it Critical (CVSS 4.0 9.2): worker-global state that points into a freed request heap is read by the next request on the same worker before initialization resets it. Fixed in 8.2.35, 8.3.36, 8.4.27 and 8.5.12 (the PHP 8 ChangeLog dates them 22 Oct 2026; they were published 21 Oct 2026 UTC)."
+    },
+    {
       "id": "php-cve-2024-4577",
       "product": "php",
       "title": "PHP-CGI argument injection on Windows (bypass of CVE-2012-1823)",

@@ -21,8 +21,10 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 - **Two rule-pack kinds, `runtime-advisory` and `runtime-eol`**, so a new
   advisory ships as a signed data pack (`--rules`) the same day, without a
   release. End of life is judged by the pack's date, not the scan's clock.
-- **A bundled `advisories` pack** with vendor-checked worked examples
-  (CVE-2024-4577 and CVE-2024-8926 for PHP-CGI on Windows, CVE-2021-41773 and
+- **A bundled `advisories` pack** with the PHP security release of 21 October
+  2026 (CVE-2026-109618 and CVE-2026-109619, both Critical, CVSS 4.0 9.2,
+  fixed in 8.2.35, 8.3.36, 8.4.27 and 8.5.12, from the php-src advisories),
+  vendor-checked worked examples (CVE-2024-4577 and CVE-2024-8926 for PHP-CGI on Windows, CVE-2021-41773 and
   CVE-2021-42013 for Apache HTTP Server 2.4.49 and 2.4.50) and end-of-life
   release lines. Benchmark cases for both URL and repo scans.
 

@@ -114,7 +114,9 @@ export async function runUi(argv, { version }) {
   if (opts.open) openBrowser(ui.url, ui.session);
 
   await new Promise((resolve) => {
-    const stop = () => { process.stdout.write("\n  Stopped.\n"); ui.close().then(resolve); };
+    // Pipes are asynchronous on macOS, and the caller exits right after this
+    // resolves, so wait for "Stopped." to be written before closing.
+    const stop = () => { process.stdout.write("\n  Stopped.\n", () => ui.close().then(resolve)); };
     process.once("SIGINT", stop);
     process.once("SIGTERM", stop);
   });

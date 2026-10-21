@@ -32,6 +32,7 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
   --ground: #000000;
+  --ground-rgb: 0, 0, 0;
   --ink-rgb: 255, 255, 255;
   --text-1: rgb(var(--ink-rgb));
   --text-2: rgba(var(--ink-rgb), 0.72);
@@ -50,6 +51,7 @@
 :root[data-theme="light"] {
   color-scheme: light;
   --ground: #fdfdfa;
+  --ground-rgb: 253, 253, 250;
   --ink-rgb: 10, 10, 10;
   --text-1: rgb(var(--ink-rgb));
   --text-2: rgba(var(--ink-rgb), 0.72);
@@ -91,7 +93,7 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html:not(.js) [data-js] { display: none !important; }
-html { background: var(--ground); -webkit-text-size-adjust: 100%; scroll-padding-top: 64px; }
+html { background: var(--ground); -webkit-text-size-adjust: 100%; scroll-padding-top: 88px; }
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 body {
   margin: 0;
@@ -123,13 +125,24 @@ p { margin: 0; }
 
 /* ── Bar ──────────────────────────────────────────────────────────────── */
 
+/* No rule under the bar: the page dissolves into it. A heavy backdrop blur
+ * under a ground gradient, masked so the blur itself fades out below the bar.
+ * The one place the page leaves 1-bit, on purpose: chrome over content. */
 .bar {
-  position: sticky; top: 0; z-index: 10;
+  position: fixed; inset: 0 0 auto; z-index: 10;
   display: flex; align-items: center; gap: 8px;
-  min-height: 52px;
+  min-height: 60px;
   padding: 0 var(--gutter);
-  background: var(--ground);
-  border-bottom: 1px solid var(--frame);
+}
+.bar::before, .veil {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+  -webkit-backdrop-filter: blur(28px); backdrop-filter: blur(28px);
+}
+.bar::before {
+  inset: 0 0 -48px;
+  background: linear-gradient(rgba(var(--ground-rgb), 0.92), rgba(var(--ground-rgb), 0.7) 55%, rgba(var(--ground-rgb), 0));
+  -webkit-mask-image: linear-gradient(#000 50%, transparent);
+  mask-image: linear-gradient(#000 50%, transparent);
 }
 .brand { display: inline-flex; align-items: center; min-height: var(--target); color: var(--text-1); margin-right: auto; }
 .brand:hover { background: none; color: var(--text-1); }
@@ -139,12 +152,35 @@ p { margin: 0; }
   mask: url("/logo.svg") center / contain no-repeat;
 }
 .bar nav { display: flex; gap: 2px; }
-.bar nav a { display: inline-flex; align-items: center; min-height: var(--target); padding: 0 8px; color: var(--text-1); text-decoration: none; }
+.bar nav a { display: inline-flex; align-items: center; min-height: var(--target); padding: 0 8px; white-space: nowrap; color: var(--text-1); text-decoration: none; }
 .bar nav a:hover { background: var(--accent); color: var(--on-accent); }
-@media (max-width: 420px) { .bar nav a[href^="https"] { display: none; } }
+
+/* GitHub, as a button: the star glyph, the word, and the count read at build. */
+.star {
+  position: relative;
+  display: inline-flex; align-items: stretch;
+  min-height: 34px; margin: 0 4px;
+  border: 1px solid var(--frame);
+  color: var(--text-1); text-decoration: none;
+  font-family: var(--px); font-size: 13px; letter-spacing: 0.02em;
+  background: rgba(var(--ground-rgb), 0.6);
+}
+.star::after { content: ""; position: absolute; inset: -6px -2px; }
+.star > * { display: inline-flex; align-items: center; }
+.star-glyph { width: 11px; height: 11px; margin-left: 10px; fill: currentColor; align-self: center; }
+.star-word { padding: 0 10px 0 7px; }
+.star-count { padding: 0 10px; border-left: 1px solid var(--frame); }
+.star-count:empty { display: none; }
+.star:hover { background: var(--frame); color: var(--ground); }
+.star:hover .star-count { border-color: var(--ground); }
+@media (max-width: 480px) {
+  .star-word { display: none; }
+  .star-glyph { margin-right: 8px; }
+  .theme [data-theme-label] { display: none; }
+}
 .theme {
-  display: inline-flex; align-items: center; gap: 8px;
-  min-height: var(--target); padding: 0 8px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: var(--target); min-width: var(--target); padding: 0 8px;
   background: none; border: 0; color: var(--text-1); cursor: pointer;
 }
 .theme-swatch { width: 11px; height: 11px; border: 1px solid var(--frame); background: var(--pt-half); }
@@ -384,12 +420,21 @@ textarea:focus-visible, select:focus-visible { outline-offset: 0; }
 
 .foot {
   margin-top: var(--section);
-  padding: 24px var(--gutter) 40px;
+  padding: 24px var(--gutter) 120px;   /* clears the veil */
   border-top: 1px solid var(--frame);
   color: var(--text-3);
   display: grid; gap: 6px;
 }
 .foot::before { content: ""; display: block; height: 24px; margin: -24px calc(-1 * var(--gutter)) 16px; background: var(--pt-desk); border-bottom: 1px solid var(--frame); }
+
+/* The bottom veil: the same blur, rising from the bottom edge of the screen. */
+.veil {
+  position: fixed; inset: auto 0 0; z-index: 9;
+  height: 112px;
+  background: linear-gradient(to top, rgba(var(--ground-rgb), 0.85), rgba(var(--ground-rgb), 0.4) 50%, rgba(var(--ground-rgb), 0));
+  -webkit-mask-image: linear-gradient(to top, #000 35%, transparent);
+  mask-image: linear-gradient(to top, #000 35%, transparent);
+}
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }

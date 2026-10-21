@@ -11,7 +11,10 @@
  * Each pack's signature is verified here, with the real lib/rules/sshsig.js,
  * because the browser cannot do it synchronously.
  *
- * No network access, no server code. Output: plain files for any static host.
+ * One network request: the GitHub star count for the nav button, read once at
+ * build time (the page itself cannot fetch). PENTHERA_SITE_STARS=<n> sets it,
+ * PENTHERA_SITE_STARS=off skips it; a failed request leaves the button
+ * without a number. No server code. Output: plain files for any static host.
  */
 import { cpSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -120,6 +123,25 @@ function benchNumbers() {
   };
 }
 
+/** GitHub stars for the nav button, formatted (49, 1.2k), or "" when unknown. */
+async function starCount() {
+  const env = process.env.PENTHERA_SITE_STARS;
+  let n = env && env !== "off" ? Number(env) : null;
+  if (n == null && env !== "off") {
+    try {
+      const res = await fetch("https://api.github.com/repos/danoszz/penthera", {
+        headers: { accept: "application/vnd.github+json", "user-agent": "penthera-site-build" },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) n = (await res.json()).stargazers_count;
+    } catch {
+      // Offline or rate-limited: the button shows no number rather than a stale one.
+    }
+  }
+  if (!Number.isFinite(n) || n < 0) return "";
+  return n >= 1000 ? `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1).replace(/\.0$/, "")}k` : String(n);
+}
+
 const hash = (buf) => createHash("sha256").update(buf).digest("hex").slice(0, 10);
 const kb = (n) => Math.round(n / 1024);
 
@@ -177,7 +199,9 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
     POPULAR: popular.names.length.toLocaleString("en-US"),
     CHECK_KB: String(kb(checkBytes)),
     ...benchNumbers(),
+    STARS: await starCount(),
   };
+  values.STARS_LABEL = values.STARS ? `, ${values.STARS} stars` : "";
   let html = readFileSync(join(SITE, "index.html"), "utf8");
   html = html.replace(/\{\{(\w+)\}\}/g, (m, k) => {
     if (!(k in values)) throw new Error(`index.html: unknown placeholder ${m}`);

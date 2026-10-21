@@ -171,7 +171,7 @@ p { margin: 0; }
   min-height: 60px;
   padding: 0 var(--gutter);
 }
-.bar::before, .veil {
+.bar::before {
   content: ""; position: absolute; z-index: -1; pointer-events: none;
   -webkit-backdrop-filter: blur(28px); backdrop-filter: blur(28px);
 }
@@ -338,6 +338,16 @@ main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
 /* The live field (check/field.js) draws in the palette's own colours, so it
  * skips the light theme's invert; the static PNG stays until its first frame. */
 .field-live { filter: none; }
+.field-orb {
+  position: absolute; top: 0; left: 0; z-index: 0;
+  width: clamp(240px, 34vw, 520px); aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--accent), transparent);
+  filter: blur(48px);
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
 .hero.live img.field { visibility: hidden; }
 .hero-text {
   position: relative; z-index: 1;
@@ -515,30 +525,46 @@ textarea:focus-visible, select:focus-visible { outline-offset: 0; }
 }
 /* The maker: Daan's hand-drawn wordmark, a mask so it takes the ink. */
 .by {
-  justify-self: start;
+  justify-self: stretch;
   display: inline-grid; gap: 12px;
   margin-bottom: 40px; padding: 8px 8px 8px 0;
   color: var(--text-1); text-decoration: none;
 }
 .by-word { font-family: var(--px); font-size: 13px; color: var(--text-3); }
+/* Four times its old size: the footer's full measure. A traced SVG, so it
+ * stays sharp at any width. */
 .dvdz {
-  display: block; width: clamp(176px, 26vw, 264px); aspect-ratio: 562 / 128; background: currentColor;
-  -webkit-mask: url("/media/dvdzwaag.png") left center / contain no-repeat;
-  mask: url("/media/dvdzwaag.png") left center / contain no-repeat;
+  display: block; width: min(100%, 1056px); aspect-ratio: 2738 / 476; background: currentColor;
+  -webkit-mask: url("/media/dvdzwaag.svg") left center / contain no-repeat;
+  mask: url("/media/dvdzwaag.svg") left center / contain no-repeat;
 }
 .by:hover { background: none; color: var(--accent-ink); }
 .by:hover .by-word { color: var(--accent-ink); }
 .foot::before { content: ""; display: block; height: 24px; margin: -24px calc(-1 * var(--gutter)) 16px; background: var(--pt-desk); border-bottom: 1px solid var(--frame); }
 
 /* The bottom veil: the same blur, rising from the bottom edge of the screen. */
+/* A progressive blur, 0 at the top edge to 32 px at the bottom: six stacked
+ * layers, each blurring twice as much as the last over a band nearer the
+ * bottom, masked so neighbouring bands overlap. One blurred layer under a
+ * fading mask reads as a frosted rectangle; this has no edge. */
 .veil {
   position: fixed; inset: auto 0 0; z-index: 9;
   height: var(--veil-h);
+  pointer-events: none;
   transition: opacity 240ms var(--out);
-  background: transparent;              /* blur only: the content keeps its own colour */
-  -webkit-mask-image: linear-gradient(to top, #000 35%, transparent);
-  mask-image: linear-gradient(to top, #000 35%, transparent);
 }
+.veil > i {
+  position: absolute; inset: 0;
+  -webkit-backdrop-filter: blur(var(--b)); backdrop-filter: blur(var(--b));
+  -webkit-mask-image: linear-gradient(to top, #000 var(--solid), transparent var(--clear));
+  mask-image: linear-gradient(to top, #000 var(--solid), transparent var(--clear));
+}
+.veil > i:nth-child(1) { --b: 1px;  --solid: 66%; --clear: 100%; }
+.veil > i:nth-child(2) { --b: 2px;  --solid: 50%; --clear: 83%; }
+.veil > i:nth-child(3) { --b: 4px;  --solid: 34%; --clear: 66%; }
+.veil > i:nth-child(4) { --b: 8px;  --solid: 18%; --clear: 50%; }
+.veil > i:nth-child(5) { --b: 16px; --solid: 6%;  --clear: 34%; }
+.veil > i:nth-child(6) { --b: 32px; --solid: 0%;  --clear: 18%; }
 
 /* Off while the hero headline is inside the veil's zone, so the first screen
  * reads clean; it fades in once the headline has scrolled above it. */

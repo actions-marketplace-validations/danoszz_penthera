@@ -17,12 +17,12 @@ node site/serve.mjs     # http://127.0.0.1:4173/ with the production headers
 | `index.html` | The page and all its copy. `{{NAME}}` placeholders are measured numbers the build fills in: rule counts, the popular-list size, the benchmark from `bench/RESULTS.md`, and the GitHub star count (the build's one request; `PENTHERA_SITE_STARS=<n>` or `off` to skip it). |
 | `styles.css` | System 1-bit, as in `penthera ui`. Tokens and contrast measurements are in its header. |
 | `theme.js` | Sets the theme before paint. A choice is kept in localStorage, never a cookie. |
-| `check/` | The browser check. `engine.js` calls `lib/`; `ui.js` is the page script; `copy.js` holds its strings; `field.js` is the hero's live field (a dithered cloud and a pointer lens on a canvas, off under reduced motion, where `media/field.png` stays). |
+| `check/` | The browser check. `engine.js` calls `lib/`; `ui.js` is the page script; `copy.js` holds its strings; `field.js` is the hero's live field (a dithered cloud, a pointer lens with a soft glow, and a click shockwave on a canvas; off under reduced motion, where `media/field.png` stays). |
 | `check/shims/` | The Node built-ins `lib/` uses, for the browser: an in-memory `fs`, POSIX `path`, a synchronous SHA-256, and `gunzipSync` fed by DecompressionStream. |
 | `build.mjs` | Bundles `check/` with `lib/` (rolldown), embeds the rule packs and the popular-package list, verifies each pack's signature, and copies the media. |
 | `serve.mjs` | A local preview that sends the headers from `vercel.json`. |
 | `vercel.json` | Build settings and security headers: CSP with `connect-src 'none'`, HSTS, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer`. |
-| `media/` | `field.png` (the hero's 1-bit cloud), `hero.mp4` and its poster, regenerated with `tools/media.sh`; `dvdzwaag.png`, the maker's wordmark as an alpha mask (from Daan's own artwork). |
+| `media/` | `field.png` (the hero's 1-bit cloud), `hero.mp4` and its poster, regenerated with `tools/media.sh`; `dvdzwaag.svg`, the maker's wordmark traced with potrace from Daan's own artwork, used as a mask so it takes the ink. |
 
 ## The browser check
 

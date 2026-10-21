@@ -366,17 +366,17 @@ describe("verifyPack", () => {
   });
 
   it("every kind has a validator and nothing else is accepted", () => {
-    expect(Object.keys(KINDS).sort()).toEqual(["agent-exec", "agent-instruction", "ioc-file", "ioc-host", "ioc-package", "nuclei-template", "secret", "typosquat-target"]);
+    expect(Object.keys(KINDS).sort()).toEqual(["agent-exec", "agent-instruction", "ioc-file", "ioc-host", "ioc-package", "nuclei-template", "runtime-advisory", "runtime-eol", "secret", "typosquat-target"]);
   });
 });
 
 // ── Bundled packs and identical behaviour ─────────────────────────────────
 
 describe("bundled packs", () => {
-  it("core and ioc-2025-2026 load and verify", () => {
-    expect(bundledPackDirs().map((d) => d.split("/").pop())).toEqual(["core", "ioc-2025-2026"]);
+  it("core, advisories and ioc-2025-2026 load and verify", () => {
+    expect(bundledPackDirs().map((d) => d.split("/").pop())).toEqual(["core", "advisories", "ioc-2025-2026"]);
     for (const d of bundledPackDirs()) expect(verifyPack(d).errors, d).toEqual([]);
-    expect(activePacks().map((p) => [p.name, p.origin])).toEqual([["core", "bundled"], ["ioc-2025-2026", "bundled"]]);
+    expect(activePacks().map((p) => [p.name, p.origin])).toEqual([["core", "bundled"], ["advisories", "bundled"], ["ioc-2025-2026", "bundled"]]);
   });
 
   it("every rule cites a source and only references keys in docs/references.bib", () => {
@@ -513,7 +513,7 @@ describe("penthera rules / --rules", () => {
   it("rules list shows bundled packs and --rules packs", () => {
     const r = cli("rules", "list", "--rules", SIGNED, "--rules-signers", TEST_SIGNERS, "--json");
     expect(r.status).toBe(0);
-    expect(JSON.parse(r.stdout).map((p) => p.name)).toEqual(["core", "ioc-2025-2026", "fixture-signed"]);
+    expect(JSON.parse(r.stdout).map((p) => p.name)).toEqual(["core", "advisories", "ioc-2025-2026", "fixture-signed"]);
   });
 
   it("--rules refuses an untrusted pack, and --allow-unsigned-rules loads it with a warning", () => {

@@ -655,3 +655,398 @@
   keywords     = {further-reading},
   note         = {standards}
 }
+
+% ---------------------------------------------------------------- advisories
+% Runtime advisories (lib/advisories): version evidence, advisory feeds, distro
+% backporting, worked examples and NCSC-NL guidance. Verified 2026-10-21 against
+% Crossref, USENIX, the publishers and each vendor's own page; NCSC-NL documents
+% via Internet Archive captures of NCSC's own files (ncsc.nl was offline that day).
+
+@inproceedings{lee2002detecting,
+  author    = {Lee, D. and Rowe, J. and Ko, C. and Levitt, K.},
+  title     = {Detecting and Defending against Web-Server Fingerprinting},
+  booktitle = {18th Annual Computer Security Applications Conference, 2002. Proceedings.},
+  publisher = {IEEE Computer Society},
+  year      = {2002},
+  pages     = {321--330},
+  doi       = {10.1109/CSAC.2002.1176304},
+  note      = {blackbox}
+}
+
+@inproceedings{kar2022httpfuzz,
+  author    = {Kar, Animesh and Natadze, Andrei and Branca, Enrico and Stakhanova, Natalia},
+  title     = {{HTTPFuzz}: Web Server Fingerprinting with {HTTP} Request Fuzzing},
+  booktitle = {Proceedings of the 19th International Conference on Security and Cryptography},
+  publisher = {SCITEPRESS},
+  year      = {2022},
+  pages     = {261--271},
+  doi       = {10.5220/0011328900003283},
+  note      = {blackbox}
+}
+
+@inproceedings{lavrenovs2018http,
+  author    = {Lavrenovs, Arturs and Melon, F. Jesus Rubio},
+  title     = {{HTTP} Security Headers Analysis of Top One Million Websites},
+  booktitle = {2018 10th International Conference on Cyber Conflict (CyCon)},
+  publisher = {IEEE},
+  year      = {2018},
+  pages     = {345--370},
+  doi       = {10.23919/CYCON.2018.8405025},
+  note      = {web}
+}
+
+@book{lyon2009nmap,
+  author    = {Lyon, Gordon},
+  title     = {Nmap Network Scanning: The Official {Nmap} Project Guide to Network Discovery and Security Scanning},
+  publisher = {Insecure.Com LLC},
+  year      = {2009},
+  isbn      = {978-0-9799587-1-7},
+  url       = {https://nmap.org/book/vscan.html},
+  note      = {blackbox}
+}
+
+@inproceedings{durumeric2014heartbleed,
+  author    = {Durumeric, Zakir and Li, Frank and Kasten, James and Amann, Johanna and Beekman, Jethro and Payer, Mathias and Weaver, Nicolas and Adrian, David and Paxson, Vern and Bailey, Michael and Halderman, J. Alex},
+  title     = {The Matter of {Heartbleed}},
+  booktitle = {Proceedings of the 2014 Conference on Internet Measurement Conference (IMC '14)},
+  publisher = {ACM},
+  year      = {2014},
+  pages     = {475--488},
+  doi       = {10.1145/2663716.2663755},
+  note      = {blackbox}
+}
+
+@inproceedings{nappa2015clones,
+  author    = {Nappa, Antonio and Johnson, Richard and Bilge, Leyla and Caballero, Juan and Dumitras, Tudor},
+  title     = {The Attack of the Clones: A Study of the Impact of Shared Code on Vulnerability Patching},
+  booktitle = {2015 IEEE Symposium on Security and Privacy},
+  publisher = {IEEE},
+  year      = {2015},
+  pages     = {692--708},
+  doi       = {10.1109/SP.2015.48},
+  note      = {blackbox}
+}
+
+@inproceedings{li2017largescale,
+  author    = {Li, Frank and Paxson, Vern},
+  title     = {A Large-Scale Empirical Study of Security Patches},
+  booktitle = {Proceedings of the 2017 ACM SIGSAC Conference on Computer and Communications Security (CCS '17)},
+  publisher = {ACM},
+  year      = {2017},
+  pages     = {2201--2215},
+  doi       = {10.1145/3133956.3134072},
+  note      = {advisories}
+}
+
+@article{vasek2016hacking,
+  author    = {Vasek, Marie and Wadleigh, John and Moore, Tyler},
+  title     = {Hacking Is Not Random: A Case-Control Study of Webserver-Compromise Risk},
+  journal   = {IEEE Transactions on Dependable and Secure Computing},
+  year      = {2016},
+  pages     = {206--219},
+  doi       = {10.1109/TDSC.2015.2427847},
+  note      = {blackbox}
+}
+
+@inproceedings{stock2016hey,
+  author    = {Stock, Ben and Pellegrino, Giancarlo and Rossow, Christian and Johns, Martin and Backes, Michael},
+  title     = {Hey, You Have a Problem: On the Feasibility of {Large-Scale} Web Vulnerability Notification},
+  booktitle = {25th USENIX Security Symposium (USENIX Security 16)},
+  publisher = {USENIX Association},
+  year      = {2016},
+  pages     = {1015--1032},
+  url       = {https://www.usenix.org/conference/usenixsecurity16/technical-sessions/presentation/stock},
+  note      = {web}
+}
+
+@inproceedings{zhang2018precise,
+  author    = {Zhang, Hang and Qian, Zhiyun},
+  title     = {Precise and Accurate Patch Presence Test for Binaries},
+  booktitle = {27th USENIX Security Symposium (USENIX Security 18)},
+  publisher = {USENIX Association},
+  year      = {2018},
+  pages     = {887--902},
+  url       = {https://www.usenix.org/conference/usenixsecurity18/presentation/zhang-hang},
+  note      = {advisories}
+}
+
+@misc{ossfosvschema,
+  shorthand    = {OSV schema},
+  author       = {Chang, Oliver and Cox, Russ},
+  title        = {Open Source Vulnerability Format},
+  organization = {OpenSSF},
+  version      = {1.9.2},
+  annote       = {JSON schema for vulnerability records with per-package affected ranges (SEMVER, ECOSYSTEM, GIT); schema repository licensed Apache-2.0},
+  year         = {2026},
+  month        = oct,
+  day          = {13},
+  url          = {https://ossf.github.io/osv-schema/},
+  urldate      = {2026-10-21},
+  note         = {advisories}
+}
+
+@misc{cisakev,
+  shorthand    = {CISA KEV},
+  author       = {{Cybersecurity and Infrastructure Security Agency}},
+  title        = {Known Exploited Vulnerabilities Catalog},
+  annote       = {JSON and CSV feeds; distributed under CC0 1.0},
+  url          = {https://www.cisa.gov/known-exploited-vulnerabilities-catalog},
+  urldate      = {2026-10-21},
+  note         = {advisories}
+}
+
+@misc{first2023cvss4,
+  shorthand    = {CVSS v4.0},
+  author       = {{FIRST}},
+  title        = {Common Vulnerability Scoring System Version 4.0: Specification Document},
+  version      = {1.2},
+  year         = {2023},
+  month        = nov,
+  day          = {1},
+  url          = {https://www.first.org/cvss/v4.0/specification-document},
+  urldate      = {2026-10-21},
+  note         = {standards}
+}
+
+@misc{oasis2022csaf,
+  shorthand    = {CSAF 2.0},
+  author       = {Rock, Langley and Hagen, Stefan and Schmidt, Thomas},
+  title        = {Common Security Advisory Framework Version 2.0},
+  titleaddon   = {OASIS Standard},
+  organization = {OASIS},
+  year         = {2022},
+  month        = nov,
+  day          = {18},
+  url          = {https://docs.oasis-open.org/csaf/csaf/v2.0/os/csaf-v2.0-os.html},
+  urldate      = {2026-10-21},
+  note         = {standards}
+}
+
+@misc{endoflifedate,
+  shorthand    = {endoflife.date},
+  author       = {{endoflife.date contributors}},
+  title        = {endoflife.date},
+  annote       = {Community-maintained EOL and support dates with a JSON API (v1); repository licensed MIT},
+  url          = {https://endoflife.date/},
+  urldate      = {2026-10-21},
+  note         = {advisories}
+}
+
+@misc{phpsupported,
+  shorthand    = {PHP supported versions},
+  author       = {{The PHP Group}},
+  title        = {Supported Versions},
+  annote       = {Two years active support plus two years critical-security-only support per branch; EOL table at /eol.php; release data as JSON at /releases/?json and /releases/active.php},
+  url          = {https://www.php.net/supported-versions.php},
+  urldate      = {2026-10-21},
+  note         = {advisories}
+}
+
+@misc{phpsrcadvisories,
+  shorthand    = {php-src security advisories},
+  author       = {{The PHP Group}},
+  title        = {Security Advisories for php/php-src},
+  annote       = {GitHub repository security advisories (GHSA IDs) with CVE IDs and per-branch vulnerable/patched versions; JSON via the GitHub REST API},
+  url          = {https://github.com/php/php-src/security/advisories},
+  urldate      = {2026-10-21},
+  note         = {advisories}
+}
+
+@misc{httpdvulns24,
+  shorthand    = {Apache httpd 2.4 vulnerabilities},
+  author       = {{The Apache Software Foundation}},
+  title        = {{Apache HTTP Server} 2.4 Vulnerabilities},
+  annote       = {Per-CVE "Affects"/"Fixed in" data; CVE JSON 5.1 records at httpd.apache.org/security/json/},
+  url          = {https://httpd.apache.org/security/vulnerabilities_24.html},
+  urldate      = {2026-10-21},
+  note         = {advisories}
+}
+
+@misc{nodejsreleases,
+  shorthand    = {Node.js releases},
+  author       = {{OpenJS Foundation and Node.js contributors}},
+  title        = {Node.js Releases},
+  annote       = {Release phases (Current, Active LTS, Maintenance LTS, EOL); machine-readable schedule at github.com/nodejs/Release/blob/main/schedule.json and nodejs.org/dist/index.json (with a per-release security flag)},
+  url          = {https://nodejs.org/en/about/previous-releases},
+  urldate      = {2026-10-21},
+  note         = {advisories}
+}
+
+@misc{pythondevguideversions,
+  shorthand    = {Python version status},
+  author       = {{Python Software Foundation}},
+  title        = {Status of {Python} Versions},
+  organization = {Python Developer's Guide},
+  annote       = {Machine-readable at peps.python.org/api/release-cycle.json},
+  url          = {https://devguide.python.org/versions/},
+  urldate      = {2026-10-21},
+  note         = {advisories}
+}
+
+@misc{nginxadvisories,
+  shorthand    = {nginx security advisories},
+  author       = {{nginx}},
+  title        = {nginx Security Advisories},
+  annote       = {Per-advisory "Not vulnerable"/"Vulnerable" version ranges; XML source in github.com/nginx/nginx.org (xml/en/security_advisories.xml)},
+  url          = {https://nginx.org/en/security_advisories.html},
+  urldate      = {2026-10-21},
+  note         = {advisories}
+}
+
+@misc{opensslvulns,
+  shorthand    = {OpenSSL vulnerabilities},
+  author       = {{OpenSSL Library}},
+  title        = {Vulnerabilities},
+  annote       = {Per-CVE "Affected from … before …" ranges; per-CVE JSON at openssl-library.org/news/secjson/; support dates in the Release Strategy},
+  url          = {https://openssl-library.org/news/vulnerabilities/},
+  urldate      = {2026-10-21},
+  note         = {advisories}
+}
+
+@misc{redhatbackporting,
+  shorthand    = {Red Hat backporting},
+  author       = {{Red Hat}},
+  title        = {Security Backporting Practice},
+  organization = {Red Hat Customer Portal},
+  url          = {https://access.redhat.com/security/updates/backporting},
+  urldate      = {2026-10-21},
+  note         = {advisories}
+}
+
+@misc{ubuntusecurityfaq,
+  shorthand    = {Ubuntu Security FAQ},
+  author       = {{Ubuntu Security Team}},
+  title        = {Security/{FAQ}},
+  organization = {Ubuntu Wiki},
+  url          = {https://wiki.ubuntu.com/SecurityTeam/FAQ},
+  urldate      = {2026-10-21},
+  note         = {advisories}
+}
+
+@misc{debiansecurityfaq,
+  shorthand    = {Debian security FAQ},
+  author       = {{Debian Project}},
+  title        = {Debian Security {FAQ}},
+  url          = {https://www.debian.org/security/faq},
+  urldate      = {2026-10-21},
+  note         = {advisories}
+}
+
+@misc{phpexposephp,
+  shorthand    = {PHP expose\_php},
+  author       = {{The PHP Group}},
+  title        = {Description of Core php.ini Directives: expose\_php},
+  organization = {PHP Manual},
+  url          = {https://www.php.net/manual/en/ini.core.php},
+  urldate      = {2026-10-21},
+  note         = {web}
+}
+
+@misc{devcore2024cve4577,
+  shorthand    = {DEVCORE CVE-2024-4577},
+  author       = {{DEVCORE}},
+  title        = {Security Alert: {CVE-2024-4577} -- {PHP} {CGI} Argument Injection Vulnerability},
+  year         = {2024},
+  month        = jun,
+  day          = {6},
+  url          = {https://devco.re/blog/2024/06/06/security-alert-cve-2024-4577-php-cgi-argument-injection-vulnerability-en/},
+  urldate      = {2026-10-21},
+  note         = {advisories}
+}
+
+@misc{censys2024cve4577,
+  shorthand    = {Censys CVE-2024-4577},
+  author       = {{Censys}},
+  title        = {{PHP-CGI} Argument Injection Vulnerability Could Lead to Remote Code Execution},
+  year         = {2024},
+  month        = jun,
+  day          = {10},
+  url          = {https://censys.com/advisory/cve-2024-4577/},
+  urldate      = {2026-10-21},
+  note         = {advisories}
+}
+
+@misc{php2012cgi,
+  shorthand    = {PHP CGI flaw (2012)},
+  author       = {{The PHP Group}},
+  title        = {{PHP} 5.3.12 and 5.4.2 and the {CGI} Flaw ({CVE-2012-1823})},
+  year         = {2012},
+  month        = may,
+  day          = {6},
+  url          = {https://www.php.net/archive/2012.php#id2012-05-06-1},
+  urldate      = {2026-10-21},
+  note         = {advisories}
+}
+
+@misc{nucleiphpdetect,
+  shorthand    = {Nuclei php-detect},
+  author       = {{ProjectDiscovery}},
+  title        = {nuclei-templates: php-detect.yaml},
+  annote       = {Template author y0no; matches PHP/ or PHPSESSID or .php in headers and extracts (?i)PHP/([0-9.]+); repository licensed MIT},
+  url          = {https://github.com/projectdiscovery/nuclei-templates/blob/main/http/technologies/php-detect.yaml},
+  urldate      = {2026-10-21},
+  note         = {blackbox}
+}
+
+@misc{php2026critical,
+  shorthand    = {PHP advance notice (2026-10-20)},
+  author       = {{The PHP Group}},
+  title        = {Upcoming Critical {PHP} Security Release},
+  year         = {2026},
+  month        = oct,
+  day          = {20},
+  url          = {https://www.php.net/archive/2026.php#2026-10-20-1},
+  urldate      = {2026-10-21},
+  note         = {advisories}
+}
+
+@misc{ncscadvisories,
+  shorthand    = {NCSC-NL Security Advisories},
+  author       = {{Nationaal Cyber Security Centrum}},
+  title        = {Security Advisories},
+  annote       = {CSAF 2.0 trusted provider (role csaf\_trusted\_provider); provider metadata at advisories.ncsc.nl/.well-known/csaf/provider-metadata.json; PGP-signed JSON under advisories.ncsc.nl/csaf/v2/ with index.txt and changes.csv; RSS at /rss/advisories; CSAF primary format since 15 May 2024; TLP:WHITE},
+  url          = {https://advisories.ncsc.nl/},
+  urldate      = {2026-10-21},
+  note         = {advisories}
+}
+
+@misc{ncsc2024webapps,
+  shorthand    = {NCSC ICT-beveiligingsrichtlijnen webapplicaties (2024)},
+  author       = {{Nationaal Cyber Security Centrum}},
+  title        = {{ICT}-beveiligingsrichtlijnen voor webapplicaties},
+  titleaddon   = {ICT security guidelines for web applications},
+  annote       = {Dutch; colophon dated May 2024; guidelines U/PW.02 (measures 04--06) and U/PW.07; policy and control guidelines (B., C.) moved to a separate NCSC publication},
+  year         = {2024},
+  month        = may,
+  url          = {https://www.ncsc.nl/api/media/sites/default/files/Richtlijn%20ICT%20beveiligingsrichtlijnen%20webapplicaties%2007-24_0.pdf},
+  urldate      = {2026-10-21},
+  note         = {standards}
+}
+
+@misc{ncsc2015webapps,
+  shorthand    = {NCSC ICT-beveiligingsrichtlijnen webapplicaties (2015)},
+  author       = {{Nationaal Cyber Security Centrum}},
+  title        = {{ICT}-beveiligingsrichtlijnen voor webapplicaties: Richtlijnen},
+  titleaddon   = {ICT security guidelines for web applications: Guidelines},
+  annote       = {Dutch; version 2015, colophon dated September 2015; guideline C.09 Patchmanagement; U/PW.02 measures 04--06},
+  year         = {2015},
+  month        = sep,
+  url          = {https://www.ncsc.nl/binaries/ncsc/documenten/publicaties/2019/mei/01/ict-beveiligingsrichtlijnen-voor-webapplicaties/ICT-Beveiligingsrichtlijnen-voor-Webapplicaties-Richtlijnen-Leesversie.pdf},
+  urldate      = {2026-10-21},
+  keywords     = {further-reading},
+  note         = {standards}
+}
+
+@misc{nos2026phpliveblog,
+  shorthand    = {NOS liveblog (2026-10-21)},
+  author       = {{NOS}},
+  title        = {Websites kwetsbaar voor softwarelek: {RTL} Nieuws, {DigiD} en {MijnOverheid} uit de lucht},
+  titleaddon   = {Websites vulnerable to software flaw: RTL Nieuws, DigiD and MijnOverheid offline},
+  year         = {2026},
+  month        = oct,
+  day          = {21},
+  url          = {https://nos.nl/liveblog/2636066-websites-kwetsbaar-voor-softwarelek-digid-en-mijnoverheid-uit-de-lucht},
+  urldate      = {2026-10-21},
+  keywords     = {further-reading},
+  note         = {advisories}
+}

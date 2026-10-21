@@ -133,6 +133,20 @@ Every rule carries:
 | `ioc-file` | `penthera deps`: files a campaign drops into packages | `campaign`, `files: [{ path, sha256? }]` |
 | `typosquat-target` | `lib/deps/typosquat.js`: names to protect from look-alikes | `names` |
 | `nuclei-template` | `lib/templates.js`: the Nuclei subset Penthera runs (status, word, regex matchers) | `template` |
+| `runtime-advisory` | `lib/advisories/`: affected versions of a runtime or server (`--repo` pins, URL banners) | `product`, `title`, `severity`, `cves`, `ghsa`, `cvss`, `kev` (date added to CISA KEV), `condition`, `fixed: [{ branch, version, introduced? }]` |
+| `runtime-eol` | `lib/advisories/`: release lines past their vendor's end of support | `product`, `branches: [{ branch, eol }]` |
+
+`runtime-advisory` and `runtime-eol` name a `product` from a fixed list (`php`,
+`apache-httpd`, `nginx`, `nodejs`, `python`, `openssl`; detection for each is
+code in `lib/advisories/products.js`). A `branch` is a release line as that
+vendor numbers them: `8.3` for PHP, `22` for Node.js, `1.1.1` or `3.0` for
+OpenSSL. Every `fixed` version must be an exact upstream release on its line.
+An advisory with a `condition` (an OS, a SAPI, a module a banner cannot show)
+never produces more than `potential`. A `runtime-eol` line counts as ended
+only when its `eol` date is on or before the rule's own `date`, so the result
+depends on the pack, never on the clock of the machine that runs the scan. See
+the methodology's [runtime advisories](METHODOLOGY.md#runtime-advisories)
+section for how evidence and verdicts work.
 
 Rules from packs run after the built-in rules, so a pack can add detections but
 cannot shadow or reorder the built-in ones. IOC matching is literal (string
@@ -179,6 +193,7 @@ existing user templates keep working.
 | Pack | Contents |
 |---|---|
 | `core` | Detections that were hardcoded before rule packs, moved here so the built-in rules go through the same loader: 12 AI-provider key formats, the credential-path hidden-instruction pattern, two process-substitution exec patterns, and the `.env` exposure template. Engines splice them back in at their old positions, and a test compares the result with a snapshot of the old built-ins. |
+| `advisories` | Runtime and server advisories and end-of-life release lines. The PHP security release of 21 October 2026 (CVE-2026-109618 and CVE-2026-109619, fixed in 8.2.35, 8.3.36, 8.4.27 and 8.5.12). Worked examples: CVE-2024-4577 and its bypass CVE-2024-8926 (PHP-CGI on Windows, from the php-src advisories), and CVE-2021-41773 with CVE-2021-42013 (Apache HTTP Server 2.4.49 and 2.4.50). End-of-life lines for PHP, Node.js, Python, nginx, Apache HTTP Server and OpenSSL, from each vendor's support page. Every rule cites the vendor page it was copied from. |
 | `ioc-2025-2026` | Named npm campaigns: **s1ngularity** (nx and @nx/* versions, from GHSA-cxm3-wv7p-598c), **Shai-Hulud** (484 package versions from StepSecurity's table, the webhook.site exfil URL, and `bundle.js` by SHA-256), **Shai-Hulud 2.0** (1,089 package versions from Wiz Research's CSV, plus `setup_bun.js` and `bun_environment.js`), and **postmark-mcp** 1.0.16 to 1.0.18 with its exfil domain. Every rule cites the list it came from. We dropped entries we could not check against a primary source. |
 
 ## Writing and signing a pack

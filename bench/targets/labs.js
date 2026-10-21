@@ -63,7 +63,8 @@ async function injectionLab(req, res) {
 
   switch (url.pathname) {
     case "/":
-      return send(res, 200, "text/html", "<html><body>injection lab</body></html>", h);
+      // GT injection-lab/httpd-banner: the banner names an affected Apache release.
+      return send(res, 200, "text/html", "<html><body>injection lab</body></html>", { ...h, Server: "Apache/2.4.49 (Unix)" });
 
     // GT injection-lab/cmdi: POST {input} is (simulated) passed to a shell, so
     // ";id" returns the output of id(1).
@@ -132,8 +133,9 @@ function decoyLab() {
 
     switch (url.pathname) {
       case "/":
+        // Decoy: an Apache release from before the path traversal was introduced.
         return send(res, 200, "text/html", "<html><body>decoy lab</body></html>",
-          { ...h, "Set-Cookie": "sid=abc123; HttpOnly; SameSite=Lax; Path=/" });
+          { ...h, Server: "Apache/2.4.48 (Unix)", "Set-Cookie": "sid=abc123; HttpOnly; SameSite=Lax; Path=/" });
 
       // Decoy: input is reflected, but HTML-encoded. Not XSS.
       case "/api/items": {

@@ -86,6 +86,11 @@
       "zimmermann2019small",
       "ladisa2023sok"
     ],
+    "runtime-advisory": [
+      "owaspwstg42",
+      "ncsc2024webapps",
+      "redhatbackporting"
+    ],
     "js-vulnerability": [
       "lauinger2017thou",
       "zimmermann2019small"
@@ -490,6 +495,181 @@
       "cite": "NIST AI RMF",
       "title": "Artificial Intelligence Risk Management Framework (AI RMF 1.0)",
       "url": "https://doi.org/10.6028/NIST.AI.100-1"
+    },
+    "lee2002detecting": {
+      "cite": "Lee et al. 2002",
+      "title": "Detecting and Defending against Web-Server Fingerprinting",
+      "url": "https://doi.org/10.1109/CSAC.2002.1176304"
+    },
+    "kar2022httpfuzz": {
+      "cite": "Kar et al. 2022",
+      "title": "HTTPFuzz: Web Server Fingerprinting with HTTP Request Fuzzing",
+      "url": "https://doi.org/10.5220/0011328900003283"
+    },
+    "lavrenovs2018http": {
+      "cite": "Lavrenovs & Melon 2018",
+      "title": "HTTP Security Headers Analysis of Top One Million Websites",
+      "url": "https://doi.org/10.23919/CYCON.2018.8405025"
+    },
+    "lyon2009nmap": {
+      "cite": "Lyon 2009",
+      "title": "Nmap Network Scanning: The Official Nmap Project Guide to Network Discovery and Security Scanning",
+      "url": "https://nmap.org/book/vscan.html"
+    },
+    "durumeric2014heartbleed": {
+      "cite": "Durumeric et al. 2014",
+      "title": "The Matter of Heartbleed",
+      "url": "https://doi.org/10.1145/2663716.2663755"
+    },
+    "nappa2015clones": {
+      "cite": "Nappa et al. 2015",
+      "title": "The Attack of the Clones: A Study of the Impact of Shared Code on Vulnerability Patching",
+      "url": "https://doi.org/10.1109/SP.2015.48"
+    },
+    "li2017largescale": {
+      "cite": "Li & Paxson 2017",
+      "title": "A Large-Scale Empirical Study of Security Patches",
+      "url": "https://doi.org/10.1145/3133956.3134072"
+    },
+    "vasek2016hacking": {
+      "cite": "Vasek et al. 2016",
+      "title": "Hacking Is Not Random: A Case-Control Study of Webserver-Compromise Risk",
+      "url": "https://doi.org/10.1109/TDSC.2015.2427847"
+    },
+    "stock2016hey": {
+      "cite": "Stock et al. 2016",
+      "title": "Hey, You Have a Problem: On the Feasibility of Large-Scale Web Vulnerability Notification",
+      "url": "https://www.usenix.org/conference/usenixsecurity16/technical-sessions/presentation/stock"
+    },
+    "zhang2018precise": {
+      "cite": "Zhang & Qian 2018",
+      "title": "Precise and Accurate Patch Presence Test for Binaries",
+      "url": "https://www.usenix.org/conference/usenixsecurity18/presentation/zhang-hang"
+    },
+    "ossfosvschema": {
+      "cite": "OSV schema",
+      "title": "Open Source Vulnerability Format",
+      "url": "https://ossf.github.io/osv-schema/"
+    },
+    "cisakev": {
+      "cite": "CISA KEV",
+      "title": "Known Exploited Vulnerabilities Catalog",
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+    },
+    "first2023cvss4": {
+      "cite": "CVSS v4.0",
+      "title": "Common Vulnerability Scoring System Version 4.0: Specification Document",
+      "url": "https://www.first.org/cvss/v4.0/specification-document"
+    },
+    "oasis2022csaf": {
+      "cite": "CSAF 2.0",
+      "title": "Common Security Advisory Framework Version 2.0",
+      "url": "https://docs.oasis-open.org/csaf/csaf/v2.0/os/csaf-v2.0-os.html"
+    },
+    "endoflifedate": {
+      "cite": "endoflife.date",
+      "title": "endoflife.date",
+      "url": "https://endoflife.date/"
+    },
+    "phpsupported": {
+      "cite": "PHP supported versions",
+      "title": "Supported Versions",
+      "url": "https://www.php.net/supported-versions.php"
+    },
+    "phpsrcadvisories": {
+      "cite": "php-src security advisories",
+      "title": "Security Advisories for php/php-src",
+      "url": "https://github.com/php/php-src/security/advisories"
+    },
+    "httpdvulns24": {
+      "cite": "Apache httpd 2.4 vulnerabilities",
+      "title": "Apache HTTP Server 2.4 Vulnerabilities",
+      "url": "https://httpd.apache.org/security/vulnerabilities_24.html"
+    },
+    "nodejsreleases": {
+      "cite": "Node.js releases",
+      "title": "Node.js Releases",
+      "url": "https://nodejs.org/en/about/previous-releases"
+    },
+    "pythondevguideversions": {
+      "cite": "Python version status",
+      "title": "Status of Python Versions",
+      "url": "https://devguide.python.org/versions/"
+    },
+    "nginxadvisories": {
+      "cite": "nginx security advisories",
+      "title": "nginx Security Advisories",
+      "url": "https://nginx.org/en/security_advisories.html"
+    },
+    "opensslvulns": {
+      "cite": "OpenSSL vulnerabilities",
+      "title": "Vulnerabilities",
+      "url": "https://openssl-library.org/news/vulnerabilities/"
+    },
+    "redhatbackporting": {
+      "cite": "Red Hat backporting",
+      "title": "Security Backporting Practice",
+      "url": "https://access.redhat.com/security/updates/backporting"
+    },
+    "ubuntusecurityfaq": {
+      "cite": "Ubuntu Security FAQ",
+      "title": "Security/FAQ",
+      "url": "https://wiki.ubuntu.com/SecurityTeam/FAQ"
+    },
+    "debiansecurityfaq": {
+      "cite": "Debian security FAQ",
+      "title": "Debian Security FAQ",
+      "url": "https://www.debian.org/security/faq"
+    },
+    "phpexposephp": {
+      "cite": "PHP expose\\_php",
+      "title": "Description of Core php.ini Directives: expose\\_php",
+      "url": "https://www.php.net/manual/en/ini.core.php"
+    },
+    "devcore2024cve4577": {
+      "cite": "DEVCORE CVE-2024-4577",
+      "title": "Security Alert: CVE-2024-4577 - PHP CGI Argument Injection Vulnerability",
+      "url": "https://devco.re/blog/2024/06/06/security-alert-cve-2024-4577-php-cgi-argument-injection-vulnerability-en/"
+    },
+    "censys2024cve4577": {
+      "cite": "Censys CVE-2024-4577",
+      "title": "PHP-CGI Argument Injection Vulnerability Could Lead to Remote Code Execution",
+      "url": "https://censys.com/advisory/cve-2024-4577/"
+    },
+    "php2012cgi": {
+      "cite": "PHP CGI flaw (2012)",
+      "title": "PHP 5.3.12 and 5.4.2 and the CGI Flaw (CVE-2012-1823)",
+      "url": "https://www.php.net/archive/2012.php#id2012-05-06-1"
+    },
+    "nucleiphpdetect": {
+      "cite": "Nuclei php-detect",
+      "title": "nuclei-templates: php-detect.yaml",
+      "url": "https://github.com/projectdiscovery/nuclei-templates/blob/main/http/technologies/php-detect.yaml"
+    },
+    "php2026critical": {
+      "cite": "PHP advance notice (2026-10-20)",
+      "title": "Upcoming Critical PHP Security Release",
+      "url": "https://www.php.net/archive/2026.php#2026-10-20-1"
+    },
+    "ncscadvisories": {
+      "cite": "NCSC-NL Security Advisories",
+      "title": "Security Advisories",
+      "url": "https://advisories.ncsc.nl/"
+    },
+    "ncsc2024webapps": {
+      "cite": "NCSC ICT-beveiligingsrichtlijnen webapplicaties (2024)",
+      "title": "ICT-beveiligingsrichtlijnen voor webapplicaties",
+      "url": "https://www.ncsc.nl/api/media/sites/default/files/Richtlijn%20ICT%20beveiligingsrichtlijnen%20webapplicaties%2007-24_0.pdf"
+    },
+    "ncsc2015webapps": {
+      "cite": "NCSC ICT-beveiligingsrichtlijnen webapplicaties (2015)",
+      "title": "ICT-beveiligingsrichtlijnen voor webapplicaties: Richtlijnen",
+      "url": "https://www.ncsc.nl/binaries/ncsc/documenten/publicaties/2019/mei/01/ict-beveiligingsrichtlijnen-voor-webapplicaties/ICT-Beveiligingsrichtlijnen-voor-Webapplicaties-Richtlijnen-Leesversie.pdf"
+    },
+    "nos2026phpliveblog": {
+      "cite": "NOS liveblog (2026-10-21)",
+      "title": "Websites kwetsbaar voor softwarelek: RTL Nieuws, DigiD en MijnOverheid uit de lucht",
+      "url": "https://nos.nl/liveblog/2636066-websites-kwetsbaar-voor-softwarelek-digid-en-mijnoverheid-uit-de-lucht"
     }
   }
 }

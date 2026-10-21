@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { discoverAttackSurface, groupByTrustBoundary, findRiskyRoutes } from "../lib/attack-surface.js";
 import { scanSecrets } from "../lib/whitebox/secrets.js";
 import { discoverFrameworkRoutes } from "../lib/whitebox/frameworks.js";
+import { runtimeAdvisoriesForRepo } from "../lib/advisories/index.js";
 
 /** Auto-detect API routes directory (Next.js, Express-style, etc.). */
 function findApiRoot(repoPath) {
@@ -61,6 +62,11 @@ export async function scanRepo(repoPath, opts = {}) {
   progress("Scanning for hardcoded secrets...");
   result.findings.push(...scanSecrets(repoPath));
   result.executedProbes.push("secret-scanning");
+
+  // ── Phase 1b: Runtime pins (Dockerfile, .tool-versions, ...) vs advisories
+  progress("Checking pinned runtime versions against advisories...");
+  result.findings.push(...runtimeAdvisoriesForRepo(repoPath));
+  result.executedProbes.push("runtime-advisories");
 
   // ── Phase 2: Locate API root ───────────────────────────────────────────
   progress("Locating API routes directory...");

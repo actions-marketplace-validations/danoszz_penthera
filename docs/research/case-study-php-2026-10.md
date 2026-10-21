@@ -8,8 +8,8 @@ their sites offline as a precaution. This page records what happened that day,
 what we built in response, and where any version-based scanner, Penthera
 included, stops being useful.
 
-**Status.** Released in 1.8.0-rc.2 (`npm install penthera@next`), with the
-rules in the signed `advisories` pack. It becomes part of `latest` with 1.8.0.
+**Status.** Released in 1.8.0 (`npx penthera`), with the
+rules in the signed `advisories` pack.
 
 ## Timeline
 

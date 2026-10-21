@@ -4,15 +4,16 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
-## [1.8.0-rc.2] - 2026-10-21
+## [1.8.0] - 2026-10-21
 
-Second release candidate for 1.8.0, on npm's `next` dist-tag
-(`npm install penthera@next`). New since rc.1: runtime advisories, starting
-with PHP's critical security release of 21 October 2026, in a new signed
-`advisories` rule pack. 1.8.0-rc.1 cannot load that pack; upgrade the engine.
-The benchmark gained two PHP cases: precision 0.88 (95% CI 0.69 to 0.96) and
-recall 0.91 (0.73 to 0.98) on 24 scored findings; README, manifesto and
-methodology quote the new numbers.
+1.8.0 is 1.8.0-rc.1 plus the changes below; there was no separate rc.2
+release. Highlights across both: fixes from a second independent security
+review, a fix loop that cannot edit the tests that judge it, the redesigned
+dashboard (Simple and Advanced mode), release checks on Linux, macOS and
+Windows, and now runtime advisories, starting with PHP's critical security
+release of 21 October 2026, in a new signed `advisories` rule pack (1.8.0-rc.1
+cannot load it). The benchmark gained two PHP cases: precision 0.88 (95% CI
+0.69 to 0.96) and recall 0.91 (0.73 to 0.98) on 24 scored findings.
 
 ### Added
 
@@ -66,6 +67,11 @@ methodology quote the new numbers.
 - `scripts/docs-commands.mjs` also checks every command the site shows.
 
 ### Docs
+
+- **New title for the launch:** "Penthera: your open-source cyber security
+  agent", in the README, docs index, `penthera --help`, the GitHub Action name
+  (which renames its Marketplace listing), the dashboard and the report
+  footer.
 
 - **README hero is a 12-second loop** of the terminal and the dashboard
   (setup, an offline scan, Simple and Advanced mode, a fix approved), cut from

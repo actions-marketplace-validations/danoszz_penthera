@@ -25,6 +25,7 @@ import { parseArgs } from "node:util";
 import { build } from "rolldown";
 import { bundledPackDirs, activePacks, loadSigners, NAMESPACE } from "../lib/rules/index.js";
 import { verifyWithSigners } from "../lib/rules/sshsig.js";
+import { COUNTS } from "../scripts/docs-numbers.mjs";
 
 const SITE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(SITE, "..");
@@ -103,6 +104,17 @@ function sitePlugin({ files, version, sigs }) {
 }
 
 
+/** Rule counts and runtime dependencies, from the same source as the README (scripts/docs-numbers.mjs). */
+function ruleNumbers() {
+  const deps = Object.keys(JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).dependencies || {});
+  return {
+    N_URL: String(COUNTS.urlTemplates), N_SECRETS: String(COUNTS.secretPatterns), N_CAPS: String(COUNTS.capabilities),
+    N_AGENTS: String(COUNTS.agentRules), N_RECIPES: String(COUNTS.recipes),
+    DEPS_N: deps.length === 1 ? "one runtime dependency" : `${deps.length} runtime dependencies`,
+    DEPS_LIST: deps.join(", "),
+  };
+}
+
 /** Wilson score interval, 95%, as README and bench/ report it. */
 function wilson(k, n, z = 1.96) {
   const p = k / n;
@@ -121,6 +133,8 @@ function benchNumbers() {
     BENCH_P: (tp / (tp + fp)).toFixed(2), BENCH_P_CI: wilson(tp, tp + fp),
     BENCH_R: (tp / (tp + fn)).toFixed(2), BENCH_R_CI: wilson(tp, tp + fn),
     BENCH_N: String(tp + fp),
+    BENCH_TP: String(tp), BENCH_FP: String(fp), BENCH_FN: String(fn),
+    BENCH_EGRESS: (readFileSync(join(ROOT, "bench", "RESULTS.md"), "utf8").match(/Requests to non-loopback hosts: \*\*(\d+)\*\*/) || [])[1] ?? "not reported",
   };
 }
 
@@ -248,6 +262,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
     POPULAR: popular.names.length.toLocaleString("en-US"),
     CHECK_KB: String(kb(checkBytes)),
     ...benchNumbers(),
+    ...ruleNumbers(),
     STARS: await starCount(),
     TICKER: tickerHtml(readNews()),
     SITE_URL: siteUrl(),

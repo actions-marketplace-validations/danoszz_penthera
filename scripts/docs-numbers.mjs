@@ -8,7 +8,8 @@ import { loadPopular } from "../lib/deps/typosquat.js";
 
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import { BUILT_IN_TEMPLATES } from "../lib/templates.js";
 import { CAPABILITIES } from "../lib/deps/capabilities.js";
@@ -31,6 +32,18 @@ const popularPypi = loadPopular("pypi").names.length;
 const total = read("bench/RESULTS.md").match(/\| \*\*Total\*\* \|[^\n]*/)?.[0] ?? "";
 const [tp, fp, fn, precision, recall] = total.replace(/\*/g, "").split("|").map((s) => s.trim()).filter(Boolean).slice(1);
 
+/** The counts, for the site's build (site/build.mjs) as well as the printout below. */
+export const COUNTS = {
+  urlTemplates: BUILT_IN_TEMPLATES.length,
+  secretPatterns,
+  capabilities: Object.keys(CAPABILITIES).length,
+  agentRules: Object.keys(RULE_OWASP).length,
+  recipes,
+  references,
+  popularNpm: popular,
+  popularPypi,
+};
+
 const rows = [
   ["URL scan templates (built in)", BUILT_IN_TEMPLATES.length],
   ["Secret and AI-key patterns", secretPatterns],
@@ -44,7 +57,9 @@ const rows = [
   ["Benchmark precision / recall", `${precision} / ${recall}`],
 ];
 
-if (process.argv.includes("--tests")) {
+const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isMain && process.argv.includes("--tests")) {
   const vitest = new URL("../node_modules/.bin/vitest", import.meta.url).pathname;
   const dir = mkdtempSync(join(tmpdir(), "penthera-numbers-"));
   const file = join(dir, "vitest.json");
@@ -58,4 +73,4 @@ if (process.argv.includes("--tests")) {
   rows.push(["Tests (total / passed / skipped)", `${r.numTotalTests} / ${r.numPassedTests} / ${r.numPendingTests}`]);
 }
 
-for (const [label, value] of rows) console.log(`${label.padEnd(42)} ${value}`);
+if (isMain) for (const [label, value] of rows) console.log(`${label.padEnd(42)} ${value}`);

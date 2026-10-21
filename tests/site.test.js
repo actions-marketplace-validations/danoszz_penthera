@@ -68,6 +68,12 @@ describe("site build", () => {
     for (const tag of ['property="og:image"', 'name="twitter:card" content="summary_large_image"', 'property="og:image:width" content="1200"']) {
       expect(html, tag).toContain(tag);
     }
+    expect(html).toContain('property="og:title" content="Penthera: your open-source security agent"');
+    expect(html).toContain('name="twitter:title" content="Penthera: your open-source security agent"');
+    for (const tag of ["og:description", "twitter:description"]) {
+      const d = html.match(new RegExp(`(?:property|name)="${tag}" content="([^"]+)"`))[1];
+      expect(d.length, tag).toBeLessThanOrEqual(155);
+    }
     const img = html.match(/property="og:image" content="([^"]+)"/)[1];
     expect(img).toMatch(/\/media\/social\/og\.png$/);
     for (const f of ["media/social/og.png", "media/social/square.png"]) expect(existsSync(join(out, f)), f).toBe(true);
@@ -88,6 +94,22 @@ describe("site build", () => {
     for (const api of ["fetch(", "new XMLHttpRequest", "new WebSocket", "sendBeacon(", "new EventSource", "importScripts("]) {
       expect(js.includes(api), api).toBe(false);
     }
+  });
+});
+
+describe("site FAQ", () => {
+  it("is native <details> with a question in each summary, and its numbers come from the repo", () => {
+    const html = readFileSync(join(out, "index.html"), "utf8");
+    const faq = html.slice(html.indexOf('id="faq"'), html.indexOf("<!-- 8 · Vision -->"));
+    const items = faq.match(/<details>\s*<summary>[^<]+\?<\/summary>/g) || [];
+    expect(items.length).toBeGreaterThanOrEqual(10);
+    // Benchmark figures as bench/RESULTS.md and scripts/docs-numbers.mjs give them.
+    const total = readFileSync(join(ROOT, "bench", "RESULTS.md"), "utf8").match(/\| \*\*Total\*\* \|[^|]*\| \*\*(\d+)\*\* \| \*\*(\d+)\*\* \| \*\*(\d+)\*\* \|/);
+    const [tp, fp, fn] = total.slice(1).map(Number);
+    expect(faq).toContain(`precision ${(tp / (tp + fp)).toFixed(2)} (95% CI`);
+    expect(faq).toContain(`from ${tp} true positives, ${fp} false positives and ${fn} misses`);
+    expect(faq).toMatch(/one runtime dependency \(yaml\)|\d+ runtime dependencies/);
+    expect(faq).not.toMatch(/\{\{\w+\}\}/);
   });
 });
 

@@ -13,7 +13,7 @@
  *   headers      lib/advisories again, on response headers the visitor pasted
  *                (they ran curl themselves; the page never contacts their site)
  *
- * Nothing here touches the network; the page's CSP (connect-src 'none') makes
+ * Nothing here touches the network; the page's CSP (connect-src: only Vercel's counters) makes
  * sure of it. site/build.mjs bundles this file and its lib/ imports.
  */
 import "./shims/globals.js";

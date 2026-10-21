@@ -4,6 +4,14 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Site
+
+- penthera.org counts anonymous page views and load times with Vercel Web
+  Analytics and Speed Insights (cookieless, served from the same origin). The
+  CSP now allows connections only to those two paths on penthera.org; the
+  browser check still sends nothing, and the page says so. The CLI, the
+  dashboard and the npm package have no telemetry, unchanged.
+
 ## [1.8.0] - 2026-10-21
 
 1.8.0 is 1.8.0-rc.1 plus the changes below; there was no separate rc.2

@@ -113,10 +113,15 @@ describe("site news ticker", () => {
 });
 
 describe("site headers", () => {
-  it("vercel.json forbids connections, framing and plain HTTP", () => {
+  it("vercel.json allows only Vercel's two counters, and forbids framing and plain HTTP", () => {
     const h = headersFor("/");
     const csp = h["Content-Security-Policy"];
-    expect(csp).toContain("connect-src 'none'");
+    // The only connections: cookieless page views and load times on penthera.org.
+    const connect = csp.match(/connect-src ([^;]+)/)[1].trim().split(/\s+/).sort();
+    expect(connect).toEqual([
+      "https://penthera.org/_vercel/insights/", "https://penthera.org/_vercel/speed-insights/",
+      "https://www.penthera.org/_vercel/insights/", "https://www.penthera.org/_vercel/speed-insights/",
+    ]);
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain("default-src 'none'");
     expect(csp).not.toMatch(/unsafe-(inline|eval)/);
@@ -129,7 +134,7 @@ describe("site headers", () => {
     try {
       const res = await fetch(`http://127.0.0.1:${server.address().port}/`);
       expect(res.status).toBe(200);
-      expect(res.headers.get("content-security-policy")).toContain("connect-src 'none'");
+      expect(res.headers.get("content-security-policy")).toContain("connect-src https://penthera.org/_vercel/insights/ https://penthera.org/_vercel/speed-insights/ https://www.penthera.org/_vercel/insights/ https://www.penthera.org/_vercel/speed-insights/");
     } finally {
       server.close();
     }

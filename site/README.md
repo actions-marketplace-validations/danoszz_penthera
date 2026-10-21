@@ -15,7 +15,7 @@ node site/serve.mjs     # http://127.0.0.1:4173/ with the production headers
 | Path | What it is |
 |---|---|
 | `index.html` | The page and all its copy. `{{NAME}}` placeholders are measured numbers the build fills in: rule counts, the popular-list size, the benchmark from `bench/RESULTS.md`, and the GitHub star count (the build's one request; `PENTHERA_SITE_STARS=<n>` or `off` to skip it). |
-| `news.json` | The ticker at the top: dated, one-line items, each with an https source. The build renders it (and refuses an item without a source); edit it to change the news. |
+| `news.json` | The ticker at the top: dated, one-line items, each with an https source. The build renders it (and refuses an item without a source); edit it to change the news. A daily workflow proposes new items as a PR; see [The news feed](#the-news-feed). |
 | `styles.css` | System 1-bit, as in `penthera ui`. Tokens and contrast measurements are in its header. |
 | `theme.js` | Sets the theme before paint. A choice is kept in localStorage, never a cookie. |
 | `check/` | The browser check. `engine.js` calls `lib/`; `ui.js` is the page script; `copy.js` holds its strings; `field.js` is the hero's live field (a dithered cloud, a pointer lens with a soft glow, and a click shockwave on a canvas; off under reduced motion, where `media/field.png` stays). |
@@ -46,6 +46,51 @@ The rule packs' signatures are checked at build time with
 `lib/rules/sshsig.js`; the build refuses a pack whose signature does not
 verify. In the page, `lib/rules/pack.js` still checks every rule file against
 the SHA-256 in its `pack.json`.
+
+## The news feed
+
+`.github/workflows/news-feed.yml` runs daily. It reads official,
+machine-readable sources, turns what is new into ticker lines, and opens or
+updates one PR (branch `news-feed/update`) that changes `news.json` only.
+Nothing reaches the page until a person merges that PR.
+
+```bash
+node scripts/marketing/news-feed.mjs --dry-run            # print what it would add and drop
+node scripts/marketing/news-feed.mjs --since-days 30      # write news.json with a longer look-back
+```
+
+| Source | What becomes a line |
+|---|---|
+| CRA milestones (Regulation (EU) 2024/2847, Article 71) | the day a date applies |
+| NCSC-NL advisories (RSS) | first versions rated high likelihood and high impact |
+| ENISA EUVD (JSON API) | exploited vulnerabilities in the products below; CVSS 9 or more in the runtimes |
+| CISA Known Exploited Vulnerabilities (JSON) | entries for the products below |
+| php.net (Atom), nginx (RSS), Node.js (RSS) | security advisories and security releases |
+| OpenSSL, Apache httpd (CVE JSON 5) | advisories rated High/Critical (OpenSSL) or important/critical (httpd) |
+| GitHub malware advisories for npm (REST API) | packages on Penthera's popular list only |
+
+The products are the runtimes in `lib/rules/advisories/` (PHP, nginx, Apache
+httpd, Node.js, Python, OpenSSL) plus npm, GitHub, GitLab and Jenkins, matched
+on the source's vendor and product fields. Python has no feed of its own: the
+PSF advisory database has no severity, so CPython shows up through EUVD and
+the exploited lists. ENISA has no news feed, so ENISA news beyond EUVD is
+still added by hand.
+
+Each line is built from fields the source states: a title, a version, a CVE,
+a rating. Nothing is summarized, and a line that does not fit in 120
+characters is skipped. When two sources report the same thing (same source
+URL, same CVE, or the same product on the same day), the first in the table
+wins and an item already on the page wins over both.
+
+The merge keeps the newest first and dated items still ahead at the end,
+caps the list at 10 (`--cap`), adds at most 5 per run (`--max-new`), and
+drops items older than 365 days (`--max-age-days`). A source that fails is
+named in the PR and skipped.
+
+Reviewing the PR: open each source and check the line says what it says.
+Edit or drop lines on the branch; once a person pushes to it, the workflow
+leaves it alone. To turn an item down for good, add its source URL to a
+top-level `skip` array in `news.json`.
 
 ## Deploying
 

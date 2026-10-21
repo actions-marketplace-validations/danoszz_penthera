@@ -1,0 +1,108 @@
+name: News feed
+
+# Daily: proposes new lines for the site's news ticker (site/news.json) from
+# official feeds (CISA KEV, ENISA EUVD, NCSC-NL, PHP, nginx, Node.js, OpenSSL,
+# Apache httpd, GitHub malware advisories for popular npm packages) and opens
+# or updates one PR that changes site/news.json only. It proposes; a person
+# checks each line against its source and merges. Sources and rules are in
+# scripts/marketing/news-feed.mjs; see site/README.md.
+# Turn off: disable this workflow in the Actions tab.
+#
+# Needs "Allow GitHub Actions to create and approve pull requests" (Settings →
+# Actions → General). PRs opened with GITHUB_TOKEN do not trigger CI; close and
+# reopen the PR to run it.
+#
+# Dry run: Actions → News feed → Run workflow with dry-run checked. The lines
+# it would add are printed to the job summary instead.
+
+on:
+  schedule:
+    - cron: "30 6 * * *"
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Print the proposed lines instead of opening a PR
+        type: boolean
+        default: true
+      since-days:
+        description: Look-back window in days
+        type: string
+        default: "7"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: news-feed
+  cancel-in-progress: false
+
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # push the news-feed/update branch for the PR
+      pull-requests: write # open or update the PR
+    env:
+      BRANCH: news-feed/update
+      BOT_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No token in .git/config while the feeds are read; the PR step
+          # authenticates on its own.
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Collect candidates
+        env:
+          # Read-only use: the GitHub advisory API's rate limit for this run.
+          GITHUB_TOKEN: ${{ github.token }}
+          SINCE_DAYS: ${{ inputs.since-days || '7' }}
+        run: node scripts/marketing/news-feed.mjs --since-days "$SINCE_DAYS" --summary "$RUNNER_TEMP/news.md"
+
+      # The same check the site build runs: date, one short line, https source.
+      - name: Validate site/news.json
+        run: node -e 'import("./site/build.mjs").then((m) => console.log(`${m.readNews().length} items`))'
+
+      - name: Open or update the PR
+        if: github.event_name == 'schedule' || !inputs.dry-run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- site/news.json; then
+            echo "No new lines; no PR." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          gh auth setup-git
+          # A person who pushed to the branch during review keeps their work.
+          if git fetch --quiet origin "$BRANCH" 2>/dev/null && [ "$(git log -1 --format=%ae FETCH_HEAD)" != "$BOT_EMAIL" ]; then
+            echo "$BRANCH has commits from a person; left as it is." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "$BOT_EMAIL"
+          git switch -C "$BRANCH"
+          git add site/news.json
+          git commit -m "chore(site): news ticker candidates ($(date -u +%F))"
+          git push --force origin "$BRANCH"
+          {
+            echo "Proposed by the News feed workflow ([run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)). It changes \`site/news.json\` only. Open each source, check the line says what the source says, edit or drop lines on this branch, then merge. The workflow rewrites this branch each day until it is merged or closed, unless a person has pushed to it."
+            echo
+            cat "$RUNNER_TEMP/news.md"
+          } > "$RUNNER_TEMP/body.md"
+          number="$(gh pr list --head "$BRANCH" --base "$BASE" --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$number" ]; then
+            gh pr edit "$number" --body-file "$RUNNER_TEMP/body.md"
+          else
+            gh pr create --base "$BASE" --head "$BRANCH" --title "chore(site): news ticker candidates" --body-file "$RUNNER_TEMP/body.md"
+          fi

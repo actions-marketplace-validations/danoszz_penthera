@@ -414,8 +414,19 @@ main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
 .hero-text {
   position: relative; z-index: 1;
   max-width: var(--measure); margin: 0 auto;
-  /* The headline sits in the lower half of the cloud: it overlays the dots. */
+  /* The first screen is at least 90vh; the headline sits in the lower half
+   * of the cloud, over the dots, with the text block at the bottom. */
+  min-height: 90vh;
+  display: flex; flex-direction: column; justify-content: flex-end;
   padding-top: clamp(240px, 42vh, 440px);
+}
+/* A long gradient behind the text, full width: the cloud stays visible at
+ * the top and fades to the ground under the headline, so it reads. */
+.hero-text::before {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+  top: 22%; bottom: -12%;
+  left: calc(50% - 50vw); width: 100vw;
+  background: linear-gradient(rgba(var(--ground-rgb), 0), rgba(var(--ground-rgb), 0.8) 32%, rgba(var(--ground-rgb), 0.94) 50%, rgb(var(--ground-rgb)) 85%);
 }
 /* Three separate pills, so the field shows through the gaps between them. */
 .pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 20px; padding: 0; list-style: none; }

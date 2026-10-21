@@ -2,8 +2,9 @@
 
 > **Starter and pro.** For "where do I start, and where do I go next?"
 
-**Penthera: an open-source cyber security agent you can use today, and verify
-yourself.**
+**Penthera: your open-source cyber security agent**
+
+The security review you never had time for. Offline, rule-based, and you can verify every finding yourself.
 
 Teams ship apps and AI agents faster than anyone can check them, and most
 security scanners offer no evidence of how well they actually work. Penthera is

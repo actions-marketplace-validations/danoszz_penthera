@@ -74,4 +74,4 @@ Source: agent loop. 1 verified · 1 failed · 1 open · median time to fix 1 min
 
 *Authorized security testing only. See the Penthera README for ethical use guidelines.*
 
-Checked by Penthera, open-source security for the apps and AI systems you ship · https://github.com/danoszz/penthera
+Checked by Penthera, an open-source cyber security agent · https://github.com/danoszz/penthera

@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/penthera-social.jpg" alt="Penthera: Cyber Security Agent" width="840">
+<img src="assets/penthera-social.jpg" alt="Penthera: your open-source cyber security agent" width="840">
 
 <br/><br/>
 

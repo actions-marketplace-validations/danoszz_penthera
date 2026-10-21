@@ -31,8 +31,10 @@ const logo = readFileSync(join(ROOT, "src", "ui", "static", "logo.svg"), "utf8")
   .replace(/fill="currentColor"/g, 'fill="#ffffff"');
 const field = `data:image/png;base64,${readFileSync(join(SITE, "media", "field.png")).toString("base64")}`;
 const font = pathToFileURL(join(ROOT, "src", "ui", "static", "fonts", "DepartureMono-Regular.woff2")).href;
-// A non-breaking hyphen keeps "open-source" on one line.
-const LINE = "An open\u2011source cyber security agent you can use today, and verify yourself.";
+// The approved title (without the "Penthera:" the logotype already says) and
+// the subline. A non-breaking hyphen keeps "open-source" on one line.
+const LINE = "Your open\u2011source cyber security agent";
+const SUB = "The security review you never had time for. Offline, rule-based, and you can verify every finding yourself.";
 
 const page = (w, h, layout) => `<!doctype html><html><head><meta charset="utf-8"><style>
 @font-face { font-family: "Departure Mono"; src: url("${font}") format("woff2"); }
@@ -41,8 +43,9 @@ html, body { width: ${w}px; height: ${h}px; background: #000; color: #fff; overf
 body { position: relative; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
 .field { position: absolute; ${layout.field}; object-fit: cover; object-position: 50% 0; image-rendering: pixelated; -webkit-mask-image: ${layout.mask}; }
 .wrap { position: absolute; inset: 0; padding: ${layout.pad}px; display: flex; flex-direction: column; justify-content: flex-end; }
-.logo { display: block; width: ${layout.logoW}px; height: auto; margin-bottom: ${layout.gap}px; }
+.logo { display: block; flex: none; width: ${layout.logoW}px; height: auto; margin-bottom: ${layout.gap}px; }
 h1 { font-weight: 500; font-size: ${layout.h1}px; line-height: 0.96; letter-spacing: -0.045em; max-width: ${layout.measure}; }
+.sub { margin-top: ${layout.gap * 0.6}px; max-width: ${layout.subMeasure}; font-size: ${layout.sub}px; line-height: 1.3; color: rgba(255, 255, 255, 0.85); }
 .row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: ${layout.gap}px; font-family: "Departure Mono", monospace; font-size: ${layout.mono}px; letter-spacing: 0.02em; }
 .cmd { padding: 10px 16px; background: #0000ed; border: 1px solid #fff; box-shadow: 6px 6px 0 #fff; }
 .pill { padding: 6px 12px; border: 1px solid #fff; background: #000; }
@@ -51,14 +54,15 @@ h1 { font-weight: 500; font-size: ${layout.h1}px; line-height: 0.96; letter-spac
 <div class="wrap">
   ${logo}
   <h1>${LINE}</h1>
+  <p class="sub">${SUB}</p>
   <div class="row"><span class="cmd">$ npx penthera</span><span class="pill">Open source</span><span class="pill">MIT</span><span class="pill">Offline</span></div>
 </div>
 </body></html>`;
 
 const SHOTS = [
   // The field sits away from the text and fades towards it, so nothing is read through dots.
-  { file: "og.png", w: 1200, h: 630, layout: { pad: 64, field: "top: 0; right: 0; width: 58%; height: 100%", mask: "linear-gradient(to right, transparent, #000 45%)", logoW: 300, gap: 28, h1: 64, mono: 22, measure: "15ch" } },
-  { file: "square.png", w: 1080, h: 1080, layout: { pad: 80, field: "top: 0; left: 0; width: 100%; height: 34%", mask: "linear-gradient(#000 25%, transparent)", logoW: 360, gap: 36, h1: 88, mono: 26, measure: "14ch" } },
+  { file: "og.png", w: 1200, h: 630, layout: { pad: 64, field: "top: 0; right: 0; width: 58%; height: 100%", mask: "linear-gradient(to right, transparent, #000 45%)", logoW: 260, gap: 24, h1: 68, mono: 22, measure: "16ch", sub: 24, subMeasure: "36ch" } },
+  { file: "square.png", w: 1080, h: 1080, layout: { pad: 80, field: "top: 0; left: 0; width: 100%; height: 34%", mask: "linear-gradient(#000 25%, transparent)", logoW: 360, gap: 36, h1: 96, mono: 26, measure: "15ch", sub: 30, subMeasure: "30ch" } },
 ];
 
 mkdirSync(OUT, { recursive: true });

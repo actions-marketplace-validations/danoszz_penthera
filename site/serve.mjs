@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Preview site/dist on 127.0.0.1 with the headers from vercel.json, so the
+ * Preview site/dist on 127.0.0.1 with the headers from the repo's vercel.json, so the
  * CSP that guards the check is the one you test against.
  *
  *   node site/serve.mjs [--port 4173] [--dir site/dist]
@@ -19,7 +19,7 @@ const TYPES = {
 };
 
 /** vercel.json header rules as [RegExp, headers]. Sources here are plain regex groups. */
-export function headerRules(config = JSON.parse(readFileSync(join(SITE, "vercel.json"), "utf8"))) {
+export function headerRules(config = JSON.parse(readFileSync(join(SITE, "..", "vercel.json"), "utf8"))) {
   return config.headers.map((h) => [new RegExp(`^${h.source}$`), h.headers]);
 }
 

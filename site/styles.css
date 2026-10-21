@@ -436,11 +436,14 @@ h1 {
   font-size: clamp(42px, 8.2vw, 124px);
   line-height: 0.94;
   letter-spacing: -0.045em;
-  max-width: 13.5ch;
+  max-width: 16ch;
   text-wrap: balance;
 }
 .lede { margin-top: 28px; max-width: 34ch; font-size: clamp(19px, 2.2vw, 26px); line-height: 1.35; color: var(--text-1); letter-spacing: -0.01em; }
-.hero .cmd { margin-top: 36px; }
+/* The two ways in, side by side: the command, or a prompt for your agent. */
+.hero-actions { display: flex; flex-wrap: wrap; align-items: stretch; gap: 12px; margin-top: 36px; }
+.btn-prompt { min-height: var(--target); max-width: 100%; gap: 10px; padding: 8px 16px; white-space: normal; text-align: left; }
+.btn-prompt .tool-icon { width: 14px; height: 14px; margin: 0; }
 .loop { position: relative; z-index: 1; max-width: var(--measure); margin: clamp(64px, 10vw, 128px) auto 0; }
 .loop video, .walk video { display: block; width: 100%; height: auto; border: 1px solid var(--frame); background: var(--ground); }
 figcaption { margin-top: 10px; color: var(--text-3); }
@@ -624,12 +627,21 @@ textarea:focus-visible, select:focus-visible { outline-offset: 0; }
   padding: 16px var(--gutter) 20px;
   border-top: 1px solid var(--frame);
   color: var(--text-3);
-  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 32px;
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px 32px;
   font-size: 12px;
 }
+.foot-main { display: grid; gap: 6px; flex: 1 1 420px; }
+.nowrap { white-space: nowrap; }
+/* The mark again, on the right, closing the page; it links back to the top. */
+.foot-mark {
+  --logo-w: clamp(120px, 18vw, 220px); --logo-h: calc(var(--logo-w) * 63 / 279);
+  display: inline-flex; align-items: center; min-height: var(--target); margin-left: auto;
+  color: var(--text-1); text-decoration: none;
+}
+.foot-mark:hover { background: none; color: var(--accent-ink); }
 .foot p a { display: inline-block; padding: 12px 0; margin: -12px 0; }
 /* The bar's three controls again, so the end of the page has the same ways out. */
-.foot-ctas { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.foot-ctas { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
 /* The maker, at the end of Open R&D. */
 .by {
   justify-self: start;

@@ -89,8 +89,16 @@ const an = (w) => (/^([aeio]|nginx|npm)/i.test(w) ? "an" : "a");
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const list = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
 const unique = (xs) => [...new Set(xs)];
-const decode = (s) => String(s || "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/<[^>]+>/g, "")
-  .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&amp;/g, "&").trim();
+/** Feed text as plain text: CDATA unwrapped, tags stripped until none are left (so a tag split by another cannot survive), stray brackets dropped, entities decoded. */
+function decode(s) {
+  let text = String(s || "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1");
+  for (let prev = null; prev !== text;) {
+    prev = text;
+    text = text.replace(/<[^<>]*>/g, "");
+  }
+  return text.replace(/[<>]/g, "")
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&amp;/g, "&").trim();
+}
 const tag = (xml, name) => decode(xml.match(new RegExp(`<${name}\\b[^>]*>([\\s\\S]*?)</${name}>`))?.[1]);
 
 /** RSS <item>s or Atom <entry>s as { title, link, date, body }. */

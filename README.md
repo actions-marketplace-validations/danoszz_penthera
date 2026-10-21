@@ -8,6 +8,8 @@
 
 The security review you never had time for. Offline, rule-based, and you can verify every finding yourself.
 
+**[penthera.org](https://penthera.org)**: try the check in your browser. Nothing you paste leaves the page.
+
 <br/>
 
 [![npm](https://img.shields.io/npm/v/penthera?color=0000ed)](https://www.npmjs.com/package/penthera)

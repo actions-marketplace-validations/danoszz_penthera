@@ -118,6 +118,7 @@
   --measure: 1240px;
   --section: clamp(96px, 14vw, 200px);  /* poster spacing: one idea per screen */
   --target: 44px;
+  --veil-h: 224px;                      /* the bottom blur; check/ui.js reads it too */
   --press: 100ms;
   --out: cubic-bezier(0, 0, .2, 1);
 }
@@ -532,11 +533,16 @@ textarea:focus-visible, select:focus-visible { outline-offset: 0; }
 /* The bottom veil: the same blur, rising from the bottom edge of the screen. */
 .veil {
   position: fixed; inset: auto 0 0; z-index: 9;
-  height: 224px;
+  height: var(--veil-h);
+  transition: opacity 240ms var(--out);
   background: transparent;              /* blur only: the content keeps its own colour */
   -webkit-mask-image: linear-gradient(to top, #000 35%, transparent);
   mask-image: linear-gradient(to top, #000 35%, transparent);
 }
+
+/* Off while the hero headline is inside the veil's zone, so the first screen
+ * reads clean; it fades in once the headline has scrolled above it. */
+.veil[data-off] { opacity: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }

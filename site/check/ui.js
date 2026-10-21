@@ -250,8 +250,31 @@ function barPalette() {
   observe();
 }
 
+// ── The bottom veil stays off the hero headline ─────────────────────────────
+
+function veilClearOfHeadline() {
+  const veil = $(".veil");
+  const h1 = $(".hero h1");
+  if (!veil || !h1) return;
+  let io;
+  const observe = () => {
+    io?.disconnect();
+    const h = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--veil-h")) || 224;
+    // Watch only the strip the veil covers: the bottom --veil-h of the viewport.
+    io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) veil.dataset.off = "";
+      else delete veil.dataset.off;
+    }, { rootMargin: `-${Math.max(0, innerHeight - h)}px 0px 0px 0px` });
+    io.observe(h1);
+  };
+  let t;
+  addEventListener("resize", () => { clearTimeout(t); t = setTimeout(observe, 150); });
+  observe();
+}
+
 copyButtons();
 heroLoop();
+veilClearOfHeadline();
 liveField($(".hero .field"));
 barPalette();
 setupCheck();

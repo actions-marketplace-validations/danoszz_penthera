@@ -351,12 +351,13 @@ describe("workflows", () => {
   }
 
   it("marketing workflows hold no social-media tokens and only least-privilege scopes", () => {
-    const marketing = ["incident-radar.yml", "monthly-stats.yml", "contributor-flywheel.yml", "demo-media.yml"];
+    const marketing = ["incident-radar.yml", "monthly-stats.yml", "contributor-flywheel.yml", "demo-media.yml", "news-feed.yml"];
+    const readOnly = ["demo-media.yml", "news-feed.yml"];
     for (const f of marketing) {
       const text = readFileSync(`${dir}/${f}`, "utf-8");
       expect(text, f).not.toMatch(/secrets\.(?!GITHUB_TOKEN)/);
       const wf = YAML.parse(text);
-      expect(wf.permissions, f).toEqual(f === "demo-media.yml" ? { contents: "read" } : { contents: "read", issues: "write" });
+      expect(wf.permissions, f).toEqual(readOnly.includes(f) ? { contents: "read" } : { contents: "read", issues: "write" });
     }
   });
 });

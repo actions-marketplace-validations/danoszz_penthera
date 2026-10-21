@@ -12,6 +12,14 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   closed its server. Repeated signals are now ignored while it stops. This
   was the intermittent macOS failure in the install-matrix smoke check.
 
+### Site
+
+- penthera.org counts anonymous page views and load times with Vercel Web
+  Analytics and Speed Insights (cookieless, served from the same origin). The
+  CSP now allows connections only to those two paths on penthera.org; the
+  browser check still sends nothing, and the page says so. The CLI, the
+  dashboard and the npm package have no telemetry, unchanged.
+
 ### Docs
 
 - The website is live at [penthera.org](https://penthera.org): the README links

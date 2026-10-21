@@ -27,6 +27,10 @@
   <link rel="stylesheet" href="/styles.css">
   <script src="/theme.js"></script>
   <script type="module" src="/check.js"></script>
+  <!-- Vercel Web Analytics and Speed Insights: cookieless page views and load
+       times. The CSP lets them reach only these two paths on penthera.org. -->
+  <script defer src="/_vercel/insights/script.js"></script>
+  <script defer src="/_vercel/speed-insights/script.js"></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -164,7 +168,7 @@
       <div class="facts">
         <div>
           <h3><svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><use href="#i-lock"/></svg>Nothing leaves your browser</h3>
-          <p>This page is served with a Content-Security-Policy of <code>connect-src 'none'</code>. Once it has loaded, it cannot send a request, so your files cannot be uploaded. Open your browser's network tab, run a check and see. There are no analytics, no cookies and no third-party scripts.</p>
+          <p>The check runs in this tab and never sends what you paste. The page's Content-Security-Policy allows exactly two destinations: Vercel's cookieless page-view and load-time counters on penthera.org itself (<code>/_vercel/insights/</code> and <code>/_vercel/speed-insights/</code>). They record that the page was visited and how fast it loaded, never your files. Open your browser's network tab, run a check and see. No cookies, no third-party scripts.</p>
         </div>
         <div>
           <h3>What this check cannot do</h3>
@@ -291,7 +295,7 @@
       </a>
     </div>
     <p>MIT license · Scan only what you own or are authorized to test.</p>
-    <p>No cookies, no analytics, no third-party requests · Built from Penthera {{VERSION}} · <a href="https://github.com/danoszz/penthera/tree/main/site">Source of this page</a></p>
+    <p>No cookies, no third-party requests, anonymous page views only · Built from Penthera {{VERSION}} · <a href="https://github.com/danoszz/penthera/tree/main/site">Source of this page</a></p>
     </div>
     <a class="foot-mark" href="#main"><span class="logotype" aria-hidden="true"></span><span class="sr">Penthera, back to the top</span></a>
   </footer>

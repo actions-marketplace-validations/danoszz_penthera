@@ -16,8 +16,8 @@ that follow from fail-safe design. Detection rules are distributed only in
 reviewed, versioned releases, never through a live feed, which removes an
 update channel from the attack surface. Each design choice is tied to prior
 research or a published standard. On a bundled benchmark of labeled local
-targets, Penthera reaches a precision of 0.86 (95% CI 0.67 to 0.95) and a recall
-of 0.90 (95% CI 0.71 to 0.97) on 22 scored findings. Because the same authors
+targets, Penthera reaches a precision of 0.88 (95% CI 0.69 to 0.96) and a recall
+of 0.91 (95% CI 0.73 to 0.98) on 24 scored findings. Because the same authors
 wrote the scanner and the targets, these figures measure
 regressions, not accuracy on arbitrary applications.
 
@@ -28,7 +28,7 @@ software. The metadata are in [CITATION.cff](../CITATION.cff), which GitHub
 renders as "Cite this repository".
 
 ```text
-van der Zwaag, D. (2026). Penthera: An offline security scanner for web apps and AI-built code (Version 1.8.0-rc.1) [Computer software]. https://github.com/danoszz/penthera
+van der Zwaag, D. (2026). Penthera: An offline security scanner for web apps and AI-built code (Version 1.8.0-rc.2) [Computer software]. https://github.com/danoszz/penthera
 ```
 
 ```bibtex
@@ -36,7 +36,7 @@ van der Zwaag, D. (2026). Penthera: An offline security scanner for web apps and
   author  = {van der Zwaag, Daan},
   title   = {Penthera: An Offline Security Scanner for Web Apps and {AI}-Built Code},
   year    = {2026},
-  version = {1.8.0-rc.1},
+  version = {1.8.0-rc.2},
   license = {MIT},
   url     = {https://github.com/danoszz/penthera}
 }
@@ -558,8 +558,8 @@ are welcome (see [MANIFESTO.md](MANIFESTO.md)).
 
 ### How far the evidence reaches
 
-- **Small sample.** The bundled benchmark scores 22 findings. Precision 0.86 and
-  recall 0.90 come with wide 95% Wilson intervals (0.67 to 0.95 and 0.71 to 0.97), so
+- **Small sample.** The bundled benchmark scores 24 findings. Precision 0.88 and
+  recall 0.91 come with wide 95% Wilson intervals (0.69 to 0.96 and 0.73 to 0.98), so
   small changes in either are not meaningful.
 - **Built by the same team.** The benchmark targets, their labels, and the
   scanner were written by the same people, so the numbers measure regressions

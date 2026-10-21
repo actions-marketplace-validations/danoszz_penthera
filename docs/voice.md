@@ -46,7 +46,7 @@ write them: npm, GitHub, Claude Code, MCP.
 | "Penthera is the open-source security team for teams that don't have one" | "It checks your app, its dependencies and your AI tooling, and fixes what it can with your approval." |
 | "a system that competes with commercial supply-chain and AppSec platforms on their core value" | "Each comparison page says where the other tool goes further and how to run the two together." |
 | "Live playbooks — opt-in: needs `pentest.config.js` + a running server" | "Live playbooks, opt-in: needs `pentest.config.js` and a running server" |
-| "Precision 0.86" | "Precision 0.86, 95% CI 0.67 to 0.95, on 22 findings in labs we wrote ourselves" |
+| "Precision 0.88" | "Precision 0.88, 95% CI 0.69 to 0.96, on 24 findings in labs we wrote ourselves" |
 | "The loop does not get smarter in a principled way" | "The local memory counts which fix recipes worked for which framework. It re-orders and suppresses. It does not train a model." |
 | "Easy to start" | "One command, useful in under two minutes." |
 

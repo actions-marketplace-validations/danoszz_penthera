@@ -4,6 +4,16 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+## [1.8.0-rc.2] - 2026-10-21
+
+Second release candidate for 1.8.0, on npm's `next` dist-tag
+(`npm install penthera@next`). New since rc.1: runtime advisories, starting
+with PHP's critical security release of 21 October 2026, in a new signed
+`advisories` rule pack. 1.8.0-rc.1 cannot load that pack; upgrade the engine.
+The benchmark gained two PHP cases: precision 0.88 (95% CI 0.69 to 0.96) and
+recall 0.91 (0.73 to 0.98) on 24 scored findings; README, manifesto and
+methodology quote the new numbers.
+
 ### Added
 
 - **Runtime advisories: is the PHP, Apache, nginx, Node.js, Python or OpenSSL

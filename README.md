@@ -150,7 +150,7 @@ Each feature goes through the same path: **method → evidence → tool.**
 - **Method.** The [methodology](docs/METHODOLOGY.md) states the threat model,
   what black-box (HTTP) and white-box (source) analysis can and cannot see, the
   confidence model, and the false-positive controls on each probe. Each design
-  choice cites the research or standard it rests on: 57 verified references, in
+  choice cites the research or standard it rests on: 92 verified references, in
   APA style, in [docs/references.md](docs/references.md).
 - **Evidence.** A benchmark runs on every release, and the release gate fails
   if precision or recall drops by more than 0.02. Experiments that decide what
@@ -161,17 +161,17 @@ Each feature goes through the same path: **method → evidence → tool.**
 
 | Measure | Result today |
 |---|---|
-| Precision on the bundled benchmark | 0.86, 95% CI 0.67 to 0.95 (19 true positives, 3 false positives) |
-| Recall on the bundled benchmark | 0.90, 95% CI 0.71 to 0.97 (2 misses, [each one explained](bench/RESULTS.md)) |
+| Precision on the bundled benchmark | 0.88, 95% CI 0.69 to 0.96 (21 true positives, 3 false positives) |
+| Recall on the bundled benchmark | 0.91, 95% CI 0.73 to 0.98 (2 misses, [each one explained](bench/RESULTS.md)) |
 | Requests to non-loopback hosts during the benchmark | 0 |
 | Detection rules, all readable | 14 URL scan templates, 20 secret and AI-key patterns, 15 dependency capabilities, 39 AI-tooling rules, 5 fix recipes |
 
-These numbers come from 22 findings in small labs that we wrote ourselves, so
+These numbers come from 24 findings in small labs that we wrote ourselves, so
 they catch regressions; they do not measure real-world accuracy. Measuring that
 on real projects is experiment E1, the first step of the
 [research plan](docs/vision-2.0.md). Intervals are Wilson. What Penthera cannot
 see is listed under [Known limitations](docs/METHODOLOGY.md#known-limitations).
-Counts as of 2026-10-20; refresh them with `npm run docs:numbers` and
+Counts as of 2026-10-21; refresh them with `npm run docs:numbers` and
 `npm run bench`.
 
 **Cite this repository** with the button on GitHub or

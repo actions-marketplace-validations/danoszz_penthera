@@ -175,21 +175,8 @@ p { margin: 0; }
   -webkit-mask-image: linear-gradient(#000 50%, transparent);
   mask-image: linear-gradient(#000 50%, transparent);
 }
-.brand { display: inline-flex; align-items: center; min-height: var(--target); color: var(--text-1); }
+.brand { display: inline-flex; align-items: center; min-height: var(--target); color: var(--text-1); margin-right: auto; }
 .brand:hover { background: none; color: var(--text-1); }
-/* The maker: Daan's hand-drawn wordmark, a mask so it takes the ink. */
-.by {
-  display: inline-flex; align-items: center; gap: 8px;
-  min-height: var(--target); padding: 0 8px; margin: 0 auto 0 6px;
-  color: var(--text-3); text-decoration: none;
-  font-family: var(--px); font-size: 13px;
-}
-.dvdz {
-  display: block; width: 62px; height: 14px; background: currentColor;
-  -webkit-mask: url("/media/dvdzwaag.png") center / contain no-repeat;
-  mask: url("/media/dvdzwaag.png") center / contain no-repeat;
-}
-.by:hover { background: var(--accent); color: var(--on-accent); }
 .logotype {
   display: block; width: 72px; height: 16px; background: currentColor;
   -webkit-mask: url("/logo.svg") center / contain no-repeat;
@@ -218,8 +205,7 @@ p { margin: 0; }
 .star:hover { background: var(--frame); color: var(--ground); }
 .star:hover .star-count { border-color: var(--ground); }
 @media (max-width: 480px) {
-  .star-word, .by-word, .bar nav .nav-get { display: none; }
-  .by { margin-left: 0; }
+  .star-word { display: none; }
   .bar { gap: 2px; padding: 0 12px; }
   .star { margin: 0 2px; }
   .star-glyph { margin-right: 8px; }
@@ -494,18 +480,33 @@ textarea:focus-visible, select:focus-visible { outline-offset: 0; }
 
 .foot {
   margin-top: var(--section);
-  padding: 24px var(--gutter) 120px;   /* clears the veil */
+  padding: 24px var(--gutter) 240px;   /* clears the veil */
   border-top: 1px solid var(--frame);
   color: var(--text-3);
   display: grid; gap: 6px;
 }
+/* The maker: Daan's hand-drawn wordmark, a mask so it takes the ink. */
+.by {
+  justify-self: start;
+  display: inline-grid; gap: 12px;
+  margin-bottom: 40px; padding: 8px 8px 8px 0;
+  color: var(--text-1); text-decoration: none;
+}
+.by-word { font-family: var(--px); font-size: 13px; color: var(--text-3); }
+.dvdz {
+  display: block; width: clamp(176px, 26vw, 264px); aspect-ratio: 562 / 128; background: currentColor;
+  -webkit-mask: url("/media/dvdzwaag.png") left center / contain no-repeat;
+  mask: url("/media/dvdzwaag.png") left center / contain no-repeat;
+}
+.by:hover { background: none; color: var(--accent-ink); }
+.by:hover .by-word { color: var(--accent-ink); }
 .foot::before { content: ""; display: block; height: 24px; margin: -24px calc(-1 * var(--gutter)) 16px; background: var(--pt-desk); border-bottom: 1px solid var(--frame); }
 
 /* The bottom veil: the same blur, rising from the bottom edge of the screen. */
 .veil {
   position: fixed; inset: auto 0 0; z-index: 9;
-  height: 112px;
-  background: linear-gradient(to top, rgba(var(--ground-rgb), 0.85), rgba(var(--ground-rgb), 0.4) 50%, rgba(var(--ground-rgb), 0));
+  height: 224px;
+  background: transparent;              /* blur only: the content keeps its own colour */
   -webkit-mask-image: linear-gradient(to top, #000 35%, transparent);
   mask-image: linear-gradient(to top, #000 35%, transparent);
 }

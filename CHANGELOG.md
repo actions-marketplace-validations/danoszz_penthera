@@ -12,6 +12,11 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   closed its server. Repeated signals are now ignored while it stops. This
   was the intermittent macOS failure in the install-matrix smoke check.
 
+### Docs
+
+- The website is live at [penthera.org](https://penthera.org): the README links
+  it, and the npm package's homepage points to it from the next release.
+
 ## [1.8.0] - 2026-10-21
 
 1.8.0 is 1.8.0-rc.1 plus the changes below; there was no separate rc.2

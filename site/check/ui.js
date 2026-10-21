@@ -272,8 +272,18 @@ function veilClearOfHeadline() {
   observe();
 }
 
+// ── The big mark shrinks once the page moves ────────────────────────────────
+
+function compactOnScroll() {
+  const root = document.documentElement;
+  const sync = () => root.classList.toggle("scrolled", scrollY > 40);
+  addEventListener("scroll", sync, { passive: true });
+  sync();
+}
+
 copyButtons();
 heroLoop();
+compactOnScroll();
 veilClearOfHeadline();
 liveField($(".hero .field"));
 barPalette();

@@ -63,7 +63,7 @@
     <section class="desk" id="check" aria-labelledby="check-title">
       <div class="desk-head">
         <h2 id="check-title">Check your AI tooling in this tab</h2>
-        <p>Drop or paste a <code>package.json</code>, <code>.mcp.json</code>, <code>.claude/settings.json</code>, <code>CLAUDE.md</code> or <code>AGENTS.md</code>. Penthera's own rules run in the page, bundled from the same code as the CLI: {{RULES}} pack rules ({{PACKS}}), the agent-config and secret rules, and {{POPULAR}} popular npm names for the typosquat check.</p>
+        <p>Drop or paste a <code>package.json</code>, <code>.mcp.json</code>, <code>.claude/settings.json</code>, <code>CLAUDE.md</code> or <code>AGENTS.md</code>, or the files that pin your runtime: a <code>Dockerfile</code>, <code>compose.yaml</code>, <code>.php-version</code>, <code>.tool-versions</code> or <code>composer.json</code>. Or paste your site's response headers. Penthera's own rules run in the page, bundled from the same code as the CLI: {{RULES}} pack rules ({{PACKS}}), the agent-config and secret rules, and {{POPULAR}} popular npm names for the typosquat check.</p>
       </div>
 
       <div class="window" data-check>
@@ -76,9 +76,10 @@
 
           <div class="check-ui" data-js>
           <label class="drop" data-drop>
-            <input type="file" multiple data-file accept=".json,.md,.mdc,text/plain,application/json">
+            <input type="file" multiple data-file accept=".json,.md,.mdc,.yaml,.yml,.txt,.tool-versions,.php-version,.nvmrc,.node-version,.python-version,.dockerfile,text/plain,application/json">
             <span class="drop-title">Drop files here, or choose files</span>
             <span class="drop-sub">package.json · .mcp.json · .claude/settings.json · CLAUDE.md · AGENTS.md</span>
+            <span class="drop-sub">Dockerfile · compose.yaml · .php-version · .tool-versions · composer.json</span>
           </label>
 
           <details class="paste">
@@ -95,9 +96,33 @@
                   <option value=".claude/settings.json">.claude/settings.json</option>
                   <option value="CLAUDE.md">CLAUDE.md</option>
                   <option value="AGENTS.md">AGENTS.md</option>
+                  <option value="Dockerfile">Dockerfile</option>
+                  <option value="compose.yaml">compose.yaml</option>
+                  <option value="composer.json">composer.json</option>
+                  <option value=".php-version">.php-version</option>
+                  <option value=".tool-versions">.tool-versions</option>
                 </select>
                 <button class="btn" type="button" data-paste-add>Add text</button>
               </div>
+            </div>
+          </details>
+
+          <details class="paste" data-headers-box>
+            <summary>Paste response headers</summary>
+            <div class="paste-body">
+              <p class="paste-note">Run this yourself, with your own site's address, and paste what it prints. Penthera reads <code>X-Powered-By</code>, <code>Server</code> and the <code>PHPSESSID</code> cookie name. This page never contacts your site.</p>
+              <button class="cmd" type="button" data-copy="curl -sI https://example.com">
+                <span class="cmd-prompt" aria-hidden="true">$</span>
+                <code>curl -sI https://example.com</code>
+                <span class="cmd-act" aria-hidden="true" data-js><span class="cmd-copy">Copy</span><span class="cmd-done">Copied</span></span>
+                <span class="sr" aria-live="polite" data-copy-status>, copy to clipboard</span>
+              </button>
+              <label for="headers-text" class="label">Headers</label>
+              <textarea id="headers-text" rows="6" spellcheck="false" autocomplete="off" placeholder="HTTP/2 200&#10;server: nginx&#10;x-powered-by: PHP/8.3.12" data-headers></textarea>
+              <div class="row">
+                <button class="btn" type="button" data-headers-add>Add headers</button>
+              </div>
+              <p class="paste-note"><a href="https://github.com/danoszz/penthera/blob/main/docs/research/case-study-php-2026-10.md">Why a version number alone is not proof: the PHP case study</a></p>
             </div>
           </details>
 
@@ -126,7 +151,7 @@
           <ul>
             <li>Read your dependencies' code. It sees the install scripts <code>package.json</code> declares, not what is in <code>node_modules</code>.</li>
             <li>Read your lockfile, so version ranges are not matched against known-malicious versions.</li>
-            <li>Scan a running app or a URL.</li>
+            <li>Scan a running app or a URL. For headers, you run <code>curl</code> and paste the output; the page never contacts your site.</li>
             <li>Fix anything, or write a report.</li>
           </ul>
           <p>The full scan does all of that on your machine, offline too: <code>npx penthera</code>.</p>

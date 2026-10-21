@@ -264,7 +264,7 @@ p { margin: 0; }
 .btn[data-variant="default"]:hover { --btn-bg: var(--accent-hover); --btn-bd: var(--accent-hover); --btn-fg: var(--on-accent); }
 .btn[data-variant="default"]:disabled { --btn-bg: var(--ground); --btn-fg: var(--text-3); --btn-bd: var(--hair); --btn-ring: transparent; }
 .btn-sm { min-height: 28px; padding: 0 10px; }
-.btn-sm::after { inset: -8px -2px; }
+.btn-sm::after { inset: -9px -2px; }
 @media (pointer: coarse) { .btn { min-height: var(--target); } .btn::after { inset: 0; } }
 
 /* ── Commands ─────────────────────────────────────────────────────────── */
@@ -402,6 +402,10 @@ main > .desk { max-width: none; padding-left: 0; padding-right: 0; }
 .paste summary::before { content: "▸"; }
 .paste[open] summary::before { content: "▾"; }
 .paste-body { display: grid; gap: 8px; padding-top: 4px; }
+.paste + .paste { margin-top: 4px; }
+.paste-note { max-width: 62ch; font-size: 15px; color: var(--text-2); }
+.paste-body > .cmd { justify-self: start; margin: 4px 0 8px; }
+.f-note { padding-left: 12px; border-left: 4px solid var(--frame); color: var(--text-1); }
 .label { color: var(--text-3); display: inline-flex; align-items: center; min-height: var(--target); min-width: var(--target); }
 textarea, select {
   width: 100%; font: 13px / 1.5 var(--px); color: var(--text-1);
@@ -452,7 +456,7 @@ textarea:focus-visible, select:focus-visible { outline-offset: 0; }
 .f-file { font-family: var(--px); font-size: 13px; color: var(--text-3); overflow-wrap: anywhere; }
 @media (min-width: 720px) { .findings summary { grid-template-columns: 116px 1fr auto; } }
 .f-body { padding: 12px 4px 20px; display: grid; gap: 12px; }
-.f-body p { color: var(--text-2); overflow-wrap: anywhere; }
+.f-body p { color: var(--text-2); overflow-wrap: anywhere; white-space: pre-line; }
 .f-body dl { margin: 0; display: grid; gap: 4px; font-family: var(--px); font-size: 13px; }
 .f-body dl div { display: grid; grid-template-columns: 80px 1fr; gap: 12px; }
 .f-body dt { color: var(--text-3); }

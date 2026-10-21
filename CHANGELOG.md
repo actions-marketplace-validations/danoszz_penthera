@@ -42,6 +42,14 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   and the CLI run the same rules; `tests/site.test.js` holds the page to the
   CLI on the agents and deps fixtures. The page is served with
   `connect-src 'none'`, so it cannot send the files anywhere.
+- **Runtime advisories in the browser check.** Drop a `Dockerfile`,
+  `compose.yaml`, `.php-version`, `.tool-versions` or `composer.json`, or
+  paste the response headers `curl -sI` printed for your site (the page never
+  contacts it), and `lib/advisories` runs on them: the same findings and
+  confidence as the CLI, with "check on the server: distributions backport
+  fixes" next to every version-only verdict. `tests/site.test.js` compares
+  pasted headers with a URL scan of a loopback server sending the same
+  headers, and runtime pins with `runtimeAdvisoriesForRepo`.
 - `penthera deps` findings are built in `lib/deps/findings.js` (moved from
   `lib/deps/index.js`, no behaviour change), so the browser check uses the
   same wording.

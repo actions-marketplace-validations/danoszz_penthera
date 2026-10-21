@@ -4,7 +4,7 @@
  * give the same findings, and the page must not be able to send them anywhere.
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { mkdtempSync, rmSync, readFileSync, mkdirSync, writeFileSync, existsSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync, mkdirSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
@@ -17,6 +17,9 @@ import { scanDeps } from "../lib/deps/index.js";
 import { loadIocs } from "../lib/deps/iocs.js";
 import { iocFindings } from "../lib/deps/findings.js";
 import { rulesOf } from "../lib/rules/index.js";
+import { createServer } from "node:http";
+import { fingerprint } from "../lib/crawler.js";
+import { runtimeAdvisoriesForRepo, runtimeAdvisoriesForResponse } from "../lib/advisories/index.js";
 
 const ROOT = join(import.meta.dirname, "..");
 // The five files the browser check reads.
@@ -157,9 +160,90 @@ describe("browser check, against the CLI", () => {
     expect(engine.kindForName("README.md")).toBe(null);
   });
 
-  it("runs the bundled rule packs, with their signatures checked at build", () => {
+  it("runs every bundled rule pack; a pack that is signed verified at build", () => {
     const { packs } = engine.about();
-    expect(packs.map((p) => p.name)).toEqual(["core", "ioc-2025-2026"]);
-    for (const p of packs) expect(p.signature).toBe("valid");
+    const bundled = readdirSync(join(ROOT, "lib", "rules"), { withFileTypes: true })
+      .filter((d) => d.isDirectory() && existsSync(join(ROOT, "lib", "rules", d.name, "pack.json"))).map((d) => d.name);
+    expect(packs.map((p) => p.name).sort()).toEqual(bundled.sort());
+    for (const p of packs) {
+      const signed = existsSync(join(ROOT, "lib", "rules", p.name, "pack.json.sig"));
+      expect(p.signature, p.name).toBe(signed ? "valid" : "missing");
+    }
+  });
+});
+
+describe("browser check, runtime advisories against the CLI", () => {
+  const adv = (fs) => fs.filter((f) => f.source === "runtime-advisory").map((f) => [f.severity, f.confidence, f.title, f.description, f.remediation || ""].join(" | "));
+
+  /** A loopback server that answers with these headers; the CLI fingerprints it like any target. */
+  async function serveHeaders(lines) {
+    const server = createServer((req, res) => {
+      for (const [k, v] of lines) res.appendHeader(k, v);
+      res.end("");
+    });
+    await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
+    return server;
+  }
+
+  const CASES = {
+    "PHP 8.3.35 and a session cookie": [["X-Powered-By", "PHP/8.3.35"], ["Set-Cookie", "PHPSESSID=abc; path=/"], ["Set-Cookie", "lang=en"]],
+    "PHP 8.3.36": [["X-Powered-By", "PHP/8.3.36"]],
+    "an Ubuntu build behind Apache": [["Server", "Apache/2.4.58 (Ubuntu)"], ["X-Powered-By", "PHP/8.3.6-1ubuntu1.4"]],
+    "PHPSESSID only": [["Set-Cookie", "PHPSESSID=x"]],
+    "end-of-life PHP 8.1": [["X-Powered-By", "PHP/8.1.34"], ["Server", "nginx/1.27.2"]],
+  };
+
+  for (const [name, lines] of Object.entries(CASES)) {
+    it(`pasted headers, ${name}: the same findings as a URL scan of a server sending them`, async () => {
+      const server = await serveHeaders(lines);
+      try {
+        const fp = await fingerprint(`http://127.0.0.1:${server.address().port}/`);
+        const cli = runtimeAdvisoriesForResponse(fp, { url: engine.HEADERS });
+        // What `curl -sI` prints for the same response.
+        const text = ["HTTP/1.1 200 OK", ...lines.map(([k, v]) => `${k}: ${v}`), "Content-Length: 0", ""].join("\r\n");
+        const page = await engine.check([{ path: engine.HEADERS, text }]);
+        expect(adv(page.findings)).toEqual(adv(cli));
+        expect(cli.length).toBeGreaterThan(0);
+      } finally {
+        server.close();
+      }
+    });
+  }
+
+  it("the October 2026 PHP release, as the CLI reports it", async () => {
+    const one = async (text) => (await engine.check([{ path: engine.HEADERS, text }])).findings.filter((f) => f.source === "runtime-advisory");
+    const affected = await one("HTTP/2 200\nx-powered-by: PHP/8.3.35\n");
+    expect(affected.flatMap((f) => f.cves || [])).toEqual(expect.arrayContaining(["CVE-2026-109618", "CVE-2026-109619"]));
+    expect(affected.every((f) => f.confidence === "likely")).toBe(true);
+    const fixed = await one("HTTP/2 200\nx-powered-by: PHP/8.3.36\n");
+    expect(fixed).toHaveLength(1);
+    expect(fixed[0]).toMatchObject({ severity: "info" });
+    expect(fixed[0].title).toMatch(/has the fix/);
+    const docker = (await engine.check([{ path: "Dockerfile", text: "FROM php:8.3.12-fpm\n" }])).findings;
+    expect(docker.flatMap((f) => f.cves || [])).toEqual(expect.arrayContaining(["CVE-2026-109618", "CVE-2026-109619"]));
+  });
+
+  it("runtime pins: the same findings as penthera --repo on the same files", async () => {
+    const files = [
+      { path: "Dockerfile", text: "FROM --platform=linux/amd64 php:8.3.12-fpm AS app\nFROM node:${NODE_VERSION}\n" },
+      { path: "compose.yaml", text: "services:\n  db:\n    image: \"python:3.12.1-slim\"\n  web:\n    image: php:8.1-apache\n" },
+      { path: ".tool-versions", text: "nodejs 20.11.1\n# php 7.4\n" },
+      { path: ".php-version", text: "8.3\n" },
+      { path: "composer.json", text: JSON.stringify({ require: { php: "^8.1" } }) },
+    ];
+    const page = await engine.check(files);
+    const cli = runtimeAdvisoriesForRepo(cliFolder(files));
+    // The same findings; order follows the folder walk, and the page sorts by severity.
+    expect(adv(page.findings).sort()).toEqual(adv(cli).sort());
+    expect(cli.length).toBeGreaterThan(0);
+  });
+
+  it("recognises the new files by name and by shape", () => {
+    expect(engine.kindForName("Dockerfile.prod").path).toBe("Dockerfile.prod");
+    expect(engine.kindForName("docker-compose.override.yml").path).toBe("docker-compose.override.yml");
+    expect(engine.kindForName(".tool-versions").path).toBe(".tool-versions");
+    expect(engine.guessKind("FROM php:8.3-apache\n").path).toBe("Dockerfile");
+    expect(engine.guessKind('{"require":{"php":"^8.2"}}').path).toBe("composer.json");
+    expect(engine.guessKind("services:\n  web:\n    image: php:8.3\n").path).toBe("compose.yaml");
   });
 });

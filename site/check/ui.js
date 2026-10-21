@@ -2,7 +2,7 @@
  * The page's script: the browser check, the copy buttons and the hero loop.
  * Everything the visitor adds is rendered with textContent, never as HTML.
  */
-import { check, ready, kindForName, guessKind, KINDS } from "./engine.js";
+import { check, ready, kindForName, guessKind, KINDS, HEADERS } from "./engine.js";
 import { COPY } from "./copy.js";
 import { EXAMPLES } from "virtual:examples";
 
@@ -134,6 +134,13 @@ function setupCheck() {
     ta.value = "";
   });
 
+  $("[data-headers-add]", root).addEventListener("click", () => {
+    const ta = $("[data-headers]", root);
+    if (!ta.value.trim()) { say(COPY.headersEmpty, "error"); ta.focus(); return; }
+    stage(HEADERS, ta.value.slice(0, MAX_BYTES));
+    ta.value = "";
+  });
+
   $("[data-example]", root).addEventListener("click", () => {
     staged.clear();
     for (const f of EXAMPLES) staged.set(f.path, f.text);
@@ -158,9 +165,9 @@ function setupCheck() {
   });
 
   function render(r) {
-    if (!r.findings.length) { say(COPY.clean(r.files.length)); return; }
+    if (!r.findings.length) { say(COPY.clean(r.files)); return; }
     const head = el("div", "summary");
-    head.append(el("p", null, COPY.summary(r.findings.length, r.files.length, r.ms)));
+    head.append(el("p", null, COPY.summary(r.findings.length, r.files, r.ms)));
     const tally = el("ul", "tally");
     for (const [sev, n] of Object.entries(r.counts)) {
       if (!n) continue;
@@ -181,11 +188,20 @@ function setupCheck() {
       s.append(el("span", "f-file", f.url || ""));
       d.append(s);
       const body = el("div", "f-body");
-      const p = el("p");
-      textWithCode(p, f.description);
-      body.append(p);
+      for (const para of String(f.description).split(/\n{2,}/)) {
+        const p = el("p");
+        textWithCode(p, para);
+        body.append(p);
+      }
+      if (f.source === "runtime-advisory" && f.severity !== "info") body.append(el("p", "f-note", COPY.backport));
+      if (f.remediation) {
+        const p = el("p");
+        p.append(el("strong", null, `${COPY.details.todo} `));
+        textWithCode(p, f.remediation);
+        body.append(p);
+      }
       const dl = el("dl");
-      for (const [k, v] of [[COPY.details.file, f.url], [COPY.details.rule, f.templateId || f.method || f.source], [COPY.details.confidence, f.confidence]]) {
+      for (const [k, v] of [[COPY.details.file, f.url], [COPY.details.rule, f.templateId || f.rule || f.method || f.source], [COPY.details.cves, f.cves?.join(", ")], [COPY.details.confidence, f.confidence]]) {
         if (!v) continue;
         const row = el("div");
         row.append(el("dt", null, k), el("dd", null, v));

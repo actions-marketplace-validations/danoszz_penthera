@@ -142,6 +142,12 @@ describe("news feed: sources", () => {
     expect(feedItems(PHP)[0]).toMatchObject({ link: "https://www.php.net/index.php#2026-10-21-5", date: "2026-10-21" });
   });
 
+  it("feed text comes out as plain text, even when markup is escaped or nested", () => {
+    const [it] = feedItems("<rss><item><title>a &lt;script&gt;alert(1)&lt;/script&gt; b <scr<b>ipt>c &amp;lt;x</title></item></rss>");
+    expect(it.title).not.toMatch(/[<>]/);
+    expect(it.title).toBe("a script alert(1) /script b c &lt;x");
+  });
+
   it("NCSC-NL: only first versions rated high likelihood and high impact, inside the window", async () => {
     const c = await parse("ncsc", NCSC);
     expect(c.map((x) => x.source)).toEqual([

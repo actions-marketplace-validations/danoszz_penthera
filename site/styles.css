@@ -181,41 +181,21 @@ p { margin: 0; }
   -webkit-mask-image: linear-gradient(#000 50%, transparent);
   mask-image: linear-gradient(#000 50%, transparent);
 }
-/* The mark, brutalist: four times its old size in a framed box that hangs
- * below the bar, with a hatched second frame offset behind it, the grid
- * echo. After the first scroll (html.scrolled, check/ui.js) it shrinks to a
- * compact box so it never sits on the content. */
+/* The mark, four times its old size, hanging below the bar. On phones it
+ * takes what the bar leaves. */
 .brand {
-  --logo-w: 288px; --logo-h: 65px; --brand-pad: 14px 18px; --offset: 8px;
-  --brand-bg: var(--ground); --brand-fg: var(--text-1);
-  position: relative; z-index: 0;
-  align-self: flex-start; margin: 12px auto 0 0;
-  display: inline-flex; align-items: center; justify-content: center;
+  align-self: flex-start; margin: 14px auto 0 0;
+  display: inline-flex; align-items: center;
   min-height: var(--target);
-  padding: var(--brand-pad);
-  color: var(--brand-fg);
-  transition: padding 240ms var(--out), margin 240ms var(--out);
+  color: var(--text-1);
+  transition: color 160ms var(--out);
 }
-/* Two layers under the mark, inside its stacking context: the hatched frame
- * offset behind, then the filled frame. */
-.brand::before, .brand::after {
-  content: ""; position: absolute; inset: 0;
-  border: 1px solid var(--frame);
-  transition: transform 240ms var(--out), background-color 160ms var(--out);
-}
-.brand::before { z-index: -2; background: var(--pt-hatch); transform: translate(var(--offset), var(--offset)); }
-.brand::after { z-index: -1; background: var(--brand-bg); }
-.brand:hover { --brand-bg: var(--frame); --brand-fg: var(--ground); background: none; }
-.brand:active { transform: translate(2px, 2px); }
-.brand:active::before { transform: translate(calc(var(--offset) - 2px), calc(var(--offset) - 2px)); }
-html.scrolled .brand, html:not(.js) .brand { --logo-w: 92px; --logo-h: 21px; --brand-pad: 6px 10px; --offset: 4px; margin-top: 8px; }
-@media (max-width: 480px) {
-  .brand { --logo-w: 150px; --logo-h: 34px; --brand-pad: 10px 12px; --offset: 6px; }
-  html.scrolled .brand { --logo-w: 76px; --logo-h: 17px; --brand-pad: 6px 8px; --offset: 4px; }
-}
+.brand:hover { background: none; color: var(--accent-ink); }
+.brand:active { transform: translateY(1px); }
+.logotype { --logo-w: 288px; --logo-h: 65px; }
+@media (max-width: 480px) { .logotype { --logo-w: 150px; --logo-h: 34px; } .brand { margin-top: 12px; } }
 .logotype {
   display: block; width: var(--logo-w, 72px); height: var(--logo-h, 16px); background: currentColor;
-  transition: width 240ms var(--out), height 240ms var(--out);
   -webkit-mask: url("/logo.svg") center / contain no-repeat;
   mask: url("/logo.svg") center / contain no-repeat;
 }
@@ -243,7 +223,7 @@ html.scrolled .brand, html:not(.js) .brand { --logo-w: 92px; --logo-h: 21px; --b
 .star:hover .star-count { border-color: var(--ground); }
 @media (max-width: 480px) {
   .star-word { display: none; }
-  html:not(.scrolled) .bar nav .nav-get { display: none; }
+  .bar nav .nav-get { display: none; }
   .bar { gap: 2px; padding: 0 12px; }
   .star { margin: 0 0 0 2px; }
   .star-glyph { margin-right: 8px; }
@@ -548,18 +528,20 @@ textarea:focus-visible, select:focus-visible { outline-offset: 0; }
 
 /* ── Footer ───────────────────────────────────────────────────────────── */
 
+/* The footer: one quiet strip. The veil switches off over it (check/ui.js). */
 .foot {
-  margin-top: var(--section);
-  padding: 24px var(--gutter) 240px;   /* clears the veil */
+  padding: 16px var(--gutter) 20px;
   border-top: 1px solid var(--frame);
   color: var(--text-3);
-  display: grid; gap: 6px;
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 32px;
+  font-size: 12px;
 }
-/* The maker: Daan's hand-drawn wordmark, a mask so it takes the ink. */
+.foot a { display: inline-block; padding: 12px 0; margin: -12px 0; }
+/* The maker, at the end of Open R&D. */
 .by {
   justify-self: start;
   display: inline-grid; gap: 12px;
-  margin-bottom: 40px; padding: 8px 8px 8px 0;
+  margin-top: 72px; padding: 8px 8px 8px 0;
   color: var(--text-1); text-decoration: none;
 }
 .by-word { font-family: var(--px); font-size: 13px; color: var(--text-3); }
@@ -571,7 +553,6 @@ textarea:focus-visible, select:focus-visible { outline-offset: 0; }
 }
 .by:hover { background: none; color: var(--accent-ink); }
 .by:hover .by-word { color: var(--accent-ink); }
-.foot::before { content: ""; display: block; height: 24px; margin: -24px calc(-1 * var(--gutter)) 16px; background: var(--pt-desk); border-bottom: 1px solid var(--frame); }
 
 /* The bottom veil: the same blur, rising from the bottom edge of the screen. */
 /* A progressive blur, 0 at the top edge to 32 px at the bottom: six stacked

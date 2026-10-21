@@ -250,41 +250,34 @@ function barPalette() {
   observe();
 }
 
-// ── The bottom veil stays off the hero headline ─────────────────────────────
+// ── The bottom veil stays off the hero headline and the footer ──────────────
 
-function veilClearOfHeadline() {
+function veilClear() {
   const veil = $(".veil");
-  const h1 = $(".hero h1");
-  if (!veil || !h1) return;
+  const targets = [$(".hero h1"), $(".foot")].filter(Boolean);
+  if (!veil || !targets.length) return;
+  const inZone = new Set();
   let io;
   const observe = () => {
     io?.disconnect();
+    inZone.clear();
     const h = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--veil-h")) || 224;
     // Watch only the strip the veil covers: the bottom --veil-h of the viewport.
-    io = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) veil.dataset.off = "";
+    io = new IntersectionObserver((entries) => {
+      for (const e of entries) e.isIntersecting ? inZone.add(e.target) : inZone.delete(e.target);
+      if (inZone.size) veil.dataset.off = "";
       else delete veil.dataset.off;
     }, { rootMargin: `-${Math.max(0, innerHeight - h)}px 0px 0px 0px` });
-    io.observe(h1);
+    for (const t of targets) io.observe(t);
   };
   let t;
   addEventListener("resize", () => { clearTimeout(t); t = setTimeout(observe, 150); });
   observe();
 }
 
-// ── The big mark shrinks once the page moves ────────────────────────────────
-
-function compactOnScroll() {
-  const root = document.documentElement;
-  const sync = () => root.classList.toggle("scrolled", scrollY > 40);
-  addEventListener("scroll", sync, { passive: true });
-  sync();
-}
-
 copyButtons();
 heroLoop();
-compactOnScroll();
-veilClearOfHeadline();
+veilClear();
 liveField($(".hero .field"));
 barPalette();
 setupCheck();

@@ -2,7 +2,8 @@
  * The hero's field, live: a drifting cloud of value noise, ordered-dithered to
  * one bit (8×8 Bayer) on 4 px cells, so it reads like the static field.png it
  * replaces. The pointer is a scanning lens: it parts the cloud around it,
- * and a large blurred accent glow follows it under the dots. With no
+ * and the dots under it turn the accent colour, dithered out at the rim:
+ * hard pixels, no blur. With no
  * pointer (touch, or idle) the lens drifts on a slow path.
  *
  * A click in the hero sends a shockwave: a ring expands from the point and
@@ -72,12 +73,7 @@ export function liveField(img) {
   const canvas = document.createElement("canvas");
   canvas.className = "field field-live";
   canvas.setAttribute("aria-hidden", "true");
-  // Under the dots, a soft accent glow follows the lens: the orb's blur, which
-  // one-bit dots cannot draw themselves.
-  const orb = document.createElement("div");
-  orb.className = "field-orb";
-  orb.setAttribute("aria-hidden", "true");
-  img.after(orb, canvas);
+  img.after(canvas);
   const ctx = canvas.getContext("2d", { alpha: true });
   const hero = img.closest(".hero");
 
@@ -131,18 +127,12 @@ export function liveField(img) {
     const lensR = LENS * flinch;
     const r2 = 2 * lensR * lensR;
 
-    // The glow: follows the lens, flinches with it, and flares with a new shockwave.
-    const age = newest ? (now - newest.t0) / 1000 : Infinity;
-    const flare = Math.exp(-age * 3);
-    const box = canvas.getBoundingClientRect();
-    orb.style.transform = `translate(${lens.x * box.width}px, ${lens.y * box.height}px) translate(-50%, -50%) scale(${(flinch * (1 + 1.6 * flare)).toFixed(3)})`;
-    orb.style.opacity = (0.55 + 0.45 * flare).toFixed(3);
-
     pixels.fill(0);
     for (let j = 0; j < rows; j++) {
       const v = j / rows;
-      // Clear sky by the headline: the cloud is gone 62% of the way down.
-      const fade = Math.pow(Math.max(0, 1 - v / 0.62), 1.4);
+      // The cloud thins towards the bottom and is gone 85% of the way down,
+      // so the headline sits on its thinning edge.
+      const fade = Math.pow(Math.max(0, 1 - v / 0.85), 1.2);
       if (fade <= 0 && !live.length) continue;
       const vy = v * aspect;
       const dy = vy - lens.y * aspect;
@@ -178,6 +168,8 @@ export function liveField(img) {
         let colour = ink;
         if (front > 0.2 && front > BAYER[brow2 + ((i + 4) & 7)]) colour = accent;
         else if (trail > BAYER[brow2 + ((i + 4) & 7)] * 1.4) colour = wake;
+        // The orb: the lens's dots in the accent, dithered out at the rim, hard pixels throughout.
+        else if (k * 1.7 - 0.5 > BAYER[brow2 + ((i + 4) & 7)]) colour = accent;
         pixels[row + i] = colour;
       }
     }
@@ -236,7 +228,6 @@ export function liveField(img) {
     still.removeEventListener("change", onMotion);
     hero.classList.remove("live");
     canvas.remove();
-    orb.remove();
   }
   return stop;
 }

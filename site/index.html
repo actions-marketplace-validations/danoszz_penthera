@@ -7,9 +7,21 @@
   <meta name="description" content="Offline cyber security agent for your apps and AI coding tools. Open R&amp;D: measured in public, improved every release.">
   <meta name="color-scheme" content="dark light">
   <meta name="theme-color" content="#000000">
-  <meta property="og:title" content="Penthera">
-  <meta property="og:description" content="An open-source cyber security agent you can use today, and verify yourself.">
+  <link rel="canonical" href="{{SITE_URL}}/">
+  <meta property="og:site_name" content="Penthera">
+  <meta property="og:title" content="Penthera: an open-source cyber security agent">
+  <meta property="og:description" content="An open-source cyber security agent you can use today, and verify yourself. Offline, MIT, measured in public.">
   <meta property="og:type" content="website">
+  <meta property="og:url" content="{{SITE_URL}}/">
+  <meta property="og:image" content="{{SITE_URL}}/media/social/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Penthera: an open-source cyber security agent you can use today, and verify yourself. npx penthera.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Penthera: an open-source cyber security agent">
+  <meta name="twitter:description" content="Use it today, verify it yourself. Offline, MIT, measured in public.">
+  <meta name="twitter:image" content="{{SITE_URL}}/media/social/og.png">
+  <meta name="twitter:image:alt" content="Penthera: an open-source cyber security agent you can use today, and verify yourself.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preload" href="/fonts/DepartureMono-Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/styles.css">
@@ -44,7 +56,7 @@
     <section class="hero" aria-labelledby="hero-title">
       <img class="field" src="/media/field.png" alt="" width="360" height="225" aria-hidden="true">
       <div class="hero-text">
-        <p class="kicker">Open source · MIT · offline</p>
+        <ul class="pills" aria-label="Open source, MIT license, works offline"><li>Open source</li><li>MIT</li><li>Offline</li></ul>
         <h1 id="hero-title">Penthera: an open-source cyber security agent you can use today, and verify yourself.</h1>
         <p class="lede">Offline cyber security agent for your apps and AI coding tools. Open R&amp;D: measured in public, improved every release.</p>
         <button class="cmd" type="button" data-copy="npx penthera">
@@ -189,18 +201,18 @@
       <h3 class="prompts-title">Or ask your coding agent</h3>
       <div class="prompts">
         <article class="prompt-card" data-copy-root>
-          <h4>Claude Code</h4>
-          <pre data-copy-text>Set up Penthera in this repo. Run `npx penthera init --dry-run` and show me what it would do. Then run `npx penthera agents` and `npx penthera deps`, and list the findings by severity, with the file for each. Do not change, commit or push anything without asking me.</pre>
+          <h4><svg class="tool-icon" viewBox="0 0 9 9" aria-hidden="true"><path d="M0 0h1v1h-1zM4 0h1v1h-1zM8 0h1v1h-1zM1 1h1v1h-1zM4 1h1v1h-1zM7 1h1v1h-1zM2 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM3 3h3v1h-3zM0 4h9v1h-9zM3 5h3v1h-3zM2 6h1v1h-1zM4 6h1v1h-1zM6 6h1v1h-1zM1 7h1v1h-1zM4 7h1v1h-1zM7 7h1v1h-1zM0 8h1v1h-1zM4 8h1v1h-1zM8 8h1v1h-1z"/></svg>Claude Code</h4>
+          <pre data-copy-text><mark>Set up Penthera in this repo. Run `npx penthera init --dry-run` and show me what it would do. Then run `npx penthera agents` and `npx penthera deps`, and list the findings by severity, with the file for each. Do not change, commit or push anything without asking me.</mark></pre>
           <button class="btn" type="button" data-copy-from data-js>Copy prompt</button>
         </article>
         <article class="prompt-card" data-copy-root>
-          <h4>Cursor</h4>
-          <pre data-copy-text>Set up Penthera in this repo. In the terminal, run `npx penthera init --dry-run` and summarize the plan. Then run `npx penthera agents` to check .cursor/ and the MCP config, and `npx penthera deps` for the dependencies. Ask me before you change any file.</pre>
+          <h4><svg class="tool-icon" viewBox="0 0 9 9" aria-hidden="true"><path d="M0 0h1v1h-1zM0 1h2v1h-2zM0 2h3v1h-3zM0 3h4v1h-4zM0 4h5v1h-5zM0 5h6v1h-6zM0 6h3v1h-3zM0 7h1v1h-1zM2 7h2v1h-2zM3 8h2v1h-2z"/></svg>Cursor</h4>
+          <pre data-copy-text><mark>Set up Penthera in this repo. In the terminal, run `npx penthera init --dry-run` and summarize the plan. Then run `npx penthera agents` to check .cursor/ and the MCP config, and `npx penthera deps` for the dependencies. Ask me before you change any file.</mark></pre>
           <button class="btn" type="button" data-copy-from data-js>Copy prompt</button>
         </article>
         <article class="prompt-card" data-copy-root>
-          <h4>Codex</h4>
-          <pre data-copy-text>Set up Penthera in this repo. Run `npx penthera init --dry-run`, then `npx penthera agents` and `npx penthera deps`. Report each finding with its severity, file and the fix Penthera suggests. Do not edit files or commit.</pre>
+          <h4><svg class="tool-icon" viewBox="0 0 9 9" aria-hidden="true"><path d="M0 0h9v1h-9zM0 1h1v1h-1zM8 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM8 2h1v1h-1zM0 3h1v1h-1zM3 3h1v1h-1zM8 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM8 4h1v1h-1zM0 5h1v1h-1zM8 5h1v1h-1zM0 6h1v1h-1zM4 6h3v1h-3zM8 6h1v1h-1zM0 7h1v1h-1zM8 7h1v1h-1zM0 8h9v1h-9z"/></svg>Codex</h4>
+          <pre data-copy-text><mark>Set up Penthera in this repo. Run `npx penthera init --dry-run`, then `npx penthera agents` and `npx penthera deps`. Report each finding with its severity, file and the fix Penthera suggests. Do not edit files or commit.</mark></pre>
           <button class="btn" type="button" data-copy-from data-js>Copy prompt</button>
         </article>
       </div>

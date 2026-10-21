@@ -120,6 +120,7 @@
   --target: 44px;
   --veil-h: 224px;                      /* the bottom blur; check/ui.js reads it too */
   --ticker-h: 30px;
+  --bar-gap: 12px;                      /* air between the ticker and the bar */
   --press: 100ms;
   --out: cubic-bezier(0, 0, .2, 1);
 }
@@ -131,7 +132,7 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html:not(.js) [data-js] { display: none !important; }
-html { background: var(--ground); -webkit-text-size-adjust: 100%; scroll-padding-top: 118px; }
+html { background: var(--ground); -webkit-text-size-adjust: 100%; scroll-padding-top: 24px; }
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 body {
   margin: 0;
@@ -155,7 +156,7 @@ p { margin: 0; }
 .skip:focus { top: 8px; }
 
 /* Labels: Departure Mono, the dashboard's chrome voice. */
-.kicker, .label, .status, .title, .sev, .drop-sub, figcaption, .note, .foot, .commands dd, .bar nav a, .theme, .btn {
+.pills, .label, .status, .title, .sev, .drop-sub, figcaption, .note, .foot, .commands dd, .theme, .btn {
   font-family: var(--px);
   font-size: 13px;
   letter-spacing: 0.02em;
@@ -173,7 +174,7 @@ h3 > .lock, .eu-list .lock { width: 24px; height: 28px; vertical-align: -4px; ma
  * scrolls; hover or focus pauses it; with reduced motion it stands still and
  * scrolls by hand. */
 .ticker {
-  position: fixed; inset: 0 0 auto; z-index: 11;
+  position: absolute; inset: 0 0 auto; z-index: 11;
   height: var(--ticker-h);
   overflow-x: clip; overflow-y: visible;  /* hit areas reach past the strip */
   background: rgb(var(--ink-rgb)); color: rgb(var(--ground-rgb));
@@ -198,14 +199,25 @@ h3 > .lock, .eu-list .lock { width: 24px; height: 28px; vertical-align: -4px; ma
 
 /* ── Bar ──────────────────────────────────────────────────────────────── */
 
-/* No rule and no blur under the bar: the page runs to the top edge, and the
- * controls carry their own glass. */
+/* The header is static: it scrolls away with the page. It sits on a solid
+ * box in the ground colour, which then fades into the field below through a
+ * gradient and a blur, so the mark and the controls read on a calm zone
+ * while the dots still run to the top behind it. */
 .bar {
-  position: fixed; inset: var(--ticker-h) 0 auto; z-index: 10;
+  position: absolute; inset: calc(var(--ticker-h) + var(--bar-gap)) 0 auto; z-index: 10;
   display: flex; align-items: center; gap: 8px;
   height: 60px;                         /* the mark hangs below it */
   padding: 0 var(--gutter);
 }
+.bar::before {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+  inset: calc(-1 * var(--bar-gap)) 0 -150px;
+  background: linear-gradient(rgb(var(--ground-rgb)) 0 105px, rgba(var(--ground-rgb), 0.6) 150px, rgba(var(--ground-rgb), 0));
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  -webkit-mask-image: linear-gradient(#000 0 120px, transparent);
+  mask-image: linear-gradient(#000 0 120px, transparent);
+}
+@media (max-width: 480px) { .bar::before { bottom: -110px; background: linear-gradient(rgb(var(--ground-rgb)) 0 72px, rgba(var(--ground-rgb), 0.6) 110px, rgba(var(--ground-rgb), 0)); -webkit-mask-image: linear-gradient(#000 0 84px, transparent); mask-image: linear-gradient(#000 0 84px, transparent); } }
 /* The mark, four times its old size, hanging below the bar. On phones it
  * takes what the bar leaves. */
 .brand {
@@ -219,7 +231,6 @@ h3 > .lock, .eu-list .lock { width: 24px; height: 28px; vertical-align: -4px; ma
 .brand:active { transform: translateY(1px); }
 .logotype { --logo-w: 288px; --logo-h: 65px; }
 @media (max-width: 480px) { .logotype { --logo-w: 112px; --logo-h: 25px; } .brand { margin-top: 12px; } }
-@media (max-width: 480px) { .hero { --field-top: calc(56px + var(--ticker-h)); } }
 .logotype {
   display: block; width: var(--logo-w, 72px); height: var(--logo-h, 16px); background: currentColor;
   -webkit-mask: url("/logo.svg") center / contain no-repeat;
@@ -234,8 +245,8 @@ h3 > .lock, .eu-list .lock { width: 24px; height: 28px; vertical-align: -4px; ma
  * Hit areas reach 44 px through ::after; the optics stay 34. */
 .glass {
   position: relative;
-  display: inline-flex; align-items: stretch;
-  height: 34px;
+  display: inline-flex; align-items: stretch; justify-content: center;
+  height: 34px; min-width: var(--target);
   color: var(--text-1); text-decoration: none;
   font-family: var(--px); font-size: 13px; letter-spacing: 0.02em;
   border: 1px solid rgba(var(--ink-rgb), 0.45);
@@ -263,6 +274,9 @@ h3 > .lock, .eu-list .lock { width: 24px; height: 28px; vertical-align: -4px; ma
 }
 .download-glyph { width: 10px; height: 11px; fill: currentColor; align-self: center; }
 .download:hover { background: rgba(42, 42, 255, 0.92); color: #ffffff; }
+/* Over the blue band the blue glass would vanish: it turns white. */
+.bar[data-over="blue"] .download { color: #0000ed; background: rgba(255, 255, 255, 0.92); border-color: #ffffff; box-shadow: 0 6px 18px -6px rgba(0, 0, 0, 0.35); }
+.bar[data-over="blue"] .download:hover { background: #ffffff; }
 @media (max-width: 480px) {
   .star-word { display: none; }
   .bar { gap: 6px; padding: 0 12px; }
@@ -382,14 +396,11 @@ h3 { font-family: var(--display); font-size: 21px; letter-spacing: -0.01em; line
 
 /* 1 · Hero: the dithered field, then the one assertion. */
 main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
-/* The field starts below the mark (the bar has no blur to lift it off the
- * dots) and fades in over its first 18%. */
-.hero { --field-top: calc(104px + var(--ticker-h)); }
+/* The field runs to the very top, behind the ticker and the mark. */
+.hero { --field-top: 0px; }
 .field {
   position: absolute; inset: var(--field-top) 0 auto; z-index: 0;
-  width: 100%; height: calc(min(78vh, 760px) - var(--field-top));
-  -webkit-mask-image: linear-gradient(transparent, #000 18%);
-  mask-image: linear-gradient(transparent, #000 18%);
+  width: 100%; height: calc(min(100vh, 1000px) - var(--field-top));
   object-fit: cover; object-position: 50% 0;
   image-rendering: pixelated;
   filter: var(--field-filter);
@@ -399,24 +410,16 @@ main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
 /* The live field (check/field.js) draws in the palette's own colours, so it
  * skips the light theme's invert; the static PNG stays until its first frame. */
 .field-live { filter: none; }
-.field-orb {
-  position: absolute; top: var(--field-top); left: 0; z-index: 0;
-  width: clamp(240px, 34vw, 520px); aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, var(--accent), transparent);
-  filter: blur(48px);
-  opacity: 0;
-  pointer-events: none;
-  will-change: transform, opacity;
-}
 .hero.live img.field { visibility: hidden; }
 .hero-text {
   position: relative; z-index: 1;
   max-width: var(--measure); margin: 0 auto;
-  /* Below the cloud: the live field has thinned to almost nothing half-way down. */
-  padding-top: max(clamp(200px, 42vh, 420px), calc(var(--field-top) + 0.5 * (min(78vh, 760px) - var(--field-top))));
+  /* The headline sits in the lower half of the cloud: it overlays the dots. */
+  padding-top: clamp(240px, 42vh, 440px);
 }
-.kicker { color: var(--text-1); margin-bottom: 20px; display: inline-block; background: var(--ground); padding: 2px 6px 2px 0; }
+/* Three separate pills, so the field shows through the gaps between them. */
+.pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 20px; padding: 0; list-style: none; }
+.pills li { padding: 4px 10px; color: var(--text-1); background: var(--ground); border: 1px solid var(--frame); }
 h1 {
   font-family: var(--display);
   font-size: clamp(42px, 8.2vw, 124px);
@@ -558,9 +561,19 @@ textarea:focus-visible, select:focus-visible { outline-offset: 0; }
 .prompts { margin-top: 20px; display: grid; gap: 16px; }
 @media (min-width: 900px) { .prompts { grid-template-columns: repeat(3, 1fr); } }
 .prompt-card { display: grid; grid-template-rows: auto 1fr auto; gap: 12px; padding: 16px; border: 1px solid var(--frame); }
-.prompt-card h4 { font-family: var(--px); font-size: 13px; font-weight: 400; letter-spacing: 0.02em; }
-.prompt-card pre { margin: 0; white-space: pre-wrap; font-size: 13px; line-height: 1.55; color: var(--text-1); }
-.prompt-card .btn { justify-self: start; }
+.prompt-card h4 { display: flex; align-items: center; font-family: var(--display); font-size: 24px; font-weight: 500; letter-spacing: -0.02em; }
+/* The tools as 9 × 9 pixel glyphs in the site's own style, not their logos. */
+.tool-icon { flex: none; width: 18px; height: 18px; margin-right: 12px; fill: currentColor; shape-rendering: crispEdges; }
+/* The prompt reads as text someone ran a marker over. */
+.prompt-card pre { margin: 0; white-space: pre-wrap; font-size: 13px; line-height: 1.9; color: var(--text-1); }
+.prompt-card mark {
+  padding: 2px 4px; color: var(--on-accent); background: var(--accent);
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+/* The copy button appears on hover or focus; on touch screens it stays. */
+.prompt-card .btn { justify-self: start; opacity: 0; transition: opacity 160ms var(--out), transform var(--press) var(--out); }
+.prompt-card:hover .btn, .prompt-card:focus-within .btn, .prompt-card .btn[data-state="copied"] { opacity: 1; }
+@media (hover: none) { .prompt-card .btn { opacity: 1; } }
 
 /* 4 · Walkthrough */
 .walk figure { margin: 40px 0 0; }

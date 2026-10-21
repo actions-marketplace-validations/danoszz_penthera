@@ -63,6 +63,16 @@ describe("site build", () => {
     expect(html).toMatch(/src="\/check\.js\?v=[0-9a-f]{10}"/);
   });
 
+  it("has share cards for Open Graph and X, with images that exist", () => {
+    const html = readFileSync(join(out, "index.html"), "utf8");
+    for (const tag of ['property="og:image"', 'name="twitter:card" content="summary_large_image"', 'property="og:image:width" content="1200"']) {
+      expect(html, tag).toContain(tag);
+    }
+    const img = html.match(/property="og:image" content="([^"]+)"/)[1];
+    expect(img).toMatch(/\/media\/social\/og\.png$/);
+    for (const f of ["media/social/og.png", "media/social/square.png"]) expect(existsSync(join(out, f)), f).toBe(true);
+  });
+
   it("loads nothing from another origin and has no inline script", () => {
     const html = readFileSync(join(out, "index.html"), "utf8");
     for (const m of html.matchAll(/<(?:script|link|img|video|source|track)\b[^>]*\b(?:src|href)="([^"]+)"/g)) {

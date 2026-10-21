@@ -13,8 +13,9 @@
  *
  * One network request: the GitHub star count for the nav button, read once at
  * build time (the page itself cannot fetch). PENTHERA_SITE_STARS=<n> sets it,
- * PENTHERA_SITE_STARS=off skips it; a failed request leaves the button
- * without a number. No server code. Output: plain files for any static host.
+ * PENTHERA_SITE_STARS=off skips it, and a failed request falls back to the
+ * last count read (site/stars.json). No server code. Output: plain files for
+ * any static host.
  */
 import { cpSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -123,21 +124,33 @@ function benchNumbers() {
   };
 }
 
-/** GitHub stars for the nav button, formatted (49, 1.2k), or "" when unknown. */
+const STARS_FILE = join(SITE, "stars.json");
+
+/**
+ * GitHub stars for the nav button, formatted (49, 1.2k). Order: the
+ * PENTHERA_SITE_STARS override, a live API read (authenticated with
+ * GITHUB_TOKEN when set, as the anonymous limit is 60 an hour), then the last
+ * count that was read, kept in site/stars.json so a rate limit or an offline
+ * build still shows a number. "" only when no count was ever read.
+ */
 async function starCount() {
   const env = process.env.PENTHERA_SITE_STARS;
-  let n = env && env !== "off" ? Number(env) : null;
-  if (n == null && env !== "off") {
+  if (env === "off") return "";
+  let n = env ? Number(env) : null;
+  if (n == null) {
     try {
-      const res = await fetch("https://api.github.com/repos/danoszz/penthera", {
-        headers: { accept: "application/vnd.github+json", "user-agent": "penthera-site-build" },
-        signal: AbortSignal.timeout(5000),
-      });
-      if (res.ok) n = (await res.json()).stargazers_count;
+      const headers = { accept: "application/vnd.github+json", "user-agent": "penthera-site-build" };
+      if (process.env.GITHUB_TOKEN) headers.authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+      const res = await fetch("https://api.github.com/repos/danoszz/penthera", { headers, signal: AbortSignal.timeout(5000) });
+      if (res.ok) {
+        n = (await res.json()).stargazers_count;
+        if (Number.isFinite(n)) writeFileSync(STARS_FILE, JSON.stringify({ stars: n, checked: new Date().toISOString().slice(0, 10) }, null, 2) + "\n");
+      }
     } catch {
-      // Offline or rate-limited: the button shows no number rather than a stale one.
+      // Offline or rate-limited: fall back to the last count read.
     }
   }
+  if (n == null && existsSync(STARS_FILE)) n = JSON.parse(readFileSync(STARS_FILE, "utf8")).stars;
   if (!Number.isFinite(n) || n < 0) return "";
   return n >= 1000 ? `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1).replace(/\.0$/, "")}k` : String(n);
 }
@@ -166,6 +179,16 @@ function tickerHtml(items) {
   const list = (hidden) => `<ul class="ticker-list"${hidden ? ' aria-hidden="true"' : ""}>${items.map((n) =>
     `<li><svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><use href="#i-lock"/></svg><time datetime="${n.date}">${fmt(n.date)}</time> <a href="${esc(n.source)}"${hidden ? ' tabindex="-1"' : ""}>${esc(n.text)}</a></li>`).join("")}</ul>`;
   return `<div class="ticker" role="region" aria-label="Security news"><div class="ticker-track">${list(false)}${list(true)}</div></div>`;
+}
+
+/**
+ * The site's absolute origin, for share cards (platforms need absolute image
+ * URLs): SITE_URL, else the production URL Vercel gives the build, else the
+ * deployment URL. Locally it is empty and the tags fall back to relative paths.
+ */
+function siteUrl(env = process.env) {
+  const raw = env.SITE_URL || (env.VERCEL_PROJECT_PRODUCTION_URL && `https://${env.VERCEL_PROJECT_PRODUCTION_URL}`) || (env.VERCEL_URL && `https://${env.VERCEL_URL}`) || "";
+  return raw.replace(/\/+$/, "");
 }
 
 const hash = (buf) => createHash("sha256").update(buf).digest("hex").slice(0, 10);
@@ -227,6 +250,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
     ...benchNumbers(),
     STARS: await starCount(),
     TICKER: tickerHtml(readNews()),
+    SITE_URL: siteUrl(),
   };
   values.STARS_LABEL = values.STARS ? `, ${values.STARS} stars` : "";
   let html = readFileSync(join(SITE, "index.html"), "utf8");

@@ -23,6 +23,8 @@ node site/serve.mjs     # http://127.0.0.1:4173/ with the production headers
 | `build.mjs` | Bundles `check/` with `lib/` (rolldown), embeds the rule packs and the popular-package list, verifies each pack's signature, and copies the media. |
 | `serve.mjs` | A local preview that sends the headers from `vercel.json`. |
 | `vercel.json` | Build settings and security headers: CSP with `connect-src 'none'`, HSTS, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer`. |
+| `stars.json` | The last GitHub star count the build read, used when the API is rate-limited or offline. Set `GITHUB_TOKEN` in Vercel to avoid the anonymous limit. |
+| `tools/social.mjs` | Renders `media/social/og.png` (1200 × 630, the share card for LinkedIn, X and Facebook) and `square.png` (1080 × 1080, Instagram) with a local Chrome. Re-run it when the headline changes. |
 | `media/` | `field.png` (the hero's 1-bit cloud), `hero.mp4` and its poster, regenerated with `tools/media.sh`; `dvdzwaag.svg`, the maker's wordmark traced with potrace from Daan's own artwork, used as a mask so it takes the ink. |
 
 ## The browser check

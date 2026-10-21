@@ -4,7 +4,7 @@ import js from "@eslint/js";
 import globals from "globals";
 
 export default [
-  { ignores: ["node_modules/", "audit/logs/", "reports/", "coverage/", "bench/out/", "**/fixtures/**"] },
+  { ignores: ["node_modules/", "audit/logs/", "reports/", "coverage/", "bench/out/", "**/fixtures/**", "site/dist/"] },
   js.configs.recommended,
   {
     languageOptions: { ecmaVersion: "latest", sourceType: "module", globals: { ...globals.node } },
@@ -23,6 +23,7 @@ export default [
       "no-empty": ["error", { allowEmptyCatch: true }],
     },
   },
-  { files: ["src/ui/static/**"], languageOptions: { globals: { ...globals.browser } } },
+  { files: ["src/ui/static/**", "site/check/**", "site/theme.js"], languageOptions: { globals: { ...globals.browser } } },
+  { files: ["site/theme.js"], languageOptions: { sourceType: "script" } },
   { files: ["**/*.cjs"], languageOptions: { sourceType: "commonjs" } },
 ];

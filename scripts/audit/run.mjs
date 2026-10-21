@@ -66,6 +66,7 @@ const PACK_DENY = [
   /(^|\/)reports\//, // scan output (src/report/ is code and is fine)
   /^report[^/]*\.(json|md|sarif)$/,
   /(^|\/)(bench|audit|coverage)\//,
+  /^site\//, // the website and its build (site/README.md); never part of the CLI
   /\.test\.[cm]?[jt]s$/,
   /(^|\/)\.env(\.|$)/,
   /\.(pem|key|p12|pfx|tgz|sarif)$/,

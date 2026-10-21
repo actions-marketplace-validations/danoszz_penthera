@@ -4,24 +4,24 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Penthera</title>
-  <meta name="description" content="The security review you never had time for. Offline, rule-based, and you can verify every finding yourself.">
+  <meta name="description" content="Offline security checks for your app, its dependencies and your AI coding tools. Open source, rule-based, and you can verify every finding.">
   <meta name="color-scheme" content="dark light">
   <meta name="theme-color" content="#000000">
   <link rel="canonical" href="{{SITE_URL}}/">
   <meta property="og:site_name" content="Penthera">
-  <meta property="og:title" content="Penthera: your open-source cyber security agent">
-  <meta property="og:description" content="The security review you never had time for. Offline, rule-based, and you can verify every finding yourself.">
+  <meta property="og:title" content="Penthera: your open-source security agent">
+  <meta property="og:description" content="Offline security checks for your app, its dependencies and your AI coding tools. Open source, rule-based, and you can verify every finding.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="{{SITE_URL}}/">
   <meta property="og:image" content="{{SITE_URL}}/media/social/og.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="Penthera: your open-source cyber security agent. The security review you never had time for. npx penthera.">
+  <meta property="og:image:alt" content="Penthera. Free. Your open-source cyber security agent. npx penthera, open source, MIT, offline.">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Penthera: your open-source cyber security agent">
-  <meta name="twitter:description" content="The security review you never had time for. Offline, rule-based, and you can verify every finding yourself.">
+  <meta name="twitter:title" content="Penthera: your open-source security agent">
+  <meta name="twitter:description" content="Offline security checks for your app, its dependencies and your AI coding tools. Open source, rule-based, and you can verify every finding.">
   <meta name="twitter:image" content="{{SITE_URL}}/media/social/og.png">
-  <meta name="twitter:image:alt" content="Penthera: your open-source cyber security agent. The security review you never had time for.">
+  <meta name="twitter:image:alt" content="Penthera. Free. Your open-source cyber security agent. npx penthera, open source, MIT, offline.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preload" href="/fonts/DepartureMono-Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/styles.css">
@@ -267,7 +267,80 @@
       <p class="eu-note">Penthera does not make you compliant and does not certify anything. It is not affiliated with or endorsed by the European Union; the stars mark the subject.</p>
     </section>
 
-    <!-- 7 · Vision -->
+    <!-- 7 · Questions -->
+    <section class="faq" id="faq" aria-labelledby="faq-title">
+      <h2 id="faq-title">Questions</h2>
+      <div class="faq-list">
+        <details>
+          <summary>What is Penthera, and why does it exist?</summary>
+          <div class="faq-a">
+            <p>Penthera is a security agent you run on your own machine, and an open research project that measures how well it works. We want a safer internet for everyone who builds for their business or turns an idea into a product.</p>
+            <p>AI coding tools make building faster, and they bring new risks with them: leaked keys, dependencies that do more than they say, agent setups that run whatever they are told. Paid security tools are not something everyone can afford. Penthera is free and open, and its checks rest on published research, ongoing experiments and a public benchmark.</p>
+            <p>It is also built for ethical use of AI. Readable, deterministic rules decide; models may only propose a fix, and a re-scan and your tests decide whether it holds. You can read every check, so it cannot be quietly turned against you.</p>
+          </div>
+        </details>
+        <details>
+          <summary>Is it free and open source?</summary>
+          <div class="faq-a">
+            <p>Yes. Penthera is MIT-licensed and complete on one machine, with no account and no paid tier for any feature. If something paid comes later, such as a team server, it is added on top and never removes a local feature. That is decision 6 in the <a href="https://github.com/danoszz/penthera/blob/main/docs/MANIFESTO.md">manifesto</a>.</p>
+          </div>
+        </details>
+        <details>
+          <summary>Does it work offline, and what leaves my machine?</summary>
+          <div class="faq-a">
+            <p>The CLI has no telemetry and no account. With <code>--offline</code> it contacts only the target you named, and every report lists the hosts it contacted (<a href="https://github.com/danoszz/penthera/blob/main/docs/privacy.md">network use</a>).</p>
+            <p>On this site, the check runs in your tab and never sends what you drop or paste. The page counts anonymous page views and load times with Vercel's cookieless counters on penthera.org. Its Content-Security-Policy allows those two counters and nothing else, so that is all it can send.</p>
+          </div>
+        </details>
+        <details>
+          <summary>How accurate is it?</summary>
+          <div class="faq-a">
+            <p>On the public benchmark: precision {{BENCH_P}} (95% CI {{BENCH_P_CI}}) and recall {{BENCH_R}} (95% CI {{BENCH_R_CI}}), from {{BENCH_TP}} true positives, {{BENCH_FP}} false positives and {{BENCH_FN}} misses in labs we built ourselves. During the benchmark it made {{BENCH_EGRESS}} requests to anything other than loopback.</p>
+            <p>The sample is small and the labs are ours, so these numbers catch regressions; they do not measure real-world accuracy. Measuring that on other people's code is experiment E1, <a href="https://github.com/danoszz/penthera/blob/main/docs/research/prereg/E1-real-world-accuracy.md">pre-registered</a> before any data is collected.</p>
+            <p>Every rule is readable: {{N_URL}} URL scan templates, {{N_SECRETS}} secret and AI-key patterns, {{N_CAPS}} dependency capabilities, {{N_AGENTS}} AI-tooling rules and {{N_RECIPES}} fix recipes, on {{DEPS_N}} ({{DEPS_LIST}}). <a href="https://github.com/danoszz/penthera/blob/main/bench/RESULTS.md">Benchmark results</a></p>
+          </div>
+        </details>
+        <details>
+          <summary>What can't it do?</summary>
+          <div class="faq-a">
+            <p>It finds known classes of problems, not novel ones. It does not find business-logic flaws, complex authorization bugs or zero-days, and it does not replace a human penetration test or incident response. The full list is in the methodology's <a href="https://github.com/danoszz/penthera/blob/main/docs/METHODOLOGY.md#known-limitations">known limitations</a>.</p>
+          </div>
+        </details>
+        <details>
+          <summary>How is it different from paid tools?</summary>
+          <div class="faq-a">
+            <p>Penthera runs on your machine, offline, and decides with readable rules that show their evidence at <code>file:line</code>. Many commercial tools work in the cloud, at registry or organization scale, and some add AI review; in places they go further than Penthera. Each <a href="https://github.com/danoszz/penthera/tree/main/docs/compare">comparison page</a> says where the other tool is stronger and how to run the two together.</p>
+          </div>
+        </details>
+        <details>
+          <summary>Is it safe to point at any site?</summary>
+          <div class="faq-a">
+            <p>Point it only at sites you own or are authorized to test. The default scan sends only requests a browser would send. Payload testing (<code>--deep</code>, <code>--fuzz</code>, <code>--all</code>) is opt-in and asks for confirmation, and the guided start scans your running app only after you confirm the app is yours.</p>
+          </div>
+        </details>
+        <details>
+          <summary>Is Penthera built with AI?</summary>
+          <div class="faq-a">
+            <p>Yes, and we say how. Of the commits up to v1.7.0, 91% were written with Claude through Claude Code, and each names the model in its commit message. The maintainer sets the direction, makes the design and security decisions, and reviews what is merged. Generated code passes the same gates as any other change: the test suite, CodeQL, OpenSSF Scorecard and an internal audit before every release. <a href="https://github.com/danoszz/penthera/blob/main/docs/genai.md">How Penthera is built</a></p>
+          </div>
+        </details>
+        <details>
+          <summary>How is it researched and tested?</summary>
+          <div class="faq-a">
+            <p>Each feature goes method, evidence, tool. The <a href="https://github.com/danoszz/penthera/blob/main/docs/METHODOLOGY.md">methodology</a> states the threat model and what each check can and cannot see. A benchmark runs on every release, and the release fails if precision or recall drops by more than 0.02. Experiments that decide what ships next are pre-registered before any data is collected, and the results are published either way.</p>
+            <p>Detection rules ship inside reviewed releases as signed, versioned rule packs; nothing is downloaded while Penthera runs. The <a href="https://github.com/danoszz/penthera/blob/main/docs/vision-2.0.md">research plan</a> lists the experiments.</p>
+          </div>
+        </details>
+        <details>
+          <summary>How can I help or challenge it?</summary>
+          <div class="faq-a">
+            <p>If you think a decision is wrong, open a <a href="https://github.com/danoszz/penthera/discussions">discussion</a> labeled "challenge": say which decision, what you would do instead and what evidence would settle it. Report bugs and false positives as <a href="https://github.com/danoszz/penthera/issues">issues</a>, read <a href="https://github.com/danoszz/penthera/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> to contribute, or <a href="https://github.com/sponsors/danoszz">sponsor its maintenance</a>.</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- 8 · Vision -->
     <section class="vision band band-invert" aria-labelledby="vision-title">
       <h2 id="vision-title">Open R&amp;D</h2>
       <p class="vision-text">Penthera is a research project with a tool you can use today. Each check is measured in public, pre-registered experiments, and the results are published, good or bad. What holds up ships in the next release. What does not is dropped.</p>

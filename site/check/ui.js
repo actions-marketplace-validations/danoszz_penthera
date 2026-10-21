@@ -204,6 +204,36 @@ function setupCheck() {
   renderStaged();
 }
 
+// ── The bar wears the palette of the band beneath it ────────────────────────
+
+function barPalette() {
+  const bar = $(".bar");
+  const bands = [...document.querySelectorAll(".band")];
+  if (!bar || !bands.length) return;
+  const under = new Set();
+  const sync = () => {
+    const band = bands.find((b) => under.has(b));
+    if (!band) delete bar.dataset.over;
+    else bar.dataset.over = band.classList.contains("band-blue") ? "blue" : "invert";
+  };
+  // A strip half the bar's height at the top of the viewport; rebuilt when
+  // the viewport changes size, since rootMargin is fixed per observer.
+  let io;
+  const observe = () => {
+    io?.disconnect();
+    under.clear();
+    io = new IntersectionObserver((entries) => {
+      for (const e of entries) e.isIntersecting ? under.add(e.target) : under.delete(e.target);
+      sync();
+    }, { rootMargin: `0px 0px -${Math.max(0, innerHeight - bar.offsetHeight / 2)}px 0px` });
+    for (const b of bands) io.observe(b);
+  };
+  let t;
+  addEventListener("resize", () => { clearTimeout(t); t = setTimeout(observe, 150); });
+  observe();
+}
+
 copyButtons();
 heroLoop();
+barPalette();
 setupCheck();

@@ -12,12 +12,12 @@
   var system = window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
   root.setAttribute("data-theme", stored === "light" || stored === "dark" ? stored : system);
 
+  // A switch labelled "Dark theme": on is dark, off is light.
   function sync(btn) {
-    var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
-    btn.querySelector("[data-theme-label]").textContent = next === "light" ? "Light" : "Dark";
-    btn.setAttribute("aria-label", "Switch to the " + next + " theme");
+    var dark = root.getAttribute("data-theme") === "dark";
+    btn.setAttribute("aria-checked", dark ? "true" : "false");
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", next === "light" ? "#000000" : "#fdfdfa");
+    if (meta) meta.setAttribute("content", dark ? "#000000" : "#fdfdfa");
   }
 
   document.addEventListener("DOMContentLoaded", function () {

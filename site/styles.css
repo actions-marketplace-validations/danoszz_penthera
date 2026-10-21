@@ -39,7 +39,8 @@
  */
 :root,
 :root[data-theme="dark"],
-:root[data-theme="light"] .band-invert {
+:root[data-theme="light"] .band-invert,
+:root[data-theme="light"] .bar[data-over="invert"] {
   color-scheme: dark;
   --ground: #000000;
   --ground-rgb: 0, 0, 0;
@@ -56,7 +57,8 @@
 }
 
 :root[data-theme="light"],
-:root:not([data-theme="light"]) .band-invert {
+:root:not([data-theme="light"]) .band-invert,
+:root:not([data-theme="light"]) .bar[data-over="invert"] {
   color-scheme: light;
   --ground: #fdfdfa;
   --ground-rgb: 253, 253, 250;
@@ -72,7 +74,8 @@
   --field-filter: invert(1);
 }
 
-:root .band-blue {
+:root .band-blue,
+:root .bar[data-over="blue"] {
   color-scheme: dark;
   --ground: #0000ed;
   --ground-rgb: 0, 0, 237;
@@ -87,8 +90,10 @@
   --focus: #ffffff;
 }
 
-/* Derived: recomputed wherever a palette changes. */
-:root, .band {
+/* Derived: recomputed wherever a palette changes. The bar takes the palette
+ * of the band under it (data-over, set by the page script), because it has
+ * no background of its own. */
+:root, .band, .bar {
   --text-1: rgb(var(--ink-rgb));
   --text-2: rgba(var(--ink-rgb), var(--t2));
   --text-3: rgba(var(--ink-rgb), var(--t3));
@@ -171,7 +176,7 @@ p { margin: 0; }
 }
 .bar::before {
   inset: 0 0 -48px;
-  background: linear-gradient(rgba(var(--ground-rgb), 0.92), rgba(var(--ground-rgb), 0.7) 55%, rgba(var(--ground-rgb), 0));
+  background: transparent;              /* blur only: the content keeps its own colour */
   -webkit-mask-image: linear-gradient(#000 50%, transparent);
   mask-image: linear-gradient(#000 50%, transparent);
 }
@@ -209,16 +214,30 @@ p { margin: 0; }
   .bar { gap: 2px; padding: 0 12px; }
   .star { margin: 0 2px; }
   .star-glyph { margin-right: 8px; }
-  .theme [data-theme-label] { display: none; }
 }
+/* The theme: a switch, no words. On (dark): the knob sits right on a dithered
+ * track. Off (light): left, on an empty one. The knob slides; nothing else moves. */
 .theme {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: var(--target); min-width: var(--target); padding: 0 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: var(--target); min-width: var(--target); padding: 0 6px;
   background: none; border: 0; color: var(--text-1); cursor: pointer;
 }
-.theme-swatch { width: 11px; height: 11px; border: 1px solid var(--frame); background: var(--pt-half); }
-.theme:hover { background: var(--accent); color: var(--on-accent); }
-.theme:hover .theme-swatch { border-color: var(--on-accent); }
+.theme-track {
+  position: relative; display: block;
+  width: 34px; height: 18px;
+  border: 1px solid var(--frame);
+  background: rgba(var(--ground-rgb), 0.6);
+}
+.theme[aria-checked="true"] .theme-track { background: var(--pt-sparse), rgba(var(--ground-rgb), 0.6); }
+.theme-knob {
+  position: absolute; top: 2px; left: 2px;
+  width: 12px; height: 12px;
+  background: var(--frame);
+  transition: transform 160ms var(--out), background-color 160ms var(--out);
+}
+.theme[aria-checked="true"] .theme-knob { transform: translateX(16px); }
+.theme:hover .theme-knob { background: var(--accent-ink); }
+.theme:active .theme-knob { width: 14px; }
 
 /* ── Buttons ──────────────────────────────────────────────────────────── */
 /* Variants set tokens, never properties. */

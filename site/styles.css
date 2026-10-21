@@ -227,7 +227,7 @@ html.scrolled .brand, html:not(.js) .brand { --logo-w: 92px; --logo-h: 21px; --b
 .star {
   position: relative;
   display: inline-flex; align-items: stretch;
-  min-height: 34px; margin: 0 4px;
+  min-height: 34px; margin: 0 0 0 4px;
   border: 1px solid var(--frame);
   color: var(--text-1); text-decoration: none;
   font-family: var(--px); font-size: 13px; letter-spacing: 0.02em;
@@ -245,7 +245,7 @@ html.scrolled .brand, html:not(.js) .brand { --logo-w: 92px; --logo-h: 21px; --b
   .star-word { display: none; }
   html:not(.scrolled) .bar nav .nav-get { display: none; }
   .bar { gap: 2px; padding: 0 12px; }
-  .star { margin: 0 2px; }
+  .star { margin: 0 0 0 2px; }
   .star-glyph { margin-right: 8px; }
 }
 /* The theme: a switch, no words. On (dark): the knob sits right on a dithered

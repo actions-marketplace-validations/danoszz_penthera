@@ -51,6 +51,7 @@ import { scanOpenApi, probeAuthEndpoints } from "../lib/blackbox/openapi.js";
 import { probeIdorBola } from "../lib/blackbox/idor.js";
 import { probeOAuthMisconfig } from "../lib/blackbox/oauth.js";
 import { auditSecurityHeaders } from "../lib/blackbox/headers.js";
+import { runtimeAdvisoriesForResponse } from "../lib/advisories/index.js";
 import { probeClientSideAuth } from "../lib/blackbox/client-auth.js";
 import { probeJwt } from "../lib/blackbox/jwt.js";
 import { probeEmailDns } from "../lib/blackbox/email-dns.js";
@@ -179,6 +180,13 @@ async function scanUrlInContext(target, opts) {
   progress("Auditing security headers...");
   if (result.fingerprint?.headers) {
     result.findings.push(...auditSecurityHeaders(result.fingerprint.headers, target, { local }));
+  }
+
+  // ── Phase 4b2: Runtime advisories (PHP, nginx, Apache, ... versions) ───
+  progress("Checking runtime and server versions against advisories...");
+  if (result.fingerprint?.headers) {
+    const phpPaths = filtered.filter((ep) => ep.status >= 200 && ep.status < 400 && /\.php(?:$|[?#])/i.test(ep.path)).map((ep) => ep.path);
+    result.findings.push(...runtimeAdvisoriesForResponse(result.fingerprint, { phpPaths, url: target }));
   }
 
   // ── Phase 4c: OpenAPI / auth probes ────────────────────────────────────
@@ -594,7 +602,7 @@ async function scanUrlInContext(target, opts) {
     "client-auth", "idor", "oauth", "sensitive-files", "cors", "cookie",
     ...(!local && !isIpHost ? ["email-dns"] : []),
     ...(result.tls ? ["tls"] : []),
-    ...(result.fingerprint?.headers ? ["security-headers"] : []),
+    ...(result.fingerprint?.headers ? ["security-headers", "runtime-advisories"] : []),
     ...(auth.bearer ? ["jwt"] : []),
     ...(!opts.skipRetireJs && retireJsRan ? ["retirejs"] : []),
     ...(!opts.skipParamDiscovery && hadEndpoints ? ["param-discovery"] : []),

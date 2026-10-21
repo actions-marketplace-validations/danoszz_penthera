@@ -145,7 +145,15 @@ async function checkUi(name) {
   let out = "";
   child.stdout.on("data", (d) => { out += d; });
   child.stderr.on("data", (d) => { out += d; });
-  const exited = new Promise((r) => child.once("exit", (code, signal) => r({ code, signal })));
+  // The shell exits as soon as the group gets SIGTERM, but penthera (a
+  // grandchild via npx) writes "Stopped." a moment later. The pipes close only
+  // when every process holding them is gone, so wait for those too.
+  const closed = (s) => new Promise((r) => s.once("close", r));
+  const exited = Promise.all([
+    new Promise((r) => child.once("exit", (code, signal) => r({ code, signal }))),
+    closed(child.stdout),
+    closed(child.stderr),
+  ]);
   const problems = [];
   let base = null;
   const deadline = Date.now() + 90_000;

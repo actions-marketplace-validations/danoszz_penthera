@@ -59,10 +59,12 @@ typesafe.ai in spirit, in Penthera's own 1-bit look (`penthera ui` after #63):
 
 ## Constraints
 
-- No third-party scripts, analytics, trackers or cookies. All assets are
+- No third-party scripts, trackers or cookies; only Vercel's cookieless Web
+  Analytics and Speed Insights, served from the same origin. All assets are
   served from the same origin.
-- CSP `connect-src 'none'`: the page cannot make a network request after it
-  loads, which is what "nothing leaves your browser" rests on.
+- CSP `connect-src` lists only `/_vercel/insights/` and `/_vercel/speed-insights/`
+  on penthera.org: the check cannot send anything anywhere else, which is what
+  "nothing you paste leaves your browser" rests on.
 - The check bundles `lib/` at build time (`site/build.mjs`). The site and the
   CLI run the same rule code.
 - No URL scans and no server functions.

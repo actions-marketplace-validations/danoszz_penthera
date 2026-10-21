@@ -2,14 +2,14 @@
   "schema": 1,
   "name": "advisories",
   "version": "1.0.0",
-  "created_at": "2026-10-21T13:37:22Z",
+  "created_at": "2026-10-21T15:22:16Z",
   "min_penthera": "1.8.0",
   "description": "Runtime and server security advisories (PHP, Apache HTTP Server, nginx, Node.js, Python, OpenSSL) and end-of-life release lines, from vendor advisories and support pages. Every rule cites its vendor source.",
   "rules": [
     {
       "file": "advisories.json",
       "kind": "runtime-advisory",
-      "sha256": "221e958b96155b0d7d483c20d8f02ce02de258238e760a482c154813721b64f0"
+      "sha256": "8e222761046dedf17c4acf2f4bf87e1961f4b73fe6098d5501bd4547b3d80fd9"
     },
     {
       "file": "eol.json",

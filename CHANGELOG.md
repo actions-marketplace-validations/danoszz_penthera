@@ -37,6 +37,7 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 - Risky-pattern findings from `--repo` now carry the repo-relative `file` and
   the `pattern` name.
 
+
 ### Fixed
 
 - **`npx penthera ui` stops cleanly on Ctrl-C and SIGTERM.** npm forwards

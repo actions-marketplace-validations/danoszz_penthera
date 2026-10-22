@@ -14,6 +14,7 @@ has the full flag list.
 | `penthera deps` | [deps.md](deps.md) | What each package can do, the upgrade diff, typosquats, license policy |
 | `penthera install` | [install.md](install.md) | Check a new package before any install script runs |
 | `penthera fix`, `penthera agent --loop` | [fix.md](fix.md) | Deterministic fix recipes and the local scan, fix, verify loop |
+| `penthera verify` | [verify.md](verify.md) | Check findings from an AI audit (Cloudflare's security-audit skill) against Penthera's rules |
 | `penthera hook` | [hook.md](hook.md) | Pre-commit hook for secrets, agent config and dependency changes |
 | `penthera rules list`, `penthera rules verify <dir>` | [rule-packs.md](../rule-packs.md) | Signed, versioned rule packs (IOCs, patterns); add your own with `--rules <dir>`, never fetched |
 | GitHub Action | [action.md](action.md) | The capability diff as a pull-request comment, plus SARIF |

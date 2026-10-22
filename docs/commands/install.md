@@ -39,8 +39,9 @@ penthera install --yes                # CI: install only if nothing breaches the
 {
   "allow": ["@acme/*", "esbuild", "sharp@0.33.5"],
   "deny": ["ai-cli-invoke", "token-harvest"],
-  "requireApproval": ["install-scripts", "ai-config-write", "ai-cli-invoke",
-                      "token-harvest", "obfuscated", "typosquat", "unscanned"]
+  "requireApproval": ["install-scripts", "startup-hook", "ai-config-write",
+                      "ai-cli-invoke", "token-harvest", "obfuscated", "typosquat",
+                      "unscanned"]
 }
 ```
 

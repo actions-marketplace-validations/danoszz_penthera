@@ -314,13 +314,16 @@ describe("browser check, runtime advisories against the CLI", () => {
     const one = async (text) => (await engine.check([{ path: engine.HEADERS, text }])).findings.filter((f) => f.source === "runtime-advisory");
     const affected = await one("HTTP/2 200\nx-powered-by: PHP/8.3.35\n");
     expect(affected.flatMap((f) => f.cves || [])).toEqual(expect.arrayContaining(["CVE-2026-109618", "CVE-2026-109619"]));
-    expect(affected.every((f) => f.confidence === "likely")).toBe(true);
+    // A banner without a distribution token may be a patched package: potential.
+    expect(affected.every((f) => f.confidence === "potential")).toBe(true);
     const fixed = await one("HTTP/2 200\nx-powered-by: PHP/8.3.36\n");
     expect(fixed).toHaveLength(1);
     expect(fixed[0]).toMatchObject({ severity: "info" });
     expect(fixed[0].title).toMatch(/has the fix/);
     const docker = (await engine.check([{ path: "Dockerfile", text: "FROM php:8.3.12-fpm\n" }])).findings;
     expect(docker.flatMap((f) => f.cves || [])).toEqual(expect.arrayContaining(["CVE-2026-109618", "CVE-2026-109619"]));
+    // An official image is an upstream build: likely.
+    expect(docker.filter((f) => f.source === "runtime-advisory" && f.severity === "critical").every((f) => f.confidence === "likely")).toBe(true);
   });
 
   it("runtime pins: the same findings as penthera --repo on the same files", async () => {

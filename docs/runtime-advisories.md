@@ -22,7 +22,7 @@ version:
 |---|---|---|
 | **affected** | An exact upstream version is visible and is below the fix | Upgrade to the fixed version on that line |
 | **end of life, no fix** | The version is on a line the vendor no longer supports | Move to a supported line |
-| **check on server** | The product is in use but the version is hidden, floating (`php:8.3`), or a distribution build (`8.1.2-1ubuntu2.19`) | Run the check command in the finding (`php -v`, `nginx -v`, ...) on the server or in the container |
+| **check on server** | The product is in use but the version is hidden, floating (`php:8.3`), a distribution build (`8.1.2-1ubuntu2.19`), or a pre-release of the fixed version or the next one (`8.4.28-dev`, which PHP's branch reports from 8.4.27's release candidate on) | Run the check command in the finding (`php -v`, `nginx -v`, ...) on the server or in the container |
 | **has the fix (as advertised)** | The visible version is at or above every fix | Nothing, unless a proxy or a stale banner could be lying |
 
 No answer means no evidence of the product, which is **not** a clean bill of
@@ -83,7 +83,9 @@ unsigned one needs `--allow-unsigned-rules`. See [rule-packs.md](rule-packs.md).
    Use the vendor's own severity. Add `condition` when the flaw needs more than
    the version (an operating system, a SAPI, a module). Findings for such a rule
    never go above `potential`. Add `introduced` on a line when versions before
-   it are not affected.
+   it are not affected. On the oldest listed line, it also clears every older
+   line (httpd 2.2 for a flaw introduced in 2.4.49). Without it, an older
+   end-of-life line is reported as "end of life, no fix".
 3. Build and sign it: `npm run rules:build -- ./php-2026-10 --name php-2026-10 --version 1.0.0`,
    then `scripts/rules/sign-pack.sh ./php-2026-10`.
 4. Fold the rule into the bundled `advisories` pack in the next release, with a

@@ -4,6 +4,13 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Added
+
+- **Coverage ledger** in every `--repo` report (terminal, Markdown, JSON
+  `coverage`): which files each check read, which it did not and why, and the
+  source files no code analysis looked at. It reads only file names and sizes,
+  and is the first step toward an opt-in AI mode.
+
 ### Site
 
 - penthera.org counts anonymous page views and load times with Vercel Web

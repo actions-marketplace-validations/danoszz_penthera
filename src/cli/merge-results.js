@@ -32,6 +32,7 @@ export function mergeResults(results) {
       machine: results.find((r) => r.machine)?.machine || null,
       executedProbes: results.flatMap((r) => r.executedProbes || []),
       egress: results.find((r) => r.egress)?.egress || null,
+      coverage: results.find((r) => r.coverage)?.coverage || null,
       errors: results.flatMap((r) => r.errors || []),
       findings: dedupeFindings(results.flatMap((r) => r.findings || [])),
     };

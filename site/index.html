@@ -274,16 +274,16 @@
     <!-- 3b · In your agent (MCP) -->
     <section class="agent band" id="agent" aria-labelledby="agent-title">
       <h2 id="agent-title">Use Penthera in your agent</h2>
-      <p class="get-lede">Penthera is also an MCP server. Your agent starts it and calls six read-only tools: <code>scan_repo</code>, <code>check_dependencies</code>, <code>audit_ai_tooling</code>, <code>runtime_advisories</code>, <code>explain_finding</code> and a passive <code>scan_url</code>. Each config pins version {{MCP_VERSION}}, so an update never runs without you.</p>
+      <p class="get-lede">Penthera is also an MCP server. Your agent starts it and calls six read-only tools: <code>scan_repo</code>, <code>check_dependencies</code>, <code>audit_ai_tooling</code>, <code>runtime_advisories</code>, <code>explain_finding</code> and a passive <code>scan_url</code>. Each config pins version {{VERSION}}, so an update never runs without you. {{MCP_NOTE}}</p>
       <div class="prompts">
         <article class="prompt-card" data-copy-root>
           <h4>Claude Code</h4>
-          <pre data-copy-text>claude mcp add penthera -- npx -y penthera@{{MCP_VERSION}} mcp</pre>
+          <pre data-copy-text>claude mcp add penthera -- npx -y penthera@{{VERSION}} mcp</pre>
           <button class="btn" type="button" data-copy-from data-js>Copy command</button>
         </article>
         <article class="prompt-card" data-copy-root>
           <h4>Codex</h4>
-          <pre data-copy-text>codex mcp add penthera -- npx -y penthera@{{MCP_VERSION}} mcp</pre>
+          <pre data-copy-text>codex mcp add penthera -- npx -y penthera@{{VERSION}} mcp</pre>
           <button class="btn" type="button" data-copy-from data-js>Copy command</button>
         </article>
         <article class="prompt-card" data-copy-root>
@@ -292,7 +292,7 @@
   "mcpServers": {
     "penthera": {
       "command": "npx",
-      "args": ["-y", "penthera@{{MCP_VERSION}}", "mcp"]
+      "args": ["-y", "penthera@{{VERSION}}", "mcp"]
     }
   }
 }</pre>
@@ -305,7 +305,7 @@
     "penthera": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "penthera@{{MCP_VERSION}}", "mcp"]
+      "args": ["-y", "penthera@{{VERSION}}", "mcp"]
     }
   }
 }</pre>
@@ -317,7 +317,7 @@
   "mcpServers": {
     "penthera": {
       "command": "npx",
-      "args": ["-y", "penthera@{{MCP_VERSION}}", "mcp"]
+      "args": ["-y", "penthera@{{VERSION}}", "mcp"]
     }
   }
 }</pre>

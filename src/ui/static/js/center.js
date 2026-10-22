@@ -349,8 +349,14 @@ function runView(col, ctx) {
         else if (sum?.totals) {
           const t = sum.totals;
           said.textContent = `Done. ${plural(t.verified, "fix", "fixes")} applied and checked${t.failed ? `, ${t.failed} undone` : ""}${t.declined ? `, ${t.declined} skipped` : ""}.`;
-        } else said.textContent = "Done. Your project is up to date.";
-        saidSub.textContent = run.kind === "loop" ? "The changes are on a separate branch on this computer. Nothing was published." : "";
+        } else if (sum?.counts) {
+          // A check: say what it found, not "up to date".
+          const serious = (sum.counts.critical || 0) + (sum.counts.high || 0);
+          said.textContent = sum.total
+            ? `Done. ${plural(sum.total, "problem")} found${serious ? `, ${serious} serious` : ""}.`
+            : "Done. Penthera found no problems.";
+        } else said.textContent = "Done.";
+        saidSub.textContent = run.kind === "loop" && d.status !== "error" ? "The changes are on a separate branch on this computer. Nothing was published." : "";
         if (sum?.totals) {
           const t = sum.totals;
           typer.push(`done: ${sum.stopReason} after ${plural(t.iterations, "round")} (${duration(sum.durationMs)})`, "ok");

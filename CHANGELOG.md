@@ -38,7 +38,6 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   the `pattern` name.
 
 
-
 - **Python start-up code in wheels.** `penthera deps` now finds `.pth` files
   and a shipped `sitecustomize.py` / `usercustomize.py` wherever a wheel puts
   them at the site-packages root, including `<name>-<version>.data/purelib/`

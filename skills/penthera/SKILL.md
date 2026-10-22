@@ -46,21 +46,22 @@ For full policy, see [references/authorization.md](references/authorization.md).
 Run before the first scan:
 
 ```bash
-bash skills/penthera/scripts/preflight.sh [URL]
+bash <this skill's folder>/scripts/preflight.sh [URL]
 ```
 
-From repo root. Pass the target URL to warn on non-localhost targets. Fix any errors before proceeding.
+Run it from the user's project folder: it creates `reports/` there. The skill's folder is where this SKILL.md is (in a Penthera checkout, `skills/penthera`). Pass the target URL to warn on non-localhost targets. Fix any errors before proceeding.
 
 ## Resolve CLI command
 
 Use whichever is available:
 
 ```bash
-penthera --version          # after npm link
-node bin/penthera.js --version   # from repo root
+penthera --version          # installed (npm install -g penthera, or npm link)
+npx -y penthera --version   # nothing installed: npx fetches it
+node bin/penthera.js --version   # from a Penthera checkout
 ```
 
-All examples below use `penthera`; substitute `node bin/penthera.js` when needed.
+All examples below use `penthera`; substitute `npx -y penthera` or `node bin/penthera.js` when needed.
 
 ## Decision tree
 
@@ -366,7 +367,7 @@ User: "Scan my localhost app on port 3000"
 
 Actions:
 1. Confirm localhost, authorization satisfied.
-2. `bash skills/penthera/scripts/preflight.sh http://localhost:3000`
+2. `bash <this skill's folder>/scripts/preflight.sh http://localhost:3000`
 3. `penthera http://localhost:3000 --profile quick -o reports/scan.json`
 4. Summarize `reports/scan.md`.
 

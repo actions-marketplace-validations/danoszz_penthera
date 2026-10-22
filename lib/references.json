@@ -30,6 +30,9 @@
       "meli2019bad",
       "basak2023secretbench"
     ],
+    "scan": [
+      "owaspwstg42"
+    ],
     "unchecked": [
       "meli2019bad",
       "basak2023secretbench"
@@ -208,6 +211,10 @@
     ],
     "browser-extensions": [
       "scarfone2008sp800115"
+    ],
+    "llm-audit": [
+      "ding2025primevul",
+      "cloudflare2026securityaudit"
     ]
   },
   "sources": {
@@ -406,6 +413,16 @@
       "title": "Not What You've Signed Up For: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection",
       "url": "https://doi.org/10.1145/3605764.3623985"
     },
+    "ding2025primevul": {
+      "cite": "Ding et al. 2025",
+      "title": "Vulnerability Detection with Code Language Models: How Far Are We?",
+      "url": "https://doi.org/10.48550/arXiv.2403.18624"
+    },
+    "cloudflare2026securityaudit": {
+      "cite": "Cloudflare 2026",
+      "title": "security-audit-skill",
+      "url": "https://github.com/cloudflare/security-audit-skill/tree/c1c8a8c"
+    },
     "spracklen2025package": {
       "cite": "Spracklen et al. 2025",
       "title": "We Have a Package for You! A Comprehensive Analysis of Package Hallucinations by Code Generating LLMs",
@@ -590,6 +607,11 @@
       "cite": "Node.js releases",
       "title": "Node.js Releases",
       "url": "https://nodejs.org/en/about/previous-releases"
+    },
+    "mongodblifecycles": {
+      "cite": "MongoDB lifecycles",
+      "title": "Software Lifecycle Schedules",
+      "url": "https://www.mongodb.com/legal/support-policy/lifecycles"
     },
     "pythondevguideversions": {
       "cite": "Python version status",

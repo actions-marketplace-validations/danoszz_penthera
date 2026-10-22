@@ -8,6 +8,7 @@ import { dirname } from "node:path";
 import { resolveWstgTags } from "../lib/owasp-wstg.js";
 import { referencesFor } from "../lib/references.js";
 import { formatDepsTerminal } from "../lib/deps/report.js";
+import { describeCoverage } from "../lib/coverage.js";
 
 const PKG_VERSION = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf-8"),
@@ -355,7 +356,8 @@ export function printReport(result, opts = {}) {
       // heuristic as a confirmed break. Certainties stay unannotated.
       const needsReview = f.confidence === "needs-human-review" || f.confidence === "potential";
       const tag = needsReview ? c.dim(` [${f.confidence}]`) : "";
-      w(`  ${colorFn(label)}  ${f.title}${tag}${f.fid ? c.dim(`  ${f.fid}`) : ""}`);
+      const ai = f.alsoProposedBy?.length ? c.dim(" [also proposed by AI]") : "";
+      w(`  ${colorFn(label)}  ${f.title}${tag}${ai}${f.fid ? c.dim(`  ${f.fid}`) : ""}`);
       if (f.url)  w(`  ${" ".repeat(6)} ${c.dim(f.url + (f.line ? `:${f.line}` : ""))}${f.status ? c.dim(` \u2192 ${f.status}`) : ""}`);
       if (f.description && opts.verbose) w(`  ${" ".repeat(6)} ${c.dim(f.description)}`);
     }
@@ -390,6 +392,27 @@ export function printReport(result, opts = {}) {
     w("");
   }
 
+  // Coverage: what the repo scan read, and where it did not look
+  if (result.coverage) {
+    const cov = result.coverage;
+    w(`  ${c.dim(line())}`);
+    w(`  ${c.bold("Coverage")} ${c.dim("what was read, and what was not")}`);
+    w("");
+    for (const { family, text } of describeCoverage(cov)) w(`  ${pad(family, 32)} ${text}`);
+    if (cov.blindSpots.count > 0) {
+      w(`  ${c.yellow(`${cov.blindSpots.count} of ${cov.sourceFiles}`)} source files not analysed for code patterns ${c.dim("(listed in the Markdown and JSON reports)")}`);
+    }
+    w(`  ${c.dim(`Not part of a repo scan: ${cov.notRun.map((n) => n.command).join(", ")}`)}`);
+    w("");
+  }
+
+  // AI mode: what the model proposed, and what Penthera's rules made of it
+  if (result.ai) {
+    w(`  ${c.dim(line())}`);
+    for (const l of aiTerminalLines(result.ai, c)) w(l);
+    w("");
+  }
+
   // Network egress: which hosts this scan talked to besides the target
   if (result.egress) {
     const e = result.egress;
@@ -416,6 +439,29 @@ export function printReport(result, opts = {}) {
   printSummaryLine(result, w);
   printInconclusiveLine(result, w, opts);
   w("");
+}
+
+/** The AI section of the terminal report. Model text is stripped of control characters. */
+export function aiTerminalLines(ai, colors = c) {
+  const L = [];
+  if (ai.ran === false) {
+    L.push(`  ${colors.bold("AI mode")} ${colors.dim("did not run")}`);
+    L.push(`  ${stripControl(ai.reason)}`);
+    return L;
+  }
+  const where = ai.route === "local" ? "on this computer · nothing sent off it" : `on ${ai.forwardedTo} · code sent there through your local Ollama`;
+  L.push(`  ${colors.bold("AI mode")} ${colors.dim(`${ai.model.name} ${where}`)}`);
+  L.push("");
+  L.push(`  Read       ${ai.units.examined} of ${ai.units.units} code parts${ai.partial ? colors.yellow(` (partial: ${ai.stopReason})`) : ""}`);
+  L.push(`  Confirmed  ${colors.green(String(ai.counts["confirmed-by-rule"]))} by a Penthera rule ${colors.dim("(marked in the findings above)")}`);
+  L.push(`  Unverified ${colors.yellow(String(ai.counts.unverified))} model-proposed ${colors.dim("(a person should look; never fails CI)")}`);
+  const notKept = ai.counts["location-not-found"] + ai.counts["out-of-scope"];
+  if (notKept) L.push(`  Not kept   ${notKept} pointed at a line or file that is not there`);
+  for (const f of ai.findings.slice(0, 10)) {
+    L.push(`    ${colors.dim("?")} ${stripControl(f.title)} ${colors.dim(`${stripControl(f.url)}:${f.line}`)}`);
+  }
+  if (ai.findings.length > 10) L.push(colors.dim(`    …and ${ai.findings.length - 10} more in the reports`));
+  return L;
 }
 
 export function suppressionLabel(s) {
@@ -521,6 +567,11 @@ export function formatSarif(result) {
   const rules = new Map();
   const results = [];
 
+  // GitHub code scanning requires a location on every result. Findings about
+  // the target as a whole (no SPF record, no API routes found) point at the
+  // scanned host, or at the repository root for a repo scan.
+  const fallbackUri = /^https?:\/\//i.test(result.target || "") ? toSarifUri(result.target) : ".";
+
   for (const f of result.findings || []) {
     const ruleId = f.templateId || f.category || "unknown";
 
@@ -558,14 +609,14 @@ export function formatSarif(result) {
       message: {
         text: `${f.title}${f.description ? `: ${f.description}` : ""}`,
       },
-      locations: f.url ? [{
+      locations: [{
         physicalLocation: {
           artifactLocation: {
-            uri: toSarifUri(f.url),
+            uri: f.url ? toSarifUri(f.url) : fallbackUri,
           },
-          ...(Number.isInteger(f.line) && f.line > 0 ? { region: { startLine: f.line } } : {}),
+          ...(f.url && Number.isInteger(f.line) && f.line > 0 ? { region: { startLine: f.line } } : {}),
         },
-      }] : [],
+      }],
       properties: {
         severity: f.severity,
         // Provenance travels with the finding into GitHub code scanning, so a
@@ -579,6 +630,17 @@ export function formatSarif(result) {
         wstg: f.wstg || resolveWstgTags(f),
       },
     });
+  }
+
+  // Model-proposed findings (AI mode) get their own run, as notes, so code
+  // scanning can filter them and they never pass for rule findings.
+  const aiRun = result.ai?.findings?.length && !result._aiRun
+    ? formatSarif({ timestamp: result.timestamp, findings: result.ai.findings.map((f) => ({ ...f, templateId: `llm-audit/${f.class}` })), _aiRun: true }).runs[0]
+    : null;
+  if (aiRun) {
+    aiRun.tool.driver.name = "penthera-ai";
+    for (const r of aiRun.results) r.level = "note";
+    for (const d of aiRun.tool.driver.rules) d.defaultConfiguration.level = "note";
   }
 
   const sarif = {
@@ -599,7 +661,7 @@ export function formatSarif(result) {
         startTimeUtc: result.timestamp,
         endTimeUtc: new Date().toISOString(),
       }],
-    }],
+    }, ...(aiRun ? [aiRun] : [])],
   };
   return sarif;
 }

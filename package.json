@@ -1,6 +1,6 @@
 {
   "name": "penthera",
-  "version": "1.8.0",
+  "version": "1.9.0-rc.1",
   "type": "module",
   "description": "Offline cyber security agent for your apps and AI coding tools. Open R&D: measured in public, improved every release.",
   "repository": {
@@ -8,6 +8,7 @@
     "url": "git+https://github.com/danoszz/penthera.git"
   },
   "homepage": "https://penthera.org",
+  "mcpName": "io.github.danoszz/penthera",
   "bugs": {
     "url": "https://github.com/danoszz/penthera/issues"
   },
@@ -55,7 +56,9 @@
     "refresh:popular-pypi": "node scripts/refresh-popular-pypi.mjs",
     "mock-server": "node tests/fixtures/mock-server.js",
     "bench": "node bench/run.js",
+    "bench:known": "node bench/known-vuln/run.mjs",
     "docs:numbers": "node scripts/docs-numbers.mjs",
+    "changelog": "node scripts/changelog.mjs",
     "refresh:retire-db": "node scripts/refresh-retire-db.mjs",
     "rules:build": "node scripts/rules/build-pack.mjs",
     "rules:check": "node scripts/rules/check-bundled.mjs",

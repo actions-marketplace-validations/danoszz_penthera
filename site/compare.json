@@ -1,0 +1,134 @@
+{
+  "_about": "The comparison table on penthera.org. Every cell comes from a sourced page in docs/compare/ (or, for Cloudflare's cost and CVE scope, the research note in docs/research/ and the issue it cites). Each cell has at least one source. A cell's text may use {{BENCH_*}} values, filled in at build time. Change a page in docs/compare/ first, then this file.",
+  "tools": [
+    { "id": "penthera", "name": "Penthera", "page": "docs/compare/README.md", "checked": null },
+    { "id": "cloudflare", "name": "Cloudflare security-audit skill", "page": "docs/compare/cloudflare-security-audit.md", "checked": "2026-10-22" },
+    { "id": "semgrep", "name": "Semgrep (CE)", "page": "docs/compare/semgrep.md", "checked": "2026-10-19" },
+    { "id": "snyk", "name": "Snyk", "page": "docs/compare/snyk.md", "checked": "2026-10-19" },
+    { "id": "socket", "name": "Socket", "page": "docs/compare/socket.md", "checked": "2026-10-19" },
+    { "id": "zap", "name": "OWASP ZAP", "page": "docs/compare/zap.md", "checked": "2026-10-19" },
+    { "id": "github", "name": "GitHub (Dependabot and CodeQL)", "page": "docs/compare/github.md", "checked": "2026-10-19" }
+  ],
+  "rows": [
+    {
+      "label": "How it decides",
+      "cells": {
+        "penthera": { "t": "Readable rules in the repo, with evidence and a confidence label. Models only propose fixes.", "s": ["docs/compare/socket.md#side-by-side", "docs/compare/cloudflare-security-audit.md#side-by-side"] },
+        "cloudflare": { "t": "A language model hunts; fresh agents try to disprove each finding.", "s": ["https://github.com/cloudflare/security-audit-skill#readme"] },
+        "semgrep": { "t": "Pattern rules: a rule language and 2,000+ community rules.", "s": ["https://github.com/semgrep/semgrep"] },
+        "snyk": { "t": "A curated vulnerability database, plus Snyk Code static analysis.", "s": ["https://docs.snyk.io/supported-languages/supported-languages-package-managers-and-frameworks"] },
+        "socket": { "t": "Static analysis, then an LLM stage, with researchers confirming detections.", "s": ["https://socket.dev/alerts/gptMalware"] },
+        "zap": { "t": "Passive and active scan rules.", "s": ["https://www.zaproxy.org/docs/desktop/start/features/"] },
+        "github": { "t": "GitHub-reviewed advisories, plus CodeQL queries.", "s": ["https://docs.github.com/en/code-security/dependabot/dependabot-alerts/about-dependabot-alerts"] }
+      }
+    },
+    {
+      "label": "Your code",
+      "cells": {
+        "penthera": { "t": "Routes, trust boundaries and secrets for Next.js, Express, Hono and Fastify.", "s": ["docs/compare/semgrep.md#side-by-side"] },
+        "cloudflare": { "t": "Any source, including native code, protocols, cloud config, mobile and desktop.", "s": ["https://github.com/cloudflare/security-audit-skill/tree/c1c8a8c/skills/security-audit"] },
+        "semgrep": { "t": "Many languages. CE works within one file; cross-file on the paid platform.", "s": ["https://docs.semgrep.dev/semgrep-pro-vs-oss"] },
+        "snyk": { "t": "Snyk Code, 16 languages.", "s": ["https://docs.snyk.io/supported-languages/supported-languages-package-managers-and-frameworks"] },
+        "socket": { "t": "Not its focus. SAST and secrets on the Enterprise plan.", "s": ["https://socket.dev/pricing"] },
+        "zap": { "t": "No.", "s": ["docs/compare/zap.md#side-by-side"] },
+        "github": { "t": "CodeQL, many languages.", "s": ["docs/compare/github.md#side-by-side"] }
+      }
+    },
+    {
+      "label": "Running app",
+      "cells": {
+        "penthera": { "t": "URL scan: headers, TLS, CORS, auth, JWT, IDOR, OAuth, OpenAPI. Injection and fuzzing opt-in.", "s": ["docs/compare/snyk.md#side-by-side"] },
+        "cloudflare": { "t": "No. It forbids probing deployed endpoints.", "s": ["docs/compare/cloudflare-security-audit.md#side-by-side"] },
+        "semgrep": { "t": "No.", "s": ["docs/compare/semgrep.md#side-by-side"] },
+        "snyk": { "t": "Snyk API & Web (DAST), on Enterprise plans.", "s": ["https://snyk.io/plans/"] },
+        "socket": { "t": "Not its focus: it covers packages, browser extensions and AI models.", "s": ["https://docs.socket.dev/docs/language-support"] },
+        "zap": { "t": "Yes, deeper: many more active rules, spider and AJAX spider, an intercepting proxy.", "s": ["https://www.zaproxy.org/docs/desktop/addons/ajax-spider/"] },
+        "github": { "t": "No.", "s": ["docs/compare/github.md#side-by-side"] }
+      }
+    },
+    {
+      "label": "Dependencies",
+      "cells": {
+        "penthera": { "t": "What each package can do, an install firewall, typosquats, known-malicious versions (npm and Python), runtime advisories.", "s": ["docs/compare/cloudflare-security-audit.md#side-by-side", "docs/compare/socket.md#side-by-side"] },
+        "cloudflare": { "t": "Reviews your build and release setup. Known dependency CVEs are out of scope.", "s": ["docs/compare/cloudflare-security-audit.md#side-by-side", "https://github.com/cloudflare/security-audit-skill/issues/20"] },
+        "semgrep": { "t": "Semgrep Supply Chain with reachability, on the platform.", "s": ["docs/compare/semgrep.md#side-by-side"] },
+        "snyk": { "t": "Known vulnerabilities and licenses, 13+ package ecosystems.", "s": ["https://docs.snyk.io/supported-languages/supported-languages-package-managers-and-frameworks"] },
+        "socket": { "t": "Package behavior across many ecosystems, with registry-wide threat intelligence.", "s": ["https://docs.socket.dev/docs/language-support"] },
+        "zap": { "t": "No.", "s": ["docs/compare/zap.md#side-by-side"] },
+        "github": { "t": "Dependabot alerts from reviewed advisories, and update PRs.", "s": ["https://docs.github.com/en/code-security/dependabot/dependabot-alerts/about-dependabot-alerts"] }
+      }
+    },
+    {
+      "label": "AI tooling config (skills, MCP, hooks)",
+      "cells": {
+        "penthera": { "t": "penthera agents: skills, MCP servers, hooks, permissions, plugins, checked locally.", "s": ["docs/compare/snyk.md#side-by-side"] },
+        "cloudflare": { "t": "Reviews AI and LLM attack classes in your app's code, not your tool config.", "s": ["docs/compare/cloudflare-security-audit.md#side-by-side"] },
+        "semgrep": { "t": "No dedicated check.", "s": ["docs/compare/semgrep.md#side-by-side"] },
+        "snyk": { "t": "Snyk Agent Scan: MCP servers and skills. Sends metadata to Snyk's API, needs a token.", "s": ["https://github.com/snyk/agent-scan"] },
+        "socket": { "t": "An MCP server for package lookups; the firewall covers skills and models as downloads.", "s": ["https://docs.socket.dev/docs/guide-to-socket-mcp", "https://socket.dev/features/firewall"] },
+        "zap": { "t": "No.", "s": ["docs/compare/zap.md#side-by-side"] },
+        "github": { "t": "No dedicated check.", "s": ["docs/compare/github.md#side-by-side"] }
+      }
+    },
+    {
+      "label": "Fixes",
+      "cells": {
+        "penthera": { "t": "Applied on a local branch and re-scanned. Never pushes.", "s": ["docs/compare/snyk.md#side-by-side"] },
+        "cloudflare": { "t": "Recommends the smallest fix; does not apply it.", "s": ["docs/compare/cloudflare-security-audit.md#side-by-side"] },
+        "semgrep": { "t": null, "s": [] },
+        "snyk": { "t": "Fix pull requests through your SCM.", "s": ["https://docs.snyk.io/scan-with-snyk/pull-requests/snyk-fix-pull-or-merge-requests"] },
+        "socket": { "t": null, "s": [] },
+        "zap": { "t": "Reports alerts.", "s": ["docs/compare/zap.md#side-by-side"] },
+        "github": { "t": "Dependabot security and version update PRs.", "s": ["docs/compare/github.md#side-by-side"] }
+      }
+    },
+    {
+      "label": "Offline, no account",
+      "cells": {
+        "penthera": { "t": "Yes. --offline limits traffic to the target you named.", "s": ["docs/compare/socket.md#side-by-side"] },
+        "cloudflare": { "t": "Needs a coding agent and model usage on every run; network depends on your model provider.", "s": ["docs/compare/cloudflare-security-audit.md#side-by-side"] },
+        "semgrep": { "t": "CE with local rules sends no metrics by default.", "s": ["https://docs.semgrep.dev/metrics"] },
+        "snyk": { "t": "An account is required for the CLI.", "s": ["https://docs.snyk.io/developer-tools/snyk-cli/authenticate-to-use-the-cli"] },
+        "socket": { "t": "The CLI needs an API token; the firewall's free mode needs no key.", "s": ["https://docs.socket.dev/docs/socket-firewall-overview"] },
+        "zap": { "t": "Runs locally on Java 17+ or Docker.", "s": ["https://www.zaproxy.org/download/"] },
+        "github": { "t": "Runs on GitHub; the CodeQL CLI also runs locally.", "s": ["https://docs.github.com/en/code-security/codeql-cli/getting-started-with-the-codeql-cli/about-the-codeql-cli"] }
+      }
+    },
+    {
+      "label": "Cost",
+      "cells": {
+        "penthera": { "t": "Free, MIT.", "s": ["LICENSE"] },
+        "cloudflare": { "t": "MIT, plus model usage on every run. One third-party test measured about $30 per run, on one target, by a party with its own tool.", "s": ["https://github.com/cloudflare/security-audit-skill/issues/20"] },
+        "semgrep": { "t": "CE free. Platform free up to 10 contributors; Teams from $30 per contributor a month, per product.", "s": ["https://semgrep.dev/pricing"] },
+        "snyk": { "t": "Free plan (5 projects); Team from $25 a month.", "s": ["https://snyk.io/plans/"] },
+        "socket": { "t": "Free plan (1 seat); paid seats from $25 a month.", "s": ["https://socket.dev/pricing"] },
+        "zap": { "t": "Free, Apache 2.0.", "s": ["https://www.zaproxy.org/blog/2024-09-24-zap-has-joined-forces-with-checkmarx/"] },
+        "github": { "t": "Dependabot free. Code scanning free on public repos; private repos from $19 to $30 per committer a month.", "s": ["https://github.com/security/plans"] }
+      }
+    },
+    {
+      "label": "Published accuracy",
+      "cells": {
+        "penthera": { "t": "Precision {{BENCH_P}} (95% CI {{BENCH_P_CI}}) and recall {{BENCH_R}} ({{BENCH_R_CI}}), on {{BENCH_N}} findings in labs we wrote ourselves. Real-world accuracy is not measured yet.", "s": ["bench/RESULTS.md", "docs/research/prereg/E1-real-world-accuracy.md"] },
+        "cloudflare": { "t": "See vendor.", "s": ["https://github.com/cloudflare/security-audit-skill#readme"] },
+        "semgrep": { "t": "See vendor.", "s": ["https://semgrep.dev"] },
+        "snyk": { "t": "See vendor.", "s": ["https://snyk.io"] },
+        "socket": { "t": "See vendor.", "s": ["https://socket.dev"] },
+        "zap": { "t": "See vendor.", "s": ["https://www.zaproxy.org"] },
+        "github": { "t": "See vendor.", "s": ["https://docs.github.com/en/code-security"] }
+      }
+    },
+    {
+      "label": "Where it goes further",
+      "cells": {
+        "penthera": { "t": "Outside the source: the running app, what packages do, your agent config. Offline, with verified fixes and EU evidence.", "s": ["docs/compare/semgrep.md#where-penthera-adds-something", "docs/compare/snyk.md#where-penthera-adds-something"] },
+        "cloudflare": { "t": "Depth on your own code: logic and authorization flaws no rule describes, in many languages.", "s": ["docs/compare/cloudflare-security-audit.md#where-the-skill-goes-further"] },
+        "semgrep": { "t": "Code analysis depth, cross-file dataflow, and your own rules.", "s": ["docs/compare/semgrep.md#where-semgrep-goes-further"] },
+        "snyk": { "t": "Curated vulnerability data, containers and IaC, reachability, org features.", "s": ["docs/compare/snyk.md#where-snyk-goes-further"] },
+        "socket": { "t": "Sees the whole registry, more ecosystems, human malware research.", "s": ["docs/compare/socket.md#where-socket-goes-further"] },
+        "zap": { "t": "Dynamic testing depth, a manual proxy, logged-in crawls.", "s": ["docs/compare/zap.md#where-zap-goes-further"] },
+        "github": { "t": "Known-vulnerability PRs, CodeQL depth, push protection, zero setup on public repos.", "s": ["docs/compare/github.md#where-github-goes-further"] }
+      }
+    }
+  ]
+}

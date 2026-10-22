@@ -28,7 +28,7 @@ software. The metadata are in [CITATION.cff](../CITATION.cff), which GitHub
 renders as "Cite this repository".
 
 ```text
-van der Zwaag, D. (2026). Penthera: An offline security scanner for web apps and AI-built code (Version 1.8.0) [Computer software]. https://github.com/danoszz/penthera
+van der Zwaag, D. (2026). Penthera: An offline security scanner for web apps and AI-built code (Version 1.9.0-rc.1) [Computer software]. https://github.com/danoszz/penthera
 ```
 
 ```bibtex
@@ -36,7 +36,7 @@ van der Zwaag, D. (2026). Penthera: An offline security scanner for web apps and
   author  = {van der Zwaag, Daan},
   title   = {Penthera: An Offline Security Scanner for Web Apps and {AI}-Built Code},
   year    = {2026},
-  version = {1.8.0},
+  version = {1.9.0-rc.1},
   license = {MIT},
   url     = {https://github.com/danoszz/penthera}
 }
@@ -173,6 +173,28 @@ across many formats, is the natural yardstick for that gap (Basak et al.,
 2023). The bundled benchmark includes an unprefixed signing key that Penthera
 misses for this reason.
 
+The scan reads source, config and notebook files, plus Terraform and other HCL
+files (`.tf`, `.tfvars`, `.hcl`), where keys and passwords often sit inline.
+One rule is specific to session middleware: a signing secret written into the
+options of `session(...)` or `cookieSession(...)`, including the common
+`process.env.SESSION_SECRET || '...'` fallback, is reported as a hardcoded
+session secret, since anyone with the repository can then sign session
+cookies. A secret read only from the environment or from a config object is
+not reported.
+
+Code-execution sinks are looked for in every server code file, not only in
+recognized route handlers: `eval` and `new Function` with a non-constant
+argument, `node:vm` calls, and `child_process` `exec`/`execSync`. A taint-lite
+pass marks request data (`req.body`, `req.query`, `req.params`, headers,
+cookies, uploaded files, and those fields destructured from the request) and
+every variable assigned from an expression that uses it, within one file. It
+has no call graph, scopes or sanitizers, so `likely` means "derived from the
+request", not "exploitable". A sink whose arguments carry request data is
+`likely`; an `eval` of a value Penthera cannot trace is `potential`. A `vm`
+call or a shell command without request data is not reported, since build
+scripts and CLIs build commands from their own constants all the time. Tests,
+build tooling, browser assets and minified files are skipped.
+
 White-box scanning cannot see runtime configuration (headers added by a CDN, a
 WAF in front of the app), secrets injected at deploy time, or anything in
 dependencies that is only known from a vulnerability database.
@@ -221,7 +243,7 @@ Each product and version gets one of four answers:
 
 | Verdict | Evidence | Severity, confidence |
 |---|---|---|
-| Affected | An exact upstream version below the first fixed version on its line | The vendor's severity, `likely` |
+| Affected | An exact upstream version below the first fixed version on its line | The vendor's severity; `likely` from a pinned image or version file, `potential` from a banner that names no distribution |
 | End of life, no fix | A version on a line the vendor no longer supports | The advisory's severity, `potential`; plus an end-of-life finding |
 | Check on server | The product is in use, but the version is hidden, floating, or a distribution build, or the advisory lists no fix for that line | Medium, `needs-human-review` |
 | Has the fix (as advertised) | The visible version is at or above every fix | Info |
@@ -259,6 +281,21 @@ with the advice to look up the CVE in the distribution's security tracker. We
 found no peer-reviewed measurement of how many false positives backports cause
 in version-based scanners. The support for this rule is the distributions' own
 statements and the Nmap project's.
+
+**A banner that names no distribution may still be one.** Many distribution
+builds print a plain upstream number. Debian 11 to 13, Ubuntu 24.04 and later,
+and RHEL put no package revision in PHP's version, Debian's and RHEL's nginx
+add no OS token, and distribution Pythons print the plain interpreter
+version. Apache httpd is the exception: Debian, Ubuntu and RHEL put the
+distribution name in its banner. Penthera's labelled test set of 253 real
+version strings found 14 such builds
+([#97](https://github.com/danoszz/penthera/pull/97)). So for PHP, Apache
+httpd, nginx, Python and OpenSSL, an "affected" or "end of life" answer from
+a banner without a distribution token is capped at `potential`, with a note to
+check on the server. The severity is unchanged, because an upstream build at
+that version really is exposed. An official Docker image or a version file
+pins an upstream build and stays `likely`. Node.js sends no version banner, so
+the cap never applies to it.
 
 **A version match is necessary, not sufficient.** Many advisories need more
 than a version. CVE-2024-4577, an argument injection in PHP-CGI, only
@@ -302,10 +339,12 @@ Exploited Vulnerabilities catalog, which is CC0-licensed, is a candidate source
 for an exploited-in-the-wild flag (Cybersecurity and Infrastructure Security
 Agency, n.d.).
 
-End-of-life lines come from each vendor's support page (OpenJS Foundation and
-Node.js contributors, n.d.; Python Software Foundation, n.d.; The PHP Group,
-n.d.-c), cross-checked against endoflife.date (endoflife.date contributors,
-n.d.). A line counts as ended only when its end date is on or before the
+End-of-life lines come from each vendor's support page (MongoDB, Inc., n.d.;
+OpenJS Foundation and Node.js contributors, n.d.; Python Software Foundation,
+n.d.; The PHP Group, n.d.-c), cross-checked against endoflife.date
+(endoflife.date contributors, n.d.). MongoDB is the one database in the pack:
+it has no HTTP banner, so it is checked only where a repository pins it (the
+official `mongo` image in a Dockerfile or compose file, or `.tool-versions`). A line counts as ended only when its end date is on or before the
 date of the rule, so the same scan with the same packs gives the same result on
 any day.
 
@@ -350,6 +389,23 @@ where the evidence is real but the judgment is wrong: a health endpoint that
 is public by design, and AWS's published example key. See
 [bench/RESULTS.md](../bench/RESULTS.md).
 
+### Findings proposed by a model
+
+`penthera verify` reads findings that a model proposed elsewhere, for example
+an AI security audit run with Cloudflare's security-audit skill in a coding
+agent (Cloudflare, 2026). Language models find real issues that rules do not
+describe, but on realistic benchmarks their vulnerability detection is far
+less reliable than headline numbers suggest (Ding et al., 2025). So a model's
+finding never gets a confidence label on its own authority. It counts as
+`confirmed` or `likely` only through a Penthera rule that flags the same kind
+of issue in the same file; the rule's finding is then the record. Everything
+else is `needs-human-review`, labelled "model-proposed, unverified", kept apart
+from rule findings, and never changes the exit code. A rule that ran and did
+not fire does not count against a model's finding, because rules have false
+negatives too. How often model findings are confirmed, and how precise each
+group is, is not yet measured; a planned experiment (E9) will measure it on
+the E1 corpus.
+
 ## False-positive controls
 
 A black-box scanner loses trust through false positives faster than through
@@ -367,6 +423,18 @@ misses. The probes apply these controls:
   Context-aware tools such as Dalfox take the same approach.
 - **Baseline comparison.** Error-based SQL injection is reported only when the
   database error appears in the injected response and not in the baseline.
+- **Format, not keyword.** Exposure templates match the format of what they
+  look for, not a word that might appear in any page. The Prometheus template
+  needs both a `# HELP` and a `# TYPE <name> <kind>` line and no HTML, so a
+  single-page app that answers `/metrics` with its index page does not match.
+  A directory listing needs the listing in the page title (`Index of /`,
+  `listing directory /`, `Directory listing for /`) or IIS's
+  `[To Parent Directory]`. A stack trace needs a runtime's frame shape with a
+  file and line number (V8, Python, Java, PHP, .NET), not just the word
+  "error". The listing check reads the plain folder paths in `robots.txt`
+  (no wildcards, at most 20) plus a short list of common upload and backup
+  folders; the stack-trace check requests a path that does not exist. Both
+  send only `GET`s without payloads.
 - **Timing re-sampling.** A single slow response proves nothing: garbage
   collection, cold starts, and network jitter all look like an injected sleep.
   Time-based SQL and command injection candidates are re-sent and reported only

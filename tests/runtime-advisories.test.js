@@ -412,6 +412,37 @@ describe("bundled pack", () => {
     }
   });
 
+  it("the October 2026 Node.js release: below the fix is affected, at the fix patched, 20 and 25 end of life", () => {
+    // https://nodejs.org/en/blog/vulnerability/october-2026-security-releases
+    const NODE_2026_10 = ["nodejs-cve-2026-111497", "nodejs-tls-hostname-2026-10"];
+    const dir = mkdtempSync(join(tmpdir(), "penthera-node-adv-"));
+    const scan = (v) => {
+      writeFileSync(join(dir, ".nvmrc"), `${v}\n`);
+      return runtimeAdvisoriesForRepo(dir).filter((f) => NODE_2026_10.includes(f.rule));
+    };
+    try {
+      for (const v of ["22.23.3", "24.22.0", "26.12.0"]) {
+        expect(scan(v).map((f) => [f.rule, f.severity, f.confidence]), v).toEqual([
+          ["nodejs-cve-2026-111497", "high", "likely"],
+          ["nodejs-tls-hostname-2026-10", "high", "likely"],
+        ]);
+      }
+      for (const v of ["22.23.4", "24.22.1", "26.12.1", "26.13.0"]) expect(scan(v), v).toEqual([]);
+      for (const v of ["20.20.2", "25.9.0"]) {
+        expect(scan(v).map((f) => f.rule).sort(), v).toEqual(NODE_2026_10);
+        expect(scan(v).every((f) => /end-of-life line/.test(f.title)), v).toBe(true);
+      }
+      // Only the release line pinned: check, not affected.
+      writeFileSync(join(dir, ".nvmrc"), "24\n");
+      expect(runtimeAdvisoriesForRepo(dir).filter((f) => NODE_2026_10.includes(f.rule)).every((f) => f.confidence === "needs-human-review")).toBe(true);
+      const rce = rulesOf("runtime-advisory").find((r) => r.id === "nodejs-cve-2026-111497");
+      expect(rce.fixed).toEqual([{ branch: "22", version: "22.23.4" }, { branch: "24", version: "24.22.1" }, { branch: "26", version: "26.12.1" }]);
+      expect(rce.source).toBe("https://nodejs.org/en/blog/vulnerability/october-2026-security-releases");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("the worked examples behave as documented", () => {
     const one = (headers) => verdicts(runtimeAdvisoriesForResponse({ headers }));
     // CVE-2021-41773 / CVE-2021-42013: Apache 2.4.49 and 2.4.50 only, and only

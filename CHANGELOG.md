@@ -4,6 +4,39 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Detection
+
+- Three exposure checks in the default URL scan, each a documented miss in
+  the E10 pilot (Juice Shop). All send plain `GET`s, no payloads:
+  - a public Prometheus `/metrics` endpoint (medium), matched on the
+    exposition format, so an SPA's index page at `/metrics` does not count;
+  - browsable directory listings (medium) in folders that `robots.txt`
+    disallows and in common upload and backup folders, matched on the
+    listing's page title;
+  - a stack trace in the error page for a path that does not exist (low),
+    matched on Node.js, Python, Java, PHP and .NET frame shapes.
+
+- The header audit reports an `X-Powered-By` header (low, `confirmed`), such
+  as Express's default `X-Powered-By: Express`. It was a documented miss in
+  the E10 pilot (DVNA). The finding names the value and how to turn the
+  header off.
+- The secret scan reads Terraform and HCL files (`.tf`, `.tfvars`, `.hcl`).
+  A private key inline in a Terraform file was a documented miss in the E10
+  pilot (Juice Shop).
+- New secret rule: a session signing secret written into
+  `session({ secret: '...' })` or `cookieSession(...)`, including a hardcoded
+  fallback after `process.env.X ||` (high). Express's documented example,
+  `'keyboard cat'`, was a documented miss in the E10 pilot (DVNA).
+- The repo scan looks for code-execution sinks in all server code, not just
+  route handlers: `eval`/`new Function` with a non-constant argument, `vm`
+  calls and `child_process` `exec` with request data in their arguments.
+  A taint-lite pass (assignments and destructuring within one file) sets the
+  confidence: `likely` when request data reaches the sink, `potential` for an
+  `eval` of a value it cannot trace. Before, a repo with an Express `routes/`
+  folder stopped before any code-pattern check; three E10 pilot misses (DVNA's
+  `exec` in `core/appHandler.js`, Juice Shop's B2B `vm` and profile `eval`)
+  came from this.
+
 ### Added
 
 - **Coverage ledger** in every `--repo` report (terminal, Markdown, JSON
@@ -30,6 +63,8 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   model's route with Ollama itself and logs the consent. Runs show an
   "AI · local" tag, unverified proposals are folded under their own heading,
   and Settings lists the consent log.
+
+
 - **`penthera verify <findings.json>`** checks findings from an AI security
   audit against Penthera's rules on your checkout. It reads Cloudflare's
   security-audit skill `findings.json` (schema vendored from commit `c1c8a8c`,
@@ -44,6 +79,20 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 - Risky-pattern findings from `--repo` now carry the repo-relative `file` and
   the `pattern` name.
 
+
+
+- **Coverage ledger** in every `--repo` report (terminal, Markdown, JSON
+  `coverage`): which files each check read, which it did not and why, and the
+  source files no code analysis looked at. It reads only file names and sizes,
+  and is the first step toward an opt-in AI mode.
+
+### Fixed
+
+- `--repo` scans of Express, Hono and Fastify apps with a `routes/`, `api/` or
+  `server/routes/` folder now get route discovery, trust-boundary and
+  risky-pattern checks. That folder was taken for a Next.js API root, no
+  `route.js` files were found there, and route analysis stopped. An explicit
+  `--api-root` is still used as given.
 
 - **TLS keys anyone can compute.** URL scans report, as critical, any
   certificate in the served chain whose EC public key (P-256, P-384, P-521) is

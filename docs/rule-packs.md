@@ -129,6 +129,7 @@ Every rule carries:
 | `agent-instruction` | `lib/agents/hidden-content.js`: instructions hidden in comments and decoded blobs | `pattern`, `flags` |
 | `agent-exec` | `lib/agents/`: remote-code-execution shapes in skills, hooks and MCP commands | `label`, `pattern`, `flags` |
 | `ioc-package` | `penthera deps`: known-malicious versions, matched against the lockfile | `campaign`, `packages: [{ name, versions }]`, `severity` |
+| `ioc-pypi-package` | `penthera deps` (Python): known-malicious PyPI versions, matched against the lockfile | `campaign`, `packages: [{ name, versions }]` (PEP 503 normalized names, exact PEP 440 versions or `*`), `severity` |
 | `ioc-host` | `penthera deps`: exfiltration endpoints in package code | `campaign`, `hosts` (attacker domains), `urls` (exact endpoints on shared services) |
 | `ioc-file` | `penthera deps`: files a campaign drops into packages | `campaign`, `files: [{ path, sha256? }]` |
 | `typosquat-target` | `lib/deps/typosquat.js`: names to protect from look-alikes | `names` |
@@ -193,7 +194,7 @@ existing user templates keep working.
 | Pack | Contents |
 |---|---|
 | `core` | Detections that were hardcoded before rule packs, moved here so the built-in rules go through the same loader: 12 AI-provider key formats, the credential-path hidden-instruction pattern, two process-substitution exec patterns, and the `.env` exposure template. Engines splice them back in at their old positions, and a test compares the result with a snapshot of the old built-ins. |
-| `advisories` | Runtime and server advisories and end-of-life release lines. The PHP security release of 21 October 2026 (CVE-2026-109618 and CVE-2026-109619, fixed in 8.2.35, 8.3.36, 8.4.27 and 8.5.12). Worked examples: CVE-2024-4577 and its bypass CVE-2024-8926 (PHP-CGI on Windows, from the php-src advisories), and CVE-2021-41773 with CVE-2021-42013 (Apache HTTP Server 2.4.49 and 2.4.50). End-of-life lines for PHP, Node.js, Python, nginx, Apache HTTP Server and OpenSSL, from each vendor's support page. Every rule cites the vendor page it was copied from. |
+| `advisories` | Runtime and server advisories and end-of-life release lines. The PHP security release of 21 October 2026 (CVE-2026-109618 and CVE-2026-109619, fixed in 8.2.35, 8.3.36, 8.4.27 and 8.5.12), and the Node.js security release of the same day (CVE-2026-111497, a Brotli decoder RCE, and three TLS certificate hostname bypasses, fixed in 22.23.4, 24.22.1 and 26.12.1). Worked examples: CVE-2024-4577 and its bypass CVE-2024-8926 (PHP-CGI on Windows, from the php-src advisories), and CVE-2021-41773 with CVE-2021-42013 (Apache HTTP Server 2.4.49 and 2.4.50). End-of-life lines for PHP, Node.js, Python, nginx, Apache HTTP Server and OpenSSL, from each vendor's support page. Every rule cites the vendor page it was copied from. |
 | `ioc-2025-2026` | Named npm campaigns: **s1ngularity** (nx and @nx/* versions, from GHSA-cxm3-wv7p-598c), **Shai-Hulud** (484 package versions from StepSecurity's table, the webhook.site exfil URL, and `bundle.js` by SHA-256), **Shai-Hulud 2.0** (1,089 package versions from Wiz Research's CSV, plus `setup_bun.js` and `bun_environment.js`), and **postmark-mcp** 1.0.16 to 1.0.18 with its exfil domain. Every rule cites the list it came from. We dropped entries we could not check against a primary source. |
 
 ## Writing and signing a pack

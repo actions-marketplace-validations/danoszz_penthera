@@ -1,0 +1,17 @@
+{
+  "kind": "ioc-pypi-package",
+  "rules": [
+    {
+      "id": "litellm-pth-stealer",
+      "campaign": "litellm PyPI compromise",
+      "description": "Malicious litellm releases on PyPI. 1.82.7 and 1.82.8 (March 2026) and 1.107.0 (uploaded 2026-10-21, 11:39 to 11:40 UTC) carry a .pth file that runs a credential stealer at every Python start, without litellm being imported; 1.107.0 adds a sitecustomize.py that fetches and runs remote code every hour. The upstream git tags do not contain the payload. Versions from the OSV record's affected data; 1.106.2 and 1.107.0rc1/rc2 are not affected.",
+      "source": "https://osv.dev/vulnerability/MAL-2026-2144",
+      "date": "2026-10-21",
+      "confidence": "confirmed",
+      "references": ["ohm2020backstabber", "ladisa2023sok"],
+      "packages": [
+        {"name": "litellm", "versions": ["1.82.7", "1.82.8", "1.107.0"]}
+      ]
+    }
+  ]
+}

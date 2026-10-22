@@ -79,6 +79,43 @@ describe("site build", () => {
     for (const f of ["media/social/og.png", "media/social/square.png"]) expect(existsSync(join(out, f)), f).toBe(true);
   });
 
+  it("has a link-preview reel as og:video, beside og:image, and no twitter:player", () => {
+    const html = readFileSync(join(out, "index.html"), "utf8");
+    const meta = (p) => html.match(new RegExp(`property="${p}" content="([^"]*)"`))?.[1];
+    const site = meta("og:url").replace(/\/$/, "");
+    expect(meta("og:video")).toBe(`${site}/media/social/reel.mp4`);
+    expect(meta("og:video:secure_url")).toBe(meta("og:video"));
+    expect(meta("og:video:type")).toBe("video/mp4");
+    expect([meta("og:video:width"), meta("og:video:height")]).toEqual(["1200", "630"]);
+    // The poster stays: og:image is the fallback where video does not play.
+    expect(meta("og:image")).toBe(`${site}/media/social/og.png`);
+    expect(html).not.toMatch(/name="twitter:player/);
+    const reel = join(out, "media/social/reel.mp4");
+    expect(existsSync(reel)).toBe(true);
+    const buf = readFileSync(reel);
+    expect(buf.length).toBeLessThan(3 * 1024 * 1024);
+    // An MP4 whose index (moov) comes before the media (mdat): +faststart.
+    expect(buf.subarray(4, 8).toString("latin1")).toBe("ftyp");
+    expect(buf.indexOf("moov")).toBeGreaterThan(0);
+    expect(buf.indexOf("moov")).toBeLessThan(buf.indexOf("mdat"));
+  });
+
+  it("builds absolute og:video URLs from SITE_URL", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "penthera-site-url-"));
+    const prev = process.env.SITE_URL;
+    process.env.SITE_URL = "https://penthera.org/";
+    try {
+      await buildSite({ out: dir });
+      const html = readFileSync(join(dir, "index.html"), "utf8");
+      expect(html).toContain('<meta property="og:video" content="https://penthera.org/media/social/reel.mp4">');
+      expect(html).toContain('<meta property="og:video:secure_url" content="https://penthera.org/media/social/reel.mp4">');
+    } finally {
+      if (prev === undefined) delete process.env.SITE_URL;
+      else process.env.SITE_URL = prev;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 120_000);
+
   it("loads nothing from another origin and has no inline script", () => {
     const html = readFileSync(join(out, "index.html"), "utf8");
     for (const m of html.matchAll(/<(?:script|link|img|video|source|track)\b[^>]*\b(?:src|href)="([^"]+)"/g)) {
@@ -213,6 +250,11 @@ describe("site headers", () => {
       const res = await fetch(`http://127.0.0.1:${server.address().port}/`);
       expect(res.status).toBe(200);
       expect(res.headers.get("content-security-policy")).toContain("connect-src https://penthera.org/_vercel/insights/ https://penthera.org/_vercel/speed-insights/ https://www.penthera.org/_vercel/insights/ https://www.penthera.org/_vercel/speed-insights/");
+      // The link-preview reel: fetched directly by preview bots, as video/mp4.
+      const reel = await fetch(`http://127.0.0.1:${server.address().port}/media/social/reel.mp4`);
+      expect(reel.status).toBe(200);
+      expect(reel.headers.get("content-type")).toBe("video/mp4");
+      await reel.arrayBuffer();
     } finally {
       server.close();
     }
@@ -328,13 +370,16 @@ describe("browser check, runtime advisories against the CLI", () => {
     const one = async (text) => (await engine.check([{ path: engine.HEADERS, text }])).findings.filter((f) => f.source === "runtime-advisory");
     const affected = await one("HTTP/2 200\nx-powered-by: PHP/8.3.35\n");
     expect(affected.flatMap((f) => f.cves || [])).toEqual(expect.arrayContaining(["CVE-2026-109618", "CVE-2026-109619"]));
-    expect(affected.every((f) => f.confidence === "likely")).toBe(true);
+    // A banner without a distribution token may be a patched package: potential.
+    expect(affected.every((f) => f.confidence === "potential")).toBe(true);
     const fixed = await one("HTTP/2 200\nx-powered-by: PHP/8.3.36\n");
     expect(fixed).toHaveLength(1);
     expect(fixed[0]).toMatchObject({ severity: "info" });
     expect(fixed[0].title).toMatch(/has the fix/);
     const docker = (await engine.check([{ path: "Dockerfile", text: "FROM php:8.3.12-fpm\n" }])).findings;
     expect(docker.flatMap((f) => f.cves || [])).toEqual(expect.arrayContaining(["CVE-2026-109618", "CVE-2026-109619"]));
+    // An official image is an upstream build: likely.
+    expect(docker.filter((f) => f.source === "runtime-advisory" && f.severity === "critical").every((f) => f.confidence === "likely")).toBe(true);
   });
 
   it("runtime pins: the same findings as penthera --repo on the same files", async () => {

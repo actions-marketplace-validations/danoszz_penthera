@@ -173,6 +173,28 @@ across many formats, is the natural yardstick for that gap (Basak et al.,
 2023). The bundled benchmark includes an unprefixed signing key that Penthera
 misses for this reason.
 
+The scan reads source, config and notebook files, plus Terraform and other HCL
+files (`.tf`, `.tfvars`, `.hcl`), where keys and passwords often sit inline.
+One rule is specific to session middleware: a signing secret written into the
+options of `session(...)` or `cookieSession(...)`, including the common
+`process.env.SESSION_SECRET || '...'` fallback, is reported as a hardcoded
+session secret, since anyone with the repository can then sign session
+cookies. A secret read only from the environment or from a config object is
+not reported.
+
+Code-execution sinks are looked for in every server code file, not only in
+recognized route handlers: `eval` and `new Function` with a non-constant
+argument, `node:vm` calls, and `child_process` `exec`/`execSync`. A taint-lite
+pass marks request data (`req.body`, `req.query`, `req.params`, headers,
+cookies, uploaded files, and those fields destructured from the request) and
+every variable assigned from an expression that uses it, within one file. It
+has no call graph, scopes or sanitizers, so `likely` means "derived from the
+request", not "exploitable". A sink whose arguments carry request data is
+`likely`; an `eval` of a value Penthera cannot trace is `potential`. A `vm`
+call or a shell command without request data is not reported, since build
+scripts and CLIs build commands from their own constants all the time. Tests,
+build tooling, browser assets and minified files are skipped.
+
 White-box scanning cannot see runtime configuration (headers added by a CDN, a
 WAF in front of the app), secrets injected at deploy time, or anything in
 dependencies that is only known from a vulnerability database.
@@ -382,6 +404,18 @@ misses. The probes apply these controls:
   Context-aware tools such as Dalfox take the same approach.
 - **Baseline comparison.** Error-based SQL injection is reported only when the
   database error appears in the injected response and not in the baseline.
+- **Format, not keyword.** Exposure templates match the format of what they
+  look for, not a word that might appear in any page. The Prometheus template
+  needs both a `# HELP` and a `# TYPE <name> <kind>` line and no HTML, so a
+  single-page app that answers `/metrics` with its index page does not match.
+  A directory listing needs the listing in the page title (`Index of /`,
+  `listing directory /`, `Directory listing for /`) or IIS's
+  `[To Parent Directory]`. A stack trace needs a runtime's frame shape with a
+  file and line number (V8, Python, Java, PHP, .NET), not just the word
+  "error". The listing check reads the plain folder paths in `robots.txt`
+  (no wildcards, at most 20) plus a short list of common upload and backup
+  folders; the stack-trace check requests a path that does not exist. Both
+  send only `GET`s without payloads.
 - **Timing re-sampling.** A single slow response proves nothing: garbage
   collection, cold starts, and network jitter all look like an injected sleep.
   Time-based SQL and command injection candidates are re-sent and reported only

@@ -38,7 +38,6 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   the `pattern` name.
 
 
-
 ## [1.8.1] - 2026-10-22
 
 A fixes-only release. Runtime advisories are more careful: pre-release builds

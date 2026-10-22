@@ -678,6 +678,12 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 
 /* The MCP configs: they keep their indentation and scroll sideways on a phone. */
 .agent .prompts { margin-top: 20px; }
+/* Collapsed by default: Claude Code's one-liner is already in the three ways. */
+.agent > summary { display: flex; align-items: center; gap: 12px; min-height: var(--target); cursor: pointer; list-style: none; font-family: var(--display); font-weight: 500; color: var(--text-1); }
+.agent > summary::-webkit-details-marker { display: none; }
+.agent > summary::after { content: "+"; flex: none; width: 28px; height: 28px; display: grid; place-items: center; font-family: var(--px); font-size: 18px; border: 1px solid var(--frame); }
+.agent[open] > summary::after { content: "\2212"; background: var(--frame); color: var(--ground); }
+.agent > summary:hover { text-decoration: underline; text-underline-offset: 4px; }
 .agent .prompt-card { min-width: 0; }
 .agent .prompt-card pre { overflow-wrap: anywhere; }
 .agent .prompt-card pre.cfg { white-space: pre; overflow-x: auto; overflow-wrap: normal; }

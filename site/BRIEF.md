@@ -64,6 +64,11 @@ assertion; sections that repeated each other were merged.
 9. For agents: `llms.txt`, `llms-full.txt`, the Markdown docs, `server.json`,
    the skill, `AGENTS.md` (once it exists), the sitemap and `security.txt`.
 
+Decided with the maintainer, 2026-10-22: the problem line is a kicker above
+the title (the title stays the h1); the browser check stays under "What it
+checks"; chapters keep a numbered eyebrow and an assertive h2; the
+per-client MCP configs are collapsed in a `<details>`.
+
 ## Anti-references
 
 - Security-vendor pages: dark gradients, shields, padlocks, "threat

@@ -462,7 +462,7 @@
             <span class="cmd-act" aria-hidden="true" data-js><span class="cmd-copy">Copy</span><span class="cmd-done">Copied</span></span>
             <span class="sr" aria-live="polite" data-copy-status>, copy to clipboard</span>
           </button>
-          <p>Pinned to {{VERSION}}, so an update never runs without you. {{MCP_NOTE}} Other clients below.</p>
+          <p>Pinned to {{VERSION}}, so an update never runs without you. {{MCP_NOTE}} Configs for other clients are below.</p>
         </li>
       </ol>
 
@@ -484,8 +484,8 @@
           <button class="btn" type="button" data-copy-from data-js>Copy prompt</button>
         </article>
       </div>
-      <div class="agent" id="agent">
-        <h3 class="prompts-title" id="agent-title">MCP configs for each client</h3>
+      <details class="agent" id="agent">
+        <summary class="prompts-title" id="agent-title">MCP configs for Claude Code, Codex, Cursor, VS Code and Windsurf</summary>
       <div class="prompts">
         <article class="prompt-card" data-copy-root>
           <h4>Claude Code</h4>
@@ -536,7 +536,7 @@
         </article>
       </div>
         <p class="note">Tools read only inside your project, never apply fixes, run no shell and send no attack payloads. <a href="https://github.com/danoszz/penthera/blob/main/docs/commands/mcp.md">What the server can and cannot do</a></p>
-      </div>
+      </details>
 
       <p class="links">
         <a href="https://github.com/danoszz/penthera">Source on GitHub</a>

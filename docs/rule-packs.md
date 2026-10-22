@@ -129,6 +129,7 @@ Every rule carries:
 | `agent-instruction` | `lib/agents/hidden-content.js`: instructions hidden in comments and decoded blobs | `pattern`, `flags` |
 | `agent-exec` | `lib/agents/`: remote-code-execution shapes in skills, hooks and MCP commands | `label`, `pattern`, `flags` |
 | `ioc-package` | `penthera deps`: known-malicious versions, matched against the lockfile | `campaign`, `packages: [{ name, versions }]`, `severity` |
+| `ioc-pypi-package` | `penthera deps` (Python): known-malicious PyPI versions, matched against the lockfile | `campaign`, `packages: [{ name, versions }]` (PEP 503 normalized names, exact PEP 440 versions or `*`), `severity` |
 | `ioc-host` | `penthera deps`: exfiltration endpoints in package code | `campaign`, `hosts` (attacker domains), `urls` (exact endpoints on shared services) |
 | `ioc-file` | `penthera deps`: files a campaign drops into packages | `campaign`, `files: [{ path, sha256? }]` |
 | `typosquat-target` | `lib/deps/typosquat.js`: names to protect from look-alikes | `names` |

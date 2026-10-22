@@ -356,7 +356,8 @@ export function printReport(result, opts = {}) {
       // heuristic as a confirmed break. Certainties stay unannotated.
       const needsReview = f.confidence === "needs-human-review" || f.confidence === "potential";
       const tag = needsReview ? c.dim(` [${f.confidence}]`) : "";
-      w(`  ${colorFn(label)}  ${f.title}${tag}${f.fid ? c.dim(`  ${f.fid}`) : ""}`);
+      const ai = f.alsoProposedBy?.length ? c.dim(" [also proposed by AI]") : "";
+      w(`  ${colorFn(label)}  ${f.title}${tag}${ai}${f.fid ? c.dim(`  ${f.fid}`) : ""}`);
       if (f.url)  w(`  ${" ".repeat(6)} ${c.dim(f.url + (f.line ? `:${f.line}` : ""))}${f.status ? c.dim(` \u2192 ${f.status}`) : ""}`);
       if (f.description && opts.verbose) w(`  ${" ".repeat(6)} ${c.dim(f.description)}`);
     }
@@ -405,6 +406,13 @@ export function printReport(result, opts = {}) {
     w("");
   }
 
+  // AI mode: what the model proposed, and what Penthera's rules made of it
+  if (result.ai) {
+    w(`  ${c.dim(line())}`);
+    for (const l of aiTerminalLines(result.ai, c)) w(l);
+    w("");
+  }
+
   // Network egress: which hosts this scan talked to besides the target
   if (result.egress) {
     const e = result.egress;
@@ -431,6 +439,29 @@ export function printReport(result, opts = {}) {
   printSummaryLine(result, w);
   printInconclusiveLine(result, w, opts);
   w("");
+}
+
+/** The AI section of the terminal report. Model text is stripped of control characters. */
+export function aiTerminalLines(ai, colors = c) {
+  const L = [];
+  if (ai.ran === false) {
+    L.push(`  ${colors.bold("AI mode")} ${colors.dim("did not run")}`);
+    L.push(`  ${stripControl(ai.reason)}`);
+    return L;
+  }
+  const where = ai.route === "local" ? "on this computer · nothing sent off it" : `on ${ai.forwardedTo} · code sent there through your local Ollama`;
+  L.push(`  ${colors.bold("AI mode")} ${colors.dim(`${ai.model.name} ${where}`)}`);
+  L.push("");
+  L.push(`  Read       ${ai.units.examined} of ${ai.units.units} code parts${ai.partial ? colors.yellow(` (partial: ${ai.stopReason})`) : ""}`);
+  L.push(`  Confirmed  ${colors.green(String(ai.counts["confirmed-by-rule"]))} by a Penthera rule ${colors.dim("(marked in the findings above)")}`);
+  L.push(`  Unverified ${colors.yellow(String(ai.counts.unverified))} model-proposed ${colors.dim("(a person should look; never fails CI)")}`);
+  const notKept = ai.counts["location-not-found"] + ai.counts["out-of-scope"];
+  if (notKept) L.push(`  Not kept   ${notKept} pointed at a line or file that is not there`);
+  for (const f of ai.findings.slice(0, 10)) {
+    L.push(`    ${colors.dim("?")} ${stripControl(f.title)} ${colors.dim(`${stripControl(f.url)}:${f.line}`)}`);
+  }
+  if (ai.findings.length > 10) L.push(colors.dim(`    …and ${ai.findings.length - 10} more in the reports`));
+  return L;
 }
 
 export function suppressionLabel(s) {
@@ -596,6 +627,17 @@ export function formatSarif(result) {
     });
   }
 
+  // Model-proposed findings (AI mode) get their own run, as notes, so code
+  // scanning can filter them and they never pass for rule findings.
+  const aiRun = result.ai?.findings?.length && !result._aiRun
+    ? formatSarif({ timestamp: result.timestamp, findings: result.ai.findings.map((f) => ({ ...f, templateId: `llm-audit/${f.class}` })), _aiRun: true }).runs[0]
+    : null;
+  if (aiRun) {
+    aiRun.tool.driver.name = "penthera-ai";
+    for (const r of aiRun.results) r.level = "note";
+    for (const d of aiRun.tool.driver.rules) d.defaultConfiguration.level = "note";
+  }
+
   const sarif = {
     $schema: "https://json.schemastore.org/sarif-2.1.0.json",
     version: "2.1.0",
@@ -614,7 +656,7 @@ export function formatSarif(result) {
         startTimeUtc: result.timestamp,
         endTimeUtc: new Date().toISOString(),
       }],
-    }],
+    }, ...(aiRun ? [aiRun] : [])],
   };
   return sarif;
 }

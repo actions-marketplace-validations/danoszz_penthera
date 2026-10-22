@@ -876,21 +876,28 @@ describe("ui: stopping on a signal", () => {
   // Under `npx penthera ui`, npm forwards SIGINT/SIGTERM to penthera right after
   // the terminal (or a group kill) delivered the same signal. The repeat must not
   // kill the process before it reports that it stopped.
-  it.skipIf(process.platform === "win32")("prints Stopped. and exits 0 when the signal arrives twice", async () => {
+  it.skipIf(process.platform === "win32")("prints Stopped. and exits 0 when the signal arrives twice", { timeout: 60_000 }, async () => {
     const child = spawn(process.execPath, [join(import.meta.dirname, "..", "bin", "penthera.js"), "ui", "--demo"], {
       env: { ...process.env, NO_COLOR: "1" }, stdio: ["ignore", "pipe", "pipe"],
     });
     let out = "";
+    let err = "";
     child.stdout.on("data", (d) => { out += d; });
+    child.stderr.on("data", (d) => { err += d; });
     const exited = new Promise((r) => child.once("exit", (code, signal) => r({ code, signal })));
-    const seen = (text) => new Promise((r) => {
-      const check = () => { if (out.includes(text)) { child.stdout.off("data", check); r(); } };
-      child.stdout.on("data", check);
+    // Resolves once `text` is in stdout (including text already there); fails
+    // with what the child printed if it exits first or takes too long, so a
+    // regression shows up as a message instead of a hung test.
+    const seen = (text, ms = 20_000) => new Promise((resolve, reject) => {
+      const done = (fn) => { clearTimeout(timer); clearInterval(poll); fn(); };
+      const why = (what) => new Error(`${what} before "${text}"\nstdout: ${out}\nstderr: ${err}`);
+      const timer = setTimeout(() => done(() => reject(why(`no output in ${ms} ms`))), ms);
+      const poll = setInterval(() => { if (out.includes(text)) done(resolve); }, 10);
+      exited.then((e) => setImmediate(() => { if (!out.includes(text)) done(() => reject(why(`exited ${JSON.stringify(e)}`))); }));
     });
     await seen("Ctrl-C to stop");
-    const stopped = seen("Stopped.");
     child.kill("SIGTERM");
-    await stopped;
+    await seen("Stopped.");
     try { child.kill("SIGTERM"); } catch { /* already gone */ }
     expect(await exited).toEqual({ code: 0, signal: null });
   });

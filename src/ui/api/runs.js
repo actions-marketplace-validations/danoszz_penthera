@@ -16,6 +16,9 @@
 import { randomBytes, createHash } from "node:crypto";
 import { normalizeBaseUrl, urlToFilename } from "../../utils/url.js";
 import { confineDir } from "./data.js";
+import { CONSENT_TEXT_VERSION, CLOUD_HOST, logConsent, readConsentLog } from "../../../lib/ai/consent.js";
+import { parseBudget } from "../../../lib/ai/hunt.js";
+import { loadPolicy } from "../../../lib/install/policy.js";
 
 const MAX_EVENTS = 5000;
 const MAX_FINISHED = 20; // finished runs kept for replay; older ones are dropped
@@ -74,9 +77,19 @@ export function validateRunRequest(body, projectRoots, confine = confineDir) {
   if ((kind === "deps" || kind === "agents") && url) throw new RunError("This check reads files only; leave the URL empty.");
   if (kind === "scan" && !repo && !url) throw new RunError("Enter a project folder, a URL, or both.");
 
+  let ai = null;
+  if (body.ai != null) {
+    if (kind !== "scan" || !repo) throw new RunError("AI mode reads source code: it runs with a scan of a project folder.");
+    const a = body.ai;
+    if (typeof a !== "object" || typeof a.model !== "string" || !a.model.trim() || a.model.length > 200) throw new RunError("AI mode needs a model.");
+    if (a.consent !== true) throw new RunError("AI mode needs your consent: open the AI mode sheet and choose the model.", 428);
+    if (a.textVersion !== CONSENT_TEXT_VERSION) throw new RunError("What AI mode does has changed since this page loaded. Reload and open the AI mode sheet again.", 409);
+    ai = { model: a.model.trim(), confirmHost: typeof a.confirmHost === "string" ? a.confirmHost.trim().toLowerCase() : "" };
+  }
+
   const maxIterations = body.maxIterations == null ? 5 : Number(body.maxIterations);
   if (!Number.isInteger(maxIterations) || maxIterations < 1 || maxIterations > 50) throw new RunError("Max iterations must be a whole number from 1 to 50.");
-  return { kind, repo, url, maxIterations, runTests: body.runTests === true };
+  return { kind, repo, url, maxIterations, runTests: body.runTests === true, ai };
 }
 
 /**
@@ -107,6 +120,7 @@ export function createRunManager(deps) {
     return {
       id: run.id, kind: run.kind, status: run.status, repo: run.repo, url: run.url,
       startedAt: run.startedAt, pending: run.pending ? run.pending.request : null, summary: run.summary,
+      ai: run.ai ? { model: run.ai.model.name, route: run.ai.model.route } : null,
     };
   }
 
@@ -177,46 +191,104 @@ export function createRunManager(deps) {
       const offline = deps.settings().offline;
       emit(run, "log", { text: `penthera${req.url ? ` ${req.url}` : ""}${req.repo ? ` --repo ${req.repo}` : ""} --profile standard${offline ? " --offline" : ""}` });
       const r = await deps.executeScan({ url: req.url, repo: req.repo, profile: "standard", offline, json: true, onPhase: (m) => log(m) });
+      if (run.ai && !run.controller.signal.aborted) await runAi(run, req, r, log);
       const c = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
       for (const f of r.merged.findings) if (c[f.severity] != null) c[f.severity]++;
       const base = `${req.url ? urlToFilename(req.url) : "repo"}_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-")}.json`;
       const file = deps.writeReport(r.merged, base);
-      run.summary = { counts: c, total: r.merged.findings.length, file };
+      run.summary = { counts: c, total: r.merged.findings.length, file, ai: aiSummary(r.merged.ai) };
       log(`scan done: ${c.critical} critical, ${c.high} high, ${c.medium} medium, ${c.low} low, ${c.info} info`);
       if (file) log(`report written to ${file}`);
     }
   }
 
-  return {
+  /** AI mode after the rules, as the CLI does it; model findings stay in merged.ai. */
+  async function runAi(run, req, r, log) {
+    const { model } = run.ai;
+    log(model.route === "local" ? `AI: ${model.name} on this computer · nothing sent off it` : `AI: ${model.name} on ${CLOUD_HOST} · code sent there through your local Ollama`);
+    const repoResult = r.results?.find((x) => x.mode === "repo") || r.merged;
+    const ai = await deps.runAiMode({
+      repoPath: req.repo,
+      scanResult: { ...repoResult, findings: r.merged.findings },
+      model,
+      ollama: deps.ollama,
+      budget: parseBudget(),
+      consent: { via: "dashboard" },
+      signal: run.controller.signal,
+      onUnit: (u, i, n) => { if (i === 1 || i === n || i % 10 === 0) log(`   AI ${i}/${n} ${u.id}`); },
+    });
+    r.merged.ai = ai;
+    r.merged.findings = deps.attachProposals(r.merged.findings, ai);
+    log(`AI done: ${ai.counts["confirmed-by-rule"]} confirmed by a rule, ${ai.counts.unverified} model-proposed and unverified${ai.partial ? ` (partial: ${ai.stopReason})` : ""}`);
+  }
+
+  /**
+   * Check an AI request against Ollama and the repo's policy, server side:
+   * the route comes from Ollama, never from the page. Logs the consent.
+   */
+  async function checkAi(req) {
+    if (!deps.ollama || !deps.runAiMode) throw new RunError("AI mode is not available here (it is off in the demo).", 400);
+    let models;
+    try { models = await deps.ollama.models(); } catch (e) { throw new RunError(cleanLine(e.message), 503); }
+    const model = models.find((m) => m.name === req.ai.model || m.name === `${req.ai.model}:latest`);
+    if (!model) throw new RunError(`Ollama has no model named ${cleanLine(req.ai.model)}.`, 400);
+    let allow = null;
+    try { allow = loadPolicy(req.repo).policy.ai?.allow ?? null; } catch (e) { throw new RunError(cleanLine(e.message)); }
+    if (allow && allow.length === 0) throw new RunError("penthera.policy.json turns AI mode off for this project.", 403);
+    if (model.route === "ollama-cloud" && req.ai.confirmHost !== CLOUD_HOST) {
+      throw new RunError(`This model runs on ${CLOUD_HOST}. Type ${CLOUD_HOST} in the AI mode sheet to send your code there.`, 428);
+    }
+    logConsent({ project: req.repo, route: model.route, model: model.name, digest: model.digest, via: "dashboard" }, deps.env || process.env);
+    return { model };
+  }
+
+  const head = {
     list: () => [...runs.values()].map(publicRun).reverse(),
+
+    /** Ollama's models with their route, for the AI mode sheet. */
+    async aiModels() {
+      if (!deps.ollama) return { models: [], error: "AI mode is not available here (it is off in the demo)." };
+      try { return { models: await deps.ollama.models(), textVersion: CONSENT_TEXT_VERSION }; } catch (e) { return { models: [], error: cleanLine(e.message), textVersion: CONSENT_TEXT_VERSION }; }
+    },
+    aiConsentLog: () => ({ log: readConsentLog(deps.env || process.env).slice(-100) }),
     get: (id) => runs.get(id) || null,
     publicRun,
 
+    /** Start a run. Synchronous, except an AI run: Ollama is asked first, so that one returns a promise. */
     start(body) {
       if (active && active.status === "running") throw new RunError("A run is already in progress. Stop it first.", 409);
       const req = validateRunRequest(body, deps.projectRoots, deps.confineDir);
-      const finished = [...runs.values()].filter((r) => r.status !== "running");
-      for (const old of finished.slice(0, Math.max(0, finished.length - MAX_FINISHED + 1))) runs.delete(old.id);
-      const run = {
-        id: randomBytes(8).toString("hex"), kind: req.kind, repo: req.repo, url: req.url, status: "running",
-        startedAt: new Date().toISOString(), events: [], nextSeq: 0, listeners: new Set(), pending: null, summary: null,
-        controller: new AbortController(),
-      };
-      runs.set(run.id, run);
-      active = run;
-      emit(run, "status", { status: "running" });
-      execute(run, req)
-        .then(() => { run.status = run.controller.signal.aborted ? "stopped" : "done"; })
-        .catch((e) => { run.status = "error"; emit(run, "log", { text: `error: ${cleanLine(e.message)}` }); })
-        .finally(() => {
-          if (run.pending) { run.pending.resolve("quit"); run.pending = null; }
-          emit(run, "status", { status: run.status, summary: run.summary });
-          for (const fn of run.listeners) fn(null);
-          run.listeners.clear();
-        });
-      return publicRun(run);
+      if (req.ai) return checkAi(req).then((ai) => begin(req, ai));
+      return begin(req, null);
     },
+  };
 
+  /** Create the run and start it; the caller has checked the request (and AI consent). */
+  function begin(req, ai) {
+    if (active && active.status === "running") throw new RunError("A run is already in progress. Stop it first.", 409);
+    const finished = [...runs.values()].filter((r) => r.status !== "running");
+    for (const old of finished.slice(0, Math.max(0, finished.length - MAX_FINISHED + 1))) runs.delete(old.id);
+    const run = {
+      id: randomBytes(8).toString("hex"), kind: req.kind, repo: req.repo, url: req.url, status: "running",
+      startedAt: new Date().toISOString(), events: [], nextSeq: 0, listeners: new Set(), pending: null, summary: null,
+      controller: new AbortController(), ai,
+    };
+    runs.set(run.id, run);
+    active = run;
+    emit(run, "status", { status: "running" });
+    execute(run, req)
+      .then(() => { run.status = run.controller.signal.aborted ? "stopped" : "done"; })
+      .catch((e) => { run.status = "error"; emit(run, "log", { text: `error: ${cleanLine(e.message)}` }); })
+      .finally(() => {
+        if (run.pending) { run.pending.resolve("quit"); run.pending = null; }
+        emit(run, "status", { status: run.status, summary: run.summary });
+        for (const fn of run.listeners) fn(null);
+        run.listeners.clear();
+      });
+    return publicRun(run);
+  }
+
+  const manager = {
     /**
      * An approval must name the SHA-256 of the diff the page showed
      * (`diffSha256`), and for a diff cut at MAX_DIFF characters also
@@ -264,5 +336,17 @@ export function createRunManager(deps) {
       run.listeners.add(fn);
       return () => run.listeners.delete(fn);
     },
+  };
+
+  return { ...head, ...manager };
+}
+
+/** What the page shows after an AI run: counts, and the unverified proposals by title. */
+function aiSummary(ai) {
+  if (!ai || ai.ran === false) return null;
+  return {
+    route: ai.route, model: ai.model.name, confirmed: ai.counts["confirmed-by-rule"], unverified: ai.counts.unverified,
+    partial: ai.partial, stopReason: ai.stopReason, read: ai.units.examined, of: ai.units.units,
+    findings: ai.findings.slice(0, 50).map((f) => ({ title: cleanLine(f.title), file: cleanLine(f.url), line: f.line, class: f.class, severity: f.severity })),
   };
 }

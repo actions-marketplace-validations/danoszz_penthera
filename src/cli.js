@@ -29,6 +29,7 @@ import { aiBomSummary } from "../lib/whitebox/aibom.js";
 import { buildCraReports, craTemplate, formatCraMarkdown, readCraInput } from "../lib/compliance/cra.js";
 import { emptyHistory, updateHistory, buildAuditLoop } from "../lib/audit-loop.js";
 import { rateSuppliers, parseSupplierList, formatSuppliersMarkdown } from "../lib/supply-chain.js";
+import { yellow } from "./cli/ansi.js";
 
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8"));
 
@@ -67,6 +68,7 @@ const HELP = `
     $ penthera fix --plan            Plan local fix recipes (penthera fix --help)
     $ penthera evidence verify <dir> Check an evidence bundle's hashes and signature
     $ penthera verify <findings.json>  Check a model's findings against Penthera's rules
+    $ penthera ai models|consent     AI mode: local models, and the consent log (penthera ai --help)
     $ penthera rules list|verify <dir>  Signed detection rule packs (penthera rules --help)
     $ penthera agent --loop          Scan, fix, verify, learn; local commits only (--help)
     $ penthera ui [--open] [--demo]  Local dashboard on 127.0.0.1 (penthera ui --help)
@@ -89,6 +91,13 @@ const HELP = `
         --offline               Contact only the scan target: no recon sources, no
                                Retire.js download (uses the vendored snapshot),
                                no DNS lookups for SPF/DMARC
+
+  ${dim("AI mode")}  ${dim("(with --repo; opt-in, asks every run; docs/ai-mode.md)")}
+        --ai                    A model reads your code for what rules can't see; Penthera checks its findings
+        --ai-model <name>       An Ollama model on 127.0.0.1 (penthera ai models lists them)
+        --ai-budget <spec>      Hard caps, e.g. units=200,tokens=2M,time=20m (the default)
+        --ai-consent <route>    Consent for a run that cannot ask: local, or ollama-cloud
+        --ai-scope <folder>     Only read files under this folder of the repo
 
   ${dim("Agents mode")}  ${dim("(penthera agents [path], offline, read-only)")}
         --home                  Also audit ~/.claude, ~/.cursor and Claude Desktop config
@@ -115,6 +124,7 @@ const HELP = `
     -o, --output <file>     Write JSON report (+ companion .md if .json)
         --markdown <file>   Write Markdown report (human-readable)
         --sarif <file>      Write SARIF report (GitHub Security tab)
+        --audit-seeds <file>  Write repo findings as seeds for an AI audit (security-audit-skill findings.json)
         --audience <who>    developer | owner | auditor report (for --markdown or stdout)
         --report-template <file.md>  Your own Markdown template ({{summary.critical}}, {{#each findings}})
         --evidence <dir>    Evidence bundle: all reports + manifest.json with SHA-256s
@@ -210,6 +220,11 @@ export async function run() {
     process.exit(runEvidence(process.argv.slice(3)));
   }
 
+  if (process.argv[2] === "ai") {
+    const { runAiCommand } = await import("./cli/ai.js");
+    process.exit(await runAiCommand(process.argv.slice(3)));
+  }
+
   if (process.argv[2] === "verify") {
     const { runVerify } = await import("./cli/verify.js");
     process.exit(await runVerify(process.argv.slice(3)));
@@ -245,6 +260,7 @@ export async function run() {
         output:      { type: "string",  short: "o" },
         markdown:    { type: "string" },
         sarif:       { type: "string" },
+        "audit-seeds": { type: "string" },
         audience:    { type: "string" },
         "no-footer": { type: "boolean", default: false },
         "report-template": { type: "string" },
@@ -292,6 +308,11 @@ export async function run() {
         home:        { type: "boolean", default: false },
         pin:         { type: "boolean", default: false },
         offline:     { type: "boolean", default: false },
+        ai:          { type: "boolean", default: false },
+        "ai-model":  { type: "string" },
+        "ai-budget": { type: "string" },
+        "ai-consent": { type: "string" },
+        "ai-scope":  { type: "string" },
         "user-agent": { type: "string" },
         timeout:     { type: "string",  default: "10000" },
         concurrency: { type: "string",  default: "15" },
@@ -450,6 +471,31 @@ export async function run() {
 
   const url = positionals[0] && !agentsMode ? normalizeBaseUrl(positionals[0]) : null;
   const repo = opts.repo || null;
+  const aiFlags = ["ai-model", "ai-budget", "ai-consent", "ai-scope"].filter((k) => opts[k] != null);
+  if (aiFlags.length && !opts.ai) {
+    printError(`--${aiFlags[0]} only applies with --ai.`);
+    process.exit(2);
+  }
+  if (opts.ai && !repo) {
+    printError("--ai needs --repo <path>: the model reads source code, and never probes a live URL.");
+    process.exit(2);
+  }
+  // AI mode asks before anything is scanned, so a "no" costs nothing.
+  let aiPlan = null;
+  if (opts.ai) {
+    const { preflightAi } = await import("./cli/ai.js");
+    aiPlan = await preflightAi({ opts, repo: resolve(repo) });
+    if (aiPlan.exit) {
+      printError(aiPlan.message);
+      process.exit(aiPlan.exit);
+    }
+    if (aiPlan.skip && !opts.quiet) process.stderr.write(`\n  ${yellow("AI mode off")} ${aiPlan.reason}\n\n`);
+  }
+
+  if (opts["audit-seeds"] && !repo && !agentsMode) {
+    printError("--audit-seeds needs --repo <path> (or `penthera agents <path>`): seeds point at files in a repository.");
+    process.exit(2);
+  }
 
   if (!agentsMode && !url && !repo && !opts.machine && !opts.readiness && !opts["policy-pack"] && !opts.sbom && !opts.aibom && !opts.questionnaire) {
     printError("No target specified. Provide a URL, --repo, --machine, --readiness, --policy-pack, --sbom, --aibom, --questionnaire, or combine them.");
@@ -561,6 +607,37 @@ export async function run() {
   }
 
   const merged = mergeResults(results);
+
+  if (aiPlan?.run) {
+    const { runAiMode, attachProposals } = await import("../lib/ai/index.js");
+    const { createOllama } = await import("../lib/ai/ollama.js");
+    const { aiHeader } = await import("./cli/ai.js");
+    const repoResult = results.find((r) => r.mode === "repo") || merged;
+    const quietAi = opts.quiet || opts.json;
+    if (!quietAi) process.stderr.write(`\n${aiHeader(aiPlan.model)}\n`);
+    const stop = new AbortController();
+    const onSigint = () => stop.abort();
+    process.once("SIGINT", onSigint);
+    try {
+      merged.ai = await runAiMode({
+        repoPath: resolve(repo),
+        scanResult: { ...repoResult, findings: merged.findings },
+        model: aiPlan.model,
+        ollama: createOllama(),
+        budget: aiPlan.budget,
+        consent: aiPlan.consent,
+        scope: aiPlan.scope,
+        signal: stop.signal,
+        onUnit: quietAi ? undefined : (u, i, n) => process.stderr.write(`\r\x1b[2K  AI ${i}/${n} ${u.id.slice(0, 70)}`),
+      });
+      if (!quietAi) process.stderr.write("\r\x1b[2K");
+      merged.findings = attachProposals(merged.findings, merged.ai);
+    } finally {
+      process.removeListener("SIGINT", onSigint);
+    }
+  } else if (aiPlan?.skip) {
+    merged.ai = { schema: "penthera.ai/1", ran: false, reason: aiPlan.reason };
+  }
   merged.profile = profileOpts.profile;
 
   // Local learning store (opt-in): suppress + rank from ~/.penthera/memory, then record this scan.
@@ -675,6 +752,17 @@ export async function run() {
     }
   }
 
+  if (opts["audit-seeds"]) {
+    const seedRoot = repo ? resolve(repo) : agentsRoot;
+    const { toSecurityAuditFindings } = await import("../lib/llm-audit/export.js");
+    const seeds = toSecurityAuditFindings(merged, seedRoot);
+    mkdirSync(dirname(resolve(opts["audit-seeds"])), { recursive: true });
+    writeFileSync(resolve(opts["audit-seeds"]), JSON.stringify(seeds.findings, null, 2) + "\n");
+    if (!opts.quiet && !opts.json) {
+      process.stderr.write(`  Audit seeds    ${opts["audit-seeds"]} (${seeds.exported} finding${seeds.exported === 1 ? "" : "s"}; ${seeds.skipped} without a file in the repo left out)\n`);
+    }
+  }
+
   if (merged.readiness) {
     const rdPath = opts.output
       ? opts.output.replace(/\.json$/i, "") + "-readiness.md"
@@ -780,7 +868,7 @@ export async function run() {
     );
   }
 
-  if ((opts.output || opts.markdown || opts.sarif || opts.evidence || opts.readiness || opts["policy-pack"] || opts.sbom || opts.aibom || opts.history || opts.questionnaire) && !opts.quiet && !opts.json) {
+  if ((opts.output || opts.markdown || opts.sarif || opts["audit-seeds"] || opts.evidence || opts.readiness || opts["policy-pack"] || opts.sbom || opts.aibom || opts.history || opts.questionnaire) && !opts.quiet && !opts.json) {
     process.stderr.write("\n");
   }
 

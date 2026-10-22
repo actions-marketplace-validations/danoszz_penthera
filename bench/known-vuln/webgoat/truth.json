@@ -1,0 +1,2905 @@
+{
+  "schema": "penthera-known-vuln-truth/1",
+  "app": "webgoat",
+  "name": "OWASP WebGoat",
+  "license": "GPL-2.0-or-later",
+  "licenseUrl": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/LICENSE.txt",
+  "intendedUse": "The README describes WebGoat as a deliberately insecure web application maintained by OWASP to teach web application security, not to be exposed: https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/README.md",
+  "source": {
+    "repo": "https://github.com/WebGoat/WebGoat",
+    "ref": "v2026.5",
+    "commit": "7e198f39189f33e1912f7cbb60e24e42635ca06a"
+  },
+  "image": {
+    "ref": "webgoat/webgoat:v2026.5",
+    "digest": "sha256:95c23e70502d0e0e11a826a73889e2ca93f965171202c17c0c59353ba67be86a",
+    "note": "WebGoat is served under the /WebGoat context path (paths below include it). Every lesson endpoint needs a logged-in session; anyone can register at /WebGoat/registration. WebWolf (companion app in the same image) is out of scope. The real Spring actuator (/WebGoat/actuator/env, health, configprops) is permitAll at this ref but is not a documented lesson item, so it is not listed."
+  },
+  "answerKey": [
+    {
+      "title": "WebGoat lesson sources (assignment endpoints)",
+      "url": "https://github.com/WebGoat/WebGoat/tree/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons"
+    },
+    {
+      "title": "WebGoat lesson pages and documentation (html/adoc)",
+      "url": "https://github.com/WebGoat/WebGoat/tree/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/resources/lessons"
+    }
+  ],
+  "frozenOn": "2026-10-22",
+  "frozenBeforeScan": true,
+  "builtBy": "Claude (AI-assisted), from the WebGoat v2026.5 lesson sources (assignment endpoints) and lesson pages; to be checked by labeller A",
+  "vulnerabilities": [
+    {
+      "id": "webgoat-intro-mail",
+      "title": "WebGoat introduction: mail",
+      "ref": "WebGoatIntroduction",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/webgoatintroduction/MailAssignment.java",
+      "description": "Introductory exercise sending a test mail to WebWolf; teaches tooling only.",
+      "appCategory": "Introduction",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/WebGoat/mail/send"
+        },
+        {
+          "path": "/WebGoat/WebGoat/mail"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/webgoatintroduction/MailAssignment.java"
+        }
+      ],
+      "group": "webgoat-intro-mail",
+      "note": "Mapped at /WebGoat/mail* inside the /WebGoat context, so the full path repeats the prefix."
+    },
+    {
+      "id": "webwolf-intro",
+      "title": "WebWolf introduction",
+      "ref": "WebWolfIntroduction",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/webwolfintroduction/LandingAssignment.java",
+      "description": "Introduction to the WebWolf companion app (mailbox, landing page).",
+      "appCategory": "Introduction",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "out-of-band",
+      "locations": [
+        {
+          "path": "/WebGoat/WebWolf/landing"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/webwolfintroduction/LandingAssignment.java"
+        }
+      ],
+      "group": "webwolf-intro",
+      "note": "WebWolf is out of scope for this benchmark."
+    },
+    {
+      "id": "httpbasics",
+      "title": "HTTP Basics",
+      "ref": "HttpBasics",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/httpbasics/HttpBasicsLesson.java",
+      "description": "Tutorial on HTTP requests and methods, with a quiz; nothing vulnerable.",
+      "appCategory": "General",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/HttpBasics/attack1"
+        },
+        {
+          "path": "/WebGoat/HttpBasics/attack2"
+        },
+        {
+          "path": "/WebGoat/HttpBasics/quiz"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/httpbasics/HttpBasicsLesson.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/httpbasics/HttpBasicsForm.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/httpbasics/HttpBasicsQuiz.java"
+        }
+      ],
+      "group": "httpbasics"
+    },
+    {
+      "id": "httpbasics-external",
+      "title": "HTTP Basics: external request",
+      "ref": "HttpBasics",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/httpbasics/HttpBasicsExternal.java",
+      "description": "Exercise sending a PUT request from an external tool; teaches tooling only.",
+      "appCategory": "General",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/HttpBasics/external"
+        },
+        {
+          "path": "/WebGoat/HttpBasics/externalcheck"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/httpbasics/HttpBasicsExternal.java"
+        }
+      ],
+      "group": "httpbasics-external"
+    },
+    {
+      "id": "httpproxies",
+      "title": "HTTP Proxies: intercept request",
+      "ref": "HttpProxies",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/httpproxies/HttpBasicsInterceptRequest.java",
+      "description": "Exercise on intercepting and modifying a request with a proxy; teaches tooling only.",
+      "appCategory": "General",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/HttpProxies/intercept-request"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/httpproxies/HttpBasicsInterceptRequest.java"
+        }
+      ],
+      "group": "httpproxies"
+    },
+    {
+      "id": "chromedevtools",
+      "title": "Developer Tools",
+      "ref": "ChromeDevTools",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/chromedevtools/NetworkLesson.java",
+      "description": "Exercises using browser developer tools console and network tab; teaches tooling only.",
+      "appCategory": "General",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/ChromeDevTools/network"
+        },
+        {
+          "path": "/WebGoat/ChromeDevTools/dummy"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/chromedevtools/NetworkLesson.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/chromedevtools/NetworkDummy.java"
+        }
+      ],
+      "group": "chromedevtools"
+    },
+    {
+      "id": "cia-quiz",
+      "title": "CIA Triad quiz",
+      "ref": "CIA",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/cia/CIAQuiz.java",
+      "description": "Quiz on confidentiality, integrity and availability.",
+      "appCategory": "General",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/cia/quiz"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/cia/CIAQuiz.java"
+        }
+      ],
+      "group": "cia-quiz"
+    },
+    {
+      "id": "lesson-template",
+      "title": "Writing new lesson (template)",
+      "ref": "LessonTemplate",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/lessontemplate/SampleAttack.java",
+      "description": "Sample lesson showing contributors how to write a lesson; not a vulnerability exercise.",
+      "appCategory": "General",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/lesson-template/sample-attack"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/lessontemplate/SampleAttack.java"
+        }
+      ],
+      "group": "lesson-template"
+    },
+    {
+      "id": "http-param-pollution-observe",
+      "title": "HTTP Parameter Pollution: observation",
+      "ref": "HttpParameterPollution",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/httpparameterpollution/ParameterPollutionObservation.java",
+      "description": "Shows how components read duplicate parameters differently; output is escaped, nothing to exploit.",
+      "appCategory": "(A7) Identity & Auth Failure",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/HttpParameterPollution/parameters"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/httpparameterpollution/ParameterPollutionObservation.java"
+        }
+      ],
+      "group": "http-param-pollution-observe"
+    },
+    {
+      "id": "http-param-pollution-transfer",
+      "title": "HTTP Parameter Pollution: transfer",
+      "ref": "HttpParameterPollution",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/httpparameterpollution/ParameterPollutionTransfer.java",
+      "description": "Validation checks the first recipient parameter but the transfer uses the last one.",
+      "appCategory": "(A7) Identity & Auth Failure",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "business-logic",
+      "locations": [
+        {
+          "path": "/WebGoat/HttpParameterPollution/transfer"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/httpparameterpollution/ParameterPollutionTransfer.java"
+        }
+      ],
+      "group": "http-param-pollution-transfer"
+    },
+    {
+      "id": "sqli-intro-sql-basics",
+      "title": "SQL Injection (intro): SQL basics (DML/DDL/DCL)",
+      "ref": "SqlInjection 2-5",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson2.java",
+      "description": "Learner-typed SQL statements are executed to teach SELECT, UPDATE, ALTER and GRANT syntax.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/SqlInjection/attack2"
+        },
+        {
+          "path": "/WebGoat/SqlInjection/attack3"
+        },
+        {
+          "path": "/WebGoat/SqlInjection/attack4"
+        },
+        {
+          "path": "/WebGoat/SqlInjection/attack5"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson2.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson3.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson4.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson5.java"
+        }
+      ],
+      "group": "sqli-intro-sql-basics",
+      "note": "Deliberate SQL console for syntax practice; it does run request SQL, so a scanner hit here is debatable."
+    },
+    {
+      "id": "sqli-intro-5a-string",
+      "title": "SQL Injection (intro): string SQL injection",
+      "ref": "SqlInjection 5a",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson5a.java",
+      "description": "Last-name parameter concatenated into a SELECT on user_data; tautology returns all rows.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/WebGoat/SqlInjection/assignment5a"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson5a.java"
+        }
+      ],
+      "group": "sqli-intro-5a-string",
+      "note": "POST params account, operator, injection are concatenated together."
+    },
+    {
+      "id": "sqli-intro-5b-numeric",
+      "title": "SQL Injection (intro): numeric SQL injection",
+      "ref": "SqlInjection 5b",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson5b.java",
+      "description": "userid parameter concatenated unquoted into a partly prepared SELECT.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/WebGoat/SqlInjection/assignment5b"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson5b.java"
+        }
+      ],
+      "group": "sqli-intro-5b-numeric",
+      "note": "POST param userid (login_count is bound)."
+    },
+    {
+      "id": "sqli-intro-8-confidentiality",
+      "title": "SQL Injection (intro): compromising confidentiality",
+      "ref": "SqlInjection 8",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson8.java",
+      "description": "Name and TAN concatenated into employee query; string injection dumps all employees.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/WebGoat/SqlInjection/attack8"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson8.java"
+        }
+      ],
+      "group": "sqli-intro-8-confidentiality",
+      "note": "POST params name, auth_tan."
+    },
+    {
+      "id": "sqli-intro-9-integrity",
+      "title": "SQL Injection (intro): compromising integrity (query chaining)",
+      "ref": "SqlInjection 9",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson9.java",
+      "description": "Same concatenated employee query allows chained UPDATE statements to change salaries.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/WebGoat/SqlInjection/attack9"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson9.java"
+        }
+      ],
+      "group": "sqli-intro-9-integrity",
+      "note": "POST params name, auth_tan."
+    },
+    {
+      "id": "sqli-intro-10-availability",
+      "title": "SQL Injection (intro): compromising availability",
+      "ref": "SqlInjection 10",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson10.java",
+      "description": "Search term concatenated into LIKE query on access_log; chaining lets attacker drop the table.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/WebGoat/SqlInjection/attack10"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson10.java"
+        }
+      ],
+      "group": "sqli-intro-10-availability",
+      "note": "POST param action_string."
+    },
+    {
+      "id": "sqli-adv-6a-union",
+      "title": "SQL Injection (advanced): UNION / pulling data from other tables",
+      "ref": "SqlInjectionAdvanced 6a/6b",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/sqlinjection/advanced/SqlInjectionLesson6a.java",
+      "description": "Last-name parameter concatenated into SELECT; UNION or chaining reads user_system_data passwords.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/WebGoat/SqlInjectionAdvanced/attack6a"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/advanced/SqlInjectionLesson6a.java"
+        }
+      ],
+      "group": "sqli-adv-6",
+      "note": "POST param userid_6a. Follow-up /SqlInjectionAdvanced/attack6b only checks the recovered password (see sqli-adv-6b-answer)."
+    },
+    {
+      "id": "sqli-adv-6b-answer",
+      "title": "SQL Injection (advanced): submit Dave's password",
+      "ref": "SqlInjectionAdvanced 6b",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/sqlinjection/advanced/SqlInjectionLesson6b.java",
+      "description": "Answer check for the password obtained through the 6a injection.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/SqlInjectionAdvanced/attack6b"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/advanced/SqlInjectionLesson6b.java"
+        }
+      ],
+      "group": "sqli-adv-6"
+    },
+    {
+      "id": "sqli-adv-challenge-blind",
+      "title": "SQL Injection (advanced): blind injection in registration",
+      "ref": "SqlInjectionAdvanced challenge",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/sqlinjection/advanced/SqlInjectionChallenge.java",
+      "description": "Registration username concatenated into existence check; boolean-based blind injection reveals Tom's password.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/WebGoat/SqlInjectionAdvanced/register"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/advanced/SqlInjectionChallenge.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/advanced/SqlInjectionChallengeLogin.java"
+        }
+      ],
+      "group": "sqli-adv-challenge",
+      "note": "PUT with username_reg/email_reg/password_reg; only a true/false 'user exists' signal. The login form (/SqlInjectionAdvanced/login, prepared statement) is where the recovered password is used."
+    },
+    {
+      "id": "sqli-adv-quiz",
+      "title": "SQL Injection (advanced): quiz",
+      "ref": "SqlInjectionAdvanced quiz",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/sqlinjection/advanced/SqlInjectionQuiz.java",
+      "description": "Quiz on prepared statements and injection.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/SqlInjectionAdvanced/quiz"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/advanced/SqlInjectionQuiz.java"
+        }
+      ],
+      "group": "sqli-adv-quiz"
+    },
+    {
+      "id": "sqli-mit-10a-10b-code",
+      "title": "SQL Injection (mitigation): write safe code",
+      "ref": "SqlInjectionMitigations 10a/10b",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/sqlinjection/mitigation/SqlInjectionLesson10a.java",
+      "description": "Fill-in and code-editor exercises writing prepared statements; nothing vulnerable.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/SqlInjectionMitigations/attack10a"
+        },
+        {
+          "path": "/WebGoat/SqlInjectionMitigations/attack10b"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/mitigation/SqlInjectionLesson10a.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/mitigation/SqlInjectionLesson10b.java"
+        }
+      ],
+      "group": "sqli-mit-10a-10b-code"
+    },
+    {
+      "id": "sqli-mit-order-by",
+      "title": "SQL Injection (mitigation): ORDER BY injection",
+      "ref": "SqlInjectionMitigations 12a",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/sqlinjection/mitigation/Servers.java",
+      "description": "Sort column parameter appended to ORDER BY in the servers list; blind injection reveals a server IP.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/WebGoat/SqlInjectionMitigations/servers"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/mitigation/Servers.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/mitigation/SqlInjectionLesson13.java"
+        }
+      ],
+      "group": "sqli-mit-12a",
+      "note": "GET param column on the helper endpoint; the scored /SqlInjectionMitigations/attack12a only checks the recovered IP (prepared statement)."
+    },
+    {
+      "id": "sqli-mit-input-validation-spaces",
+      "title": "SQL Injection (mitigation): input validation alone (no spaces)",
+      "ref": "SqlOnlyInputValidation",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/sqlinjection/mitigation/SqlOnlyInputValidation.java",
+      "description": "Rejects spaces then reuses the 6a concatenated query; comments replace spaces to inject.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep",
+      "locations": [
+        {
+          "path": "/WebGoat/SqlOnlyInputValidation/attack"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/mitigation/SqlOnlyInputValidation.java"
+        }
+      ],
+      "group": "sqli-mit-input-validation",
+      "note": "Filter bypass needed; underlying sink is the same as sqli-adv-6a-union."
+    },
+    {
+      "id": "sqli-mit-input-validation-keywords",
+      "title": "SQL Injection (mitigation): input validation on keywords",
+      "ref": "SqlOnlyInputValidationOnKeywords",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/sqlinjection/mitigation/SqlOnlyInputValidationOnKeywords.java",
+      "description": "Strips SELECT/FROM once and rejects spaces; doubled keywords and comments still inject.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep",
+      "locations": [
+        {
+          "path": "/WebGoat/SqlOnlyInputValidationOnKeywords/attack"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/mitigation/SqlOnlyInputValidationOnKeywords.java"
+        }
+      ],
+      "group": "sqli-mit-input-validation",
+      "note": "Filter bypass needed; underlying sink is the same as sqli-adv-6a-union."
+    },
+    {
+      "id": "cmdi-safety-gate",
+      "title": "Command Injection: safety acknowledgement",
+      "ref": "CommandInjection safety",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandInjectionSafetyGate.java",
+      "description": "Learner confirms commands will run on the host before tasks unlock.",
+      "appCategory": "(A3) Injection",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/CommandInjection/safety"
+        },
+        {
+          "path": "/WebGoat/CommandInjection/safety/status"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandInjectionSafetyGate.java"
+        }
+      ],
+      "group": "cmdi-safety-gate"
+    },
+    {
+      "id": "cmdi-task1-recognise",
+      "title": "Command Injection: recognise the wrapper",
+      "ref": "CommandInjection task1",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandInjectionTask1.java",
+      "description": "Learner reproduces the shell command string a ping wrapper would build; nothing executes.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "other",
+      "locations": [
+        {
+          "path": "/WebGoat/CommandInjection/task1/run"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandInjectionTask1.java"
+        }
+      ],
+      "group": "cmdi-task1-recognise",
+      "note": "Simulated: the endpoint only pattern-matches the expected answer; nothing real to observe."
+    },
+    {
+      "id": "cmdi-task2-chaining-url",
+      "title": "Command Injection: command chaining",
+      "ref": "CommandInjection task2",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandInjectionTask2.java",
+      "description": "Payload appended to a base command and run through the shell; chaining leaks an environment token.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/WebGoat/CommandInjection/task2/run"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandInjectionTask2.java"
+        }
+      ],
+      "group": "cmdi-task2",
+      "note": "POST params base, payload. Requires the per-user safety acknowledgement (POST /WebGoat/CommandInjection/safety) first, otherwise 403."
+    },
+    {
+      "id": "cmdi-task2-chaining-repo",
+      "title": "Command Injection: command chaining (source sink)",
+      "ref": "CommandInjection task2",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandInjectionTask2.java",
+      "description": "Request payload concatenated into a shell command executed via ProcessBuilder sh -c.",
+      "appCategory": "(A3) Injection",
+      "class": "code-sink",
+      "inScope": true,
+      "surface": "repo",
+      "locations": [
+        {
+          "path": "/WebGoat/CommandInjection/task2/run"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandInjectionTask2.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandExecutionService.java"
+        }
+      ],
+      "group": "cmdi-task2",
+      "note": "Java: Penthera's repo route analysis reads JS/TS only."
+    },
+    {
+      "id": "cmdi-task3-search-url",
+      "title": "Command Injection: cat search (grep)",
+      "ref": "CommandInjection task3",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandInjectionTask3Search.java",
+      "description": "Search title concatenated into a grep shell command; injection reads a per-user flag file.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/WebGoat/CommandInjection/task3/search"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandInjectionTask3Search.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandInjectionTask3Flag.java"
+        }
+      ],
+      "group": "cmdi-task3",
+      "note": "POST param title. Requires the safety acknowledgement first. /CommandInjection/task3/flag only checks the exfiltrated flag."
+    },
+    {
+      "id": "cmdi-task3-search-repo",
+      "title": "Command Injection: cat search (source sink)",
+      "ref": "CommandInjection task3",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandInjectionTask3Service.java",
+      "description": "Title string concatenated into 'grep ... images/*.txt' and run through the shell.",
+      "appCategory": "(A3) Injection",
+      "class": "code-sink",
+      "inScope": true,
+      "surface": "repo",
+      "locations": [
+        {
+          "path": "/WebGoat/CommandInjection/task3/search"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandInjectionTask3Service.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandExecutionService.java"
+        }
+      ],
+      "group": "cmdi-task3",
+      "note": "Java: Penthera's repo route analysis reads JS/TS only."
+    },
+    {
+      "id": "cmdi-task4-denylist",
+      "title": "Command Injection: bypass a deny-list",
+      "ref": "CommandInjection task4",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandInjectionTask4Search.java",
+      "description": "Search strips ; && | then runs grep via shell; other metacharacters still inject.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep",
+      "locations": [
+        {
+          "path": "/WebGoat/CommandInjection/task4/search"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandInjectionTask4Search.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandInjectionTask4Service.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandInjectionTask4Key.java"
+        }
+      ],
+      "group": "cmdi-task4",
+      "note": "Filter bypass needed (e.g. $() or newline). Sink in CommandInjectionTask4Service.java. /CommandInjection/task4/key only checks the exfiltrated key."
+    },
+    {
+      "id": "cmdi-task5-mitigation",
+      "title": "Command Injection: evaluate mitigations",
+      "ref": "CommandInjection task5",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandInjectionTask5Evaluation.java",
+      "description": "Learner picks execution mode, allow-list and sanitiser; server shows which configuration blocks injection.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/CommandInjection/task5/evaluate"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/commandinjection/CommandInjectionTask5Evaluation.java"
+        }
+      ],
+      "group": "cmdi-task5-mitigation"
+    },
+    {
+      "id": "xss-intro-cookie",
+      "title": "Cross Site Scripting: try it in the console",
+      "ref": "CrossSiteScripting 1",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/xss/CrossSiteScriptingLesson1.java",
+      "description": "Learner compares document.cookie across tabs; introductory, nothing vulnerable.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/CrossSiteScripting/attack1"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/xss/CrossSiteScriptingLesson1.java"
+        }
+      ],
+      "group": "xss-intro-cookie"
+    },
+    {
+      "id": "xss-reflected-5a",
+      "title": "Cross Site Scripting: reflected XSS in shopping cart",
+      "ref": "CrossSiteScripting 5a",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/xss/CrossSiteScriptingLesson5a.java",
+      "description": "Credit-card field echoed unescaped into the purchase confirmation HTML.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/WebGoat/CrossSiteScripting/attack5a"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/xss/CrossSiteScriptingLesson5a.java"
+        }
+      ],
+      "group": "xss-reflected-5a",
+      "note": "GET params QTY1-4 (integers, required) and field1 (reflected). Reflection sits in the JSON 'output' field, which the lesson page inserts as HTML."
+    },
+    {
+      "id": "xss-dom-testroute-url",
+      "title": "Cross Site Scripting: DOM-based XSS (test route)",
+      "ref": "CrossSiteScripting 6a/10/11",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/xss/CrossSiteScriptingLesson6a.java",
+      "description": "Leftover client-side test route writes the URL fragment parameter into the page as HTML.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "needs-browser",
+      "locations": [
+        {
+          "path": "/WebGoat/start.mvc"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/xss/CrossSiteScriptingLesson6a.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/xss/DOMCrossSiteScripting.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/xss/DOMCrossSiteScriptingVerifier.java"
+        }
+      ],
+      "group": "xss-dom-testroute",
+      "note": "Payload lives in the fragment (#test/...), never reaches the server. Scored endpoints /CrossSiteScripting/attack6a, /phone-home-xss and /dom-follow-up only check answers."
+    },
+    {
+      "id": "xss-dom-testroute-repo",
+      "title": "Cross Site Scripting: DOM-based XSS (source sink)",
+      "ref": "CrossSiteScripting 6a/10/11",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/resources/webgoat/static/js/goatApp/view/LessonContentView.js#L215-L217",
+      "description": "showTestParam passes the route parameter to jQuery .html() without encoding.",
+      "appCategory": "(A3) Injection",
+      "class": "code-sink",
+      "inScope": true,
+      "surface": "repo",
+      "locations": [
+        {
+          "path": "/WebGoat/start.mvc"
+        },
+        {
+          "file": "src/main/resources/webgoat/static/js/goatApp/view/LessonContentView.js"
+        },
+        {
+          "file": "src/main/resources/webgoat/static/js/goatApp/view/GoatRouter.js"
+        }
+      ],
+      "group": "xss-dom-testroute",
+      "note": "Route wired in GoatRouter.js / LessonController.js."
+    },
+    {
+      "id": "xss-quiz",
+      "title": "Cross Site Scripting: quiz",
+      "ref": "CrossSiteScripting quiz",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/xss/CrossSiteScriptingQuiz.java",
+      "description": "Quiz on XSS concepts.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/CrossSiteScripting/quiz"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/xss/CrossSiteScriptingQuiz.java"
+        }
+      ],
+      "group": "xss-quiz"
+    },
+    {
+      "id": "xss-stored-url",
+      "title": "Cross Site Scripting (stored): blog comments",
+      "ref": "CrossSiteScriptingStored",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/xss/stored/StoredXssComments.java",
+      "description": "Comment text is stored and later rendered into other users' comment list as HTML.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep",
+      "locations": [
+        {
+          "path": "/WebGoat/CrossSiteScriptingStored/stored-xss"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/xss/stored/StoredXssComments.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/xss/stored/StoredCrossSiteScriptingVerifier.java"
+        }
+      ],
+      "group": "xss-stored",
+      "note": "/CrossSiteScriptingStored/stored-xss-follow-up only checks the phoned-home value."
+    },
+    {
+      "id": "xss-stored-repo",
+      "title": "Cross Site Scripting (stored): comment rendering sink",
+      "ref": "CrossSiteScriptingStored",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/resources/lessons/xss/js/stored-xss.js#L33-L41",
+      "description": "Comment list built by string-replacing raw comment text into HTML and appended with jQuery.",
+      "appCategory": "(A3) Injection",
+      "class": "code-sink",
+      "inScope": true,
+      "surface": "repo",
+      "locations": [
+        {
+          "path": "/WebGoat/CrossSiteScriptingStored/stored-xss"
+        },
+        {
+          "file": "src/main/resources/lessons/xss/js/stored-xss.js"
+        }
+      ],
+      "group": "xss-stored"
+    },
+    {
+      "id": "xss-mitigation-code",
+      "title": "Cross Site Scripting (mitigation): encode output / sanitise input",
+      "ref": "CrossSiteScriptingMitigation 3/4",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/xss/mitigation/CrossSiteScriptingLesson3.java",
+      "description": "Exercises writing JSP encoding and AntiSamy code; nothing vulnerable.",
+      "appCategory": "(A3) Injection",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/CrossSiteScripting/attack3"
+        },
+        {
+          "path": "/WebGoat/CrossSiteScripting/attack4"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/xss/mitigation/CrossSiteScriptingLesson3.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/xss/mitigation/CrossSiteScriptingLesson4.java"
+        }
+      ],
+      "group": "xss-mitigation-code"
+    },
+    {
+      "id": "xxe-simple",
+      "title": "XXE: simple XXE in comment",
+      "ref": "XXE simple",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/xxe/SimpleXXE.java",
+      "description": "Comment XML parsed with external entities enabled; entity reads the file system.",
+      "appCategory": "(A5) Security Misconfiguration",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/xxe/simple"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/xxe/SimpleXXE.java"
+        }
+      ],
+      "group": "xxe-simple"
+    },
+    {
+      "id": "xxe-content-type",
+      "title": "XXE: modern REST framework (content-type switch)",
+      "ref": "XXE content-type",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/xxe/ContentTypeAssignment.java",
+      "description": "JSON comment endpoint also accepts XML when the content type is changed, then resolves entities.",
+      "appCategory": "(A5) Security Misconfiguration",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/xxe/content-type"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/xxe/ContentTypeAssignment.java"
+        }
+      ],
+      "group": "xxe-content-type"
+    },
+    {
+      "id": "xxe-blind",
+      "title": "XXE: blind XXE data exfiltration",
+      "ref": "XXE blind",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/xxe/BlindSendFileAssignment.java",
+      "description": "Blind XXE where file contents are exfiltrated through an attacker-hosted DTD.",
+      "appCategory": "(A5) Security Misconfiguration",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/xxe/blind"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/xxe/BlindSendFileAssignment.java"
+        }
+      ],
+      "group": "xxe-blind",
+      "note": "Also needs WebWolf/an external server."
+    },
+    {
+      "id": "pathtraversal-upload",
+      "title": "Path Traversal: profile upload (full name in path)",
+      "ref": "PathTraversal 2",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/pathtraversal/ProfileUpload.java",
+      "description": "Uploaded file stored using user-supplied name, allowing writes outside the intended directory.",
+      "appCategory": "(A3) Injection",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/PathTraversal/profile-upload"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/pathtraversal/ProfileUpload.java"
+        }
+      ],
+      "group": "pathtraversal-upload"
+    },
+    {
+      "id": "pathtraversal-upload-fix",
+      "title": "Path Traversal: profile upload with ../ filter",
+      "ref": "PathTraversal 3",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/pathtraversal/ProfileUploadFix.java",
+      "description": "Single-pass removal of ../ from the name is bypassed with nested sequences.",
+      "appCategory": "(A3) Injection",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/PathTraversal/profile-upload-fix"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/pathtraversal/ProfileUploadFix.java"
+        }
+      ],
+      "group": "pathtraversal-upload-fix"
+    },
+    {
+      "id": "pathtraversal-upload-filename",
+      "title": "Path Traversal: upload using original file name",
+      "ref": "PathTraversal 4",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/pathtraversal/ProfileUploadRemoveUserInput.java",
+      "description": "Uploaded file's original filename is used as path, so a crafted multipart name traverses.",
+      "appCategory": "(A3) Injection",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/PathTraversal/profile-upload-remove-user-input"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/pathtraversal/ProfileUploadRemoveUserInput.java"
+        }
+      ],
+      "group": "pathtraversal-upload-filename"
+    },
+    {
+      "id": "pathtraversal-retrieval",
+      "title": "Path Traversal: retrieving other files",
+      "ref": "PathTraversal 5",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/pathtraversal/ProfileUploadRetrieval.java",
+      "description": "Random-picture id parameter used as file path after a bypassable filter; reads files outside image folder.",
+      "appCategory": "(A3) Injection",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/PathTraversal/random-picture"
+        },
+        {
+          "path": "/WebGoat/PathTraversal/random"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/pathtraversal/ProfileUploadRetrieval.java"
+        }
+      ],
+      "group": "pathtraversal-retrieval"
+    },
+    {
+      "id": "pathtraversal-zip-slip",
+      "title": "Path Traversal: Zip Slip",
+      "ref": "PathTraversal 7",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/pathtraversal/ProfileZipSlip.java",
+      "description": "Zip entries extracted without checking names, so ../ entries overwrite files elsewhere.",
+      "appCategory": "(A3) Injection",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/PathTraversal/zip-slip"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/pathtraversal/ProfileZipSlip.java"
+        }
+      ],
+      "group": "pathtraversal-zip-slip"
+    },
+    {
+      "id": "openredirect-real",
+      "title": "Open Redirect: unvalidated redirect endpoint",
+      "ref": "OpenRedirect realRedirect",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/resources/lessons/openredirect/html/OpenRedirect.html#L131",
+      "description": "Redirects with a 302 to any URL given in the url parameter.",
+      "appCategory": "General",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/WebGoat/OpenRedirect/realRedirect"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/openredirect/OpenRedirectRealRedirect.java"
+        }
+      ],
+      "group": "openredirect-real",
+      "note": "GET param url. Linked from the lesson page as the 'real (unsafe) redirect' to experiment with; tasks 1-4 are simulated."
+    },
+    {
+      "id": "openredirect-task1",
+      "title": "Open Redirect: task 1",
+      "ref": "OpenRedirect task1",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/openredirect/OpenRedirectTask1.java",
+      "description": "Simulated check that an absolute external URL would be redirected to without validation.",
+      "appCategory": "General",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "other",
+      "locations": [
+        {
+          "path": "/WebGoat/OpenRedirect/task1"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/openredirect/OpenRedirectTask1.java"
+        }
+      ],
+      "group": "openredirect-task1",
+      "note": "Simulated: the endpoint only pattern-matches the expected answer; nothing real to observe. No redirect is issued."
+    },
+    {
+      "id": "openredirect-task2",
+      "title": "Open Redirect: task 2",
+      "ref": "OpenRedirect task2",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/openredirect/OpenRedirectTask2.java",
+      "description": "Simulated naive substring filter for 'webgoat' that an external host can still satisfy.",
+      "appCategory": "General",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "other",
+      "locations": [
+        {
+          "path": "/WebGoat/OpenRedirect/task2"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/openredirect/OpenRedirectTask2.java"
+        }
+      ],
+      "group": "openredirect-task2",
+      "note": "Simulated: the endpoint only pattern-matches the expected answer; nothing real to observe. No redirect is issued."
+    },
+    {
+      "id": "openredirect-task3",
+      "title": "Open Redirect: task 3",
+      "ref": "OpenRedirect task3",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/openredirect/OpenRedirectTask3.java",
+      "description": "Simulated startsWith host check bypassable with userinfo (@) or crafted subdomains.",
+      "appCategory": "General",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "other",
+      "locations": [
+        {
+          "path": "/WebGoat/OpenRedirect/task3"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/openredirect/OpenRedirectTask3.java"
+        }
+      ],
+      "group": "openredirect-task3",
+      "note": "Simulated: the endpoint only pattern-matches the expected answer; nothing real to observe. No redirect is issued."
+    },
+    {
+      "id": "openredirect-task4",
+      "title": "Open Redirect: task 4",
+      "ref": "OpenRedirect task4",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/openredirect/OpenRedirectTask4.java",
+      "description": "Simulated single-decode validation bypassable with double URL encoding.",
+      "appCategory": "General",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "other",
+      "locations": [
+        {
+          "path": "/WebGoat/OpenRedirect/task4"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/openredirect/OpenRedirectTask4.java"
+        }
+      ],
+      "group": "openredirect-task4",
+      "note": "Simulated: the endpoint only pattern-matches the expected answer; nothing real to observe. No redirect is issued."
+    },
+    {
+      "id": "openredirect-mitigation",
+      "title": "Open Redirect: mitigation check",
+      "ref": "OpenRedirect mitigation",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/openredirect/OpenRedirectMitigationCheck.java",
+      "description": "Learner shows that an external redirect would be blocked by the safe pattern.",
+      "appCategory": "General",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/OpenRedirect/mitigation"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/openredirect/OpenRedirectMitigationCheck.java"
+        }
+      ],
+      "group": "openredirect-mitigation"
+    },
+    {
+      "id": "openredirect-quiz",
+      "title": "Open Redirect: quiz",
+      "ref": "OpenRedirect quiz",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/openredirect/OpenRedirectQuiz.java",
+      "description": "Quiz on open redirects.",
+      "appCategory": "General",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/OpenRedirect/quiz"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/openredirect/OpenRedirectQuiz.java"
+        }
+      ],
+      "group": "openredirect-quiz"
+    },
+    {
+      "id": "ssrf-task1",
+      "title": "SSRF: change the requested image",
+      "ref": "SSRF task1",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/ssrf/SSRFTask1.java",
+      "description": "Learner changes the image URL parameter from Tom to Jerry; server only matches the string.",
+      "appCategory": "(A10) Server-side Request Forgery",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "other",
+      "locations": [
+        {
+          "path": "/WebGoat/SSRF/task1"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/ssrf/SSRFTask1.java"
+        }
+      ],
+      "group": "ssrf-task1",
+      "note": "Simulated: the endpoint only pattern-matches the expected answer; nothing real to observe."
+    },
+    {
+      "id": "ssrf-task2",
+      "title": "SSRF: make the server fetch an external URL",
+      "ref": "SSRF task2",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/ssrf/SSRFTask2.java",
+      "description": "Server fetches the URL parameter, but only the exact value http://ifconfig.pro is fetched.",
+      "appCategory": "(A10) Server-side Request Forgery",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "out-of-band",
+      "locations": [
+        {
+          "path": "/WebGoat/SSRF/task2"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/ssrf/SSRFTask2.java"
+        }
+      ],
+      "group": "ssrf-task2",
+      "note": "Allow-listed to one external host via regex; any other URL is not fetched, so a generic SSRF probe sees nothing."
+    },
+    {
+      "id": "vulncomp-jquery-ui",
+      "title": "Vulnerable Components: jquery-ui 1.10.x closeText XSS",
+      "ref": "VulnerableComponents 2",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/resources/lessons/vulnerablecomponents/documentation/VulnerableComponents_content2.adoc",
+      "description": "Lesson loads an old jquery-ui whose dialog closeText option allows XSS, beside a fixed version.",
+      "appCategory": "(A6) Vuln & Outdated Components",
+      "class": "vulnerable-component",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "*"
+        },
+        {
+          "path": "/WebGoat/js/libs/jquery-ui-1.10.4.js"
+        },
+        {
+          "file": "src/main/resources/webgoat/static/js/libs/jquery-ui-1.10.4.js"
+        },
+        {
+          "file": "src/main/resources/webgoat/static/js/main.js"
+        }
+      ],
+      "group": "vulncomp-jquery",
+      "note": "Static /js/** is permitAll. Lesson text calls it jquery-ui:1.10.4; the file's banner says v1.10.3.",
+      "keywords": [
+        "jquery-ui",
+        "jquery ui"
+      ]
+    },
+    {
+      "id": "vulncomp-jquery-2.1.4",
+      "title": "Vulnerable Components: jQuery 2.1.4 used for the vulnerable demo",
+      "ref": "VulnerableComponents 2",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/resources/webgoat/static/js/main.js#L28",
+      "description": "jQuery 2.1.4 is loaded as the 'vulnerable' jQuery instance backing the jquery-ui demo.",
+      "appCategory": "(A6) Vuln & Outdated Components",
+      "class": "vulnerable-component",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "*"
+        },
+        {
+          "path": "/WebGoat/js/libs/jquery-2.1.4.min.js"
+        },
+        {
+          "file": "src/main/resources/webgoat/static/js/libs/jquery-2.1.4.min.js"
+        }
+      ],
+      "group": "vulncomp-jquery",
+      "note": "Not named in the lesson text; included because main.js wires it as 'jqueryvuln' for the documented demo. Drop if labeller disagrees.",
+      "keywords": [
+        "jquery 2.1.4",
+        "jquery@2.1.4",
+        "jquery-2.1.4"
+      ]
+    },
+    {
+      "id": "vulncomp-xstream",
+      "title": "Vulnerable Components: XStream deserialization (CVE-2013-7285)",
+      "ref": "VulnerableComponents attack1",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/vulnerablecomponents/VulnerableComponentsLesson.java",
+      "description": "Contact XML parsed by XStream 1.4.5; a dynamic-proxy payload executes code.",
+      "appCategory": "(A6) Vuln & Outdated Components",
+      "class": "vulnerable-component",
+      "inScope": false,
+      "excludedBecause": "dependency-cve",
+      "locations": [
+        {
+          "path": "/WebGoat/VulnerableComponents/attack1"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/vulnerablecomponents/VulnerableComponentsLesson.java"
+        },
+        {
+          "file": "pom.xml"
+        }
+      ],
+      "group": "vulncomp-xstream",
+      "note": "Server-side dependency pinned in pom.xml (xstream.version 1.4.5)."
+    },
+    {
+      "id": "deserialization",
+      "title": "Insecure Deserialization",
+      "ref": "InsecureDeserialization",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/deserialization/InsecureDeserializationTask.java",
+      "description": "Base64 Java serialized object from the request is deserialized; a crafted gadget delays the server.",
+      "appCategory": "(A8) Software & Data Integrity",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/InsecureDeserialization/task"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/deserialization/InsecureDeserializationTask.java"
+        }
+      ],
+      "group": "deserialization"
+    },
+    {
+      "id": "csrf-basic-get",
+      "title": "CSRF: basic GET request",
+      "ref": "CSRF 3",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/csrf/CSRFGetFlag.java",
+      "description": "Flag endpoint accepts a cross-site form post without token, only checking the Referer.",
+      "appCategory": "(A5) Security Misconfiguration",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/csrf/basic-get-flag"
+        },
+        {
+          "path": "/WebGoat/csrf/confirm-flag-1"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/csrf/CSRFGetFlag.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/csrf/CSRFConfirmFlag1.java"
+        }
+      ],
+      "group": "csrf-basic-get"
+    },
+    {
+      "id": "csrf-review",
+      "title": "CSRF: post a review on someone's behalf",
+      "ref": "CSRF 4",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/csrf/ForgedReviews.java",
+      "description": "Review submission protected only by a static hidden value and Referer check.",
+      "appCategory": "(A5) Security Misconfiguration",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/csrf/review"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/csrf/ForgedReviews.java"
+        }
+      ],
+      "group": "csrf-review"
+    },
+    {
+      "id": "csrf-json",
+      "title": "CSRF: JSON feedback",
+      "ref": "CSRF 7",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/csrf/CSRFFeedback.java",
+      "description": "Feedback endpoint accepts JSON sent as text/plain from a cross-site form.",
+      "appCategory": "(A5) Security Misconfiguration",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/csrf/feedback/message"
+        },
+        {
+          "path": "/WebGoat/csrf/feedback"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/csrf/CSRFFeedback.java"
+        }
+      ],
+      "group": "csrf-json"
+    },
+    {
+      "id": "csrf-login",
+      "title": "CSRF: login CSRF",
+      "ref": "CSRF 8",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/csrf/CSRFLogin.java",
+      "description": "Victim is logged into an attacker-created account through a forged login request.",
+      "appCategory": "(A5) Security Misconfiguration",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/csrf/login"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/csrf/CSRFLogin.java"
+        }
+      ],
+      "group": "csrf-login"
+    },
+    {
+      "id": "secmisconf-default-creds",
+      "title": "Security Misconfiguration: default credentials",
+      "ref": "SecurityMisconfiguration task1",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/securitymisconfiguration/DefaultCredentialsTask.java",
+      "description": "Staging admin console still accepts the factory default admin/admin login.",
+      "appCategory": "(A5) Security Misconfiguration",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "weak-credentials",
+      "locations": [
+        {
+          "path": "/WebGoat/SecurityMisconfiguration/task1"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/securitymisconfiguration/DefaultCredentialsTask.java"
+        }
+      ],
+      "group": "secmisconf-default-creds"
+    },
+    {
+      "id": "secmisconf-verbose-error-url",
+      "title": "Security Misconfiguration: verbose error",
+      "ref": "SecurityMisconfiguration task2",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/securitymisconfiguration/VerboseErrorTask.java",
+      "description": "Error endpoint returns a stack trace including environment, database password and API token.",
+      "appCategory": "(A5) Security Misconfiguration",
+      "class": "exposure",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "/WebGoat/SecurityMisconfiguration/task2/trigger"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/securitymisconfiguration/VerboseErrorTask.java"
+        }
+      ],
+      "group": "secmisconf-task2",
+      "note": "Plain-text stack trace served with 200 at a lesson-specific path (linked from the lesson page JS). /task2 and /task2/config only check the token."
+    },
+    {
+      "id": "secmisconf-verbose-error-repo",
+      "title": "Security Misconfiguration: verbose error (secrets in source)",
+      "ref": "SecurityMisconfiguration task2",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/securitymisconfiguration/VerboseErrorTask.java",
+      "description": "The leaked database password and API token are string literals in the Java source.",
+      "appCategory": "(A5) Security Misconfiguration",
+      "class": "secrets",
+      "inScope": true,
+      "surface": "repo",
+      "locations": [
+        {
+          "path": "/WebGoat/SecurityMisconfiguration/task2/trigger"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/securitymisconfiguration/VerboseErrorTask.java"
+        }
+      ],
+      "group": "secmisconf-task2",
+      "note": "Training placeholders (DB_PASSWORD, SYSTEM_API_TOKEN)."
+    },
+    {
+      "id": "secmisconf-actuator-url",
+      "title": "Security Misconfiguration: exposed actuator env",
+      "ref": "SecurityMisconfiguration task3",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/securitymisconfiguration/ActuatorExposureTask.java",
+      "description": "Mock actuator env endpoint returns configuration including an internal API key.",
+      "appCategory": "(A5) Security Misconfiguration",
+      "class": "exposure",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "/WebGoat/SecurityMisconfiguration/task3/actuator/env"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/securitymisconfiguration/ActuatorExposureTask.java"
+        }
+      ],
+      "group": "secmisconf-task3",
+      "note": "Lesson-specific mock under the lesson path, not Spring's real /actuator. /task3/actuator/health is harmless; /task3 only checks the key."
+    },
+    {
+      "id": "secmisconf-actuator-repo",
+      "title": "Security Misconfiguration: exposed actuator env (key in source)",
+      "ref": "SecurityMisconfiguration task3",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/securitymisconfiguration/ActuatorExposureTask.java",
+      "description": "The leaked internal API key is a string literal in the Java source.",
+      "appCategory": "(A5) Security Misconfiguration",
+      "class": "secrets",
+      "inScope": true,
+      "surface": "repo",
+      "locations": [
+        {
+          "path": "/WebGoat/SecurityMisconfiguration/task3/actuator/env"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/securitymisconfiguration/ActuatorExposureTask.java"
+        }
+      ],
+      "group": "secmisconf-task3",
+      "note": "Training placeholder value; may not match generic key patterns."
+    },
+    {
+      "id": "secmisconf-hardening",
+      "title": "Security Misconfiguration: harden the configuration",
+      "ref": "SecurityMisconfiguration task4",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/securitymisconfiguration/ConfigHardeningTask.java",
+      "description": "Learner submits the settings that disable debug endpoints and default users.",
+      "appCategory": "(A5) Security Misconfiguration",
+      "class": "misconfig",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/SecurityMisconfiguration/task4"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/securitymisconfiguration/ConfigHardeningTask.java"
+        }
+      ],
+      "group": "secmisconf-hardening"
+    },
+    {
+      "id": "pwstorage-unsalted",
+      "title": "Password Storage: unsalted SHA-256",
+      "ref": "PasswordStorage stage1",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/passwordstorage/Stage1HashAssignment.java",
+      "description": "Leaked unsalted fast hashes are cracked with a wordlist.",
+      "appCategory": "(A2) Cryptographic Failures",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/PasswordStorage/stage1"
+        },
+        {
+          "path": "/WebGoat/PasswordStorage/api/stage1"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/passwordstorage/Stage1HashAssignment.java"
+        }
+      ],
+      "group": "pwstorage-unsalted"
+    },
+    {
+      "id": "pwstorage-salted",
+      "title": "Password Storage: salted fast hash",
+      "ref": "PasswordStorage stage2",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/passwordstorage/Stage2SaltAssignment.java",
+      "description": "Per-user salts hide equal passwords but fast hashes stay crackable.",
+      "appCategory": "(A2) Cryptographic Failures",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/PasswordStorage/stage2"
+        },
+        {
+          "path": "/WebGoat/PasswordStorage/api/stage2"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/passwordstorage/Stage2SaltAssignment.java"
+        }
+      ],
+      "group": "pwstorage-salted"
+    },
+    {
+      "id": "pwstorage-argon2-pepper",
+      "title": "Password Storage: Argon2 parameters and pepper",
+      "ref": "PasswordStorage stage3/4",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/passwordstorage/Stage3Argon2Assignment.java",
+      "description": "Learner reads Argon2 parameters and explains why a pepper is needed; nothing vulnerable.",
+      "appCategory": "(A2) Cryptographic Failures",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/PasswordStorage/stage3"
+        },
+        {
+          "path": "/WebGoat/PasswordStorage/stage4"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/passwordstorage/Stage3Argon2Assignment.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/passwordstorage/Stage4PepperAssignment.java"
+        }
+      ],
+      "group": "pwstorage-argon2-pepper"
+    },
+    {
+      "id": "pwstorage-disclosed-pepper-url",
+      "title": "Password Storage: disclosed configuration backup",
+      "ref": "PasswordStorage stage5",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/passwordstorage/PasswordStorageDataController.java",
+      "description": "A blog backup application.properties is served, revealing the password pepper.",
+      "appCategory": "(A2) Cryptographic Failures",
+      "class": "exposure",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "/WebGoat/PasswordStorage/blog-backup/application.properties"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/passwordstorage/PasswordStorageDataController.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/passwordstorage/Stage5DisclosureAssignment.java"
+        }
+      ],
+      "group": "pwstorage-stage5",
+      "note": "Scored at /PasswordStorage/stage5 (answer check)."
+    },
+    {
+      "id": "pwstorage-disclosed-pepper-repo",
+      "title": "Password Storage: pepper hardcoded in source",
+      "ref": "PasswordStorage stage5",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/passwordstorage/PasswordStorageService.java",
+      "description": "The pepper served in the backup file is a hardcoded constant in Java source.",
+      "appCategory": "(A2) Cryptographic Failures",
+      "class": "secrets",
+      "inScope": true,
+      "surface": "repo",
+      "locations": [
+        {
+          "path": "/WebGoat/PasswordStorage/blog-backup/application.properties"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/passwordstorage/PasswordStorageService.java"
+        }
+      ],
+      "group": "pwstorage-stage5",
+      "note": "Training placeholder value."
+    },
+    {
+      "id": "crypto-encoding",
+      "title": "Crypto Basics: Base64 basic auth",
+      "ref": "Crypto encoding",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/cryptography/EncodingAssignment.java",
+      "description": "Basic-auth header is only Base64 encoded; learner decodes the credentials.",
+      "appCategory": "(A2) Cryptographic Failures",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/crypto/encoding/basic-auth"
+        },
+        {
+          "path": "/WebGoat/crypto/encoding/basic"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/cryptography/EncodingAssignment.java"
+        }
+      ],
+      "group": "crypto-encoding"
+    },
+    {
+      "id": "crypto-xor",
+      "title": "Crypto Basics: XOR encoding",
+      "ref": "Crypto xor",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/cryptography/XOREncodingAssignment.java",
+      "description": "WebSphere-style XOR-encoded password is trivially decoded.",
+      "appCategory": "(A2) Cryptographic Failures",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/crypto/encoding/xor"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/cryptography/XOREncodingAssignment.java"
+        }
+      ],
+      "group": "crypto-xor"
+    },
+    {
+      "id": "crypto-hashing",
+      "title": "Crypto Basics: plain hashes",
+      "ref": "Crypto hashing",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/cryptography/HashingAssignment.java",
+      "description": "Unsalted MD5/SHA-256 hashes of common words are reversed.",
+      "appCategory": "(A2) Cryptographic Failures",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/crypto/hashing"
+        },
+        {
+          "path": "/WebGoat/crypto/hashing/md5"
+        },
+        {
+          "path": "/WebGoat/crypto/hashing/sha256"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/cryptography/HashingAssignment.java"
+        }
+      ],
+      "group": "crypto-hashing"
+    },
+    {
+      "id": "crypto-signing",
+      "title": "Crypto Basics: signing with a given private key",
+      "ref": "Crypto signing",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/cryptography/SigningAssignment.java",
+      "description": "Learner signs a value with an RSA private key handed out by the lesson.",
+      "appCategory": "(A2) Cryptographic Failures",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/crypto/signing/verify"
+        },
+        {
+          "path": "/WebGoat/crypto/signing/getprivate"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/cryptography/SigningAssignment.java"
+        }
+      ],
+      "group": "crypto-signing",
+      "note": "The private key endpoint is part of the exercise, not a leak."
+    },
+    {
+      "id": "crypto-secure-defaults",
+      "title": "Crypto Basics: secure defaults (secret in container)",
+      "ref": "Crypto defaults",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/cryptography/SecureDefaultsAssignment.java",
+      "description": "A secret file left in the Docker image with weak permissions must be found and decrypted.",
+      "appCategory": "(A2) Cryptographic Failures",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "other",
+      "locations": [
+        {
+          "path": "/WebGoat/crypto/secure/defaults"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/cryptography/SecureDefaultsAssignment.java"
+        }
+      ],
+      "group": "crypto-secure-defaults",
+      "note": "Needs shell access to the running container."
+    },
+    {
+      "id": "timing-first-byte",
+      "title": "Timing Attacks: discover a secret byte by timing",
+      "ref": "TimingAttacks first-byte",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/cryptography/timing/TimingAttackFirstByteAssignment.java",
+      "description": "Early-exit comparison leaks how many leading bytes match through response time.",
+      "appCategory": "(A2) Cryptographic Failures",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/crypto/timing/first-byte"
+        },
+        {
+          "path": "/WebGoat/crypto/timing/verify"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/cryptography/timing/TimingAttackFirstByteAssignment.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/cryptography/timing/TimingAttackOracle.java"
+        }
+      ],
+      "group": "timing-first-byte"
+    },
+    {
+      "id": "timing-tag",
+      "title": "Timing Attacks: recover an HMAC tag",
+      "ref": "TimingAttacks tag",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/cryptography/timing/TimingAttackTagAssignment.java",
+      "description": "Non-constant-time HMAC check lets the tag be recovered byte by byte.",
+      "appCategory": "(A2) Cryptographic Failures",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/crypto/timing/tag"
+        },
+        {
+          "path": "/WebGoat/crypto/timing/verify-tag"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/cryptography/timing/TimingAttackTagAssignment.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/cryptography/timing/TimingAttackOracle.java"
+        }
+      ],
+      "group": "timing-tag"
+    },
+    {
+      "id": "timing-noisy",
+      "title": "Timing Attacks: recover a tag under noise",
+      "ref": "TimingAttacks noisy",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/cryptography/timing/TimingAttackNoiseAssignment.java",
+      "description": "Same timing leak with added jitter, requiring statistical sampling.",
+      "appCategory": "(A2) Cryptographic Failures",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/crypto/timing/noisy-tag"
+        },
+        {
+          "path": "/WebGoat/crypto/timing/verify-noisy"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/cryptography/timing/TimingAttackNoiseAssignment.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/cryptography/timing/TimingAttackOracle.java"
+        }
+      ],
+      "group": "timing-noisy"
+    },
+    {
+      "id": "timing-mitigation",
+      "title": "Timing Attacks: mitigation",
+      "ref": "TimingAttacks mitigation",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/cryptography/timing/TimingAttackMitigationAssignment.java",
+      "description": "Learner picks the constant-time comparison fix.",
+      "appCategory": "(A2) Cryptographic Failures",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/crypto/timing/mitigation"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/cryptography/timing/TimingAttackMitigationAssignment.java"
+        }
+      ],
+      "group": "timing-mitigation"
+    },
+    {
+      "id": "hijack-session",
+      "title": "Hijack a session: predictable session ids",
+      "ref": "HijackSession",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/hijacksession/HijackSessionAssignment.java",
+      "description": "Lesson auth cookie values are sequential with timestamps, so a valid one can be predicted.",
+      "appCategory": "(A1) Broken Access Control",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/HijackSession/login"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/hijacksession/HijackSessionAssignment.java"
+        }
+      ],
+      "group": "hijack-session",
+      "note": "Predictable tokens; not a claimed check."
+    },
+    {
+      "id": "idor-login",
+      "title": "IDOR: authenticate as tom",
+      "ref": "IDOR login",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/idor/IDORLogin.java",
+      "description": "Lesson step logging in with given credentials before the IDOR tasks.",
+      "appCategory": "(A1) Broken Access Control",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/IDOR/login"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/idor/IDORLogin.java"
+        }
+      ],
+      "group": "idor-login"
+    },
+    {
+      "id": "idor-diff-attributes",
+      "title": "IDOR: observe differences",
+      "ref": "IDOR diff",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/idor/IDORDiffAttributes.java",
+      "description": "Learner names the profile attributes hidden from the UI; answer check only.",
+      "appCategory": "(A1) Broken Access Control",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/IDOR/diff-attributes"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/idor/IDORDiffAttributes.java"
+        }
+      ],
+      "group": "idor-diff-attributes"
+    },
+    {
+      "id": "idor-alt-path",
+      "title": "IDOR: guess the direct profile path",
+      "ref": "IDOR alt-path",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/idor/IDORViewOwnProfileAltUrl.java",
+      "description": "Learner submits the RESTful profile URL for their own user id; answer check only.",
+      "appCategory": "(A1) Broken Access Control",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/IDOR/profile/alt-path"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/idor/IDORViewOwnProfileAltUrl.java"
+        }
+      ],
+      "group": "idor-alt-path"
+    },
+    {
+      "id": "idor-view-other",
+      "title": "IDOR: view another user's profile",
+      "ref": "IDOR view other",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/idor/IDORViewOtherProfile.java",
+      "description": "Profile endpoint returns any user's profile for a numeric id in the path.",
+      "appCategory": "(A1) Broken Access Control",
+      "class": "auth",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "/WebGoat/IDOR/profile/"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/idor/IDORViewOtherProfile.java"
+        }
+      ],
+      "group": "idor-profile",
+      "note": "GET /WebGoat/IDOR/profile/{userId}; other user is 2342388. Only answers after the lesson login as tom (POST /WebGoat/IDOR/login with the credentials given in the lesson)."
+    },
+    {
+      "id": "idor-edit-other",
+      "title": "IDOR: edit another user's profile",
+      "ref": "IDOR edit other",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/idor/IDOREditOtherProfile.java",
+      "description": "PUT to another user's profile id changes their role and colour.",
+      "appCategory": "(A1) Broken Access Control",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "access-control-logic",
+      "locations": [
+        {
+          "path": "/WebGoat/IDOR/profile/"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/idor/IDOREditOtherProfile.java"
+        }
+      ],
+      "group": "idor-edit-other",
+      "note": "Write access with role escalation, beyond read IDOR."
+    },
+    {
+      "id": "missingac-hidden-menu",
+      "title": "Missing Function Level AC: hidden menu items",
+      "ref": "MissingFunctionAC hidden-menu",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/missingac/MissingFunctionACHiddenMenus.java",
+      "description": "Admin menu items are only hidden in the HTML; learner names them.",
+      "appCategory": "(A1) Broken Access Control",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "access-control-logic",
+      "locations": [
+        {
+          "path": "/WebGoat/access-control/hidden-menu"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/missingac/MissingFunctionACHiddenMenus.java"
+        }
+      ],
+      "group": "missingac"
+    },
+    {
+      "id": "missingac-users",
+      "title": "Missing Function Level AC: user list without authorization",
+      "ref": "MissingFunctionAC user-hash",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/missingac/MissingFunctionACYourHash.java",
+      "description": "Admin user-list endpoint (JSON) is served to any logged-in user, exposing password hashes.",
+      "appCategory": "(A1) Broken Access Control",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "access-control-logic",
+      "locations": [
+        {
+          "path": "/WebGoat/access-control/users"
+        },
+        {
+          "path": "/WebGoat/access-control/user-hash"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/missingac/MissingFunctionACYourHash.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/missingac/MissingFunctionACUsers.java"
+        }
+      ],
+      "group": "missingac"
+    },
+    {
+      "id": "missingac-users-fix-bypass",
+      "title": "Missing Function Level AC: create an admin user",
+      "ref": "MissingFunctionAC user-hash-fix",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/missingac/MissingFunctionACYourHashAdmin.java",
+      "description": "User-creation endpoint accepts an admin flag from any user, bypassing the fixed list's check.",
+      "appCategory": "(A1) Broken Access Control",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "access-control-logic",
+      "locations": [
+        {
+          "path": "/WebGoat/access-control/users-admin-fix"
+        },
+        {
+          "path": "/WebGoat/access-control/user-hash-fix"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/missingac/MissingFunctionACYourHashAdmin.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/missingac/MissingFunctionACUsers.java"
+        }
+      ],
+      "group": "missingac"
+    },
+    {
+      "id": "spoof-cookie",
+      "title": "Spoofing an authentication cookie",
+      "ref": "SpoofCookie",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/spoofcookie/SpoofCookieAssignment.java",
+      "description": "Auth cookie is a reversible encoding of the username, so one for tom can be forged.",
+      "appCategory": "(A1) Broken Access Control",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/SpoofCookie/login"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/spoofcookie/SpoofCookieAssignment.java"
+        }
+      ],
+      "group": "spoof-cookie",
+      "note": "Weak/predictable token construction."
+    },
+    {
+      "id": "auth-bypass-2fa",
+      "title": "Authentication Bypasses: 2FA password reset",
+      "ref": "AuthBypass",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/authbypass/VerifyAccount.java",
+      "description": "Security-question check passes when the answer parameters are renamed, skipping verification.",
+      "appCategory": "(A7) Identity & Auth Failure",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "business-logic",
+      "locations": [
+        {
+          "path": "/WebGoat/auth-bypass/verify-account"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/authbypass/VerifyAccount.java"
+        }
+      ],
+      "group": "auth-bypass-2fa"
+    },
+    {
+      "id": "insecure-login",
+      "title": "Insecure Login: credentials in clear text",
+      "ref": "InsecureLogin",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/insecurelogin/InsecureLoginTask.java",
+      "description": "Page script posts hard-coded credentials unencrypted; learner sniffs them from the request.",
+      "appCategory": "(A7) Identity & Auth Failure",
+      "class": "misconfig",
+      "inScope": false,
+      "excludedBecause": "needs-browser",
+      "locations": [
+        {
+          "path": "/WebGoat/InsecureLogin/login"
+        },
+        {
+          "path": "/WebGoat/InsecureLogin/task"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/insecurelogin/InsecureLoginTask.java"
+        },
+        {
+          "file": "src/main/resources/lessons/insecurelogin/js/credentials.js"
+        }
+      ],
+      "group": "insecure-login",
+      "note": "Credentials only appear in a request the page JS sends; WebGoat itself runs on plain HTTP."
+    },
+    {
+      "id": "jwt-decode",
+      "title": "JWT tokens: decode a token",
+      "ref": "JWT decode",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/jwt/JWTDecodeEndpoint.java",
+      "description": "Learner decodes a JWT to read the username; introductory.",
+      "appCategory": "(A7) Identity & Auth Failure",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/JWT/decode"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/jwt/JWTDecodeEndpoint.java"
+        }
+      ],
+      "group": "jwt-decode"
+    },
+    {
+      "id": "jwt-votes-alg-none",
+      "title": "JWT tokens: votes reset with unsigned token",
+      "ref": "JWT votings",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/jwt/JWTVotesEndpoint.java",
+      "description": "Voting endpoints accept a JWT with alg none, so admin claim can be forged.",
+      "appCategory": "(A7) Identity & Auth Failure",
+      "class": "auth",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/WebGoat/JWT/votings"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/jwt/JWTVotesEndpoint.java"
+        }
+      ],
+      "group": "jwt-votes-alg-none",
+      "note": "Token in the access_token cookie (issued by GET /WebGoat/JWT/votings/login). POST /WebGoat/JWT/votings resets votes when admin=true."
+    },
+    {
+      "id": "jwt-weak-secret-url",
+      "title": "JWT tokens: crack the signing key",
+      "ref": "JWT secret",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/jwt/JWTSecretKeyEndpoint.java",
+      "description": "Token is HMAC-signed with a dictionary word, so the key can be brute-forced offline.",
+      "appCategory": "(A7) Identity & Auth Failure",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "weak-credentials",
+      "locations": [
+        {
+          "path": "/WebGoat/JWT/secret"
+        },
+        {
+          "path": "/WebGoat/JWT/secret/gettoken"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/jwt/JWTSecretKeyEndpoint.java"
+        }
+      ],
+      "group": "jwt-secret",
+      "note": "Offline dictionary attack on the HS256 key; not alg=none or verification bypass."
+    },
+    {
+      "id": "jwt-weak-secret-repo",
+      "title": "JWT tokens: signing key candidates in source",
+      "ref": "JWT secret",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/jwt/JWTSecretKeyEndpoint.java",
+      "description": "The possible HMAC signing secrets are hardcoded in a Java array.",
+      "appCategory": "(A7) Identity & Auth Failure",
+      "class": "secrets",
+      "inScope": true,
+      "surface": "repo",
+      "locations": [
+        {
+          "path": "/WebGoat/JWT/secret"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/jwt/JWTSecretKeyEndpoint.java"
+        }
+      ],
+      "group": "jwt-secret",
+      "note": "Short dictionary words; a generic secret detector may not flag them."
+    },
+    {
+      "id": "jwt-refresh-alg-none",
+      "title": "JWT tokens: refresh lesson accepts alg none",
+      "ref": "JWT refresh",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/jwt/JWTRefreshEndpoint.java",
+      "description": "Checkout accepts an unsigned alg-none token for Tom; the lesson accepts this as a solution.",
+      "appCategory": "(A7) Identity & Auth Failure",
+      "class": "auth",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/WebGoat/JWT/refresh/checkout"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/jwt/JWTRefreshEndpoint.java"
+        }
+      ],
+      "group": "jwt-refresh-none",
+      "note": "Authorization: Bearer header. Lesson feedback key jwt-refresh-alg-none."
+    },
+    {
+      "id": "jwt-refresh-token-reuse",
+      "title": "JWT tokens: refresh someone else's token",
+      "ref": "JWT refresh",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/jwt/JWTRefreshEndpoint.java",
+      "description": "Refresh tokens are not bound to the user, so Tom's expired token is renewed with ours.",
+      "appCategory": "(A7) Identity & Auth Failure",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "access-control-logic",
+      "locations": [
+        {
+          "path": "/WebGoat/JWT/refresh/newToken"
+        },
+        {
+          "path": "/WebGoat/JWT/refresh/login"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/jwt/JWTRefreshEndpoint.java"
+        }
+      ],
+      "group": "jwt-refresh-reuse"
+    },
+    {
+      "id": "jwt-kid-sqli",
+      "title": "JWT tokens: kid header SQL injection",
+      "ref": "JWT kid",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/jwt/claimmisuse/JWTHeaderKIDEndpoint.java",
+      "description": "kid header concatenated into SQL that loads the key, so attacker chooses the verification key.",
+      "appCategory": "(A7) Identity & Auth Failure",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep",
+      "locations": [
+        {
+          "path": "/WebGoat/JWT/kid/delete"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/jwt/claimmisuse/JWTHeaderKIDEndpoint.java"
+        }
+      ],
+      "group": "jwt-kid-sqli",
+      "note": "Injection lives inside a JWT header and must be combined with forging a token."
+    },
+    {
+      "id": "jwt-jku",
+      "title": "JWT tokens: jku header key confusion",
+      "ref": "JWT jku",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/jwt/claimmisuse/JWTHeaderJKUEndpoint.java",
+      "description": "Server fetches the verification key from the token's jku URL, trusting attacker-hosted keys.",
+      "appCategory": "(A7) Identity & Auth Failure",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "out-of-band",
+      "locations": [
+        {
+          "path": "/WebGoat/JWT/jku/delete"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/jwt/claimmisuse/JWTHeaderJKUEndpoint.java"
+        }
+      ],
+      "group": "jwt-jku",
+      "note": "Needs an attacker-hosted JWKS (WebWolf)."
+    },
+    {
+      "id": "jwt-quiz",
+      "title": "JWT tokens: quiz",
+      "ref": "JWT quiz",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/jwt/JWTQuiz.java",
+      "description": "Quiz on JWT signature handling.",
+      "appCategory": "(A7) Identity & Auth Failure",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/JWT/quiz"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/jwt/JWTQuiz.java"
+        }
+      ],
+      "group": "jwt-quiz"
+    },
+    {
+      "id": "pwreset-simple-mail",
+      "title": "Password reset: email functionality with WebWolf",
+      "ref": "PasswordReset simple-mail",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/passwordreset/SimpleMailAssignment.java",
+      "description": "Learner receives a reset mail in WebWolf; introduces the flow.",
+      "appCategory": "(A7) Identity & Auth Failure",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "out-of-band",
+      "locations": [
+        {
+          "path": "/WebGoat/PasswordReset/simple-mail"
+        },
+        {
+          "path": "/WebGoat/PasswordReset/simple-mail/reset"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/passwordreset/SimpleMailAssignment.java"
+        }
+      ],
+      "group": "pwreset-simple-mail"
+    },
+    {
+      "id": "pwreset-security-questions",
+      "title": "Password reset: guessable security questions",
+      "ref": "PasswordReset questions",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/passwordreset/QuestionsAssignment.java",
+      "description": "Account recovery answer (favourite colour) is guessable for known users.",
+      "appCategory": "(A7) Identity & Auth Failure",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "weak-credentials",
+      "locations": [
+        {
+          "path": "/WebGoat/PasswordReset/questions"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/passwordreset/QuestionsAssignment.java"
+        }
+      ],
+      "group": "pwreset-security-questions"
+    },
+    {
+      "id": "pwreset-question-choice",
+      "title": "Password reset: the problem with security questions",
+      "ref": "PasswordReset SecurityQuestions",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/passwordreset/SecurityQuestionAssignment.java",
+      "description": "Learner reviews which security questions are weak; nothing vulnerable.",
+      "appCategory": "(A7) Identity & Auth Failure",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/PasswordReset/SecurityQuestions"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/passwordreset/SecurityQuestionAssignment.java"
+        }
+      ],
+      "group": "pwreset-question-choice"
+    },
+    {
+      "id": "pwreset-host-header",
+      "title": "Password reset: poisoned reset link",
+      "ref": "PasswordReset reset-link",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/passwordreset/ResetLinkAssignmentForgotPassword.java",
+      "description": "Reset link is built from the Host header, so the victim's token is sent to an attacker host.",
+      "appCategory": "(A7) Identity & Auth Failure",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "out-of-band",
+      "locations": [
+        {
+          "path": "/WebGoat/PasswordReset/ForgotPassword/create-password-reset-link"
+        },
+        {
+          "path": "/WebGoat/PasswordReset/reset/"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/passwordreset/ResetLinkAssignmentForgotPassword.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/passwordreset/ResetLinkAssignment.java"
+        }
+      ],
+      "group": "pwreset-host-header",
+      "note": "Needs WebWolf to capture the token; scored via /PasswordReset/reset/change-password."
+    },
+    {
+      "id": "secure-passwords",
+      "title": "Secure Passwords",
+      "ref": "SecurePasswords",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/securepasswords/SecurePasswordsAssignment.java",
+      "description": "Learner enters a password that passes a strength estimator; nothing vulnerable.",
+      "appCategory": "(A7) Identity & Auth Failure",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/SecurePasswords/assignment"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/securepasswords/SecurePasswordsAssignment.java"
+        }
+      ],
+      "group": "secure-passwords"
+    },
+    {
+      "id": "log-spoofing",
+      "title": "Logging Security: log spoofing",
+      "ref": "LogSpoofing",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/logging/LogSpoofingTask.java",
+      "description": "Username written to the log unencoded, so CRLF input forges an admin login entry.",
+      "appCategory": "(A9) Security Logging Failures",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/LogSpoofing/log-spoofing"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/logging/LogSpoofingTask.java"
+        }
+      ],
+      "group": "log-spoofing"
+    },
+    {
+      "id": "log-bleeding",
+      "title": "Logging Security: password in application log",
+      "ref": "LogBleeding",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/logging/LogBleedingTask.java",
+      "description": "Admin password is written (Base64) to the server log at startup.",
+      "appCategory": "(A9) Security Logging Failures",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/LogSpoofing/log-bleeding"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/logging/LogBleedingTask.java"
+        }
+      ],
+      "group": "log-bleeding",
+      "note": "Needs access to the server console/log."
+    },
+    {
+      "id": "bypass-field-restrictions",
+      "title": "Bypass front-end restrictions: field restrictions",
+      "ref": "BypassRestrictions 1",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/bypassrestrictions/BypassRestrictionsFieldRestrictions.java",
+      "description": "Server accepts values that the form's select, radio, checkbox and maxlength controls forbid.",
+      "appCategory": "Client side",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "business-logic",
+      "locations": [
+        {
+          "path": "/WebGoat/BypassRestrictions/FieldRestrictions"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/bypassrestrictions/BypassRestrictionsFieldRestrictions.java"
+        }
+      ],
+      "group": "bypass-field-restrictions"
+    },
+    {
+      "id": "bypass-frontend-validation",
+      "title": "Bypass front-end restrictions: validation",
+      "ref": "BypassRestrictions 2",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/bypassrestrictions/BypassRestrictionsFrontendValidation.java",
+      "description": "Regex validation exists only in JavaScript; server accepts non-matching input.",
+      "appCategory": "Client side",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "business-logic",
+      "locations": [
+        {
+          "path": "/WebGoat/BypassRestrictions/frontendValidation"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/bypassrestrictions/BypassRestrictionsFrontendValidation.java"
+        }
+      ],
+      "group": "bypass-frontend-validation"
+    },
+    {
+      "id": "client-side-filtering-salaries",
+      "title": "Client side filtering: salary data",
+      "ref": "ClientSideFiltering 1",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/clientsidefiltering/ClientSideFilteringAssignment.java",
+      "description": "All employee records, including the CEO's salary, are sent to the browser and filtered client-side.",
+      "appCategory": "Client side",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "access-control-logic",
+      "locations": [
+        {
+          "path": "/WebGoat/clientSideFiltering/salaries"
+        },
+        {
+          "path": "/WebGoat/clientSideFiltering/attack1"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/clientsidefiltering/ClientSideFilteringAssignment.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/clientsidefiltering/Salaries.java"
+        }
+      ],
+      "group": "client-side-filtering-salaries"
+    },
+    {
+      "id": "client-side-filtering-coupon",
+      "title": "Client side filtering: get it for free",
+      "ref": "ClientSideFiltering 2",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/clientsidefiltering/ClientSideFilteringFreeAssignment.java",
+      "description": "Coupon codes endpoint lists every code, including a hidden 100% discount.",
+      "appCategory": "Client side",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "business-logic",
+      "locations": [
+        {
+          "path": "/WebGoat/clientSideFiltering/challenge-store/coupons"
+        },
+        {
+          "path": "/WebGoat/clientSideFiltering/getItForFree"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/clientsidefiltering/ClientSideFilteringFreeAssignment.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/clientsidefiltering/ShopEndpoint.java"
+        }
+      ],
+      "group": "client-side-filtering-coupon"
+    },
+    {
+      "id": "html-tampering",
+      "title": "HTML tampering: change the price",
+      "ref": "HtmlTampering",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/htmltampering/HtmlTamperingTask.java",
+      "description": "Order total comes from a hidden form field and is trusted by the server.",
+      "appCategory": "Client side",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "business-logic",
+      "locations": [
+        {
+          "path": "/WebGoat/HtmlTampering/task"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/htmltampering/HtmlTamperingTask.java"
+        }
+      ],
+      "group": "html-tampering"
+    },
+    {
+      "id": "challenge1-admin-password",
+      "title": "Challenge 1: Admin lost password",
+      "ref": "challenge1",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/challenges/challenge1/Assignment1.java",
+      "description": "Admin password pattern plus a PIN hidden in the logo image's bytes.",
+      "appCategory": "Security exercises",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "osint-or-social",
+      "locations": [
+        {
+          "path": "/WebGoat/challenge/1"
+        },
+        {
+          "path": "/WebGoat/challenge/logo"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/challenges/challenge1/Assignment1.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/challenges/challenge1/ImageServlet.java"
+        }
+      ],
+      "group": "challenge1-admin-password",
+      "note": "Needs reading bytes of an image. Password template is also a constant in SolutionConstants.java (not listed separately)."
+    },
+    {
+      "id": "challenge2-chain",
+      "title": "Challenge 2: Partner feed recovery (XXE to internal endpoint)",
+      "ref": "challenge2",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/challenges/challenge2/FeedImportEndpoint.java",
+      "description": "Feed import resolves XML external entities through a redirect to reach an internal diagnostics endpoint.",
+      "appCategory": "Security exercises",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep",
+      "locations": [
+        {
+          "path": "/WebGoat/northstar/import"
+        },
+        {
+          "path": "/WebGoat/northstar/recovery"
+        },
+        {
+          "path": "/WebGoat/northstar/internal/diagnostics"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/challenges/challenge2/FeedImportEndpoint.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/challenges/challenge2/ChainedXmlService.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/challenges/challenge2/Assignment2.java"
+        }
+      ],
+      "group": "challenge2-chain",
+      "note": "Chained XXE + redirect + internal endpoint."
+    },
+    {
+      "id": "challenge2-redirect",
+      "title": "Challenge 2: unvalidated redirect used in the chain",
+      "ref": "challenge2",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/challenges/challenge2/NorthstarEndpoints.java",
+      "description": "Partner 'go' endpoint issues a 302 to any URL in its url parameter.",
+      "appCategory": "Security exercises",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/WebGoat/northstar/go"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/challenges/challenge2/NorthstarEndpoints.java"
+        }
+      ],
+      "group": "challenge2-redirect",
+      "note": "GET param url. A link in the challenge chain rather than the scored flaw itself."
+    },
+    {
+      "id": "challenge5-sqli-login",
+      "title": "Challenge 5: Without password",
+      "ref": "challenge5",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/challenges/challenge5/Assignment5.java",
+      "description": "Password parameter concatenated into the login query; injection logs in as Larry.",
+      "appCategory": "Security exercises",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/WebGoat/challenge/5"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/challenges/challenge5/Assignment5.java"
+        }
+      ],
+      "group": "challenge5-sqli-login",
+      "note": "POST username_login/password_login; username must be exactly Larry before the query runs, so a probe with another username never reaches the sink."
+    },
+    {
+      "id": "challenge7-git-exposure",
+      "title": "Challenge 7: exposed .git",
+      "ref": "challenge7",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/challenges/challenge7/Assignment7.java",
+      "description": "A .git archive of the source is downloadable from the challenge path.",
+      "appCategory": "Security exercises",
+      "class": "exposure",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "/WebGoat/challenge/7/.git"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/challenges/challenge7/Assignment7.java"
+        }
+      ],
+      "group": "challenge7-git",
+      "note": "Exact path /WebGoat/challenge/7/.git (zip as octet-stream), not the web root."
+    },
+    {
+      "id": "challenge7-reset-link",
+      "title": "Challenge 7: predictable admin reset link",
+      "ref": "challenge7",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/challenges/challenge7/Assignment7.java",
+      "description": "Reset link generator from the leaked source is predictable, giving the admin's reset link.",
+      "appCategory": "Security exercises",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/WebGoat/challenge/7/reset-password/"
+        },
+        {
+          "path": "/WebGoat/challenge/7"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/challenges/challenge7/Assignment7.java"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/challenges/challenge7/PasswordResetLink.java"
+        }
+      ],
+      "group": "challenge7-reset",
+      "note": "Insecure password reset token; needs the .git exposure first."
+    },
+    {
+      "id": "challenge8-verb-tampering",
+      "title": "Challenge 8: Without account",
+      "ref": "challenge8",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/challenges/challenge8/Assignment8.java",
+      "description": "Vote endpoint rejects GET as 'login required' but other methods (e.g. HEAD) vote and return the flag.",
+      "appCategory": "Security exercises",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "access-control-logic",
+      "locations": [
+        {
+          "path": "/WebGoat/challenge/8/vote/"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/challenges/challenge8/Assignment8.java"
+        }
+      ],
+      "group": "challenge8-verb-tampering",
+      "note": "HTTP verb tampering."
+    },
+    {
+      "id": "challenge-flag-submit",
+      "title": "Security exercises: flag submission",
+      "ref": "challenges flag",
+      "source": "https://github.com/WebGoat/WebGoat/blob/7e198f39189f33e1912f7cbb60e24e42635ca06a/src/main/java/org/owasp/webgoat/lessons/challenges/FlagController.java",
+      "description": "Endpoint where challenge flags are submitted; answer check only.",
+      "appCategory": "Security exercises",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability",
+      "locations": [
+        {
+          "path": "/WebGoat/challenge/flag/"
+        },
+        {
+          "file": "src/main/java/org/owasp/webgoat/lessons/challenges/FlagController.java"
+        }
+      ],
+      "group": "challenge-flag-submit"
+    }
+  ],
+  "amendments": [
+    {
+      "date": "2026-10-22",
+      "change": "Added `keywords` to entries that share a location with other findings (wildcard paths, several components in one file) and a \"*\" path to client-library entries, because library findings point at the page that loads them.",
+      "reason": "Pilot run 2 on Juice Shop and DVNA showed class-plus-location matching credited unrelated findings (any header finding for X-Powered-By, an nginx finding for the documented mongo image). Which vulnerabilities are listed and in scope did not change."
+    }
+  ]
+}

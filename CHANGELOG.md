@@ -20,6 +20,13 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   as Express's default `X-Powered-By: Express`. It was a documented miss in
   the E10 pilot (DVNA). The finding names the value and how to turn the
   header off.
+- The secret scan reads Terraform and HCL files (`.tf`, `.tfvars`, `.hcl`).
+  A private key inline in a Terraform file was a documented miss in the E10
+  pilot (Juice Shop).
+- New secret rule: a session signing secret written into
+  `session({ secret: '...' })` or `cookieSession(...)`, including a hardcoded
+  fallback after `process.env.X ||` (high). Express's documented example,
+  `'keyboard cat'`, was a documented miss in the E10 pilot (DVNA).
 
 ### Added
 

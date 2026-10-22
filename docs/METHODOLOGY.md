@@ -173,6 +173,15 @@ across many formats, is the natural yardstick for that gap (Basak et al.,
 2023). The bundled benchmark includes an unprefixed signing key that Penthera
 misses for this reason.
 
+The scan reads source, config and notebook files, plus Terraform and other HCL
+files (`.tf`, `.tfvars`, `.hcl`), where keys and passwords often sit inline.
+One rule is specific to session middleware: a signing secret written into the
+options of `session(...)` or `cookieSession(...)`, including the common
+`process.env.SESSION_SECRET || '...'` fallback, is reported as a hardcoded
+session secret, since anyone with the repository can then sign session
+cookies. A secret read only from the environment or from a config object is
+not reported.
+
 White-box scanning cannot see runtime configuration (headers added by a CDN, a
 WAF in front of the app), secrets injected at deploy time, or anything in
 dependencies that is only known from a vulnerability database.

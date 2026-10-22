@@ -39,6 +39,33 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ### Added
 
+- **`penthera verify <findings.json>`** checks findings from an AI security
+  audit against Penthera's rules on your checkout. It reads Cloudflare's
+  security-audit skill `findings.json` (schema vendored from commit `c1c8a8c`,
+  MIT). A finding a rule agrees with is shown as Penthera's own finding, marked
+  "also proposed by" the model; the rest are labelled "model-proposed,
+  unverified" and never fail CI. Penthera runs no model and sends nothing
+  anywhere. See [docs/commands/verify.md](docs/commands/verify.md).
+- **`--audit-seeds <file>`** writes repo findings in the security-audit
+  skill's `findings.json` schema, as seeds for an AI audit: each entry is
+  `needs_validation`, names its class and the line the rule matched, and is
+  checked against the skill's schema before it is written.
+- Risky-pattern findings from `--repo` now carry the repo-relative `file` and
+  the `pattern` name.
+
+- **Coverage ledger** in every `--repo` report (terminal, Markdown, JSON
+  `coverage`): which files each check read, which it did not and why, and the
+  source files no code analysis looked at. It reads only file names and sizes,
+  and is the first step toward an opt-in AI mode.
+
+### Fixed
+
+- `--repo` scans of Express, Hono and Fastify apps with a `routes/`, `api/` or
+  `server/routes/` folder now get route discovery, trust-boundary and
+  risky-pattern checks. That folder was taken for a Next.js API root, no
+  `route.js` files were found there, and route analysis stopped. An explicit
+  `--api-root` is still used as given.
+
 - **TLS keys anyone can compute.** URL scans report, as critical, any
   certificate in the served chain whose EC public key (P-256, P-384, P-521) is
   k·G for a private scalar k below 1024. The private key then follows from

@@ -24,7 +24,7 @@ const BIN = join(import.meta.dirname, "..", "bin", "penthera.js");
 describe("policy", () => {
   it("defaults require approval for new install scripts and the known-bad capabilities", () => {
     const p = normalizePolicy({});
-    expect(p.requireApproval).toEqual(expect.arrayContaining(["install-scripts", "ai-config-write", "ai-cli-invoke", "token-harvest", "obfuscated"]));
+    expect(p.requireApproval).toEqual(expect.arrayContaining(["install-scripts", "startup-hook", "ai-config-write", "ai-cli-invoke", "token-harvest", "obfuscated"]));
     expect(p.allow).toEqual([]);
     expect(p.deny).toEqual([]);
   });

@@ -4,7 +4,7 @@
  * tests assert it is only ever asked at 127.0.0.1:11434.
  */
 import { describe, it, expect } from "vitest";
-import { mkdirSync, writeFileSync, readFileSync, statSync } from "node:fs";
+import { mkdirSync, writeFileSync, statSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
 import { withTempDir } from "../lib/tmp.js";
@@ -48,9 +48,9 @@ describe("consent", () => {
     expect(text).toContain("Model     qwen2.5-coder:7b, through Ollama on this computer (127.0.0.1)");
     expect(text).toContain("Reads     up to 200 parts of ./my-app, with secrets masked");
     expect(text).toContain("Sends     nothing off this computer");
-    expect(text).toMatch(/Decides   nothing\. Penthera checks every model finding/);
+    expect(text).toMatch(/Decides {3}nothing\. Penthera checks every model finding/);
     expect(question).toBe("  Use this model for ./my-app? [y/N/details]: ");
-    expect(consentScreen({ route: "local", model: "m", project: "./a", maxUnits: 1, repro: true }).text).toMatch(/Runs      parts of \.\/a's own code in a sandbox/);
+    expect(consentScreen({ route: "local", model: "m", project: "./a", maxUnits: 1, repro: true }).text).toMatch(/Runs {6}parts of \.\/a's own code in a sandbox/);
   });
 
   it("defaults to no: Enter, anything but y, declines without an error", async () => {
@@ -78,7 +78,7 @@ describe("consent", () => {
     const out = sink();
     await askConsent({ ...base, write: out.write, ask: answers("y", "") });
     expect(out.text()).toMatch(/This model runs on ollama\.com, not on this computer/);
-    expect(out.text()).toMatch(/Sends     up to 5 parts of \.\/a, secrets masked, to ollama\.com/);
+    expect(out.text()).toMatch(/Sends {5}up to 5 parts of \.\/a, secrets masked, to ollama\.com/);
   });
 
   it("without a terminal needs a flag or policy for the exact route", () => {

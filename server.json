@@ -1,0 +1,30 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.danoszz/penthera",
+  "title": "Penthera",
+  "description": "Offline, rule-based security checks for your repo, dependencies, AI agent config and local app.",
+  "websiteUrl": "https://penthera.org",
+  "repository": {
+    "url": "https://github.com/danoszz/penthera",
+    "source": "github"
+  },
+  "version": "1.9.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "penthera",
+      "version": "1.9.0",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "mcp"
+        }
+      ]
+    }
+  ]
+}

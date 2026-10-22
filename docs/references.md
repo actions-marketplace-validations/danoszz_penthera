@@ -120,6 +120,10 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 <a id="baker2025monitoring"></a>† Baker, B., Huizinga, J., Gao, L., Dou, Z., Guan, M. Y., Madry, A., Zaremba, W., Pachocki, J., & Farhi, D. (2025). *Monitoring reasoning models for misbehavior and the risks of promoting obfuscation* [Preprint]. arXiv. <https://doi.org/10.48550/arXiv.2503.11926>
 
+<a id="cloudflare2026securityaudit"></a>Cloudflare. (2026). *Security-audit-skill*. Retrieved October 22, 2026, from <https://github.com/cloudflare/security-audit-skill/tree/c1c8a8c>
+
+<a id="ding2025primevul"></a>Ding, Y., Fu, Y., Ibrahim, O., Sitawarin, C., Chen, X., Alomair, B., Wagner, D., Ray, B., & Chen, Y. (2025). Vulnerability detection with code language models: How far are we? In *Proceedings of the 47th IEEE/ACM International Conference on Software Engineering (ICSE 2025)*. <https://doi.org/10.48550/arXiv.2403.18624>
+
 <a id="greshake2023signed"></a>Greshake, K., Abdelnabi, S., Mishra, S., Endres, C., Holz, T., & Fritz, M. (2023). Not what you've signed up for: Compromising real-world LLM-integrated applications with indirect prompt injection. In *Proceedings of the 16th ACM Workshop on Artificial Intelligence and Security (AISec '23)* (pp. 79–90). ACM. <https://doi.org/10.1145/3605764.3623985>
 
 <a id="liu2023prompt"></a>Liu, Y., Deng, G., Li, Y., Wang, K., Wang, Z., Wang, X., Zhang, T., Liu, Y., Wang, H., Zheng, Y., Zhang, L. Y., & Liu, Y. (2023). *Prompt injection attack against LLM-integrated applications* [Preprint]. arXiv. <https://doi.org/10.48550/arXiv.2306.05499>
@@ -181,6 +185,8 @@ Entries marked † are further reading: they inform the work but are not cited i
 <a id="endoflifedate"></a>endoflife.date contributors. (n.d.). *Endoflife.date*. Retrieved October 21, 2026, from <https://endoflife.date/>
 
 <a id="li2017largescale"></a>Li, F., & Paxson, V. (2017). A large-scale empirical study of security patches. In *Proceedings of the 2017 ACM SIGSAC Conference on Computer and Communications Security (CCS '17)* (pp. 2201–2215). ACM. <https://doi.org/10.1145/3133956.3134072>
+
+<a id="mongodblifecycles"></a>MongoDB, Inc. (n.d.). *Software lifecycle schedules*. MongoDB. Retrieved October 22, 2026, from <https://www.mongodb.com/legal/support-policy/lifecycles>
 
 <a id="ncscadvisories"></a>Nationaal Cyber Security Centrum. (n.d.). *Security advisories*. Retrieved October 21, 2026, from <https://advisories.ncsc.nl/>
 

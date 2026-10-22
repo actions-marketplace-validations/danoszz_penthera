@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Offline cyber security agent for your apps and AI coding tools. Open R&D: measured in public, improved every release.",
-    "version": "1.8.0"
+    "version": "1.9.0-rc.1"
   },
   "plugins": [
     {
       "name": "penthera",
       "description": "Offline cyber security agent for your apps and AI coding tools. Open R&D: measured in public, improved every release.",
       "source": "./",
-      "strict": false,
+      "strict": true,
       "skills": [
         "./skills/penthera"
       ]

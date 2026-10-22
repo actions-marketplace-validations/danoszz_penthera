@@ -45,7 +45,10 @@ const BENCH_MAX_DROP = 0.02;
 // the setup wizard (`penthera init`: src/cli/onboarding.js, detect.js and
 // docs/commands/init.md, ~35 KB unpacked, ~10 KB packed): was 650_000 packed /
 // 1_800_000 unpacked / 200 files. The headroom above today's size stays about the same.
-const PACK_BUDGET = { packedBytes: 800_000, unpackedBytes: 2_300_000, files: 260 };
+// Raised again for `penthera mcp` (src/mcp/ and src/cli/mcp.js: ~45 KB unpacked,
+// ~15 KB packed, 6 files, no dependencies): was 800_000 packed. Main was at
+// ~786 KB packed before it, so the headroom stays about 35 KB.
+const PACK_BUDGET = { packedBytes: 835_000, unpackedBytes: 2_300_000, files: 260 };
 
 /** Paths the npm package may contain. Anything else fails the packaging gate. */
 const PACK_ALLOW = [

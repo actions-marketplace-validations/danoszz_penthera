@@ -7,6 +7,36 @@ export function normalizeBaseUrl(url) {
   return `${parsed.origin}${path}`;
 }
 
+const HOST_LIKE = /^(?:localhost|\[[0-9a-f:.]+\]|[a-z0-9-]+(?:\.[a-z0-9-]+)+)(?::\d{1,5})?(?:[/?#].*)?$/i;
+const LOCAL_LIKE = /^(?:localhost|127\.|0\.0\.0\.0|\[::1\]|10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.)/i;
+
+/**
+ * The URL a scan's first argument names, or why it names none. A bare host
+ * (`example.com`, `localhost:3000`) gets https://, or http:// when it is local;
+ * a word that is neither a command nor a host is reported, not parsed.
+ * @returns {{ url: string } | { error: string }}
+ */
+export function targetFromArg(arg) {
+  const raw = String(arg || "").trim();
+  let candidate = raw;
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) {
+    if (!HOST_LIKE.test(raw)) {
+      return { error: `"${raw}" is not a penthera command or a URL. Run penthera --help for the commands; to scan a site, pass its address, e.g. https://example.com.` };
+    }
+    candidate = `${LOCAL_LIKE.test(raw) ? "http" : "https"}://${raw}`;
+  }
+  let parsed;
+  try {
+    parsed = new URL(candidate);
+  } catch {
+    return { error: `"${raw}" is not a valid URL.` };
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return { error: `Penthera scans http:// and https:// URLs, not ${parsed.protocol}// ("${raw}").` };
+  }
+  return { url: normalizeBaseUrl(candidate) };
+}
+
 /** Join base URL and path safely: `http://host` + `/api` → `http://host/api`. */
 export function joinUrl(baseUrl, path = "/") {
   const base = normalizeBaseUrl(baseUrl);

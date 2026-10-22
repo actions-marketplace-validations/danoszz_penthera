@@ -4,9 +4,9 @@
 
 | Profile | Flag | Duration | What runs |
 |---------|------|----------|-----------|
-| **quick** | `--profile quick` | ~10s | Headers, OpenAPI, auth smoke tests; skips Retire.js and param discovery |
-| **standard** | `--profile standard` | default | Full non-destructive scan: TLS, fingerprint, discovery, templates, CORS, cookies, Retire.js, param discovery, OpenAPI/auth |
-| **deep** | `--profile deep` | longest | recon + injection probes + API fuzzing (requires authorization confirmation) |
+| **quick** | `--profile quick` | ~10s | Headers, OpenAPI, auth checks with no login POSTs; skips Retire.js and param discovery |
+| **standard** | `--profile standard` | default | Full non-destructive scan: TLS, fingerprint, discovery, templates, CORS, cookies, Retire.js, param discovery, OpenAPI/auth (one `POST /api/login` with invalid credentials; no attack payloads) |
+| **deep** | `--profile deep` | longest | recon + injection probes + API fuzzing + a login rate-limit burst and SQL error check (requires authorization confirmation) |
 
 ## Individual mode flags
 

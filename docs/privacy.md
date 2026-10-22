@@ -21,6 +21,26 @@ Without `--offline`, a scan may contact these third parties:
 
 Other commands stay local unless you opt in. `penthera deps` makes no network requests by default. With `--online` it sends GET requests for public package metadata to the npm registry (`registry.npmjs.org`, or your `npm_config_registry`), and nothing about your project. `--fix-model` talks only to a local Ollama on `127.0.0.1:11434`.
 
+`penthera mcp` talks to your agent over stdin and stdout and opens no port. Of its tools, only `scan_url` uses the network, with the same rules as a URL scan: the target, plus the hosts above unless the server runs with `--offline`. See [docs/commands/mcp.md](commands/mcp.md).
+
+### AI mode: `--ai`
+
+AI mode is off unless you turn it on, and asks every run. Penthera itself talks
+only to Ollama on `127.0.0.1:11434`. What reaches the model is parts of your
+code with recognised secrets masked. See [ai-mode.md](ai-mode.md).
+
+| Route | What Penthera sends | What you should know |
+|---|---|---|
+| Rules only (no `--ai`) | Nothing new | No question is asked |
+| `--ai` with a local model | Code parts, secrets masked, to Ollama on `127.0.0.1`. Nothing else | The model runs on this computer, and the report lists every host Penthera contacted |
+| `--ai` with an Ollama cloud model | Code parts, secrets masked, to Ollama on `127.0.0.1`, which forwards them to ollama.com | Your code leaves this computer, under Ollama's terms. Only after a second screen where you type the host, or `--ai-consent ollama-cloud` |
+| `penthera verify` | Nothing. It reads a file and your checkout | Your agent and its model provider handled your code, under their terms |
+
+Penthera checks the address and the model. It cannot see whether something on
+this computer forwards port 11434 elsewhere. Each consent is logged to
+`~/.penthera/consent.jsonl` on this computer only, and never used to skip a
+question.
+
 ### Fully local: `--offline`
 
 ```bash

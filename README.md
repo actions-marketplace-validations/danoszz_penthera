@@ -87,6 +87,21 @@ npx skills add danoszz/penthera
 The skill tells your agent to refuse targets you do not own or are not
 authorized to test. Other install routes (the one-line installer, the Claude
 Code plugin, a per-project copy) are in [docs/commands/skill.md](docs/commands/skill.md).
+
+### Use it from your agent
+
+Penthera is also an MCP server, so Claude Code, Cursor, Codex, VS Code and
+Windsurf can call it as a tool. Pin the version:
+
+```bash
+claude mcp add penthera -- npx -y penthera@1.9.0 mcp
+```
+
+It offers six read-only tools: `scan_repo`, `check_dependencies`,
+`audit_ai_tooling`, `runtime_advisories`, `explain_finding`, and `scan_url`
+(passive, loopback or hosts you list). Tools read only inside your project,
+never apply fixes, and run no shell. Configs for the other clients and the
+safety rules are in [docs/commands/mcp.md](docs/commands/mcp.md).
 Penthera needs Node.js 22 or later. To run it in a container:
 `docker build -t penthera . && docker run --rm penthera https://your-app.example`.
 
@@ -267,10 +282,10 @@ What changed, what we are measuring, and what comes next, in one place.
 
 | | Where it stands | Read more |
 |---|---|---|
-| **Latest release** | 1.8.0 (2026-10-21): runtime advisories starting with PHP's critical release, fixes from a second security review, a fix loop that cannot edit its own tests, the redesigned dashboard | [CHANGELOG](CHANGELOG.md) |
-| **On main, unreleased** | Whatever lands after 1.8.0 | [Unreleased](CHANGELOG.md#unreleased) |
-| **Now** | Toward 1.9: accuracy on real code (E1) and an MCP server, so coding agents can call Penthera | [Roadmap](ROADMAP.md#next) |
-| **Research** | E1, accuracy on real code, is pre-registered; the benchmark tooling is in review. After the 2026 agent incidents: a checklist for running agents safely and a draft experiment (E8) | [E1 pre-registration](docs/research/prereg/E1-real-world-accuracy.md), [agents safely](docs/agents-safely.md), [what the incidents mean](docs/research/agent-incidents-2026.md) |
+| **Latest release** | 1.8.1 (2026-10-22): more careful runtime advisories (pre-releases, distribution builds, older lines) on top of 1.8.0's runtime advisories, security-review fixes and redesigned dashboard | [CHANGELOG](CHANGELOG.md) |
+| **On main, unreleased** | For 1.9: `penthera mcp` for coding agents, opt-in AI mode (a local model proposes, rules verify), new detection rules, no attack payloads in default scans | [Unreleased](CHANGELOG.md#unreleased) |
+| **Now** | 1.9.0-rc.1 on npm `next`, then accuracy on real code (E1) | [Roadmap](ROADMAP.md#on-main-for-19) |
+| **Research** | E10 pilot published: precision 0.88, recall 0.07 → 0.71 on two known-vulnerable apps after fixes (one labeller, not independent; a re-run is pending because default scans no longer send login checks). E1 on real code is pre-registered; E8 (agent guardrails) is a draft | [E10 results](bench/known-vuln/RESULTS.md), [E1 pre-registration](docs/research/prereg/E1-real-world-accuracy.md), [agents safely](docs/agents-safely.md) |
 | **Next** | Real-world precision and recall with intervals, published whatever the result | [Roadmap: next](ROADMAP.md#next), [research plan](docs/vision-2.0.md) |
 
 Releases are deliberately slow: a feature freeze, an independent review, the

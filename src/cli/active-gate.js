@@ -60,7 +60,7 @@ export function checkActiveConsent({ url, confirmTarget = null }) {
 /** What an active scan sends, in plain words, for the prompt and the refusal. */
 export function describeActive(modes) {
   const parts = [];
-  if (modes.includes("deep")) parts.push("injection probes (SQLi, SSTI, SSRF, XSS, command injection)");
+  if (modes.includes("deep")) parts.push("injection probes (SQLi, SSTI, SSRF, XSS, command injection) and a burst of login attempts with a SQL error check");
   if (modes.includes("fuzz")) parts.push("fuzzed API request bodies");
   if (modes.includes("adaptive")) parts.push("adaptive probes that may send unexpected methods, including DELETE");
   return parts.join("; ");

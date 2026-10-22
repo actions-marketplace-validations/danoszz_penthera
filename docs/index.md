@@ -38,16 +38,17 @@ you need.
 | 3 | "Is this MCP server or skill safe?" | `npx penthera agents --home` | [Auditing your AI tooling](commands/agents.md), [the AI-tooling supply chain](use-cases/ai-coding-teams.md) |
 | 4 | "Can I see it all in one place?" | `npx penthera ui` | [The local dashboard](dashboard.md) |
 | 5 | "Can my coding agent run it for me?" | `npx skills add danoszz/penthera` | [Penthera as an Agent Skill](commands/skill.md) |
+| 6 | "Can my agent call it as a tool?" | `claude mcp add penthera -- npx -y penthera@1.9.0 mcp` | [Penthera in your agent (MCP)](commands/mcp.md) |
 
 ### Pro: make it part of how you work
 
 | # | Your question | Read |
 |---|---|---|
-| 6 | "How do I put it in CI?" | [The GitHub Action](commands/action.md), [scan in CI](commands/scan.md#ci-integration), [the pre-commit hook](commands/hook.md), [example workflows](examples/github-actions-scan.yml) |
-| 7 | "How do I tune the rules?" | [Scan configuration](commands/scan.md#configuration), [rule packs](rule-packs.md), [OWASP WSTG coverage](owasp-wstg-coverage.md) |
-| 8 | "How do I run the fix loop?" | [Fixing what it finds](commands/fix.md), [the local loop and its memory](local-loop.md) |
-| 9 | "What do I give my auditor?" | [Evidence bundles and audience reports](evidence.md), [NIS2](compliance-nis2.md), [the CRA and AI-BOM](compliance-cra.md), [EU SMEs](use-cases/eu-sme-compliance.md) |
-| 10 | "What does it send over the network?" | [Privacy and network use](privacy.md) |
+| 7 | "How do I put it in CI?" | [The GitHub Action](commands/action.md), [scan in CI](commands/scan.md#ci-integration), [the pre-commit hook](commands/hook.md), [example workflows](examples/github-actions-scan.yml) |
+| 8 | "How do I tune the rules?" | [Scan configuration](commands/scan.md#configuration), [rule packs](rule-packs.md), [OWASP WSTG coverage](owasp-wstg-coverage.md) |
+| 9 | "How do I run the fix loop?" | [Fixing what it finds](commands/fix.md), [the local loop and its memory](local-loop.md) |
+| 10 | "What do I give my auditor?" | [Evidence bundles and audience reports](evidence.md), [NIS2](compliance-nis2.md), [the CRA and AI-BOM](compliance-cra.md), [EU SMEs](use-cases/eu-sme-compliance.md) |
+| 11 | "What does it send over the network?" | [Privacy and network use](privacy.md) |
 
 ### Verify it: how do you know it works?
 

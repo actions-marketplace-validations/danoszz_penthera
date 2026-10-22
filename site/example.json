@@ -3,12 +3,12 @@
   "counts": {
     "critical": 0,
     "high": 2,
-    "medium": 5,
+    "medium": 4,
     "low": 2,
     "info": 2
   },
   "checks": 13,
-  "requests": 204,
+  "requests": 195,
   "thirdParty": 0,
   "finding": {
     "severity": "high",

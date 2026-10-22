@@ -55,7 +55,7 @@ describe("login rate-limit probe", () => {
       res.writeHead(403, CHALLENGE);
       res.end("challenge");
     });
-    const findings = await probeAuthEndpoints(base, { timeout: 3000 });
+    const findings = await probeAuthEndpoints(base, { timeout: 3000, level: "full" });
     expect(findings.map((f) => f.title)).not.toContain("No login rate limiting detected");
   });
 
@@ -70,7 +70,7 @@ describe("login rate-limit probe", () => {
       res.writeHead(401, { "content-type": "application/json" });
       res.end('{"error":"invalid credentials"}');
     });
-    const findings = await probeAuthEndpoints(base, { timeout: 3000 });
+    const findings = await probeAuthEndpoints(base, { timeout: 3000, level: "full" });
     expect(findings.map((f) => f.title)).not.toContain("No login rate limiting detected");
   });
 
@@ -79,7 +79,7 @@ describe("login rate-limit probe", () => {
       res.writeHead(401, { "content-type": "application/json" });
       res.end('{"error":"invalid credentials"}');
     });
-    const findings = await probeAuthEndpoints(base, { timeout: 3000 });
+    const findings = await probeAuthEndpoints(base, { timeout: 3000, level: "full" });
     expect(findings.map((f) => f.title)).toContain("No login rate limiting detected");
   });
 });

@@ -6,22 +6,43 @@ import { dim } from "./ansi.js";
 
 let _pipedLines = null;
 let _rl = null;
+let _ended = false;
+let _onEnd = null;
 
-/** Open the prompt. Safe to call again after closePrompt(): piped answers already read are kept. */
-export async function initPrompt() {
+/** Ctrl-D at a terminal prompt: stop the way Ctrl-C does, without a stack trace. */
+function cancelOnEnd() {
+  process.stdout.write("\n  Cancelled.\n");
+  process.exit(130);
+}
+
+/**
+ * Open the prompt. Safe to call again after closePrompt(): piped answers already read are kept.
+ * `input` and `onEnd` are for tests; onEnd runs when a terminal's input ends (Ctrl-D).
+ */
+export async function initPrompt({ input = process.stdin, output = process.stdout, onEnd = cancelOnEnd } = {}) {
   if (_pipedLines) return;
-  if (process.stdin.isTTY) {
-    _rl = createInterface({ input: process.stdin, output: process.stdout });
+  if (input.isTTY) {
+    const rl = createInterface({ input, output });
+    _rl = rl;
+    _ended = false;
+    _onEnd = onEnd;
+    // closePrompt() clears _rl first, so only an input that ended by itself gets here.
+    rl.on("close", () => {
+      if (_rl !== rl) return;
+      _ended = true;
+      _onEnd();
+    });
   } else {
     const chunks = [];
-    for await (const chunk of process.stdin) chunks.push(chunk);
+    for await (const chunk of input) chunks.push(chunk);
     _pipedLines = Buffer.concat(chunks).toString().split("\n").map((l) => l.trim());
   }
 }
 
 export function closePrompt() {
-  if (_rl) _rl.close();
+  const rl = _rl;
   _rl = null;
+  if (rl) rl.close();
 }
 
 export function ask(question) {
@@ -30,6 +51,10 @@ export function ask(question) {
     const answer = _pipedLines.shift() || "";
     process.stdout.write(answer + "\n");
     return Promise.resolve(answer);
+  }
+  if (_ended) {
+    _onEnd();
+    return new Promise(() => {});
   }
   return new Promise((resolve) => {
     _rl.question(question, (answer) => resolve(answer.trim()));

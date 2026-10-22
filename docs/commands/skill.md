@@ -49,10 +49,11 @@ The skill adds an authorization gate: it instructs the agent to refuse targets y
 do not own or are not authorized to test, and the wizard asks you to confirm before
 scanning a remote host. It is an agent-level and interactive safeguard, not something
 the raw CLI enforces. You are responsible for every target you pass it. Run preflight
-before the first scan:
+from your project folder before the first scan. The script is in the skill's own folder:
+`~/.claude/skills/penthera` after `npx skills add -g`, or `skills/penthera` in a checkout.
 
 ```bash
-bash skills/penthera/scripts/preflight.sh http://localhost:3000
+bash ~/.claude/skills/penthera/scripts/preflight.sh http://localhost:3000
 ```
 
 Skill source and workflows live in [`skills/penthera/SKILL.md`](../../skills/penthera/SKILL.md).

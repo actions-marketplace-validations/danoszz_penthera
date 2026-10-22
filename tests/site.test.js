@@ -137,6 +137,15 @@ describe("site build", () => {
   });
 });
 
+describe("site layout at phone width", () => {
+  it("sizes the paste panels' grid to the card, so a nowrap command cannot widen it (e2e 2026-10-22, 375px)", () => {
+    const css = readFileSync(new URL("../site/styles.css", import.meta.url), "utf8");
+    const rule = css.match(/\.paste-body \{([^}]*)\}/)?.[1] || "";
+    expect(rule).toMatch(/grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+    expect(css).toMatch(/\.paste-body > \.cmd code \{[^}]*white-space: normal/);
+  });
+});
+
 describe("site FAQ", () => {
   it("is native <details> with a question in each summary, and its numbers come from the repo", () => {
     const html = readFileSync(join(out, "index.html"), "utf8");

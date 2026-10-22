@@ -48,6 +48,7 @@ import { runInjectionProbes } from "../lib/injections.js";
 import { scanJsLibraries } from "../lib/retirejs.js";
 import { discoverAllParams } from "../lib/params.js";
 import { scanOpenApi, probeAuthEndpoints } from "../lib/blackbox/openapi.js";
+import { botChallenge, challengeFinding } from "../lib/blackbox/challenge.js";
 import { probeIdorBola } from "../lib/blackbox/idor.js";
 import { probeOAuthMisconfig } from "../lib/blackbox/oauth.js";
 import { auditSecurityHeaders } from "../lib/blackbox/headers.js";
@@ -156,6 +157,16 @@ async function scanUrlInContext(target, opts) {
   // ── Phase 3: Fingerprint ───────────────────────────────────────────────
   progress("Fingerprinting target...");
   result.fingerprint = await fingerprint(target);
+
+  // A firewall challenging the scanner: everything after this would measure
+  // the challenge page, so stop and say so instead of reporting its headers.
+  const challenge = botChallenge(result.fingerprint?.headers);
+  if (challenge) {
+    result.challenge = challenge;
+    result.findings.push(challengeFinding(challenge, target));
+    result.duration = Date.now() - startTime;
+    return result;
+  }
 
   // ── Phase 4: Endpoint discovery ────────────────────────────────────────
   progress("Discovering endpoints (brute-force)...");

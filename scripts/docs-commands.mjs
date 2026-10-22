@@ -211,7 +211,7 @@ const LICENSE_PRESETS = new Set(["permissive", "weak-copyleft-ok", "no-agpl"]);
 const INPUT_FLAGS = new Set(["--diff", "--venv", "--rules", "--rules-signers", "--assessment", "--baseline",
   "--incident", "--cra", "--report-template", "--allowed-signers", "--policy", "--questionnaire", "--suppliers", "--sign-key"]);
 /** Flags that take a value (so the next token is not a positional). */
-const VALUE_FLAGS = new Set([...INPUT_FLAGS, "-r", "--repo", "--api-root", "-o", "--output", "--markdown", "--sarif",
+const VALUE_FLAGS = new Set([...INPUT_FLAGS, "-r", "--repo", "--api-root", "-o", "--output", "--markdown", "--sarif", "--audit-seeds",
   "--audience", "--evidence", "--framework", "--assessment-init", "--policy-pack", "--org", "--incident-init", "--sbom",
   "--aibom", "--cra-init", "--history", "--auth-cookie", "--auth-bearer", "--timeout", "--concurrency", "--user-agent",
   "--profile", "--nuclei", "--templates", "--base", "--pr-comment", "--license-policy", "--port", "--project",
@@ -289,6 +289,9 @@ export function classify(argv, model, { file = "" } = {}) {
   if (bare) return { kind: "placeholder", reason: `names ${bare.name} without its value`, problems, sub, action, flags, positionals };
   if ((sub === "evidence" || sub === "rules") && action === "verify" && positionals.length === 0) {
     return { kind: "placeholder", reason: `names \`${sub} verify\` without its <dir>`, problems, sub, action, flags, positionals };
+  }
+  if (sub === "verify" && positionals.length === 0) {
+    return { kind: "placeholder", reason: "names `verify` without its findings file", problems, sub, action, flags, positionals };
   }
   const has = (n) => flags.some((f) => f.name === n);
   const url = positionals.find(isUrl);

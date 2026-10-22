@@ -66,9 +66,22 @@ next to it. `penthera init` can add `reports/` to your `.gitignore`.
 | **Markdown** | `--markdown file.md` or `-o file.json` | Human-readable report (exec summary, findings tables, fixes). Written next to `-o` automatically |
 | JSON | `--json` or `-o file.json` | CI pipelines, baseline diffs, custom tooling |
 | SARIF | `--sarif file.sarif` | GitHub Security / Code Scanning tab |
+| AI-audit seeds | `--audit-seeds seeds.json` (with `--repo`) | Repo findings in Cloudflare security-audit-skill `findings.json` form, so an agent running the skill starts from them ([verify.md](verify.md#the-other-way-seeds-for-the-skill)) |
 | Audience report | `--audience developer\|owner\|auditor` | The same scan written for a developer, an owner or an auditor ([docs/evidence.md](../evidence.md#audience-reports)) |
 | Your template | `--report-template file.md` | Your own Markdown with `{{summary.critical}}`, `{{#each findings}}`, `{{#if x}}`; no code runs |
 | **Evidence bundle** | `--evidence <dir> [--sign-key <ssh-key>]` | All reports plus `manifest.json` with SHA-256s, optionally SSH-signed. Auditors check it with `penthera evidence verify <dir> --allowed-signers <file>` ([docs/evidence.md](../evidence.md)) |
+
+### Coverage: what a repo scan read
+
+Every `--repo` scan adds a **Coverage** section to the terminal, Markdown and
+JSON (`coverage`) reports. For each check (the secret scan, route and
+code-pattern analysis, runtime versions) it says how many files were read and
+why the others were not: file type not read, over the size limit, a language
+route analysis does not support, or no API routes found. Source files no code
+analysis read are listed as blind spots, up to 200. A file that was not read
+is unchecked, not clean. Dependency behaviour and agent config have their own
+commands (`penthera deps`, `penthera agents`) and are listed as not part of a
+repo scan.
 
 ## CI integration
 

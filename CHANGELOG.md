@@ -47,6 +47,33 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ### Added
 
+- **`penthera verify <findings.json>`** checks findings from an AI security
+  audit against Penthera's rules on your checkout. It reads Cloudflare's
+  security-audit skill `findings.json` (schema vendored from commit `c1c8a8c`,
+  MIT). A finding a rule agrees with is shown as Penthera's own finding, marked
+  "also proposed by" the model; the rest are labelled "model-proposed,
+  unverified" and never fail CI. Penthera runs no model and sends nothing
+  anywhere. See [docs/commands/verify.md](docs/commands/verify.md).
+- **`--audit-seeds <file>`** writes repo findings in the security-audit
+  skill's `findings.json` schema, as seeds for an AI audit: each entry is
+  `needs_validation`, names its class and the line the rule matched, and is
+  checked against the skill's schema before it is written.
+- Risky-pattern findings from `--repo` now carry the repo-relative `file` and
+  the `pattern` name.
+
+- **Coverage ledger** in every `--repo` report (terminal, Markdown, JSON
+  `coverage`): which files each check read, which it did not and why, and the
+  source files no code analysis looked at. It reads only file names and sizes,
+  and is the first step toward an opt-in AI mode.
+
+### Fixed
+
+- `--repo` scans of Express, Hono and Fastify apps with a `routes/`, `api/` or
+  `server/routes/` folder now get route discovery, trust-boundary and
+  risky-pattern checks. That folder was taken for a Next.js API root, no
+  `route.js` files were found there, and route analysis stopped. An explicit
+  `--api-root` is still used as given.
+
 - **TLS keys anyone can compute.** URL scans report, as critical, any
   certificate in the served chain whose EC public key (P-256, P-384, P-521) is
   k·G for a private scalar k below 1024. The private key then follows from
@@ -142,6 +169,28 @@ cleanly under `npx`.
   CSP now allows connections only to those two paths on penthera.org; the
   browser check still sends nothing, and the page says so. The CLI, the
   dashboard and the npm package have no telemetry, unchanged.
+- A shared penthera.org link now plays a 14-second muted reel in iMessage
+  and other apps that support `og:video`: setup, an offline scan, the
+  verdict, the PHP advisory of 21 October 2026, and the share card.
+  `og.png` stays the poster and the fallback; X keeps the image card.
+  Rendered by `site/tools/reel.mjs`.
+
+### Research
+
+- Draft protocol for experiment E10: Penthera against six deliberately
+  vulnerable apps with public answer keys (Juice Shop, DVNA, NodeGoat, DVWA,
+  crAPI, WebGoat), each pinned by commit and image digest. Answer keys in
+  `bench/known-vuln/`, frozen before any scan; an opt-in runner
+  (`npm run bench:known`, not in `npm test` or the package) starts the apps
+  isolated in Docker on 127.0.0.1. A pilot on Juice Shop and DVNA is in
+  `bench/known-vuln/RESULTS.md`, marked as a pilot.
+- Each of the pilot's 13 standard-run misses is verified in
+  `bench/known-vuln/MISSES.md` (all real gaps; none a scoring artefact).
+  A re-run after the fixes that followed (#107, #108, #110, #111) is in
+  `bench/known-vuln/RESULTS-after-fixes.md`, next to the unchanged pilot:
+  pooled standard recall 1/14 to 10/14 at the same precision, flagged as not
+  independent, with WebGoat as a held-out app that did not change. The
+  runner gains `--out <file>`.
 
 ### Docs
 

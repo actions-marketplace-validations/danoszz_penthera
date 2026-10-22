@@ -10,6 +10,8 @@
  * Built from the site's own pieces: the dithered field (media/field.png), the
  * logotype, Departure Mono and the approved one-liner. Outputs go to
  * site/media/social/ and are committed; the build only copies them.
+ * site/tools/reel.mjs imports `page` and `shoot` for the link-preview reel's
+ * end card.
  */
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync, existsSync, statSync } from "node:fs";
@@ -33,15 +35,17 @@ const field = `data:image/png;base64,${readFileSync(join(SITE, "media", "field.p
 const font = pathToFileURL(join(ROOT, "src", "ui", "static", "fonts", "DepartureMono-Regular.woff2")).href;
 // The approved title, without the "Penthera:" the logotype already says. A
 // non-breaking hyphen keeps "open-source" on one line.
-const LINE = "Your open\u2011source cyber security agent";
+export const LINE = "Your open\u2011source cyber security agent";
+const CHIPS = '<span class="cmd">$ npx penthera</span><span class="pill">Open source</span><span class="pill">MIT</span><span class="pill">Offline</span>';
 
 /**
  * One page per image. Two groups with a fixed rhythm between them: the
  * logotype, then the message (title, subline, chips). `split` pins the
  * logotype to the top and the message to the bottom, with the field owning
  * the right side; `stack` sets both below the field with fixed gaps.
+ * `l.chips` replaces the row of chips under the title.
  */
-const page = (w, h, l) => `<!doctype html><html><head><meta charset="utf-8"><style>
+export const page = (w, h, l) => `<!doctype html><html><head><meta charset="utf-8"><style>
 @font-face { font-family: "Departure Mono"; src: url("${font}") format("woff2"); }
 * { box-sizing: border-box; margin: 0; }
 html, body { width: ${w}px; height: ${h}px; background: #000; color: #fff; overflow: hidden; }
@@ -64,12 +68,12 @@ h1 { font-weight: 500; font-size: ${l.h1}px; line-height: 0.98; letter-spacing: 
   <div class="msg">
     <span class="chip free">Free</span>
     <h1>${LINE}</h1>
-    <div class="row"><span class="cmd">$ npx penthera</span><span class="pill">Open source</span><span class="pill">MIT</span><span class="pill">Offline</span></div>
+    <div class="row">${l.chips ?? CHIPS}</div>
   </div>
 </div>
 </body></html>`;
 
-const SHOTS = [
+export const SHOTS = [
   // 1200 × 630: 64 px margins and a deeper bottom one; the logotype top-left,
   // the title and chips bottom-left, the field owning the right.
   { file: "og.png", w: 1200, h: 630, layout: {
@@ -88,27 +92,41 @@ const SHOTS = [
   } },
 ];
 
-mkdirSync(OUT, { recursive: true });
-const tmp = mkdtempSync(join(tmpdir(), "penthera-social-"));
-try {
-  for (const s of SHOTS) {
-    const html = join(tmp, `${s.file}.html`);
-    writeFileSync(html, page(s.w, s.h, s.layout));
+/**
+ * Screenshot one page with headless Chrome.
+ * @param {string} html the page
+ * @param {string} file the PNG to write
+ * @param {{ transparent?: boolean }} opts transparent: keep the page's
+ *   background see-through (for overlays)
+ */
+export function shoot(html, w, h, file, { transparent = false } = {}) {
+  const tmp = mkdtempSync(join(tmpdir(), "penthera-social-"));
+  try {
+    const src = join(tmp, "page.html");
+    writeFileSync(src, html);
     const t0 = Date.now();
     // Headless Chrome writes the screenshot and then sometimes lingers: a
     // timeout is fine as long as a fresh image is on disk.
     try {
       execFileSync(CHROME, [
-      "--headless=new", "--disable-gpu", "--hide-scrollbars", "--force-device-scale-factor=1",
-      `--user-data-dir=${join(tmp, "profile")}`, "--allow-file-access-from-files",
-      `--window-size=${s.w},${s.h}`, `--screenshot=${join(OUT, s.file)}`, "--virtual-time-budget=2000",
-      pathToFileURL(html).href,
+        "--headless=new", "--disable-gpu", "--hide-scrollbars", "--force-device-scale-factor=1",
+        `--user-data-dir=${join(tmp, "profile")}`, "--allow-file-access-from-files",
+        ...(transparent ? ["--default-background-color=00000000"] : []),
+        `--window-size=${w},${h}`, `--screenshot=${file}`, "--virtual-time-budget=2000",
+        pathToFileURL(src).href,
       ], { stdio: "ignore", timeout: 90_000, killSignal: "SIGKILL" });
     } catch (e) {
-      if (!existsSync(join(OUT, s.file)) || statSync(join(OUT, s.file)).mtimeMs < t0) throw e;
+      if (!existsSync(file) || statSync(file).mtimeMs < t0) throw e;
     }
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  mkdirSync(OUT, { recursive: true });
+  for (const s of SHOTS) {
+    shoot(page(s.w, s.h, s.layout), s.w, s.h, join(OUT, s.file));
     console.log(`site/media/social/${s.file} ${s.w}×${s.h}`);
   }
-} finally {
-  rmSync(tmp, { recursive: true, force: true });
 }

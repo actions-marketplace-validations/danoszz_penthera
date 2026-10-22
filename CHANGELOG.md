@@ -6,6 +6,10 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ### Detection
 
+- The header audit reports an `X-Powered-By` header (low, `confirmed`), such
+  as Express's default `X-Powered-By: Express`. It was a documented miss in
+  the E10 pilot (DVNA). The finding names the value and how to turn the
+  header off.
 - The advisories pack knows MongoDB: end-of-life lines from MongoDB's
   lifecycle schedule (4.4 ended 2024-02-29, 5.0 on 2024-10-31, 6.0 on
   2025-07-31, and the interim releases), matched against the official `mongo`
@@ -15,6 +19,15 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   (`scripts/rules/sign-pack.sh`) before release.
 
 ### Added
+
+- **TLS keys anyone can compute.** URL scans report, as critical, any
+  certificate in the served chain whose EC public key (P-256, P-384, P-521) is
+  k·G for a private scalar k below 1024. The private key then follows from
+  the certificate alone. This is the flaw in eMudhra's P-384 intermediates
+  ([Mozilla bug 2083449](https://bugzilla.mozilla.org/show_bug.cgi?id=2083449),
+  private keys below 256). The check is arithmetic, not a list, so it has no
+  false positives and no data to maintain. Research note:
+  [docs/research/emudhra-weak-keys-2026-10.md](docs/research/emudhra-weak-keys-2026-10.md).
 
 - **Node.js security release of 21 October 2026** in the `advisories` pack:
   CVE-2026-111497 (Brotli decoder out-of-bounds write, remote code execution)

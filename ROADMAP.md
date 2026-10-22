@@ -12,12 +12,24 @@ hour, and a feature that does not serve a real user question, or does not hold
 up when measured, does not ship. Issues and pull requests are welcome on
 anything here.
 
-## Just shipped: 1.8.0
+## Just shipped: 1.8.0 and 1.8.1
 
-Released on 2026-10-21 (`npx penthera`), after a feature freeze, an
-independent security review and a release candidate. The next minor, 1.9,
-follows the same path: a freeze, a review, then `1.9.0-rc.1` on npm's `next`
-tag.
+1.8.0 was released on 2026-10-21 (`npx penthera`), after a feature freeze, an
+independent security review and a release candidate. 1.8.1 (2026-10-22) is a
+fixes-only patch that makes runtime advisories more careful.
+
+## On main, for 1.9
+
+Merged and tested, not yet on npm. It ships as `1.9.0-rc.1` on npm's `next`
+tag first.
+
+| On main | What it means for you |
+|---|---|
+| `penthera mcp` | An MCP server, so Claude Code, Cursor, Codex and other agents can call Penthera. Local only, read-only by default ([docs](docs/commands/mcp.md)) |
+| AI mode (opt-in) | A local model proposes findings where rules can't look; Penthera's rules or a reproduction check them, and anything unverified is labelled so |
+| New detection | Python start-up code in packages, known-malicious PyPI versions, Node.js and MongoDB advisories, weak certificate keys, `X-Powered-By`, `/metrics`, directory listings, stack traces, Terraform secrets, hard-coded session secrets, code-execution sinks |
+| Default scans send no attack payloads | The login burst and SQL check moved behind `--deep` |
+| E10 benchmark | Penthera measured on known-vulnerable apps, published as a pilot ([results](bench/known-vuln/RESULTS.md)) |
 
 | In 1.8.0 | What it means for you |
 |---|---|
@@ -49,7 +61,7 @@ Ordered, but not dated. Each item names the user question it answers.
 | Preview-deployment scanning | "Is this pull request safe?" A GitHub Action that waits for the Vercel, Netlify or Cloudflare Pages preview of a PR, scans it and comments the result |
 | Framework presets | "Why is my first scan empty?" Routes, auth flows and headers for Next.js, SvelteKit, Remix, Nuxt and Astro |
 | Authenticated preview scans | "Can it test pages behind a login?" With test accounts from your own seed data, never real credentials |
-| An MCP server | "Can my AI assistant call Penthera directly?" |
+| ~~An MCP server~~ (on main for 1.9) | "Can my AI assistant call Penthera directly?" |
 
 ### After you ship
 

@@ -283,9 +283,9 @@ What changed, what we are measuring, and what comes next, in one place.
 | | Where it stands | Read more |
 |---|---|---|
 | **Latest release** | 1.8.1 (2026-10-22): more careful runtime advisories (pre-releases, distribution builds, older lines) on top of 1.8.0's runtime advisories, security-review fixes and redesigned dashboard | [CHANGELOG](CHANGELOG.md) |
-| **On main, unreleased** | Toward 1.9: AI mode (opt-in, local model, rules verify), new detection rules, the E10 benchmark | [Unreleased](CHANGELOG.md#unreleased) |
-| **Now** | Toward 1.9: accuracy on real code (E1) and an MCP server, so coding agents can call Penthera | [Roadmap](ROADMAP.md#next) |
-| **Research** | E1, accuracy on real code, is pre-registered; the benchmark tooling is in review. After the 2026 agent incidents: a checklist for running agents safely and a draft experiment (E8) | [E1 pre-registration](docs/research/prereg/E1-real-world-accuracy.md), [agents safely](docs/agents-safely.md), [what the incidents mean](docs/research/agent-incidents-2026.md) |
+| **On main, unreleased** | For 1.9: `penthera mcp` for coding agents, opt-in AI mode (a local model proposes, rules verify), new detection rules, no attack payloads in default scans | [Unreleased](CHANGELOG.md#unreleased) |
+| **Now** | 1.9.0-rc.1 on npm `next`, then accuracy on real code (E1) | [Roadmap](ROADMAP.md#on-main-for-19) |
+| **Research** | E10 pilot published: precision 0.88, recall 0.07 → 0.71 on two known-vulnerable apps after fixes (one labeller, not independent; a re-run is pending because default scans no longer send login checks). E1 on real code is pre-registered; E8 (agent guardrails) is a draft | [E10 results](bench/known-vuln/RESULTS.md), [E1 pre-registration](docs/research/prereg/E1-real-world-accuracy.md), [agents safely](docs/agents-safely.md) |
 | **Next** | Real-world precision and recall with intervals, published whatever the result | [Roadmap: next](ROADMAP.md#next), [research plan](docs/vision-2.0.md) |
 
 Releases are deliberately slow: a feature freeze, an independent review, the

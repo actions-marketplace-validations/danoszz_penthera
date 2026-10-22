@@ -12,7 +12,7 @@ import { scanRepo } from "./scan-repo.js";
 import { mergeResults } from "./cli/merge-results.js";
 import { resolveScanOptions } from "./cli/profiles.js";
 import { compareWithBaseline } from "./cli/baseline.js";
-import { normalizeBaseUrl } from "./utils/url.js";
+import { targetFromArg } from "./utils/url.js";
 import { printReport, printFindings, writeJsonReport, writeSarifReport, createProgress, printError } from "./reporter.js";
 import { writeMarkdownReport, markdownPathFromJson } from "./report/markdown.js";
 import { prepareReportOptions, customReport, writeEvidence } from "./cli/report-outputs.js";
@@ -29,6 +29,7 @@ import { aiBomSummary } from "../lib/whitebox/aibom.js";
 import { buildCraReports, craTemplate, formatCraMarkdown, readCraInput } from "../lib/compliance/cra.js";
 import { emptyHistory, updateHistory, buildAuditLoop } from "../lib/audit-loop.js";
 import { rateSuppliers, parseSupplierList, formatSuppliersMarkdown } from "../lib/supply-chain.js";
+import { yellow } from "./cli/ansi.js";
 
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8"));
 
@@ -67,9 +68,11 @@ const HELP = `
     $ penthera fix --plan            Plan local fix recipes (penthera fix --help)
     $ penthera evidence verify <dir> Check an evidence bundle's hashes and signature
     $ penthera verify <findings.json>  Check a model's findings against Penthera's rules
+    $ penthera ai models|consent     AI mode: local models, and the consent log (penthera ai --help)
     $ penthera rules list|verify <dir>  Signed detection rule packs (penthera rules --help)
     $ penthera agent --loop          Scan, fix, verify, learn; local commits only (--help)
     $ penthera ui [--open] [--demo]  Local dashboard on 127.0.0.1 (penthera ui --help)
+    $ penthera mcp                   MCP server on stdio for your agent (penthera mcp --help)
 
   ${dim("Scan modes")}
         --profile <name>        quick | standard | deep (default: standard)
@@ -89,6 +92,13 @@ const HELP = `
         --offline               Contact only the scan target: no recon sources, no
                                Retire.js download (uses the vendored snapshot),
                                no DNS lookups for SPF/DMARC
+
+  ${dim("AI mode")}  ${dim("(with --repo; opt-in, asks every run; docs/ai-mode.md)")}
+        --ai                    A model reads your code for what rules can't see; Penthera checks its findings
+        --ai-model <name>       An Ollama model on 127.0.0.1 (penthera ai models lists them)
+        --ai-budget <spec>      Hard caps, e.g. units=200,tokens=2M,time=20m (the default)
+        --ai-consent <route>    Consent for a run that cannot ask: local, or ollama-cloud
+        --ai-scope <folder>     Only read files under this folder of the repo
 
   ${dim("Agents mode")}  ${dim("(penthera agents [path], offline, read-only)")}
         --home                  Also audit ~/.claude, ~/.cursor and Claude Desktop config
@@ -211,6 +221,11 @@ export async function run() {
     process.exit(runEvidence(process.argv.slice(3)));
   }
 
+  if (process.argv[2] === "ai") {
+    const { runAiCommand } = await import("./cli/ai.js");
+    process.exit(await runAiCommand(process.argv.slice(3)));
+  }
+
   if (process.argv[2] === "verify") {
     const { runVerify } = await import("./cli/verify.js");
     process.exit(await runVerify(process.argv.slice(3)));
@@ -229,6 +244,12 @@ export async function run() {
   if (process.argv[2] === "ui") {
     const { runUi } = await import("./cli/ui.js");
     process.exit(await runUi(process.argv.slice(3), { version: pkg.version }));
+  }
+
+  if (process.argv[2] === "mcp") {
+    const { runMcp } = await import("./cli/mcp.js");
+    process.exitCode = await runMcp(process.argv.slice(3), { version: pkg.version });
+    return;
   }
 
   if (process.argv[2] === "agent") {
@@ -294,6 +315,11 @@ export async function run() {
         home:        { type: "boolean", default: false },
         pin:         { type: "boolean", default: false },
         offline:     { type: "boolean", default: false },
+        ai:          { type: "boolean", default: false },
+        "ai-model":  { type: "string" },
+        "ai-budget": { type: "string" },
+        "ai-consent": { type: "string" },
+        "ai-scope":  { type: "string" },
         "user-agent": { type: "string" },
         timeout:     { type: "string",  default: "10000" },
         concurrency: { type: "string",  default: "15" },
@@ -450,8 +476,37 @@ export async function run() {
     process.exit(2);
   }
 
-  const url = positionals[0] && !agentsMode ? normalizeBaseUrl(positionals[0]) : null;
+  let url = null;
+  if (positionals[0] && !agentsMode) {
+    const target = targetFromArg(positionals[0]);
+    if (target.error) {
+      printError(target.error);
+      process.exit(2);
+    }
+    url = target.url;
+  }
   const repo = opts.repo || null;
+  const aiFlags = ["ai-model", "ai-budget", "ai-consent", "ai-scope"].filter((k) => opts[k] != null);
+  if (aiFlags.length && !opts.ai) {
+    printError(`--${aiFlags[0]} only applies with --ai.`);
+    process.exit(2);
+  }
+  if (opts.ai && !repo) {
+    printError("--ai needs --repo <path>: the model reads source code, and never probes a live URL.");
+    process.exit(2);
+  }
+  // AI mode asks before anything is scanned, so a "no" costs nothing.
+  let aiPlan = null;
+  if (opts.ai) {
+    const { preflightAi } = await import("./cli/ai.js");
+    aiPlan = await preflightAi({ opts, repo: resolve(repo) });
+    if (aiPlan.exit) {
+      printError(aiPlan.message);
+      process.exit(aiPlan.exit);
+    }
+    if (aiPlan.skip && !opts.quiet) process.stderr.write(`\n  ${yellow("AI mode off")} ${aiPlan.reason}\n\n`);
+  }
+
   if (opts["audit-seeds"] && !repo && !agentsMode) {
     printError("--audit-seeds needs --repo <path> (or `penthera agents <path>`): seeds point at files in a repository.");
     process.exit(2);
@@ -567,6 +622,37 @@ export async function run() {
   }
 
   const merged = mergeResults(results);
+
+  if (aiPlan?.run) {
+    const { runAiMode, attachProposals } = await import("../lib/ai/index.js");
+    const { createOllama } = await import("../lib/ai/ollama.js");
+    const { aiHeader } = await import("./cli/ai.js");
+    const repoResult = results.find((r) => r.mode === "repo") || merged;
+    const quietAi = opts.quiet || opts.json;
+    if (!quietAi) process.stderr.write(`\n${aiHeader(aiPlan.model)}\n`);
+    const stop = new AbortController();
+    const onSigint = () => stop.abort();
+    process.once("SIGINT", onSigint);
+    try {
+      merged.ai = await runAiMode({
+        repoPath: resolve(repo),
+        scanResult: { ...repoResult, findings: merged.findings },
+        model: aiPlan.model,
+        ollama: createOllama(),
+        budget: aiPlan.budget,
+        consent: aiPlan.consent,
+        scope: aiPlan.scope,
+        signal: stop.signal,
+        onUnit: quietAi ? undefined : (u, i, n) => process.stderr.write(`\r\x1b[2K  AI ${i}/${n} ${u.id.slice(0, 70)}`),
+      });
+      if (!quietAi) process.stderr.write("\r\x1b[2K");
+      merged.findings = attachProposals(merged.findings, merged.ai);
+    } finally {
+      process.removeListener("SIGINT", onSigint);
+    }
+  } else if (aiPlan?.skip) {
+    merged.ai = { schema: "penthera.ai/1", ran: false, reason: aiPlan.reason };
+  }
   merged.profile = profileOpts.profile;
 
   // Local learning store (opt-in): suppress + rank from ~/.penthera/memory, then record this scan.

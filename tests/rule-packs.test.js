@@ -392,9 +392,13 @@ describe("bundled packs", () => {
   });
 
   it("secret rules are the same, in the same order, as before packs", () => {
-    const now = activeSecretPatterns().map((r) => ({ name: r.name, source: r.pattern.source, flags: r.pattern.flags, severity: r.severity, skipIf: r.skipIf }));
+    // New built-in rules may be added (E10 session secret); none of the old
+    // ones may change, move or disappear.
+    const before = new Set(BEFORE.secrets.map((b) => b.name));
+    const kept = activeSecretPatterns().filter((r) => before.has(r.name));
+    const now = kept.map((r) => ({ name: r.name, source: r.pattern.source, flags: r.pattern.flags, severity: r.severity, skipIf: r.skipIf }));
     expect(now).toEqual(BEFORE.secrets);
-    expect(activeSecretPatterns().map((r) => r.pack)).toEqual(BEFORE.secrets.map((b) => (rulesOf("secret", { pack: "core" }).some((c) => c.name === b.name) ? "core" : null)));
+    expect(kept.map((r) => r.pack)).toEqual(BEFORE.secrets.map((b) => (rulesOf("secret", { pack: "core" }).some((c) => c.name === b.name) ? "core" : null)));
     expect(rulesOf("secret", { pack: "core" })).toHaveLength(12);
   });
 
@@ -403,8 +407,11 @@ describe("bundled packs", () => {
     expect(EXEC_PATTERNS.map((p) => ({ rule: p.rule, label: p.label, source: p.re.source, flags: p.re.flags }))).toEqual(BEFORE.exec);
   });
 
-  it("built-in templates are the same, in the same order", () => {
-    expect(JSON.parse(JSON.stringify(BUILT_IN_TEMPLATES))).toEqual(BEFORE.templates);
+  it("built-in templates from before packs are unchanged, in the same order", () => {
+    // New templates may be added (E10 exposure checks); none of the old ones
+    // may change, move or disappear.
+    const before = new Set(BEFORE.templates.map((t) => t.id));
+    expect(JSON.parse(JSON.stringify(BUILT_IN_TEMPLATES.filter((t) => before.has(t.id))))).toEqual(BEFORE.templates);
   });
 
   it("detections that moved into core still fire", () => {

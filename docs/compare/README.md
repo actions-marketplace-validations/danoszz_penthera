@@ -14,6 +14,7 @@ together.
 | [Penthera and GitHub (Dependabot, code scanning)](github.md) | GitHub alerts on known CVEs and runs CodeQL; Penthera's SARIF lands in the same tab |
 | [Penthera and OWASP ZAP](zap.md) | ZAP is the deeper dynamic scanner; Penthera is a quicker first pass with source context |
 | [Penthera and Semgrep](semgrep.md) | Semgrep is the deeper static analyzer for your code; Penthera adds dependencies, the live app and AI tooling |
+| [Penthera and Cloudflare's security-audit skill](cloudflare-security-audit.md) | The skill has a model audit your code in depth; Penthera runs fast, repeatable checks, looks outside the source and verifies fixes |
 
 ## How these pages are written
 
@@ -24,8 +25,8 @@ together.
 - Prices and plans change. Each page has a last-checked date. Check the vendor's
   page before you rely on a number.
 - No page claims Penthera finds more than another tool. Its own accuracy is
-  measured only on labs we wrote ourselves: precision 0.86 (95% CI 0.67 to
-  0.95) and recall 0.90 (95% CI 0.71 to 0.97) on 22 findings
+  measured only on labs we wrote ourselves: precision 0.88 (95% CI 0.69 to
+  0.96) and recall 0.91 (95% CI 0.73 to 0.98) on 24 findings
   ([results](../../bench/RESULTS.md)). Accuracy on real projects is not measured
   yet. That is [experiment E1](../research/prereg/E1-real-world-accuracy.md).
 

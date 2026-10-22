@@ -16,12 +16,14 @@ import { createHash } from "node:crypto";
 import { buildPythonFixtures, zip, distFiles } from "./fixtures/deps/build-python.js";
 import { parseToml } from "../lib/deps/python/toml.js";
 import { parseRequirements, parsePythonInput, normalizeName, findPythonInputs } from "../lib/deps/python/lockfiles.js";
-import { blankPython, scanPythonSource, scanPythonPackage, pthImportLines } from "../lib/deps/python/capabilities.js";
+import { blankPython, scanPythonSource, scanPythonPackage, pthImportLines, installedPath } from "../lib/deps/python/capabilities.js";
 import { parseRecord, parseMetadata, listInstalled, sitePackagesDirs, unzip, sourceFromArtifact, msgpackFirst, sourceFromPipCache, sourceFromUvCache } from "../lib/deps/python/source.js";
 import { checkName, findTyposquats, loadPopular } from "../lib/deps/typosquat.js";
 import { scanDeps } from "../lib/deps/index.js";
 import { formatPrComment } from "../lib/deps/report.js";
 import { MapSource } from "../lib/deps/source.js";
+import { loadIocs } from "../lib/deps/iocs.js";
+import { riskFindings } from "../lib/deps/findings.js";
 import { cpuMs } from "./fixtures/cpu-time.js";
 
 const j = (...p) => p.join("");
@@ -272,6 +274,97 @@ describe(".pth files and setup.py", () => {
     const custom = scanPythonPackage(new MapSource(new Map([["setup.py", Buffer.from(readFileSync(join(fx.head, "vendor", "fetch-helper", "setup.py")))]]), "test"));
     expect(custom.installScripts["setup.py"]).toMatch(/custom install command/);
     expect(custom.installRisk.join()).toMatch(/network/);
+  });
+});
+
+// ── Start-up code in wheels (the litellm 1.107.0 layout) ─────────────────
+
+describe("start-up code shipped in a wheel", () => {
+  // Built at runtime, never run. The litellm 1.107.0 wheels (OSV MAL-2026-2144)
+  // put a .pth and the module it imports under <name>-<version>.data/purelib/,
+  // which pip installs at the site-packages root.
+  const IMPORT = j("im", "port");
+  const DROPPER = `${IMPORT} zlib, base64\n${EXEC}(zlib.decompress(base64.${j("b64", "decode")}(b"eJwDAAAAAAE=")))\n`;
+  const data = "boot_kit-1.0.0.data/purelib";
+  const wheel = (files) => sourceFromArtifact(zip(distFiles("boot-kit", "1.0.0", { "boot_kit/__init__.py": "X = 1\n", ...files })), "pip-cache");
+
+  it("maps .data/purelib, .data/platlib and data/.../site-packages to the site-packages root", () => {
+    expect(installedPath("x-1.0.data/purelib/a.pth")).toBe("a.pth");
+    expect(installedPath("x-1.0.data/platlib/pkg/m.py")).toBe("pkg/m.py");
+    expect(installedPath("x-1.0.data/data/lib/python3.12/site-packages/a.pth")).toBe("a.pth");
+    expect(installedPath("x-1.0.data/scripts/tool")).toBe("x-1.0.data/scripts/tool");
+    expect(installedPath("pkg/a.pth")).toBe("pkg/a.pth");
+  });
+
+  it("finds a .pth under .data/purelib and resolves the module it imports there", () => {
+    const r = scanPythonPackage(wheel({ [`${data}/zz_boot.pth`]: `${IMPORT} zz_boot\n`, [`${data}/zz_boot.py`]: DROPPER }));
+    expect(r.startupHooks).toHaveLength(1);
+    expect(r.startupHooks[0]).toMatchObject({ file: `${data}/zz_boot.pth`, line: 1 });
+    expect(r.startupHooks[0].risk.join()).toMatch(/zz_boot\.py \(.*obfuscated/);
+    const f = riskFindings({ ...r, name: "boot-kit", version: "1.0.0", path: "boot-kit", ecosystem: "pypi" });
+    expect(f.find((x) => /every Python start/.test(x.title))).toMatchObject({ severity: "high", title: "boot-kit@1.0.0: runs risky code at every Python start (.pth)" });
+  });
+
+  it("a .pth nested inside a package directory is not a start-up hook", () => {
+    expect(scanPythonPackage(wheel({ "boot_kit/data/x.pth": `${IMPORT} os\n` })).startupHooks).toEqual([]);
+  });
+
+  it("flags a shipped sitecustomize.py as high, whatever it contains", () => {
+    const r = scanPythonPackage(wheel({ [`${data}/sitecustomize.py`]: "X = 1\n" }));
+    expect(r.capabilities["startup-hook"]).toBeDefined();
+    expect(r.startupHooks[0].risk.join()).toMatch(/no reason to ship sitecustomize\.py/);
+    const f = riskFindings({ ...r, name: "boot-kit", version: "1.0.0", path: "boot-kit", ecosystem: "pypi" });
+    expect(f.find((x) => /every Python start/.test(x.title))).toMatchObject({ severity: "high", title: "boot-kit@1.0.0: runs risky code at every Python start (sitecustomize.py)" });
+  });
+
+  it("a plain .pth import of clean code is still reported, at medium", () => {
+    const r = scanPythonPackage(wheel({ [`${data}/boot_kit.pth`]: `${IMPORT} _boot_kit_shim\n`, "_boot_kit_shim.py": "X = 1\n" }));
+    expect(r.startupHooks[0].risk).toEqual([]);
+    const f = riskFindings({ ...r, name: "boot-kit", version: "1.0.0", path: "boot-kit", ecosystem: "pypi" });
+    expect(f.find((x) => /every Python start/.test(x.title))).toMatchObject({ severity: "medium", title: "boot-kit@1.0.0: runs code at every Python start (.pth)" });
+  });
+
+  it("scanDeps reports the wheel a lockfile pins, read from pip's cache", async () => {
+    const root = join(dir, "pth-wheel");
+    const cache = join(root, "pip-cache");
+    const whl = zip(distFiles("boot-kit", "1.0.0", { "boot_kit/__init__.py": "X = 1\n", [`${data}/zz_boot.pth`]: `${IMPORT} zz_boot\n`, [`${data}/zz_boot.py`]: DROPPER }));
+    const hex = createHash("sha256").update(whl).digest("hex");
+    mkdirSync(join(cache, "http-v2", "c", "d"), { recursive: true });
+    writeFileSync(join(cache, "http-v2", "c", "d", "w.body"), whl);
+    writeFileSync(join(root, "uv.lock"), [
+      "version = 1", 'requires-python = ">=3.12"', "",
+      "[[package]]", 'name = "boot-kit"', 'version = "1.0.0"', 'source = { registry = "https://pypi.org/simple" }',
+      "wheels = [", `    { url = "https://files.pythonhosted.org/packages/00/00/x/boot_kit-1.0.0-py3-none-any.whl", hash = "sha256:${hex}", size = ${whl.length} },`, "]", "",
+      "[[package]]", 'name = "app"', 'version = "0.1.0"', 'source = { virtual = "." }', "dependencies = [", '    { name = "boot-kit" },', "]", "",
+    ].join("\n"));
+    const r = await scanDeps(root, { pipCacheDir: cache, uvCacheDir: emptyCache });
+    expect(r.findings.map((f) => `${f.severity} ${f.title}`)).toContain("high boot-kit@1.0.0: runs risky code at every Python start (.pth)");
+  });
+});
+
+describe("PyPI indicators from rule packs", () => {
+  it("matches PyPI and npm names separately", () => {
+    const iocs = loadIocs();
+    expect(iocs.matchPackage("litellm", "1.107.0", "pypi").map((h) => h.rule.id)).toEqual(["litellm-pth-stealer"]);
+    expect(iocs.matchPackage("litellm", "1.106.2", "pypi")).toEqual([]);
+    expect(iocs.matchPackage("litellm", "1.107.0rc2", "pypi")).toEqual([]);
+    expect(iocs.matchPackage("litellm", "1.107.0")).toEqual([]);
+  });
+
+  it("scanDeps flags a pinned malicious version even when it is not installed", async () => {
+    const root = join(dir, "ioc-pin");
+    mkdirSync(root, { recursive: true });
+    writeFileSync(join(root, "requirements.txt"), "litellm==1.107.0\n");
+    const r = await scanDeps(root, { pipCacheDir: emptyCache, uvCacheDir: emptyCache });
+    const f = r.findings.find((x) => x.method === "deps-ioc");
+    expect(f).toMatchObject({ severity: "critical", title: "litellm@1.107.0: known-malicious version (litellm PyPI compromise)" });
+    expect(f.description).toMatch(/osv\.dev\/vulnerability\/MAL-2026-2144/);
+    expect(f.description).toMatch(/recreate the virtualenv/);
+  });
+
+  it("finds a campaign endpoint in package code", () => {
+    const r = scanPythonPackage(new MapSource(new Map([["m.py", Buffer.from(`URL = "https://models.${j("litellm", ".cloud")}/v1"\n`)]]), "test"), { iocs: loadIocs() });
+    expect(r.iocHits.map((h) => `${h.type} ${h.value} ${h.file}:${h.line}`)).toEqual(["host litellm.cloud m.py:1"]);
   });
 });
 

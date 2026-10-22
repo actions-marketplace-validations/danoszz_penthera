@@ -4,6 +4,18 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Detection
+
+- Three exposure checks in the default URL scan, each a documented miss in
+  the E10 pilot (Juice Shop). All send plain `GET`s, no payloads:
+  - a public Prometheus `/metrics` endpoint (medium), matched on the
+    exposition format, so an SPA's index page at `/metrics` does not count;
+  - browsable directory listings (medium) in folders that `robots.txt`
+    disallows and in common upload and backup folders, matched on the
+    listing's page title;
+  - a stack trace in the error page for a path that does not exist (low),
+    matched on Node.js, Python, Java, PHP and .NET frame shapes.
+
 ### Fixed
 
 - **`npx penthera ui` stops cleanly on Ctrl-C and SIGTERM.** npm forwards

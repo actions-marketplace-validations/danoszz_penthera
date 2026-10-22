@@ -23,7 +23,7 @@ A mapped WSTG ID means a probe touches that test area. It does not mean the prob
 | TLS / certificate audit | WSTG-CRYP-01 | standard, deep | URL |
 | Security headers | WSTG-CONF-12, WSTG-CONF-14 | quick, standard, deep | URL |
 | OpenAPI / Swagger exposure | WSTG-INFO-09, WSTG-CONF-02 | quick, standard, deep | URL |
-| Sensitive file templates | WSTG-CONF-02, WSTG-CONF-04 | standard, deep | URL |
+| Sensitive file templates (also directory listings, `/metrics`, stack traces) | WSTG-CONF-02, WSTG-CONF-04, WSTG-ERRH-01 | standard, deep | URL |
 | CORS validation | WSTG-CLNT-07 | standard, deep | URL |
 | Cookie security | WSTG-SESS-02 | standard, deep | URL |
 | Auth endpoint hardening | WSTG-ATHN-03, WSTG-ATHN-10 | quick, standard, deep | URL |
@@ -54,7 +54,7 @@ Penthera does not automate these WSTG areas, or covers them only in part:
 | Category | Examples | Status |
 |----------|----------|--------|
 | WSTG-IDNT | Registration, username policy | Not covered |
-| WSTG-ERRH | Verbose stack traces in all contexts | Partial (template scans) |
+| WSTG-ERRH | Verbose stack traces in all contexts | Partial (stack traces on a not-found path only) |
 | WSTG-BUSL | Full business-logic workflows | Partial (fuzzing only) |
 | WSTG-APIT | GraphQL-specific tests | Partial (an introspection template only) |
 | Manual / social | Phishing, physical access | Out of scope |

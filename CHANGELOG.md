@@ -12,6 +12,11 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   20, end of life 30 April 2026) went unreported. Found by the
   runtime-strings test set (B4 in
   [#97](https://github.com/danoszz/penthera/pull/97)).
+- Runtime advisories read aiohttp's `Server: Python/3.9 aiohttp/3.8.6`.
+  aiohttp prints only the Python release line, and the banner pattern needed
+  x.y.z, so an end-of-life Python behind aiohttp went unreported. Found by
+  the runtime-strings test set (B3 in
+  [#97](https://github.com/danoszz/penthera/pull/97)).
 - Runtime advisories honour `introduced` on older release lines. CVE-2021-41773
   and CVE-2021-42013 exist only in httpd 2.4.49 and 2.4.50. Yet
   `Apache/2.2.34` and `httpd:2.2` were reported critical, "end of life, no

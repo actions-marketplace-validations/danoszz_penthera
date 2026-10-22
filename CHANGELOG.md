@@ -14,6 +14,34 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   fallback after `process.env.X ||` (high). Express's documented example,
   `'keyboard cat'`, was a documented miss in the E10 pilot (DVNA).
 
+### Added
+
+- **Node.js security release of 21 October 2026** in the `advisories` pack:
+  CVE-2026-111497 (Brotli decoder out-of-bounds write, remote code execution)
+  and the TLS certificate hostname bypasses CVE-2026-106069, CVE-2026-105483
+  and CVE-2026-106072, fixed in 22.23.4, 24.22.1 and 26.12.1, from
+  [nodejs.org](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases).
+  Node.js has no server banner, so repo scans find it (`.nvmrc`,
+  `.node-version`, `.tool-versions`, `node:` images); 20.x and 25.x are
+  reported as end-of-life lines. The pack's signature was removed with the
+  change; `npm run rules:check` fails until the maintainer re-signs it.
+
+- **Python start-up code in wheels.** `penthera deps` now finds `.pth` files
+  and a shipped `sitecustomize.py` / `usercustomize.py` wherever a wheel puts
+  them at the site-packages root, including `<name>-<version>.data/purelib/`
+  and `platlib/`, the layout the malicious litellm 1.107.0 used
+  ([OSV MAL-2026-2144](https://osv.dev/vulnerability/MAL-2026-2144)). Before,
+  only top-level `.pth` files were read, so that wheel's hook was missed until
+  it was installed. A `.pth` import of clean code is now medium (was low);
+  risky code behind it, or any shipped `sitecustomize.py`, is high. The
+  `penthera install` policy holds `startup-hook` for approval by default.
+- **PyPI indicators.** A new rule kind, `ioc-pypi-package` (PEP 503 names,
+  PEP 440 versions, kept apart from npm names), and a new bundled pack,
+  `ioc-pypi-2026`, with the litellm 1.82.7, 1.82.8 and 1.107.0 versions, the
+  1.107.0 payload files by SHA-256 and its endpoints. Python scans now run
+  `ioc-file` and `ioc-host` rules too. The pack is unsigned until the
+  maintainer signs it, so `npm run rules:check` fails until then.
+
 ## [1.8.1] - 2026-10-22
 
 A fixes-only release. Runtime advisories are more careful: pre-release builds

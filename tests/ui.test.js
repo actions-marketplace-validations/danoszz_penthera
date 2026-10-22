@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { request as httpRequest } from "node:http";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, symlinkSync, rmSync, realpathSync, existsSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -869,5 +869,29 @@ describe("ui --open: the token stays off the command line", () => {
     expect(html).toContain(`content="0;url=${url}"`);
     if (process.platform !== "win32") expect(statSync(file).mode & 0o777).toBe(0o600);
     expect(() => writeLauncher(url, dir)).toThrow(/EEXIST/); // never over an existing file
+  });
+});
+
+describe("ui: stopping on a signal", () => {
+  // Under `npx penthera ui`, npm forwards SIGINT/SIGTERM to penthera right after
+  // the terminal (or a group kill) delivered the same signal. The repeat must not
+  // kill the process before it reports that it stopped.
+  it.skipIf(process.platform === "win32")("prints Stopped. and exits 0 when the signal arrives twice", async () => {
+    const child = spawn(process.execPath, [join(import.meta.dirname, "..", "bin", "penthera.js"), "ui", "--demo"], {
+      env: { ...process.env, NO_COLOR: "1" }, stdio: ["ignore", "pipe", "pipe"],
+    });
+    let out = "";
+    child.stdout.on("data", (d) => { out += d; });
+    const exited = new Promise((r) => child.once("exit", (code, signal) => r({ code, signal })));
+    const seen = (text) => new Promise((r) => {
+      const check = () => { if (out.includes(text)) { child.stdout.off("data", check); r(); } };
+      child.stdout.on("data", check);
+    });
+    await seen("Ctrl-C to stop");
+    const stopped = seen("Stopped.");
+    child.kill("SIGTERM");
+    await stopped;
+    try { child.kill("SIGTERM"); } catch { /* already gone */ }
+    expect(await exited).toEqual({ code: 0, signal: null });
   });
 });

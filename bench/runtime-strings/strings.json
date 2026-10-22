@@ -36,12 +36,14 @@
   "deviations": {
     "B1": {
       "type": "bug",
+      "status": "fixed in #102",
       "title": "`introduced` is ignored for release lines older than the one the flaw was introduced on",
       "detail": "CVE-2021-41773/42013 exist only in httpd 2.4.49 and 2.4.50 (`introduced: 2.4.49` on the 2.4 line). An exact 2.2 or 2.0 version is reported as \"end of life, no fix\" (critical, potential) for it, a distribution 2.2 build and a line-only 2.2 tag as \"check on server\". Lines below the oldest line that carries `introduced` cannot have the flaw.",
       "fix": "In verdictFor, when the version's line has no fix entry and is older than the oldest listed line, and that line's entry has `introduced`, return none."
     },
     "B2": {
       "type": "bug",
+      "status": "fixed in #101",
       "title": "Pre-release versions are misread: -dev as a distribution build, RC/beta as no version",
       "detail": "PHP/8.4.27-dev (a PHP-8.4 branch build from before 8.4.27) is reported as \"has the fix\": the -dev suffix is taken for a distribution build string and its upstream number compared with the fix. PHP/8.5.0RC1 and php:8.5.0RC1 parse as no version (\"check on server\" instead of affected); PHP/8.6.0RC4 gets \"check on server\" for advisories that do not cover 8.6. Python's 3.15.0rc1 and OpenSSL's 4.1.0-beta2 are dropped or taken for distribution builds.",
       "fix": "Parse -dev, alpha, beta and RC (any case, with or without a separator) as a pre-release of the upstream number, sorting below the release, and never as a distribution build."
@@ -686,15 +688,7 @@
       "verdicts": {},
       "eol": "end-of-life",
       "source": "https://archive.apache.org/dist/httpd/",
-      "note": "last 2.2 release (2.2 end of life July 2017); the 2.4.49 path traversal never existed on 2.2",
-      "deviation": {
-        "id": "B1",
-        "engine": {
-          "verdicts": {
-            "httpd-cve-2021-41773-42013": "end-of-life-no-fix"
-          }
-        }
-      }
+      "note": "last 2.2 release (2.2 end of life July 2017); the 2.4.49 path traversal never existed on 2.2"
     },
     {
       "id": "httpd-server-eol-2.0.65",
@@ -710,15 +704,7 @@
       "verdicts": {},
       "eol": "end-of-life",
       "source": "https://archive.apache.org/dist/httpd/",
-      "note": "last 2.0 release; not affected by a flaw introduced in 2.4.49",
-      "deviation": {
-        "id": "B1",
-        "engine": {
-          "verdicts": {
-            "httpd-cve-2021-41773-42013": "end-of-life-no-fix"
-          }
-        }
-      }
+      "note": "last 2.0 release; not affected by a flaw introduced in 2.4.49"
     },
     {
       "id": "php-xpb-eol-8.1.28",
@@ -884,17 +870,7 @@
       },
       "eol": "none",
       "source": "https://github.com/php/php-src/blob/PHP-8.4/main/php_version.h",
-      "note": "a PHP-8.4 branch build between 8.4.26 and 8.4.27: it predates the 21 Oct 2026 fix",
-      "deviation": {
-        "id": "B2",
-        "engine": {
-          "kind": "distro",
-          "verdicts": {
-            "php-cve-2026-109618": "has-fix",
-            "php-cve-2026-109619": "has-fix"
-          }
-        }
-      }
+      "note": "a PHP-8.4 branch build between 8.4.26 and 8.4.27: it predates the 21 Oct 2026 fix"
     },
     {
       "id": "php-xpb-dev-after-fix",
@@ -908,18 +884,12 @@
       "kind": "exact",
       "version": "8.4.28 (pre-release)",
       "verdicts": {
-        "php-cve-2026-109618": "has-fix",
-        "php-cve-2026-109619": "has-fix"
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server"
       },
       "eol": "none",
       "source": "https://github.com/php/php-src/blob/PHP-8.4/main/php_version.h",
-      "note": "the PHP-8.4 branch today: after 8.4.27, so it has the fix",
-      "deviation": {
-        "id": "B2",
-        "engine": {
-          "kind": "distro"
-        }
-      }
+      "note": "the PHP-8.4 branch today: after 8.4.27, so it has the fix"
     },
     {
       "id": "php-xpb-dev-8.5.13",
@@ -933,18 +903,12 @@
       "kind": "exact",
       "version": "8.5.13 (pre-release)",
       "verdicts": {
-        "php-cve-2026-109618": "has-fix",
-        "php-cve-2026-109619": "has-fix"
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server"
       },
       "eol": "none",
       "source": "https://github.com/php/php-src/blob/PHP-8.5/main/php_version.h",
-      "note": "the PHP-8.5 branch today",
-      "deviation": {
-        "id": "B2",
-        "engine": {
-          "kind": "distro"
-        }
-      }
+      "note": "the PHP-8.5 branch today"
     },
     {
       "id": "php-xpb-dev-master",
@@ -960,13 +924,7 @@
       "verdicts": {},
       "eol": "none",
       "source": "https://github.com/php/php-src/blob/master/main/php_version.h",
-      "note": "php-src master: a line newer than any advisory lists",
-      "deviation": {
-        "id": "B2",
-        "engine": {
-          "kind": "distro"
-        }
-      }
+      "note": "php-src master: a line newer than any advisory lists"
     },
     {
       "id": "php-xpb-rc-8.5.0RC1",
@@ -985,19 +943,7 @@
       },
       "eol": "none",
       "source": "https://github.com/php/php-src/blob/php-8.5.0RC1/main/php_version.h",
-      "note": "an 8.5 release candidate from 2025: below every 8.5 fix",
-      "deviation": {
-        "id": "B2",
-        "engine": {
-          "kind": "present",
-          "verdicts": {
-            "php-cve-2026-109618": "check-on-server",
-            "php-cve-2026-109619": "check-on-server",
-            "php-cve-2024-4577": "check-on-server",
-            "php-cve-2024-8926": "check-on-server"
-          }
-        }
-      }
+      "note": "an 8.5 release candidate from 2025: below every 8.5 fix"
     },
     {
       "id": "php-xpb-rc-8.6.0RC4",
@@ -1013,19 +959,7 @@
       "verdicts": {},
       "eol": "none",
       "source": "https://github.com/php/php-src/blob/php-8.6.0RC4/main/php_version.h",
-      "note": "the current 8.6 release candidate: a line no bundled advisory lists",
-      "deviation": {
-        "id": "B2",
-        "engine": {
-          "kind": "present",
-          "verdicts": {
-            "php-cve-2026-109618": "check-on-server",
-            "php-cve-2026-109619": "check-on-server",
-            "php-cve-2024-4577": "check-on-server",
-            "php-cve-2024-8926": "check-on-server"
-          }
-        }
-      }
+      "note": "the current 8.6 release candidate: a line no bundled advisory lists"
     },
     {
       "id": "php-xpb-ubuntu-jammy-2.28",
@@ -1764,19 +1698,7 @@
       },
       "eol": "none",
       "source": "https://hub.docker.com/v2/repositories/library/php/tags/8.5.0RC1",
-      "note": "an RC image from Oct 2025",
-      "deviation": {
-        "id": "B2",
-        "engine": {
-          "kind": "present",
-          "verdicts": {
-            "php-cve-2026-109618": "check-on-server",
-            "php-cve-2026-109619": "check-on-server",
-            "php-cve-2024-4577": "check-on-server",
-            "php-cve-2024-8926": "check-on-server"
-          }
-        }
-      }
+      "note": "an RC image from Oct 2025"
     },
     {
       "id": "php-img-8.6.0RC4-fpm",
@@ -1790,19 +1712,7 @@
       "verdicts": {},
       "eol": "none",
       "source": "https://github.com/docker-library/official-images/blob/master/library/php",
-      "note": "the current RC image: a line no bundled advisory lists",
-      "deviation": {
-        "id": "B2",
-        "engine": {
-          "kind": "present",
-          "verdicts": {
-            "php-cve-2026-109618": "check-on-server",
-            "php-cve-2026-109619": "check-on-server",
-            "php-cve-2024-4577": "check-on-server",
-            "php-cve-2024-8926": "check-on-server"
-          }
-        }
-      }
+      "note": "the current RC image: a line no bundled advisory lists"
     },
     {
       "id": "php-img-8.3",
@@ -2456,15 +2366,7 @@
       "verdicts": {},
       "eol": "end-of-life-distro",
       "source": "https://vault.centos.org/6.10/os/x86_64/Packages/",
-      "note": "CentOS 6's httpd 2.2.15: end-of-life line, never had the 2.4.49 flaw",
-      "deviation": {
-        "id": "B1",
-        "engine": {
-          "verdicts": {
-            "httpd-cve-2021-41773-42013": "check-on-server"
-          }
-        }
-      }
+      "note": "CentOS 6's httpd 2.2.15: end-of-life line, never had the 2.4.49 flaw"
     },
     {
       "id": "httpd-dev-build",
@@ -2482,13 +2384,7 @@
       },
       "eol": "none",
       "source": "https://github.com/apache/httpd/blob/2.4.x/include/ap_release.h",
-      "note": "a build from the 2.4.x branch (ap_release.h: 2.4.70 with DEVBUILD)",
-      "deviation": {
-        "id": "B2",
-        "engine": {
-          "kind": "distro"
-        }
-      }
+      "note": "a build from the 2.4.x branch (ap_release.h: 2.4.70 with DEVBUILD)"
     },
     {
       "id": "httpd-xampp-windows",
@@ -2582,15 +2478,7 @@
       "verdicts": {},
       "eol": "end-of-life",
       "source": "https://hub.docker.com/v2/repositories/library/httpd/tags/2.2.34",
-      "note": "last 2.2 image",
-      "deviation": {
-        "id": "B1",
-        "engine": {
-          "verdicts": {
-            "httpd-cve-2021-41773-42013": "end-of-life-no-fix"
-          }
-        }
-      }
+      "note": "last 2.2 image"
     },
     {
       "id": "httpd-img-2.4",
@@ -2620,15 +2508,7 @@
       "verdicts": {},
       "eol": "end-of-life",
       "source": "https://hub.docker.com/v2/repositories/library/httpd/tags/2.2",
-      "note": "end-of-life line",
-      "deviation": {
-        "id": "B1",
-        "engine": {
-          "verdicts": {
-            "httpd-cve-2021-41773-42013": "end-of-life-no-fix"
-          }
-        }
-      }
+      "note": "end-of-life line"
     },
     {
       "id": "httpd-img-2",
@@ -3451,13 +3331,7 @@
       "verdicts": {},
       "eol": "none",
       "source": "https://openssl-library.org/source/",
-      "note": "a 4.1 beta (9 Oct 2026)",
-      "deviation": {
-        "id": "B2",
-        "engine": {
-          "kind": "distro"
-        }
-      }
+      "note": "a 4.1 beta (9 Oct 2026)"
     },
     {
       "id": "openssl-1.0.2k-centos",
@@ -3727,13 +3601,7 @@
       "verdicts": {},
       "eol": "none",
       "source": "https://www.python.org/downloads/release/python-3150rc1/",
-      "note": "a 3.15 release candidate: Python spells rc in lowercase with no separator",
-      "deviation": {
-        "id": "B2",
-        "engine": {
-          "kind": "none"
-        }
-      }
+      "note": "a 3.15 release candidate: Python spells rc in lowercase with no separator"
     },
     {
       "id": "python-server-python-3.11",
@@ -3969,13 +3837,7 @@
       "verdicts": {},
       "eol": "none",
       "source": "https://hub.docker.com/v2/repositories/library/python/tags/3.15.0rc1",
-      "note": "a release-candidate image",
-      "deviation": {
-        "id": "B2",
-        "engine": {
-          "kind": "present"
-        }
-      }
+      "note": "a release-candidate image"
     },
     {
       "id": "python-img-3.13",

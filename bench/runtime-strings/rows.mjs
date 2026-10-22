@@ -30,12 +30,14 @@ export const CATEGORIES = {
 export const DEVIATIONS = {
   B1: {
     type: "bug",
+    status: "fixed in #102",
     title: "`introduced` is ignored for release lines older than the one the flaw was introduced on",
     detail: "CVE-2021-41773/42013 exist only in httpd 2.4.49 and 2.4.50 (`introduced: 2.4.49` on the 2.4 line). An exact 2.2 or 2.0 version is reported as \"end of life, no fix\" (critical, potential) for it, a distribution 2.2 build and a line-only 2.2 tag as \"check on server\". Lines below the oldest line that carries `introduced` cannot have the flaw.",
     fix: "In verdictFor, when the version's line has no fix entry and is older than the oldest listed line, and that line's entry has `introduced`, return none.",
   },
   B2: {
     type: "bug",
+    status: "fixed in #101",
     title: "Pre-release versions are misread: -dev as a distribution build, RC/beta as no version",
     detail: "PHP/8.4.27-dev (a PHP-8.4 branch build from before 8.4.27) is reported as \"has the fix\": the -dev suffix is taken for a distribution build string and its upstream number compared with the fix. PHP/8.5.0RC1 and php:8.5.0RC1 parse as no version (\"check on server\" instead of affected); PHP/8.6.0RC4 gets \"check on server\" for advisories that do not cover 8.6. Python's 3.15.0rc1 and OpenSSL's 4.1.0-beta2 are dropped or taken for distribution builds.",
     fix: "Parse -dev, alpha, beta and RC (any case, with or without a separator) as a pre-release of the upstream number, sorting below the release, and never as a distribution build.",
@@ -130,9 +132,9 @@ for (const [banner, tok] of [["Apache", "Prod"], ["Apache/2", "Major"], ["Apache
     `ServerTokens ${tok}: the patch version is hidden, so 2.4.49/2.4.50 cannot be ruled out`);
 }
 add("end-of-life", "apache-httpd", "httpd-server-eol-2.2.34", SRV("Apache/2.2.34 (Unix)"), "exact", "2.2.34", HTTPD_DIST,
-  "last 2.2 release (2.2 end of life July 2017); the 2.4.49 path traversal never existed on 2.2", { deviation: "B1" });
+  "last 2.2 release (2.2 end of life July 2017); the 2.4.49 path traversal never existed on 2.2");
 add("end-of-life", "apache-httpd", "httpd-server-eol-2.0.65", SRV("Apache/2.0.65 (Unix)"), "exact", "2.0.65", HTTPD_DIST,
-  "last 2.0 release; not affected by a flaw introduced in 2.4.49", { deviation: "B1" });
+  "last 2.0 release; not affected by a flaw introduced in 2.4.49");
 
 // ── PHP, end-of-life lines ──────────────────────────────────────────────
 for (const [v, note] of [
@@ -184,17 +186,17 @@ const XAMPP = "https://www.apachefriends.org/download.html";
 // A release branch reports the next patch with -dev (PHP-8.4 is "8.4.28-dev"
 // after 8.4.27); an RC tag has no separator ("8.5.0RC1").
 add("prerelease-suffix", "php", "php-xpb-dev-at-fix", XPB("PHP/8.4.27-dev"), "exact", "8.4.27", PHP_VER_84,
-  "a PHP-8.4 branch build between 8.4.26 and 8.4.27: it predates the 21 Oct 2026 fix", { pre: true, deviation: "B2" });
+  "a PHP-8.4 branch build between 8.4.26 and 8.4.27: it predates the 21 Oct 2026 fix", { pre: true });
 add("prerelease-suffix", "php", "php-xpb-dev-after-fix", XPB("PHP/8.4.28-dev"), "exact", "8.4.28", PHP_VER_84,
-  "the PHP-8.4 branch today: after 8.4.27, so it has the fix", { pre: true, deviation: "B2" });
+  "the PHP-8.4 branch today: after 8.4.27, so it has the fix", { pre: true });
 add("prerelease-suffix", "php", "php-xpb-dev-8.5.13", XPB("PHP/8.5.13-dev"), "exact", "8.5.13", PHP_VER_85,
-  "the PHP-8.5 branch today", { pre: true, deviation: "B2" });
+  "the PHP-8.5 branch today", { pre: true });
 add("prerelease-suffix", "php", "php-xpb-dev-master", XPB("PHP/8.7.0-dev"), "exact", "8.7.0", PHP_VER_MASTER,
-  "php-src master: a line newer than any advisory lists", { pre: true, deviation: "B2" });
+  "php-src master: a line newer than any advisory lists", { pre: true });
 add("prerelease-suffix", "php", "php-xpb-rc-8.5.0RC1", XPB("PHP/8.5.0RC1"), "exact", "8.5.0", "https://github.com/php/php-src/blob/php-8.5.0RC1/main/php_version.h",
-  "an 8.5 release candidate from 2025: below every 8.5 fix", { pre: true, deviation: "B2" });
+  "an 8.5 release candidate from 2025: below every 8.5 fix", { pre: true });
 add("prerelease-suffix", "php", "php-xpb-rc-8.6.0RC4", XPB("PHP/8.6.0RC4"), "exact", "8.6.0", "https://github.com/php/php-src/blob/php-8.6.0RC4/main/php_version.h",
-  "the current 8.6 release candidate: a line no bundled advisory lists", { pre: true, deviation: "B2" });
+  "the current 8.6 release candidate: a line no bundled advisory lists", { pre: true });
 
 // ── PHP, distribution builds that say so ────────────────────────────────
 add("distro-backport", "php", "php-xpb-ubuntu-jammy-2.28", XPB("PHP/8.1.2-1ubuntu2.28"), "distro", "8.1.2", LP("php8.1", "jammy"),
@@ -263,9 +265,9 @@ for (const [tag, kind, v, note, extra] of [
   ["8.1.34-apache", "exact", "8.1.34", "last 8.1 image (pushed Jan 2026)"],
 ]) add("docker-pinned", "php", `php-img-${tag}`, IMG(`php:${tag}`), kind, v, HUB("php", tag), note, extra);
 add("prerelease-suffix", "php", "php-img-8.5.0RC1", IMG("php:8.5.0RC1"), "exact", "8.5.0", HUB("php", "8.5.0RC1"),
-  "an RC image from Oct 2025", { pre: true, deviation: "B2" });
+  "an RC image from Oct 2025", { pre: true });
 add("prerelease-suffix", "php", "php-img-8.6.0RC4-fpm", IMG("php:8.6.0RC4-fpm"), "exact", "8.6.0", LIB("php"),
-  "the current RC image: a line no bundled advisory lists", { pre: true, deviation: "B2" });
+  "the current RC image: a line no bundled advisory lists", { pre: true });
 for (const [tag, kind, v, note] of [
   ["8.3", "branch", "8.3", "floats along 8.3: the patch level depends on when it was pulled"],
   ["8.4-cli", "branch", "8.4", "floating 8.4 CLI"],
@@ -316,9 +318,9 @@ for (const [banner, v, src, note] of [
   ["Apache/2.4.6 (CentOS)", "2.4.6", CENTOS7, "CentOS 7: older than the flaw"],
 ]) add("distro-backport", "apache-httpd", `httpd-${banner.toLowerCase().replace(/[^a-z0-9.]+/g, "-").replace(/-+$/, "")}`, SRV(banner), "distro", v, src, note);
 add("end-of-life", "apache-httpd", "httpd-centos6-2.2.15", SRV("Apache/2.2.15 (CentOS)"), "distro", "2.2.15", CENTOS6,
-  "CentOS 6's httpd 2.2.15: end-of-life line, never had the 2.4.49 flaw", { deviation: "B1" });
+  "CentOS 6's httpd 2.2.15: end-of-life line, never had the 2.4.49 flaw");
 add("prerelease-suffix", "apache-httpd", "httpd-dev-build", SRV("Apache/2.4.70-dev (Unix)"), "exact", "2.4.70", "https://github.com/apache/httpd/blob/2.4.x/include/ap_release.h",
-  "a build from the 2.4.x branch (ap_release.h: 2.4.70 with DEVBUILD)", { pre: true, deviation: "B2" });
+  "a build from the 2.4.x branch (ap_release.h: 2.4.70 with DEVBUILD)", { pre: true });
 add("exact-upstream", "apache-httpd", "httpd-xampp-windows", SRV("Apache/2.4.58 (Win64) OpenSSL/3.1.3 PHP/8.2.12"), "exact", "2.4.58", XAMPP,
   "XAMPP's Apache Lounge build: (Win64) names no distribution");
 
@@ -328,11 +330,11 @@ for (const [tag, kind, v, note, extra] of [
   ["2.4.49", "exact", "2.4.49", "pinned to the vulnerable release (pushed 5 Oct 2021)"],
   ["2.4.50", "exact", "2.4.50", "the incomplete fix"],
   ["2.4.69-alpine", "exact", "2.4.69", "current"],
-  ["2.2.34", "exact", "2.2.34", "last 2.2 image", { deviation: "B1" }],
+  ["2.2.34", "exact", "2.2.34", "last 2.2 image"],
 ]) add(tag.startsWith("2.2") ? "end-of-life" : "docker-pinned", "apache-httpd", `httpd-img-${tag}`, IMG(`httpd:${tag}`), kind, v, HUB("httpd", tag), note, extra);
 for (const [tag, kind, v, note, extra] of [
   ["2.4", "branch", "2.4", "floats along 2.4: 2.4.49 cannot be ruled out from the tag"],
-  ["2.2", "branch", "2.2", "end-of-life line", { deviation: "B1" }],
+  ["2.2", "branch", "2.2", "end-of-life line"],
   ["2", "present", null, "spans release lines"],
   ["alpine", "present", null, "no version"],
   ["latest", "present", null, "no version"],
@@ -417,7 +419,7 @@ for (const [banner, kind, v, src, note, extra] of [
   ["Apache/2.4.57 (Unix) OpenSSL/1.1.1w", "exact", "1.1.1w", OPENSSL_111, "1.1.1w, the last public 1.1.1 release"],
   ["Apache/2.4.62 (Unix) OpenSSL/1.1.1zj", "exact", "1.1.1zj", OPENSSL_111, "premium-support 1.1.1zj: still past public end of life"],
   ["Apache/2.4.41 (Unix) OpenSSL/1.0.2u", "exact", "1.0.2u", OPENSSL_SRC, "last public 1.0.2"],
-  ["Apache/2.4.69 (Unix) OpenSSL/4.1.0-beta2", "exact", "4.1.0", OPENSSL_SRC, "a 4.1 beta (9 Oct 2026)", { pre: true, deviation: "B2" }],
+  ["Apache/2.4.69 (Unix) OpenSSL/4.1.0-beta2", "exact", "4.1.0", OPENSSL_SRC, "a 4.1 beta (9 Oct 2026)", { pre: true }],
   ["Apache/2.4.6 (CentOS) OpenSSL/1.0.2k-fips", "distro", "1.0.2k", OPENSSL_102, "CentOS/RHEL 7: -fips comes from the FIPS build"],
   ["Apache/2.4.6 (Red Hat Enterprise Linux) OpenSSL/1.0.2k-fips", "distro", "1.0.2k", CENTOS7, "RHEL 7"],
   ["Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k", "distro", "1.1.1k", ALMA(8, "BaseOS"), "EL8's openssl 1.1.1k-18: RHEL's version text drops -fips at mod_ssl's cut"],
@@ -443,7 +445,7 @@ for (const [banner, kind, v, src, note, extra] of [
   ["Werkzeug/3.1.3 Python/3.10.22", "exact", "3.10.22", WERKZEUG, "3.10 ended 1 Oct 2026, with 3.10.22 its last release"],
   ["BaseHTTP/0.6 Python/3.9.25", "exact", "3.9.25", CPY_SERVER, "last 3.9 release"],
   ["Werkzeug/2.0.3 Python/3.8.20", "exact", "3.8.20", WERKZEUG, "last 3.8 release"],
-  ["Werkzeug/3.1.3 Python/3.15.0rc1", "exact", "3.15.0", "https://www.python.org/downloads/release/python-3150rc1/", "a 3.15 release candidate: Python spells rc in lowercase with no separator", { pre: true, deviation: "B2" }],
+  ["Werkzeug/3.1.3 Python/3.15.0rc1", "exact", "3.15.0", "https://www.python.org/downloads/release/python-3150rc1/", "a 3.15 release candidate: Python spells rc in lowercase with no separator", { pre: true }],
   ["Python/3.11 aiohttp/3.9.5", "branch", "3.11", AIOHTTP, "aiohttp prints only major.minor", { deviation: "B3" }],
   ["Python/3.9 aiohttp/3.8.6", "branch", "3.9", AIOHTTP, "an end-of-life line behind aiohttp", { deviation: "B3" }],
   ["Werkzeug/3.0.1 Python/3.12.3", "distro", "3.12.3", LP("python3.12", "noble"), "Ubuntu 24.04's python3.12 (3.12.3-1ubuntu0.17): sys.version carries no package revision", { deviation: "L1" }],
@@ -461,7 +463,7 @@ for (const [tag, kind, v, note, extra] of [
   ["3.10.22", "exact", "3.10.22", "last 3.10 image"],
   ["3.9.25", "exact", "3.9.25", "last 3.9 image"],
   ["3.8.20", "exact", "3.8.20", "last 3.8 image"],
-  ["3.15.0rc1", "exact", "3.15.0", "a release-candidate image", { pre: true, deviation: "B2" }],
+  ["3.15.0rc1", "exact", "3.15.0", "a release-candidate image", { pre: true }],
 ]) add(extra?.pre ? "prerelease-suffix" : "docker-pinned", "python", `python-img-${tag}`, IMG(`python:${tag}`), kind, v, HUB("python", tag), note, extra);
 for (const [tag, kind, v, note] of [
   ["3.13", "branch", "3.13", "floating line"],

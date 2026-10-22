@@ -73,8 +73,14 @@ function verdict(adv, row) {
   if (kind === "branch") return !fix && eolOf(row.product, line) ? "end-of-life-no-fix" : "check-on-server";
   if (fix) {
     if (fix.introduced && cmp(version, fix.introduced) < 0) return "none";
-    const atOrAbove = pre ? cmp(version, fix.version) > 0 : cmp(version, fix.version) >= 0;
-    if (atOrAbove) return "has-fix";
+    if (pre && cmp(version, fix.version) > 0) {
+      // A pre-release of the version after the fix may predate the fix (PHP's
+      // branch says 8.4.28-dev from 8.4.27's RC on); two patches on, it is in.
+      // A pre-release of the fixed version itself is below it: affected.
+      const f = parse(fix.version);
+      return cmp(version, `${f.major}.${f.minor}.${f.patch + 2}`) >= 0 ? "has-fix" : "check-on-server";
+    }
+    if (!pre && cmp(version, fix.version) >= 0) return "has-fix";
     return kind === "distro" ? "check-on-server" : "affected";
   }
   if (kind === "distro") return "check-on-server";

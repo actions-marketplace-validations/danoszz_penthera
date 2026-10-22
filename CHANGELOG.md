@@ -4,6 +4,16 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Detection
+
+- The secret scan reads Terraform and HCL files (`.tf`, `.tfvars`, `.hcl`).
+  A private key inline in a Terraform file was a documented miss in the E10
+  pilot (Juice Shop).
+- New secret rule: a session signing secret written into
+  `session({ secret: '...' })` or `cookieSession(...)`, including a hardcoded
+  fallback after `process.env.X ||` (high). Express's documented example,
+  `'keyboard cat'`, was a documented miss in the E10 pilot (DVNA).
+
 ### Fixed
 
 - **`npx penthera ui` stops cleanly on Ctrl-C and SIGTERM.** npm forwards

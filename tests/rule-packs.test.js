@@ -390,9 +390,13 @@ describe("bundled packs", () => {
   });
 
   it("secret rules are the same, in the same order, as before packs", () => {
-    const now = activeSecretPatterns().map((r) => ({ name: r.name, source: r.pattern.source, flags: r.pattern.flags, severity: r.severity, skipIf: r.skipIf }));
+    // New built-in rules may be added (E10 session secret); none of the old
+    // ones may change, move or disappear.
+    const before = new Set(BEFORE.secrets.map((b) => b.name));
+    const kept = activeSecretPatterns().filter((r) => before.has(r.name));
+    const now = kept.map((r) => ({ name: r.name, source: r.pattern.source, flags: r.pattern.flags, severity: r.severity, skipIf: r.skipIf }));
     expect(now).toEqual(BEFORE.secrets);
-    expect(activeSecretPatterns().map((r) => r.pack)).toEqual(BEFORE.secrets.map((b) => (rulesOf("secret", { pack: "core" }).some((c) => c.name === b.name) ? "core" : null)));
+    expect(kept.map((r) => r.pack)).toEqual(BEFORE.secrets.map((b) => (rulesOf("secret", { pack: "core" }).some((c) => c.name === b.name) ? "core" : null)));
     expect(rulesOf("secret", { pack: "core" })).toHaveLength(12);
   });
 

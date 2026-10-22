@@ -288,6 +288,21 @@
       "verdict": "cannot-tell",
       "actionable": false,
       "reason": "infrastructure/docker-compose.yml pins nginx 1.28.0. Whether 1.28 is past end of life on 2026-10-22 was not verified offline. Not the documented mongo image."
+    },
+    "8a0ee1b0377c": {
+      "verdict": "correct",
+      "actionable": true,
+      "reason": "terraform/networking.tf holds the same RSA private key, byte for byte, as infrastructure/terraform/networking.tf (answer key iac-leaked-key): a second copy in the repo. (Added 2026-10-22 after the recall fixes, by the same provisional AI labeller that wrote the rule: not independent.)"
+    },
+    "8d8dc2a7d233": {
+      "verdict": "incorrect",
+      "actionable": false,
+      "reason": "routes/captcha.ts evaluates an arithmetic expression the server builds from three Math.random() terms and fixed operators; no request or stored data reaches it. (Added 2026-10-22 after the recall fixes, by the same provisional AI labeller that wrote the rule: not independent.)"
+    },
+    "9fbe876cb611": {
+      "verdict": "correct",
+      "actionable": true,
+      "reason": "routes/fileUpload.ts parses the uploaded file (req.file buffer) with js-yaml ^3.14 load() inside vm.runInContext; js-yaml 3 load() accepts !!js/function, and vm is not a sandbox. The answer key lists only the out-of-scope YAML bomb here. Not exercised. (Added 2026-10-22 after the recall fixes, by the same provisional AI labeller that wrote the rule: not independent.)"
     }
   }
 }

@@ -7,12 +7,16 @@ wrote. This one runs Penthera against widely used, deliberately vulnerable
 apps whose vulnerabilities are documented by their own authors. The protocol
 is a draft pre-registration:
 [E10-known-vulnerable-apps.md](../../docs/research/prereg/E10-known-vulnerable-apps.md).
-The latest numbers are a **pilot**, in [RESULTS.md](RESULTS.md).
+The latest numbers are a **pilot**, in [RESULTS.md](RESULTS.md). Its misses are
+verified one by one in [MISSES.md](MISSES.md), and a re-run after the fixes
+that followed is in [RESULTS-after-fixes.md](RESULTS-after-fixes.md) (not
+independent: the fixes were written against these apps).
 
 ```bash
 npm run bench:known                                  # Juice Shop and DVNA, standard run
 npm run bench:known -- --app webgoat --run deep      # one app, payload probes on
 npm run bench:known -- --no-write --json out.json    # print, keep RESULTS.md
+npm run bench:known -- --out RESULTS-after-fixes.md  # write another file, keep RESULTS.md
 ```
 
 Needs Docker (Docker Desktop, Colima or OrbStack on macOS) and network
@@ -56,7 +60,9 @@ source pinned by commit.
 | `<app>/truth.json` | Answer key: every documented item, with a link to the app's own docs at the pinned commit, our class, and in-scope flag or exclusion code. Frozen before the app was scanned |
 | `<app>/labels.json` | Labels for findings the key does not cover, keyed by finding fingerprint (pilot: one provisional labeller) |
 | `score.mjs` | Classes, matching, precision and recall with Wilson intervals (tested in `tests/bench-known-vuln.test.js`) |
-| `run.mjs` | Clone, start, scan, score, tear down, write `RESULTS.md` |
+| `run.mjs` | Clone, start, scan, score, tear down, write `RESULTS.md` (or `--out`) |
+| `MISSES.md` | Verdict and evidence for each pilot miss, and which fix addresses it |
+| `RESULTS-after-fixes.md` | The pilot re-run after those fixes, with before and after |
 | `apps.mjs` | How each app is started |
 
 Answer keys hold links and short descriptions in our own words, never the

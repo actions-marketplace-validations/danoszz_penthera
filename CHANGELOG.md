@@ -4,6 +4,39 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Detection
+
+- Three exposure checks in the default URL scan, each a documented miss in
+  the E10 pilot (Juice Shop). All send plain `GET`s, no payloads:
+  - a public Prometheus `/metrics` endpoint (medium), matched on the
+    exposition format, so an SPA's index page at `/metrics` does not count;
+  - browsable directory listings (medium) in folders that `robots.txt`
+    disallows and in common upload and backup folders, matched on the
+    listing's page title;
+  - a stack trace in the error page for a path that does not exist (low),
+    matched on Node.js, Python, Java, PHP and .NET frame shapes.
+
+- The header audit reports an `X-Powered-By` header (low, `confirmed`), such
+  as Express's default `X-Powered-By: Express`. It was a documented miss in
+  the E10 pilot (DVNA). The finding names the value and how to turn the
+  header off.
+- The secret scan reads Terraform and HCL files (`.tf`, `.tfvars`, `.hcl`).
+  A private key inline in a Terraform file was a documented miss in the E10
+  pilot (Juice Shop).
+- New secret rule: a session signing secret written into
+  `session({ secret: '...' })` or `cookieSession(...)`, including a hardcoded
+  fallback after `process.env.X ||` (high). Express's documented example,
+  `'keyboard cat'`, was a documented miss in the E10 pilot (DVNA).
+- The repo scan looks for code-execution sinks in all server code, not just
+  route handlers: `eval`/`new Function` with a non-constant argument, `vm`
+  calls and `child_process` `exec` with request data in their arguments.
+  A taint-lite pass (assignments and destructuring within one file) sets the
+  confidence: `likely` when request data reaches the sink, `potential` for an
+  `eval` of a value it cannot trace. Before, a repo with an Express `routes/`
+  folder stopped before any code-pattern check; three E10 pilot misses (DVNA's
+  `exec` in `core/appHandler.js`, Juice Shop's B2B `vm` and profile `eval`)
+  came from this.
+
 ### Added
 
 - **Coverage ledger** in every `--repo` report (terminal, Markdown, JSON
@@ -18,6 +51,94 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   risky-pattern checks. That folder was taken for a Next.js API root, no
   `route.js` files were found there, and route analysis stopped. An explicit
   `--api-root` is still used as given.
+
+- **TLS keys anyone can compute.** URL scans report, as critical, any
+  certificate in the served chain whose EC public key (P-256, P-384, P-521) is
+  k·G for a private scalar k below 1024. The private key then follows from
+  the certificate alone. This is the flaw in eMudhra's P-384 intermediates
+  ([Mozilla bug 2083449](https://bugzilla.mozilla.org/show_bug.cgi?id=2083449),
+  private keys below 256). The check is arithmetic, not a list, so it has no
+  false positives and no data to maintain. Research note:
+  [docs/research/emudhra-weak-keys-2026-10.md](docs/research/emudhra-weak-keys-2026-10.md).
+
+- **Node.js security release of 21 October 2026** in the `advisories` pack:
+  CVE-2026-111497 (Brotli decoder out-of-bounds write, remote code execution)
+  and the TLS certificate hostname bypasses CVE-2026-106069, CVE-2026-105483
+  and CVE-2026-106072, fixed in 22.23.4, 24.22.1 and 26.12.1, from
+  [nodejs.org](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases).
+  Node.js has no server banner, so repo scans find it (`.nvmrc`,
+  `.node-version`, `.tool-versions`, `node:` images); 20.x and 25.x are
+  reported as end-of-life lines. The pack's signature was removed with the
+  change; `npm run rules:check` fails until the maintainer re-signs it.
+
+- **Python start-up code in wheels.** `penthera deps` now finds `.pth` files
+  and a shipped `sitecustomize.py` / `usercustomize.py` wherever a wheel puts
+  them at the site-packages root, including `<name>-<version>.data/purelib/`
+  and `platlib/`, the layout the malicious litellm 1.107.0 used
+  ([OSV MAL-2026-2144](https://osv.dev/vulnerability/MAL-2026-2144)). Before,
+  only top-level `.pth` files were read, so that wheel's hook was missed until
+  it was installed. A `.pth` import of clean code is now medium (was low);
+  risky code behind it, or any shipped `sitecustomize.py`, is high. The
+  `penthera install` policy holds `startup-hook` for approval by default.
+- **PyPI indicators.** A new rule kind, `ioc-pypi-package` (PEP 503 names,
+  PEP 440 versions, kept apart from npm names), and a new bundled pack,
+  `ioc-pypi-2026`, with the litellm 1.82.7, 1.82.8 and 1.107.0 versions, the
+  1.107.0 payload files by SHA-256 and its endpoints. Python scans now run
+  `ioc-file` and `ioc-host` rules too. The pack is unsigned until the
+  maintainer signs it, so `npm run rules:check` fails until then.
+
+## [1.8.1] - 2026-10-22
+
+A fixes-only release. Runtime advisories are more careful: pre-release builds
+are never reported as having the fix, a banner without a distribution token is
+at most `potential`, release lines older than a flaw are not reported as
+affected, and two more banner formats are read. `penthera ui` now stops
+cleanly under `npx`.
+
+### Fixed
+
+- Runtime advisories no longer claim `likely` for a banner that may be a
+  patched distribution package. Debian 11 to 13, Ubuntu 24.04 and later, and
+  RHEL print plain upstream PHP versions, so a patched Ubuntu 24.04
+  `X-Powered-By: PHP/8.3.6` behind nginx or a CDN was reported as critical
+  and likely affected. For PHP, Apache httpd, nginx, Python and OpenSSL,
+  "affected" and "end of life" findings from a banner with no distribution
+  token are now `potential`, with a "check on server" note and the check
+  command. Severity is unchanged. Official images and version files are
+  upstream builds and stay `likely`. Found by the runtime-strings test set
+  (L1 in [#97](https://github.com/danoszz/penthera/pull/97)).
+
+- Runtime advisories resolve Node.js LTS codenames to their release line:
+  nvm's `lts/iron` in `.nvmrc` and the node image's `iron`, `jod-alpine`
+  and `hydrogen` tags. They read as no version before, so `lts/iron` (Node.js
+  20, end of life 30 April 2026) went unreported. Found by the
+  runtime-strings test set (B4 in
+  [#97](https://github.com/danoszz/penthera/pull/97)).
+- Runtime advisories read aiohttp's `Server: Python/3.9 aiohttp/3.8.6`.
+  aiohttp prints only the Python release line, and the banner pattern needed
+  x.y.z, so an end-of-life Python behind aiohttp went unreported. Found by
+  the runtime-strings test set (B3 in
+  [#97](https://github.com/danoszz/penthera/pull/97)).
+- Runtime advisories honour `introduced` on older release lines. CVE-2021-41773
+  and CVE-2021-42013 exist only in httpd 2.4.49 and 2.4.50. Yet
+  `Apache/2.2.34` and `httpd:2.2` were reported critical, "end of life, no
+  fix", and CentOS 6's `Apache/2.2.15 (CentOS)` was "check on server". A line
+  older than the one the flaw was introduced on now gets no verdict for it.
+  The end-of-life finding stays. Found by the runtime-strings test set (B1 in
+  [#97](https://github.com/danoszz/penthera/pull/97)).
+- Runtime advisories read pre-releases correctly. `PHP/8.4.27-dev`, a PHP-8.4
+  branch build from before 8.4.27, was taken for a distribution build of
+  8.4.27 and reported as having the 21 October fix. Now `-dev`, alpha, beta
+  and RC builds (`8.5.0RC1`, `3.15.0rc1`, `4.1.0-beta2`, `php:8.6.0RC4-fpm`)
+  sort below their release, so a pre-release of the fixed version is
+  affected. A pre-release of the version after the fix (`8.4.28-dev`) is
+  "check on server", never "has the fix". Found by the runtime-strings test set
+  (B2 in [#97](https://github.com/danoszz/penthera/pull/97)).
+- **`npx penthera ui` stops cleanly on Ctrl-C and SIGTERM.** npm forwards
+  the signal to penthera right after the terminal delivered it, and the
+  second copy could kill the dashboard before it printed "Stopped." and
+  closed its server. Repeated signals are now ignored while it stops. This
+  was the intermittent macOS failure in the install-matrix smoke check.
 
 ### Site
 

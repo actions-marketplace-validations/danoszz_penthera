@@ -8,6 +8,7 @@
     "url": "git+https://github.com/danoszz/penthera.git"
   },
   "homepage": "https://penthera.org",
+  "mcpName": "io.github.danoszz/penthera",
   "bugs": {
     "url": "https://github.com/danoszz/penthera/issues"
   },

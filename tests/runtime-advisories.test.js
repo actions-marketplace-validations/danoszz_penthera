@@ -206,6 +206,29 @@ describe("white-box evidence and verdicts", () => {
     }
   });
 
+  it("resolves Node.js LTS codenames in .nvmrc and image tags to their line", () => {
+    // Strings from bench/runtime-strings (docs/research/runtime-strings.md, B4).
+    expect(parseImageRef("node:iron")).toMatchObject({ product: "nodejs", kind: "branch", version: { major: 20 } });
+    expect(parseImageRef("node:jod-alpine")).toMatchObject({ product: "nodejs", kind: "branch", version: { major: 22 } });
+    expect(parseImageRef("node:lts")).toMatchObject({ product: "nodejs", kind: "present" });
+    expect(parseImageRef("node:constructor")).toMatchObject({ product: "nodejs", kind: "present" });
+    const nodeEol = eolRule({ product: "nodejs", source: "https://nodejs.org/en/about/previous-releases", branches: [{ branch: "18", eol: "2025-04-30" }, { branch: "20", eol: "2026-04-30" }] });
+    const dir = mkdtempSync(join(tmpdir(), "penthera-codenames-"));
+    try {
+      writeFileSync(join(dir, ".nvmrc"), "lts/iron\n");
+      mkdirSync(join(dir, "api"));
+      writeFileSync(join(dir, "api", "Dockerfile"), "FROM node:hydrogen-alpine\n");
+      expect(verdicts(runtimeAdvisoriesForRepo(dir, { advisories: [], eol: [nodeEol] })).sort()).toEqual([
+        "high/likely: Node.js 18 is end of life: no more security fixes",
+        "high/likely: Node.js 20 is end of life: no more security fixes",
+      ]);
+      writeFileSync(join(dir, ".nvmrc"), "lts/*\n");
+      expect(evidenceFromRepo(dir).find((e) => e.where === ".nvmrc")).toMatchObject({ kind: "present" });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("a pinned image below the fix is affected; a floating tag is 'check'", () => {
     const dir = repo({ Dockerfile: "FROM php:8.3.12-apache\n", "worker/Dockerfile": "FROM php:8.4-cli\n" });
     try {

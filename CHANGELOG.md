@@ -4,6 +4,15 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Fixed
+
+- Runtime advisories resolve Node.js LTS codenames to their release line:
+  nvm's `lts/iron` in `.nvmrc` and the node image's `iron`, `jod-alpine`
+  and `hydrogen` tags. They read as no version before, so `lts/iron` (Node.js
+  20, end of life 30 April 2026) went unreported. Found by the
+  runtime-strings test set (B4 in
+  [#97](https://github.com/danoszz/penthera/pull/97)).
+
 ### Site
 
 - penthera.org counts anonymous page views and load times with Vercel Web

@@ -18,7 +18,10 @@ Override or extend profile defaults:
 | `--deep` | Injection probes (SQLi, SSTI, SSRF, XSS, CMDi), sends attack payloads |
 | `--fuzz` | Property-based API fuzzing |
 | `--nuclei <path>` | Community Nuclei YAML templates |
+| `--adaptive` | Adaptive probes on discovered routes; may send unexpected methods, including `DELETE` |
 | `--all` | Enable recon + deep + fuzz |
+| `--confirm-target <host>` | Confirms an active scan (`--deep`, `--fuzz`, `--adaptive`, `--all`, `--profile deep`) of this hostname without a prompt. Required when there is no terminal; must match the target |
+| `--rate <n>` | Max requests per second (default: no limit; 10 for active scans; `0` removes it) |
 | `--machine` | macOS machine audit (keyloggers, trojans, rootkits) |
 
 ## Common options

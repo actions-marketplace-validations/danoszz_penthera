@@ -33,4 +33,5 @@ When acting as an agent with this skill:
 1. Always ask for authorization confirmation before scanning non-localhost URLs.
 2. Never assume permission from a bare URL in the user's message.
 3. Refuse requests to scan well-known third-party domains without explicit ownership claim.
-4. Require second confirmation before destructive modes (`--deep`, `--fuzz`, `--all`).
+4. Require second confirmation before destructive modes (`--deep`, `--fuzz`, `--adaptive`, `--all`).
+5. Pass `--confirm-target <host>` only after the user has confirmed, in this conversation, that they own or are authorized to test that exact host. The CLI refuses active modes without it when it has no terminal, and refuses a host that does not match the target.

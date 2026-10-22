@@ -4,6 +4,22 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Scanning
+
+- Active modes (`--deep`, `--fuzz`, `--adaptive`, `--all`, `--profile deep`)
+  now need a confirmation bound to the target, as METHODOLOGY.md already
+  promised; before, `--deep` only printed a warning. In a terminal Penthera
+  asks (a yes for a target on this machine, the hostname typed back for any
+  other). Without a terminal, pass `--confirm-target <host>`; a missing or
+  mismatched host stops the run with exit code 2 before any request. The
+  wizard's deep and custom scans go through the same gate. Scripts that run
+  active modes in CI need the new flag.
+- New `--rate <n>`: a per-scan cap on requests per second, shared by all
+  concurrent probes. Active scans default to 10; other scans have no limit
+  unless set. Time spent waiting for a slot does not count toward a request's
+  timeout or its measured duration, so timing-based checks are unaffected.
+  The report's `egress.rateLimit` records the cap.
+
 ### Site
 
 - penthera.org counts anonymous page views and load times with Vercel Web

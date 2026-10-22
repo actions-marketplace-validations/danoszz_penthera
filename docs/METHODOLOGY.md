@@ -392,8 +392,15 @@ The `quick` and `standard` profiles send only requests a normal browser or API
 client would send: `GET`, `OPTIONS`, and invalid login attempts. They do not
 send attack payloads, create or modify data, or exploit anything they find.
 
-Payload-based testing (`--deep`, `--fuzz`, `--adaptive`, or `--profile deep`)
-is opt-in and gated behind a confirmation prompt. Even then, each probe sends a
+Payload-based testing (`--deep`, `--fuzz`, `--adaptive`, `--all`, or
+`--profile deep`) is opt-in, and it does not start without a confirmation
+bound to the target's hostname. In a terminal, Penthera asks: a target on this
+machine needs a yes, and any other target needs its hostname typed back, the
+same rule as the dashboard. A non-interactive run (CI, Docker, piped, `--json`)
+must pass `--confirm-target <host>`, and the run stops with exit code 2 when it
+is missing or names another host. Active scans are also capped at 10 requests
+per second unless `--rate` says otherwise (`src/cli/active-gate.js`). Even
+then, each probe sends a
 benign marker (a random string, an arithmetic expression, a short sleep, `id`)
 rather than a working exploit, and stops at the first confirmation per
 endpoint. The adaptive engine may send unexpected HTTP methods, including

@@ -25,6 +25,26 @@ Pick a profile, or add individual flags for more depth:
 
 Individual flags: `--recon`, `--deep`, `--fuzz`, `--adaptive`, `--nuclei <path>`, `--templates <dirs>`, `--all`
 
+### Active modes ask first
+
+`--deep`, `--fuzz`, `--adaptive`, `--all` and `--profile deep` send test
+payloads, so they need your confirmation before the first request:
+
+- In a terminal, Penthera asks. For a target on this machine (`localhost`,
+  `127.0.0.1`, `*.localhost`) a yes is enough; for any other target, type its
+  hostname back.
+- In CI, Docker or a script, pass `--confirm-target <host>` with the target's
+  hostname. Without it, or with a different host, the run stops with exit
+  code 2 before anything is sent.
+- Active scans send at most 10 requests per second. Change that with
+  `--rate <n>`; `--rate 0` removes the limit. `--rate` also works on a
+  standard scan, which has no limit by default.
+
+```bash
+penthera https://staging.myapp.com --profile deep --confirm-target staging.myapp.com
+penthera http://localhost:3000 --deep --rate 25
+```
+
 ## Quick start
 
 ```bash

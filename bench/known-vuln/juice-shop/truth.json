@@ -1,0 +1,1555 @@
+{
+  "schema": "penthera-known-vuln-truth/1",
+  "app": "juice-shop",
+  "name": "OWASP Juice Shop",
+  "license": "MIT",
+  "licenseUrl": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/LICENSE",
+  "intendedUse": "Describes itself as an intentionally insecure web application for security training, demos and CTFs (README).",
+  "intendedUseUrl": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/README.md",
+  "source": {
+    "repo": "https://github.com/juice-shop/juice-shop",
+    "ref": "v20.3.0",
+    "commit": "f189f521266f42c6bd05884468292000cee852ed"
+  },
+  "image": {
+    "ref": "bkimminich/juice-shop:v20.3.0",
+    "digest": "sha256:cea5a4af4aacee498c491491af0408934ec81d004035c0a02ef3e54395e3bf27",
+    "port": 3000
+  },
+  "answerKey": [
+    {
+      "title": "Challenge list (data/static/challenges.yml)",
+      "url": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/data/static/challenges.yml"
+    },
+    {
+      "title": "Pwning OWASP Juice Shop (companion guide, part II)",
+      "url": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/"
+    },
+    {
+      "title": "vuln-code-snippet markers in the source (coding challenges)",
+      "url": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/data/static/codefixes"
+    }
+  ],
+  "frozenOn": "2026-10-22",
+  "frozenBeforeScan": true,
+  "builtBy": "Claude (AI-assisted) from challenges.yml and the vuln-code-snippet markers at the pinned commit; to be checked by labeller A before registration.",
+  "descriptionsNote": "In-scope descriptions are our own words; out-of-scope descriptions are the first sentence of the challenge description from challenges.yml (MIT, Copyright (c) Bjoern Kimminich & the OWASP Juice Shop contributors), HTML stripped.",
+  "vulnerabilities": [
+    {
+      "id": "password-hash-leak",
+      "title": "Password Hash Leak",
+      "ref": "passwordHashLeakChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/sensitive-data-exposure.html",
+      "appCategory": "Sensitive Data Exposure",
+      "description": "Obtain the password (hash) of the currently logged-in user directly from a REST API endpoint.",
+      "class": "exposure",
+      "inScope": false,
+      "excludedBecause": "access-control-logic"
+    },
+    {
+      "id": "restful-xss",
+      "title": "API-only XSS",
+      "ref": "restfulXssChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/xss.html",
+      "appCategory": "XSS",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/frontend/src/app/search-result/search-result.component.ts",
+      "description": "Perform a persisted XSS attack with &lt;iframe src=\"javascript:alert(`xss`)\"&gt; without using the frontend application at all.",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep"
+    },
+    {
+      "id": "access-log-disclosure",
+      "title": "Access Log",
+      "ref": "accessLogDisclosureChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/observability-failures.html",
+      "appCategory": "Observability Failures",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/server.ts",
+      "description": "Server access logs are browsable under /support/logs.",
+      "class": "exposure",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "/support/logs/"
+        },
+        {
+          "path": "/support/logs"
+        },
+        {
+          "file": "server.ts"
+        }
+      ],
+      "group": "logs-listing"
+    },
+    {
+      "id": "register-admin",
+      "title": "Admin Registration",
+      "ref": "registerAdminChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/improper-input-validation.html",
+      "appCategory": "Improper Input Validation",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/server.ts",
+      "description": "Register as a user with administrator privileges.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "access-control-logic"
+    },
+    {
+      "id": "admin-section",
+      "title": "Admin Section",
+      "ref": "adminSectionChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-access-control.html",
+      "appCategory": "Broken Access Control",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/frontend/src/app/app.routing.ts",
+      "description": "Access the administration section of the store.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "needs-browser",
+      "note": "Client-side route; the admin API calls need an admin session."
+    },
+    {
+      "id": "file-write",
+      "title": "Arbitrary File Write",
+      "ref": "fileWriteChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/vulnerable-components.html",
+      "appCategory": "Vulnerable Components",
+      "description": "Overwrite the Legal Information file.",
+      "class": "vulnerable-component",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep"
+    },
+    {
+      "id": "reset-password-bjoern-owasp",
+      "title": "Bjoern's Favorite Pet",
+      "ref": "resetPasswordBjoernOwaspChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-authentication.html",
+      "appCategory": "Broken Authentication",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/data/static/securityQuestions.yml",
+      "description": "Reset the password of Bjoern's OWASP account via the Forgot Password mechanism with the original answer to his security question.",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "osint-or-social"
+    },
+    {
+      "id": "token-sale",
+      "title": "Blockchain Hype",
+      "ref": "tokenSaleChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/security-through-obscurity.html",
+      "appCategory": "Security through Obscurity",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/frontend/src/app/app.routing.ts",
+      "description": "Learn about the Token Sale before its official announcement.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "needs-browser"
+    },
+    {
+      "id": "nft-unlock",
+      "title": "NFT Takeover",
+      "ref": "nftUnlockChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/sensitive-data-exposure.html",
+      "appCategory": "Sensitive Data Exposure",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/data/static/web3-snippets/JuiceShopSBT.sol",
+      "description": "Take over the wallet containing our official Soul Bound Token (NFT).",
+      "class": "exposure",
+      "inScope": false,
+      "excludedBecause": "osint-or-social"
+    },
+    {
+      "id": "nft-mint",
+      "title": "Mint the Honey Pot",
+      "ref": "nftMintChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/improper-input-validation.html",
+      "appCategory": "Improper Input Validation",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/data/static/web3-snippets/HoneyPotNFT.sol",
+      "description": "Mint the Honey Pot NFT by gathering BEEs from the bee haven.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "business-logic"
+    },
+    {
+      "id": "web3-wallet",
+      "title": "Wallet Depletion",
+      "ref": "web3WalletChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/miscellaneous.html",
+      "appCategory": "Miscellaneous",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/data/static/web3-snippets/ETHWalletBank.sol",
+      "description": "Withdraw more ETH from the new wallet than you deposited.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "business-logic"
+    },
+    {
+      "id": "web3-sandbox",
+      "title": "Web3 Sandbox",
+      "ref": "web3SandboxChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-access-control.html",
+      "appCategory": "Broken Access Control",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/frontend/src/app/app.routing.ts",
+      "description": "Find an accidentally deployed code sandbox for writing smart contracts on the fly.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "needs-browser"
+    },
+    {
+      "id": "rce",
+      "title": "Blocked RCE DoS",
+      "ref": "rceChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/insecure-deserialization.html",
+      "appCategory": "Insecure Deserialization",
+      "description": "B2B order lines are evaluated with an eval-style sandbox (notevil in vm).",
+      "class": "code-sink",
+      "inScope": true,
+      "surface": "repo",
+      "locations": [
+        {
+          "file": "routes/b2bOrder.ts"
+        }
+      ],
+      "group": "b2b-eval"
+    },
+    {
+      "id": "captcha-bypass",
+      "title": "CAPTCHA Bypass",
+      "ref": "captchaBypassChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-anti-automation.html",
+      "appCategory": "Broken Anti Automation",
+      "description": "Submit 10 or more customer feedbacks within 20 seconds.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "note": "Anti-automation on feedback with a CAPTCHA; Penthera does not test CAPTCHAs."
+    },
+    {
+      "id": "change-password-bender",
+      "title": "Change Bender's Password",
+      "ref": "changePasswordBenderChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-authentication.html",
+      "appCategory": "Broken Authentication",
+      "description": "Change Bender's password into slurmCl4ssic without using SQL Injection or Forgot Password.",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "access-control-logic"
+    },
+    {
+      "id": "christmas-special",
+      "title": "Christmas Special",
+      "ref": "christmasSpecialChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html",
+      "appCategory": "Injection",
+      "description": "Same search SQL injection reveals a deleted product (ordering it needs a session).",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/rest/products/search"
+        },
+        {
+          "file": "routes/search.ts"
+        }
+      ],
+      "group": "search-sqli"
+    },
+    {
+      "id": "username-xss",
+      "title": "CSP Bypass",
+      "ref": "usernameXssChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/xss.html",
+      "appCategory": "XSS",
+      "description": "Bypass the Content Security Policy and perform an XSS attack with &lt;script&gt;alert(`xss`)&lt;/script&gt; on a legacy page within the appl.",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep"
+    },
+    {
+      "id": "persisted-xss-user",
+      "title": "Client-side XSS Protection",
+      "ref": "persistedXssUserChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/xss.html",
+      "appCategory": "XSS",
+      "description": "Perform a persisted XSS attack with &lt;iframe src=\"javascript:alert(`xss`)\"&gt; bypassing a client-side security mechanism.",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep"
+    },
+    {
+      "id": "directory-listing",
+      "title": "Confidential Document",
+      "ref": "directoryListingChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/sensitive-data-exposure.html",
+      "appCategory": "Sensitive Data Exposure",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/server.ts",
+      "description": "The /ftp folder is browsable and serves confidential documents.",
+      "class": "exposure",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "/ftp/"
+        },
+        {
+          "path": "/ftp"
+        },
+        {
+          "file": "server.ts"
+        }
+      ],
+      "group": "ftp-listing"
+    },
+    {
+      "id": "local-xss",
+      "title": "DOM XSS",
+      "ref": "localXssChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/xss.html",
+      "appCategory": "XSS",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/frontend/src/app/search-result/search-result.component.ts",
+      "description": "Perform a DOM XSS attack with &lt;iframe src=\"javascript:alert(`xss`)\"&gt;.",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "needs-browser"
+    },
+    {
+      "id": "db-schema",
+      "title": "Database Schema",
+      "ref": "dbSchemaChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html",
+      "appCategory": "Injection",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/routes/search.ts",
+      "description": "Same search SQL injection, used to read the schema.",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/rest/products/search"
+        },
+        {
+          "file": "routes/search.ts"
+        }
+      ],
+      "group": "search-sqli"
+    },
+    {
+      "id": "deprecated-interface",
+      "title": "Deprecated Interface",
+      "ref": "deprecatedInterfaceChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/security-misconfiguration.html",
+      "appCategory": "Security Misconfiguration",
+      "description": "Use a deprecated B2B interface that was not properly shut down.",
+      "class": "misconfig",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep",
+      "note": "B2B XML upload needs a session and a file upload."
+    },
+    {
+      "id": "easter-egg-level-one",
+      "title": "Easter Egg",
+      "ref": "easterEggLevelOneChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-access-control.html",
+      "appCategory": "Broken Access Control",
+      "description": "Find the hidden easter egg.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep"
+    },
+    {
+      "id": "email-leak",
+      "title": "Email Leak",
+      "ref": "emailLeakChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/sensitive-data-exposure.html",
+      "appCategory": "Sensitive Data Exposure",
+      "description": "Perform an unwanted information disclosure by accessing data cross-domain.",
+      "class": "exposure",
+      "inScope": false,
+      "excludedBecause": "access-control-logic"
+    },
+    {
+      "id": "empty-user-registration",
+      "title": "Empty User Registration",
+      "ref": "emptyUserRegistration",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/improper-input-validation.html",
+      "appCategory": "Improper Input Validation",
+      "description": "Register a user with an empty email and password.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "business-logic"
+    },
+    {
+      "id": "ephemeral-accountant",
+      "title": "Ephemeral Accountant",
+      "ref": "ephemeralAccountantChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html",
+      "appCategory": "Injection",
+      "description": "Same login SQL injection, UNION-selecting a user that does not exist.",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/rest/user/login"
+        },
+        {
+          "file": "routes/login.ts"
+        }
+      ],
+      "group": "login-sqli"
+    },
+    {
+      "id": "error-handling",
+      "title": "Error Handling",
+      "ref": "errorHandlingChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/security-misconfiguration.html",
+      "appCategory": "Security Misconfiguration",
+      "description": "Unhandled errors return a verbose error page with stack trace.",
+      "class": "exposure",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "/rest/"
+        },
+        {
+          "path": "/api/"
+        }
+      ],
+      "group": "error-handling"
+    },
+    {
+      "id": "manipulate-clock",
+      "title": "Expired Coupon",
+      "ref": "manipulateClockChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/improper-input-validation.html",
+      "appCategory": "Improper Input Validation",
+      "description": "Successfully redeem an expired campaign coupon code.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "business-logic"
+    },
+    {
+      "id": "extra-language",
+      "title": "Extra Language",
+      "ref": "extraLanguageChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-anti-automation.html",
+      "appCategory": "Broken Anti Automation",
+      "description": "Retrieve the language file that never made it into production.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "other",
+      "note": "Guessing an unreleased file name; no class claimed."
+    },
+    {
+      "id": "feedback",
+      "title": "Five-Star Feedback",
+      "ref": "feedbackChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-access-control.html",
+      "appCategory": "Broken Access Control",
+      "description": "Get rid of all 5-star customer feedback.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "access-control-logic"
+    },
+    {
+      "id": "forged-coupon",
+      "title": "Forged Coupon",
+      "ref": "forgedCouponChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/cryptographic-issues.html",
+      "appCategory": "Cryptographic Issues",
+      "description": "Forge a coupon code that gives you a discount of at least 80%.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "forged-feedback",
+      "title": "Forged Feedback",
+      "ref": "forgedFeedbackChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-access-control.html",
+      "appCategory": "Broken Access Control",
+      "description": "Post some feedback in another user's name.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "access-control-logic"
+    },
+    {
+      "id": "forged-review",
+      "title": "Forged Review",
+      "ref": "forgedReviewChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-access-control.html",
+      "appCategory": "Broken Access Control",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/routes/updateProductReviews.ts",
+      "description": "Post a product review as another user or edit any user's existing review.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "access-control-logic"
+    },
+    {
+      "id": "jwt-forged",
+      "title": "Forged Signed JWT",
+      "ref": "jwtForgedChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/vulnerable-components.html",
+      "appCategory": "Vulnerable Components",
+      "description": "Forge an almost properly RSA-signed JWT token that impersonates the (non-existing) user rsa_lord@juice-sh.",
+      "class": "vulnerable-component",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "forgotten-dev-backup",
+      "title": "Forgotten Developer Backup",
+      "ref": "forgottenDevBackupChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/sensitive-data-exposure.html",
+      "appCategory": "Sensitive Data Exposure",
+      "description": "Access a developer's forgotten backup file.",
+      "class": "exposure",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep",
+      "note": "The file is listed in /ftp (counted under directoryListingChallenge) but downloading it needs a null-byte bypass."
+    },
+    {
+      "id": "forgotten-backup",
+      "title": "Forgotten Sales Backup",
+      "ref": "forgottenBackupChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/sensitive-data-exposure.html",
+      "appCategory": "Sensitive Data Exposure",
+      "description": "Access a salesman's forgotten backup file.",
+      "class": "exposure",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep",
+      "note": "Same as forgottenDevBackupChallenge."
+    },
+    {
+      "id": "typosquatting-angular",
+      "title": "Frontend Typosquatting",
+      "ref": "typosquattingAngularChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/vulnerable-components.html",
+      "appCategory": "Vulnerable Components",
+      "description": "Inform the shop about a typosquatting imposter that dug itself deep into the frontend.",
+      "class": "vulnerable-component",
+      "inScope": false,
+      "excludedBecause": "dependency-cve",
+      "note": "A typosquatted frontend dependency; `penthera deps` (not part of this run) checks typosquats."
+    },
+    {
+      "id": "ghost-login",
+      "title": "GDPR Data Erasure",
+      "ref": "ghostLoginChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-authentication.html",
+      "appCategory": "Broken Authentication",
+      "description": "Log in with Chris' erased user account.",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "data-export",
+      "title": "GDPR Data Theft",
+      "ref": "dataExportChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/sensitive-data-exposure.html",
+      "appCategory": "Sensitive Data Exposure",
+      "description": "Steal someone else's personal data without using Injection.",
+      "class": "exposure",
+      "inScope": false,
+      "excludedBecause": "access-control-logic"
+    },
+    {
+      "id": "http-header-xss",
+      "title": "HTTP-Header XSS",
+      "ref": "httpHeaderXssChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/xss.html",
+      "appCategory": "XSS",
+      "description": "Perform a persisted XSS attack with &lt;iframe src=\"javascript:alert(`xss`)\"&gt; through an HTTP header.",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep"
+    },
+    {
+      "id": "continue-code",
+      "title": "Imaginary Challenge",
+      "ref": "continueCodeChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/cryptographic-issues.html",
+      "appCategory": "Cryptographic Issues",
+      "description": "Solve challenge #999.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "dlp-password-spraying",
+      "title": "Leaked Access Logs",
+      "ref": "dlpPasswordSprayingChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/observability-failures.html",
+      "appCategory": "Observability Failures",
+      "description": "Dumpster dive the Internet for a leaked password and log in to the original user account it belongs to.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "osint-or-social"
+    },
+    {
+      "id": "dlp-pastebin-data-leak",
+      "title": "Leaked Unsafe Product",
+      "ref": "dlpPastebinDataLeakChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/sensitive-data-exposure.html",
+      "appCategory": "Sensitive Data Exposure",
+      "description": "Identify an unsafe product that was removed from the shop and inform the shop which ingredients are dangerous.",
+      "class": "exposure",
+      "inScope": false,
+      "excludedBecause": "osint-or-social"
+    },
+    {
+      "id": "typosquatting-npm",
+      "title": "Legacy Typosquatting",
+      "ref": "typosquattingNpmChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/vulnerable-components.html",
+      "appCategory": "Vulnerable Components",
+      "description": "Inform the shop about a typosquatting trick it has been a victim of at least in v6.",
+      "class": "vulnerable-component",
+      "inScope": false,
+      "excludedBecause": "dependency-cve",
+      "note": "A typosquatted dependency; `penthera deps` (not part of this run) checks typosquats."
+    },
+    {
+      "id": "login-admin",
+      "title": "Login Admin",
+      "ref": "loginAdminChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html",
+      "appCategory": "Injection",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/routes/login.ts",
+      "description": "Login builds SQL from the email field; authentication bypass.",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/rest/user/login"
+        },
+        {
+          "file": "routes/login.ts"
+        }
+      ],
+      "group": "login-sqli"
+    },
+    {
+      "id": "login-amy",
+      "title": "Login Amy",
+      "ref": "loginAmyChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/sensitive-data-exposure.html",
+      "appCategory": "Sensitive Data Exposure",
+      "description": "Log in with Amy's original user credentials.",
+      "class": "exposure",
+      "inScope": false,
+      "excludedBecause": "weak-credentials"
+    },
+    {
+      "id": "login-bender",
+      "title": "Login Bender",
+      "ref": "loginBenderChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html",
+      "appCategory": "Injection",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/routes/login.ts",
+      "description": "Same login SQL injection, for another account.",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/rest/user/login"
+        },
+        {
+          "file": "routes/login.ts"
+        }
+      ],
+      "group": "login-sqli"
+    },
+    {
+      "id": "oauth-user-password",
+      "title": "Login Bjoern",
+      "ref": "oauthUserPasswordChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-authentication.html",
+      "appCategory": "Broken Authentication",
+      "description": "Log in with Bjoern's Gmail account without previously changing his password, applying SQL Injection, or hacking his Google account.",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "login-jim",
+      "title": "Login Jim",
+      "ref": "loginJimChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html",
+      "appCategory": "Injection",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/routes/login.ts",
+      "description": "Same login SQL injection, for another account.",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/rest/user/login"
+        },
+        {
+          "file": "routes/login.ts"
+        }
+      ],
+      "group": "login-sqli"
+    },
+    {
+      "id": "login-rapper",
+      "title": "Login MC SafeSearch",
+      "ref": "loginRapperChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/sensitive-data-exposure.html",
+      "appCategory": "Sensitive Data Exposure",
+      "description": "Log in with MC SafeSearch's original user credentials without applying SQL Injection or any other bypass.",
+      "class": "exposure",
+      "inScope": false,
+      "excludedBecause": "osint-or-social"
+    },
+    {
+      "id": "login-support",
+      "title": "Login Support Team",
+      "ref": "loginSupportChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/security-misconfiguration.html",
+      "appCategory": "Security Misconfiguration",
+      "description": "Log in with the support team's original user credentials without applying SQL Injection or any other bypass.",
+      "class": "misconfig",
+      "inScope": false,
+      "excludedBecause": "weak-credentials"
+    },
+    {
+      "id": "basket-manipulate",
+      "title": "Manipulate Basket",
+      "ref": "basketManipulateChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-access-control.html",
+      "appCategory": "Broken Access Control",
+      "description": "Put an additional product into another user's shopping basket.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "access-control-logic"
+    },
+    {
+      "id": "misplaced-signature-file",
+      "title": "Misplaced Signature File",
+      "ref": "misplacedSignatureFileChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/observability-failures.html",
+      "appCategory": "Observability Failures",
+      "description": "Access a misplaced SIEM signature file.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep",
+      "note": "Same as forgottenDevBackupChallenge."
+    },
+    {
+      "id": "timing-attack",
+      "title": "Multiple Likes",
+      "ref": "timingAttackChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-anti-automation.html",
+      "appCategory": "Broken Anti Automation",
+      "description": "Like any review at least three times as the same user.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "note": "Race condition."
+    },
+    {
+      "id": "easter-egg-level-two",
+      "title": "Nested Easter Egg",
+      "ref": "easterEggLevelTwoChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/cryptographic-issues.html",
+      "appCategory": "Cryptographic Issues",
+      "description": "Apply some advanced cryptanalysis to find the real easter egg.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "no-sql-command",
+      "title": "NoSQL DoS",
+      "ref": "noSqlCommandChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html",
+      "appCategory": "Injection",
+      "description": "Let the server sleep for some time.",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "no-sql-orders",
+      "title": "NoSQL Exfiltration",
+      "ref": "noSqlOrdersChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html",
+      "appCategory": "Injection",
+      "description": "All your orders are belong to us! Even the ones which don't.",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "no-sql-reviews",
+      "title": "NoSQL Manipulation",
+      "ref": "noSqlReviewsChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html",
+      "appCategory": "Injection",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/routes/updateProductReviews.ts",
+      "description": "Update multiple product reviews at the same time.",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "redirect-crypto-currency",
+      "title": "Outdated Allowlist",
+      "ref": "redirectCryptoCurrencyChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/unvalidated-redirects.html",
+      "appCategory": "Unvalidated Redirects",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/lib/insecurity.ts",
+      "description": "Let us redirect you to one of our crypto currency addresses which are not promoted any longer.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "business-logic"
+    },
+    {
+      "id": "weak-password",
+      "title": "Password Strength",
+      "ref": "weakPasswordChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-authentication.html",
+      "appCategory": "Broken Authentication",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/models/user.ts",
+      "description": "Log in with the administrator's user credentials without previously changing them or applying SQL Injection.",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "weak-credentials"
+    },
+    {
+      "id": "negative-order",
+      "title": "Payback Time",
+      "ref": "negativeOrderChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/improper-input-validation.html",
+      "appCategory": "Improper Input Validation",
+      "description": "Place an order that makes you rich.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "business-logic"
+    },
+    {
+      "id": "premium-paywall",
+      "title": "Premium Paywall",
+      "ref": "premiumPaywallChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/cryptographic-issues.html",
+      "appCategory": "Cryptographic Issues",
+      "description": "💎💎💎💎💎 ₿ Unlock Premium Challenge to access exclusive content.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "privacy-policy",
+      "title": "Privacy Policy",
+      "ref": "privacyPolicyChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/miscellaneous.html",
+      "appCategory": "Miscellaneous",
+      "description": "Read our privacy policy.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability"
+    },
+    {
+      "id": "privacy-policy-proof",
+      "title": "Privacy Policy Inspection",
+      "ref": "privacyPolicyProofChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/security-through-obscurity.html",
+      "appCategory": "Security through Obscurity",
+      "description": "Prove that you actually read our privacy policy.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "osint-or-social"
+    },
+    {
+      "id": "change-product",
+      "title": "Product Tampering",
+      "ref": "changeProductChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-access-control.html",
+      "appCategory": "Broken Access Control",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/server.ts",
+      "description": "Change the href of the link within the OWASP SSL Advanced Forensic Tool (O-Saft) product description into https://owasp.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "access-control-logic"
+    },
+    {
+      "id": "reflected-xss",
+      "title": "Reflected XSS",
+      "ref": "reflectedXssChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/xss.html",
+      "appCategory": "XSS",
+      "description": "Perform a reflected XSS attack with &lt;iframe src=\"javascript:alert(`xss`)\"&gt;.",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "needs-browser",
+      "note": "The payload is rendered by the Angular client (track-result page); the API returns JSON."
+    },
+    {
+      "id": "password-repeat",
+      "title": "Repetitive Registration",
+      "ref": "passwordRepeatChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/improper-input-validation.html",
+      "appCategory": "Improper Input Validation",
+      "description": "Follow the DRY principle while registering a user.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "business-logic"
+    },
+    {
+      "id": "reset-password-bender",
+      "title": "Reset Bender's Password",
+      "ref": "resetPasswordBenderChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-authentication.html",
+      "appCategory": "Broken Authentication",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/data/static/securityQuestions.yml",
+      "description": "Reset Bender's password via the Forgot Password mechanism with the original answer to his security question.",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "osint-or-social"
+    },
+    {
+      "id": "reset-password-bjoern",
+      "title": "Reset Bjoern's Password",
+      "ref": "resetPasswordBjoernChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-authentication.html",
+      "appCategory": "Broken Authentication",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/data/static/securityQuestions.yml",
+      "description": "Reset the password of Bjoern's internal account via the Forgot Password mechanism with the original answer to his security question.",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "osint-or-social"
+    },
+    {
+      "id": "reset-password-jim",
+      "title": "Reset Jim's Password",
+      "ref": "resetPasswordJimChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-authentication.html",
+      "appCategory": "Broken Authentication",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/data/static/securityQuestions.yml",
+      "description": "Reset Jim's password via the Forgot Password mechanism with the original answer to his security question.",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "osint-or-social"
+    },
+    {
+      "id": "reset-password-morty",
+      "title": "Reset Morty's Password",
+      "ref": "resetPasswordMortyChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-anti-automation.html",
+      "appCategory": "Broken Anti Automation",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/server.ts",
+      "description": "Reset Morty's password via the Forgot Password mechanism with his obfuscated answer to his security question.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "osint-or-social"
+    },
+    {
+      "id": "retrieve-blueprint",
+      "title": "Retrieve Blueprint",
+      "ref": "retrieveBlueprintChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/sensitive-data-exposure.html",
+      "appCategory": "Sensitive Data Exposure",
+      "description": "Deprive the shop of earnings by downloading the blueprint for one of its products.",
+      "class": "exposure",
+      "inScope": false,
+      "excludedBecause": "osint-or-social"
+    },
+    {
+      "id": "ssrf",
+      "title": "SSRF",
+      "ref": "ssrfChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-access-control.html",
+      "appCategory": "Broken Access Control",
+      "description": "Request a hidden resource on server through server.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep",
+      "note": "Needs a logged-in session and knowledge of a hidden internal URL."
+    },
+    {
+      "id": "ssti",
+      "title": "SSTi",
+      "ref": "sstiChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html",
+      "appCategory": "Injection",
+      "description": "The profile route passes part of the username to eval.",
+      "class": "code-sink",
+      "inScope": true,
+      "surface": "repo",
+      "locations": [
+        {
+          "file": "routes/userProfile.ts"
+        }
+      ],
+      "group": "profile-eval"
+    },
+    {
+      "id": "score-board",
+      "title": "Score Board",
+      "ref": "scoreBoardChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/miscellaneous.html",
+      "appCategory": "Miscellaneous",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/frontend/src/app/app.routing.ts",
+      "description": "Find the carefully hidden 'Score Board' page.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "needs-browser"
+    },
+    {
+      "id": "security-policy",
+      "title": "Security Policy",
+      "ref": "securityPolicyChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/miscellaneous.html",
+      "appCategory": "Miscellaneous",
+      "description": "Behave like any \"white-hat\" should before getting into the action.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability"
+    },
+    {
+      "id": "persisted-xss-feedback",
+      "title": "Server-side XSS Protection",
+      "ref": "persistedXssFeedbackChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/xss.html",
+      "appCategory": "XSS",
+      "description": "Perform a persisted XSS attack with &lt;iframe src=\"javascript:alert(`xss`)\"&gt; bypassing a server-side security mechanism.",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep"
+    },
+    {
+      "id": "hidden-image",
+      "title": "Steganography",
+      "ref": "hiddenImageChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/security-through-obscurity.html",
+      "appCategory": "Security through Obscurity",
+      "description": "Rat out a notorious character hiding in plain sight in the shop.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "osint-or-social"
+    },
+    {
+      "id": "rce-occupy",
+      "title": "Successful RCE DoS",
+      "ref": "rceOccupyChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/insecure-deserialization.html",
+      "appCategory": "Insecure Deserialization",
+      "description": "Same B2B order evaluation sink.",
+      "class": "code-sink",
+      "inScope": true,
+      "surface": "repo",
+      "locations": [
+        {
+          "file": "routes/b2bOrder.ts"
+        }
+      ],
+      "group": "b2b-eval"
+    },
+    {
+      "id": "supply-chain-attack",
+      "title": "Supply Chain Attack",
+      "ref": "supplyChainAttackChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/vulnerable-components.html",
+      "appCategory": "Vulnerable Components",
+      "description": "Inform the development team about a danger to some of their credentials.",
+      "class": "vulnerable-component",
+      "inScope": false,
+      "excludedBecause": "osint-or-social"
+    },
+    {
+      "id": "two-factor-auth-unsafe-secret-storage",
+      "title": "Two Factor Authentication",
+      "ref": "twoFactorAuthUnsafeSecretStorageChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-authentication.html",
+      "appCategory": "Broken Authentication",
+      "description": "Solve the 2FA challenge for user \"wurstbrot\".",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "jwt-unsigned",
+      "title": "Unsigned JWT",
+      "ref": "jwtUnsignedChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/vulnerable-components.html",
+      "appCategory": "Vulnerable Components",
+      "description": "Forge an essentially unsigned JWT token that impersonates the (non-existing) user jwtn3d@juice-sh.",
+      "class": "vulnerable-component",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep",
+      "note": "Forging an alg=none token needs a valid token and session first; Penthera checks this only with a token."
+    },
+    {
+      "id": "upload-size",
+      "title": "Upload Size",
+      "ref": "uploadSizeChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/improper-input-validation.html",
+      "appCategory": "Improper Input Validation",
+      "description": "Upload a file larger than 100 kB.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "upload-type",
+      "title": "Upload Type",
+      "ref": "uploadTypeChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/improper-input-validation.html",
+      "appCategory": "Improper Input Validation",
+      "description": "Upload a file that has no .",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "union-sql-injection",
+      "title": "User Credentials",
+      "ref": "unionSqlInjectionChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html",
+      "appCategory": "Injection",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/routes/search.ts",
+      "description": "Product search builds SQL from the q parameter; UNION-based extraction.",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/rest/products/search"
+        },
+        {
+          "file": "routes/search.ts"
+        }
+      ],
+      "group": "search-sqli"
+    },
+    {
+      "id": "video-xss",
+      "title": "Video XSS",
+      "ref": "videoXssChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/xss.html",
+      "appCategory": "XSS",
+      "description": "Embed an XSS payload &lt;/script&gt;&lt;script&gt;alert(`xss`)&lt;/script&gt; into our promo video.",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep"
+    },
+    {
+      "id": "basket-access",
+      "title": "View Basket",
+      "ref": "basketAccessChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-access-control.html",
+      "appCategory": "Broken Access Control",
+      "description": "View another user's shopping basket.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "access-control-logic"
+    },
+    {
+      "id": "known-vulnerable-component",
+      "title": "Vulnerable Library",
+      "ref": "knownVulnerableComponentChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/vulnerable-components.html",
+      "appCategory": "Vulnerable Components",
+      "description": "Inform the shop about a high-severity vulnerability caused by one of its directly used dependencies.",
+      "class": "vulnerable-component",
+      "inScope": false,
+      "excludedBecause": "dependency-cve",
+      "note": "Server-side npm dependencies with advisories; not matched by url+repo mode."
+    },
+    {
+      "id": "weird-crypto",
+      "title": "Weird Crypto",
+      "ref": "weirdCryptoChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/cryptographic-issues.html",
+      "appCategory": "Cryptographic Issues",
+      "description": "Inform the shop about an algorithm or library it should definitely not use the way it does.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "redirect",
+      "title": "Allowlist Bypass",
+      "ref": "redirectChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/unvalidated-redirects.html",
+      "appCategory": "Unvalidated Redirects",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/lib/insecurity.ts",
+      "description": "The /redirect allowlist check uses a substring match and can be bypassed.",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/redirect"
+        },
+        {
+          "file": "lib/insecurity.ts"
+        }
+      ],
+      "group": "open-redirect"
+    },
+    {
+      "id": "xxe-file-disclosure",
+      "title": "XXE Data Access",
+      "ref": "xxeFileDisclosureChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/xxe.html",
+      "appCategory": "XXE",
+      "description": "Retrieve the content of C:\\Windows\\system.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "xxe-dos",
+      "title": "XXE DoS",
+      "ref": "xxeDosChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/xxe.html",
+      "appCategory": "XXE",
+      "description": "Give the server something to chew on for quite a while.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "yaml-bomb",
+      "title": "Memory Bomb",
+      "ref": "yamlBombChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/insecure-deserialization.html",
+      "appCategory": "Insecure Deserialization",
+      "description": "Drop some explosive data into a vulnerable file-handling endpoint.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "zero-stars",
+      "title": "Zero Stars",
+      "ref": "zeroStarsChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/improper-input-validation.html",
+      "appCategory": "Improper Input Validation",
+      "description": "Give a devastating zero-star feedback to the store.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "business-logic"
+    },
+    {
+      "id": "missing-encoding",
+      "title": "Missing Encoding",
+      "ref": "missingEncodingChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/improper-input-validation.html",
+      "appCategory": "Improper Input Validation",
+      "description": "Retrieve the photo of Bjoern's cat in \"melee combat-mode\".",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "other",
+      "note": "A URL-encoding mistake in an image path; nothing a scanner claims to detect."
+    },
+    {
+      "id": "svg-injection",
+      "title": "Cross-Site Imaging",
+      "ref": "svgInjectionChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/security-misconfiguration.html",
+      "appCategory": "Security Misconfiguration",
+      "description": "Stick cute cross-domain kittens all over our delivery boxes.",
+      "class": "misconfig",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep"
+    },
+    {
+      "id": "exposed-metrics",
+      "title": "Exposed Metrics",
+      "ref": "exposedMetricsChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/observability-failures.html",
+      "appCategory": "Observability Failures",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/server.ts",
+      "description": "Prometheus metrics endpoint is public.",
+      "class": "exposure",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "/metrics"
+        },
+        {
+          "file": "server.ts"
+        }
+      ],
+      "group": "metrics"
+    },
+    {
+      "id": "misplaced-iac-files",
+      "title": "Misplaced IaC Files",
+      "ref": "misplacedIacFiles",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/security-misconfiguration.html",
+      "appCategory": "Security Misconfiguration",
+      "description": "Infrastructure-as-code files (Terraform, Dockerfile, compose) are browsable.",
+      "class": "exposure",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "/infrastructure/"
+        },
+        {
+          "path": "/infrastructure"
+        },
+        {
+          "file": "server.ts"
+        }
+      ],
+      "group": "iac-listing"
+    },
+    {
+      "id": "free-deluxe",
+      "title": "Deluxe Fraud",
+      "ref": "freeDeluxeChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/improper-input-validation.html",
+      "appCategory": "Improper Input Validation",
+      "description": "Obtain a Deluxe Membership without paying for it.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "business-logic"
+    },
+    {
+      "id": "csrf",
+      "title": "CSRF",
+      "ref": "csrfChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-access-control.html",
+      "appCategory": "Broken Access Control",
+      "description": "Change the name of a user by performing Cross-Site Request Forgery from another origin.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "xss-bonus",
+      "title": "Bonus Payload",
+      "ref": "xssBonusChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/xss.html",
+      "appCategory": "XSS",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/frontend/src/app/search-result/search-result.component.ts",
+      "description": "Use the bonus payload &lt;iframe width=&quot;100%&quot; height=&quot;166&quot; scrolling=&quot;no&quot; frameborder=&quot;no&quot; allow=&qu.",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "needs-browser"
+    },
+    {
+      "id": "reset-password-uvogin",
+      "title": "Reset Uvogin's Password",
+      "ref": "resetPasswordUvoginChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/sensitive-data-exposure.html",
+      "appCategory": "Sensitive Data Exposure",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/data/static/securityQuestions.yml",
+      "description": "Reset Uvogin's password via the Forgot Password mechanism with the original answer to his security question.",
+      "class": "exposure",
+      "inScope": false,
+      "excludedBecause": "osint-or-social"
+    },
+    {
+      "id": "geo-stalking-meta",
+      "title": "Meta Geo Stalking",
+      "ref": "geoStalkingMetaChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/sensitive-data-exposure.html",
+      "appCategory": "Sensitive Data Exposure",
+      "description": "Determine the answer to John's security question by looking at an upload of him to the Photo Wall and use it to reset his password via the F.",
+      "class": "exposure",
+      "inScope": false,
+      "excludedBecause": "osint-or-social"
+    },
+    {
+      "id": "geo-stalking-visual",
+      "title": "Visual Geo Stalking",
+      "ref": "geoStalkingVisualChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/sensitive-data-exposure.html",
+      "appCategory": "Sensitive Data Exposure",
+      "description": "Determine the answer to Emma's security question by looking at an upload of her to the Photo Wall and use it to reset her password via the F.",
+      "class": "exposure",
+      "inScope": false,
+      "excludedBecause": "osint-or-social"
+    },
+    {
+      "id": "null-byte",
+      "title": "Poison Null Byte",
+      "ref": "nullByteChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/improper-input-validation.html",
+      "appCategory": "Improper Input Validation",
+      "description": "Bypass a security control with a Poison Null Byte to access a file not meant for your eyes.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "lfr",
+      "title": "Local File Read",
+      "ref": "lfrChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/vulnerable-components.html",
+      "appCategory": "Vulnerable Components",
+      "description": "Gain read access to an arbitrary local file on the web server.",
+      "class": "vulnerable-component",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "note": "Path traversal through a dependency; class not claimed."
+    },
+    {
+      "id": "close-notifications",
+      "title": "Mass Dispel",
+      "ref": "closeNotificationsChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/miscellaneous.html",
+      "appCategory": "Miscellaneous",
+      "description": "Close multiple \"Challenge solved\"-notifications in one go.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "not-a-vulnerability"
+    },
+    {
+      "id": "csaf",
+      "title": "Security Advisory",
+      "ref": "csafChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/miscellaneous.html",
+      "appCategory": "Miscellaneous",
+      "description": "The Juice Shop is susceptible to a known vulnerability in a library, for which an advisory has already been issued, marking the Juice Shop a.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "dependency-cve"
+    },
+    {
+      "id": "exposed-credentials",
+      "title": "Exposed Credentials",
+      "ref": "exposedCredentialsChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/sensitive-data-exposure.html",
+      "appCategory": "Sensitive Data Exposure",
+      "description": "Test account credentials are hardcoded in the frontend login component.",
+      "class": "secrets",
+      "inScope": true,
+      "surface": "repo",
+      "locations": [
+        {
+          "file": "frontend/src/app/login/login.component.ts"
+        }
+      ],
+      "group": "testing-creds"
+    },
+    {
+      "id": "leaked-api-key",
+      "title": "Leaked API Key",
+      "ref": "leakedApiKeyChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/sensitive-data-exposure.html",
+      "appCategory": "Sensitive Data Exposure",
+      "description": "Inform the shop about a leaked API key.",
+      "class": "exposure",
+      "inScope": false,
+      "excludedBecause": "osint-or-social",
+      "note": "The key is not in the source at this tag (only the check for it is)."
+    },
+    {
+      "id": "chatbot-prompt-injection",
+      "title": "Chatbot Prompt Injection",
+      "ref": "chatbotPromptInjectionChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html",
+      "appCategory": "Injection",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/routes/chat.ts",
+      "description": "Trick the chatbot into generating a coupon code for you despite its coupon policy saying otherwise.",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "llm"
+    },
+    {
+      "id": "chatbot-greedy-injection",
+      "title": "Greedy Chatbot Manipulation",
+      "ref": "chatbotGreedyInjectionChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html",
+      "appCategory": "Injection",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/routes/chat.ts",
+      "description": "Convince the chatbot to give you a coupon of 50% or more.",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "llm"
+    },
+    {
+      "id": "ai-debugging",
+      "title": "AI Debugging",
+      "ref": "aiDebuggingChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/broken-access-control.html",
+      "appCategory": "Broken Access Control",
+      "description": "Reveal some behind-the-scenes information on the chatbot as a non-admin user.",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "llm"
+    },
+    {
+      "id": "system-prompt-extraction",
+      "title": "System Prompt Extraction",
+      "ref": "systemPromptExtractionChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html",
+      "appCategory": "Injection",
+      "description": "Extract the chatbot's system prompt using prompt injection, then submit your findings (including any confidential sections) via the Customer.",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "llm"
+    },
+    {
+      "id": "iac-leaked-key",
+      "title": "Login Cloud Admin",
+      "ref": "iacLeakedKeyChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/sensitive-data-exposure.html",
+      "appCategory": "Sensitive Data Exposure",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/infrastructure/terraform/networking.tf",
+      "description": "A private key is hardcoded in a Terraform file.",
+      "class": "secrets",
+      "inScope": true,
+      "surface": "repo",
+      "locations": [
+        {
+          "file": "infrastructure/terraform/networking.tf"
+        }
+      ],
+      "group": "iac-private-key"
+    },
+    {
+      "id": "vulnerable-docker-image",
+      "title": "Vulnerable Infrastructure",
+      "ref": "vulnerableDockerImageChallenge",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/vulnerable-components.html",
+      "appCategory": "Vulnerable Components",
+      "codeSnippet": "https://github.com/juice-shop/juice-shop/blob/f189f521266f42c6bd05884468292000cee852ed/infrastructure/docker-compose.yml",
+      "description": "The compose file pins a database image version with known vulnerabilities.",
+      "class": "vulnerable-component",
+      "inScope": true,
+      "surface": "repo",
+      "locations": [
+        {
+          "file": "infrastructure/docker-compose.yml"
+        }
+      ],
+      "group": "mongo-image"
+    }
+  ]
+}

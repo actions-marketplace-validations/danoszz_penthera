@@ -1,0 +1,335 @@
+{
+  "schema": "penthera-known-vuln-truth/1",
+  "app": "dvna",
+  "name": "Damn Vulnerable NodeJS Application (DVNA)",
+  "license": "MIT",
+  "licenseUrl": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/LICENSE",
+  "intendedUse": "Describes itself as a simple Node.js application to demonstrate the OWASP Top 10 and teach fixing them (README).",
+  "intendedUseUrl": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/README.md",
+  "source": {
+    "repo": "https://github.com/appsecco/dvna",
+    "ref": "master",
+    "commit": "9ba473add536f66ac9007966acb2a775dd31277a",
+    "note": "No tags. Application code is unchanged since 2018-08-28; later commits touch docs and README only, so the source matches the 2018-10-08 image."
+  },
+  "image": {
+    "ref": "appsecco/dvna:sqlite",
+    "digest": "sha256:2657051b73ac8f879d3a3b419b4618d98e4596a0fe27f8e91582c403541ef1b0",
+    "platform": "linux/amd64",
+    "port": 9090,
+    "note": "Built 2018-10-08; amd64 only (runs under emulation on arm64). Uses SQLite, so no database container is needed."
+  },
+  "answerKey": [
+    {
+      "title": "DVNA solution guide (docs/solution)",
+      "url": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution"
+    }
+  ],
+  "frozenOn": "2026-10-22",
+  "frozenBeforeScan": true,
+  "builtBy": "Claude (AI-assisted) from the solution guide at the pinned commit; to be checked by labeller A before registration.",
+  "auth": {
+    "note": "All /app routes except /app/redirect need a session. The runner registers a throwaway local user through /register and logs in through /login."
+  },
+  "vulnerabilities": [
+    {
+      "id": "sqli-usersearch",
+      "title": "SQL Injection",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a1-injection.md",
+      "description": "User search concatenates the login field into a raw SQL query.",
+      "appCategory": "A1 Injection",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/app/usersearch"
+        },
+        {
+          "file": "core/appHandler.js"
+        }
+      ],
+      "group": "sqli-usersearch"
+    },
+    {
+      "id": "cmdi-ping",
+      "title": "Command Injection",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a1-injection.md",
+      "description": "Ping tool passes the address field to a shell command.",
+      "appCategory": "A1 Injection",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/app/ping"
+        },
+        {
+          "file": "core/appHandler.js"
+        }
+      ],
+      "group": "cmdi-ping"
+    },
+    {
+      "id": "cmdi-ping-source",
+      "title": "Command Injection (source)",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a1-injection.md",
+      "description": "child_process exec with the request body concatenated into the command.",
+      "appCategory": "A1 Injection",
+      "class": "code-sink",
+      "inScope": true,
+      "surface": "repo",
+      "locations": [
+        {
+          "file": "core/appHandler.js"
+        }
+      ],
+      "group": "cmdi-ping"
+    },
+    {
+      "id": "insecure-reset-password",
+      "title": "Insecure Reset Password",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a2-broken-auth.md",
+      "description": "Reset token is the MD5 of the username.",
+      "appCategory": "A2 Broken Authentication",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "session-secret",
+      "title": "Insecure Session Secret",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a2-broken-auth.md",
+      "description": "Session signing secret is a well-known example string hardcoded in server.js.",
+      "appCategory": "A2 Broken Authentication",
+      "class": "secrets",
+      "inScope": true,
+      "surface": "repo",
+      "locations": [
+        {
+          "file": "server.js"
+        }
+      ],
+      "group": "session-secret"
+    },
+    {
+      "id": "hashed-passwords-disclosed",
+      "title": "Hashed Passwords Disclosed",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a3-sensitive-data-exposure.md",
+      "description": "Admin users API returns whole user objects, password hashes included.",
+      "appCategory": "A3 Sensitive Data Exposure",
+      "class": "exposure",
+      "inScope": false,
+      "excludedBecause": "access-control-logic",
+      "note": "Judging this needs knowing which fields a user may see."
+    },
+    {
+      "id": "sensitive-logging",
+      "title": "Logging of sensitive information",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a3-sensitive-data-exposure.md",
+      "description": "SQL queries with credentials are logged.",
+      "appCategory": "A3 Sensitive Data Exposure",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "xxe-bulk-import",
+      "title": "XML External Entities",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a4-xxe.md",
+      "description": "Bulk product import parses XML with external entities enabled.",
+      "appCategory": "A4 XXE",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "users-api-unauthorized",
+      "title": "Unauthorized Access to Users API",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a5-broken-access-control.md",
+      "description": "Any logged-in user can call the admin users API.",
+      "appCategory": "A5 Broken Access Control",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "access-control-logic"
+    },
+    {
+      "id": "useredit-missing-authz",
+      "title": "Missing Authorization check in Edit User",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a5-broken-access-control.md",
+      "description": "Edit user accepts another user id from the form.",
+      "appCategory": "A5 Broken Access Control",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "access-control-logic"
+    },
+    {
+      "id": "stack-trace-calc",
+      "title": "Application sends Stack Trace",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a6-securty-misconfig.md",
+      "description": "Calculator returns a stack trace on malformed input.",
+      "appCategory": "A6 Security Misconfiguration",
+      "class": "exposure",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/app/calc"
+        },
+        {
+          "file": "core/appHandler.js"
+        }
+      ],
+      "group": "stack-trace-calc",
+      "note": "Needs a malformed request body, so it counts only in runs that send crafted input."
+    },
+    {
+      "id": "x-powered-by",
+      "title": "X-Powered-By header",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a6-securty-misconfig.md",
+      "description": "Express sends X-Powered-By on every response.",
+      "appCategory": "A6 Security Misconfiguration",
+      "class": "misconfig",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "*"
+        },
+        {
+          "file": "server.js"
+        }
+      ],
+      "group": "x-powered-by"
+    },
+    {
+      "id": "reflected-xss-search",
+      "title": "Reflected XSS in Search Query",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a7-xss.md",
+      "description": "Product search echoes the query unescaped into the page.",
+      "appCategory": "A7 XSS",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/app/products"
+        },
+        {
+          "file": "views/app/products.ejs"
+        }
+      ],
+      "group": "reflected-xss-search"
+    },
+    {
+      "id": "stored-xss-products",
+      "title": "Stored XSS in Product Listing",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a7-xss.md",
+      "description": "Product fields are rendered unescaped.",
+      "appCategory": "A7 XSS",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep"
+    },
+    {
+      "id": "dom-xss-users",
+      "title": "DOM XSS in user listing",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a7-xss.md",
+      "description": "Admin user list writes API data with innerHTML.",
+      "appCategory": "A7 XSS",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "needs-browser",
+      "note": "The source-visible sink is scored separately as dom-xss-users-source."
+    },
+    {
+      "id": "dom-xss-users-source",
+      "title": "DOM XSS in user listing (source)",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a7-xss.md",
+      "description": "innerHTML assignment of API data in an EJS template script block.",
+      "appCategory": "A7 XSS",
+      "class": "code-sink",
+      "inScope": true,
+      "surface": "repo",
+      "locations": [
+        {
+          "file": "views/app/adminusers.ejs"
+        }
+      ],
+      "group": "dom-xss-users-source",
+      "note": "The sink is in an .ejs template, not a .js file."
+    },
+    {
+      "id": "insecure-deserialization",
+      "title": "Insecure Deserialization",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a8-insecure-deserialization.md",
+      "description": "Legacy bulk import unserializes uploaded data with node-serialize.",
+      "appCategory": "A8 Insecure Deserialization",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "mathjs-rce",
+      "title": "mathjs Remote Code Execution",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a9-using-components-with-known-vulnerability.md",
+      "description": "Outdated mathjs evaluates user input; the library version has an RCE advisory.",
+      "appCategory": "A9 Known Vulnerable Components",
+      "class": "vulnerable-component",
+      "inScope": false,
+      "excludedBecause": "dependency-cve",
+      "note": "Server-side npm dependency; url+repo mode does not match npm advisories."
+    },
+    {
+      "id": "insufficient-logging",
+      "title": "Insufficient Logging and Monitoring",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a10-insufficient-logging.md",
+      "description": "Failed logins are not logged.",
+      "appCategory": "A10 Logging",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "csrf",
+      "title": "CSRF in Add/Edit product, User Edit",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/ax-csrf.md",
+      "description": "State-changing forms have no CSRF token.",
+      "appCategory": "A8:2013 CSRF",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "open-redirect",
+      "title": "Unvalidated Redirects and Forwards",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/ax-unvalidated-redirects-and-forwards.md",
+      "description": "The redirect route sends the user to any url parameter.",
+      "appCategory": "A10:2013 Redirects",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/app/redirect"
+        },
+        {
+          "file": "core/appHandler.js"
+        }
+      ],
+      "group": "open-redirect"
+    }
+  ]
+}

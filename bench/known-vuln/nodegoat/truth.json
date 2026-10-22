@@ -1,0 +1,722 @@
+{
+  "schema": "penthera-known-vuln-truth/1",
+  "app": "nodegoat",
+  "name": "OWASP NodeGoat",
+  "license": "Apache-2.0",
+  "licenseUrl": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/LICENSE",
+  "intendedUse": "Deliberately vulnerable Node.js app for learning and exploiting the OWASP Top 10; stated in the README: https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/README.md",
+  "source": {
+    "repo": "https://github.com/OWASP/NodeGoat",
+    "ref": "v1.4",
+    "commit": "9e35cae25f5c6226c30c7d9b03987005affb2888"
+  },
+  "image": {
+    "ref": "node:4.4 (build stage) -> node:4-alpine (runtime) + mongo:latest",
+    "digest": null,
+    "note": "No official image; built locally from the pinned commit's Dockerfile and docker-compose.yml (web + mongo). Base image digest to be pinned by the runner."
+  },
+  "baseImages": [
+    {
+      "ref": "node:4.4",
+      "role": "Dockerfile build stage",
+      "exists": true,
+      "tagStatus": "inactive",
+      "lastUpdated": "2016-08-16T17:34:31Z",
+      "digest": null,
+      "platformDigests": {
+        "linux/amd64": "sha256:93b396996a16fb7b0fe1a4163e8088aaec32c7061b06c9dcc2070afd656ddf7f"
+      },
+      "note": "Tag still on Docker Hub (inactive, single-arch legacy manifest, no index digest)."
+    },
+    {
+      "ref": "node:4-alpine",
+      "role": "Dockerfile runtime stage",
+      "exists": true,
+      "tagStatus": "active",
+      "lastUpdated": "2018-04-03T02:46:51Z",
+      "digest": null,
+      "platformDigests": {
+        "linux/amd64": "sha256:f0290c39e7cb55c6e08ff7c5dfae00f6bccb687624946f66692124d325fee823"
+      },
+      "note": "Tag still on Docker Hub (single-arch legacy manifest, no index digest)."
+    },
+    {
+      "ref": "mongo:latest",
+      "role": "docker-compose mongo service",
+      "exists": true,
+      "tagStatus": "active",
+      "lastUpdated": "2026-10-17T06:08:05Z",
+      "digest": "sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8",
+      "note": "Floating tag; digest as of 2026-10-22, will drift. Compose also needs config db pointed at mongo:27017 per README."
+    }
+  ],
+  "answerKey": [
+    {
+      "title": "NodeGoat tutorial (served at /tutorial): OWASP Top 10 2013 A1-A10, ReDoS, SSRF",
+      "url": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial"
+    },
+    {
+      "title": "README",
+      "url": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/README.md"
+    }
+  ],
+  "frozenOn": "2026-10-22",
+  "frozenBeforeScan": true,
+  "builtBy": "Claude (AI-assisted), from the NodeGoat tutorial pages and README at the pinned commit plus route/config source review; to be checked by labeller A",
+  "vulnerabilities": [
+    {
+      "id": "a1-ssjs-eval-contributions-source",
+      "title": "A1-1 Server Side JS Injection",
+      "ref": "A1-1",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a1.html#L148",
+      "description": "Contribution form values are passed straight to eval(), letting a user run arbitrary JavaScript on the server.",
+      "appCategory": "A1 Injection",
+      "class": "code-sink",
+      "inScope": true,
+      "surface": "repo",
+      "locations": [
+        {
+          "path": "/contributions"
+        },
+        {
+          "file": "app/routes/contributions.js"
+        }
+      ],
+      "group": "ssjs-eval-contributions"
+    },
+    {
+      "id": "a1-ssjs-eval-contributions-url",
+      "title": "A1-1 Server Side JS Injection (HTTP)",
+      "ref": "A1-1",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a1.html#L44",
+      "description": "Same eval flaw exploited over HTTP by POSTing JavaScript in preTax/afterTax/roth while logged in.",
+      "appCategory": "A1 Injection",
+      "class": "injection",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/contributions"
+        },
+        {
+          "file": "app/routes/contributions.js"
+        }
+      ],
+      "group": "ssjs-eval-contributions",
+      "note": "Server-side JS injection is not one of the claimed probe types (SQLi/XSS/SSTI/cmdi/SSRF/redirect); authenticated POST body.",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "a1-nosql-where-allocations",
+      "title": "A1-2 NoSQL Injection ($where)",
+      "ref": "A1-2",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a1.html#L193",
+      "description": "Allocations threshold is concatenated into a MongoDB $where expression, enabling JS injection and DoS.",
+      "appCategory": "A1 Injection",
+      "class": "injection",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/allocations/"
+        },
+        {
+          "file": "app/data/allocations-dao.js"
+        }
+      ],
+      "group": "nosql-where-allocations",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "a1-log-injection-login",
+      "title": "A1-3 Log Injection",
+      "ref": "A1-3",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a1.html#L317",
+      "description": "Failed-login username is logged unsanitised, so CRLF input can forge log lines.",
+      "appCategory": "A1 Injection",
+      "class": "other",
+      "needsAuth": false,
+      "locations": [
+        {
+          "path": "/login"
+        },
+        {
+          "file": "app/routes/session.js"
+        }
+      ],
+      "group": "log-injection-login",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "a2-plaintext-password-storage",
+      "title": "A2-1 Protecting user credentials",
+      "ref": "A2-1",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a2.html#L100",
+      "description": "User passwords are stored in the database in plain text instead of a salted hash.",
+      "appCategory": "A2 Broken Authentication and Session Management",
+      "class": "other",
+      "locations": [
+        {
+          "path": "/signup"
+        },
+        {
+          "file": "app/data/user-dao.js"
+        }
+      ],
+      "group": "plaintext-passwords",
+      "note": "Weak/absent password hashing is not a claimed class.",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "a2-session-cookie-flags-timeout",
+      "title": "A2-1 Session timeout and protecting cookies in transit",
+      "ref": "A2-1",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a2.html#L136",
+      "description": "Session cookie lacks the Secure flag and any expiry; sessions never time out.",
+      "appCategory": "A2 Broken Authentication and Session Management",
+      "class": "misconfig",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "*"
+        },
+        {
+          "file": "server.js"
+        }
+      ],
+      "group": "session-cookie-config",
+      "note": "Cookie is set on any first response (saveUninitialized). express-session sets HttpOnly by default, so only Secure/expiry are missing; app is plain HTTP."
+    },
+    {
+      "id": "a2-session-fixation-login",
+      "title": "A2-1 Session hijacking",
+      "ref": "A2-1",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a2.html#L171",
+      "description": "Session id is not regenerated on login, so a pre-login session id stays valid afterwards.",
+      "appCategory": "A2 Broken Authentication and Session Management",
+      "class": "auth",
+      "needsAuth": false,
+      "locations": [
+        {
+          "path": "/login"
+        },
+        {
+          "file": "app/routes/session.js"
+        }
+      ],
+      "group": "session-fixation",
+      "note": "Session fixation is not among the claimed auth checks.",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "a2-password-guessing-no-lockout",
+      "title": "A2-2 Password Guessing Attacks",
+      "ref": "A2-2",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a2.html#L225",
+      "description": "Login has no lockout or rate limiting, so passwords can be brute forced.",
+      "appCategory": "A2 Broken Authentication and Session Management",
+      "class": "auth",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "/login"
+        },
+        {
+          "file": "app/routes/session.js"
+        }
+      ],
+      "group": "login-no-rate-limit"
+    },
+    {
+      "id": "a2-weak-password-policy",
+      "title": "A2-2 Weak password policy",
+      "ref": "A2-2",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a2.html#L290",
+      "description": "Signup accepts any 1-20 character password; no length or complexity requirement.",
+      "appCategory": "A2 Broken Authentication and Session Management",
+      "class": "auth",
+      "locations": [
+        {
+          "path": "/signup"
+        },
+        {
+          "file": "app/routes/session.js"
+        }
+      ],
+      "group": "weak-password-policy",
+      "inScope": false,
+      "excludedBecause": "weak-credentials"
+    },
+    {
+      "id": "a2-username-enumeration",
+      "title": "A2-2 Username/Password Enumeration",
+      "ref": "A2-2",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a2.html#L270",
+      "description": "Login error says whether the username or the password was wrong, aiding enumeration.",
+      "appCategory": "A2 Broken Authentication and Session Management",
+      "class": "auth",
+      "needsAuth": false,
+      "locations": [
+        {
+          "path": "/login"
+        },
+        {
+          "file": "app/routes/session.js"
+        }
+      ],
+      "group": "username-enumeration",
+      "note": "Username enumeration is not among the claimed auth checks.",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "a3-stored-xss-profile",
+      "title": "A3 Cross-Site Scripting (stored, profile)",
+      "ref": "A3",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a3.html#L149",
+      "description": "Profile first/last name are saved and echoed unescaped because template autoescape is disabled.",
+      "appCategory": "A3 Cross-Site Scripting (XSS)",
+      "class": "injection",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/profile"
+        },
+        {
+          "file": "server.js"
+        }
+      ],
+      "group": "stored-xss-profile",
+      "note": "Swig autoescape:false in server.js is the root cause; not an innerHTML-style sink.",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep"
+    },
+    {
+      "id": "a3-output-encoding-context-profile",
+      "title": "A3 Output Encoding Context",
+      "ref": "A3",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a3.html#L193",
+      "description": "Profile value is HTML-encoded but placed in a different context, so encoding does not prevent XSS.",
+      "appCategory": "A3 Cross-Site Scripting (XSS)",
+      "class": "injection",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/profile"
+        },
+        {
+          "file": "app/routes/profile.js"
+        },
+        {
+          "file": "app/views/profile.html"
+        }
+      ],
+      "group": "xss-encoding-context-profile",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep"
+    },
+    {
+      "id": "a4-idor-allocations",
+      "title": "A4 Insecure Direct Object References",
+      "ref": "A4",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a4.html#L24",
+      "description": "Allocations are fetched by the numeric user id in the URL without checking it is the logged-in user.",
+      "appCategory": "A4 Insecure Direct Object References",
+      "class": "auth",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "/allocations/"
+        },
+        {
+          "file": "app/routes/allocations.js"
+        }
+      ],
+      "group": "idor-allocations"
+    },
+    {
+      "id": "a5-x-powered-by",
+      "title": "A5 X-Powered-By header",
+      "ref": "A5",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a5.html#L88",
+      "description": "Express default X-Powered-By header is left on, disclosing the framework.",
+      "appCategory": "A5 Security Misconfiguration",
+      "class": "misconfig",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "*"
+        },
+        {
+          "file": "server.js"
+        }
+      ],
+      "group": "x-powered-by"
+    },
+    {
+      "id": "a5-missing-security-headers",
+      "title": "A5 Missing security headers (helmet disabled)",
+      "ref": "A5",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a5.html#L106",
+      "description": "No X-Frame-Options, CSP, HSTS, nosniff or no-cache headers; helmet middleware is commented out.",
+      "appCategory": "A5 Security Misconfiguration",
+      "class": "misconfig",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "*"
+        },
+        {
+          "file": "server.js"
+        }
+      ],
+      "group": "missing-security-headers"
+    },
+    {
+      "id": "a5-default-session-cookie-name",
+      "title": "A5 Default session cookie name",
+      "ref": "A5",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a5.html#L94",
+      "description": "Session cookie keeps the default express name, revealing the stack.",
+      "appCategory": "A5 Security Misconfiguration",
+      "class": "misconfig",
+      "needsAuth": false,
+      "locations": [
+        {
+          "path": "*"
+        },
+        {
+          "file": "server.js"
+        }
+      ],
+      "group": "default-cookie-name",
+      "note": "Cookie-name fingerprinting is not a claimed cookie check (flags only).",
+      "inScope": false,
+      "excludedBecause": "other"
+    },
+    {
+      "id": "a5-outdated-node-runtime",
+      "title": "A5 Outdated Node.js runtime",
+      "ref": "A5",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a5.html#L50",
+      "description": "Container is built on end-of-life Node.js 4 images with public advisories.",
+      "appCategory": "A5 Security Misconfiguration",
+      "class": "vulnerable-component",
+      "inScope": true,
+      "surface": "repo",
+      "locations": [
+        {
+          "file": "Dockerfile"
+        }
+      ],
+      "group": "outdated-node-runtime",
+      "note": "Tutorial advises using the latest Node; the concrete location (FROM node:4.4 / node:4-alpine) comes from the Dockerfile."
+    },
+    {
+      "id": "a6-no-https",
+      "title": "A6 Sensitive Data Exposure: plain HTTP",
+      "ref": "A6",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a6.html#L53",
+      "description": "App, including login and session cookie, is served only over unencrypted HTTP.",
+      "appCategory": "A6 Sensitive Data Exposure",
+      "class": "misconfig",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "*"
+        },
+        {
+          "file": "server.js"
+        }
+      ],
+      "group": "no-https",
+      "note": "Only detectable if the scanner reports a plain-HTTP target as missing TLS."
+    },
+    {
+      "id": "a6-plaintext-sensitive-data",
+      "title": "A6 Sensitive data stored unencrypted",
+      "ref": "A6",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a6.html#L75",
+      "description": "SSN and date of birth are stored in the database in plain text.",
+      "appCategory": "A6 Sensitive Data Exposure",
+      "class": "other",
+      "needsAuth": true,
+      "locations": [
+        {
+          "path": "/profile"
+        },
+        {
+          "file": "app/data/profile-dao.js"
+        }
+      ],
+      "group": "plaintext-sensitive-data",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "a7-benefits-function-access-control",
+      "title": "A7 Missing Function Level Access Control",
+      "ref": "A7",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a7.html#L26",
+      "description": "Admin-only benefits page is reachable by any logged-in user; route lacks an admin check.",
+      "appCategory": "A7 Missing Function Level Access Control",
+      "class": "auth",
+      "needsAuth": true,
+      "locations": [
+        {
+          "path": "/benefits"
+        },
+        {
+          "file": "app/routes/index.js"
+        }
+      ],
+      "group": "benefits-no-admin-check",
+      "inScope": false,
+      "excludedBecause": "access-control-logic"
+    },
+    {
+      "id": "a8-csrf-profile",
+      "title": "A8 Cross-Site Request Forgery",
+      "ref": "A8",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a8.html#L36",
+      "description": "State-changing forms such as profile update carry no CSRF token; csurf is commented out.",
+      "appCategory": "A8 Cross-Site Request Forgery (CSRF)",
+      "class": "other",
+      "needsAuth": true,
+      "locations": [
+        {
+          "path": "/profile"
+        },
+        {
+          "file": "server.js"
+        }
+      ],
+      "group": "csrf",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "a9-marked-xss-memos",
+      "title": "A9 Insecure dependency: Marked",
+      "ref": "A9",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a9.html#L86",
+      "description": "Old Marked markdown library renders memos server-side and lets javascript: links through (XSS).",
+      "appCategory": "A9 Using Components with Known Vulnerabilities",
+      "class": "vulnerable-component",
+      "needsAuth": true,
+      "locations": [
+        {
+          "path": "/memos"
+        },
+        {
+          "file": "package.json"
+        }
+      ],
+      "group": "marked-xss",
+      "note": "Server-side npm dependency (marked 0.3.9), not served to the browser; exploitation is also stored XSS.",
+      "inScope": false,
+      "excludedBecause": "dependency-cve"
+    },
+    {
+      "id": "a10-open-redirect-learn",
+      "title": "A10 Unvalidated Redirects and Forwards",
+      "ref": "A10",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/a10.html#L23",
+      "description": "/learn redirects to whatever URL is in the url query parameter.",
+      "appCategory": "A10 Unvalidated Redirects and Forwards",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/learn"
+        },
+        {
+          "file": "app/routes/index.js"
+        }
+      ],
+      "group": "open-redirect-learn",
+      "note": "Route is behind isLoggedIn; unauthenticated requests redirect to /login."
+    },
+    {
+      "id": "redos-profile-bank-routing",
+      "title": "ReDoS Regular Expressions DoS",
+      "ref": "redos",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/redos.html#L45",
+      "description": "Bank routing number is checked with a catastrophically backtracking regex, blocking the event loop.",
+      "appCategory": "ReDoS",
+      "class": "other",
+      "needsAuth": true,
+      "locations": [
+        {
+          "path": "/profile"
+        },
+        {
+          "file": "app/routes/profile.js"
+        }
+      ],
+      "group": "redos-bank-routing",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "ssrf-research",
+      "title": "Server-Side Request Forgery (SSRF)",
+      "ref": "ssrf",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/app/views/tutorial/ssrf.html#L15",
+      "description": "Research page fetches url+symbol query parameters server-side and returns the response body.",
+      "appCategory": "SSRF",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/research"
+        },
+        {
+          "file": "app/routes/research.js"
+        }
+      ],
+      "group": "ssrf-research",
+      "note": "Fetched body is reflected, so in-band detection is possible without an external server."
+    },
+    {
+      "id": "secret-session-cookie-secret",
+      "title": "Hardcoded session cookie secret",
+      "ref": null,
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/config/env/all.js#L10",
+      "description": "Session signing secret is a hardcoded literal in the default config file.",
+      "appCategory": "Configuration",
+      "class": "secrets",
+      "inScope": false,
+      "locations": [
+        {
+          "file": "config/env/all.js"
+        }
+      ],
+      "note": "Not a tutorial item; added from source review. Tutorial A5 references config.cookieSecret. Value looks like a placeholder. Found in source, not in the tutorial; kept for labelling (a finding here can be correct) but not in the recall denominator.",
+      "excludedBecause": "not-in-answer-key"
+    },
+    {
+      "id": "secret-crypto-key",
+      "title": "Hardcoded crypto key",
+      "ref": null,
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/config/env/all.js#L11",
+      "description": "Data encryption key is a hardcoded literal in the default config file.",
+      "appCategory": "Configuration",
+      "class": "secrets",
+      "inScope": false,
+      "locations": [
+        {
+          "file": "config/env/all.js"
+        }
+      ],
+      "note": "Not a tutorial item; added from source review (A6 fix uses config.cryptoKey). Value looks like a placeholder. Found in source, not in the tutorial; kept for labelling (a finding here can be correct) but not in the recall denominator.",
+      "excludedBecause": "not-in-answer-key"
+    },
+    {
+      "id": "secret-mongodb-uri-credentials",
+      "title": "MongoDB connection string with credentials",
+      "ref": null,
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/config/env/all.js#L4",
+      "description": "Default database URL embeds a username and password for a hosted MongoDB instance.",
+      "appCategory": "Configuration",
+      "class": "secrets",
+      "inScope": false,
+      "locations": [
+        {
+          "file": "config/env/all.js"
+        }
+      ],
+      "note": "Not a tutorial item; added from source review. README points to this config file. Found in source, not in the tutorial; kept for labelling (a finding here can be correct) but not in the recall denominator.",
+      "excludedBecause": "not-in-answer-key"
+    },
+    {
+      "id": "secret-zap-api-key",
+      "title": "Hardcoded ZAP API key",
+      "ref": null,
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/config/env/development.js#L18",
+      "description": "OWASP ZAP API key for security regression tests is hardcoded in two env config files.",
+      "appCategory": "Configuration",
+      "class": "secrets",
+      "inScope": false,
+      "locations": [
+        {
+          "file": "config/env/development.js"
+        },
+        {
+          "file": "config/env/test.js"
+        }
+      ],
+      "note": "Not a tutorial item; added from source review. Test-tooling key, not an app credential. Found in source, not in the tutorial; kept for labelling (a finding here can be correct) but not in the recall denominator.",
+      "excludedBecause": "not-in-answer-key"
+    },
+    {
+      "id": "secret-tls-private-key",
+      "title": "Committed TLS private key",
+      "ref": "A6",
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/server.js#L26",
+      "description": "RSA private key for the HTTPS fix is committed to the repository.",
+      "appCategory": "A6 Sensitive Data Exposure",
+      "class": "secrets",
+      "inScope": false,
+      "locations": [
+        {
+          "file": "artifacts/cert/server.key"
+        }
+      ],
+      "note": "Not described as a vuln in the tutorial; key file is referenced by the commented A6 fix in server.js. Found in source, not in the tutorial; kept for labelling (a finding here can be correct) but not in the recall denominator.",
+      "excludedBecause": "not-in-answer-key"
+    },
+    {
+      "id": "default-seeded-accounts",
+      "title": "Default user accounts",
+      "ref": null,
+      "source": "https://github.com/OWASP/NodeGoat/blob/9e35cae25f5c6226c30c7d9b03987005affb2888/README.md#L13",
+      "description": "Database seed creates admin and user accounts with published passwords.",
+      "appCategory": "README",
+      "class": "auth",
+      "needsAuth": false,
+      "locations": [
+        {
+          "path": "/login"
+        },
+        {
+          "file": "artifacts/db-reset.js"
+        }
+      ],
+      "group": "default-accounts",
+      "inScope": false,
+      "excludedBecause": "weak-credentials"
+    }
+  ]
+}

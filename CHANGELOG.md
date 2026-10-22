@@ -22,6 +22,9 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ### Docs
 
+- The PHP case study and `docs/runtime-advisories.md` cite OpenAI's
+  php2shell-checker as an independent cross-check. A test pins that Penthera
+  agrees with its table on all 14 PHP branches.
 - The website is live at [penthera.org](https://penthera.org): the README links
   it, and the npm package's homepage points to it from the next release.
 

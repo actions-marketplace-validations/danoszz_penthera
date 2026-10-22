@@ -4,6 +4,16 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Detection
+
+- The advisories pack knows MongoDB: end-of-life lines from MongoDB's
+  lifecycle schedule (4.4 ended 2024-02-29, 5.0 on 2024-10-31, 6.0 on
+  2025-07-31, and the interim releases), matched against the official `mongo`
+  image in Dockerfiles and compose files and `mongodb` in `.tool-versions`.
+  `mongo:4.4.29` in Juice Shop's compose file was a documented miss in the
+  E10 pilot. **The pack is unsigned in this change**: the maintainer signs it
+  (`scripts/rules/sign-pack.sh`) before release.
+
 ### Fixed
 
 - **`npx penthera ui` stops cleanly on Ctrl-C and SIGTERM.** npm forwards

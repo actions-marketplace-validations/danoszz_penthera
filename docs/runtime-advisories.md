@@ -1,6 +1,6 @@
 # Runtime advisories
 
-> **Pro.** For "is my PHP / nginx / Apache / Node.js / Python / OpenSSL affected by this advisory?"
+> **Pro.** For "is my PHP / nginx / Apache / Node.js / Python / OpenSSL / MongoDB affected by this advisory?"
 
 When a runtime or web server gets a security release, the first question is
 which of your systems run an affected version. Penthera answers what it can see

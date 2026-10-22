@@ -238,7 +238,47 @@
       </figure>
     </section>
 
-    <!-- 5 · Limits -->
+    <!-- 5 · Benchmark: numbers from bench/known-vuln/, read at build time. -->
+    <section class="bench" id="benchmark" aria-labelledby="bench-title">
+      <p class="eyebrow">Benchmark · E10 pilot</p>
+      <h2 id="bench-title">Tested on apps built to be broken</h2>
+      <p class="bench-lede">We ran Penthera on OWASP Juice Shop and DVNA, two apps written to be vulnerable, and scored it against answer keys of their documented flaws. The first run found {{E10_P_B_OF}} of the flaws in scope. We fixed the gaps it showed and ran it again. The second run found {{E10_P_A_OF}}.</p>
+
+      <aside class="bench-caveats" aria-labelledby="bench-caveats-title">
+        <h3 id="bench-caveats-title">Read this before the numbers</h3>
+        <ul>
+          <li>This is a pilot. One person labeled the findings, and the labels are provisional.</li>
+          <li>We wrote the fixes after looking at these two apps, so the gain is not an independent measure.</li>
+          <li>WebGoat was held out while we wrote them. Its recall did not move: {{E10_WG}} before and after.</li>
+          <li>The preregistered studies are what count: E10 on six apps, still a draft protocol, and E1 on real code, registered.</li>
+        </ul>
+      </aside>
+
+      <ul class="bench-stats">
+        <li><h3>OWASP Juice Shop</h3><p class="stat-num">{{E10_JS_A}}</p><p class="stat-was">was {{E10_JS_B}}</p><p class="stat-ci">Recall {{E10_JS_A_R}}, 95% CI {{E10_JS_A_CI}}. Before: {{E10_JS_B_R}}, {{E10_JS_B_CI}}.</p></li>
+        <li><h3>DVNA</h3><p class="stat-num">{{E10_DV_A}}</p><p class="stat-was">was {{E10_DV_B}}</p><p class="stat-ci">Recall {{E10_DV_A_R}}, 95% CI {{E10_DV_A_CI}}. Before: {{E10_DV_B_R}}, {{E10_DV_B_CI}}.</p></li>
+        <li class="stat-pooled"><h3>Both apps</h3><p class="stat-num">{{E10_P_A}}</p><p class="stat-was">was {{E10_P_B}}</p><p class="stat-ci">Recall {{E10_P_A_R}}, 95% CI {{E10_P_A_CI}}. Before: {{E10_P_B_R}}, {{E10_P_B_CI}}.</p></li>
+        <li class="stat-held"><h3>WebGoat, held out</h3><p class="stat-num">{{E10_WG}}</p><p class="stat-was">unchanged</p><p class="stat-ci">Recall {{E10_WG_R}}, 95% CI {{E10_WG_CI}}, before and after. A Java app; the fixes target Node.js.</p></li>
+      </ul>
+
+      <figure class="bench-fig">
+        <div class="e10-legend" aria-hidden="true"><span class="key-before">Before</span><span class="key-after">After</span></div>
+{{E10_BARS}}
+        <figcaption>Recall: the documented flaws found, out of those in the answer key that Penthera claims to detect. Bars show the rate, whiskers the 95% Wilson interval. Standard run, no attack payloads.</figcaption>
+      </figure>
+
+      <p class="bench-prec">Precision stayed level: {{E10_PR_B}} (95% CI {{E10_PR_B_CI}}) on {{E10_PR_B_N}} findings before, {{E10_PR_A}} ({{E10_PR_A_CI}}) on {{E10_PR_A_N}} after.</p>
+
+      <p class="links">
+        <a href="https://github.com/danoszz/penthera/blob/main/docs/research/prereg/E10-known-vulnerable-apps.md">Protocol</a>
+        <a href="https://github.com/danoszz/penthera/tree/main/bench/known-vuln">Answer keys</a>
+        <a href="https://github.com/danoszz/penthera/blob/main/bench/known-vuln/RESULTS.md">First run</a>
+        <a href="https://github.com/danoszz/penthera/blob/main/bench/known-vuln/RESULTS-after-fixes.md">After the fixes</a>
+        <a href="https://github.com/danoszz/penthera/blob/main/docs/research/prereg/E1-real-world-accuracy.md">E1 protocol</a>
+      </p>
+    </section>
+
+    <!-- 6 · Limits -->
     <section class="limits" aria-labelledby="limits-title">
       <h2 id="limits-title">What it does not do</h2>
       <div class="limits-body">
@@ -248,7 +288,7 @@
       </div>
     </section>
 
-    <!-- 6 · EU rules -->
+    <!-- 7 · EU rules -->
     <section class="eu" aria-labelledby="eu-title">
       <div class="eu-grid">
         <div>
@@ -267,7 +307,7 @@
       <p class="eu-note">Penthera does not make you compliant and does not certify anything. It is not affiliated with or endorsed by the European Union; the stars mark the subject.</p>
     </section>
 
-    <!-- 7 · Questions -->
+    <!-- 8 · Questions -->
     <section class="faq" id="faq" aria-labelledby="faq-title">
       <h2 id="faq-title">Questions</h2>
       <div class="faq-list">
@@ -340,7 +380,7 @@
       </div>
     </section>
 
-    <!-- 8 · Vision -->
+    <!-- 9 · Vision -->
     <section class="vision band band-invert" aria-labelledby="vision-title">
       <h2 id="vision-title">Open R&amp;D</h2>
       <p class="vision-text">Penthera is a research project with a tool you can use today. Each check is measured in public, pre-registered experiments, and the results are published, good or bad. What holds up ships in the next release. What does not is dropped.</p>

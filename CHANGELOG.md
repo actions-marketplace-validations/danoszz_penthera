@@ -4,6 +4,17 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Fixed
+
+- Runtime advisories read pre-releases correctly. `PHP/8.4.27-dev`, a PHP-8.4
+  branch build from before 8.4.27, was taken for a distribution build of
+  8.4.27 and reported as having the 21 October fix. Now `-dev`, alpha, beta
+  and RC builds (`8.5.0RC1`, `3.15.0rc1`, `4.1.0-beta2`, `php:8.6.0RC4-fpm`)
+  sort below their release. Below the fix they are affected. A pre-release of
+  the fixed version or the next one is "check on server", never "has the
+  fix". Found by the runtime-strings test set
+  (B2 in [#97](https://github.com/danoszz/penthera/pull/97)).
+
 ### Site
 
 - penthera.org counts anonymous page views and load times with Vercel Web

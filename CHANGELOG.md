@@ -56,6 +56,14 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   (`--ai-budget`) are hard stops; consents are logged locally
   (`penthera ai consent`). `penthera ai models` lists models and where they
   run. See [docs/ai-mode.md](docs/ai-mode.md).
+- **AI mode in the dashboard.** New scan has an AI mode switch, off; turning
+  it on opens the consent sheet on every scan (a picture of where the code
+  goes, the model picker, the terminal's exact consent lines, two equal
+  buttons; cloud models need `ollama.com` typed). The server checks the
+  model's route with Ollama itself and logs the consent. Runs show an
+  "AI · local" tag, unverified proposals are folded under their own heading,
+  and Settings lists the consent log.
+
 
 - **`penthera verify <findings.json>`** checks findings from an AI security
   audit against Penthera's rules on your checkout. It reads Cloudflare's

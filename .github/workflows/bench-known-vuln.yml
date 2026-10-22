@@ -1,0 +1,65 @@
+name: E10 known-vulnerable apps (manual)
+
+# Runs bench/known-vuln/run.mjs: Penthera against pinned, deliberately
+# vulnerable apps (Juice Shop, DVNA, WebGoat) started in Docker on the
+# runner. Manual only, never on push or pull request: it pulls large images
+# and takes minutes per app.
+#
+# Network: the runner pulls the pinned images and clones the pinned sources.
+# The apps themselves run on an internal Docker network with no route out,
+# reachable only through a relay published on 127.0.0.1. Penthera runs with
+# --offline under scripts/ci/net-guard.cjs, which fails and logs any
+# connection past loopback. Results are uploaded as an artifact, not
+# committed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apps:
+        description: "Apps, space-separated (juice-shop dvna webgoat)"
+        default: "juice-shop dvna"
+        required: true
+      runs:
+        description: "Runs, space-separated (standard deep)"
+        default: "standard deep"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bench-known-vuln
+  cancel-in-progress: false
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - run: npm ci --ignore-scripts
+
+      - name: Run the benchmark
+        env:
+          APPS: ${{ inputs.apps }}
+          RUNS: ${{ inputs.runs }}
+          PENTHERA_BENCH_CACHE: ${{ runner.temp }}/penthera-bench
+        run: |
+          args=()
+          for a in $APPS; do args+=(--app "$a"); done
+          for r in $RUNS; do args+=(--run "$r"); done
+          npm run bench:known -- "${args[@]}" --json "$RUNNER_TEMP/e10.json"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e10-results
+          path: |
+            bench/known-vuln/RESULTS.md
+            ${{ runner.temp }}/e10.json

@@ -26,6 +26,7 @@ import { build } from "rolldown";
 import { bundledPackDirs, activePacks, loadSigners, NAMESPACE } from "../lib/rules/index.js";
 import { verifyWithSigners } from "../lib/rules/sshsig.js";
 import { COUNTS } from "../scripts/docs-numbers.mjs";
+import { agentFiles, docPages, fill, REPO } from "./agents.mjs";
 
 const SITE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(SITE, "..");
@@ -253,6 +254,8 @@ function benchNumbers() {
 }
 
 const REPO_BLOB = "https://github.com/danoszz/penthera/blob/main/";
+/** The production origin, from package.json: sitemap, robots.txt, security.txt and the doc mirrors use it. */
+const ORIGIN = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).homepage.replace(/\/+$/, "");
 
 /** site/compare.json, parsed and checked: every filled cell has a source. */
 export function readCompare(file = join(SITE, "compare.json")) {
@@ -315,6 +318,19 @@ async function starCount() {
   if (n == null && existsSync(STARS_FILE)) n = JSON.parse(readFileSync(STARS_FILE, "utf8")).stars;
   if (!Number.isFinite(n) || n < 0) return "";
   return n >= 1000 ? `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1).replace(/\.0$/, "")}k` : String(n);
+}
+
+/**
+ * AGENTS.md, the repo's instructions for coding agents, is linked from the
+ * page and llms.txt only once it exists, so neither points at a missing file.
+ */
+function agentsMd() {
+  if (!existsSync(join(ROOT, "AGENTS.md"))) return { AGENTS_MD_LI: "", AGENTS_MD_LLMS: "" };
+  const url = `${REPO}/blob/main/AGENTS.md`;
+  return {
+    AGENTS_MD_LI: `        <li><a href="${url}"><code>AGENTS.md</code></a><span>How to work on Penthera's own code, for coding agents.</span></li>\n`,
+    AGENTS_MD_LLMS: `- [AGENTS.md](${url}): how to work on Penthera's own code, for coding agents\n`,
+  };
 }
 
 /** True for a semver pre-release such as 1.9.0-rc.1. */
@@ -414,7 +430,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
   if (engine) await bundle(join(SITE, "check", "engine.js"), resolve(engine), { minify: false });
 
   // Static files, as they are.
-  for (const f of ["styles.css", "theme.js", "robots.txt"]) cpSync(join(SITE, f), join(OUT, f));
+  for (const f of ["styles.css", "theme.js"]) cpSync(join(SITE, f), join(OUT, f));
   cpSync(join(SITE, "media"), join(OUT, "media"), { recursive: true });
   // The dashboard's own font and marks, so the site and penthera ui match.
   const UI = join(ROOT, "src", "ui", "static");
@@ -424,6 +440,9 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
   cpSync(join(ROOT, "assets", "walkthrough.mp4"), join(OUT, "media", "walkthrough.mp4"));
   cpSync(join(ROOT, "assets", "walkthrough-poster.jpg"), join(OUT, "media", "walkthrough.jpg"));
   cpSync(join(ROOT, "assets", "walkthrough.vtt"), join(OUT, "media", "walkthrough.vtt"));
+  // The tour's dashboard shots: the same files the docs show.
+  mkdirSync(join(OUT, "media", "tour"), { recursive: true });
+  for (const f of ["ui-dark.jpg", "ui-light.jpg", "ui-run.jpg"]) cpSync(join(ROOT, "assets", "dashboard", f), join(OUT, "media", "tour", f));
 
   // The page: version-stamp the assets it loads and fill in measured numbers.
   const packs = activePacks();
@@ -443,21 +462,22 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
     TICKER: tickerHtml(readNews()),
     SITE_URL: siteUrl(),
     ...mcpNote(version),
+    ORIGIN,
+    DOC_PAGES: String(docPages(ROOT).length - 1),
+    ...agentsMd(),
   };
   values.STARS_LABEL = values.STARS ? `, ${values.STARS} stars` : "";
   values.COMPARE = compareTable(readCompare(), values);
-  let html = readFileSync(join(SITE, "index.html"), "utf8");
-  html = html.replace(/\{\{(\w+)\}\}/g, (m, k) => {
-    if (!(k in values)) throw new Error(`index.html: unknown placeholder ${m}`);
-    return values[k];
-  });
+  let html = fill(readFileSync(join(SITE, "index.html"), "utf8"), values, "index.html");
   html = html.replace(/(href|src)="\/(styles\.css|theme\.js|check\.js)"/g, (m, attr, f) => `${attr}="/${f}?v=${hash(readFileSync(join(OUT, f)))}"`);
   writeFileSync(join(OUT, "index.html"), html);
-  // llms.txt: the same placeholders, so its pinned versions match the page.
-  writeFileSync(join(OUT, "llms.txt"), readFileSync(join(SITE, "llms.txt"), "utf8").replace(/\{\{(\w+)\}\}/g, (m, k) => {
-    if (!(k in values)) throw new Error(`llms.txt: unknown placeholder ${m}`);
-    return values[k];
-  }));
+  // For agents and crawlers: llms.txt (the same placeholders, so its pins
+  // match the page), the docs as Markdown, the sitemap, robots.txt and
+  // security.txt. All from the repo, at the package's homepage.
+  for (const [f, text] of Object.entries(agentFiles({ root: ROOT, site: SITE, version, origin: ORIGIN, values }))) {
+    mkdirSync(dirname(join(OUT, f)), { recursive: true });
+    writeFileSync(join(OUT, f), text);
+  }
 
   const total = readdirSync(OUT, { recursive: true }).map((f) => join(OUT, f)).filter((f) => statSync(f).isFile()).reduce((n, f) => n + statSync(f).size, 0);
   writeFileSync(join(OUT, "build.json"), JSON.stringify({ version, ...values, bytes: total }, null, 2) + "\n");

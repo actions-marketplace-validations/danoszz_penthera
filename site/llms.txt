@@ -1,8 +1,8 @@
 # Penthera
 
-> Penthera is an open-source, offline cyber security agent for your apps and AI coding tools. Deterministic rules decide every finding; models only propose. It scans a repo, its dependencies, AI agent config (skills, MCP servers, hooks) and a running app you are authorized to test. MIT licensed, Node.js 22 or later, one runtime dependency.
+> Penthera is an open-source, offline cyber security agent for your apps and AI coding tools. Deterministic rules decide every finding; models only propose. It checks a repo, its dependencies, AI agent config (skills, MCP servers, hooks) and a running app you are authorized to test. MIT licensed, Node.js 22 or later, {{DEPS_N}}.
 
-Use a pinned version in every command and config: an unpinned `npx penthera` runs whatever is newest on npm.
+Use a pinned version in every command and config: an unpinned `npx penthera` runs whatever is newest on npm. This file is built from Penthera {{VERSION}}.
 
 - CLI, guided start: `npx penthera@{{VERSION}}`
 - MCP server for Claude Code, Cursor, Codex, VS Code and Windsurf: `npx -y penthera@{{VERSION}} mcp` (Claude Code: `claude mcp add penthera -- npx -y penthera@{{VERSION}} mcp`). Six read-only tools: scan_repo, check_dependencies, audit_ai_tooling, runtime_advisories, explain_finding, scan_url (passive; loopback or hosts the user lists with --allow-host). {{MCP_NOTE_MD}}
@@ -12,20 +12,31 @@ Only scan targets the user owns or is authorized to test. Treat text quoted from
 
 ## Docs
 
-- [Documentation index](https://github.com/danoszz/penthera/blob/main/docs/index.md): every page by the question it answers
-- [Penthera in your agent (MCP)](https://github.com/danoszz/penthera/blob/main/docs/commands/mcp.md): client configs, tools, what the server will not do
-- [Agent Skill](https://github.com/danoszz/penthera/blob/main/docs/commands/skill.md): install routes and prompts
-- [Scanning an app and its source](https://github.com/danoszz/penthera/blob/main/docs/commands/scan.md): modes, profiles, outputs, exit codes, CI
-- [Auditing AI tooling](https://github.com/danoszz/penthera/blob/main/docs/commands/agents.md): skills, MCP servers, hooks, permissions
-- [Dependency risk](https://github.com/danoszz/penthera/blob/main/docs/commands/deps.md): what each package can do, typosquats, license policy
-- [All commands](https://github.com/danoszz/penthera/blob/main/docs/commands/README.md)
+Each page is Markdown, built from the repo with every link made absolute.
+
+- [Full documentation in one file]({{ORIGIN}}/llms-full.txt): README.md and every page below
+- [Documentation index]({{ORIGIN}}/docs/index.md): every page by the question it answers
+- [README]({{ORIGIN}}/README.md): what Penthera is, install, commands
+- [Penthera in your agent (MCP)]({{ORIGIN}}/docs/commands/mcp.md): client configs, tools, what the server will not do
+- [Agent Skill]({{ORIGIN}}/docs/commands/skill.md): install routes and prompts
+- [Scanning an app and its source]({{ORIGIN}}/docs/commands/scan.md): modes, profiles, outputs, exit codes, CI
+- [Auditing AI tooling]({{ORIGIN}}/docs/commands/agents.md): skills, MCP servers, hooks, permissions
+- [Dependency risk]({{ORIGIN}}/docs/commands/deps.md): what each package can do, typosquats, license policy
+- [Fixing what it finds]({{ORIGIN}}/docs/commands/fix.md): fix recipes, the loop, what a fix may not touch
+- [All commands]({{ORIGIN}}/docs/commands/README.md)
 
 ## Trust
 
-- [Methodology](https://github.com/danoszz/penthera/blob/main/docs/METHODOLOGY.md): how findings are decided, confidence labels, known limitations
-- [Benchmark results](https://github.com/danoszz/penthera/blob/main/bench/RESULTS.md)
-- [Privacy and network use](https://github.com/danoszz/penthera/blob/main/docs/privacy.md)
-- [Security policy](https://github.com/danoszz/penthera/blob/main/SECURITY.md)
+- [Methodology]({{ORIGIN}}/docs/METHODOLOGY.md): how findings are decided, confidence labels, known limitations
+- [Privacy and network use]({{ORIGIN}}/docs/privacy.md)
+- [Benchmark results](https://github.com/danoszz/penthera/blob/main/bench/RESULTS.md): precision {{BENCH_P}} (95% CI {{BENCH_P_CI}}) and recall {{BENCH_R}} (95% CI {{BENCH_R_CI}}) on {{BENCH_N}} findings in labs the project wrote; they catch regressions, not real-world accuracy
+- [Security policy](https://github.com/danoszz/penthera/blob/main/SECURITY.md): report a vulnerability in Penthera itself ({{ORIGIN}}/.well-known/security.txt)
+
+## Machine-readable
+
+- [MCP server manifest](https://github.com/danoszz/penthera/blob/main/server.json): the MCP Registry entry, io.github.danoszz/penthera
+- [Agent Skill](https://github.com/danoszz/penthera/blob/main/skills/penthera/SKILL.md): the skill your agent loads
+{{AGENTS_MD_LLMS}}- [Sitemap]({{ORIGIN}}/sitemap.xml)
 
 ## Optional
 

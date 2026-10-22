@@ -9,6 +9,7 @@ import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 import { buildSite, readNews, readCompare, e10Numbers, prerelease, mcpNote, firstRelease } from "../site/build.mjs";
+import { docPages, absoluteLinks, pinTo } from "../site/agents.mjs";
 import { scanExample } from "../site/tools/example.mjs";
 import { COUNTS } from "../scripts/docs-numbers.mjs";
 import { activePacks } from "../lib/rules/index.js";
@@ -182,7 +183,7 @@ describe("site layout at phone width", () => {
 describe("site FAQ", () => {
   it("is native <details> with a question in each summary, and its numbers come from the repo", () => {
     const html = readFileSync(join(out, "index.html"), "utf8");
-    const faq = html.slice(html.indexOf('id="faq"'), html.indexOf("<!-- 9 · Vision -->"));
+    const faq = html.slice(html.indexOf('id="faq"'), html.indexOf("<!-- 9 · For agents"));
     const items = faq.match(/<details>\s*<summary>[^<]+\?<\/summary>/g) || [];
     expect(items.length).toBeGreaterThanOrEqual(10);
     // Benchmark figures as bench/RESULTS.md and scripts/docs-numbers.mjs give them.
@@ -196,7 +197,7 @@ describe("site FAQ", () => {
 
   it("tells you how to scan your own site behind a CDN firewall (e2e 2026-10-22, D3)", () => {
     const html = readFileSync(join(out, "index.html"), "utf8");
-    const faq = html.slice(html.indexOf('id="faq"'), html.indexOf("<!-- 9 · Vision -->"));
+    const faq = html.slice(html.indexOf('id="faq"'), html.indexOf("<!-- 9 · For agents"));
     expect(faq).toContain("Scanning your own Vercel or Cloudflare site? Allow your IP in the firewall first, or scan a preview URL.");
   });
 });
@@ -263,7 +264,7 @@ describe("site before and after", () => {
 
   it("fills in the scan and counts every rule from the repo, without the fix recipes", () => {
     const html = readFileSync(join(out, "index.html"), "utf8");
-    const sec = html.slice(html.indexOf('class="ba"'), html.indexOf("<!-- 3 · Get it -->"));
+    const sec = html.slice(html.indexOf('class="ba"'), html.indexOf('id="check"'));
     const e = JSON.parse(readFileSync(join(ROOT, "site", "example.json"), "utf8"));
     expect(sec).not.toMatch(/\{\{\w+\}\}/);
     expect(sec).toContain("yo, is my app safe?");
@@ -273,9 +274,9 @@ describe("site before and after", () => {
     expect(sec).toContain("<code>GET /api/oauth/callback?redirect_uri=https://evil-attacker.example/capture</code> returned 302.");
     const packRules = activePacks().reduce((n, p) => n + p.count, 0);
     const rules = COUNTS.urlTemplates + COUNTS.secretPatterns + COUNTS.capabilities + COUNTS.agentRules + packRules;
-    expect(sec).toContain(`<span class="ba-n">${rules}</span> readable rules`);
-    expect(sec).toContain(`<span class="ba-n">${COUNTS.references}</span> cited sources`);
-    expect(sec).toContain(`<span class="ba-n">${(COUNTS.popularNpm + COUNTS.popularPypi).toLocaleString("en-US")}</span> package names`);
+    // The totals sit under the four areas in "What it checks".
+    expect(sec).toContain(`Counts from this release's rules: ${rules} readable rules, citing ${COUNTS.references} sources.`);
+    expect(sec).toContain(`<p class="map-n">${(COUNTS.popularNpm + COUNTS.popularPypi).toLocaleString("en-US")}<span> package names</span></p>`);
     expect(rules).toBeLessThan(1000); // the count is what it is; never round it up
     expect(sec).not.toMatch(/1,?000\+/);
   });
@@ -312,17 +313,19 @@ describe("site benchmark (E10 pilot)", () => {
     }
   });
 
-  it("shows the numbers with their caveats and sources, between the walkthrough and the limits", () => {
+  it("shows the numbers with their caveats and sources, in the trust chapter, before the limits", () => {
     const html = readFileSync(join(out, "index.html"), "utf8");
     const e = e10Numbers();
-    const sec = html.slice(html.indexOf('id="benchmark"'), html.indexOf("<!-- 6 · Limits -->"));
-    expect(html.indexOf("<!-- 4 · Walkthrough -->")).toBeLessThan(html.indexOf('id="benchmark"'));
+    const sec = html.slice(html.indexOf('id="benchmark"'), html.indexOf('id="limits"'));
+    expect(html.indexOf('id="trust"')).toBeLessThan(html.indexOf('id="benchmark"'));
+    expect(html.indexOf('id="benchmark"')).toBeLessThan(html.indexOf('id="limits"'));
+    expect(html.indexOf('id="limits"')).toBeLessThan(html.indexOf('id="tour"'));
     expect(sec).not.toMatch(/\{\{\w+\}\}/);
     for (const a of [...e.apps, e.pooled]) {
       expect(sec).toContain(`<p class="stat-num">${a.after.k}/${a.after.n}</p><p class="stat-was">was ${a.before.k}/${a.before.n}</p>`);
       expect(sec).toContain(`95% CI ${a.after.ci}. Before: ${a.before.rate.toFixed(2)}, ${a.before.ci}.`);
     }
-    expect(sec).toContain(`<p class="stat-num">2/9</p><p class="stat-was">unchanged</p>`);
+    expect(sec).toContain(`<p class="stat-num">${e.heldOut.k}/${e.heldOut.n}</p><p class="stat-was">unchanged</p>`);
     expect(sec).toContain(`Precision stayed level: ${e.precision.before.rate.toFixed(2)} (95% CI ${e.precision.before.ci}) on ${e.precision.before.n} findings before, ${e.precision.after.rate.toFixed(2)} (${e.precision.after.ci}) on ${e.precision.after.n} after.`);
     // The caveats come before the numbers, in the section itself.
     const caveats = sec.indexOf("Read this before the numbers");
@@ -358,7 +361,164 @@ describe("site news ticker", () => {
   });
 });
 
+describe("site story", () => {
+  const html = () => readFileSync(join(out, "index.html"), "utf8");
+
+  it("tells it in order: problem, answer, checks, trust, tour, compare, get started, questions, agents", () => {
+    const h = html();
+    const order = ['class="problem"', 'id="answer"', 'id="checks"', 'id="check"', 'id="trust"', 'id="tour"', 'id="compare"', 'id="get"', 'id="faq"', 'id="for-agents"'];
+    const at = order.map((m) => h.indexOf(m));
+    for (const [i, m] of order.entries()) expect(at[i], m).toBeGreaterThan(0);
+    expect([...at].sort((a, b) => a - b)).toEqual(at);
+    expect(h).toContain("AI coding tools ship faster than anyone can check.");
+    expect(h).toContain('<h1 id="hero-title">Penthera: your <span class="nowrap">open-source</span> cyber security agent</h1>');
+    expect(h).toContain('<p class="bubble">yo, is my app safe?</p>');
+    expect(h).toMatch(/<h2 id="faq-title">Before you install\.<\/h2>/);
+    // Merged away: no section repeats another.
+    for (const gone of ['class="walk', 'class="eu"', 'class="vision', 'class="ba-counts"']) expect(h, gone).not.toContain(gone);
+  });
+
+  it("has a spec table: For, Runs, Works with, Price", () => {
+    const spec = html().match(/<dl class="spec"[\s\S]*?<\/dl>/)[0];
+    expect([...spec.matchAll(/<dt>([^<]+)<\/dt>/g)].map((m) => m[1])).toEqual(["For", "Runs", "Works with", "Price"]);
+    expect(spec).toContain("$0");
+    expect(spec).toContain("one runtime dependency");
+  });
+
+  it("shows the four areas with counts from the rules, and a numbered four-step tour", () => {
+    const h = html();
+    const map = h.slice(h.indexOf('id="checks"'), h.indexOf('id="check"'));
+    for (const [n, what] of [[COUNTS.secretPatterns, "secret and AI-key patterns"], [COUNTS.agentRules, "AI-tooling rules"], [COUNTS.urlTemplates, "URL scan templates"], [(COUNTS.popularNpm + COUNTS.popularPypi).toLocaleString("en-US"), "package names"]]) {
+      expect(map).toContain(`<p class="map-n">${n}<span> ${what}</span></p>`);
+    }
+    expect(map.match(/<li class="map-cell /g)).toHaveLength(4);
+    expect(map.match(/<strong>[^<]+\.<\/strong>/g).length).toBeGreaterThanOrEqual(12);
+    const tour = h.slice(h.indexOf('id="tour"'), h.indexOf('id="compare"'));
+    expect([...tour.matchAll(/<p class="step-n"><span>(\d\d)<\/span> \/ 04<\/p>\s*<h3>([^<]+)<\/h3>/g)].map((m) => `${m[1]} ${m[2]}`))
+      .toEqual(["01 The CLI", "02 The dashboard", "03 In your agent", "04 The fix loop"]);
+    for (const f of ["media/tour/ui-dark.jpg", "media/tour/ui-light.jpg", "media/tour/ui-run.jpg", "media/walkthrough.mp4"]) {
+      expect(existsSync(join(out, f)), f).toBe(true);
+      expect(tour).toContain(`/${f}`);
+    }
+  });
+
+  it("gets you started three ways, each with a copy button", () => {
+    const get = html().slice(html().indexOf('id="get"'), html().indexOf('id="faq"'));
+    const { version } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+    for (const c of ["npx penthera", "npx skills add danoszz/penthera", `claude mcp add penthera -- npx -y penthera@${version} mcp`]) {
+      expect(get).toContain(`<button class="cmd" type="button" data-copy="${c}">`);
+    }
+  });
+
+  it("links every entry point for agents, and each one exists", () => {
+    const h = html();
+    const sec = h.slice(h.indexOf('id="for-agents"'));
+    for (const f of ["llms.txt", "llms-full.txt", "docs/index.md", "sitemap.xml", ".well-known/security.txt"]) {
+      expect(sec).toContain(`href="/${f}"`);
+      expect(existsSync(join(out, f)), f).toBe(true);
+    }
+    for (const f of ["server.json", "skills/penthera/SKILL.md"]) {
+      expect(sec).toContain(`href="https://github.com/danoszz/penthera/blob/main/${f}"`);
+      expect(existsSync(join(ROOT, f)), f).toBe(true);
+    }
+    // AGENTS.md is linked once it exists, never before.
+    expect(sec.includes("blob/main/AGENTS.md")).toBe(existsSync(join(ROOT, "AGENTS.md")));
+    expect(h).toContain('<link rel="alternate" type="text/plain" href="/llms.txt"');
+  });
+});
+
+describe("site files for agents", () => {
+  const read = (f) => readFileSync(join(out, f), "utf8");
+  const ORIGIN = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).homepage;
+  const pages = docPages(ROOT);
+
+  it("llms.txt follows the format: a title, a summary, and links that resolve", () => {
+    const llms = read("llms.txt");
+    expect(llms).toMatch(/^# Penthera\n\n> .+\n/);
+    for (const m of llms.matchAll(/\]\((https:\/\/penthera\.org\/[^)]+)\)/g)) {
+      const f = m[1].slice(ORIGIN.length + 1).split("#")[0];
+      expect(existsSync(join(out, f)), m[1]).toBe(true);
+    }
+    expect(llms).toContain(`${ORIGIN}/llms-full.txt`);
+    expect(llms).toContain("one runtime dependency");
+  });
+
+  it("llms-full.txt is README.md and every docs page, in reading order", () => {
+    const full = read("llms-full.txt");
+    expect(pages[0]).toBe("README.md");
+    expect(pages[1]).toBe("docs/index.md");
+    expect(pages.length).toBeGreaterThan(30);
+    let last = -1;
+    for (const p of pages) {
+      const at = full.indexOf(`<!-- Source: https://github.com/danoszz/penthera/blob/main/${p} `);
+      expect(at, p).toBeGreaterThan(last);
+      last = at;
+      // The page's own first heading is in it.
+      const h1 = readFileSync(join(ROOT, p), "utf8").match(/^# .+$/m)?.[0];
+      if (h1) expect(full, p).toContain(h1);
+    }
+    for (const skip of ["docs/voice.md", "docs/marketing.md", "docs/internal-audit.md"]) expect(pages).not.toContain(skip);
+  });
+
+  it("mirrors each page as Markdown, with every relative link made absolute", () => {
+    for (const p of pages) {
+      const md = read(p);
+      expect(md, p).toMatch(new RegExp(`^<!-- ${ORIGIN}/${p}: a copy of `));
+      for (const m of md.matchAll(/\]\(([^)\s]+)\)/g)) expect(m[1], `${p}: ${m[1]}`).toMatch(/^(https?:|mailto:|#)/);
+      for (const m of md.matchAll(/<(?:img|a|source|video)\b[^>]*?\b(?:src|href|poster)="([^"]+)"/g)) expect(m[1], `${p}: ${m[1]}`).toMatch(/^(https?:|#)/);
+      // Links to other mirrored pages stay on the site.
+      for (const m of md.matchAll(/\]\((https:\/\/penthera\.org\/[^)#]+)/g)) expect(existsSync(join(out, m[1].slice(ORIGIN.length + 1))), m[1]).toBe(true);
+    }
+    expect(absoluteLinks("[a](commands/mcp.md#x) [b](../bench/RESULTS.md) [c](../assets/demo.gif) [d](commands/)", "docs/index.md", { root: ROOT, origin: ORIGIN, mirrored: new Set(["docs/commands/mcp.md"]) }))
+      .toBe(`[a](${ORIGIN}/docs/commands/mcp.md#x) [b](https://github.com/danoszz/penthera/blob/main/bench/RESULTS.md) [c](https://github.com/danoszz/penthera/raw/main/assets/demo.gif) [d](https://github.com/danoszz/penthera/tree/main/docs/commands)`);
+  });
+
+  it("pins every npm command in the mirrors to the package version", () => {
+    const { version } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+    for (const f of ["llms-full.txt", ...pages]) {
+      for (const m of read(f).matchAll(/(?<![\w/-])penthera@(\d[\w.-]*)/g)) expect(m[1], f).toBe(version);
+    }
+    expect(pinTo("npx -y penthera@1.9.0 mcp; uses: danoszz/penthera@v1; npx penthera@1.7.0-rc.2 x", "2.0.0")).toBe("npx -y penthera@2.0.0 mcp; uses: danoszz/penthera@v1; npx penthera@2.0.0 x");
+  });
+
+  it("sitemap.xml lists the page and every file for agents, on the production origin", () => {
+    const xml = read("sitemap.xml");
+    expect(xml).toMatch(/^<\?xml version="1\.0" encoding="UTF-8"\?>\n<urlset xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">/);
+    const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+    expect(locs[0]).toBe(`${ORIGIN}/`);
+    expect(locs).toEqual(expect.arrayContaining([`${ORIGIN}/llms.txt`, `${ORIGIN}/llms-full.txt`, ...pages.map((p) => `${ORIGIN}/${p}`)]));
+    for (const l of locs.slice(1)) expect(existsSync(join(out, l.slice(ORIGIN.length + 1))), l).toBe(true);
+  });
+
+  it("robots.txt allows everyone and points to the sitemap", () => {
+    const robots = read("robots.txt");
+    expect(robots).toMatch(/^User-agent: \*\nAllow: \/$/m);
+    expect(robots).not.toMatch(/^Disallow: \S/m);
+    expect(robots).toContain(`Sitemap: ${ORIGIN}/sitemap.xml`);
+  });
+
+  it("security.txt follows RFC 9116: Contact, Expires within a year, Policy, Canonical", () => {
+    const txt = read(".well-known/security.txt");
+    const field = (k) => txt.match(new RegExp(`^${k}: (.+)$`, "m"))?.[1];
+    expect(field("Contact")).toBe("https://github.com/danoszz/penthera/security/advisories/new");
+    expect(field("Policy")).toBe("https://github.com/danoszz/penthera/blob/main/SECURITY.md");
+    expect(field("Canonical")).toBe(`${ORIGIN}/.well-known/security.txt`);
+    expect(field("Expires")).toMatch(/^\d{4}-\d{2}-\d{2}T00:00:00Z$/);
+    const days = (Date.parse(field("Expires")) - Date.now()) / 86_400_000;
+    expect(days).toBeGreaterThan(200);
+    expect(days).toBeLessThan(365);
+    expect(txt.match(/^Expires:/gm)).toHaveLength(1);
+    expect(existsSync(join(ROOT, "SECURITY.md"))).toBe(true);
+  });
+});
+
 describe("site headers", () => {
+  it("vercel.json's ignoreCommand fits Vercel's 256-character limit", () => {
+    // Vercel rejects the whole deployment when it's longer.
+    const { ignoreCommand } = JSON.parse(readFileSync(join(ROOT, "vercel.json"), "utf8"));
+    expect(ignoreCommand.length).toBeLessThanOrEqual(256);
+  });
+
   it("vercel.json allows only Vercel's two counters, and forbids framing and plain HTTP", () => {
     const h = headersFor("/");
     const csp = h["Content-Security-Policy"];
@@ -386,6 +546,15 @@ describe("site headers", () => {
       expect(reel.status).toBe(200);
       expect(reel.headers.get("content-type")).toBe("video/mp4");
       await reel.arrayBuffer();
+      // The files for agents: the same headers, and a text type.
+      for (const [path, type] of [["/llms.txt", "text/plain"], ["/llms-full.txt", "text/plain"], ["/docs/index.md", "text/markdown"], ["/sitemap.xml", "application/xml"], ["/robots.txt", "text/plain"], ["/.well-known/security.txt", "text/plain"]]) {
+        const r = await fetch(`http://127.0.0.1:${server.address().port}${path}`);
+        expect(r.status, path).toBe(200);
+        expect(r.headers.get("content-type"), path).toMatch(new RegExp(`^${type}; charset=utf-8$`));
+        expect(r.headers.get("content-security-policy"), path).toContain("default-src 'none'");
+        expect(r.headers.get("x-content-type-options"), path).toBe("nosniff");
+        await r.text();
+      }
     } finally {
       server.close();
     }

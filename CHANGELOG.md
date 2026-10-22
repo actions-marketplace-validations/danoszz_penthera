@@ -11,6 +11,23 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   x.y.z, so an end-of-life Python behind aiohttp went unreported. Found by
   the runtime-strings test set (B3 in
   [#97](https://github.com/danoszz/penthera/pull/97)).
+
+- Runtime advisories honour `introduced` on older release lines. CVE-2021-41773
+  and CVE-2021-42013 exist only in httpd 2.4.49 and 2.4.50. Yet
+  `Apache/2.2.34` and `httpd:2.2` were reported critical, "end of life, no
+  fix", and CentOS 6's `Apache/2.2.15 (CentOS)` was "check on server". A line
+  older than the one the flaw was introduced on now gets no verdict for it.
+  The end-of-life finding stays. Found by the runtime-strings test set (B1 in
+  [#97](https://github.com/danoszz/penthera/pull/97)).
+
+- Runtime advisories read pre-releases correctly. `PHP/8.4.27-dev`, a PHP-8.4
+  branch build from before 8.4.27, was taken for a distribution build of
+  8.4.27 and reported as having the 21 October fix. Now `-dev`, alpha, beta
+  and RC builds (`8.5.0RC1`, `3.15.0rc1`, `4.1.0-beta2`, `php:8.6.0RC4-fpm`)
+  sort below their release. Below the fix they are affected. A pre-release of
+  the fixed version or the next one is "check on server", never "has the
+  fix". Found by the runtime-strings test set
+  (B2 in [#97](https://github.com/danoszz/penthera/pull/97)).
 - **`npx penthera ui` stops cleanly on Ctrl-C and SIGTERM.** npm forwards
   the signal to penthera right after the terminal delivered it, and the
   second copy could kill the dashboard before it printed "Stopped." and

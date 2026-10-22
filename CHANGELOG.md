@@ -27,9 +27,9 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   branch build from before 8.4.27, was taken for a distribution build of
   8.4.27 and reported as having the 21 October fix. Now `-dev`, alpha, beta
   and RC builds (`8.5.0RC1`, `3.15.0rc1`, `4.1.0-beta2`, `php:8.6.0RC4-fpm`)
-  sort below their release. Below the fix they are affected. A pre-release of
-  the fixed version or the next one is "check on server", never "has the
-  fix". Found by the runtime-strings test set
+  sort below their release, so a pre-release of the fixed version is
+  affected. A pre-release of the version after the fix (`8.4.28-dev`) is
+  "check on server", never "has the fix". Found by the runtime-strings test set
   (B2 in [#97](https://github.com/danoszz/penthera/pull/97)).
 - **`npx penthera ui` stops cleanly on Ctrl-C and SIGTERM.** npm forwards
   the signal to penthera right after the terminal delivered it, and the

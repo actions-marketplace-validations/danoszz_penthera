@@ -22,7 +22,7 @@ version:
 |---|---|---|
 | **affected** | An exact upstream version is visible and is below the fix | Upgrade to the fixed version on that line |
 | **end of life, no fix** | The version is on a line the vendor no longer supports | Move to a supported line |
-| **check on server** | The product is in use but the version is hidden, floating (`php:8.3`), a distribution build (`8.1.2-1ubuntu2.19`), or a pre-release of the fixed version or the next one (`8.4.28-dev`, which PHP's branch reports from 8.4.27's release candidate on) | Run the check command in the finding (`php -v`, `nginx -v`, ...) on the server or in the container |
+| **check on server** | The product is in use but the version is hidden, floating (`php:8.3`), a distribution build (`8.1.2-1ubuntu2.19`), or a pre-release of the version after the fix (`8.4.28-dev`, which PHP's branch reports from 8.4.27's release candidate on; a pre-release of the fixed version itself is affected) | Run the check command in the finding (`php -v`, `nginx -v`, ...) on the server or in the container |
 | **has the fix (as advertised)** | The visible version is at or above every fix | Nothing, unless a proxy or a stale banner could be lying |
 
 **Banners that name no distribution.** For products that distributions patch

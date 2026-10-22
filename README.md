@@ -267,8 +267,8 @@ What changed, what we are measuring, and what comes next, in one place.
 
 | | Where it stands | Read more |
 |---|---|---|
-| **Latest release** | 1.8.0 (2026-10-21): runtime advisories starting with PHP's critical release, fixes from a second security review, a fix loop that cannot edit its own tests, the redesigned dashboard | [CHANGELOG](CHANGELOG.md) |
-| **On main, unreleased** | Whatever lands after 1.8.0 | [Unreleased](CHANGELOG.md#unreleased) |
+| **Latest release** | 1.8.1 (2026-10-22): more careful runtime advisories (pre-releases, distribution builds, older lines) on top of 1.8.0's runtime advisories, security-review fixes and redesigned dashboard | [CHANGELOG](CHANGELOG.md) |
+| **On main, unreleased** | Toward 1.9: AI mode (opt-in, local model, rules verify), new detection rules, the E10 benchmark | [Unreleased](CHANGELOG.md#unreleased) |
 | **Now** | Toward 1.9: accuracy on real code (E1) and an MCP server, so coding agents can call Penthera | [Roadmap](ROADMAP.md#next) |
 | **Research** | E1, accuracy on real code, is pre-registered; the benchmark tooling is in review. After the 2026 agent incidents: a checklist for running agents safely and a draft experiment (E8) | [E1 pre-registration](docs/research/prereg/E1-real-world-accuracy.md), [agents safely](docs/agents-safely.md), [what the incidents mean](docs/research/agent-incidents-2026.md) |
 | **Next** | Real-world precision and recall with intervals, published whatever the result | [Roadmap: next](ROADMAP.md#next), [research plan](docs/vision-2.0.md) |

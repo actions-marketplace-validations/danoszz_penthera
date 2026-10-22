@@ -24,7 +24,7 @@ export const CATEGORIES = {
   "docker-floating": "Official Docker image tags that float (8.3, fpm, latest, lts, stable)",
   "version-file": ".php-version, .nvmrc, .node-version, .python-version, .tool-versions, runtime.txt",
   "end-of-life": "Exact or line-only versions on release lines past their end of support",
-  lookalike: "Strings and images that look like one of the six products but are not",
+  lookalike: "Strings and images that look like one of the products but are not",
 };
 
 export const DEVIATIONS = {
@@ -65,7 +65,7 @@ export const DEVIATIONS = {
   G1: {
     type: "gap",
     title: "Only official library images are read",
-    detail: "nginxinc/nginx-unprivileged:1.27 is nginx 1.27 (end of life) but is not library/nginx, so there is no evidence. Absence is not reported as safe, so no promise breaks.",
+    detail: "nginxinc/nginx-unprivileged:1.27 is nginx 1.27 (end of life) and mongodb/mongodb-community-server:7.0-ubi8 is MongoDB 7.0, but neither is a library/ image, so there is no evidence. Absence is not reported as safe, so no promise breaks.",
     fix: "Optionally add well-known vendor images (nginxinc/nginx-unprivileged, bitnami/*) to dockerImages.",
   },
 };
@@ -529,3 +529,35 @@ for (const [file, content, kind, v, note, extra] of [
   [".tool-versions", "nodejs 18.20.4\n", "exact", "18.20.4", "asdf pin on an end-of-life line"],
   [".tool-versions", "node 16.20.2\n", "exact", "16.20.2", "mise accepts `node`"],
 ]) add("version-file", "nodejs", `node-file-${file.replace(/^\./, "")}-${content.trim().replace(/[^a-z0-9.]+/gi, "-")}`, FILE(file, content), kind, v, file === ".nvmrc" ? NVM : NODE_DIST, note, extra);
+
+// ── MongoDB (added in 1.8.1, end of life only; no HTTP banner) ──────────
+// Read from the official `mongo` image and `mongodb` in .tool-versions.
+for (const [tag, kind, v, note, extra] of [
+  ["9.0.4", "exact", "9.0.4", "current 9.0"],
+  ["8.3.13", "exact", "8.3.13", "current 8.3"],
+  ["8.0.34", "exact", "8.0.34", "current 8.0"],
+  ["7.0.45-jammy", "exact", "7.0.45", "current 7.0, Ubuntu-based variant: the image builds MongoDB's own packages, so the base is not a distribution MongoDB"],
+  ["8.2.1", "exact", "8.2.1", "8.2 rapid release, end of life 31 Jul 2026"],
+  ["6.0.19", "exact", "6.0.19", "6.0 ended 31 Jul 2025"],
+  ["5.0.31", "exact", "5.0.31", "5.0 ended 31 Oct 2024"],
+  ["4.4.29", "exact", "4.4.29", "the pin in OWASP Juice Shop's compose file; 4.4 ended 29 Feb 2024"],
+]) add(/^(8\.2|6\.0|5\.0|4\.4)\./.test(v) ? "end-of-life" : "docker-pinned", "mongodb", `mongo-img-${tag}`, IMG(`mongo:${tag}`), kind, v, HUB("mongo", tag), note, extra);
+for (const [tag, kind, v, note] of [
+  ["8.0", "branch", "8.0", "floating supported line"],
+  ["7.0-jammy", "branch", "7.0", "floating supported line"],
+  ["8.2", "branch", "8.2", "floating end-of-life rapid release"],
+  ["6.0", "branch", "6.0", "floating end-of-life line"],
+  ["4.2", "branch", "4.2", "floating end-of-life line"],
+  ["3.6", "branch", "3.6", "floating end-of-life line"],
+  ["8", "present", null, "spans release lines"],
+  ["latest", "present", null, "no version"],
+]) add("docker-floating", "mongodb", `mongo-img-${tag}`, IMG(`mongo:${tag}`), kind, v, HUB("mongo", tag), note);
+const ASDF_MONGO = "https://github.com/sylph01/asdf-mongodb";
+add("version-file", "mongodb", "mongo-file-tool-versions-7.0.14", FILE(".tool-versions", "mongodb 7.0.14\n"), "exact", "7.0.14", ASDF_MONGO, "asdf-mongodb pin on a supported line");
+add("version-file", "mongodb", "mongo-file-tool-versions-6.0.19", FILE(".tool-versions", "mongodb 6.0.19\n"), "exact", "6.0.19", ASDF_MONGO, "asdf-mongodb pin on an end-of-life line");
+add("lookalike", "mongodb", "mongo-img-mongo-express", IMG("mongo-express:1.0"), "none", null, HUB("mongo-express", "1.0"),
+  "mongo-express, a web admin UI: its tag is its own version");
+add("lookalike", "mongodb", "mongo-img-percona", IMG("percona/percona-server-mongodb:7.0"), "none", null, HUB("percona/percona-server-mongodb", "7.0"),
+  "Percona Server for MongoDB, a fork with its own support lifecycle");
+add("docker-floating", "mongodb", "mongo-img-community-server", IMG("mongodb/mongodb-community-server:7.0-ubi8"), "branch", "7.0", HUB("mongodb/mongodb-community-server", "7.0-ubi8"),
+  "MongoDB Inc.'s own image, not library/mongo: the tag is the MongoDB line", { deviation: "G1" });

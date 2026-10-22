@@ -11,8 +11,10 @@ of life with no fix, check on server, or has the fix (see
 2. A distribution build is never reported as affected, because distributions
    backport fixes under the old upstream number.
 
-This set tests both promises on 253 real-world strings for PHP, Apache httpd,
-nginx, Node.js, Python and OpenSSL. Every string is labelled by hand from a
+This set tests both promises on 274 real-world strings for PHP, Apache httpd,
+nginx, Node.js, Python, OpenSSL and, since 1.8.1, MongoDB. The first 253
+strings cover the six products of 1.8.0. The 21 MongoDB strings were added
+when 1.8.1 began reading MongoDB. Every string is labelled by hand from a
 primary source. The test runs each string through the real engine and the
 bundled `advisories` pack.
 
@@ -41,24 +43,27 @@ whole label: evidence kind, every verdict and end of life. "Report" counts
 only what the user sees, the verdicts and end of life. A kind-only miss gives
 the right findings for the wrong reason.
 
-| Category | Entries | 1.8.0: label | 1.8.0: report | 1.8.1: label | 1.8.1: report |
-|---|---:|---:|---:|---:|---:|
-| distro-backport | 43 | 100.0% | 100.0% | 100.0% | 100.0% |
-| distro-unmarked | 14 | 0.0% | 7.1% | 0.0% | 7.1% |
-| docker-floating | 43 | 88.4% | 90.7% | 97.7% | 97.7% |
-| docker-pinned | 24 | 100.0% | 100.0% | 100.0% | 100.0% |
-| end-of-life | 23 | 82.6% | 82.6% | 100.0% | 100.0% |
-| exact-upstream | 41 | 100.0% | 100.0% | 100.0% | 100.0% |
-| hidden-partial | 14 | 85.7% | 92.9% | 100.0% | 100.0% |
-| lookalike | 17 | 100.0% | 100.0% | 100.0% | 100.0% |
-| prerelease-suffix | 12 | 0.0% | 58.3% | 100.0% | 100.0% |
-| version-file | 22 | 90.9% | 90.9% | 100.0% | 100.0% |
-| **total** | **253** | **84.6%** | **88.5%** | **94.1%** | **94.5%** |
+| Category | 1.8.0: entries | label | report | 1.8.1: entries | label | report |
+|---|---:|---:|---:|---:|---:|---:|
+| distro-backport | 43 | 100.0% | 100.0% | 43 | 100.0% | 100.0% |
+| distro-unmarked | 14 | 0.0% | 7.1% | 14 | 0.0% | 7.1% |
+| docker-floating | 43 | 88.4% | 90.7% | 52 | 96.2% | 98.1% |
+| docker-pinned | 24 | 100.0% | 100.0% | 28 | 100.0% | 100.0% |
+| end-of-life | 23 | 82.6% | 82.6% | 27 | 100.0% | 100.0% |
+| exact-upstream | 41 | 100.0% | 100.0% | 41 | 100.0% | 100.0% |
+| hidden-partial | 14 | 85.7% | 92.9% | 14 | 100.0% | 100.0% |
+| lookalike | 17 | 100.0% | 100.0% | 19 | 100.0% | 100.0% |
+| prerelease-suffix | 12 | 0.0% | 58.3% | 12 | 100.0% | 100.0% |
+| version-file | 22 | 90.9% | 90.9% | 24 | 100.0% | 100.0% |
+| **total** | **253** | **84.6%** | **88.5%** | **274** | **94.2%** | **94.9%** |
 
-The 1.8.0 columns are the engine and pack as released in 1.8.0. The 1.8.1
-columns are main after #101, #102, #103, #106 and #114, with the 1.8.1 pack.
-That pack adds the Node.js security release of 21 October 2026. The
-remaining misses are L1 (14) and G1 (1).
+The 1.8.0 columns are the engine and pack as released in 1.8.0, on the
+original 253 strings. The 1.8.1 columns are main after #101, #102, #103, #106,
+#113 and #114, with the 1.8.1 pack and the 21 MongoDB strings. That pack adds
+the Node.js security release of 21 October 2026 and MongoDB's end-of-life
+dates. On the same 253 strings, 1.8.1 scores 94.1% (label) and 94.5%
+(report). The remaining misses are L1 (14) and G1 (2: one nginx and one
+MongoDB vendor image).
 
 ### What changed between the two runs, per category
 
@@ -94,12 +99,21 @@ behind it. None is a regression.
   version from such a banner is at most `potential` and carries the
   check-on-server note, and every exact image or version-file pin stays
   `likely`, unless the advisory has a condition.
+- **MongoDB (new in 1.8.1):** 21 strings added after #113 taught the engine
+  to read MongoDB. MongoDB has no HTTP banner, so the strings are what the
+  engine reads: official `mongo` image tags (each confirmed on Docker Hub,
+  22 Oct 2026) and `.tool-versions`. The set keeps its minimum of ten strings
+  per product, because these images and pins are where the engine reads
+  MongoDB. The minimum is not limited to products with banners. No MongoDB
+  advisory is bundled, so the labels are end of life only, against
+  MongoDB's lifecycle page as the 1.8.1 pack dates it (22 Oct 2026). All
+  match, apart from the vendor image (G1, kind only: no finding either way).
 - **distro-unmarked (L1):** these entries are unchanged and still misses. The
   set labels verdicts, and the verdict is still "affected" or "end of life".
   Only the confidence and the note changed, which the new test checks.
 
 By product: PHP 88 entries, Apache httpd 45, Python 36, nginx 33, Node.js 31,
-OpenSSL 20.
+MongoDB 21, OpenSSL 20.
 
 The test passes. Every entry the engine still gets wrong carries a `deviation` that
 records what the engine says today. The test checks that the engine still says
@@ -116,7 +130,7 @@ as a change to this table.
 | B1 (fixed, #102) | bug | 5 | `introduced` is ignored on release lines older than the flaw | `Apache/2.2.34`: **critical, "end of life, no fix"** for a flaw that only exists in 2.4.49 and 2.4.50 |
 | B4 (fixed, #106) | bug | 5 | Node.js LTS codenames (`lts/iron`, `node:iron`) are not resolved | `.nvmrc: lts/iron` (Node.js 20) is not reported as end of life |
 | B3 (fixed, #103) | bug | 2 | `Server: Python/3.9 aiohttp/3.8.6` is ignored, because the Python pattern needs x.y.z | an end-of-life Python 3.9 is not reported |
-| G1 | gap | 1 | Only `library/` images are read | `nginxinc/nginx-unprivileged:1.27` gives no evidence |
+| G1 | gap | 2 | Only `library/` images are read | `nginxinc/nginx-unprivileged:1.27` and `mongodb/mongodb-community-server:7.0-ubi8` give no evidence |
 
 L1 and B2 break the promises. B1 overstates. B3, B4 and G1 understate, which
 the docs allow ("no answer is not a clean bill of health").
@@ -280,7 +294,15 @@ verdicts to every Node.js entry.
 - Pinned and floating official images, including RC and codename tags.
 - `.php-version`, `.nvmrc`, `.node-version`, `.python-version`,
   `.tool-versions` and `runtime.txt`.
-- End-of-life lines for all six products.
+- End-of-life lines for all seven products.
+- MongoDB (21 strings, since 1.8.1):
+  - Pinned and floating `mongo` image tags on supported lines (7.0, 8.0, 8.3,
+    9.0) and end-of-life ones (3.6, 4.2, 4.4, 5.0, 6.0, 8.2), including
+    Juice Shop's `mongo:4.4.29`.
+  - `mongodb` in `.tool-versions` (the asdf-mongodb plugin).
+  - Lookalikes: mongo-express and Percona Server for MongoDB.
+  - MongoDB Inc.'s own `mongodb/mongodb-community-server` image, which is not
+    read (G1).
 - Lookalikes: Tomcat, OpenLiteSpeed, IIS, HHVM, OpenResty, Tengine, Angie,
   Cloudflare, LibreSSL, PyPy, phpMyAdmin and Node-RED images, Express and
   Next.js.
@@ -314,7 +336,7 @@ verdicts to every Node.js entry.
 a misreading of an advisory would appear in both. The cross-check against
 OpenAI's php2shell-checker in
 [the case study](case-study-php-2026-10.md#an-independent-cross-check) covers
-the PHP 2026 rules independently. The set is weighted towards PHP (88 of 253)
+the PHP 2026 rules independently. The set is weighted towards PHP (88 of 274)
 because PHP has four of the five bundled advisories.
 
 ## License

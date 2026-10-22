@@ -11,7 +11,8 @@
       "2026-10-21"
     ],
     "eol_date": [
-      "2026-10-21"
+      "2026-10-21",
+      "2026-10-22"
     ]
   },
   "verdict_words": {
@@ -31,7 +32,7 @@
     "docker-floating": "Official Docker image tags that float (8.3, fpm, latest, lts, stable)",
     "version-file": ".php-version, .nvmrc, .node-version, .python-version, .tool-versions, runtime.txt",
     "end-of-life": "Exact or line-only versions on release lines past their end of support",
-    "lookalike": "Strings and images that look like one of the six products but are not"
+    "lookalike": "Strings and images that look like one of the products but are not"
   },
   "deviations": {
     "B1": {
@@ -71,7 +72,7 @@
     "G1": {
       "type": "gap",
       "title": "Only official library images are read",
-      "detail": "nginxinc/nginx-unprivileged:1.27 is nginx 1.27 (end of life) but is not library/nginx, so there is no evidence. Absence is not reported as safe, so no promise breaks.",
+      "detail": "nginxinc/nginx-unprivileged:1.27 is nginx 1.27 (end of life) and mongodb/mongodb-community-server:7.0-ubi8 is MongoDB 7.0, but neither is a library/ image, so there is no evidence. Absence is not reported as safe, so no promise breaks.",
       "fix": "Optionally add well-known vendor images (nginxinc/nginx-unprivileged, bitnami/*) to dockerImages."
     }
   },
@@ -4578,6 +4579,304 @@
       "eol": "end-of-life",
       "source": "https://nodejs.org/dist/index.json",
       "note": "mise accepts `node`"
+    },
+    {
+      "id": "mongo-img-9.0.4",
+      "category": "docker-pinned",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:9.0.4"
+      },
+      "kind": "exact",
+      "version": "9.0.4",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/9.0.4",
+      "note": "current 9.0"
+    },
+    {
+      "id": "mongo-img-8.3.13",
+      "category": "docker-pinned",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:8.3.13"
+      },
+      "kind": "exact",
+      "version": "8.3.13",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/8.3.13",
+      "note": "current 8.3"
+    },
+    {
+      "id": "mongo-img-8.0.34",
+      "category": "docker-pinned",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:8.0.34"
+      },
+      "kind": "exact",
+      "version": "8.0.34",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/8.0.34",
+      "note": "current 8.0"
+    },
+    {
+      "id": "mongo-img-7.0.45-jammy",
+      "category": "docker-pinned",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:7.0.45-jammy"
+      },
+      "kind": "exact",
+      "version": "7.0.45",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/7.0.45-jammy",
+      "note": "current 7.0, Ubuntu-based variant: the image builds MongoDB's own packages, so the base is not a distribution MongoDB"
+    },
+    {
+      "id": "mongo-img-8.2.1",
+      "category": "end-of-life",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:8.2.1"
+      },
+      "kind": "exact",
+      "version": "8.2.1",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/8.2.1",
+      "note": "8.2 rapid release, end of life 31 Jul 2026"
+    },
+    {
+      "id": "mongo-img-6.0.19",
+      "category": "end-of-life",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:6.0.19"
+      },
+      "kind": "exact",
+      "version": "6.0.19",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/6.0.19",
+      "note": "6.0 ended 31 Jul 2025"
+    },
+    {
+      "id": "mongo-img-5.0.31",
+      "category": "end-of-life",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:5.0.31"
+      },
+      "kind": "exact",
+      "version": "5.0.31",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/5.0.31",
+      "note": "5.0 ended 31 Oct 2024"
+    },
+    {
+      "id": "mongo-img-4.4.29",
+      "category": "end-of-life",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:4.4.29"
+      },
+      "kind": "exact",
+      "version": "4.4.29",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/4.4.29",
+      "note": "the pin in OWASP Juice Shop's compose file; 4.4 ended 29 Feb 2024"
+    },
+    {
+      "id": "mongo-img-8.0",
+      "category": "docker-floating",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:8.0"
+      },
+      "kind": "branch",
+      "version": "8.0",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/8.0",
+      "note": "floating supported line"
+    },
+    {
+      "id": "mongo-img-7.0-jammy",
+      "category": "docker-floating",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:7.0-jammy"
+      },
+      "kind": "branch",
+      "version": "7.0",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/7.0-jammy",
+      "note": "floating supported line"
+    },
+    {
+      "id": "mongo-img-8.2",
+      "category": "docker-floating",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:8.2"
+      },
+      "kind": "branch",
+      "version": "8.2",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/8.2",
+      "note": "floating end-of-life rapid release"
+    },
+    {
+      "id": "mongo-img-6.0",
+      "category": "docker-floating",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:6.0"
+      },
+      "kind": "branch",
+      "version": "6.0",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/6.0",
+      "note": "floating end-of-life line"
+    },
+    {
+      "id": "mongo-img-4.2",
+      "category": "docker-floating",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:4.2"
+      },
+      "kind": "branch",
+      "version": "4.2",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/4.2",
+      "note": "floating end-of-life line"
+    },
+    {
+      "id": "mongo-img-3.6",
+      "category": "docker-floating",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:3.6"
+      },
+      "kind": "branch",
+      "version": "3.6",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/3.6",
+      "note": "floating end-of-life line"
+    },
+    {
+      "id": "mongo-img-8",
+      "category": "docker-floating",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:8"
+      },
+      "kind": "present",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/8",
+      "note": "spans release lines"
+    },
+    {
+      "id": "mongo-img-latest",
+      "category": "docker-floating",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:latest"
+      },
+      "kind": "present",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/latest",
+      "note": "no version"
+    },
+    {
+      "id": "mongo-file-tool-versions-7.0.14",
+      "category": "version-file",
+      "product": "mongodb",
+      "input": {
+        "file": ".tool-versions",
+        "content": "mongodb 7.0.14\n"
+      },
+      "kind": "exact",
+      "version": "7.0.14",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/sylph01/asdf-mongodb",
+      "note": "asdf-mongodb pin on a supported line"
+    },
+    {
+      "id": "mongo-file-tool-versions-6.0.19",
+      "category": "version-file",
+      "product": "mongodb",
+      "input": {
+        "file": ".tool-versions",
+        "content": "mongodb 6.0.19\n"
+      },
+      "kind": "exact",
+      "version": "6.0.19",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://github.com/sylph01/asdf-mongodb",
+      "note": "asdf-mongodb pin on an end-of-life line"
+    },
+    {
+      "id": "mongo-img-mongo-express",
+      "category": "lookalike",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo-express:1.0"
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo-express/tags/1.0",
+      "note": "mongo-express, a web admin UI: its tag is its own version"
+    },
+    {
+      "id": "mongo-img-percona",
+      "category": "lookalike",
+      "product": "mongodb",
+      "input": {
+        "image": "percona/percona-server-mongodb:7.0"
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/percona/percona-server-mongodb/tags/7.0",
+      "note": "Percona Server for MongoDB, a fork with its own support lifecycle"
+    },
+    {
+      "id": "mongo-img-community-server",
+      "category": "docker-floating",
+      "product": "mongodb",
+      "input": {
+        "image": "mongodb/mongodb-community-server:7.0-ubi8"
+      },
+      "kind": "branch",
+      "version": "7.0",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/mongodb/mongodb-community-server/tags/7.0-ubi8",
+      "note": "MongoDB Inc.'s own image, not library/mongo: the tag is the MongoDB line",
+      "deviation": {
+        "id": "G1",
+        "engine": {
+          "kind": "none"
+        }
+      }
     }
   ]
 }

@@ -115,6 +115,26 @@ function ruleNumbers() {
   };
 }
 
+/**
+ * The before/after example: a real scan of the test server, from
+ * site/example.json (written by site/tools/example.mjs), and the rule counts
+ * behind it. Fix recipes are not counted as rules.
+ */
+export function exampleValues(packRules) {
+  const e = JSON.parse(readFileSync(join(SITE, "example.json"), "utf8"));
+  const f = e.finding, u = new URL(f.url);
+  const sum = ["critical", "high", "medium", "low"].filter((s) => e.counts[s]).map((s) => `<span class="nowrap">${e.counts[s]} ${s}</span>`);
+  const rules = COUNTS.urlTemplates + COUNTS.secretPatterns + COUNTS.capabilities + COUNTS.agentRules + packRules;
+  return {
+    EX_CMD: esc(e.command), EX_SUM: sum.join(" · "), EX_INFO: String(e.counts.info),
+    EX_CHECKS: String(e.checks), EX_REQ: String(e.requests), EX_HOST: esc(u.hostname),
+    EX_SEV: f.severity.toUpperCase(), EX_TITLE: esc(f.title), EX_DESC: esc(f.description), EX_CONF: esc(f.confidence),
+    EX_EVIDENCE: esc(`GET ${decodeURIComponent(u.pathname + u.search)}`), EX_STATUS: String(f.status),
+    RULES_ALL: String(rules), REFS: String(COUNTS.references),
+    PKGS: (COUNTS.popularNpm + COUNTS.popularPypi).toLocaleString("en-US"),
+  };
+}
+
 /** Wilson score interval, 95%, as README and bench/ report it. */
 function wilson(k, n, z = 1.96) {
   const p = k / n;
@@ -230,6 +250,40 @@ function benchNumbers() {
     BENCH_TP: String(tp), BENCH_FP: String(fp), BENCH_FN: String(fn),
     BENCH_EGRESS: (readFileSync(join(ROOT, "bench", "RESULTS.md"), "utf8").match(/Requests to non-loopback hosts: \*\*(\d+)\*\*/) || [])[1] ?? "not reported",
   };
+}
+
+const REPO_BLOB = "https://github.com/danoszz/penthera/blob/main/";
+
+/** site/compare.json, parsed and checked: every filled cell has a source. */
+export function readCompare(file = join(SITE, "compare.json")) {
+  const c = JSON.parse(readFileSync(file, "utf8"));
+  for (const r of c.rows) {
+    for (const t of c.tools) {
+      const cell = r.cells[t.id];
+      if (!cell) throw new Error(`compare.json: "${r.label}" has no cell for ${t.id}`);
+      if (cell.t && !cell.s.length) throw new Error(`compare.json: "${r.label}" / ${t.id} has no source`);
+    }
+  }
+  return c;
+}
+
+/**
+ * The comparison table. A source in the repo links to its file on GitHub and
+ * is named by its file; a vendor source is named by its host.
+ */
+function compareTable(c, values) {
+  const url = (s) => (/^https:\/\//.test(s) ? s : REPO_BLOB + s);
+  const name = (s) => (/^https:\/\//.test(s) ? new URL(s).hostname.replace(/^(www|docs)\./, "") : s.split("#")[0].split("/").pop());
+  const fill = (t) => t.replace(/\{\{(\w+)\}\}/g, (m, k) => { if (!(k in values)) throw new Error(`compare.json: unknown placeholder ${m}`); return values[k]; });
+  const head = c.tools.map((t) => `<th scope="col"><a href="${REPO_BLOB}${t.page}">${esc(t.name)}</a>`
+    + (t.checked ? `<span class="cmp-date">checked ${t.checked}</span>` : "") + "</th>").join("");
+  const body = c.rows.map((r) => `<tr><th scope="row">${esc(r.label)}</th>` + c.tools.map((t) => {
+    const cell = r.cells[t.id];
+    if (!cell.t) return `<td class="cmp-none"><span aria-hidden="true">—</span><span class="sr">Not covered on our compare page</span></td>`;
+    const src = cell.s.map((s) => `<a href="${esc(url(s))}">${esc(name(s))}</a>`).join(", ");
+    return `<td><p>${esc(fill(cell.t))} <span class="cmp-src">Source: ${src}</span></p></td>`;
+  }).join("") + "</tr>").join("\n");
+  return `<table class="cmp"><thead><tr><th scope="col"><span class="sr">Question</span></th>${head}</tr></thead>\n<tbody>\n${body}\n</tbody></table>`;
 }
 
 const STARS_FILE = join(SITE, "stars.json");
@@ -357,12 +411,14 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
     CHECK_KB: String(kb(checkBytes)),
     ...benchNumbers(),
     ...ruleNumbers(),
+    ...exampleValues(packs.reduce((n, p) => n + p.count, 0)),
     ...e10Values(),
     STARS: await starCount(),
     TICKER: tickerHtml(readNews()),
     SITE_URL: siteUrl(),
   };
   values.STARS_LABEL = values.STARS ? `, ${values.STARS} stars` : "";
+  values.COMPARE = compareTable(readCompare(), values);
   let html = readFileSync(join(SITE, "index.html"), "utf8");
   html = html.replace(/\{\{(\w+)\}\}/g, (m, k) => {
     if (!(k in values)) throw new Error(`index.html: unknown placeholder ${m}`);

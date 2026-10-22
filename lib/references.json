@@ -30,6 +30,9 @@
       "meli2019bad",
       "basak2023secretbench"
     ],
+    "scan": [
+      "owaspwstg42"
+    ],
     "unchecked": [
       "meli2019bad",
       "basak2023secretbench"
@@ -604,6 +607,11 @@
       "cite": "Node.js releases",
       "title": "Node.js Releases",
       "url": "https://nodejs.org/en/about/previous-releases"
+    },
+    "mongodblifecycles": {
+      "cite": "MongoDB lifecycles",
+      "title": "Software Lifecycle Schedules",
+      "url": "https://www.mongodb.com/legal/support-policy/lifecycles"
     },
     "pythondevguideversions": {
       "cite": "Python version status",

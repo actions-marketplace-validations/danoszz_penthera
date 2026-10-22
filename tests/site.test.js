@@ -8,7 +8,10 @@ import { mkdtempSync, rmSync, readFileSync, mkdirSync, writeFileSync, existsSync
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
-import { buildSite, readNews, e10Numbers } from "../site/build.mjs";
+import { buildSite, readNews, readCompare, e10Numbers } from "../site/build.mjs";
+import { scanExample } from "../site/tools/example.mjs";
+import { COUNTS } from "../scripts/docs-numbers.mjs";
+import { activePacks } from "../lib/rules/index.js";
 import { serve, headersFor } from "../site/serve.mjs";
 import { buildFixtures } from "./fixtures/deps/build.js";
 import { scanAgents } from "../lib/agents/index.js";
@@ -134,6 +137,15 @@ describe("site build", () => {
   });
 });
 
+describe("site layout at phone width", () => {
+  it("sizes the paste panels' grid to the card, so a nowrap command cannot widen it (e2e 2026-10-22, 375px)", () => {
+    const css = readFileSync(new URL("../site/styles.css", import.meta.url), "utf8");
+    const rule = css.match(/\.paste-body \{([^}]*)\}/)?.[1] || "";
+    expect(rule).toMatch(/grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+    expect(css).toMatch(/\.paste-body > \.cmd code \{[^}]*white-space: normal/);
+  });
+});
+
 describe("site FAQ", () => {
   it("is native <details> with a question in each summary, and its numbers come from the repo", () => {
     const html = readFileSync(join(out, "index.html"), "utf8");
@@ -147,6 +159,86 @@ describe("site FAQ", () => {
     expect(faq).toContain(`from ${tp} true positives, ${fp} false positives and ${fn} misses`);
     expect(faq).toMatch(/one runtime dependency \(yaml\)|\d+ runtime dependencies/);
     expect(faq).not.toMatch(/\{\{\w+\}\}/);
+  });
+});
+
+describe("site comparison table", () => {
+  const cmp = readCompare();
+  // The Cloudflare compare page lands with danoszz/penthera#89; until then its
+  // links are allowed to point at a file that is not on this branch yet.
+  const PENDING = new Set(["docs/compare/cloudflare-security-audit.md"]);
+  const repoFile = (s) => s.split("#")[0];
+
+  it("has a sourced cell for every tool in every row, and says where each tool goes further", () => {
+    expect(cmp.tools.map((t) => t.id)).toEqual(["penthera", "cloudflare", "semgrep", "snyk", "socket", "zap", "github"]);
+    for (const r of cmp.rows) {
+      for (const t of cmp.tools) {
+        const c = r.cells[t.id];
+        if (c.t) expect(c.s.length, `${r.label} / ${t.id}`).toBeGreaterThan(0);
+        for (const s of c.s) {
+          if (/^https:\/\//.test(s)) continue;
+          if (!PENDING.has(repoFile(s))) expect(existsSync(join(ROOT, repoFile(s))), s).toBe(true);
+        }
+      }
+    }
+    const further = cmp.rows.find((r) => r.label === "Where it goes further");
+    for (const t of cmp.tools) expect(further.cells[t.id].t, t.id).toBeTruthy();
+  });
+
+  it("dates each tool as its compare page does", () => {
+    for (const t of cmp.tools.filter((x) => x.checked)) {
+      if (PENDING.has(t.page) && !existsSync(join(ROOT, t.page))) continue;
+      const page = readFileSync(join(ROOT, t.page), "utf8");
+      expect(page, t.page).toMatch(new RegExp(`Last checked: ${t.checked}`));
+    }
+  });
+
+  it("names no winner and never says Penthera finds more", () => {
+    const text = cmp.rows.flatMap((r) => Object.values(r.cells).map((c) => c.t || "")).join("\n");
+    expect(text).not.toMatch(/\b(best|better|winner|beats|finds more|more accurate|superior)\b/i);
+  });
+
+  it("renders every cell with its source, inside its own scroll box", () => {
+    const html = readFileSync(join(out, "index.html"), "utf8");
+    const sec = html.slice(html.indexOf('id="compare"'), html.indexOf("<!-- 7 · EU rules -->"));
+    expect(sec).not.toMatch(/\{\{\w+\}\}/);
+    expect(sec).toMatch(/<div class="cmp-scroll" role="region" aria-labelledby="compare-title" tabindex="0">\s*<table class="cmp">/);
+    expect(sec.match(/<tr><th scope="row">/g)).toHaveLength(cmp.rows.length);
+    const cells = sec.match(/<td[^>]*>[\s\S]*?<\/td>/g);
+    expect(cells).toHaveLength(cmp.rows.length * cmp.tools.length);
+    for (const c of cells) if (!c.includes("cmp-none")) expect(c).toMatch(/Source: <a href="https:\/\//);
+    for (const t of cmp.tools) expect(sec).toContain(`<a href="https://github.com/danoszz/penthera/blob/main/${t.page}">`);
+    // Penthera's accuracy is the benchmark's, filled in at build time.
+    const total = readFileSync(join(ROOT, "bench", "RESULTS.md"), "utf8").match(/\| \*\*Total\*\* \|[^|]*\| \*\*(\d+)\*\* \| \*\*(\d+)\*\* \|/);
+    const [tp, fp] = total.slice(1).map(Number);
+    expect(sec).toContain(`Precision ${(tp / (tp + fp)).toFixed(2)} (95% CI`);
+  });
+});
+
+describe("site before and after", () => {
+  it("shows a real scan: site/example.json is what Penthera reports on the test server today", async () => {
+    const saved = JSON.parse(readFileSync(join(ROOT, "site", "example.json"), "utf8"));
+    expect(await scanExample()).toEqual(saved);
+    expect(saved.thirdParty).toBe(0); // the page says every request went to the target
+  }, 60_000);
+
+  it("fills in the scan and counts every rule from the repo, without the fix recipes", () => {
+    const html = readFileSync(join(out, "index.html"), "utf8");
+    const sec = html.slice(html.indexOf('class="ba"'), html.indexOf("<!-- 3 · Get it -->"));
+    const e = JSON.parse(readFileSync(join(ROOT, "site", "example.json"), "utf8"));
+    expect(sec).not.toMatch(/\{\{\w+\}\}/);
+    expect(sec).toContain("yo, is my app safe?");
+    for (const s of ["high", "medium", "low"]) if (e.counts[s]) expect(sec).toContain(`${e.counts[s]} ${s}`);
+    expect(sec).toContain(`${e.checks} checks, ${e.requests} requests, all to 127.0.0.1.`);
+    expect(sec).toContain(`${e.finding.title} <span class="ba-conf">${e.finding.confidence}</span>`);
+    expect(sec).toContain("<code>GET /api/oauth/callback?redirect_uri=https://evil-attacker.example/capture</code> returned 302.");
+    const packRules = activePacks().reduce((n, p) => n + p.count, 0);
+    const rules = COUNTS.urlTemplates + COUNTS.secretPatterns + COUNTS.capabilities + COUNTS.agentRules + packRules;
+    expect(sec).toContain(`<span class="ba-n">${rules}</span> readable rules`);
+    expect(sec).toContain(`<span class="ba-n">${COUNTS.references}</span> cited sources`);
+    expect(sec).toContain(`<span class="ba-n">${(COUNTS.popularNpm + COUNTS.popularPypi).toLocaleString("en-US")}</span> package names`);
+    expect(rules).toBeLessThan(1000); // the count is what it is; never round it up
+    expect(sec).not.toMatch(/1,?000\+/);
   });
 });
 

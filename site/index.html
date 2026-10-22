@@ -192,6 +192,42 @@
       </div>
     </section>
 
+    <!-- 2b · Before and after: a real scan of the test server, from site/example.json. -->
+    <section class="ba" aria-labelledby="ba-title">
+      <h2 id="ba-title" class="sr">Before and after</h2>
+      <div class="ba-grid">
+        <figure class="ba-before">
+          <figcaption class="ba-label">Before</figcaption>
+          <p class="bubble">yo, is my app safe?</p>
+        </figure>
+        <figure class="ba-after">
+          <figcaption class="ba-label">After</figcaption>
+          <div class="ba-out">
+            <p class="ba-cmd"><span aria-hidden="true">$ </span>{{EX_CMD}}</p>
+            <p class="ba-sum">{{EX_SUM}}</p>
+            <p class="ba-meta">{{EX_CHECKS}} checks, {{EX_REQ}} requests, all to {{EX_HOST}}. {{EX_INFO}} info notes.</p>
+            <div class="ba-finding">
+              <p class="ba-title"><span class="ba-sev">{{EX_SEV}}</span> {{EX_TITLE}} <span class="ba-conf">{{EX_CONF}}</span></p>
+              <p>{{EX_DESC}}</p>
+              <p class="ba-ev">Evidence: <code>{{EX_EVIDENCE}}</code> returned {{EX_STATUS}}.</p>
+            </div>
+          </div>
+        </figure>
+      </div>
+      <ul class="ba-counts">
+        <li><span class="ba-n">{{RULES_ALL}}</span> readable rules</li>
+        <li><span class="ba-n">{{REFS}}</span> cited sources</li>
+        <li><span class="ba-n">{{PKGS}}</span> package names</li>
+      </ul>
+      <p class="ba-cap">The after is real output: a standard scan of Penthera's <a href="https://github.com/danoszz/penthera/blob/main/tests/fixtures/mock-server.js">test server</a>, written by <code>site/tools/example.mjs</code> and re-checked by the tests. The rules are URL templates, secret patterns, dependency capabilities, AI-tooling rules and rule packs, each a plain file you can read. The package names are the popular npm and PyPI names the typosquat check compares against. <a href="https://github.com/danoszz/penthera/blob/main/docs/METHODOLOGY.md">How each check works</a></p>
+      <button class="cmd" type="button" data-copy="npx penthera">
+        <span class="cmd-prompt" aria-hidden="true">$</span>
+        <code>npx penthera</code>
+        <span class="cmd-act" aria-hidden="true" data-js><span class="cmd-copy">Copy</span><span class="cmd-done">Copied</span></span>
+        <span class="sr" aria-live="polite" data-copy-status>, copy to clipboard</span>
+      </button>
+    </section>
+
     <!-- 3 · Get it -->
     <section class="get band band-blue" id="get" aria-labelledby="get-title">
       <h2 id="get-title">Get it</h2>
@@ -273,7 +309,7 @@
       <figure class="bench-fig">
         <div class="e10-legend" aria-hidden="true"><span class="key-before">Before</span><span class="key-after">After</span></div>
 {{E10_BARS}}
-        <figcaption>Recall: the documented flaws found, out of those in the answer key that Penthera claims to detect. Bars show the rate, whiskers the 95% Wilson interval. Standard run, no attack payloads.</figcaption>
+        <figcaption>Recall: the documented flaws found, out of those in the answer key that Penthera claims to detect. Bars show the rate, whiskers the 95% Wilson interval. Standard run, no injection payloads except one SQL error check on the login, which has since moved to <code>--deep</code>; a re-run is due.</figcaption>
       </figure>
 
       <p class="bench-prec">Precision stayed level: {{E10_PR_B}} (95% CI {{E10_PR_B_CI}}) on {{E10_PR_B_N}} findings before, {{E10_PR_A}} ({{E10_PR_A_CI}}) on {{E10_PR_A_N}} after.</p>
@@ -295,6 +331,17 @@
         <p>Its accuracy is measured, on a small sample: precision {{BENCH_P}} (95% CI {{BENCH_P_CI}}) and recall {{BENCH_R}} (95% CI {{BENCH_R_CI}}), on {{BENCH_N}} findings in labs we wrote ourselves. These numbers catch regressions; they do not measure real-world accuracy.</p>
         <p class="method"><a href="https://github.com/danoszz/penthera/blob/main/docs/METHODOLOGY.md">How each check works, and what it cannot see: the methodology</a></p>
       </div>
+    </section>
+
+    <!-- 6b · How it compares: the table is built from site/compare.json. -->
+    <section class="compare" id="compare" aria-labelledby="compare-title">
+      <h2 id="compare-title">How Penthera compares</h2>
+      <p class="compare-lede">Most teams use Penthera with at least one of these. Here is what each is for, and where each goes further.</p>
+      <p class="cmp-hint">Scroll the table sideways to see all seven tools.</p>
+      <div class="cmp-scroll" role="region" aria-labelledby="compare-title" tabindex="0">
+{{COMPARE}}
+      </div>
+      <p class="compare-note">Every cell links its source: the vendor's docs or one of our compare pages, each with the date we last checked it. Prices and plans change, so check the vendor's page before you rely on one. A dash means our page does not cover it. No row says which tool finds more; that has not been measured. <a href="https://github.com/danoszz/penthera/blob/main/docs/compare/README.md">All comparisons, and how to run each tool with Penthera</a></p>
     </section>
 
     <!-- 7 · EU rules -->

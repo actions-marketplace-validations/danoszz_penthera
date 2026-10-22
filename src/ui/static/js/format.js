@@ -34,6 +34,8 @@ export const pct = (x) => (x == null ? "-" : `${Math.round(x * 100)}%`);
 /** Basename-ish short label for a project key (path or origin). */
 export function shortProject(key) {
   if (!key) return "-";
+  // A URL and a folder checked together are keyed "<url> + <absolute folder>".
+  if (key.includes(" + ")) return key.split(" + ").map(shortProject).join(" + ");
   if (/^https?:\/\//.test(key)) return key.replace(/^https?:\/\//, "");
   const parts = key.split(/[\\/]/).filter(Boolean);
   return parts.slice(-2).join("/") || key;

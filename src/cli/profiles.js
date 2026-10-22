@@ -5,7 +5,7 @@
 export const PROFILES = {
   quick: {
     label: "Quick",
-    description: "Headers, OpenAPI, auth smoke tests, skips Retire.js and param discovery",
+    description: "Headers, OpenAPI, auth checks without login POSTs, skips Retire.js and param discovery",
     recon: false,
     deep: false,
     fuzz: false,
@@ -14,7 +14,7 @@ export const PROFILES = {
   },
   standard: {
     label: "Standard",
-    description: "Full non-destructive scan (default)",
+    description: "Full non-destructive scan (default): no attack payloads, one invalid login POST",
     recon: false,
     deep: false,
     fuzz: false,
@@ -23,7 +23,7 @@ export const PROFILES = {
   },
   deep: {
     label: "Deep",
-    description: "Maximum coverage: recon + injection probes + API fuzzing",
+    description: "Maximum coverage: recon + injection probes + login rate-limit burst + API fuzzing",
     recon: true,
     deep: true,
     fuzz: true,

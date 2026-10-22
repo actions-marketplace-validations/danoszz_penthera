@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "penthera": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "penthera@1.9.0", "mcp"]
+    }
+  }
+}

@@ -9,6 +9,7 @@ import { buildActionPlan, formatActionPlanMarkdown } from "../../lib/remediation
 import { formatAuditLoopMarkdown } from "../../lib/audit-loop.js";
 import { referencesFor, formatSourcesMarkdown } from "../../lib/references.js";
 import { formatDepsMarkdown } from "../../lib/deps/report.js";
+import { REASONS } from "../../lib/coverage.js";
 import { mdInline } from "./md-escape.js";
 import { footerLines } from "./footer.js";
 
@@ -200,6 +201,8 @@ export function formatMarkdownReport(result, opts = {}) {
     lines.push("");
   }
 
+  if (result.coverage) lines.push(...coverageMarkdown(result.coverage));
+
   if (result.egress) {
     const e = result.egress;
     lines.push("## Network egress");
@@ -245,4 +248,38 @@ export function writeMarkdownReport(result, filePath, opts = {}) {
 
 export function markdownPathFromJson(jsonPath) {
   return jsonPath.replace(/\.json$/i, ".md");
+}
+
+/** "What was checked, and what was not": the repo scan's coverage ledger. */
+export function coverageMarkdown(cov) {
+  const L = ["## Coverage", ""];
+  L.push("What the repo scan read, and what it did not. Files that no check read are not clean, only unchecked.");
+  L.push("");
+  L.push("| Check | Files read | Not read |");
+  L.push("|---|---:|---|");
+  for (const f of cov.families) {
+    const skipped = Object.entries(f.skipped).map(([r, n]) => `${n} ${REASONS[r] || r}`).join("; ");
+    L.push(`| ${f.label} | ${f.ran ? f.examined : "did not run"} | ${f.ran ? mdEscape(skipped || "none") : mdEscape(REASONS["no-api-surface"])} |`);
+  }
+  for (const n of cov.notRun) L.push(`| ${n.label} | not part of a repo scan | run \`${n.command}\` |`);
+  L.push("");
+  if (cov.sourceFiles > 0) {
+    L.push(`**Source files analysed for code patterns:** ${cov.sourceFilesAnalysed} of ${cov.sourceFiles}.`);
+    const langs = cov.languages.map((l) => `${l.language} ${l.analysed}/${l.files}`).join(", ");
+    L.push(`By language: ${langs}.`);
+    L.push("");
+  }
+  if (cov.blindSpots.count > 0) {
+    const why = Object.entries(cov.blindSpots.byReason).map(([r, n]) => `${n} ${REASONS[r] || r}`).join("; ");
+    L.push(`<details><summary>${cov.blindSpots.count} source file${cov.blindSpots.count === 1 ? "" : "s"} not analysed for code patterns (${mdEscape(why)})</summary>`);
+    L.push("");
+    for (const p of cov.blindSpots.paths) L.push(`- \`${mdEscape(p)}\``);
+    if (cov.blindSpots.count > cov.blindSpots.listed) L.push(`- …and ${cov.blindSpots.count - cov.blindSpots.listed} more (see the JSON report's \`coverage\`)`);
+    L.push("");
+    L.push("</details>");
+    L.push("");
+  }
+  if (cov.excludedDirs.length) L.push(`Folders no check reads: ${cov.excludedDirs.map((d) => `\`${d}\``).join(", ")}.`, "");
+  if (cov.truncated) L.push("The ledger stopped at 50,000 files; counts above cover those files only.", "");
+  return L;
 }

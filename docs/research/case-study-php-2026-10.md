@@ -67,8 +67,12 @@ Each version gets one of four answers:
 | Check on the server | PHP is in use, but the version is hidden, floating (`php:8.3`), or a Linux distribution build (`8.3.6-1ubuntu1.4`) |
 | Has the fix, as advertised | A version at or above the fix |
 
-We tested this on a local server that sends `X-Powered-By: PHP/8.3.35`. The
-scan reported both CVEs as critical, confidence likely.
+We tested this on a local server that sends `X-Powered-By: PHP/8.3.35`. In
+1.8.0 the scan reported both CVEs as critical, confidence likely. From the
+next release it reports them as critical, confidence potential, with a note to check on
+the server. The reason: a banner that names no distribution may be a patched
+Ubuntu 24.04 or Debian package, which prints the same plain number
+([#97](https://github.com/danoszz/penthera/pull/97), L1).
 
 ## Why "check on the server" is most of the work
 

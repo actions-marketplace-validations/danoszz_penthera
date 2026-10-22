@@ -25,6 +25,7 @@ node site/serve.mjs     # http://127.0.0.1:4173/ with the production headers
 | `../vercel.json` | At the repo root, so Vercel needs no settings: install, build (`node site/build.mjs`), output (`site/dist`) and the security headers: CSP with `connect-src 'none'`, HSTS, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer`. |
 | `stars.json` | The last GitHub star count the build read, used when the API is rate-limited or offline. Set `GITHUB_TOKEN` in Vercel to avoid the anonymous limit. |
 | `tools/social.mjs` | Renders `media/social/og.png` (1200 × 630, the share card for LinkedIn, X and Facebook) and `square.png` (1080 × 1080, Instagram) with a local Chrome. Re-run it when the headline changes. |
+| `tools/reel.mjs` | Renders `media/social/reel.mp4`, the 14-second muted loop that iMessage and other apps play for a shared link (`og:video`, with `og.png` as poster and fallback): setup, a scan, the verdict, the PHP advisory of 21 Oct 2026 and the share card. Cut from `assets/walkthrough.mp4` plus `scripts/media/tapes/advisory.tape`; needs Chrome, vhs and ffmpeg. Re-run it after the walkthrough or the card changes. X shows the image card only. |
 | `media/` | `field.png` (the hero's 1-bit cloud), `hero.mp4` and its poster, regenerated with `tools/media.sh`; `dvdzwaag.svg`, the maker's wordmark traced with potrace from Daan's own artwork, used as a mask so it takes the ink. |
 
 ## The browser check

@@ -38,6 +38,26 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   the `pattern` name.
 
 
+
+- **TLS keys anyone can compute.** URL scans report, as critical, any
+  certificate in the served chain whose EC public key (P-256, P-384, P-521) is
+  k·G for a private scalar k below 1024. The private key then follows from
+  the certificate alone. This is the flaw in eMudhra's P-384 intermediates
+  ([Mozilla bug 2083449](https://bugzilla.mozilla.org/show_bug.cgi?id=2083449),
+  private keys below 256). The check is arithmetic, not a list, so it has no
+  false positives and no data to maintain. Research note:
+  [docs/research/emudhra-weak-keys-2026-10.md](docs/research/emudhra-weak-keys-2026-10.md).
+
+- **Node.js security release of 21 October 2026** in the `advisories` pack:
+  CVE-2026-111497 (Brotli decoder out-of-bounds write, remote code execution)
+  and the TLS certificate hostname bypasses CVE-2026-106069, CVE-2026-105483
+  and CVE-2026-106072, fixed in 22.23.4, 24.22.1 and 26.12.1, from
+  [nodejs.org](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases).
+  Node.js has no server banner, so repo scans find it (`.nvmrc`,
+  `.node-version`, `.tool-versions`, `node:` images); 20.x and 25.x are
+  reported as end-of-life lines. The pack's signature was removed with the
+  change; `npm run rules:check` fails until the maintainer re-signs it.
+
 - **Python start-up code in wheels.** `penthera deps` now finds `.pth` files
   and a shipped `sitecustomize.py` / `usercustomize.py` wherever a wheel puts
   them at the site-packages root, including `<name>-<version>.data/purelib/`

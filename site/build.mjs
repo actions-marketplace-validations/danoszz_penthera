@@ -317,6 +317,32 @@ async function starCount() {
   return n >= 1000 ? `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1).replace(/\.0$/, "")}k` : String(n);
 }
 
+/** True for a semver pre-release such as 1.9.0-rc.1. */
+export const prerelease = (v) => /^\d+\.\d+\.\d+-/.test(v);
+
+/** The oldest release in CHANGELOG.md whose notes mention `text`, or null. */
+export function firstRelease(text, file = join(ROOT, "CHANGELOG.md")) {
+  let first = null;
+  for (const sec of readFileSync(file, "utf8").split(/^## /m).slice(1)) {
+    const v = /^\[(\d[^\]]*)\]/.exec(sec)?.[1];
+    if (v && sec.includes(text)) first = v;
+  }
+  return first;
+}
+
+/**
+ * While the package version is a release candidate, the MCP server is not on
+ * npm's `latest` tag: say so wherever its config is shown. Empty once stable.
+ */
+export function mcpNote(version) {
+  if (!prerelease(version)) return { MCP_NOTE: "", MCP_NOTE_MD: "" };
+  const since = firstRelease("`penthera mcp`") || version;
+  return {
+    MCP_NOTE: `New in ${since}, a release candidate on npm's <code>next</code> tag (<code>penthera@next</code>).`,
+    MCP_NOTE_MD: `New in ${since}, a release candidate on npm's \`next\` tag (\`penthera@next\`).`,
+  };
+}
+
 const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
 /** Check site/news.json: a date, one short line, an https source. Throws on the first bad item. */
@@ -416,8 +442,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
     STARS: await starCount(),
     TICKER: tickerHtml(readNews()),
     SITE_URL: siteUrl(),
-    // The version every MCP config on the page pins: server.json, which the MCP Registry also reads.
-    MCP_VERSION: JSON.parse(readFileSync(join(ROOT, "server.json"), "utf8")).version,
+    ...mcpNote(version),
   };
   values.STARS_LABEL = values.STARS ? `, ${values.STARS} stars` : "";
   values.COMPARE = compareTable(readCompare(), values);

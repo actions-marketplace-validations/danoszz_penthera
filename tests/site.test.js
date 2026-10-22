@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync, readFileSync, mkdirSync, writeFileSync, existsSync
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
-import { buildSite, readNews, readCompare, e10Numbers } from "../site/build.mjs";
+import { buildSite, readNews, readCompare, e10Numbers, prerelease, mcpNote, firstRelease } from "../site/build.mjs";
 import { scanExample } from "../site/tools/example.mjs";
 import { COUNTS } from "../scripts/docs-numbers.mjs";
 import { activePacks } from "../lib/rules/index.js";
@@ -57,8 +57,8 @@ function cliFolder(files) {
 const key = (f) => [f.severity, f.templateId || f.method || f.source, f.title, f.description].join(" | ");
 
 describe("site build", () => {
-  it("pins the MCP server to server.json's version on the page and in llms.txt, never unpinned", () => {
-    const version = JSON.parse(readFileSync(join(ROOT, "server.json"), "utf8")).version;
+  it("pins every command and MCP config to package.json's version, on the page and in llms.txt", () => {
+    const { version } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
     const html = readFileSync(join(out, "index.html"), "utf8");
     const llms = readFileSync(join(out, "llms.txt"), "utf8");
     expect(html).toContain('id="agent"');
@@ -67,8 +67,27 @@ describe("site build", () => {
       expect(text).toContain(`penthera@${version} mcp`);
       expect(text).not.toMatch(/npx (-y )?penthera mcp/);
       expect(text).not.toContain("{{");
+      // Every pin on the built page is the package's own version.
+      const pins = [...text.matchAll(/penthera@(\d[\w.-]*)/g)].map((m) => m[1]);
+      expect(pins.length).toBeGreaterThan(0);
+      expect(new Set(pins)).toEqual(new Set([version]));
+      if (prerelease(version)) expect(text).toMatch(/release candidate on npm's (<code>|`)next/);
     }
     expect(llms).toMatch(/^# Penthera\n\n> /);
+  });
+
+  it("has no hard-coded version pins in the site's sources: the build fills them in", () => {
+    const sources = ["index.html", "llms.txt", ...readdirSync(join(ROOT, "site", "check")).filter((f) => f.endsWith(".js")).map((f) => `check/${f}`)];
+    for (const f of sources) {
+      const text = readFileSync(join(ROOT, "site", f), "utf8");
+      expect(text, f).not.toMatch(/penthera@\d/);
+    }
+  });
+
+  it("notes the MCP server's release candidate only while the version is one", () => {
+    expect(mcpNote("1.9.0").MCP_NOTE).toBe("");
+    expect(mcpNote("1.9.0-rc.1").MCP_NOTE_MD).toMatch(/^New in \d+\.\d+\.\d+[\w.-]*, a release candidate on npm's `next` tag/);
+    expect(firstRelease("`penthera mcp`")).toMatch(/^1\.9\.0/);
   });
 
   it("writes the page, the check and its media, with measured numbers filled in", () => {

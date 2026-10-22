@@ -115,6 +115,7 @@ const HELP = `
     -o, --output <file>     Write JSON report (+ companion .md if .json)
         --markdown <file>   Write Markdown report (human-readable)
         --sarif <file>      Write SARIF report (GitHub Security tab)
+        --audit-seeds <file>  Write repo findings as seeds for an AI audit (security-audit-skill findings.json)
         --audience <who>    developer | owner | auditor report (for --markdown or stdout)
         --report-template <file.md>  Your own Markdown template ({{summary.critical}}, {{#each findings}})
         --evidence <dir>    Evidence bundle: all reports + manifest.json with SHA-256s
@@ -245,6 +246,7 @@ export async function run() {
         output:      { type: "string",  short: "o" },
         markdown:    { type: "string" },
         sarif:       { type: "string" },
+        "audit-seeds": { type: "string" },
         audience:    { type: "string" },
         "no-footer": { type: "boolean", default: false },
         "report-template": { type: "string" },
@@ -450,6 +452,10 @@ export async function run() {
 
   const url = positionals[0] && !agentsMode ? normalizeBaseUrl(positionals[0]) : null;
   const repo = opts.repo || null;
+  if (opts["audit-seeds"] && !repo && !agentsMode) {
+    printError("--audit-seeds needs --repo <path> (or `penthera agents <path>`): seeds point at files in a repository.");
+    process.exit(2);
+  }
 
   if (!agentsMode && !url && !repo && !opts.machine && !opts.readiness && !opts["policy-pack"] && !opts.sbom && !opts.aibom && !opts.questionnaire) {
     printError("No target specified. Provide a URL, --repo, --machine, --readiness, --policy-pack, --sbom, --aibom, --questionnaire, or combine them.");
@@ -675,6 +681,17 @@ export async function run() {
     }
   }
 
+  if (opts["audit-seeds"]) {
+    const seedRoot = repo ? resolve(repo) : agentsRoot;
+    const { toSecurityAuditFindings } = await import("../lib/llm-audit/export.js");
+    const seeds = toSecurityAuditFindings(merged, seedRoot);
+    mkdirSync(dirname(resolve(opts["audit-seeds"])), { recursive: true });
+    writeFileSync(resolve(opts["audit-seeds"]), JSON.stringify(seeds.findings, null, 2) + "\n");
+    if (!opts.quiet && !opts.json) {
+      process.stderr.write(`  Audit seeds    ${opts["audit-seeds"]} (${seeds.exported} finding${seeds.exported === 1 ? "" : "s"}; ${seeds.skipped} without a file in the repo left out)\n`);
+    }
+  }
+
   if (merged.readiness) {
     const rdPath = opts.output
       ? opts.output.replace(/\.json$/i, "") + "-readiness.md"
@@ -780,7 +797,7 @@ export async function run() {
     );
   }
 
-  if ((opts.output || opts.markdown || opts.sarif || opts.evidence || opts.readiness || opts["policy-pack"] || opts.sbom || opts.aibom || opts.history || opts.questionnaire) && !opts.quiet && !opts.json) {
+  if ((opts.output || opts.markdown || opts.sarif || opts["audit-seeds"] || opts.evidence || opts.readiness || opts["policy-pack"] || opts.sbom || opts.aibom || opts.history || opts.questionnaire) && !opts.quiet && !opts.json) {
     process.stderr.write("\n");
   }
 

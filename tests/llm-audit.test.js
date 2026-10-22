@@ -124,6 +124,10 @@ describe("classes", () => {
     expect(classify("Open redirect", "also mentions SQL injection").id).toBe("open-redirect");
   });
 
+  it("classify their own label to themselves, so a class can be written down and read back", () => {
+    for (const c of CLASSES) expect(classify(c.label).id, c.label).toBe(c.id);
+  });
+
   it("have unique ids and say which rule family can check them", () => {
     const ids = CLASSES.map((c) => c.id);
     expect(new Set(ids).size).toBe(ids.length);
@@ -236,5 +240,46 @@ describe("penthera verify (CLI)", () => {
   it("keeps model findings in their own SARIF run even with no rule findings", () => {
     const sarif = verifySarif({ timestamp: "2026-10-22T00:00:00Z", findings: [] });
     expect(sarif.runs).toHaveLength(2);
+  });
+});
+
+describe("exporting seeds for an AI audit", () => {
+  it("writes valid security-audit findings, with real lines, that verify confirms by rule", () => withTempDir("penthera-seeds-", async (root) => {
+    const { scanRepo } = await import("../src/scan-repo.js");
+    const { toSecurityAuditFindings } = await import("../lib/llm-audit/export.js");
+    put(root, "config/aws.js", `// config\nmodule.exports = {\n  key: "${FAKE_KEY}",\n};\n`);
+    put(root, "app/api/render/route.js", "export async function GET(req) {\n  const x = 1;\n  el.innerHTML = req.query;\n}\n");
+    const scan = await scanRepo(root);
+    const seeds = toSecurityAuditFindings({ findings: [...scan.findings, { severity: "high", title: "Missing CSP", url: "https://example.com", category: "headers" }] }, root);
+    expect(seeds.exported).toBe(2);
+    expect(seeds.skipped).toBeGreaterThanOrEqual(1); // the URL finding and info findings
+    const byFile = Object.fromEntries(seeds.findings.map((f) => [f.trace[0].file, f]));
+    expect(byFile["config/aws.js"].trace[0].line).toBe(3);
+    expect(byFile["app/api/render/route.js"].trace[0].line).toBe(3);
+    expect(seeds.findings.every((f) => f.verdict === "needs_validation" && f.fingerprint.startsWith("penthera:"))).toBe(true);
+    expect(JSON.stringify(seeds.findings)).not.toContain(FAKE_KEY); // the secret stays masked
+
+    // Round trip: the skill would accept the file, and verify confirms every seed by rule.
+    const parsed = parseCloudflareFindings(JSON.stringify(seeds.findings));
+    expect(parsed.ok).toBe(true);
+    const r = await verifyCandidates(root, parsed.candidates);
+    expect(r.counts["confirmed-by-rule"]).toBe(2);
+  }));
+
+  it("says when the line is not known instead of inventing one", async () => {
+    const { toSecurityAuditFindings } = await import("../lib/llm-audit/export.js");
+    await withTempDir("penthera-seeds-", async (root) => {
+      put(root, ".mcp.json", "{}\n");
+      const seeds = toSecurityAuditFindings({ findings: [{ severity: "medium", title: "Unpinned MCP server", description: "runs npx -y", url: ".mcp.json", category: "agent-config" }] }, root);
+      expect(seeds.findings[0].trace[0].line).toBe(1);
+      expect(seeds.findings[0].description).toMatch(/did not record a line/);
+    });
+  });
+
+  it("is refused by the CLI without a repository", async () => {
+    const { spawnSync } = await import("node:child_process");
+    const r = spawnSync(process.execPath, ["bin/penthera.js", "http://127.0.0.1:9", "--audit-seeds", "x.json"], { encoding: "utf-8", timeout: 20_000 });
+    expect(r.status).toBe(2);
+    expect(r.stderr + r.stdout).toMatch(/--audit-seeds needs --repo/);
   });
 });

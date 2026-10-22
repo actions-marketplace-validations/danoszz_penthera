@@ -46,6 +46,10 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   "also proposed by" the model; the rest are labelled "model-proposed,
   unverified" and never fail CI. Penthera runs no model and sends nothing
   anywhere. See [docs/commands/verify.md](docs/commands/verify.md).
+- **`--audit-seeds <file>`** writes repo findings in the security-audit
+  skill's `findings.json` schema, as seeds for an AI audit: each entry is
+  `needs_validation`, names its class and the line the rule matched, and is
+  checked against the skill's schema before it is written.
 - Risky-pattern findings from `--repo` now carry the repo-relative `file` and
   the `pattern` name.
 

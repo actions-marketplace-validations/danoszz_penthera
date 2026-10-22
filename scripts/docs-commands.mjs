@@ -211,7 +211,7 @@ const LICENSE_PRESETS = new Set(["permissive", "weak-copyleft-ok", "no-agpl"]);
 const INPUT_FLAGS = new Set(["--diff", "--venv", "--rules", "--rules-signers", "--assessment", "--baseline",
   "--incident", "--cra", "--report-template", "--allowed-signers", "--policy", "--questionnaire", "--suppliers", "--sign-key"]);
 /** Flags that take a value (so the next token is not a positional). */
-const VALUE_FLAGS = new Set([...INPUT_FLAGS, "-r", "--repo", "--api-root", "-o", "--output", "--markdown", "--sarif",
+const VALUE_FLAGS = new Set([...INPUT_FLAGS, "-r", "--repo", "--api-root", "-o", "--output", "--markdown", "--sarif", "--audit-seeds",
   "--audience", "--evidence", "--framework", "--assessment-init", "--policy-pack", "--org", "--incident-init", "--sbom",
   "--aibom", "--cra-init", "--history", "--auth-cookie", "--auth-bearer", "--timeout", "--concurrency", "--user-agent",
   "--profile", "--nuclei", "--templates", "--base", "--pr-comment", "--license-policy", "--port", "--project",

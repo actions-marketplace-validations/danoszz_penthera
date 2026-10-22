@@ -158,6 +158,68 @@
       ]
     },
     {
+      "id": "nodejs-cve-2026-111497",
+      "product": "nodejs",
+      "title": "Node.js remote code execution via an out-of-bounds write in the Brotli decoder",
+      "severity": "high",
+      "cves": [
+        "CVE-2026-111497"
+      ],
+      "fixed": [
+        {
+          "branch": "22",
+          "version": "22.23.4"
+        },
+        {
+          "branch": "24",
+          "version": "24.22.1"
+        },
+        {
+          "branch": "26",
+          "version": "26.12.1"
+        }
+      ],
+      "source": "https://nodejs.org/en/blog/vulnerability/october-2026-security-releases",
+      "date": "2026-10-21",
+      "confidence": "confirmed",
+      "references": [
+        "nodejsreleases"
+      ],
+      "description": "The Node.js project rates it High: an out-of-bounds write in the Brotli decoder permits remote code execution. It affects the 22.x, 24.x and 26.x lines and is fixed in 22.23.4, 24.22.1 and 26.12.1, released 20 and 21 Oct 2026 (nodejs.org/dist/index.json marks all three as security releases). Code that decompresses Brotli from the network (zlib.createBrotliDecompress, fetch or HTTP clients honouring Content-Encoding: br) is the exposed path. Node.js says end-of-life lines are always affected by a security release."
+    },
+    {
+      "id": "nodejs-tls-hostname-2026-10",
+      "product": "nodejs",
+      "title": "Node.js TLS certificate hostname verification bypasses",
+      "severity": "high",
+      "cves": [
+        "CVE-2026-106069",
+        "CVE-2026-105483",
+        "CVE-2026-106072"
+      ],
+      "fixed": [
+        {
+          "branch": "22",
+          "version": "22.23.4"
+        },
+        {
+          "branch": "24",
+          "version": "24.22.1"
+        },
+        {
+          "branch": "26",
+          "version": "26.12.1"
+        }
+      ],
+      "source": "https://nodejs.org/en/blog/vulnerability/october-2026-security-releases",
+      "date": "2026-10-21",
+      "confidence": "confirmed",
+      "references": [
+        "nodejsreleases"
+      ],
+      "description": "Three flaws in how Node.js matches a server certificate to the host it connected to, so a certificate for another name can be accepted: CVE-2026-106069 (High, 22.x, 24.x, 26.x: the host loosely resolves to an IP address), CVE-2026-105483 (High, 24.x and 26.x only: an IP written in fullwidth digits) and CVE-2026-106072 (Medium, 22.x, 24.x, 26.x: DNS SANs authenticate IP endpoints through non-canonical IPv4 hostnames). Fixed in 22.23.4, 24.22.1 and 26.12.1. On 22.x only CVE-2026-106069 and CVE-2026-106072 apply. Node.js says end-of-life lines are always affected by a security release."
+    },
+    {
       "id": "httpd-cve-2021-41773-42013",
       "product": "apache-httpd",
       "title": "Path traversal and remote code execution in Apache HTTP Server 2.4.49 and 2.4.50",

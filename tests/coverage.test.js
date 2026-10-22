@@ -48,6 +48,20 @@ describe("coverage ledger", () => {
     expect(cov.notRun.map((n) => n.id)).toEqual(["deps", "agents"]);
   }));
 
+  it("marks files in folders the secret scan skips", () => withTempDir("penthera-cov-", async (root) => {
+    put(root, "app.py", "x = 1\n");
+    put(root, ".obsidian/plugins/p/main.js", "x\n");
+    put(root, "py311/pyvenv.cfg", "home = /usr/bin\n");
+    put(root, "py311/lib/y.py", "y = 1\n");
+    put(root, "out/generated.js", "x\n");
+    const ignored = { dirs: new Set([join(root, "out")]), files: new Set() };
+    const { files } = fileCoverage(root, {}, { ignored });
+    expect(files.get("app.py").secrets).toBe("examined");
+    expect(files.get(".obsidian/plugins/p/main.js").secrets).toBe("skipped-folder");
+    expect(files.get("py311/lib/y.py").secrets).toBe("skipped-folder");
+    expect(files.get("out/generated.js").secrets).toBe("skipped-folder");
+  }));
+
   it("says route analysis did not run when no routes were found", () => withTempDir("penthera-cov-", async (root) => {
     put(root, "src/util.js", "export const a = 1;\n");
     const result = await scanRepo(root);

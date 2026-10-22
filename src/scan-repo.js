@@ -60,17 +60,20 @@ export async function scanRepo(repoPath, opts = {}) {
     executedProbes: [],
     findings: [],
   };
+  // What git ignores here: the secret scan skips ignored folders and marks
+  // hits in ignored files as local only, and the ledger says so.
+  const ignored = gitIgnored(repoPath);
   // Every return goes through here: the ledger says what was read, including
   // when route analysis found nothing to read.
   const finish = () => {
-    result.coverage = buildCoverage(repoPath, result);
+    result.coverage = buildCoverage(repoPath, result, { ignored });
     result.duration = Date.now() - startTime;
     return result;
   };
 
   // ── Phase 1: Secret scanning (whole repo) ─────────────────────────────
   progress("Scanning for hardcoded secrets...");
-  result.findings.push(...scanSecrets(repoPath, { ignored: gitIgnored(repoPath) }));
+  result.findings.push(...scanSecrets(repoPath, { ignored }));
   result.executedProbes.push("secret-scanning");
 
   // ── Phase 1b: Runtime pins (Dockerfile, .tool-versions, ...) vs advisories

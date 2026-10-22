@@ -18,3 +18,6 @@ section: Fixed
   same line numbers as before. Runs of 512 or more base64 characters (inlined
   images, fonts) are blanked before matching, so `AIza...` or `AKIA...` shapes
   inside image data are no longer reported.
+- **The coverage ledger matches what the secret scan read.** Files in a
+  folder the scan skips (a virtualenv, a tool cache, a folder git ignores)
+  are listed as "in a folder the secret scan skips", not as read.

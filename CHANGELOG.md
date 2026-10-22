@@ -16,6 +16,13 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   command. Severity is unchanged. Official images and version files are
   upstream builds and stay `likely`. Found by the runtime-strings test set
   (L1 in [#97](https://github.com/danoszz/penthera/pull/97)).
+
+- Runtime advisories resolve Node.js LTS codenames to their release line:
+  nvm's `lts/iron` in `.nvmrc` and the node image's `iron`, `jod-alpine`
+  and `hydrogen` tags. They read as no version before, so `lts/iron` (Node.js
+  20, end of life 30 April 2026) went unreported. Found by the
+  runtime-strings test set (B4 in
+  [#97](https://github.com/danoszz/penthera/pull/97)).
 - Runtime advisories read aiohttp's `Server: Python/3.9 aiohttp/3.8.6`.
   aiohttp prints only the Python release line, and the banner pattern needed
   x.y.z, so an end-of-life Python behind aiohttp went unreported. Found by

@@ -4,6 +4,14 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Fixed
+
+- `penthera ui` listens for SIGINT and SIGTERM before it prints that it is
+  listening. A signal that arrived in between got the default action and
+  killed the process without "Stopped." (seen as a hung CI test; about one
+  run in a hundred locally). The test now fails within seconds with the
+  child's output instead of hanging for three minutes.
+
 ### Detection
 
 - Three exposure checks in the default URL scan, each a documented miss in

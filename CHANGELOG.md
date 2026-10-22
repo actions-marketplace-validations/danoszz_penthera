@@ -38,7 +38,6 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   the `pattern` name.
 
 
-
 - **TLS keys anyone can compute.** URL scans report, as critical, any
   certificate in the served chain whose EC public key (P-256, P-384, P-521) is
   k·G for a private scalar k below 1024. The private key then follows from

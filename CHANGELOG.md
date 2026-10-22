@@ -270,6 +270,9 @@ cleanly under `npx`.
 
 ### Docs
 
+- Compared with Cloudflare's security-audit skill: a side-by-side in
+  `docs/compare/` and a research note on how Penthera can read its findings,
+  re-check them with rules and seed it, plus a proposed experiment (E9).
 - The PHP case study and `docs/runtime-advisories.md` cite OpenAI's
   php2shell-checker as an independent cross-check. A test pins that Penthera
   agrees with its table on all 14 PHP branches.

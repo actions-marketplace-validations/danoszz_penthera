@@ -157,36 +157,20 @@ Fixes for B1–B4 are open as separate PRs: B2
 [#101](https://github.com/danoszz/penthera/pull/101), B1
 [#102](https://github.com/danoszz/penthera/pull/102), B3
 [#103](https://github.com/danoszz/penthera/pull/103) and B4
-[#106](https://github.com/danoszz/penthera/pull/106). L1 changes what
-Penthera claims, so it waits for this decision:
+[#106](https://github.com/danoszz/penthera/pull/106). L1 changed what
+Penthera claims, so it went to the maintainer:
 
-1. **What should Penthera say about an exact version with no distribution
-   token, for products that distributions commonly backport** (PHP, nginx,
-   Python, OpenSSL)?
-   - **(a) Recommended: cap and explain.** Keep the verdict, but cap the
-     confidence at `potential` and add a "check on server" note to the
-     finding. The note says the string could be a distribution build:
-     Debian 11–13, Ubuntu 24.04+ and RHEL print plain upstream numbers, so
-     confirm with the package manager, or with the distribution's security
-     tracker for the CVE. It is a small change in `matchRuntimeAdvisories`
-     and keeps "affected" visible for official images and source builds. Narrow
-     the documented promise to "a version that marks itself as a
-     distribution build is never reported as affected; an unmarked one is
-     never more than potential". `X-Powered-By: PHP/8.3.6` from Ubuntu
-     24.04 then becomes critical, potential, with the note, instead of
-     critical, likely. Repo evidence (an official image, a version file) is
-     upstream by construction and keeps `likely`.
-   - (b) **Frozen-version list.** A `runtime-distro-version` list in the
-     pack gives the frozen upstream version per supported distribution
-     release (Ubuntu 24.04 php 8.3.6, Debian 12 nginx 1.22.1, EL9 php 8.0.30,
-     …). Matches become check on server, naming the distribution. This is
-     precise where it applies, but misses Debian and RHEL streams that move
-     to new point releases (Debian 12's `PHP/8.2.35` is genuinely 8.2.35),
-     and the list needs upkeep. It works well as a follow-up to (a).
-   - (c) **Check on server for every unmarked exact version** of those
-     products. This keeps the original promise word for word, but loses
-     "affected" for official Docker images and source builds, where it is
-     most often right.
+1. **L1, decided: cap and explain**, implemented in
+   [#114](https://github.com/danoszz/penthera/pull/114). For PHP, Apache
+   httpd, nginx, Python and OpenSSL, an "affected" or "end of life" finding
+   from a banner with no distribution token is now at most `potential`, with
+   a note to check on the server. Severity is unchanged. Official images and
+   version files stay `likely`. The set labels verdicts, not confidence, so
+   the 14 L1 entries keep their deviation: the verdict is still "affected",
+   now at `potential` with the note. Two alternatives were not taken: a pack
+   list of frozen distribution versions (a possible follow-up), and "check
+   on server" for every unmarked version (it would lose "affected" for
+   upstream builds).
 2. **Should this set gate releases?**
    - **(a) Recommended.** Yes, as it is now: part of `npm test`, with known
      deviations pinned.

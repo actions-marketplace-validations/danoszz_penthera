@@ -56,7 +56,7 @@ export const DEVIATIONS = {
     type: "limitation",
     title: "A distribution build whose string equals an upstream one is read as upstream",
     detail: "Debian 11-13 and Ubuntu 24.04+ print plain upstream PHP numbers (PHP/8.3.6), RHEL never adds a suffix, Debian's and RHEL's nginx add no OS token, and distribution Pythons print sys.version. Without a Server header naming the distribution, these read as exact upstream builds: PHP/8.3.6 from a patched Ubuntu 24.04 is reported critical and likely affected. The promise holds only for strings that mark themselves as distribution builds.",
-    fix: "Not fixable from the string alone. Mitigations: list each supported distribution release's frozen version (Ubuntu 24.04 php 8.3.6, Debian 12 nginx 1.22.1, EL9 php 8.0.30, ...) in the pack and report those as check on server; and say in the docs that the promise covers strings that name a distribution.",
+    fix: "Not fixable from the string alone. Decided by the maintainer: such a banner gives at most `potential`, with a check-on-server note (#114). The verdict stays \"affected\" (labels here are verdicts, not confidence), so these entries keep this deviation. A list of frozen distribution versions in the pack is a possible follow-up.",
   },
   G1: {
     type: "gap",

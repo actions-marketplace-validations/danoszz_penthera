@@ -78,8 +78,10 @@ const HELP = `
         --profile <name>        quick | standard | deep (default: standard)
     ${dim("(default)")}                    TLS + fingerprint + discovery + templates + CORS
                                + cookies + Retire.js + param discovery + OpenAPI/auth
+                               (one invalid login POST, no attack payloads; quick: none)
         --recon                 + OSINT recon (subdomains, historical URLs)
         --deep                  + Injection probes (SQLi, SSTI, SSRF, XSS, CMDi)
+                               + login rate-limit burst and SQL error check on /api/login
         --fuzz                  + Property-based API fuzzing
         --nuclei <path>         + Community Nuclei YAML templates (alias for --templates)
         --templates <paths>     Comma-separated dirs of Nuclei-compatible YAML templates
@@ -548,7 +550,7 @@ export async function run() {
   // Warning for destructive modes
   if (deep && !opts.quiet && !opts.json) {
     process.stderr.write(
-      "\n  \x1b[33mWARN\x1b[0m --deep sends attack payloads (SQLi, SSTI, SSRF, XSS, CMDi).\n" +
+      "\n  \x1b[33mWARN\x1b[0m --deep sends attack payloads (SQLi, SSTI, SSRF, XSS, CMDi) and a burst of login attempts.\n" +
       "       Only scan targets you have permission to test.\n\n",
     );
   }

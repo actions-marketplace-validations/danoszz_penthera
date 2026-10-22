@@ -94,7 +94,7 @@ export const TOOLS = [
   {
     name: "scan_url",
     title: "Scan a running app (passive)",
-    description: "Passive black-box scan of a running web app the user is authorized to test: TLS, security headers, cookies, CORS, exposed files and docs, OpenAPI and auth smoke checks. Sends no attack payloads. Only loopback targets, or hosts the user listed with --allow-host when configuring this server, can be scanned.",
+    description: "Passive black-box scan of a running web app the user is authorized to test: TLS, security headers, cookies, CORS, exposed files and docs, OpenAPI and auth checks. Sends no attack payloads: profile quick sends no login request, standard sends one POST /api/login with invalid credentials. Only loopback targets, or hosts the user listed with --allow-host when configuring this server, can be scanned.",
     inputSchema: {
       type: "object",
       properties: {

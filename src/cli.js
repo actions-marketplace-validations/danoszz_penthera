@@ -12,7 +12,7 @@ import { scanRepo } from "./scan-repo.js";
 import { mergeResults } from "./cli/merge-results.js";
 import { resolveScanOptions } from "./cli/profiles.js";
 import { compareWithBaseline } from "./cli/baseline.js";
-import { normalizeBaseUrl } from "./utils/url.js";
+import { targetFromArg } from "./utils/url.js";
 import { printReport, printFindings, writeJsonReport, writeSarifReport, createProgress, printError } from "./reporter.js";
 import { writeMarkdownReport, markdownPathFromJson } from "./report/markdown.js";
 import { prepareReportOptions, customReport, writeEvidence } from "./cli/report-outputs.js";
@@ -476,7 +476,15 @@ export async function run() {
     process.exit(2);
   }
 
-  const url = positionals[0] && !agentsMode ? normalizeBaseUrl(positionals[0]) : null;
+  let url = null;
+  if (positionals[0] && !agentsMode) {
+    const target = targetFromArg(positionals[0]);
+    if (target.error) {
+      printError(target.error);
+      process.exit(2);
+    }
+    url = target.url;
+  }
   const repo = opts.repo || null;
   const aiFlags = ["ai-model", "ai-budget", "ai-consent", "ai-scope"].filter((k) => opts[k] != null);
   if (aiFlags.length && !opts.ai) {

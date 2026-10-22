@@ -6,6 +6,16 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ### Fixed
 
+- Runtime advisories no longer claim `likely` for a banner that may be a
+  patched distribution package. Debian 11 to 13, Ubuntu 24.04 and later, and
+  RHEL print plain upstream PHP versions, so a patched Ubuntu 24.04
+  `X-Powered-By: PHP/8.3.6` behind nginx or a CDN was reported as critical
+  and likely affected. For PHP, Apache httpd, nginx, Python and OpenSSL,
+  "affected" and "end of life" findings from a banner with no distribution
+  token are now `potential`, with a "check on server" note and the check
+  command. Severity is unchanged. Official images and version files are
+  upstream builds and stay `likely`. Found by the runtime-strings test set
+  (L1 in [#97](https://github.com/danoszz/penthera/pull/97)).
 - **`npx penthera ui` stops cleanly on Ctrl-C and SIGTERM.** npm forwards
   the signal to penthera right after the terminal delivered it, and the
   second copy could kill the dashboard before it printed "Stopped." and

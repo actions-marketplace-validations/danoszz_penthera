@@ -513,6 +513,12 @@ describe("site files for agents", () => {
 });
 
 describe("site headers", () => {
+  it("vercel.json's ignoreCommand fits Vercel's 256-character limit", () => {
+    // Vercel rejects the whole deployment when it's longer.
+    const { ignoreCommand } = JSON.parse(readFileSync(join(ROOT, "vercel.json"), "utf8"));
+    expect(ignoreCommand.length).toBeLessThanOrEqual(256);
+  });
+
   it("vercel.json allows only Vercel's two counters, and forbids framing and plain HTTP", () => {
     const h = headersFor("/");
     const csp = h["Content-Security-Policy"];

@@ -4,7 +4,7 @@
   "installCommand": "npm ci --ignore-scripts --no-audit --no-fund",
   "buildCommand": "node site/build.mjs",
   "outputDirectory": "site/dist",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- site lib src/ui/static assets/walkthrough.mp4 assets/walkthrough-poster.jpg assets/walkthrough.vtt assets/dashboard README.md docs CHANGELOG.md AGENTS.md bench/RESULTS.md tests/fixtures/agents/malicious package.json package-lock.json vercel.json server.json",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- site lib src/ui/static assets README.md docs CHANGELOG.md AGENTS.md bench/RESULTS.md tests/fixtures/agents/malicious package.json package-lock.json vercel.json server.json",
   "cleanUrls": true,
   "trailingSlash": false,
   "headers": [

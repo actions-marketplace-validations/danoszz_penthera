@@ -224,6 +224,18 @@ describe("black-box verdicts", () => {
     expect(verdicts(one("Apache/2.4.62"))[0]).toMatch(/^info/);
   });
 
+  it("reads aiohttp's major.minor Python banner as the release line", () => {
+    // Strings from bench/runtime-strings (docs/research/runtime-strings.md, B3); aiohttp/http.py.
+    const pyEol = eolRule({ product: "python", source: "https://devguide.python.org/versions/", branches: [{ branch: "3.9", eol: "2025-10-31" }] });
+    expect(evidenceFromResponse({ headers: { server: "Python/3.11 aiohttp/3.9.5" } })).toMatchObject([{ product: "python", kind: "branch", version: { major: 3, minor: 11, patch: null } }]);
+    expect(verdicts(runtimeAdvisoriesForResponse({ headers: { server: "Python/3.9 aiohttp/3.8.6" } }, { advisories: [], eol: [pyEol] }))).toEqual([
+      "high/likely: Python 3.9 is end of life: no more security fixes",
+    ]);
+    // Not CPython's own name inside another word, and not a bare major.
+    expect(evidenceFromResponse({ headers: { server: "CPython/3.11" } })).toEqual([]);
+    expect(evidenceFromResponse({ headers: { server: "Python/3" } })).toEqual([]);
+  });
+
   it("respects `introduced` on older release lines: a line older than the flaw never had it", () => {
     // Strings from bench/runtime-strings (docs/research/runtime-strings.md, B1).
     const trav = adv({ id: "trav", product: "apache-httpd", title: "Path traversal", fixed: [{ branch: "2.4", version: "2.4.51", introduced: "2.4.49" }] });

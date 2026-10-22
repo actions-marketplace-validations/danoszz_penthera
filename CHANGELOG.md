@@ -44,6 +44,14 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   source files no code analysis looked at. It reads only file names and sizes,
   and is the first step toward an opt-in AI mode.
 
+### Fixed
+
+- `--repo` scans of Express, Hono and Fastify apps with a `routes/`, `api/` or
+  `server/routes/` folder now get route discovery, trust-boundary and
+  risky-pattern checks. That folder was taken for a Next.js API root, no
+  `route.js` files were found there, and route analysis stopped. An explicit
+  `--api-root` is still used as given.
+
 - **TLS keys anyone can compute.** URL scans report, as critical, any
   certificate in the served chain whose EC public key (P-256, P-384, P-521) is
   k·G for a private scalar k below 1024. The private key then follows from

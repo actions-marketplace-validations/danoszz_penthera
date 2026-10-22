@@ -19,9 +19,15 @@ Pick a profile, or add individual flags for more depth:
 
 | Profile | Command | What runs |
 |---------|---------|-----------|
-| **quick** | `--profile quick` | Headers, OpenAPI, auth smoke tests (about 10s) |
-| **standard** | *(default)* | Full non-destructive scan |
-| **deep** | `--profile deep` | recon, injection probes, and API fuzzing |
+| **quick** | `--profile quick` | Headers, OpenAPI, auth checks; no login POSTs (about 10s) |
+| **standard** | *(default)* | Full non-destructive scan: no attack payloads, and one `POST /api/login` with invalid credentials |
+| **deep** | `--profile deep` | recon, injection probes, API fuzzing, and on `/api/login` an 8-attempt rate-limit burst and an SQL error check |
+
+What each profile sends to `/api/login`: `quick` nothing; `standard` one
+login with obviously invalid credentials, to catch a login that accepts
+anything; `--deep` also 8 rapid attempts (rate limiting) and an
+`' OR '1'='1` string (SQL errors). A CDN firewall can read the last two as an
+attack and start challenging you, so they only run with `--deep`.
 
 Individual flags: `--recon`, `--deep`, `--fuzz`, `--adaptive`, `--nuclei <path>`, `--templates <dirs>`, `--all`
 

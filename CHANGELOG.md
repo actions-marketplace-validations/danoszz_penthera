@@ -4,6 +4,14 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Fixed
+
+- Runtime advisories read aiohttp's `Server: Python/3.9 aiohttp/3.8.6`.
+  aiohttp prints only the Python release line, and the banner pattern needed
+  x.y.z, so an end-of-life Python behind aiohttp went unreported. Found by
+  the runtime-strings test set (B3 in
+  [#97](https://github.com/danoszz/penthera/pull/97)).
+
 ### Site
 
 - penthera.org counts anonymous page views and load times with Vercel Web

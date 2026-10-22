@@ -151,6 +151,18 @@ describe("black-box verdicts", () => {
     expect(verdicts(one("Apache/2.4.62"))[0]).toMatch(/^info/);
   });
 
+  it("reads aiohttp's major.minor Python banner as the release line", () => {
+    // Strings from bench/runtime-strings (docs/research/runtime-strings.md, B3); aiohttp/http.py.
+    const pyEol = eolRule({ product: "python", source: "https://devguide.python.org/versions/", branches: [{ branch: "3.9", eol: "2025-10-31" }] });
+    expect(evidenceFromResponse({ headers: { server: "Python/3.11 aiohttp/3.9.5" } })).toMatchObject([{ product: "python", kind: "branch", version: { major: 3, minor: 11, patch: null } }]);
+    expect(verdicts(runtimeAdvisoriesForResponse({ headers: { server: "Python/3.9 aiohttp/3.8.6" } }, { advisories: [], eol: [pyEol] }))).toEqual([
+      "high/likely: Python 3.9 is end of life: no more security fixes",
+    ]);
+    // Not CPython's own name inside another word, and not a bare major.
+    expect(evidenceFromResponse({ headers: { server: "CPython/3.11" } })).toEqual([]);
+    expect(evidenceFromResponse({ headers: { server: "Python/3" } })).toEqual([]);
+  });
+
   it("reads nginx, OpenSSL and Python from Server banners, and not Tomcat as Apache", () => {
     const ev = evidenceFromResponse({ headers: { server: "Apache/2.4.58 (Unix) OpenSSL/3.0.13", "x-powered-by": "PHP/8.3.12" } });
     expect(ev.map((e) => `${e.product} ${e.version?.raw} ${e.kind}`)).toEqual(["php 8.3.12 exact", "apache-httpd 2.4.58 exact", "openssl 3.0.13 exact"]);

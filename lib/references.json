@@ -30,6 +30,9 @@
       "meli2019bad",
       "basak2023secretbench"
     ],
+    "scan": [
+      "owaspwstg42"
+    ],
     "unchecked": [
       "meli2019bad",
       "basak2023secretbench"

@@ -36,6 +36,18 @@ describe("CLI smoke (offline commands)", () => {
     }
   });
 
+  it("an unknown word is a usage error, not a TypeError stack trace (e2e 2026-10-22)", () => {
+    let err;
+    try {
+      execFileSync(process.execPath, [BIN, "notacommand"], { cwd: dir, encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, NO_COLOR: "1", PENTHERA_NO_ONBOARDING: "1" } });
+    } catch (e) {
+      err = e;
+    }
+    expect(err?.status).toBe(2);
+    expect(err.stderr + err.stdout).toMatch(/not a penthera command or a URL/);
+    expect(err.stderr + err.stdout).not.toMatch(/TypeError|node:internal/);
+  });
+
   it("ROADMAP.md claims for 1.5.0 only what 1.5.0 shipped (360 review)", () => {
     const row = readFileSync(join(REPO, "ROADMAP.md"), "utf-8").split("\n").find((l) => l.startsWith("| 1.5.0 |"));
     expect(row).toMatch(/hook.*license policy.*CRA.*AI-BOM/);

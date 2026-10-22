@@ -121,7 +121,101 @@ function wilson(k, n, z = 1.96) {
   const d = 1 + z * z / n;
   const c = (p + z * z / (2 * n)) / d;
   const h = (z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n))) / d;
-  return `${(c - h).toFixed(2)} to ${(c + h).toFixed(2)}`;
+  return `${Math.max(0, c - h).toFixed(2)} to ${Math.min(1, c + h).toFixed(2)}`;
+}
+
+const KNOWN_VULN = join(ROOT, "bench", "known-vuln");
+
+/**
+ * Pooled precision of a scorer report's standard run: findings that match the
+ * answer key or were labelled correct, over every labelled finding (cannot-tell
+ * counts as incorrect), as bench/known-vuln/score.mjs computes it.
+ */
+function e10Precision(file) {
+  const md = readFileSync(file, "utf8");
+  const run = md.slice(md.indexOf("Run `standard`"));
+  const line = run.split("\n").find((l) => l.startsWith("| **Pooled** |"));
+  if (!line) throw new Error(`E10: no pooled standard row in ${file}`);
+  const [, matched, correct, incorrect] = line.split("|").slice(2, 6).map((c) => +c.trim());
+  const k = matched + correct, n = k + incorrect;
+  return { k, n, rate: k / n, ci: wilson(k, n) };
+}
+
+/**
+ * The E10 pilot, before and after the recall fixes, from
+ * bench/known-vuln/RESULTS-after-fixes.md ("Before and after" table and the
+ * held-out WebGoat line) and the pooled rows of the two scorer reports. Only
+ * counts are read; rates and Wilson intervals are computed here, and
+ * tests/site.test.js checks them against what the files state.
+ * @returns {{ apps: object[], pooled: object, precision: object, heldOut: object }}
+ */
+export function e10Numbers(dir = KNOWN_VULN) {
+  const file = join(dir, "RESULTS-after-fixes.md");
+  const md = readFileSync(file, "utf8");
+  const table = md.slice(md.indexOf("## Before and after"));
+  const kn = (s) => { const m = /(\d+)\/(\d+)/.exec(s); if (!m) throw new Error(`E10: no k/n in "${s}"`); return { k: +m[1], n: +m[2] }; };
+  const pair = (label) => {
+    const line = table.split("\n").find((l) => l.startsWith(`| ${label} |`));
+    if (!line) throw new Error(`E10: no "${label}" row in ${file}`);
+    const [b, a] = line.split("|").slice(2, 4).map((c) => kn(c));
+    return { before: { ...b, rate: b.k / b.n, ci: wilson(b.k, b.n) }, after: { ...a, rate: a.k / a.n, ci: wilson(a.k, a.n) } };
+  };
+  const held = /Held-out check: WebGoat[\s\S]*?\*\*(\d+)\/(\d+),[^*]*\*\* both times/.exec(md);
+  if (!held) throw new Error(`E10: no held-out WebGoat result in ${file}`);
+  const hk = +held[1], hn = +held[2];
+  return {
+    apps: [
+      { id: "juice-shop", name: "OWASP Juice Shop", ...pair("juice-shop") },
+      { id: "dvna", name: "DVNA", ...pair("dvna") },
+    ],
+    pooled: pair("**Pooled recall**"),
+    precision: { before: e10Precision(join(dir, "RESULTS.md")), after: e10Precision(file) },
+    heldOut: { name: "WebGoat", k: hk, n: hn, rate: hk / hn, ci: wilson(hk, hn) },
+  };
+}
+
+/**
+ * The before/after bars, one row per app. Names and numbers are HTML text; the
+ * SVG only draws (the CSP forbids inline styles, so widths are attributes).
+ */
+function e10Bars(e) {
+  const rows = [...e.apps, { name: "Both apps", ...e.pooled }];
+  const ci = (s) => s.split(" to ").map((x) => (Number(x) * 100).toFixed(1));
+  // Each slot is 12 units tall: the bar fills the middle 8, the interval's
+  // caps run the full 12 so they stay visible past the bar's edges.
+  const bar = (y, r, cls) => {
+    const [lo, hi] = ci(r.ci), mid = y + 6;
+    return `<rect class="${cls}" x="0" y="${y + 2}" width="${Math.max(0.6, r.rate * 100).toFixed(1)}" height="8"/>`
+      + `<path class="e10-ci" d="M${lo} ${mid}H${hi}M${lo} ${y}V${y + 12}M${hi} ${y}V${y + 12}"/>`;
+  };
+  return rows.map((r) => `<div class="e10-row"><span class="e10-name">${esc(r.name)}</span>`
+    + `<svg class="e10-bar" viewBox="0 0 100 26" preserveAspectRatio="none" aria-hidden="true">${bar(0, r.before, "e10-before")}${bar(14, r.after, "e10-after")}</svg>`
+    + `<span class="e10-nums">${r.before.k}/${r.before.n} <span aria-hidden="true">→</span><span class="sr"> to </span> ${r.after.k}/${r.after.n}</span></div>`).join("\n");
+}
+
+function e10Values() {
+  const e = e10Numbers();
+  const r = (x) => x.toFixed(2);
+  const v = {};
+  for (const a of e.apps) {
+    const key = a.id === "juice-shop" ? "JS" : "DV";
+    Object.assign(v, {
+      [`E10_${key}_B`]: `${a.before.k}/${a.before.n}`, [`E10_${key}_A`]: `${a.after.k}/${a.after.n}`,
+      [`E10_${key}_B_R`]: r(a.before.rate), [`E10_${key}_B_CI`]: a.before.ci,
+      [`E10_${key}_A_R`]: r(a.after.rate), [`E10_${key}_A_CI`]: a.after.ci,
+    });
+  }
+  const p = e.pooled, pr = e.precision, w = e.heldOut;
+  Object.assign(v, {
+    E10_P_B: `${p.before.k}/${p.before.n}`, E10_P_A: `${p.after.k}/${p.after.n}`,
+    E10_P_B_OF: `${p.before.k} of ${p.before.n}`, E10_P_A_OF: `${p.after.k} of ${p.after.n}`,
+    E10_P_B_R: r(p.before.rate), E10_P_B_CI: p.before.ci, E10_P_A_R: r(p.after.rate), E10_P_A_CI: p.after.ci,
+    E10_PR_B: r(pr.before.rate), E10_PR_B_CI: pr.before.ci, E10_PR_B_N: String(pr.before.n),
+    E10_PR_A: r(pr.after.rate), E10_PR_A_CI: pr.after.ci, E10_PR_A_N: String(pr.after.n),
+    E10_WG: `${w.k}/${w.n}`, E10_WG_R: r(w.rate), E10_WG_CI: w.ci,
+    E10_BARS: e10Bars(e),
+  });
+  return v;
 }
 
 /** The benchmark's Total row from bench/RESULTS.md (generated by npm run bench). */
@@ -263,6 +357,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
     CHECK_KB: String(kb(checkBytes)),
     ...benchNumbers(),
     ...ruleNumbers(),
+    ...e10Values(),
     STARS: await starCount(),
     TICKER: tickerHtml(readNews()),
     SITE_URL: siteUrl(),

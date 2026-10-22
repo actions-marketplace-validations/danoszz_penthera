@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync, readFileSync, mkdirSync, writeFileSync, existsSync
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
-import { buildSite, readNews } from "../site/build.mjs";
+import { buildSite, readNews, e10Numbers } from "../site/build.mjs";
 import { serve, headersFor } from "../site/serve.mjs";
 import { buildFixtures } from "./fixtures/deps/build.js";
 import { scanAgents } from "../lib/agents/index.js";
@@ -137,7 +137,7 @@ describe("site build", () => {
 describe("site FAQ", () => {
   it("is native <details> with a question in each summary, and its numbers come from the repo", () => {
     const html = readFileSync(join(out, "index.html"), "utf8");
-    const faq = html.slice(html.indexOf('id="faq"'), html.indexOf("<!-- 8 · Vision -->"));
+    const faq = html.slice(html.indexOf('id="faq"'), html.indexOf("<!-- 9 · Vision -->"));
     const items = faq.match(/<details>\s*<summary>[^<]+\?<\/summary>/g) || [];
     expect(items.length).toBeGreaterThanOrEqual(10);
     // Benchmark figures as bench/RESULTS.md and scripts/docs-numbers.mjs give them.
@@ -147,6 +147,62 @@ describe("site FAQ", () => {
     expect(faq).toContain(`from ${tp} true positives, ${fp} false positives and ${fn} misses`);
     expect(faq).toMatch(/one runtime dependency \(yaml\)|\d+ runtime dependencies/);
     expect(faq).not.toMatch(/\{\{\w+\}\}/);
+  });
+});
+
+describe("site benchmark (E10 pilot)", () => {
+  const KV = join(ROOT, "bench", "known-vuln");
+  const after = readFileSync(join(KV, "RESULTS-after-fixes.md"), "utf8");
+  // "0.10 [0.02, 0.40]" as the reports print it, in the page's "0.02 to 0.40" form.
+  const stated = (cell) => { const m = /(\d\.\d\d) \[(\d\.\d\d), (\d\.\d\d)\]/.exec(cell); return { rate: m[1], ci: `${m[2]} to ${m[3]}` }; };
+  const cells = (md, label) => md.split("\n").find((l) => l.startsWith(`| ${label} |`)).split("|").map((c) => c.trim());
+
+  it("computes the recall intervals the results file states", () => {
+    const e = e10Numbers();
+    const table = after.slice(after.indexOf("## Before and after"));
+    for (const [label, got] of [["juice-shop", e.apps[0]], ["dvna", e.apps[1]], ["**Pooled recall**", e.pooled]]) {
+      const [, , b, a] = cells(table, label);
+      for (const [cell, side] of [[b, got.before], [a, got.after]]) {
+        expect(cell).toContain(`${side.k}/${side.n}`);
+        expect({ rate: side.rate.toFixed(2), ci: side.ci }).toEqual(stated(cell));
+      }
+    }
+    expect(e.pooled.before).toMatchObject({ k: 1, n: 14 });
+    expect(e.heldOut).toMatchObject({ name: "WebGoat", k: 2, n: 9, ci: "0.06 to 0.55" });
+  });
+
+  it("computes pooled precision as the scorer reports it, before and after", () => {
+    const e = e10Numbers();
+    for (const [file, got] of [["RESULTS.md", e.precision.before], ["RESULTS-after-fixes.md", e.precision.after]]) {
+      const md = readFileSync(join(KV, file), "utf8");
+      const row = cells(md.slice(md.indexOf("Run `standard`")), "**Pooled**");
+      expect(got.n).toBe(+row[2]); // every finding was labeled or matched the key
+      expect({ rate: got.rate.toFixed(2), ci: got.ci }).toEqual(stated(row[7]));
+    }
+  });
+
+  it("shows the numbers with their caveats and sources, between the walkthrough and the limits", () => {
+    const html = readFileSync(join(out, "index.html"), "utf8");
+    const e = e10Numbers();
+    const sec = html.slice(html.indexOf('id="benchmark"'), html.indexOf("<!-- 6 · Limits -->"));
+    expect(html.indexOf("<!-- 4 · Walkthrough -->")).toBeLessThan(html.indexOf('id="benchmark"'));
+    expect(sec).not.toMatch(/\{\{\w+\}\}/);
+    for (const a of [...e.apps, e.pooled]) {
+      expect(sec).toContain(`<p class="stat-num">${a.after.k}/${a.after.n}</p><p class="stat-was">was ${a.before.k}/${a.before.n}</p>`);
+      expect(sec).toContain(`95% CI ${a.after.ci}. Before: ${a.before.rate.toFixed(2)}, ${a.before.ci}.`);
+    }
+    expect(sec).toContain(`<p class="stat-num">2/9</p><p class="stat-was">unchanged</p>`);
+    expect(sec).toContain(`Precision stayed level: ${e.precision.before.rate.toFixed(2)} (95% CI ${e.precision.before.ci}) on ${e.precision.before.n} findings before, ${e.precision.after.rate.toFixed(2)} (${e.precision.after.ci}) on ${e.precision.after.n} after.`);
+    // The caveats come before the numbers, in the section itself.
+    const caveats = sec.indexOf("Read this before the numbers");
+    expect(caveats).toBeGreaterThan(0);
+    expect(caveats).toBeLessThan(sec.indexOf('class="bench-stats"'));
+    for (const c of ["This is a pilot", "the gain is not an independent measure", "WebGoat was held out", "The preregistered studies are what count"]) expect(sec).toContain(c);
+    for (const f of ["docs/research/prereg/E10-known-vulnerable-apps.md", "tree/main/bench/known-vuln", "bench/known-vuln/RESULTS.md", "bench/known-vuln/RESULTS-after-fixes.md", "docs/research/prereg/E1-real-world-accuracy.md"]) expect(sec).toContain(f);
+    for (const f of ["docs/research/prereg/E10-known-vulnerable-apps.md", "bench/known-vuln/RESULTS.md", "bench/known-vuln/RESULTS-after-fixes.md", "docs/research/prereg/E1-real-world-accuracy.md"]) expect(existsSync(join(ROOT, f)), f).toBe(true);
+    // One bar row per app plus the pooled one, drawn without inline styles.
+    expect(sec.match(/<div class="e10-row">/g)).toHaveLength(3);
+    expect(sec).not.toMatch(/style=/);
   });
 });
 

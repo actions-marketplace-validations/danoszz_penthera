@@ -182,6 +182,19 @@ session secret, since anyone with the repository can then sign session
 cookies. A secret read only from the environment or from a config object is
 not reported.
 
+Code-execution sinks are looked for in every server code file, not only in
+recognized route handlers: `eval` and `new Function` with a non-constant
+argument, `node:vm` calls, and `child_process` `exec`/`execSync`. A taint-lite
+pass marks request data (`req.body`, `req.query`, `req.params`, headers,
+cookies, uploaded files, and those fields destructured from the request) and
+every variable assigned from an expression that uses it, within one file. It
+has no call graph, scopes or sanitizers, so `likely` means "derived from the
+request", not "exploitable". A sink whose arguments carry request data is
+`likely`; an `eval` of a value Penthera cannot trace is `potential`. A `vm`
+call or a shell command without request data is not reported, since build
+scripts and CLIs build commands from their own constants all the time. Tests,
+build tooling, browser assets and minified files are skipped.
+
 White-box scanning cannot see runtime configuration (headers added by a CDN, a
 WAF in front of the app), secrets injected at deploy time, or anything in
 dependencies that is only known from a vulnerability database.
@@ -375,6 +388,23 @@ finding was a false positive. The two `confirmed` false positives are cases
 where the evidence is real but the judgment is wrong: a health endpoint that
 is public by design, and AWS's published example key. See
 [bench/RESULTS.md](../bench/RESULTS.md).
+
+### Findings proposed by a model
+
+`penthera verify` reads findings that a model proposed elsewhere, for example
+an AI security audit run with Cloudflare's security-audit skill in a coding
+agent (Cloudflare, 2026). Language models find real issues that rules do not
+describe, but on realistic benchmarks their vulnerability detection is far
+less reliable than headline numbers suggest (Ding et al., 2025). So a model's
+finding never gets a confidence label on its own authority. It counts as
+`confirmed` or `likely` only through a Penthera rule that flags the same kind
+of issue in the same file; the rule's finding is then the record. Everything
+else is `needs-human-review`, labelled "model-proposed, unverified", kept apart
+from rule findings, and never changes the exit code. A rule that ran and did
+not fire does not count against a model's finding, because rules have false
+negatives too. How often model findings are confirmed, and how precise each
+group is, is not yet measured; a planned experiment (E9) will measure it on
+the E1 corpus.
 
 ## False-positive controls
 

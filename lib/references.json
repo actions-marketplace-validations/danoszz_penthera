@@ -208,6 +208,10 @@
     ],
     "browser-extensions": [
       "scarfone2008sp800115"
+    ],
+    "llm-audit": [
+      "ding2025primevul",
+      "cloudflare2026securityaudit"
     ]
   },
   "sources": {
@@ -405,6 +409,16 @@
       "cite": "Greshake et al. 2023",
       "title": "Not What You've Signed Up For: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection",
       "url": "https://doi.org/10.1145/3605764.3623985"
+    },
+    "ding2025primevul": {
+      "cite": "Ding et al. 2025",
+      "title": "Vulnerability Detection with Code Language Models: How Far Are We?",
+      "url": "https://doi.org/10.48550/arXiv.2403.18624"
+    },
+    "cloudflare2026securityaudit": {
+      "cite": "Cloudflare 2026",
+      "title": "security-audit-skill",
+      "url": "https://github.com/cloudflare/security-audit-skill/tree/c1c8a8c"
     },
     "spracklen2025package": {
       "cite": "Spracklen et al. 2025",

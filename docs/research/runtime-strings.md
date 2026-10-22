@@ -26,11 +26,13 @@ It does not hold on 14 distribution builds whose string is identical to an
 upstream one. Six of those are PHP builds: four are reported as critical and
 likely affected, including Ubuntu 24.04's patched `PHP/8.3.6` behind a CDN.
 The other two get a critical "end of life, no fix". The set
-also found four small engine bugs. Each has its own fix PR: B2, B1 and B3
-are merged ([#101](https://github.com/danoszz/penthera/pull/101),
+also found four small engine bugs. All four are fixed and released in 1.8.1
+([#101](https://github.com/danoszz/penthera/pull/101),
 [#102](https://github.com/danoszz/penthera/pull/102),
-[#103](https://github.com/danoszz/penthera/pull/103)), and B4 and the L1
-mitigation are open.
+[#103](https://github.com/danoszz/penthera/pull/103),
+[#106](https://github.com/danoszz/penthera/pull/106)). The L1 mitigation
+([#114](https://github.com/danoszz/penthera/pull/114)) lowers those banner
+findings to `potential`, with a check-on-server note.
 
 ## Results
 
@@ -39,30 +41,67 @@ whole label: evidence kind, every verdict and end of life. "Report" counts
 only what the user sees, the verdicts and end of life. A kind-only miss gives
 the right findings for the wrong reason.
 
-| Category | Entries | First run: label | First run: report | With #101–#103: label | With #101–#103: report |
+| Category | Entries | 1.8.0: label | 1.8.0: report | 1.8.1: label | 1.8.1: report |
 |---|---:|---:|---:|---:|---:|
 | distro-backport | 43 | 100.0% | 100.0% | 100.0% | 100.0% |
 | distro-unmarked | 14 | 0.0% | 7.1% | 0.0% | 7.1% |
-| docker-floating | 43 | 88.4% | 90.7% | 90.7% | 93.0% |
+| docker-floating | 43 | 88.4% | 90.7% | 97.7% | 97.7% |
 | docker-pinned | 24 | 100.0% | 100.0% | 100.0% | 100.0% |
 | end-of-life | 23 | 82.6% | 82.6% | 100.0% | 100.0% |
 | exact-upstream | 41 | 100.0% | 100.0% | 100.0% | 100.0% |
 | hidden-partial | 14 | 85.7% | 92.9% | 100.0% | 100.0% |
 | lookalike | 17 | 100.0% | 100.0% | 100.0% | 100.0% |
 | prerelease-suffix | 12 | 0.0% | 58.3% | 100.0% | 100.0% |
-| version-file | 22 | 90.9% | 90.9% | 90.9% | 90.9% |
-| **total** | **253** | **84.6%** | **88.5%** | **92.1%** | **92.9%** |
+| version-file | 22 | 90.9% | 90.9% | 100.0% | 100.0% |
+| **total** | **253** | **84.6%** | **88.5%** | **94.1%** | **94.5%** |
 
-The first run is the engine as released in 1.8.0. The remaining misses are
-B4 (5), G1 (1) and L1 (14). B4 has an open fix
-([#106](https://github.com/danoszz/penthera/pull/106)). L1 entries
-stay misses after the L1 mitigation, because the verdict is still "affected"
-(at `potential` confidence).
+The 1.8.0 columns are the engine and pack as released in 1.8.0. The 1.8.1
+columns are main after #101, #102, #103, #106 and #114, with the 1.8.1 pack.
+That pack adds the Node.js security release of 21 October 2026. The
+remaining misses are L1 (14) and G1 (1).
+
+### What changed between the two runs, per category
+
+Every changed label was checked by hand against the intent of the change
+behind it. None is a regression.
+
+- **end-of-life, prerelease-suffix, hidden-partial:** B1, B2 and B3 were fixed,
+  so their 19 deviations were removed. The labels themselves did not change.
+  The labeller follows #101's rule for pre-releases. A pre-release of the
+  fixed version is below it, so affected (`PHP/8.4.27-dev`). One of the
+  version after the fix may predate the fix, so check on server
+  (`8.4.28-dev`). From two patches on, it has the fix.
+- **docker-floating, version-file (Node.js):** B4 was fixed (#106), so its five
+  deviations were removed. The 1.8.1 pack also adds two Node.js advisories,
+  fixed in 22.23.4, 24.22.1 and 26.12.1, so 28 Node.js entries gained
+  verdicts (there were none before):
+  - Exact versions at the fix (`node:22.23.4-slim`, `node:24.22.1-alpine`,
+    `node:26.12.1`, `.node-version: 22.23.4`) have the fix.
+  - The end-of-life lines 14, 16, 18, 20 and 25 (including `node:iron` and
+    `lts/hydrogen`) get "end of life, no fix", the rule for any unlisted
+    end-of-life line.
+  - Floating tags and aliases (`node:24`, `node:lts`, `node:current`,
+    `.nvmrc: node`) get check on server.
+- **All products, end-of-life findings from banners:** #114 lowers an "end
+  of life" finding from a banner with no distribution token to `potential`
+  (`Apache/2.2.34 (Unix)`, `PHP/8.1.28`, `nginx/1.27.3`, `OpenSSL/1.1.1w`).
+  That is intended. Debian 12's `nginx/1.22.1` prints the same string as
+  upstream and is still patched. The labels stay `end-of-life`, not
+  `end-of-life-distro`: those strings are not distribution builds, and the
+  engine does not report them as such. The test harness had treated any
+  end-of-life finding below `likely` as a distribution build. It now reads
+  only `needs-human-review` that way. A new test pins #114: every exact
+  version from such a banner is at most `potential` and carries the
+  check-on-server note, and every exact image or version-file pin stays
+  `likely`, unless the advisory has a condition.
+- **distro-unmarked (L1):** these entries are unchanged and still misses. The
+  set labels verdicts, and the verdict is still "affected" or "end of life".
+  Only the confidence and the note changed, which the new test checks.
 
 By product: PHP 88 entries, Apache httpd 45, Python 36, nginx 33, Node.js 31,
 OpenSSL 20.
 
-The test passes. Every entry the engine gets wrong carries a `deviation` that
+The test passes. Every entry the engine still gets wrong carries a `deviation` that
 records what the engine says today. The test checks that the engine still says
 exactly that, so the suite stays green and the miss stays on the record. When a
 fix lands, that entry fails until its deviation is removed, so each fix shows up
@@ -75,7 +114,7 @@ as a change to this table.
 | L1 | limitation | 14 | A distribution build whose string equals an upstream one is read as upstream | `X-Powered-By: PHP/8.3.6` from a patched Ubuntu 24.04 behind a CDN: **critical, likely affected** |
 | B2 (fixed, #101) | bug | 12 | `-dev` is read as a distribution build, and `RC`, `rc` or `-beta` as no version | `PHP/8.4.27-dev`, a build from before 8.4.27: **"has the fix"** |
 | B1 (fixed, #102) | bug | 5 | `introduced` is ignored on release lines older than the flaw | `Apache/2.2.34`: **critical, "end of life, no fix"** for a flaw that only exists in 2.4.49 and 2.4.50 |
-| B4 | bug | 5 | Node.js LTS codenames (`lts/iron`, `node:iron`) are not resolved | `.nvmrc: lts/iron` (Node.js 20) is not reported as end of life |
+| B4 (fixed, #106) | bug | 5 | Node.js LTS codenames (`lts/iron`, `node:iron`) are not resolved | `.nvmrc: lts/iron` (Node.js 20) is not reported as end of life |
 | B3 (fixed, #103) | bug | 2 | `Server: Python/3.9 aiohttp/3.8.6` is ignored, because the Python pattern needs x.y.z | an end-of-life Python 3.9 is not reported |
 | G1 | gap | 1 | Only `library/` images are read | `nginxinc/nginx-unprivileged:1.27` gives no evidence |
 
@@ -141,19 +180,19 @@ so, `Apache/2.2.34 (Unix)` and `httpd:2.2.34` get a critical "end of life,
 no fix" finding for it, and CentOS 6's `Apache/2.2.15 (CentOS)` gets
 "check on server". The end-of-life finding itself is correct and stays.
 
-## Proposed fixes
+## Fixes
 
-Each is its own small PR with a regression test (B1–B4 are open, see
-below). When each lands, the matching `deviation` entries come out of the
-rows, `strings.json` is regenerated, and the table above is updated.
+Each was its own small PR with a regression test, released in 1.8.1. When
+each landed, its `deviation` entries came out of the rows and `strings.json`
+was regenerated.
 
-| PR | Change | Regression test |
+| Bug | Change | Regression test |
 |---|---|---|
-| B1 | `verdictFor`: when the version's line has no fix entry, is older than the oldest listed line, and that line's entry has `introduced`, return none | `Apache/2.2.34 (Unix)` gives only the end-of-life finding |
-| B2 | `parseVersion`: read `-dev`, `alpha`, `beta`, `RC` (any case, with or without a separator) as a pre-release that sorts below its release, and never as a distribution build. `parseImageRef` takes the same tags. A pre-release of the version after the fix is "check on server" | `PHP/8.4.27-dev` is affected; `PHP/8.4.28-dev` is check on server; `PHP/8.4.29-dev` has the fix; `PHP/8.6.0RC4` gives no advisory verdict |
-| B3 | Python banner pattern: accept `Python/x.y` as `branch` evidence | `Python/3.9 aiohttp/3.8.6` is end of life |
-| B4 | Node.js: map LTS codenames (`argon` 4 … `krypton` 24) to their line for `.nvmrc` `lts/<name>` and `node:<name>` | `.nvmrc: lts/iron` is end of life |
-| L1 | Data, not code: a `runtime-distro-version` list in the pack of the frozen upstream version per supported distribution release (Ubuntu 24.04 php 8.3.6, Debian 12 nginx 1.22.1, EL9 php 8.0.30, …), reported as "check on server" with the distribution named | `X-Powered-By: PHP/8.3.6` alone is check on server, naming Ubuntu 24.04 |
+| B1, [#102](https://github.com/danoszz/penthera/pull/102) | `verdictFor`: when the version's line has no fix entry, is older than the oldest listed line, and that line's entry has `introduced`, return none | `Apache/2.2.34 (Unix)` gives only the end-of-life finding |
+| B2, [#101](https://github.com/danoszz/penthera/pull/101) | `parseVersion`: read `-dev`, `alpha`, `beta`, `RC` (any case, with or without a separator) as a pre-release that sorts below its release, and never as a distribution build. `parseImageRef` takes the same tags. A pre-release of the version after the fix is "check on server" | `PHP/8.4.27-dev` is affected; `PHP/8.4.28-dev` is check on server; `PHP/8.4.29-dev` has the fix; `PHP/8.6.0RC4` gives no advisory verdict |
+| B3, [#103](https://github.com/danoszz/penthera/pull/103) | Python banner pattern: accept `Python/x.y` as `branch` evidence | `Python/3.9 aiohttp/3.8.6` is end of life |
+| B4, [#106](https://github.com/danoszz/penthera/pull/106) | Node.js: map LTS codenames (`argon` 4 … `krypton` 24) to their line for `.nvmrc` `lts/<name>` and `node:<name>` | `.nvmrc: lts/iron` is end of life |
+| L1, not taken (possible follow-up) | Data, not code: a `runtime-distro-version` list in the pack of the frozen upstream version per supported distribution release (Ubuntu 24.04 php 8.3.6, Debian 12 nginx 1.22.1, EL9 php 8.0.30, …), reported as "check on server" with the distribution named | `X-Powered-By: PHP/8.3.6` alone is check on server, naming Ubuntu 24.04 |
 
 A frozen-version list cannot cover a distribution that moves to new upstream
 point releases. Debian, for example, ships `php8.2 8.2.35-1~deb12u1`, so its
@@ -162,7 +201,7 @@ only helps where the number stays fixed for the distribution's life.
 
 ## Decisions for the maintainer
 
-Fixes for B1–B4 are open as separate PRs: B2
+Fixes for B1–B4 were separate PRs, all merged: B2
 [#101](https://github.com/danoszz/penthera/pull/101), B1
 [#102](https://github.com/danoszz/penthera/pull/102), B3
 [#103](https://github.com/danoszz/penthera/pull/103) and B4

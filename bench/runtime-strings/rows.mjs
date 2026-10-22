@@ -51,6 +51,7 @@ export const DEVIATIONS = {
   },
   B4: {
     type: "bug",
+    status: "fixed in #106",
     title: "Node.js LTS codenames are not resolved to their line",
     detail: "nvm accepts lts/iron in .nvmrc and the node image has iron, jod and hydrogen tags. They read as no version, so lts/iron (Node.js 20, end of life 30 Apr 2026) is not reported as end of life.",
     fix: "Map the LTS codenames (argon 4 … krypton 24) to their major line in lib/advisories/products.js.",
@@ -512,9 +513,9 @@ for (const [tag, kind, v, note, extra] of [
   ["lts", "present", null, "floats across lines"],
   ["current", "present", null, "floats across lines"],
   ["lts-alpine", "present", null, "floats across lines"],
-  ["iron", "branch", "20", "the codename tag for 20, an end-of-life line", { deviation: "B4" }],
-  ["hydrogen", "branch", "18", "the codename tag for 18", { deviation: "B4" }],
-  ["jod", "branch", "22", "the codename tag for 22", { deviation: "B4" }],
+  ["iron", "branch", "20", "the codename tag for 20, an end-of-life line"],
+  ["hydrogen", "branch", "18", "the codename tag for 18"],
+  ["jod", "branch", "22", "the codename tag for 22"],
 ]) add("docker-floating", "nodejs", `node-img-${tag}`, IMG(`node:${tag}`), kind, v, HUB("node", tag), note, extra);
 for (const [file, content, kind, v, note, extra] of [
   [".nvmrc", "20\n", "branch", "20", "line pin on an end-of-life line"],
@@ -522,8 +523,8 @@ for (const [file, content, kind, v, note, extra] of [
   [".nvmrc", "24\n", "branch", "24", "supported line"],
   [".nvmrc", "node\n", "present", null, "nvm's alias for the newest release"],
   [".nvmrc", "lts/*\n", "present", null, "the newest LTS, whichever line that is"],
-  [".nvmrc", "lts/iron\n", "branch", "20", "nvm's LTS codename alias for 20", { deviation: "B4" }],
-  [".nvmrc", "lts/hydrogen\n", "branch", "18", "nvm's LTS codename alias for 18", { deviation: "B4" }],
+  [".nvmrc", "lts/iron\n", "branch", "20", "nvm's LTS codename alias for 20"],
+  [".nvmrc", "lts/hydrogen\n", "branch", "18", "nvm's LTS codename alias for 18"],
   [".node-version", "22.23.4\n", "exact", "22.23.4", "nodenv / fnm pin"],
   [".tool-versions", "nodejs 18.20.4\n", "exact", "18.20.4", "asdf pin on an end-of-life line"],
   [".tool-versions", "node 16.20.2\n", "exact", "16.20.2", "mise accepts `node`"],

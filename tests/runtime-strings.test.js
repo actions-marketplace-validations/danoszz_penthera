@@ -80,7 +80,9 @@ function expectedFindings(verdicts, eol) {
 
 function shownFindings(findings) {
   return findings.map((f) => {
-    if (f.rule?.endsWith("-eol")) return f.confidence === "likely" ? "end-of-life" : "end-of-life-distro";
+    // A distribution build's end-of-life finding needs human review; an upstream
+    // one is likely, or potential from a banner with no distribution token (#114).
+    if (f.rule?.endsWith("-eol")) return f.confidence === "needs-human-review" ? "end-of-life-distro" : "end-of-life";
     if (f.severity === "info") return "has-fix";
     if (f.confidence === "needs-human-review") return `check-on-server:${f.rule.split(",").sort().join(",")}`;
     return `${/end-of-life line/.test(f.title) ? "end-of-life-no-fix" : "affected"}:${f.rule}`;
@@ -116,8 +118,8 @@ describe("runtime-strings set", () => {
 
   it("strings.json is what bench/runtime-strings/label.mjs drafts from rows.mjs", () => {
     const r = spawnSync(process.execPath, [fileURLToPath(new URL("../bench/runtime-strings/label.mjs", import.meta.url)), "--check"], { encoding: "utf-8" });
-    expect(r.stderr).toBe("");
-    expect(r.status).toBe(0);
+    // On failure, label.mjs's message says why (a stale file, or a deviation the engine no longer shows).
+    expect(r.status, r.stderr.split("\n").find((l) => /Error|stale/.test(l)) || r.stderr).toBe(0);
   });
 
   for (const e of SET.entries) {
@@ -154,6 +156,31 @@ describe("runtime-strings set", () => {
       // A lookalike or a string with no version evidence gives nothing.
       if (e.kind === "none") expect(v.length + (e.eol === "none" ? 0 : 1), e.id).toBe(0);
     }
+  });
+
+  it("an exact version from a banner with no distribution token is never more than potential (#114)", () => {
+    const ADV = new Map(ADVISORIES.map((a) => [a.id, a]));
+    let banners = 0, pins = 0;
+    for (const e of SET.entries) {
+      const s = engineSays(e);
+      if (s.kind !== "exact") continue;
+      // "affected" and "end of life" findings; "end of life, no fix" is always potential.
+      const claims = s.findings.filter((f) => f.confidence !== "needs-human-review" && (f.rule?.endsWith("-eol") || / is affected by /.test(f.title)));
+      if (!claims.length) continue;
+      if (e.input.headers && PRODUCTS[e.product].backports) {
+        banners++;
+        for (const f of claims) {
+          expect(f.confidence, `${e.id}: ${f.title}`).toBe("potential");
+          expect(f.description, e.id).toMatch(/your distribution may have patched this under the same version number/);
+        }
+      } else if (!e.input.headers) {
+        pins++;
+        // An official image or a version file is an upstream build: likely, unless the advisory has a condition.
+        for (const f of claims) expect(f.confidence, `${e.id}: ${f.title}`).toBe(ADV.get(f.rule)?.condition ? "potential" : "likely");
+      }
+    }
+    expect(banners).toBeGreaterThan(20);
+    expect(pins).toBeGreaterThan(10);
   });
 
   afterAll(() => {

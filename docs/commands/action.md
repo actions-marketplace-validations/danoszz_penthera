@@ -1,11 +1,15 @@
-# The GitHub Action
+# Penthera in CI: the GitHub Action
 
 > **Pro.** For "how do I put it in CI?"
 
-### Use as a GitHub Action
+There are three places to run Penthera on every change: the GitHub Action on
+pull requests, a scan step in your own workflow, and the
+[pre-commit hook](hook.md) on each developer's machine.
+
+## The GitHub Action
 
 ```yaml
-- uses: danoszz/penthera@<release-commit-sha> # v1.4.0
+- uses: danoszz/penthera@<release-commit-sha> # pin to a release commit
   with:
     mode: deps        # deps | agents | scan (scan also needs url:)
     fail-on: none     # none | high | critical
@@ -20,4 +24,85 @@ goes to the job summary instead. Inputs: `mode`, `path`, `base-ref`, `url`,
 permissions and a lockfile paths filter, from
 [`docs/examples/pr-dependency-review.yml`](../examples/pr-dependency-review.yml).
 
-[Back to the README](../../README.md) · [All commands](README.md)
+What a reviewer sees:
+
+```
+  ▲ net-helper 1.0.0 → 1.1.0  + network, whole environment
+      node_modules/net-helper/index.js:3  const https = require('https');
+      node_modules/net-helper/index.js:5  const body = JSON.stringify(process.env);
+```
+
+A patch release that starts reading the whole environment next to a network
+call is the shape of most credential-stealing packages. The diff shows it with
+`file:line` evidence, whether or not an advisory exists yet
+([`penthera deps`](deps.md)).
+
+## A scan step in your own workflow
+
+To scan a preview URL and upload SARIF, see
+[scan in CI](scan.md#ci-integration) and the example
+[`docs/examples/github-actions-scan.yml`](../examples/github-actions-scan.yml).
+Pin the Penthera version, so every run is checked by the same rules, and use
+`--baseline` to show only what is new since the last scan. `penthera --repo .`
+and `penthera deps` exit 1 on high or critical findings, so either works as a
+gate.
+
+## Before you cut a release
+
+For maintainers, locally:
+
+```bash
+npx penthera deps --base origin/main   # what changed in the tree since main
+npx penthera --repo .                  # secrets, including AI provider keys
+npx penthera agents                    # the agent config you ship (CLAUDE.md, .mcp.json, skills/)
+npx penthera hook install              # block secrets and risky config at commit time
+```
+
+If your project ships agent skills or MCP configuration, `penthera agents` on
+your own repo reads what your users' tools will load.
+
+Penthera's own releases are a pattern you can copy: npm provenance through
+trusted publishing, each version staged until a maintainer approves it with
+2FA, CI actions pinned by SHA, CodeQL on every push, and a public
+[OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/danoszz/penthera).
+See [`.github/workflows/publish.yml`](../../.github/workflows/publish.yml).
+
+## The same check on every project
+
+For agencies and teams that ship many similar apps, run the same steps on each
+project, in CI or before handover:
+
+```bash
+npx penthera https://preview.client.example --repo . --profile standard \
+  --sarif reports/scan.sarif -o reports/scan.json
+npx penthera deps --license-policy permissive     # dependency capabilities and licenses
+npx penthera agents                               # the agent config left in the repo
+```
+
+At handover, give the client a plain-language report and an evidence bundle
+they can keep. Both are described in [evidence](../evidence.md):
+
+```bash
+npx penthera https://client.example --repo . --audience owner > security-summary.md
+npx penthera https://client.example --repo . --audience auditor \
+  --evidence handover/2026-10-19 --sign-key ~/.ssh/agency_ed25519
+```
+
+Only scan what you have the client's written permission to test.
+
+## What it does not do
+
+- Dependency analysis covers npm and Python. The install firewall and the
+  `--online` registry checks are npm only for now.
+- It does not track CVEs in your dependencies. Keep Dependabot or a similar
+  service on for that ([how they fit](../compare/github.md)).
+- It does not watch the registry for your package being republished by someone
+  else. Enable 2FA and trusted publishing on npm for that.
+- A capability is what code *can* do, not proof of intent. Many good packages
+  use the network. The diff is there so a person can look.
+- It does not replace a penetration test where a contract or a regulator asks
+  for one.
+- Fix recipes cover common JavaScript and TypeScript frameworks. Other stacks
+  get findings and guidance, not diffs.
+
+[Docs index](../index.md) · [All commands](README.md)

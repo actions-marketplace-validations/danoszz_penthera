@@ -9,7 +9,8 @@ Security fixes land on the latest minor release only. Upgrade to get them.
 
 | Version | Supported |
 | ------- | --------- |
-| 1.8.x   | Yes       |
+| 1.8.x   | Yes (`latest`) |
+| 1.9.0-rc.N | Release candidate on `next`: fixes land in the next candidate or in 1.9.0 |
 | < 1.8   | No        |
 
 ## Reporting a vulnerability
@@ -33,9 +34,10 @@ first:
 - A fix or mitigation for accepted issues as fast as severity warrants, followed
   by a release, a GitHub advisory, and credit to you unless you prefer otherwise.
 
-**In scope:** the CLI, the scanner engine (`lib/`, `src/`), the Agent Skill
-(`skills/penthera/`), the installer (`install.sh`), and the published npm package
-and its build pipeline. Examples: code execution from a malicious scan target or
+**In scope:** the CLI, the scanner engine (`lib/`, `src/`), the MCP server
+(`penthera mcp`), the local dashboard (`penthera ui`), the GitHub Action, the
+Agent Skill (`skills/penthera/`), the installer (`install.sh`), and the
+published npm package and its build pipeline. Examples: code execution from a malicious scan target or
 repo, a skill instruction that bypasses the authorization gate, a supply-chain
 weakness in our release workflow.
 

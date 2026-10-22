@@ -1,5 +1,7 @@
 # The local dashboard: `penthera ui`
 
+> **Starter.** For "can I see it all in one place?"
+
 `penthera ui` opens Penthera in your browser: whether your app is safe to
 ship, what to fix first, in plain words, and the fix loop that proposes a
 change and waits for your OK. It looks like a small 1-bit computer: a menu

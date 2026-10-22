@@ -243,6 +243,18 @@ describe("agent loop: clean start", () => {
     await expect(runLoop({ repo: repo2, memoryRoot: tempDir(), ask: yes })).rejects.toBeInstanceOf(LoopError);
   });
 
+  it("does not count Penthera's own untracked reports/ as uncommitted work (e2e 2026-10-22)", async () => {
+    // The dashboard's "Check my app" writes reports/<host>_<time>.json into the project;
+    // "Fix problems for me" right after it refused with DIRTY.
+    const repo = fixtureRepo();
+    mkdirSync(join(repo, "reports"), { recursive: true });
+    writeFileSync(join(repo, "reports", "www.example.com_2026-10-22-12-40-29.json"), "{}\n");
+    const run = await runLoop({ repo, memoryRoot: tempDir(), ask: async () => "n", maxIterations: 1 });
+    expect(run.error).toBeNull();
+    expect(existsSync(join(repo, "reports", "www.example.com_2026-10-22-12-40-29.json"))).toBe(true);
+    expect(git(repo, "status", "--porcelain", "--", "reports").trim()).toBe("?? reports/");
+  });
+
   it("refuses a detached HEAD and a directory that is not a git repo", async () => {
     const repo = fixtureRepo();
     git(repo, "checkout", "-q", "--detach");

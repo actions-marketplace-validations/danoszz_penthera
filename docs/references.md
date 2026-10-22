@@ -186,6 +186,8 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 <a id="li2017largescale"></a>Li, F., & Paxson, V. (2017). A large-scale empirical study of security patches. In *Proceedings of the 2017 ACM SIGSAC Conference on Computer and Communications Security (CCS '17)* (pp. 2201–2215). ACM. <https://doi.org/10.1145/3133956.3134072>
 
+<a id="mongodblifecycles"></a>MongoDB, Inc. (n.d.). *Software lifecycle schedules*. MongoDB. Retrieved October 22, 2026, from <https://www.mongodb.com/legal/support-policy/lifecycles>
+
 <a id="ncscadvisories"></a>Nationaal Cyber Security Centrum. (n.d.). *Security advisories*. Retrieved October 21, 2026, from <https://advisories.ncsc.nl/>
 
 <a id="nginxadvisories"></a>nginx. (n.d.). *Nginx security advisories*. Retrieved October 21, 2026, from <https://nginx.org/en/security_advisories.html>

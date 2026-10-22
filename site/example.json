@@ -1,0 +1,21 @@
+{
+  "command": "npx penthera http://127.0.0.1:8765",
+  "counts": {
+    "critical": 0,
+    "high": 2,
+    "medium": 5,
+    "low": 2,
+    "info": 2
+  },
+  "checks": 13,
+  "requests": 204,
+  "thirdParty": 0,
+  "finding": {
+    "severity": "high",
+    "title": "OAuth open redirect",
+    "description": "/api/oauth/callback redirects to attacker-controlled URL.",
+    "confidence": "likely",
+    "url": "http://127.0.0.1:8765/api/oauth/callback?redirect_uri=https%3A%2F%2Fevil-attacker.example%2Fcapture",
+    "status": 302
+  }
+}

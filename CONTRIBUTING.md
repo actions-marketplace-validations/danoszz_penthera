@@ -195,7 +195,9 @@ re-exports engine pieces via `exports` in `package.json`
 1. Branch from `main`.
 2. Keep changes focused; add or update tests.
 3. Run `npm test`; it must be green on Node 22+.
-4. Update `CHANGELOG.md` and the relevant docs. Docs follow the
+4. Add a changelog fragment in `changelog.d/` (see its
+   [README](changelog.d/README.md)) instead of editing `CHANGELOG.md`, so
+   parallel pull requests don't conflict. Update the relevant docs. Docs follow the
    [voice guide](docs/voice.md): one user question per page, plain words,
    numbers over adjectives.
 5. Sign off every commit (see below).
@@ -261,6 +263,16 @@ Report security issues in Penthera itself privately; see [SECURITY.md](SECURITY.
 
 ---
 
+## Merging
+
+Pull requests run a fast check: tests on Node 22 and 24, CodeQL, the self-scan,
+and the install check on Linux and macOS with Node 22. Docs-, site- or
+benchmark-only changes skip the install check. Green pull requests go through
+the merge queue, which runs the full matrix (Linux, macOS and Windows on Node
+22 and 24, plus the upgrade from the last release) before anything lands on
+`main`. Keep parallel work to a few pull requests at a time, each touching
+separate files.
+
 ## Release cadence and freeze
 
 Penthera is maintained part-time, so releases follow a fixed rhythm that keeps
@@ -306,7 +318,8 @@ live once a maintainer approves it with 2FA. **Do not run `npm publish` locally.
    - `.claude-plugin/marketplace.json` (`metadata.version`)
    - `CITATION.cff` (`version`)
    - `docs/METHODOLOGY.md` (the "How to cite" block)
-2. Move the `[Unreleased]` notes in `CHANGELOG.md` under the new version.
+2. Fold the fragments and `[Unreleased]` notes into the new version:
+   `npm run changelog -- --release X.Y.Z YYYY-MM-DD`.
    Refresh the typosquat list with `npm run refresh:popular` and commit
    `lib/deps/popular-packages.json.gz` if it changed (the only time it is fetched).
 3. Run the internal audit on the release branch: `npm run audit:internal`.

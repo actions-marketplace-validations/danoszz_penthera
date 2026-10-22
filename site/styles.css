@@ -495,10 +495,12 @@ main > .desk { max-width: none; padding-left: 0; padding-right: 0; }
 .paste summary::-webkit-details-marker { display: none; }
 .paste summary::before { content: "▸"; }
 .paste[open] summary::before { content: "▾"; }
-.paste-body { display: grid; gap: 8px; padding-top: 4px; }
+/* minmax(0, 1fr): the track follows the card, not the widest nowrap command. */
+.paste-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding-top: 4px; }
 .paste + .paste { margin-top: 4px; }
 .paste-note { max-width: 62ch; font-size: 15px; color: var(--text-2); }
 .paste-body > .cmd { justify-self: start; margin: 4px 0 8px; }
+.paste-body > .cmd code { white-space: normal; overflow-wrap: anywhere; line-height: 1.4; padding-block: 8px; }
 .f-note { padding-left: 12px; border-left: 4px solid var(--frame); color: var(--text-1); }
 .label { color: var(--text-3); display: inline-flex; align-items: center; min-height: var(--target); min-width: var(--target); }
 textarea, select {
@@ -562,6 +564,34 @@ textarea:focus-visible, select:focus-visible { outline-offset: 0; }
 .facts ul { padding-left: 0; list-style: none; display: grid; gap: 8px; }
 .facts li { padding-left: 20px; position: relative; }
 .facts li::before { content: ""; position: absolute; left: 0; top: 0.55em; width: 9px; height: 9px; border: 1px solid var(--frame); background: var(--pt-sparse); }
+
+/* 2b · Before and after: the question in display type, the answer as
+ * terminal output, then the counts behind it. */
+.ba-grid { display: grid; gap: 40px; align-items: start; }
+@media (min-width: 900px) { .ba-grid { grid-template-columns: 5fr 7fr; gap: 56px; } }
+.ba-before, .ba-after { margin: 0; }
+.ba-label { margin-bottom: 16px; font-family: var(--px); font-size: 13px; letter-spacing: 0.04em; color: var(--text-3); }
+.bubble {
+  display: inline-block; max-width: 11ch; padding: 0.22em 0.4em 0.3em;
+  font-family: var(--display); font-size: clamp(44px, 7vw, 96px); font-weight: 500; line-height: 0.98; letter-spacing: -0.04em;
+  color: var(--text-1); border: 1px solid var(--frame); border-radius: 0.36em 0.36em 0.36em 0;
+}
+.ba-out { padding: 24px; border: 1px solid var(--frame); box-shadow: 6px 6px 0 var(--frame); font-family: var(--px); font-size: 14px; line-height: 1.5; color: var(--text-2); }
+.ba-cmd { color: var(--text-1); overflow-wrap: anywhere; }
+.ba-sum { margin-top: 20px; font-family: var(--display); font-size: clamp(28px, 3.6vw, 44px); font-weight: 500; line-height: 1.05; letter-spacing: -0.03em; color: var(--text-1); }
+.ba-meta { margin-top: 8px; color: var(--text-3); }
+.ba-finding { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--hair); display: grid; gap: 8px; }
+.ba-title { color: var(--text-1); }
+.ba-sev { display: inline-block; padding: 0 6px; margin-right: 6px; background: var(--accent); color: var(--on-accent); }
+.ba-conf { margin-left: 6px; padding: 0 6px; border: 1px solid var(--hair); color: var(--text-3); }
+.ba-ev code { overflow-wrap: anywhere; color: var(--text-1); }
+.ba-counts { list-style: none; margin: 64px 0 0; padding: 0; display: grid; border-top: 1px solid var(--frame); }
+@media (min-width: 720px) { .ba-counts { grid-template-columns: repeat(3, 1fr); } }
+.ba-counts li { padding: 20px 24px 20px 0; border-bottom: 1px solid var(--hair); font-family: var(--px); font-size: 15px; color: var(--text-2); }
+@media (min-width: 720px) { .ba-counts li + li { padding-left: 24px; border-left: 1px solid var(--hair); } }
+.ba-n { display: block; margin-bottom: 8px; font-family: var(--display); font-size: clamp(48px, 6vw, 80px); font-weight: 500; line-height: 1; letter-spacing: -0.04em; color: var(--text-1); font-variant-numeric: tabular-nums; }
+.ba-cap { margin-top: 24px; max-width: 70ch; font-family: var(--px); font-size: 13px; color: var(--text-3); }
+.ba .cmd { margin-top: 32px; }
 
 /* 3 · Get it */
 .get .cmd { margin-top: 36px; }
@@ -633,6 +663,32 @@ textarea:focus-visible, select:focus-visible { outline-offset: 0; }
 /* 6 · Limits */
 .limits-body { margin-top: 32px; display: grid; gap: 20px; max-width: 64ch; font-size: clamp(17px, 1.6vw, 20px); }
 .limits .method { font-family: var(--px); font-size: 15px; }
+
+/* 6b · How it compares: one table that scrolls inside its own box, with
+ * the question column pinned, so the page never scrolls sideways. */
+.compare-lede { margin-top: 24px; margin-bottom: 24px; max-width: 56ch; font-size: clamp(17px, 1.6vw, 20px); color: var(--text-1); }
+.cmp-scroll { margin-top: 16px; overflow-x: auto; border-top: 1px solid var(--frame); border-bottom: 1px solid var(--frame); overscroll-behavior-x: contain; }
+.cmp-scroll:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+.cmp { width: 100%; min-width: 1100px; border-collapse: collapse; font-size: 14px; line-height: 1.45; }
+.cmp th, .cmp td { padding: 14px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--hair); }
+.cmp tbody tr:last-child > * { border-bottom: 0; }
+.cmp thead th { font-family: var(--display); font-size: 16px; font-weight: 500; letter-spacing: -0.01em; color: var(--text-1); border-bottom-color: var(--frame); }
+.cmp thead th { position: relative; }
+.cmp thead a { color: inherit; }
+/* The whole header cell opens the tool's compare page. */
+.cmp thead a::after { content: ""; position: absolute; inset: 0; }
+.cmp-date { display: block; margin-top: 4px; font-family: var(--px); font-size: 11px; font-weight: 400; letter-spacing: 0.02em; color: var(--text-3); }
+.cmp td { color: var(--text-2); }
+.cmp tbody th { font-family: var(--px); font-size: 13px; font-weight: 400; color: var(--text-1); }
+.cmp th:first-child { position: sticky; left: 0; z-index: 1; width: 132px; background: var(--ground); box-shadow: 1px 0 0 var(--hair); }
+@media (max-width: 599px) { .cmp th:first-child { width: 96px; padding-left: 0; } .cmp tbody th { font-size: 12px; } }
+.cmp-hint { margin-top: 12px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
+@media (min-width: 1180px) { .cmp-hint { display: none; } }
+.cmp td:nth-child(2) { color: var(--text-1); }
+.cmp-src { display: block; margin-top: 6px; font-family: var(--px); font-size: 11px; color: var(--text-3); }
+.cmp-src a { overflow-wrap: anywhere; }
+.cmp-none { color: var(--text-3); }
+.compare-note { margin-top: 24px; max-width: 70ch; font-family: var(--px); font-size: 13px; color: var(--text-3); }
 
 /* 7 · EU rules */
 .eu-grid { display: grid; gap: 32px; align-items: start; }

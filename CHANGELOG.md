@@ -4,6 +4,13 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Detection
+
+- The header audit reports an `X-Powered-By` header (low, `confirmed`), such
+  as Express's default `X-Powered-By: Express`. It was a documented miss in
+  the E10 pilot (DVNA). The finding names the value and how to turn the
+  header off.
+
 ### Fixed
 
 - **`npx penthera ui` stops cleanly on Ctrl-C and SIGTERM.** npm forwards

@@ -619,6 +619,13 @@ textarea:focus-visible, select:focus-visible { outline-offset: 0; }
 .prompt-card:hover .btn, .prompt-card:focus-within .btn, .prompt-card .btn[data-state="copied"] { opacity: 1; }
 @media (hover: none) { .prompt-card .btn { opacity: 1; } }
 
+/* 3b · In your agent (MCP): configs keep their indentation and scroll sideways on a phone. */
+.agent .prompts { margin-top: 36px; }
+.agent .prompt-card { min-width: 0; }
+.agent .prompt-card pre { overflow-wrap: anywhere; }
+.agent .prompt-card pre.cfg { white-space: pre; overflow-x: auto; overflow-wrap: normal; }
+.prompt-card h4 small { margin-left: 10px; font-family: var(--px); font-size: 12px; font-weight: 400; letter-spacing: 0.02em; color: var(--text-3); }
+
 /* 4 · Walkthrough */
 .walk figure { margin: 40px 0 0; }
 

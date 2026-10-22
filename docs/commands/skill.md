@@ -36,6 +36,9 @@ For Claude.ai (web), zip and upload the skill:
 npm run package:skill   # produces penthera-skill.zip; upload in Settings > Capabilities > Skills
 ```
 
+The skill runs the CLI in your agent's terminal. To give your agent typed,
+read-only tools instead, add the MCP server: see [mcp.md](mcp.md).
+
 **Prompts that trigger it:**
 
 - "Scan my localhost app on port 3000 for security issues"

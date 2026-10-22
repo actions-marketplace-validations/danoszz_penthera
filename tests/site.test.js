@@ -57,6 +57,20 @@ function cliFolder(files) {
 const key = (f) => [f.severity, f.templateId || f.method || f.source, f.title, f.description].join(" | ");
 
 describe("site build", () => {
+  it("pins the MCP server to server.json's version on the page and in llms.txt, never unpinned", () => {
+    const version = JSON.parse(readFileSync(join(ROOT, "server.json"), "utf8")).version;
+    const html = readFileSync(join(out, "index.html"), "utf8");
+    const llms = readFileSync(join(out, "llms.txt"), "utf8");
+    expect(html).toContain('id="agent"');
+    for (const client of ["Claude Code", "Codex", "Cursor", "VS Code", "Windsurf"]) expect(html).toContain(`<h4>${client}`);
+    for (const text of [html, llms]) {
+      expect(text).toContain(`penthera@${version} mcp`);
+      expect(text).not.toMatch(/npx (-y )?penthera mcp/);
+      expect(text).not.toContain("{{");
+    }
+    expect(llms).toMatch(/^# Penthera\n\n> /);
+  });
+
   it("writes the page, the check and its media, with measured numbers filled in", () => {
     for (const f of ["index.html", "check.js", "styles.css", "theme.js", "logo.svg", "favicon.svg", "fonts/DepartureMono-Regular.woff2", "media/hero.mp4", "media/field.png", "media/walkthrough.mp4"]) {
       expect(existsSync(join(out, f)), f).toBe(true);

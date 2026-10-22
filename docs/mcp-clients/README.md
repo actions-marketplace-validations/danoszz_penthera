@@ -11,3 +11,6 @@ every one with Penthera's own MCP rules (`mcp-unpinned`, `mcp-exec`,
 | `vscode.mcp.json` | VS Code | `.vscode/mcp.json` in the project |
 | `codex.config.toml` | Codex | `~/.codex/config.toml` |
 | `windsurf.mcp_config.json` | Windsurf | `~/.codeium/windsurf/mcp_config.json` |
+
+See [docs/commands/mcp.md](../commands/mcp.md) for what the server does and
+does not do.

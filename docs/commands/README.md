@@ -20,6 +20,7 @@ has the full flag list.
 | `penthera rules list`, `penthera rules verify <dir>` | [rule-packs.md](../rule-packs.md) | Signed, versioned rule packs (IOCs, patterns); add your own with `--rules <dir>`, never fetched |
 | GitHub Action | [action.md](action.md) | The capability diff as a pull-request comment, plus SARIF |
 | Agent Skill | [skill.md](skill.md) | Let Claude Code, Cursor and other agents drive Penthera |
+| `penthera mcp` | [mcp.md](mcp.md) | Penthera as an MCP server: six read-only tools your agent can call |
 | `penthera ui` | [dashboard.md](../dashboard.md) | The local dashboard: one view with projects, findings, side cards, and the fix loop from the page |
 
 Compliance flags (`--framework nis2`, `--readiness`, `--cra`, `--aibom`, ...)

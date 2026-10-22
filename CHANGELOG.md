@@ -167,6 +167,23 @@ cleanly under `npx`.
   `og.png` stays the poster and the fallback; X keeps the image card.
   Rendered by `site/tools/reel.mjs`.
 
+### Research
+
+- Draft protocol for experiment E10: Penthera against six deliberately
+  vulnerable apps with public answer keys (Juice Shop, DVNA, NodeGoat, DVWA,
+  crAPI, WebGoat), each pinned by commit and image digest. Answer keys in
+  `bench/known-vuln/`, frozen before any scan; an opt-in runner
+  (`npm run bench:known`, not in `npm test` or the package) starts the apps
+  isolated in Docker on 127.0.0.1. A pilot on Juice Shop and DVNA is in
+  `bench/known-vuln/RESULTS.md`, marked as a pilot.
+- Each of the pilot's 13 standard-run misses is verified in
+  `bench/known-vuln/MISSES.md` (all real gaps; none a scoring artefact).
+  A re-run after the fixes that followed (#107, #108, #110, #111) is in
+  `bench/known-vuln/RESULTS-after-fixes.md`, next to the unchanged pilot:
+  pooled standard recall 1/14 to 10/14 at the same precision, flagged as not
+  independent, with WebGoat as a held-out app that did not change. The
+  runner gains `--out <file>`.
+
 ### Docs
 
 - The PHP case study and `docs/runtime-advisories.md` cite OpenAI's

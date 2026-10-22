@@ -1,0 +1,38 @@
+{
+  "schema": "penthera-known-vuln-labels/1",
+  "app": "dvna",
+  "labeller": "Provisional labeller A: Claude (AI-assisted), 2026-10-22, pilot only. Not blinded (saw Penthera output). To be replaced by two independent human labellers under the protocol.",
+  "codebook": "Level 1 correct: the stated condition is present at the stated location. Hardcoded password: the file holds a non-placeholder literal that logs in to an account of the app (checked against data/static/users.yml for Juice Shop); otherwise cannot-tell. Level 2 actionable: the owner of a real app should change something (test and spec fixtures are not actionable).",
+  "labels": {
+    "16bb7a27c0de": {
+      "verdict": "correct",
+      "actionable": true,
+      "reason": "jQuery 3.2.1 is served and has public advisories fixed in 3.4.0 and 3.5.0 (CVE-2019-11358, CVE-2020-11022). Not in the DVNA answer key."
+    },
+    "6317df44ceca": {
+      "verdict": "correct",
+      "actionable": true,
+      "reason": "Bootstrap 3.3.7 is served and has public XSS advisories fixed in 3.4.0/3.4.1 (CVE-2018-14040, CVE-2018-14042, CVE-2019-8331). Not in the DVNA answer key."
+    },
+    "131c7a7e076f": {
+      "verdict": "correct",
+      "actionable": true,
+      "reason": "No X-Frame-Options header (DVNA uses no header middleware)."
+    },
+    "596f5542d37d": {
+      "verdict": "correct",
+      "actionable": true,
+      "reason": "No Content-Security-Policy header."
+    },
+    "d784e72c3e8f": {
+      "verdict": "correct",
+      "actionable": true,
+      "reason": "No X-Content-Type-Options header."
+    },
+    "6c75fbb2ea3a": {
+      "verdict": "correct",
+      "actionable": true,
+      "reason": "The session cookie is set without a SameSite attribute."
+    }
+  }
+}

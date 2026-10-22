@@ -73,10 +73,6 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 
 
-- **Coverage ledger** in every `--repo` report (terminal, Markdown, JSON
-  `coverage`): which files each check read, which it did not and why, and the
-  source files no code analysis looked at. It reads only file names and sizes,
-  and is the first step toward an opt-in AI mode.
 
 ### Fixed
 

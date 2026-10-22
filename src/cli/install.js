@@ -47,8 +47,9 @@ const HELP = `
 
   ${dim("Policy")}  ${dim(`(${POLICY_FILE})`)}
     { "allow": ["@acme/*", "esbuild"], "deny": ["token-harvest"],
-      "requireApproval": ["install-scripts", "ai-config-write", "ai-cli-invoke",
-                          "token-harvest", "obfuscated", "typosquat", "unscanned"] }
+      "requireApproval": ["install-scripts", "startup-hook", "ai-config-write",
+                          "ai-cli-invoke", "token-harvest", "obfuscated", "typosquat",
+                          "unscanned"] }
     "script-mismatch" is always denied and "unscanned" always needs approval.
     The requireApproval list above is the default.
 `;

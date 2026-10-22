@@ -8,6 +8,7 @@
     "url": "git+https://github.com/danoszz/penthera.git"
   },
   "homepage": "https://penthera.org",
+  "mcpName": "io.github.danoszz/penthera",
   "bugs": {
     "url": "https://github.com/danoszz/penthera/issues"
   },
@@ -57,6 +58,7 @@
     "bench": "node bench/run.js",
     "bench:known": "node bench/known-vuln/run.mjs",
     "docs:numbers": "node scripts/docs-numbers.mjs",
+    "changelog": "node scripts/changelog.mjs",
     "refresh:retire-db": "node scripts/refresh-retire-db.mjs",
     "rules:build": "node scripts/rules/build-pack.mjs",
     "rules:check": "node scripts/rules/check-bundled.mjs",

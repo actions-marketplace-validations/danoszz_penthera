@@ -12,7 +12,7 @@ import { scanRepo } from "./scan-repo.js";
 import { mergeResults } from "./cli/merge-results.js";
 import { resolveScanOptions } from "./cli/profiles.js";
 import { compareWithBaseline } from "./cli/baseline.js";
-import { normalizeBaseUrl } from "./utils/url.js";
+import { targetFromArg } from "./utils/url.js";
 import { printReport, printFindings, writeJsonReport, writeSarifReport, createProgress, printError } from "./reporter.js";
 import { writeMarkdownReport, markdownPathFromJson } from "./report/markdown.js";
 import { prepareReportOptions, customReport, writeEvidence } from "./cli/report-outputs.js";
@@ -72,6 +72,7 @@ const HELP = `
     $ penthera rules list|verify <dir>  Signed detection rule packs (penthera rules --help)
     $ penthera agent --loop          Scan, fix, verify, learn; local commits only (--help)
     $ penthera ui [--open] [--demo]  Local dashboard on 127.0.0.1 (penthera ui --help)
+    $ penthera mcp                   MCP server on stdio for your agent (penthera mcp --help)
 
   ${dim("Scan modes")}
         --profile <name>        quick | standard | deep (default: standard)
@@ -243,6 +244,12 @@ export async function run() {
   if (process.argv[2] === "ui") {
     const { runUi } = await import("./cli/ui.js");
     process.exit(await runUi(process.argv.slice(3), { version: pkg.version }));
+  }
+
+  if (process.argv[2] === "mcp") {
+    const { runMcp } = await import("./cli/mcp.js");
+    process.exitCode = await runMcp(process.argv.slice(3), { version: pkg.version });
+    return;
   }
 
   if (process.argv[2] === "agent") {
@@ -469,7 +476,15 @@ export async function run() {
     process.exit(2);
   }
 
-  const url = positionals[0] && !agentsMode ? normalizeBaseUrl(positionals[0]) : null;
+  let url = null;
+  if (positionals[0] && !agentsMode) {
+    const target = targetFromArg(positionals[0]);
+    if (target.error) {
+      printError(target.error);
+      process.exit(2);
+    }
+    url = target.url;
+  }
   const repo = opts.repo || null;
   const aiFlags = ["ai-model", "ai-budget", "ai-consent", "ai-scope"].filter((k) => opts[k] != null);
   if (aiFlags.length && !opts.ai) {

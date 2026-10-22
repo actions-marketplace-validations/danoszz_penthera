@@ -183,7 +183,10 @@ export async function runLoop(opts = {}) {
   }
   const prefix = git.run("rev-parse", "--show-prefix").replace(/\n$/, "");
   const statusNow = () => parseStatusZ(git.run("status", "--porcelain=v1", "-z", "--untracked-files=all", "--", "."), prefix);
-  const dirtyFiles = new Set(statusNow().map((e) => e.path));
+  // Penthera's own untracked scan reports (reports/, where `penthera ui` and a
+  // scan write them) are not the user's work in progress: the loop commits only
+  // the files a fix changes, so they can stay.
+  const dirtyFiles = new Set(statusNow().filter((e) => !(e.xy === "??" && e.path.startsWith("reports/"))).map((e) => e.path));
   if (dirtyFiles.size && !opts.allowDirty) {
     throw new LoopError(`${repo} has uncommitted changes (${[...dirtyFiles].slice(0, 5).join(", ")}${dirtyFiles.size > 5 ? ", ..." : ""}). Commit or stash them first, or pass --allow-dirty.`, "DIRTY");
   }

@@ -80,6 +80,28 @@ ignored) are skipped and say so.
 **5. What next.** The commands to rerun each check, check staged changes, run
 the fix loop or open the dashboard.
 
+## Before you launch
+
+When you know what you want, run the checks directly. Start the app locally,
+then:
+
+```bash
+npx penthera http://localhost:3000 --repo .   # the running app and its source, together
+npx penthera fix --plan --repo .              # fixes for what it can fix, as diffs
+npx penthera hook install                     # stop secrets at commit time from now on
+```
+
+Or ask your coding agent, with the [Agent Skill](skill.md) installed: "scan my
+app on localhost:3000 and fix what you find". Before you deploy, run the same
+scan against your preview URL. Only scan systems you own.
+
+The scan looks for what tends to go wrong in apps written fast, often with an
+AI assistant: an API route that returns any user's data if you change the id,
+an AI provider key in a client bundle, a missing security header, a CORS policy
+of `*`, a login with no rate limit. `penthera fix --plan` then prints a diff
+per fix it knows. Nothing is written until you apply a plan
+([fixes](fix.md)).
+
 ## `--yes` and `--dry-run`
 
 `--yes` answers every question with its safe default: the code, dependency and
@@ -96,6 +118,22 @@ penthera init --yes --dry-run
 
 `penthera --yes` and `penthera --dry-run` (no other arguments) are the same as
 `penthera init --yes` and `penthera init --dry-run`.
+
+## What it does not do
+
+- It is not a penetration test by a person. It checks known classes of problem.
+  It will not find a flaw in your business logic, such as a coupon that can be
+  applied twice.
+- It does not fix IDOR or auth design for you. It points at the route. The fix
+  is yours.
+- It does not watch production yet. Scheduled checks are on the
+  [roadmap](../../ROADMAP.md).
+- A clean scan is not proof of safety. Every finding has a confidence label, and
+  probes that could not run are listed as inconclusive rather than passed.
+- Its accuracy is measured only on labs we wrote ourselves: precision 0.88
+  (95% CI 0.69 to 0.96) and recall 0.91 (95% CI 0.73 to 0.98) on 24 findings
+  ([results](../../bench/RESULTS.md)). Accuracy on real apps is not measured
+  yet. That is [experiment E1](../research/prereg/E1-real-world-accuracy.md).
 
 ## What it never does
 

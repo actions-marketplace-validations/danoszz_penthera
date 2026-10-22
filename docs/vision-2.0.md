@@ -201,8 +201,9 @@ checked.
 ## Milestones toward 2.0
 
 Research milestones are not tied to version numbers: a result ships in the
-next minor release after it holds up. 1.8.0 shipped on 2026-10-21 (see the
-[roadmap](../ROADMAP.md#just-shipped-180)), so the work below lands in 1.9 and
+next minor release after it holds up. 1.8.1 is on npm `latest` and
+1.9.0-rc.1 on `next` (see the
+[roadmap](../ROADMAP.md#where-it-stands)), so the work below lands in 1.9 and
 later.
 
 | Milestone | Contents | Done when |

@@ -67,8 +67,10 @@ A **pro** wants to wire Penthera into a process: CI, rule tuning, evidence for
 an auditor, the fix loop. Lead with the exact command or config, then the
 options, then the limits.
 
-The [docs index](index.md) orders pages from starter to pro. A new page goes
-into that path.
+The [docs index](index.md) groups pages into five journeys: I'm new, I use AI
+coding tools, I run it in CI, I need evidence for an auditor, and I'm a
+researcher. A new page goes into one of them, or extends a page that already
+answers its question.
 
 ## CLI messages and reports
 

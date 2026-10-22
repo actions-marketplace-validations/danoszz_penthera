@@ -2,11 +2,13 @@
 
 > **Project page.** For contributors asking "how do I make a change, and how does it ship?"
 
-This guide covers local setup, how the project is organized, how to write docs,
-the release cadence, and the release checklist for maintainers.
+This guide covers local setup, the project layout, how a change reaches
+`main`, and how a release is cut. Coding agents: the short version, with the
+commands and the rules CI enforces, is in [AGENTS.md](AGENTS.md).
 
 By participating you agree to keep things respectful and to use the tool only
-for **authorized** security testing (see [Ethics and authorization](README.md#ethics-and-authorization)).
+for **authorized** security testing (see
+[Ethics and authorization](README.md#ethics-and-authorization)).
 
 Looking for a first task? Pick an issue labelled
 [`good first issue`](https://github.com/danoszz/penthera/labels/good%20first%20issue),
@@ -138,29 +140,41 @@ like a suite started from an app that is not in front.
 ```
 bin/                CLI entry points (penthera.js, scan.js)
 src/
-  cli/              profiles, baseline, onboarding, run-scan, ansi, prompt
-  report/           markdown.js (human-readable reports)
-  utils/            url, http, auth
+  cli/              argument parsing, profiles, baseline, onboarding (init), prompts
+  agent/            the scan, fix, verify loop (penthera agent --loop)
+  mcp/              the MCP server (penthera mcp)
+  ui/               the local dashboard (penthera ui)
+  report/           Markdown reports per audience, evidence bundles
   scan-url.js       black-box orchestrator
-  scan-repo.js      white-box + secret scanning
-  reporter.js       terminal, JSON, SARIF output
+  scan-repo.js      white-box and secret scanning
+  reporter.js       terminal, JSON and SARIF output
 lib/
-  blackbox/         headers, openapi, client-auth, jwt, idor, oauth, email-dns, adaptive-scan
-  whitebox/         secrets scanner (incl. AI provider keys), route discovery, SBOM
-  compliance/       NIS2 readiness, self-assessment, policy pack, incident, questionnaire
-  remediation/      fix playbook and prioritised action plan
-  jurisdictions/    per-country config (nl.json)
+  blackbox/         headers, OpenAPI, client auth, JWT, IDOR, OAuth, email DNS, adaptive probes
+  whitebox/         secrets (incl. AI provider keys), frameworks and routes, code sinks, SBOM, AI-BOM
+  deps/             dependency capabilities, upgrade diff, typosquats, licenses (npm and Python)
+  agents/           skills, MCP servers, hooks, plugins and rule files (penthera agents)
+  install/          the install firewall (penthera install)
+  hook/             the pre-commit hook
+  fix/              deterministic fix recipes
+  advisories/       runtime advisories (PHP, nginx, Node.js, ...)
+  rules/            signed rule packs and their verification
+  ai/               opt-in AI mode: consent, local model, verification of proposals
+  memory/           the local learning store
+  compliance/       NIS2 readiness, CRA, self-assessment, incidents, questionnaire
   owasp-wstg.js     WSTG v4.2 probe mapping
-  provenance.js     confidence + provenance on every finding
-  audit-loop.js     remediation history, time-to-fix
-  plugins.js        templates/plugins API (also exported from the package)
-skills/penthera/    Agent Skill (SKILL.md, references/, scripts/)
-docs/               documentation hub
-tests/              vitest suites + fixtures/mock-server.js
+  provenance.js     confidence and provenance on every finding
+  plugins.js        templates and plugins API (also exported from the package)
+skills/penthera/    the Agent Skill (SKILL.md, references/, scripts/)
+bench/              the benchmark, and the E10 known-vulnerable-apps runner
+docs/               user docs, from docs/index.md; research notes in docs/research/
+changelog.d/        one changelog fragment per pull request
+scripts/            CI checks, the internal audit, docs-as-tests, release tooling
+site/               penthera.org (never part of the npm package)
+tests/              vitest suites and fixtures
 ```
 
-`src/` is the CLI/orchestration layer; `lib/` is the scanner engine. The package
-re-exports engine pieces via `exports` in `package.json`
+`src/` is the CLI and orchestration layer; `lib/` is the scanner engine. The
+package re-exports engine pieces via `exports` in `package.json`
 (`penthera/plugins`, `penthera/adaptive`, `penthera/wstg`).
 
 ---
@@ -190,18 +204,27 @@ re-exports engine pieces via `exports` in `package.json`
 
 ---
 
-## Pull requests
+## From pull request to main
 
-1. Branch from `main`.
-2. Keep changes focused; add or update tests.
-3. Run `npm test`; it must be green on Node 22+.
-4. Add a changelog fragment in `changelog.d/` (see its
+1. Branch from `main`. Keep the change focused, and add or update tests.
+2. Run `npm test` and `npm run lint`. Both must pass on Node 22 or later.
+3. Add one changelog fragment in `changelog.d/` (see its
    [README](changelog.d/README.md)) instead of editing `CHANGELOG.md`, so
-   parallel pull requests don't conflict. Update the relevant docs. Docs follow the
-   [voice guide](docs/voice.md): one user question per page, plain words,
-   numbers over adjectives.
-5. Sign off every commit (see below).
-6. Open the PR with a clear description and rationale.
+   parallel pull requests don't conflict. `npm test` checks the fragment.
+4. Update the docs you touched. They follow the [voice guide](docs/voice.md):
+   one user question per page, plain words, numbers over adjectives.
+5. Sign off every commit, and add the AI trailers if an assistant helped (both
+   below).
+6. Open the PR with a clear description and rationale. Do not bump versions;
+   that happens only in a release.
+
+**What runs, and when.** A pull request gets a fast check: tests on Node 22 and
+24, CodeQL, the self-scan, the AI-trailer check, and the install check on Linux
+and macOS with Node 22. Docs-, site- or benchmark-only changes skip the install
+check. A green pull request goes through the merge queue, which runs the full
+matrix (Linux, macOS and Windows on Node 22 and 24, plus the upgrade from the
+last release) before anything lands on `main`. Keep parallel work to a few pull
+requests at a time, each touching separate files.
 
 ### Sign off your commits (DCO)
 
@@ -263,16 +286,6 @@ Report security issues in Penthera itself privately; see [SECURITY.md](SECURITY.
 
 ---
 
-## Merging
-
-Pull requests run a fast check: tests on Node 22 and 24, CodeQL, the self-scan,
-and the install check on Linux and macOS with Node 22. Docs-, site- or
-benchmark-only changes skip the install check. Green pull requests go through
-the merge queue, which runs the full matrix (Linux, macOS and Windows on Node
-22 and 24, plus the upgrade from the last release) before anything lands on
-`main`. Keep parallel work to a few pull requests at a time, each touching
-separate files.
-
 ## Release cadence and freeze
 
 Penthera is maintained part-time, so releases follow a fixed rhythm that keeps
@@ -288,9 +301,9 @@ quality from depending on anyone's free evenings.
   go into that release; features wait for the next one.
 - **No version bump or tag without the maintainer's go.**
 
-**Current freeze: none.** 1.8.0 shipped on 2026-10-21. The freeze for 1.9 is
-announced here and in the [roadmap](ROADMAP.md#just-shipped-180) when it
-starts.
+**Now: 1.9 is in release candidate.** 1.9.0-rc.1 is on `next` since
+2026-10-22; `latest` is 1.8.1. See the [roadmap](ROADMAP.md#now-190-release-candidate)
+for what is in it.
 
 Between releases:
 
@@ -318,8 +331,15 @@ live once a maintainer approves it with 2FA. **Do not run `npm publish` locally.
    - `.claude-plugin/marketplace.json` (`metadata.version`)
    - `CITATION.cff` (`version`)
    - `docs/METHODOLOGY.md` (the "How to cite" block)
-2. Fold the fragments and `[Unreleased]` notes into the new version:
-   `npm run changelog -- --release X.Y.Z YYYY-MM-DD`.
+   - `server.json` (`version` and `packages[0].version`) and the pins in
+     `docs/mcp-clients/`; a test keeps them equal
+2. Fold the fragments in `changelog.d/` and the `[Unreleased]` notes into the
+   new version, which also deletes the fragment files:
+
+   ```bash
+   npm run changelog -- --release X.Y.Z YYYY-MM-DD
+   ```
+
    Refresh the typosquat list with `npm run refresh:popular` and commit
    `lib/deps/popular-packages.json.gz` if it changed (the only time it is fetched).
 3. Run the internal audit on the release branch: `npm run audit:internal`.
@@ -338,5 +358,9 @@ live once a maintainer approves it with 2FA. **Do not run `npm publish` locally.
 6. Approve the staged version with 2FA: npmjs.com → penthera → Staged Packages →
    Approve, or `npm stage list penthera` and `npm stage approve <stage-id>`.
    Check the file list and provenance before you approve.
-7. Optional: `npm run package:skill` and attach the zip to the release for
+7. After the version is live, update the pinned versions users copy:
+   `README.md`, `AGENTS.md`, `docs/commands/mcp.md` and the
+   [Building in public](README.md#building-in-public) table. Move
+   `FROM_VERSION` in `.github/workflows/install-matrix.yml` to the new release.
+8. Optional: `npm run package:skill` and attach the zip to the release for
    Claude.ai uploads.

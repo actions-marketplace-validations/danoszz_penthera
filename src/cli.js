@@ -72,6 +72,7 @@ const HELP = `
     $ penthera rules list|verify <dir>  Signed detection rule packs (penthera rules --help)
     $ penthera agent --loop          Scan, fix, verify, learn; local commits only (--help)
     $ penthera ui [--open] [--demo]  Local dashboard on 127.0.0.1 (penthera ui --help)
+    $ penthera mcp                   MCP server on stdio for your agent (penthera mcp --help)
 
   ${dim("Scan modes")}
         --profile <name>        quick | standard | deep (default: standard)
@@ -243,6 +244,12 @@ export async function run() {
   if (process.argv[2] === "ui") {
     const { runUi } = await import("./cli/ui.js");
     process.exit(await runUi(process.argv.slice(3), { version: pkg.version }));
+  }
+
+  if (process.argv[2] === "mcp") {
+    const { runMcp } = await import("./cli/mcp.js");
+    process.exitCode = await runMcp(process.argv.slice(3), { version: pkg.version });
+    return;
   }
 
   if (process.argv[2] === "agent") {

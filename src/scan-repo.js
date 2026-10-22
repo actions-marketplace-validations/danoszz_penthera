@@ -14,6 +14,7 @@ import { scanSecrets } from "../lib/whitebox/secrets.js";
 import { scanCodeSinks } from "../lib/whitebox/code-sinks.js";
 import { discoverFrameworkRoutes } from "../lib/whitebox/frameworks.js";
 import { runtimeAdvisoriesForRepo } from "../lib/advisories/index.js";
+import { buildCoverage } from "../lib/coverage.js";
 
 /** Auto-detect API routes directory (Next.js, Express-style, etc.). */
 function findApiRoot(repoPath) {
@@ -58,6 +59,13 @@ export async function scanRepo(repoPath, opts = {}) {
     executedProbes: [],
     findings: [],
   };
+  // Every return goes through here: the ledger says what was read, including
+  // when route analysis found nothing to read.
+  const finish = () => {
+    result.coverage = buildCoverage(repoPath, result);
+    result.duration = Date.now() - startTime;
+    return result;
+  };
 
   // ── Phase 1: Secret scanning (whole repo) ─────────────────────────────
   progress("Scanning for hardcoded secrets...");
@@ -101,8 +109,7 @@ export async function scanRepo(repoPath, opts = {}) {
         category: "config",
         source: "repo-scan",
       });
-      result.duration = Date.now() - startTime;
-      return result;
+      return finish();
     }
   } else if (!existsSync(apiRoot)) {
     result.findings.push({
@@ -112,8 +119,7 @@ export async function scanRepo(repoPath, opts = {}) {
       category: "config",
       source: "repo-scan",
     });
-    result.duration = Date.now() - startTime;
-    return result;
+    return finish();
   }
 
   if (!useFrameworkScan) {
@@ -131,8 +137,7 @@ export async function scanRepo(repoPath, opts = {}) {
         category: "config",
         source: "repo-scan",
       });
-      result.duration = Date.now() - startTime;
-      return result;
+      return finish();
     }
 
     // ── Phase 3: Trust boundary analysis ───────────────────────────────────
@@ -212,6 +217,5 @@ export async function scanRepo(repoPath, opts = {}) {
   // when an API surface was found; the no-routes paths return earlier).
   result.executedProbes.push("trust-boundary", "risky-patterns");
 
-  result.duration = Date.now() - startTime;
-  return result;
+  return finish();
 }

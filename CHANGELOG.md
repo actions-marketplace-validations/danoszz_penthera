@@ -39,6 +39,11 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ### Added
 
+- **Coverage ledger** in every `--repo` report (terminal, Markdown, JSON
+  `coverage`): which files each check read, which it did not and why, and the
+  source files no code analysis looked at. It reads only file names and sizes,
+  and is the first step toward an opt-in AI mode.
+
 - **TLS keys anyone can compute.** URL scans report, as critical, any
   certificate in the served chain whose EC public key (P-256, P-384, P-521) is
   k·G for a private scalar k below 1024. The private key then follows from

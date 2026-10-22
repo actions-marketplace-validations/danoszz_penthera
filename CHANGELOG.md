@@ -161,6 +161,11 @@ cleanly under `npx`.
   CSP now allows connections only to those two paths on penthera.org; the
   browser check still sends nothing, and the page says so. The CLI, the
   dashboard and the npm package have no telemetry, unchanged.
+- A shared penthera.org link now plays a 14-second muted reel in iMessage
+  and other apps that support `og:video`: setup, an offline scan, the
+  verdict, the PHP advisory of 21 October 2026, and the share card.
+  `og.png` stays the poster and the fallback; X keeps the image card.
+  Rendered by `site/tools/reel.mjs`.
 
 ### Docs
 

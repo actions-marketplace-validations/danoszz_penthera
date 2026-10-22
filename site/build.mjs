@@ -115,6 +115,26 @@ function ruleNumbers() {
   };
 }
 
+/**
+ * The before/after example: a real scan of the test server, from
+ * site/example.json (written by site/tools/example.mjs), and the rule counts
+ * behind it. Fix recipes are not counted as rules.
+ */
+export function exampleValues(packRules) {
+  const e = JSON.parse(readFileSync(join(SITE, "example.json"), "utf8"));
+  const f = e.finding, u = new URL(f.url);
+  const sum = ["critical", "high", "medium", "low"].filter((s) => e.counts[s]).map((s) => `<span class="nowrap">${e.counts[s]} ${s}</span>`);
+  const rules = COUNTS.urlTemplates + COUNTS.secretPatterns + COUNTS.capabilities + COUNTS.agentRules + packRules;
+  return {
+    EX_CMD: esc(e.command), EX_SUM: sum.join(" · "), EX_INFO: String(e.counts.info),
+    EX_CHECKS: String(e.checks), EX_REQ: String(e.requests), EX_HOST: esc(u.hostname),
+    EX_SEV: f.severity.toUpperCase(), EX_TITLE: esc(f.title), EX_DESC: esc(f.description), EX_CONF: esc(f.confidence),
+    EX_EVIDENCE: esc(`GET ${decodeURIComponent(u.pathname + u.search)}`), EX_STATUS: String(f.status),
+    RULES_ALL: String(rules), REFS: String(COUNTS.references),
+    PKGS: (COUNTS.popularNpm + COUNTS.popularPypi).toLocaleString("en-US"),
+  };
+}
+
 /** Wilson score interval, 95%, as README and bench/ report it. */
 function wilson(k, n, z = 1.96) {
   const p = k / n;
@@ -391,6 +411,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
     CHECK_KB: String(kb(checkBytes)),
     ...benchNumbers(),
     ...ruleNumbers(),
+    ...exampleValues(packs.reduce((n, p) => n + p.count, 0)),
     ...e10Values(),
     STARS: await starCount(),
     TICKER: tickerHtml(readNews()),

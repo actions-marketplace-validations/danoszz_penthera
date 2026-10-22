@@ -8,7 +8,7 @@ import { state, set, projectOf, TABS, simple } from "./state.js";
 import { createTyper } from "./typer.js";
 import { stackedBar, sparkline, matrix, halftone } from "./charts.js";
 import { ago, duration, shortProject, plural, SEVERITIES } from "./format.js";
-import { START, EMPTY, SEV_WORD, verdict } from "./copy.js";
+import { START, EMPTY, SEV_WORD, AI, verdict } from "./copy.js";
 import { openWindow } from "./dialog.js";
 import { depsTab, aiTab, historyTab, proofTab } from "./panels.js";
 
@@ -277,6 +277,7 @@ function runView(col, ctx) {
       h("h1", {}, easy ? ({ scan: "Checking your app", loop: "Fixing problems", deps: "Checking dependencies", agents: "Checking AI tooling" })[run.kind] || run.kind
         : `${({ scan: "Scan", deps: "Dependency check", agents: "AI tooling audit", loop: "Fix loop" })[run.kind] || run.kind}`),
       h("span", { class: "muted" }, `${shortProject(run.repo || run.url)}${run.url && run.repo ? ` + ${run.url}` : ""} · ${ago(run.startedAt)}`),
+      aiTag(run.ai),
       h("span", { class: "grow" }), easy ? null : status, stop),
     // Node.append() would print a null as the text "null", so leave it out.
     ...(easy ? [h("section", { class: "verdict" }, said, saidSub)] : []),
@@ -355,6 +356,7 @@ function runView(col, ctx) {
           typer.push(`done: ${sum.stopReason} after ${plural(t.iterations, "round")} (${duration(sum.durationMs)})`, "ok");
           typer.push(`${t.verified} verified and committed :: ${t.failed} failed and reverted :: ${t.declined} skipped${sum.branch ? ` :: branch ${sum.branch}` : ""}`, t.failed ? "bad" : "ok");
         }
+        if (sum?.ai) tail.append(aiSummaryBlock(sum.ai));
         tail.append(h("div", { class: "actions" },
           run.repo || run.url ? h("button", { type: "button", class: "btn primary", onclick: () => ctx.refresh().then(() => set({ sel: { kind: "project", key: run.repo || run.url } })) }, easy ? "See my project ▸" : "Open the project ▸") : null));
         ctx.refresh();
@@ -498,4 +500,27 @@ function pastRunView(col, ctx) {
     ),
     h("div", { class: "actions" }, h("button", { type: "button", class: "btn", onclick: () => set({ sel: { kind: "project", key: l.target.repo } }) }, "Open the project ▸")),
   );
+}
+
+/** "AI · local" or "AI · ollama.com" on a run: opens to say which model ran where. */
+function aiTag(ai) {
+  if (!ai) return null;
+  const cloud = ai.route === "ollama-cloud";
+  return h("details", { class: "ai-tag" },
+    h("summary", { class: ["chip", cloud ? "blue" : null] }, AI.tag(cloud)),
+    h("span", { class: "muted prose" }, AI.tagDetail(ai.model, cloud)));
+}
+
+/** After an AI run: the counts, and the unverified proposals folded away. */
+function aiSummaryBlock(s) {
+  return h("section", { class: "ai-summary" },
+    h("p", { class: "prose" }, AI.done(s)),
+    s.findings.length
+      ? h("details", { class: "more" },
+        h("summary", {}, AI.unverified(s.unverified)),
+        h("p", { class: "muted prose" }, AI.unverifiedNote),
+        h("ul", { class: "mini" }, s.findings.map((f) => h("li", {},
+          h("span", { class: "grow" }, f.title),
+          h("span", { class: "muted" }, `${f.file}:${f.line} · ${f.class}`)))))
+      : null);
 }

@@ -198,7 +198,7 @@ export function helpModel(help) {
   }
   // Only subcommands whose help is built around actions require one.
   for (const [name, s] of subs) {
-    s.needsAction = ["memory", "hook", "rules", "evidence"].includes(name);
+    s.needsAction = ["memory", "hook", "rules", "evidence", "ai"].includes(name);
     if (!s.needsAction) s.actions = new Set();
   }
   return { main: { flags: flagsIn(main) }, subs };
@@ -216,7 +216,7 @@ const VALUE_FLAGS = new Set([...INPUT_FLAGS, "-r", "--repo", "--api-root", "-o",
   "--aibom", "--cra-init", "--history", "--auth-cookie", "--auth-bearer", "--timeout", "--concurrency", "--user-agent",
   "--profile", "--nuclei", "--templates", "--base", "--pr-comment", "--license-policy", "--port", "--project",
   "--reports", "--url", "-u", "--max-iterations", "--auto", "--fix-model", "--apply", "--input", "--dir", "--reason",
-  "--expires", "--rules-signers"]);
+  "--expires", "--rules-signers", "--ai-model", "--ai-budget", "--ai-consent", "--ai-scope"]);
 
 const isPlaceholder = (t) => /<[^>]+>|\.\.\.|…|\$\(|\$\{?[A-Z_]+\}?|\[|\]|^~|eyJ/.test(t);
 const isUrl = (t) => /^https?:\/\//.test(t) || /^\$\{?[A-Z_]*URL/.test(t) || /^<url>$/i.test(t);
@@ -311,6 +311,7 @@ export function classify(argv, model, { file = "" } = {}) {
   if (sub === null && flat.length === 0) return res("placeholder", "interactive: the setup wizard on a TTY");
   if (sub === "init" && !has("--yes") && !has("-y")) return res("placeholder", "interactive: init asks questions without --yes");
   if (sub === "agent") return res("placeholder", "interactive: the fix loop asks before each diff");
+  if (has("--ai") || sub === "ai") return res("placeholder", "AI mode needs a local model in Ollama, and asks before it runs");
   if (sub === "fix" && has("--apply")) return res("placeholder", "applies a diff by id after a plan");
   if (sub === "ui") return res("placeholder", "a long-running server (the install matrix starts ui --demo and checks it)");
   if (sub === "install") return res("external", "npm install");

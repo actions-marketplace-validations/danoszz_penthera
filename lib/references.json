@@ -605,6 +605,11 @@
       "title": "Node.js Releases",
       "url": "https://nodejs.org/en/about/previous-releases"
     },
+    "mongodblifecycles": {
+      "cite": "MongoDB lifecycles",
+      "title": "Software Lifecycle Schedules",
+      "url": "https://www.mongodb.com/legal/support-policy/lifecycles"
+    },
     "pythondevguideversions": {
       "cite": "Python version status",
       "title": "Status of Python Versions",

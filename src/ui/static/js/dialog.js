@@ -1,11 +1,11 @@
 // Floating windows: the New scan dialog and About. A native <dialog> opened
 // with showModal(), so focus is trapped, Esc closes it and the page behind is
 // inert. Focus returns to whatever opened it.
-import { h, announce } from "./dom.js";
+import { h, announce, clear } from "./dom.js";
 import { api } from "./api.js";
 import { state, set, folderFor, liveRun, simple } from "./state.js";
 import { shortProject } from "./format.js";
-import { KINDS, NOTES, ABOUT, SIMPLE_KINDS } from "./copy.js";
+import { KINDS, NOTES, ABOUT, SIMPLE_KINDS, AI, aiLines, AI_TEXT_VERSION, AI_CLOUD_HOST } from "./copy.js";
 
 const LOCAL = /^(localhost|127\.\d+\.\d+\.\d+|\[::1\]|[a-z0-9-]+\.localhost)$/i;
 
@@ -79,6 +79,31 @@ export function newScan(ctx, { kind = "scan", project = null } = {}) {
     announce(`Offline ${s.offline ? "on" : "off"}`);
   });
 
+  // AI mode: off; switching it on opens the consent sheet, on every new scan.
+  const aiBox = h("input", { type: "checkbox", id: "ns-ai" });
+  const aiChosen = h("span", { class: "muted prose" });
+  const aiChange = h("button", { type: "button", class: "btn small" }, AI.change);
+  const aiPicked = h("p", { class: "ai-chosen", hidden: true }, aiChosen, " ", aiChange);
+  const aiRow = h("div", {},
+    h("label", { class: "check" }, aiBox, h("span", {}, h("span", { class: "t1" }, AI.label), h("span", { class: "note prose" }, ` :: ${AI.note}`))),
+    aiPicked);
+  let aiChoice = null;
+  const aiReset = () => { aiChoice = null; aiBox.checked = false; aiPicked.hidden = true; };
+  const aiPick = async () => {
+    const r = await aiSheet({ project: shortProject(folder.value || folderFor(selected) || "") });
+    if (r) {
+      aiChoice = r;
+      aiBox.checked = true;
+      aiChosen.textContent = AI.chosen(r.model, r.route === "ollama-cloud");
+      aiPicked.hidden = false;
+    } else if (!aiChoice) aiReset();
+    else aiBox.checked = true;
+  };
+  aiBox.addEventListener("change", () => (aiBox.checked ? aiPick() : aiReset()));
+  aiChange.addEventListener("click", aiPick);
+  // Consent names the project, so another folder needs the sheet again.
+  folder.addEventListener?.("change", aiReset);
+
   const err = h("p", { class: "err", role: "alert", hidden: true });
   const start = h("button", { type: "submit", class: "btn primary", disabled: Boolean(busy) });
   const cancel = h("button", { type: "button", class: "btn" }, "Cancel");
@@ -88,6 +113,7 @@ export function newScan(ctx, { kind = "scan", project = null } = {}) {
     const def = kinds.find((x) => x.kind === k);
     const usesUrl = k === "scan" || k === "loop";
     urlRow.hidden = !usesUrl;
+    aiRow.hidden = k !== "scan" || !folders.length;
     const host = usesUrl ? hostOf(url.value) : null;
     const remote = Boolean(host && !LOCAL.test(host));
     confirmRow.hidden = !remote;
@@ -103,6 +129,7 @@ export function newScan(ctx, { kind = "scan", project = null } = {}) {
       h("p", { id: "ns-folder-note", class: "muted prose" }, "Runs read and write only inside this folder.")),
     urlRow,
     confirmRow,
+    aiRow,
     h("label", { class: "check" }, offline, h("span", {}, h("span", { class: "t1" }, "Offline"), h("span", { class: "note prose" }, " :: contact only the target. Applies to every run started here."))),
     busy ? h("p", { class: "muted prose" }, "A run is in progress. Stop it or wait for it to finish first.") : null,
     err,
@@ -119,7 +146,8 @@ export function newScan(ctx, { kind = "scan", project = null } = {}) {
     const k = kindNow();
     const usesUrl = k === "scan" || k === "loop";
     try {
-      const r = await api.post("/api/runs", { kind: k, repo: folder.value || folderFor(selected), url: usesUrl ? url.value : "", confirm: confirm.value, maxIterations: 5 });
+      const ai = k === "scan" && aiChoice ? { model: aiChoice.model, consent: true, textVersion: AI_TEXT_VERSION, confirmHost: aiChoice.confirmHost || "" } : undefined;
+      const r = await api.post("/api/runs", { kind: k, repo: folder.value || folderFor(selected), url: usesUrl ? url.value : "", confirm: confirm.value, maxIterations: 5, ai });
       win.close();
       await ctx.refresh();
       set({ sel: { kind: "run", key: r.id, run: r } });
@@ -131,6 +159,83 @@ export function newScan(ctx, { kind = "scan", project = null } = {}) {
     }
   });
   queueMicrotask(() => (radios.find((r) => r.querySelector("input").checked)?.querySelector("input"))?.focus());
+}
+
+/**
+ * The AI mode sheet: where the code goes (a picture first, then words), which
+ * model, and two choices of equal weight. A cloud model shows ollama.com in the
+ * picture and needs the host typed. Esc and "Not now" decline.
+ * @returns {Promise<{ model: string, route: string, confirmHost: string } | null>}
+ */
+export function aiSheet({ project, maxUnits = 200 }) {
+  return new Promise((done) => {
+    let result = null;
+    const box = (text, cls) => h("span", { class: ["ai-box", cls || null] }, text);
+    const arrow = () => h("span", { class: "ai-arrow" }, "→");
+    const outside = box("internet", "out");
+    const flow = h("div", { class: "ai-flow", "aria-hidden": "true" }, box("your code"), arrow(), box("Penthera"), arrow(), box("Ollama on this computer"), arrow(), outside);
+    const flowAlt = h("p", { class: "sr-only" });
+    const select = h("select", { id: "ai-model", disabled: true }, h("option", {}, "Asking Ollama…"));
+    const lines = h("dl", { class: "kv ai-lines", hidden: true });
+    const modelRow = h("div", { class: "field", hidden: true }, h("label", { for: "ai-model" }, "Model"), select);
+    const hostQ = h("label", { for: "ai-host", class: "prose" }, AI.cloudConfirm);
+    const host = h("input", { type: "text", id: "ai-host", autocomplete: "off", spellcheck: "false" });
+    const hostRow = h("div", { class: "field confirm", hidden: true }, hostQ, host);
+    const note = h("p", { class: "muted prose", role: "status" });
+    const use = h("button", { type: "button", class: "btn", disabled: true }, "Use");
+    const notNow = h("button", { type: "button", class: "btn" }, AI.notNow);
+    let models = [];
+
+    const current = () => models.find((m) => m.name === select.value) || null;
+    const sync = () => {
+      const m = current();
+      const cloud = m?.route === "ollama-cloud";
+      outside.textContent = cloud ? AI_CLOUD_HOST : "internet";
+      outside.classList.toggle("live", cloud);
+      flowAlt.textContent = AI.flowAlt(cloud);
+      clear(lines).append(...aiLines({ route: m?.route || "local", model: m?.name || "…", project, maxUnits }).flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, v)]));
+      hostRow.hidden = !cloud;
+      use.textContent = m ? AI.use(m.name, cloud) : "Use";
+      use.disabled = !m || (cloud && host.value.trim().toLowerCase() !== AI_CLOUD_HOST);
+    };
+    select.addEventListener("change", sync);
+    host.addEventListener("input", sync);
+
+    const body = h("div", { class: "form ai-sheet" },
+      h("p", { class: "prose" }, AI.intro),
+      flow, flowAlt,
+      modelRow,
+      lines,
+      hostRow,
+      note,
+      h("div", { class: "actions" }, h("span", { class: "grow" }), notNow, use));
+    const win = openWindow({ title: AI.title, label: "AI mode: what happens to your code", body });
+    win.el.addEventListener("close", () => done(result));
+    notNow.addEventListener("click", win.close);
+    use.addEventListener("click", () => {
+      const m = current();
+      if (!m) return;
+      result = { model: m.name, route: m.route, confirmHost: m.route === "ollama-cloud" ? host.value.trim().toLowerCase() : "" };
+      win.close();
+    });
+    sync();
+    notNow.focus();
+
+    api.get("/api/ai-mode/models").then((r) => {
+      if (r.textVersion != null && r.textVersion !== AI_TEXT_VERSION) {
+        note.textContent = "What AI mode does has changed since this page loaded. Reload the page to read the new text.";
+        return;
+      }
+      models = [...(r.models || []).filter((m) => m.route === "local"), ...(r.models || []).filter((m) => m.route !== "local")];
+      if (r.error) note.textContent = r.error;
+      else if (!models.length) note.textContent = AI.noModels;
+      clear(select).append(...models.map((m) => h("option", { value: m.name }, m.route === "local" ? m.name : `${m.name}  (runs on ${AI_CLOUD_HOST})`)));
+      select.disabled = !models.length;
+      modelRow.hidden = lines.hidden = !models.length;
+      sync();
+      if (models.length) select.focus();
+    }).catch((e) => { note.textContent = e.message; });
+  });
 }
 
 /** About Penthera: the wordmark, the version and what this page is. */

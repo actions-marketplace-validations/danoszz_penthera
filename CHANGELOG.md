@@ -27,6 +27,15 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   `session({ secret: '...' })` or `cookieSession(...)`, including a hardcoded
   fallback after `process.env.X ||` (high). Express's documented example,
   `'keyboard cat'`, was a documented miss in the E10 pilot (DVNA).
+- The repo scan looks for code-execution sinks in all server code, not just
+  route handlers: `eval`/`new Function` with a non-constant argument, `vm`
+  calls and `child_process` `exec` with request data in their arguments.
+  A taint-lite pass (assignments and destructuring within one file) sets the
+  confidence: `likely` when request data reaches the sink, `potential` for an
+  `eval` of a value it cannot trace. Before, a repo with an Express `routes/`
+  folder stopped before any code-pattern check; three E10 pilot misses (DVNA's
+  `exec` in `core/appHandler.js`, Juice Shop's B2B `vm` and profile `eval`)
+  came from this.
 
 ### Added
 

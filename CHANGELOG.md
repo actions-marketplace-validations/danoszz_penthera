@@ -10,6 +10,19 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   `coverage`): which files each check read, which it did not and why, and the
   source files no code analysis looked at. It reads only file names and sizes,
   and is the first step toward an opt-in AI mode.
+- **AI mode, opt-in and experimental: `penthera --repo . --ai`.** A model in
+  your local Ollama reads your code part by part and proposes problems no rule
+  describes; Penthera checks each proposal with its rules. Confirmed ones mark
+  the rule finding "also proposed by AI"; the rest are shown as
+  "model-proposed, unverified", apart from rule findings, and never change the
+  exit code. Every run asks first (default no), on stderr; runs that cannot ask
+  need `--ai-consent local` or `"ai": { "allow": ["local"] }` in
+  `penthera.policy.json`, or stop with exit 2 before scanning. Ollama cloud
+  models (`-cloud`) are recognised and need a second screen where you type
+  `ollama.com`. Secrets are masked before any code reaches the model; budgets
+  (`--ai-budget`) are hard stops; consents are logged locally
+  (`penthera ai consent`). `penthera ai models` lists models and where they
+  run. See [docs/ai-mode.md](docs/ai-mode.md).
 - **`penthera verify <findings.json>`** checks findings from an AI security
   audit against Penthera's rules on your checkout. It reads Cloudflare's
   security-audit skill `findings.json` (schema vendored from commit `c1c8a8c`,

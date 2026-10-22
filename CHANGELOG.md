@@ -4,6 +4,14 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-10-22
+
+A fixes-only release. Runtime advisories are more careful: pre-release builds
+are never reported as having the fix, a banner without a distribution token is
+at most `potential`, release lines older than a flaw are not reported as
+affected, and two more banner formats are read. `penthera ui` now stops
+cleanly under `npx`.
+
 ### Fixed
 
 - Runtime advisories no longer claim `likely` for a banner that may be a

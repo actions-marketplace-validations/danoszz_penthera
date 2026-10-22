@@ -6,10 +6,27 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ### Detection
 
+- Three exposure checks in the default URL scan, each a documented miss in
+  the E10 pilot (Juice Shop). All send plain `GET`s, no payloads:
+  - a public Prometheus `/metrics` endpoint (medium), matched on the
+    exposition format, so an SPA's index page at `/metrics` does not count;
+  - browsable directory listings (medium) in folders that `robots.txt`
+    disallows and in common upload and backup folders, matched on the
+    listing's page title;
+  - a stack trace in the error page for a path that does not exist (low),
+    matched on Node.js, Python, Java, PHP and .NET frame shapes.
+
 - The header audit reports an `X-Powered-By` header (low, `confirmed`), such
   as Express's default `X-Powered-By: Express`. It was a documented miss in
   the E10 pilot (DVNA). The finding names the value and how to turn the
   header off.
+- The secret scan reads Terraform and HCL files (`.tf`, `.tfvars`, `.hcl`).
+  A private key inline in a Terraform file was a documented miss in the E10
+  pilot (Juice Shop).
+- New secret rule: a session signing secret written into
+  `session({ secret: '...' })` or `cookieSession(...)`, including a hardcoded
+  fallback after `process.env.X ||` (high). Express's documented example,
+  `'keyboard cat'`, was a documented miss in the E10 pilot (DVNA).
 - The advisories pack knows MongoDB: end-of-life lines from MongoDB's
   lifecycle schedule (4.4 ended 2024-02-29, 5.0 on 2024-10-31, 6.0 on
   2025-07-31, and the interim releases), matched against the official `mongo`

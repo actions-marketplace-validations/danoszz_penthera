@@ -87,7 +87,7 @@ export const TOOLS = [
       const merged = mergeResults([raw]);
       return buildResult({
         tool: "scan_repo", target: display, findings: merged.findings, limits: REPO_LIMITS, maxFindings: args.max_findings,
-        extra: { routes: Array.isArray(raw.attackSurface) ? raw.attackSurface.length : 0 },
+        extra: { routes: Array.isArray(raw.attackSurface) ? raw.attackSurface.length : 0, coverage: coverageOf(raw.coverage) },
       });
     },
   },
@@ -220,6 +220,24 @@ export const TOOL_BY_NAME = new Map(TOOLS.map((t) => [t.name, t]));
 /** The tools/list entries (no handlers). */
 export function listTools() {
   return TOOLS.map(({ name, title, description, inputSchema, annotations }) => ({ name, title, description, inputSchema, annotations }));
+}
+
+// ── Coverage ledger ───────────────────────────────────────────────────────
+
+const NOT_RUN_TOOL = { deps: "check_dependencies", agents: "audit_ai_tooling" };
+
+/** scan_repo's coverage ledger (lib/coverage.js): what was examined, skipped and not run, with MCP tool names. */
+function coverageOf(c) {
+  if (!c) return null;
+  return {
+    files: c.files,
+    source_files: c.sourceFiles,
+    source_files_analysed: c.sourceFilesAnalysed,
+    truncated: !!c.truncated,
+    checks: (c.families || []).map((f) => ({ id: f.id, label: f.label, ran: f.ran, examined: f.examined, skipped: f.skipped })),
+    not_run: (c.notRun || []).map((n) => ({ id: n.id, label: n.label, tool: NOT_RUN_TOOL[n.id] || null })),
+    blind_spots: c.blindSpots ? { count: c.blindSpots.count, by_reason: c.blindSpots.byReason, paths: (c.blindSpots.paths || []).slice(0, 20).map((p) => cleanText(typeof p === "string" ? p : p.path, 300)) } : null,
+  };
 }
 
 // ── explain_finding ───────────────────────────────────────────────────────

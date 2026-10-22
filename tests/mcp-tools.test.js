@@ -77,6 +77,9 @@ describe("scan_repo", () => {
     expect(JSON.stringify(r)).not.toContain(SECRET);
     expect(res.result.content[0].text).toMatch(/^Penthera scan_repo on app:/);
     expect(JSON.parse(res.result.content[1].text)).toEqual(r);
+    // The coverage ledger says what ran and points at the tools for what didn't.
+    expect(r.coverage.checks.map((c) => c.id)).toContain("secrets");
+    expect(r.coverage.not_run.map((n) => n.tool)).toEqual(expect.arrayContaining(["check_dependencies", "audit_ai_tooling"]));
   });
 
   it("refuses paths outside the workspace: parent, absolute and through a symlink", async () => {

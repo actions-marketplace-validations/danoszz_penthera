@@ -15,7 +15,7 @@ import { checkMcpServer } from "../lib/agents/rules.js";
 
 const ROOT = join(import.meta.dirname, "..");
 const BIN = join(ROOT, "bin", "penthera.js");
-const EXAMPLES = join(ROOT, "docs", "examples", "mcp");
+const EXAMPLES = join(ROOT, "docs", "mcp-clients");
 
 /** A client over a child process's stdio. */
 function spawnServer(args, cwd) {

@@ -83,7 +83,9 @@ unsigned one needs `--allow-unsigned-rules`. See [rule-packs.md](rule-packs.md).
    Use the vendor's own severity. Add `condition` when the flaw needs more than
    the version (an operating system, a SAPI, a module). Findings for such a rule
    never go above `potential`. Add `introduced` on a line when versions before
-   it are not affected.
+   it are not affected. On the oldest listed line, it also clears every older
+   line (httpd 2.2 for a flaw introduced in 2.4.49). Without it, an older
+   end-of-life line is reported as "end of life, no fix".
 3. Build and sign it: `npm run rules:build -- ./php-2026-10 --name php-2026-10 --version 1.0.0`,
    then `scripts/rules/sign-pack.sh ./php-2026-10`.
 4. Fold the rule into the bundled `advisories` pack in the next release, with a

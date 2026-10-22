@@ -114,9 +114,19 @@ export async function runUi(argv, { version }) {
   if (opts.open) openBrowser(ui.url, ui.session);
 
   await new Promise((resolve) => {
-    const stop = () => { process.stdout.write("\n  Stopped.\n"); ui.close().then(resolve); };
-    process.once("SIGINT", stop);
-    process.once("SIGTERM", stop);
+    // The signal can arrive twice: npm (npx) forwards it to us right after the
+    // terminal or a process-group kill delivered it. Keep listening and ignore
+    // repeats, so the second copy cannot fall through to the default action
+    // and kill the process before it stops. The caller exits as soon as this
+    // resolves, so close only after "Stopped." is written.
+    let stopping = false;
+    const stop = () => {
+      if (stopping) return;
+      stopping = true;
+      process.stdout.write("\n  Stopped.\n", () => ui.close().then(resolve));
+    };
+    process.on("SIGINT", stop);
+    process.on("SIGTERM", stop);
   });
   return 0;
 }

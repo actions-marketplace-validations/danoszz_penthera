@@ -4,6 +4,14 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Fixed
+
+- `penthera ui` listens for SIGINT and SIGTERM before it prints that it is
+  listening. A signal that arrived in between got the default action and
+  killed the process without "Stopped." (seen as a hung CI test; about one
+  run in a hundred locally). The test now fails within seconds with the
+  child's output instead of hanging for three minutes.
+
 ### Detection
 
 - Three exposure checks in the default URL scan, each a documented miss in
@@ -36,8 +44,41 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   folder stopped before any code-pattern check; three E10 pilot misses (DVNA's
   `exec` in `core/appHandler.js`, Juice Shop's B2B `vm` and profile `eval`)
   came from this.
+- The advisories pack knows MongoDB: end-of-life lines from MongoDB's
+  lifecycle schedule (4.4 ended 2024-02-29, 5.0 on 2024-10-31, 6.0 on
+  2025-07-31, and the interim releases), matched against the official `mongo`
+  image in Dockerfiles and compose files and `mongodb` in `.tool-versions`.
+  `mongo:4.4.29` in Juice Shop's compose file was a documented miss in the
+  E10 pilot. **The pack is unsigned in this change**: the maintainer signs it
+  (`scripts/rules/sign-pack.sh`) before release.
 
 ### Added
+
+- **Coverage ledger** in every `--repo` report (terminal, Markdown, JSON
+  `coverage`): which files each check read, which it did not and why, and the
+  source files no code analysis looked at. It reads only file names and sizes,
+  and is the first step toward an opt-in AI mode.
+- **AI mode, opt-in and experimental: `penthera --repo . --ai`.** A model in
+  your local Ollama reads your code part by part and proposes problems no rule
+  describes; Penthera checks each proposal with its rules. Confirmed ones mark
+  the rule finding "also proposed by AI"; the rest are shown as
+  "model-proposed, unverified", apart from rule findings, and never change the
+  exit code. Every run asks first (default no), on stderr; runs that cannot ask
+  need `--ai-consent local` or `"ai": { "allow": ["local"] }` in
+  `penthera.policy.json`, or stop with exit 2 before scanning. Ollama cloud
+  models (`-cloud`) are recognised and need a second screen where you type
+  `ollama.com`. Secrets are masked before any code reaches the model; budgets
+  (`--ai-budget`) are hard stops; consents are logged locally
+  (`penthera ai consent`). `penthera ai models` lists models and where they
+  run. See [docs/ai-mode.md](docs/ai-mode.md).
+- **AI mode in the dashboard.** New scan has an AI mode switch, off; turning
+  it on opens the consent sheet on every scan (a picture of where the code
+  goes, the model picker, the terminal's exact consent lines, two equal
+  buttons; cloud models need `ollama.com` typed). The server checks the
+  model's route with Ollama itself and logs the consent. Runs show an
+  "AI · local" tag, unverified proposals are folded under their own heading,
+  and Settings lists the consent log.
+
 
 - **`penthera verify <findings.json>`** checks findings from an AI security
   audit against Penthera's rules on your checkout. It reads Cloudflare's
@@ -53,10 +94,8 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 - Risky-pattern findings from `--repo` now carry the repo-relative `file` and
   the `pattern` name.
 
-- **Coverage ledger** in every `--repo` report (terminal, Markdown, JSON
-  `coverage`): which files each check read, which it did not and why, and the
-  source files no code analysis looked at. It reads only file names and sizes,
-  and is the first step toward an opt-in AI mode.
+
+
 
 ### Fixed
 
@@ -166,6 +205,23 @@ cleanly under `npx`.
   verdict, the PHP advisory of 21 October 2026, and the share card.
   `og.png` stays the poster and the fallback; X keeps the image card.
   Rendered by `site/tools/reel.mjs`.
+
+### Research
+
+- Draft protocol for experiment E10: Penthera against six deliberately
+  vulnerable apps with public answer keys (Juice Shop, DVNA, NodeGoat, DVWA,
+  crAPI, WebGoat), each pinned by commit and image digest. Answer keys in
+  `bench/known-vuln/`, frozen before any scan; an opt-in runner
+  (`npm run bench:known`, not in `npm test` or the package) starts the apps
+  isolated in Docker on 127.0.0.1. A pilot on Juice Shop and DVNA is in
+  `bench/known-vuln/RESULTS.md`, marked as a pilot.
+- Each of the pilot's 13 standard-run misses is verified in
+  `bench/known-vuln/MISSES.md` (all real gaps; none a scoring artefact).
+  A re-run after the fixes that followed (#107, #108, #110, #111) is in
+  `bench/known-vuln/RESULTS-after-fixes.md`, next to the unchanged pilot:
+  pooled standard recall 1/14 to 10/14 at the same precision, flagged as not
+  independent, with WebGoat as a held-out app that did not change. The
+  runner gains `--out <file>`.
 
 ### Docs
 

@@ -56,6 +56,7 @@
     "refresh:popular-pypi": "node scripts/refresh-popular-pypi.mjs",
     "mock-server": "node tests/fixtures/mock-server.js",
     "bench": "node bench/run.js",
+    "bench:known": "node bench/known-vuln/run.mjs",
     "docs:numbers": "node scripts/docs-numbers.mjs",
     "refresh:retire-db": "node scripts/refresh-retire-db.mjs",
     "rules:build": "node scripts/rules/build-pack.mjs",

@@ -110,3 +110,45 @@ export function verdict({ counts, open, top, scanned, when }) {
   if (open) return { level: "ok", text: `Nothing blocks a launch. ${open === 1 ? "1 smaller thing is" : `${open} smaller things are`} worth fixing.`, sub: from, top };
   return { level: "clear", text: "Nothing open. The last check found no problems.", sub: from };
 }
+
+// ── AI mode (docs/ai-mode.md) ────────────────────────────────────────────
+// The consent lines say exactly what the terminal says (lib/ai/consent.js);
+// a test compares them. AI_TEXT_VERSION must match CONSENT_TEXT_VERSION, and
+// the server refuses a run whose page showed another version.
+
+export const AI_TEXT_VERSION = 1;
+export const AI_CLOUD_HOST = "ollama.com";
+
+export const AI = {
+  label: "AI mode",
+  note: "A model on this computer looks for what rules can't see. Off by default.",
+  title: "AI mode",
+  intro: "AI mode: a model reads your code to look for problems the rules can't see.",
+  flowAlt: (cloud) => cloud
+    ? "Your code goes from Penthera to Ollama on this computer, and Ollama sends it to ollama.com."
+    : "Your code goes from Penthera to Ollama on this computer. It does not go to the internet.",
+  noModels: "Ollama has no models yet. Pull one in a terminal, for example: ollama pull qwen2.5-coder:7b",
+  cloudConfirm: `This model runs on ${AI_CLOUD_HOST}, not on this computer. Type ${AI_CLOUD_HOST} to send your code there:`,
+  notNow: "Not now",
+  use: (model, cloud) => `Use ${model} ${cloud ? `on ${AI_CLOUD_HOST}` : "on this computer"}`,
+  chosen: (model, cloud) => `${model} · ${cloud ? `on ${AI_CLOUD_HOST}: your code is sent there` : "on this computer: nothing sent off it"}`,
+  change: "Change…",
+  tag: (cloud) => (cloud ? `AI · ${AI_CLOUD_HOST}` : "AI · local"),
+  tagDetail: (model, cloud) => cloud ? `${model} ran on ${AI_CLOUD_HOST}; your code was sent there through your local Ollama.` : `${model} ran on this computer; nothing was sent off it.`,
+  unverified: (n) => `Model-proposed, not verified (${n})`,
+  unverifiedNote: "No Penthera rule confirmed these. They are a model's claims: read the code before acting on them. They are not counted anywhere else and never fail CI.",
+  done: (s) => `AI mode read ${s.read} of ${s.of} code parts${s.partial ? ` (stopped early: ${s.stopReason})` : ""}. ${s.confirmed} confirmed by a Penthera rule, ${s.unverified} not verified.`,
+  settings: "AI mode asks on every run; nothing is remembered as permission. Each answer is logged on this computer only.",
+  settingsEmpty: "No AI runs yet.",
+};
+
+/** The Model / Reads / Sends / Decides lines of the consent screen, as [label, text] pairs. */
+export function aiLines({ route, model, project, maxUnits }) {
+  const cloud = route === "ollama-cloud";
+  return [
+    ["Model", cloud ? `${model}, through your local Ollama, run on ${AI_CLOUD_HOST}` : `${model}, through Ollama on this computer (127.0.0.1)`],
+    ["Reads", `up to ${maxUnits} parts of ${project}, with secrets masked`],
+    ["Sends", cloud ? `those parts to ${AI_CLOUD_HOST} (you confirm the host next)` : "nothing off this computer"],
+    ["Decides", "nothing. Penthera checks every model finding with its own rules. Unchecked ones are labelled and never fail CI."],
+  ];
+}

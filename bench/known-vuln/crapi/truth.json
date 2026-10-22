@@ -1,0 +1,332 @@
+{
+  "schema": "penthera-known-vuln-truth/1",
+  "app": "crapi",
+  "name": "OWASP crAPI (completely ridiculous API)",
+  "license": "Apache-2.0",
+  "licenseUrl": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/LICENSE.md",
+  "intendedUse": "Describes itself as vulnerable by design, for learning API security (README).",
+  "intendedUseUrl": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/README.md",
+  "source": {
+    "repo": "https://github.com/OWASP/crAPI",
+    "ref": "v1.1.6",
+    "commit": "700f03d12a392d9e408260b4beae72ed02a4a1a4"
+  },
+  "images": [
+    {
+      "ref": "crapi/crapi-identity:latest",
+      "digest": "sha256:5d1db5b3ba8e02bc68711ec6fc4e35ed7cd8b87e63785ece9e7ff5b5e36c5260"
+    },
+    {
+      "ref": "crapi/crapi-community:latest",
+      "digest": "sha256:8ba0c7eda86ae065a673f1fa554d0109a24f25c5a8d65097ae024e5ee715c54e"
+    },
+    {
+      "ref": "crapi/crapi-workshop:latest",
+      "digest": "sha256:d4d2d94d35a31e211b04d5a771881f5ae13e358e8fa0804463ae3bace05dd815"
+    },
+    {
+      "ref": "crapi/crapi-chatbot:latest",
+      "digest": "sha256:36d274d54182a8baddba7ede17282035bb43ab9cb9cf87927e1fe7109901e0aa"
+    },
+    {
+      "ref": "crapi/crapi-web:latest",
+      "digest": "sha256:b27d246c646bd33898e7d1d2095b6e7576c0993a7b81a73aa7386929493d7151"
+    },
+    {
+      "ref": "crapi/mailhog:latest",
+      "digest": "sha256:015c23f79d40c9dc1800cd0a458503b89aeda3b585a12c37d53829d6c7d61fdd"
+    },
+    {
+      "ref": "crapi/gateway-service:latest",
+      "digest": "sha256:97dade9daf0e758547b1686e2d3303c8c9b79838167f728a9211f0ee1f4622b0"
+    },
+    {
+      "ref": "postgres:14",
+      "digest": "sha256:34afac84a15415ebec6271fa9615e7dfbf96e1aa9783f1af527b7d3fd933f1f2"
+    },
+    {
+      "ref": "mongo:4.4",
+      "digest": "sha256:4be76f674fc4b27859816811b8baa3c51830eb1dbf4ca81a51e26b79edd662ef"
+    },
+    {
+      "ref": "chromadb/chroma:latest",
+      "digest": "sha256:1e0b73a187a28757c572acba508c46f48c9e8b0acaf5c20e6d95cdedce1acdf6"
+    }
+  ],
+  "imageNote": "The compose file at v1.1.6 uses ${VERSION:-latest}; no image carries a v1.1.6 tag, so the latest digests resolved on 2026-10-22 (last pushed 2025-09-22, the tag date) are pinned. postgres:14 and mongo:4.4 are moving tags. The web/gateway entry point is port 8888. Mailhog and the chatbot need outbound access and are left out under isolation.",
+  "answerKey": [
+    {
+      "title": "crAPI challenges",
+      "url": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/docs/challenges.md"
+    },
+    {
+      "title": "crAPI challenge solutions",
+      "url": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/docs/challengeSolutions.md"
+    }
+  ],
+  "frozenOn": "2026-10-22",
+  "frozenBeforeScan": true,
+  "builtBy": "Claude (AI-assisted) from docs/challenges.md and the service source at the pinned commit; to be checked by labeller A before registration. The three undocumented \"secret challenges\" are not listed.",
+  "vulnerabilities": [
+    {
+      "id": "ch01",
+      "title": "Challenge 1: Access details of another user’s vehicle",
+      "ref": "Challenge 1",
+      "source": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/docs/challenges.md",
+      "description": "Vehicle location API returns any vehicle by its UUID.",
+      "appCategory": "BOLA",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "access-control-logic",
+      "note": "The id is a UUID found through another API, not a guessable number."
+    },
+    {
+      "id": "ch02",
+      "title": "Challenge 2: Access mechanic reports of other users",
+      "ref": "Challenge 2",
+      "source": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/docs/challenges.md",
+      "description": "Mechanic report endpoint returns any report by its sequential numeric id.",
+      "appCategory": "BOLA",
+      "class": "auth",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "/workshop/api/mechanic/mechanic_report"
+        },
+        {
+          "file": "services/workshop/crapi/mechanic/views.py"
+        }
+      ],
+      "group": "mechanic-report-idor",
+      "note": "Routes are defined in Java (identity), Go (community) or Python (workshop); Penthera reads routes from JS/TS only."
+    },
+    {
+      "id": "ch03",
+      "title": "Challenge 3: Reset the password of a different user",
+      "ref": "Challenge 3",
+      "source": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/docs/challenges.md",
+      "description": "Password-reset OTP can be brute-forced on an older API version.",
+      "appCategory": "Broken User Authentication",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "weak-credentials",
+      "note": "Penthera’s rate-limit check covers login, not OTP verification."
+    },
+    {
+      "id": "ch04",
+      "title": "Challenge 4: Find an API endpoint that leaks sensitive information of other users",
+      "ref": "Challenge 4",
+      "source": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/docs/challenges.md",
+      "description": "Community posts API returns other users’ details.",
+      "appCategory": "Excessive Data Exposure",
+      "class": "exposure",
+      "inScope": false,
+      "excludedBecause": "access-control-logic"
+    },
+    {
+      "id": "ch05",
+      "title": "Challenge 5: Find an API endpoint that leaks an internal property of a video",
+      "ref": "Challenge 5",
+      "source": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/docs/challenges.md",
+      "description": "Video API returns an internal conversion property.",
+      "appCategory": "Excessive Data Exposure",
+      "class": "exposure",
+      "inScope": false,
+      "excludedBecause": "business-logic"
+    },
+    {
+      "id": "ch06",
+      "title": "Challenge 6: Perform a layer 7 DoS using ‘contact mechanic’ feature",
+      "ref": "Challenge 6",
+      "source": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/docs/challenges.md",
+      "description": "Contact-mechanic repeat parameter causes a request storm.",
+      "appCategory": "Rate Limiting",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "business-logic"
+    },
+    {
+      "id": "ch07",
+      "title": "Challenge 7: Delete a video of another user",
+      "ref": "Challenge 7",
+      "source": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/docs/challenges.md",
+      "description": "Admin video-delete endpoint is callable by a normal user.",
+      "appCategory": "BFLA",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "access-control-logic"
+    },
+    {
+      "id": "ch08",
+      "title": "Challenge 8: Get an item for free",
+      "ref": "Challenge 8",
+      "source": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/docs/challenges.md",
+      "description": "Order update accepts a status field from the client.",
+      "appCategory": "Mass Assignment",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "access-control-logic"
+    },
+    {
+      "id": "ch09",
+      "title": "Challenge 9: Increase your balance by $1,000 or more",
+      "ref": "Challenge 9",
+      "source": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/docs/challenges.md",
+      "description": "Order quantity/status manipulation refunds money.",
+      "appCategory": "Mass Assignment",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "business-logic"
+    },
+    {
+      "id": "ch10",
+      "title": "Challenge 10: Update internal video properties",
+      "ref": "Challenge 10",
+      "source": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/docs/challenges.md",
+      "description": "Video update accepts internal fields.",
+      "appCategory": "Mass Assignment",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "access-control-logic"
+    },
+    {
+      "id": "ch11",
+      "title": "Challenge 11: Make crAPI send an HTTP call to an external site",
+      "ref": "Challenge 11",
+      "source": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/docs/challenges.md",
+      "description": "Contact-mechanic forwards a client-supplied URL from the server.",
+      "appCategory": "SSRF",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/workshop/api/merchant/contact_mechanic"
+        },
+        {
+          "file": "services/workshop/crapi/merchant/views.py"
+        }
+      ],
+      "group": "contact-mechanic-ssrf",
+      "note": "Routes are defined in Java (identity), Go (community) or Python (workshop); Penthera reads routes from JS/TS only. Under network isolation the outbound call cannot succeed; a scanner sees SSRF only through response differences."
+    },
+    {
+      "id": "ch12",
+      "title": "Challenge 12: Find a way to get free coupons without knowing the coupon code",
+      "ref": "Challenge 12",
+      "source": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/docs/challenges.md",
+      "description": "Coupon validation passes a JSON query object to MongoDB.",
+      "appCategory": "NoSQL Injection",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed"
+    },
+    {
+      "id": "ch13",
+      "title": "Challenge 13: Redeem an already claimed coupon by modifying the database",
+      "ref": "Challenge 13",
+      "source": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/docs/challenges.md",
+      "description": "Apply-coupon builds SQL from the coupon_code field.",
+      "appCategory": "SQL Injection",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/workshop/api/shop/apply_coupon"
+        },
+        {
+          "file": "services/workshop/crapi/shop/views.py"
+        }
+      ],
+      "group": "apply-coupon-sqli",
+      "note": "Routes are defined in Java (identity), Go (community) or Python (workshop); Penthera reads routes from JS/TS only."
+    },
+    {
+      "id": "ch14",
+      "title": "Challenge 14: Find an endpoint that does not perform authentication checks",
+      "ref": "Challenge 14",
+      "source": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/docs/challenges.md",
+      "description": "An order-details endpoint answers without a token although the API spec requires one.",
+      "appCategory": "Unauthenticated Access",
+      "class": "auth",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "/workshop/api/shop/orders/"
+        },
+        {
+          "file": "services/workshop/crapi/shop/views.py"
+        }
+      ],
+      "group": "orders-unauth",
+      "note": "Routes are defined in Java (identity), Go (community) or Python (workshop); Penthera reads routes from JS/TS only. The endpoint is inferred from source and the OpenAPI spec; the challenge text does not name it."
+    },
+    {
+      "id": "ch15",
+      "title": "Challenge 15: Find a way to forge valid JWT tokens",
+      "ref": "Challenge 15",
+      "source": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/docs/challenges.md",
+      "description": "Identity service JWT verification is weak (algorithm confusion, unchecked signature on one route, kid traversal).",
+      "appCategory": "JWT Vulnerabilities",
+      "class": "auth",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "/identity/api/v2/user/dashboard"
+        },
+        {
+          "file": "services/identity/src/main/java/com/crapi/config/JwtProvider.java"
+        }
+      ],
+      "group": "jwt-forgery",
+      "note": "Routes are defined in Java (identity), Go (community) or Python (workshop); Penthera reads routes from JS/TS only. Several documented sub-flaws share this one entry; the jku variant needs an attacker-hosted key and is out-of-band."
+    },
+    {
+      "id": "ch16",
+      "title": "Challenge 16: Use the chatbot to do a successful prompt injection",
+      "ref": "Challenge 16",
+      "source": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/docs/challenges.md",
+      "description": "Chatbot follows injected instructions.",
+      "appCategory": "LLM",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "llm"
+    },
+    {
+      "id": "ch17",
+      "title": "Challenge 17: Extract the credentials of another user using chatbot",
+      "ref": "Challenge 17",
+      "source": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/docs/challenges.md",
+      "description": "Chatbot reveals another user’s data.",
+      "appCategory": "LLM",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "llm"
+    },
+    {
+      "id": "ch18",
+      "title": "Challenge 18: Make the chatbot do an action on behalf of another user",
+      "ref": "Challenge 18",
+      "source": "https://github.com/OWASP/crAPI/blob/700f03d12a392d9e408260b4beae72ed02a4a1a4/docs/challenges.md",
+      "description": "Chatbot performs actions for another user.",
+      "appCategory": "LLM",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "llm"
+    }
+  ]
+}

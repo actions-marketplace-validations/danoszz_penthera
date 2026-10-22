@@ -1,0 +1,308 @@
+{
+  "schema": "penthera-known-vuln-labels/1",
+  "app": "juice-shop",
+  "labeller": "Provisional labeller A: Claude (AI-assisted), 2026-10-22, pilot only. Not blinded (saw Penthera output). To be replaced by two independent human labellers under the protocol.",
+  "codebook": "Level 1 correct: the stated condition is present at the stated location. Hardcoded password: the file holds a non-placeholder literal that logs in to an account of the app (checked against data/static/users.yml for Juice Shop); otherwise cannot-tell. Level 2 actionable: the owner of a real app should change something (test and spec fixtures are not actionable).",
+  "labels": {
+    "596f5542d37d": {
+      "verdict": "correct",
+      "actionable": true,
+      "reason": "The app sends no Content-Security-Policy header (checked on /)."
+    },
+    "f2df14aada92": {
+      "verdict": "incorrect",
+      "actionable": false,
+      "reason": "Juice Shop is Node.js/Angular; the single-page app answers any path (including .php) with its index page."
+    },
+    "443543b2502b": {
+      "verdict": "incorrect",
+      "actionable": false,
+      "reason": "/docs returns the app index page (single-page app catch-all), not Swagger UI."
+    },
+    "8543cd539676": {
+      "verdict": "incorrect",
+      "actionable": false,
+      "reason": "/api/login is not an endpoint (500 Unexpected path); the login is /rest/user/login. The finding points at the wrong route."
+    },
+    "f53d319ba89c": {
+      "verdict": "incorrect",
+      "actionable": false,
+      "reason": "A Next.js advisory; Juice Shop does not use Next.js and /administrator is the single-page app catch-all."
+    },
+    "2b2ff8e080dd": {
+      "verdict": "correct",
+      "actionable": true,
+      "reason": "Seed file with plaintext passwords of the demo accounts (documented as weak-password challenges, out of scope)."
+    },
+    "dac8f2330f57": {
+      "verdict": "cannot-tell",
+      "actionable": false,
+      "reason": "Test file; the matched literals are not passwords of any seeded account, so whether they are credentials cannot be confirmed."
+    },
+    "b5e367e5939f": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "c35df08678d2": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "c05a4d458430": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "8700dc72baf7": {
+      "verdict": "cannot-tell",
+      "actionable": false,
+      "reason": "Test file; the matched literals are not passwords of any seeded account, so whether they are credentials cannot be confirmed."
+    },
+    "7145080be566": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "97f4af448f14": {
+      "verdict": "correct",
+      "actionable": true,
+      "reason": "lib/insecurity.ts hardcodes the RSA private key used to sign JWTs. Real, though not one of the documented challenges."
+    },
+    "071ebfd012fb": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "6531f71403a5": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "6d5c40485b9e": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "bb9d70d071b5": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "6b3173aa07ca": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "85c0c0575b97": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "42f68d43c7e6": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "2843a038f1c2": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "7d5fbc21d00a": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "f4867d009ea3": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "4b31237e2c96": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "b6d85307181c": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "89ae81fb3a1f": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "4f4dc10b0a98": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "5d75b64ecc76": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "85625dbfc221": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "d5e49d1c4ae0": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "74a5d53c2ce1": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "1d8f0cf7f060": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "8474ea004036": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "3e7cc5d5ccc8": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "902ea613d334": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "d9b04ff2f1bf": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "ccb58aee5154": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "1cb0ad59a48b": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "c4f00a1e3805": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "eb91c327a7b0": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "bc6fc7eb0257": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "d505aba79a05": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "34beae2ac115": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "081b58d31e6c": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "e7dfe2876418": {
+      "verdict": "cannot-tell",
+      "actionable": false,
+      "reason": "Test file; the matched literals are not passwords of any seeded account, so whether they are credentials cannot be confirmed."
+    },
+    "f93243032c67": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "dc3deb3f50cc": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "085ae42d442c": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "1b4a1dc698da": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "56bfd3ed4457": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "ae4be997bcec": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "de59c435c5ab": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "0e896d8dda21": {
+      "verdict": "correct",
+      "actionable": false,
+      "reason": "Test file holds the plaintext password of a seeded demo account (it logs in). Correct, but a test fixture: not actionable."
+    },
+    "55852a61e321": {
+      "verdict": "correct",
+      "actionable": true,
+      "reason": "infrastructure/Dockerfile pins node:20.19.2; Node.js 20 reached end of life on 2026-04-30."
+    },
+    "51ffcab20897": {
+      "verdict": "correct",
+      "actionable": true,
+      "reason": "Reproduced: POST /api/users with wrongly typed JSON returns 500 with an internal error message."
+    },
+    "2326fb54aafb": {
+      "verdict": "incorrect",
+      "actionable": false,
+      "reason": "/graphql returns the app index page, whose own script tags are not reflected input."
+    },
+    "6ba65459dd35": {
+      "verdict": "cannot-tell",
+      "actionable": false,
+      "reason": "infrastructure/docker-compose.yml pins nginx 1.28.0. Whether 1.28 is past end of life on 2026-10-22 was not verified offline. Not the documented mongo image."
+    },
+    "8a0ee1b0377c": {
+      "verdict": "correct",
+      "actionable": true,
+      "reason": "terraform/networking.tf holds the same RSA private key, byte for byte, as infrastructure/terraform/networking.tf (answer key iac-leaked-key): a second copy in the repo. (Added 2026-10-22 after the recall fixes, by the same provisional AI labeller that wrote the rule: not independent.)"
+    },
+    "8d8dc2a7d233": {
+      "verdict": "incorrect",
+      "actionable": false,
+      "reason": "routes/captcha.ts evaluates an arithmetic expression the server builds from three Math.random() terms and fixed operators; no request or stored data reaches it. (Added 2026-10-22 after the recall fixes, by the same provisional AI labeller that wrote the rule: not independent.)"
+    },
+    "9fbe876cb611": {
+      "verdict": "correct",
+      "actionable": true,
+      "reason": "routes/fileUpload.ts parses the uploaded file (req.file buffer) with js-yaml ^3.14 load() inside vm.runInContext; js-yaml 3 load() accepts !!js/function, and vm is not a sandbox. The answer key lists only the out-of-scope YAML bomb here. Not exercised. (Added 2026-10-22 after the recall fixes, by the same provisional AI labeller that wrote the rule: not independent.)"
+    }
+  }
+}

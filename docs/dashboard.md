@@ -159,6 +159,22 @@ egress limited to the URL's host, and never pushes. On top of that:
   to the folder checked at startup, and evidence bundles are built in a
   private temp folder and renamed into place.
 
+### AI mode
+
+A scan of a project folder has an **AI mode** switch, off. Turning it on
+opens a sheet, on every new scan: a picture of where your code goes (your
+code, Penthera, Ollama on this computer, and "internet" crossed out), the
+model picker, the same Model / Reads / Sends / Decides lines the terminal
+shows, and two buttons of equal weight, "Use <model> on this computer" and
+"Not now" (Esc). A model that runs on ollama.com turns the last box into
+"ollama.com" and needs the host typed before its button works. The server
+asks Ollama for the model's route itself, refuses an AI run without that
+consent or with an older consent text, and logs each consent locally.
+A run shows an "AI · local" (or "AI · ollama.com") tag that opens to say
+which model ran where; when it ends, the model's unverified proposals are
+folded away under their own heading and are not counted anywhere else.
+Settings lists the consent log. See [ai-mode.md](ai-mode.md).
+
 ## Security model
 
 The dashboard is a web server on your machine, so any page open in the same

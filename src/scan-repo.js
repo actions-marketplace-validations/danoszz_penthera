@@ -11,6 +11,7 @@ import { existsSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import { discoverAttackSurface, groupByTrustBoundary, findRiskyRoutes } from "../lib/attack-surface.js";
 import { scanSecrets } from "../lib/whitebox/secrets.js";
+import { gitIgnored } from "../lib/git.js";
 import { scanCodeSinks } from "../lib/whitebox/code-sinks.js";
 import { discoverFrameworkRoutes } from "../lib/whitebox/frameworks.js";
 import { runtimeAdvisoriesForRepo } from "../lib/advisories/index.js";
@@ -69,7 +70,7 @@ export async function scanRepo(repoPath, opts = {}) {
 
   // ── Phase 1: Secret scanning (whole repo) ─────────────────────────────
   progress("Scanning for hardcoded secrets...");
-  result.findings.push(...scanSecrets(repoPath));
+  result.findings.push(...scanSecrets(repoPath, { ignored: gitIgnored(repoPath) }));
   result.executedProbes.push("secret-scanning");
 
   // ── Phase 1b: Runtime pins (Dockerfile, .tool-versions, ...) vs advisories

@@ -331,3 +331,73 @@ describe("CLI", () => {
     expect(out.text()).toMatch(/b:cloud\s+.*runs on ollama\.com/);
   });
 });
+
+describe("dashboard", () => {
+  it("shows the same consent lines as the terminal, at the same text version", async () => {
+    const copy = await import("../src/ui/static/js/copy.js");
+    expect(copy.AI_TEXT_VERSION).toBe(CONSENT_TEXT_VERSION);
+    for (const route of ["local", "ollama-cloud"]) {
+      const terminal = consentScreen({ route, model: "m:7b", project: "./app", maxUnits: 200 }).text;
+      for (const [label, text] of copy.aiLines({ route, model: "m:7b", project: "./app", maxUnits: 200 })) {
+        // The terminal wraps "Decides" over two lines; compare with whitespace folded.
+        expect(terminal.replace(/\s+/g, " "), `${route} ${label}`).toContain(`${label.padEnd(9)} ${text}`.replace(/\s+/g, " "));
+      }
+    }
+  });
+
+  describe("AI runs are checked on the server", () => {
+    const setup = async (root, { models = [{ name: "small:7b" }, { name: "big:cloud" }], home } = {}) => {
+      const { createRunManager: create } = await import("../src/ui/api/runs.js");
+      put(root, "repo/a.js", "1;\n");
+      const calls = [];
+      const { ollama } = fakeOllama({ models });
+      const mgr = create({
+        executeScan: async () => ({ merged: { findings: [], attackSurface: [] } }),
+        runAiMode: async (p) => { calls.push(p); return { route: p.model.route, model: { name: p.model.name }, counts: { "confirmed-by-rule": 0, unverified: 0, "location-not-found": 0, "out-of-scope": 0 }, units: { examined: 0, units: 0 }, findings: [], alsoProposed: [], partial: false, stopReason: "done" }; },
+        attachProposals: (f) => f,
+        writeReport: () => "r.json",
+        ollama,
+        env: { PENTHERA_HOME: home },
+        settings: () => ({ offline: true }),
+        projectRoots: [root],
+      });
+      return { mgr, calls, repo: join(root, "repo") };
+    };
+    const ai = (extra = {}) => ({ model: "small:7b", consent: true, textVersion: CONSENT_TEXT_VERSION, ...extra });
+
+    it("needs consent, the current text version, and a scan of a folder", () => withTempDir("penthera-ai-ui-", async (root) => {
+      const { mgr, repo } = await setup(root, { home: root });
+      expect(() => mgr.start({ kind: "scan", repo, ai: { model: "small:7b" } })).toThrow(/needs your consent/);
+      expect(() => mgr.start({ kind: "scan", repo, ai: ai({ textVersion: 0 }) })).toThrow(/changed since this page loaded/);
+      expect(() => mgr.start({ kind: "loop", repo, ai: ai() })).toThrow(/runs with a scan/);
+      expect(() => mgr.start({ kind: "scan", url: "http://localhost:3000", ai: ai() })).toThrow(/runs with a scan/);
+    }));
+
+    it("takes the route from Ollama, not the page, and needs the host typed for a cloud model", () => withTempDir("penthera-ai-ui-", async (root) => {
+      const { mgr, repo } = await setup(root, { home: root });
+      await expect(mgr.start({ kind: "scan", repo, ai: ai({ model: "big:cloud", route: "local" }) })).rejects.toThrow(/Type ollama\.com/);
+      await expect(mgr.start({ kind: "scan", repo, ai: ai({ model: "nope" }) })).rejects.toThrow(/no model named nope/);
+      const run = await mgr.start({ kind: "scan", repo, ai: ai({ model: "big:cloud", confirmHost: "ollama.com" }) });
+      expect(run.ai).toEqual({ model: "big:cloud", route: "ollama-cloud" });
+      expect(readConsentLog({ PENTHERA_HOME: root }).at(-1)).toMatchObject({ via: "dashboard", route: "ollama-cloud" });
+    }));
+
+    it("runs AI mode after the rules and puts its counts in the summary", () => withTempDir("penthera-ai-ui-", async (root) => {
+      const { mgr, calls, repo } = await setup(root, { home: root });
+      const run = await mgr.start({ kind: "scan", repo, ai: ai() });
+      const end = await new Promise((done) => mgr.subscribe(run.id, 0, (ev) => { if (ev?.type === "status" && ev.data.status !== "running") done(ev.data); }));
+      expect(end.status).toBe("done");
+      expect(calls).toHaveLength(1);
+      expect(calls[0].consent).toEqual({ via: "dashboard" });
+      expect(end.summary.ai).toMatchObject({ route: "local", model: "small:7b", confirmed: 0, unverified: 0 });
+    }));
+
+    it("lists models with their route, and is unavailable without Ollama (the demo)", async () => {
+      const { createRunManager: create } = await import("../src/ui/api/runs.js");
+      const { ollama } = fakeOllama({ models: [{ name: "a:7b" }, { name: "b:cloud" }] });
+      const r = await create({ ollama, runAiMode: () => {}, settings: () => ({}), projectRoots: [] }).aiModels();
+      expect(r.models.map((m) => m.route)).toEqual(["local", "ollama-cloud"]);
+      expect((await create({ settings: () => ({}), projectRoots: [] }).aiModels()).error).toMatch(/not available/);
+    });
+  });
+});

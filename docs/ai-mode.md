@@ -107,6 +107,13 @@ or, reviewed with the rest of your config, in `penthera.policy.json`:
 The value is a route, not a yes: `local` never covers a cloud model, which
 needs `ollama-cloud`. `"allow": []` turns AI mode off for the repository.
 
+## In the dashboard
+
+`penthera ui`: in **New scan…**, turn on **AI mode** for a scan of a project
+folder. The same consent appears as a sheet, with a picture of where your code
+goes and two equal buttons, "Use <model> on this computer" and "Not now". See
+[dashboard.md](dashboard.md#ai-mode).
+
 ## Options
 
 | Flag | Default | Use |

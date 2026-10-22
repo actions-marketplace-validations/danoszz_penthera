@@ -290,6 +290,9 @@ export function classify(argv, model, { file = "" } = {}) {
   if ((sub === "evidence" || sub === "rules") && action === "verify" && positionals.length === 0) {
     return { kind: "placeholder", reason: `names \`${sub} verify\` without its <dir>`, problems, sub, action, flags, positionals };
   }
+  if (sub === "verify" && positionals.length === 0) {
+    return { kind: "placeholder", reason: "names `verify` without its findings file", problems, sub, action, flags, positionals };
+  }
   const has = (n) => flags.some((f) => f.name === n);
   const url = positionals.find(isUrl);
   const res = (kind, reason) => ({ kind, reason, problems, sub, action, flags, positionals });

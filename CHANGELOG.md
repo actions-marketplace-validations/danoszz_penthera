@@ -4,6 +4,18 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Added
+
+- **`penthera verify <findings.json>`** checks findings from an AI security
+  audit against Penthera's rules on your checkout. It reads Cloudflare's
+  security-audit skill `findings.json` (schema vendored from commit `c1c8a8c`,
+  MIT). A finding a rule agrees with is shown as Penthera's own finding, marked
+  "also proposed by" the model; the rest are labelled "model-proposed,
+  unverified" and never fail CI. Penthera runs no model and sends nothing
+  anywhere. See [docs/commands/verify.md](docs/commands/verify.md).
+- Risky-pattern findings from `--repo` now carry the repo-relative `file` and
+  the `pattern` name.
+
 ### Site
 
 - penthera.org counts anonymous page views and load times with Vercel Web

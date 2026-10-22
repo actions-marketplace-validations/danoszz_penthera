@@ -271,6 +271,62 @@
       <p class="note">Each of them can also load Penthera as an Agent Skill: <code>npx skills add danoszz/penthera</code>.</p>
     </section>
 
+    <!-- 3b · In your agent (MCP) -->
+    <section class="agent band" id="agent" aria-labelledby="agent-title">
+      <h2 id="agent-title">Use Penthera in your agent</h2>
+      <p class="get-lede">Penthera is also an MCP server. Your agent starts it and calls six read-only tools: <code>scan_repo</code>, <code>check_dependencies</code>, <code>audit_ai_tooling</code>, <code>runtime_advisories</code>, <code>explain_finding</code> and a passive <code>scan_url</code>. Each config pins version {{MCP_VERSION}}, so an update never runs without you.</p>
+      <div class="prompts">
+        <article class="prompt-card" data-copy-root>
+          <h4>Claude Code</h4>
+          <pre data-copy-text>claude mcp add penthera -- npx -y penthera@{{MCP_VERSION}} mcp</pre>
+          <button class="btn" type="button" data-copy-from data-js>Copy command</button>
+        </article>
+        <article class="prompt-card" data-copy-root>
+          <h4>Codex</h4>
+          <pre data-copy-text>codex mcp add penthera -- npx -y penthera@{{MCP_VERSION}} mcp</pre>
+          <button class="btn" type="button" data-copy-from data-js>Copy command</button>
+        </article>
+        <article class="prompt-card" data-copy-root>
+          <h4>Cursor <small>.cursor/mcp.json</small></h4>
+          <pre class="cfg" data-copy-text>{
+  "mcpServers": {
+    "penthera": {
+      "command": "npx",
+      "args": ["-y", "penthera@{{MCP_VERSION}}", "mcp"]
+    }
+  }
+}</pre>
+          <button class="btn" type="button" data-copy-from data-js>Copy config</button>
+        </article>
+        <article class="prompt-card" data-copy-root>
+          <h4>VS Code <small>.vscode/mcp.json</small></h4>
+          <pre class="cfg" data-copy-text>{
+  "servers": {
+    "penthera": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "penthera@{{MCP_VERSION}}", "mcp"]
+    }
+  }
+}</pre>
+          <button class="btn" type="button" data-copy-from data-js>Copy config</button>
+        </article>
+        <article class="prompt-card" data-copy-root>
+          <h4>Windsurf <small>mcp_config.json</small></h4>
+          <pre class="cfg" data-copy-text>{
+  "mcpServers": {
+    "penthera": {
+      "command": "npx",
+      "args": ["-y", "penthera@{{MCP_VERSION}}", "mcp"]
+    }
+  }
+}</pre>
+          <button class="btn" type="button" data-copy-from data-js>Copy config</button>
+        </article>
+      </div>
+      <p class="note">Tools read only inside your project, never apply fixes, run no shell and send no attack payloads. <a href="https://github.com/danoszz/penthera/blob/main/docs/commands/mcp.md">What the server can and cannot do</a></p>
+    </section>
+
     <!-- 4 · Walkthrough -->
     <section class="walk band band-invert" aria-labelledby="walk-title">
       <h2 id="walk-title">Eighty seconds, start to fix</h2>

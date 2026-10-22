@@ -416,6 +416,8 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
     STARS: await starCount(),
     TICKER: tickerHtml(readNews()),
     SITE_URL: siteUrl(),
+    // The version every MCP config on the page pins: server.json, which the MCP Registry also reads.
+    MCP_VERSION: JSON.parse(readFileSync(join(ROOT, "server.json"), "utf8")).version,
   };
   values.STARS_LABEL = values.STARS ? `, ${values.STARS} stars` : "";
   values.COMPARE = compareTable(readCompare(), values);
@@ -426,6 +428,11 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
   });
   html = html.replace(/(href|src)="\/(styles\.css|theme\.js|check\.js)"/g, (m, attr, f) => `${attr}="/${f}?v=${hash(readFileSync(join(OUT, f)))}"`);
   writeFileSync(join(OUT, "index.html"), html);
+  // llms.txt: the same placeholders, so its pinned versions match the page.
+  writeFileSync(join(OUT, "llms.txt"), readFileSync(join(SITE, "llms.txt"), "utf8").replace(/\{\{(\w+)\}\}/g, (m, k) => {
+    if (!(k in values)) throw new Error(`llms.txt: unknown placeholder ${m}`);
+    return values[k];
+  }));
 
   const total = readdirSync(OUT, { recursive: true }).map((f) => join(OUT, f)).filter((f) => statSync(f).isFile()).reduce((n, f) => n + statSync(f).size, 0);
   writeFileSync(join(OUT, "build.json"), JSON.stringify({ version, ...values, bytes: total }, null, 2) + "\n");

@@ -21,6 +21,8 @@ Without `--offline`, a scan may contact these third parties:
 
 Other commands stay local unless you opt in. `penthera deps` makes no network requests by default. With `--online` it sends GET requests for public package metadata to the npm registry (`registry.npmjs.org`, or your `npm_config_registry`), and nothing about your project. `--fix-model` talks only to a local Ollama on `127.0.0.1:11434`.
 
+`penthera mcp` talks to your agent over stdin and stdout and opens no port. Of its tools, only `scan_url` uses the network, with the same rules as a URL scan: the target, plus the hosts above unless the server runs with `--offline`. See [docs/commands/mcp.md](commands/mcp.md).
+
 ### AI mode: `--ai`
 
 AI mode is off unless you turn it on, and asks every run. Penthera itself talks

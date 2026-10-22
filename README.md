@@ -87,6 +87,21 @@ npx skills add danoszz/penthera
 The skill tells your agent to refuse targets you do not own or are not
 authorized to test. Other install routes (the one-line installer, the Claude
 Code plugin, a per-project copy) are in [docs/commands/skill.md](docs/commands/skill.md).
+
+### Use it from your agent
+
+Penthera is also an MCP server, so Claude Code, Cursor, Codex, VS Code and
+Windsurf can call it as a tool. Pin the version:
+
+```bash
+claude mcp add penthera -- npx -y penthera@1.9.0 mcp
+```
+
+It offers six read-only tools: `scan_repo`, `check_dependencies`,
+`audit_ai_tooling`, `runtime_advisories`, `explain_finding`, and `scan_url`
+(passive, loopback or hosts you list). Tools read only inside your project,
+never apply fixes, and run no shell. Configs for the other clients and the
+safety rules are in [docs/commands/mcp.md](docs/commands/mcp.md).
 Penthera needs Node.js 22 or later. To run it in a container:
 `docker build -t penthera . && docker run --rm penthera https://your-app.example`.
 

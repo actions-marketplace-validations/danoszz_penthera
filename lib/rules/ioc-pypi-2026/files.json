@@ -1,0 +1,19 @@
+{
+  "kind": "ioc-file",
+  "rules": [
+    {
+      "id": "litellm-1-107-0-payload",
+      "campaign": "litellm PyPI compromise",
+      "description": "Files the litellm 1.107.0 wheels ship under litellm-1.107.0.data/purelib/, which pip installs at the site-packages root: cook.pth (runs `import cook` at every interpreter start), cook.py (the encoded stealer) and sitecustomize.py (an hourly remote code loader). Matched by SHA-256 only, since the names are generic.",
+      "files": [
+        {"path": "cook.pth", "sha256": "7f191632e7320705d154b85204f1ae546b543acbd7e8861229b76f5042b92bdb"},
+        {"path": "cook.py", "sha256": "9dd0a3926f96a37eb86cf1ee2310d9be93139cc4ebef3ef9e2efe9531390be25"},
+        {"path": "sitecustomize.py", "sha256": "34bef04fe88ac9d0aae0475630b1738681d15b94f233ac8aa46eacf5968305fa"}
+      ],
+      "source": "https://osv.dev/vulnerability/MAL-2026-2144",
+      "date": "2026-10-21",
+      "confidence": "confirmed",
+      "references": ["ohm2020backstabber", "ladisa2023sok"]
+    }
+  ]
+}

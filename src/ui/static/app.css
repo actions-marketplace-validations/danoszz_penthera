@@ -508,7 +508,8 @@ svg.chart { display: block; width: 100%; height: auto; }
 .row[aria-current="true"] .sev-critical::before { background: var(--on-accent); }
 .row[aria-current="true"] .sev-high::before { background: repeating-linear-gradient(45deg, var(--on-accent) 0 1.5px, transparent 1.5px 3px); }
 .row .where { grid-column: 2 / -1; color: var(--text-3); font-size: 12px; overflow-wrap: anywhere; }
-.row .tag { color: var(--text-3); font: 11px / 1 var(--px); }
+/* The tag never takes the title's room: a long project name is cut, not the finding. */
+.row .tag { color: var(--text-3); font: 11px / 1 var(--px); max-width: 24ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row.b .t { font-weight: 700; }
 .row.static { cursor: auto; }
 .row.static:hover { box-shadow: none; }

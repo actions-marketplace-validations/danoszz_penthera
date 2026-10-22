@@ -567,6 +567,11 @@ export function formatSarif(result) {
   const rules = new Map();
   const results = [];
 
+  // GitHub code scanning requires a location on every result. Findings about
+  // the target as a whole (no SPF record, no API routes found) point at the
+  // scanned host, or at the repository root for a repo scan.
+  const fallbackUri = /^https?:\/\//i.test(result.target || "") ? toSarifUri(result.target) : ".";
+
   for (const f of result.findings || []) {
     const ruleId = f.templateId || f.category || "unknown";
 
@@ -604,14 +609,14 @@ export function formatSarif(result) {
       message: {
         text: `${f.title}${f.description ? `: ${f.description}` : ""}`,
       },
-      locations: f.url ? [{
+      locations: [{
         physicalLocation: {
           artifactLocation: {
-            uri: toSarifUri(f.url),
+            uri: f.url ? toSarifUri(f.url) : fallbackUri,
           },
-          ...(Number.isInteger(f.line) && f.line > 0 ? { region: { startLine: f.line } } : {}),
+          ...(f.url && Number.isInteger(f.line) && f.line > 0 ? { region: { startLine: f.line } } : {}),
         },
-      }] : [],
+      }],
       properties: {
         severity: f.severity,
         // Provenance travels with the finding into GitHub code scanning, so a

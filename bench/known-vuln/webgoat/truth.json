@@ -1331,6 +1331,9 @@
       "needsPayloads": false,
       "locations": [
         {
+          "path": "*"
+        },
+        {
           "path": "/WebGoat/js/libs/jquery-ui-1.10.4.js"
         },
         {
@@ -1341,7 +1344,11 @@
         }
       ],
       "group": "vulncomp-jquery",
-      "note": "Static /js/** is permitAll. Lesson text calls it jquery-ui:1.10.4; the file's banner says v1.10.3."
+      "note": "Static /js/** is permitAll. Lesson text calls it jquery-ui:1.10.4; the file's banner says v1.10.3.",
+      "keywords": [
+        "jquery-ui",
+        "jquery ui"
+      ]
     },
     {
       "id": "vulncomp-jquery-2.1.4",
@@ -1357,6 +1364,9 @@
       "needsPayloads": false,
       "locations": [
         {
+          "path": "*"
+        },
+        {
           "path": "/WebGoat/js/libs/jquery-2.1.4.min.js"
         },
         {
@@ -1364,7 +1374,12 @@
         }
       ],
       "group": "vulncomp-jquery",
-      "note": "Not named in the lesson text; included because main.js wires it as 'jqueryvuln' for the documented demo. Drop if labeller disagrees."
+      "note": "Not named in the lesson text; included because main.js wires it as 'jqueryvuln' for the documented demo. Drop if labeller disagrees.",
+      "keywords": [
+        "jquery 2.1.4",
+        "jquery@2.1.4",
+        "jquery-2.1.4"
+      ]
     },
     {
       "id": "vulncomp-xstream",
@@ -2878,6 +2893,13 @@
         }
       ],
       "group": "challenge-flag-submit"
+    }
+  ],
+  "amendments": [
+    {
+      "date": "2026-10-22",
+      "change": "Added `keywords` to entries that share a location with other findings (wildcard paths, several components in one file) and a \"*\" path to client-library entries, because library findings point at the page that loads them.",
+      "reason": "Pilot run 2 on Juice Shop and DVNA showed class-plus-location matching credited unrelated findings (any header finding for X-Powered-By, an nginx finding for the documented mongo image). Which vulnerabilities are listed and in scope did not change."
     }
   ]
 }

@@ -1549,7 +1549,17 @@
           "file": "infrastructure/docker-compose.yml"
         }
       ],
-      "group": "mongo-image"
+      "group": "mongo-image",
+      "keywords": [
+        "mongo"
+      ]
+    }
+  ],
+  "amendments": [
+    {
+      "date": "2026-10-22",
+      "change": "Added `keywords` to entries that share a location with other findings (wildcard paths, several components in one file).",
+      "reason": "Pilot run 2 on Juice Shop and DVNA showed class-plus-location matching credited unrelated findings (any header finding for X-Powered-By, an nginx finding for the documented mongo image). Which vulnerabilities are listed and in scope did not change."
     }
   ]
 }

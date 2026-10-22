@@ -87,9 +87,14 @@ wrong, check the decoy first.
 
 ## Optional targets
 
-Two well-known deliberately vulnerable apps can be scanned with Docker. They
-are not part of CI, and they have no ground truth here yet, so the benchmark
-lists their findings without scoring them.
+Scored runs against well-known deliberately vulnerable apps (Juice Shop,
+DVNA, WebGoat, with answer keys for NodeGoat, DVWA and crAPI too) live in
+[known-vuln/](known-vuln/README.md): `npm run bench:known`. Those apps run
+isolated in Docker and are scored against answer keys built from their own
+documentation (experiment E10, draft).
+
+The quick, unscored way below still works: it lists findings without
+scoring them.
 
 **OWASP Juice Shop** ([juice-shop/juice-shop](https://github.com/juice-shop/juice-shop)):
 

@@ -192,7 +192,12 @@
         }
       ],
       "group": "session-cookie-config",
-      "note": "Cookie is set on any first response (saveUninitialized). express-session sets HttpOnly by default, so only Secure/expiry are missing; app is plain HTTP."
+      "note": "Cookie is set on any first response (saveUninitialized). express-session sets HttpOnly by default, so only Secure/expiry are missing; app is plain HTTP.",
+      "keywords": [
+        "secure",
+        "expir",
+        "max-age"
+      ]
     },
     {
       "id": "a2-session-fixation-login",
@@ -370,7 +375,10 @@
           "file": "server.js"
         }
       ],
-      "group": "x-powered-by"
+      "group": "x-powered-by",
+      "keywords": [
+        "x-powered-by"
+      ]
     },
     {
       "id": "a5-missing-security-headers",
@@ -392,7 +400,14 @@
           "file": "server.js"
         }
       ],
-      "group": "missing-security-headers"
+      "group": "missing-security-headers",
+      "keywords": [
+        "x-frame-options",
+        "content-security-policy",
+        "strict-transport-security",
+        "x-content-type-options",
+        "cache-control"
+      ]
     },
     {
       "id": "a5-default-session-cookie-name",
@@ -432,7 +447,10 @@
         }
       ],
       "group": "outdated-node-runtime",
-      "note": "Tutorial advises using the latest Node; the concrete location (FROM node:4.4 / node:4-alpine) comes from the Dockerfile."
+      "note": "Tutorial advises using the latest Node; the concrete location (FROM node:4.4 / node:4-alpine) comes from the Dockerfile.",
+      "keywords": [
+        "node"
+      ]
     },
     {
       "id": "a6-no-https",
@@ -455,7 +473,12 @@
         }
       ],
       "group": "no-https",
-      "note": "Only detectable if the scanner reports a plain-HTTP target as missing TLS."
+      "note": "Only detectable if the scanner reports a plain-HTTP target as missing TLS.",
+      "keywords": [
+        "https",
+        "tls",
+        "unencrypted"
+      ]
     },
     {
       "id": "a6-plaintext-sensitive-data",
@@ -717,6 +740,13 @@
       "group": "default-accounts",
       "inScope": false,
       "excludedBecause": "weak-credentials"
+    }
+  ],
+  "amendments": [
+    {
+      "date": "2026-10-22",
+      "change": "Added `keywords` to entries that share a location with other findings (wildcard paths, several components in one file).",
+      "reason": "Pilot run 2 on Juice Shop and DVNA showed class-plus-location matching credited unrelated findings (any header finding for X-Powered-By, an nginx finding for the documented mongo image). Which vulnerabilities are listed and in scope did not change."
     }
   ]
 }

@@ -12,6 +12,16 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   browser check still sends nothing, and the page says so. The CLI, the
   dashboard and the npm package have no telemetry, unchanged.
 
+### Research
+
+- Draft protocol for experiment E10: Penthera against six deliberately
+  vulnerable apps with public answer keys (Juice Shop, DVNA, NodeGoat, DVWA,
+  crAPI, WebGoat), each pinned by commit and image digest. Answer keys in
+  `bench/known-vuln/`, frozen before any scan; an opt-in runner
+  (`npm run bench:known`, not in `npm test` or the package) starts the apps
+  isolated in Docker on 127.0.0.1. A pilot on Juice Shop and DVNA is in
+  `bench/known-vuln/RESULTS.md`, marked as a pilot.
+
 ### Docs
 
 - The PHP case study and `docs/runtime-advisories.md` cite OpenAI's

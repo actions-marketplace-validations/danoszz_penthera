@@ -8,7 +8,7 @@
  *   4. Detect risky code patterns
  */
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import { discoverAttackSurface, groupByTrustBoundary, findRiskyRoutes } from "../lib/attack-surface.js";
 import { scanSecrets } from "../lib/whitebox/secrets.js";
 import { scanCodeSinks } from "../lib/whitebox/code-sinks.js";
@@ -85,33 +85,8 @@ export async function scanRepo(repoPath, opts = {}) {
   // ── Phase 2: Locate API root ───────────────────────────────────────────
   progress("Locating API routes directory...");
   const apiRoot = opts.apiRoot || findApiRoot(repoPath);
-  let useFrameworkScan = false;
 
-  if (!apiRoot) {
-    progress("Scanning for Express/Hono/Fastify routes...");
-    const fwRoutes = discoverFrameworkRoutes(repoPath);
-    if (fwRoutes.length > 0) {
-      result.attackSurface = fwRoutes;
-      result.boundaries = groupByTrustBoundary(fwRoutes);
-      result.findings.push({
-        severity: "info",
-        title: `Found ${fwRoutes.length} API routes (Express/Hono/Fastify)`,
-        description: "Discovered via route pattern matching, not Next.js app/api.",
-        category: "config",
-        source: "framework-scan",
-      });
-      useFrameworkScan = true;
-    } else {
-      result.findings.push({
-        severity: "info",
-        title: "No API routes directory found",
-        description: `Searched Next.js, Express, Hono, and Fastify patterns in ${repoPath}. Use --api-root to specify.`,
-        category: "config",
-        source: "repo-scan",
-      });
-      return finish();
-    }
-  } else if (!existsSync(apiRoot)) {
+  if (opts.apiRoot && !existsSync(apiRoot)) {
     result.findings.push({
       severity: "info",
       title: `API root not found: ${apiRoot}`,
@@ -122,28 +97,54 @@ export async function scanRepo(repoPath, opts = {}) {
     return finish();
   }
 
-  if (!useFrameworkScan) {
-    result.apiRoot = apiRoot;
-
+  if (apiRoot) {
     // ── Phase 2: Discover attack surface ───────────────────────────────────
     progress("Discovering attack surface from filesystem...");
+    result.apiRoot = apiRoot;
     result.attackSurface = discoverAttackSurface(apiRoot);
+  }
 
-    if (result.attackSurface.length === 0) {
+  // An auto-detected routes/ or api/ folder without route.js/ts is an Express-style
+  // app, not a Next.js one: fall back to the framework scan. --api-root is taken as given.
+  if (result.attackSurface.length === 0 && !opts.apiRoot) {
+    progress("Scanning for Express/Hono/Fastify routes...");
+    const fwRoutes = discoverFrameworkRoutes(repoPath);
+    if (fwRoutes.length > 0) {
+      result.apiRoot = null;
+      result.attackSurface = fwRoutes;
       result.findings.push({
         severity: "info",
-        title: "No API routes found",
-        description: `No route.js/ts files found under ${apiRoot}`,
+        title: `Found ${fwRoutes.length} API routes (Express/Hono/Fastify)`,
+        description: "Discovered via route pattern matching, not Next.js app/api.",
+        category: "config",
+        source: "framework-scan",
+      });
+    } else if (!apiRoot) {
+      result.findings.push({
+        severity: "info",
+        title: "No API routes directory found",
+        description: `Searched Next.js, Express, Hono, and Fastify patterns in ${repoPath}. Use --api-root to specify.`,
         category: "config",
         source: "repo-scan",
       });
       return finish();
     }
-
-    // ── Phase 3: Trust boundary analysis ───────────────────────────────────
-    progress("Classifying trust boundaries...");
-    result.boundaries = groupByTrustBoundary(result.attackSurface);
   }
+
+  if (result.attackSurface.length === 0) {
+    result.findings.push({
+      severity: "info",
+      title: "No API routes found",
+      description: `No route.js/ts files found under ${apiRoot}`,
+      category: "config",
+      source: "repo-scan",
+    });
+    return finish();
+  }
+
+  // ── Phase 3: Trust boundary analysis ───────────────────────────────────
+  progress("Classifying trust boundaries...");
+  result.boundaries = groupByTrustBoundary(result.attackSurface);
 
   // Flag public routes that call external services without rate limiting
   for (const route of result.boundaries.public || []) {
@@ -173,6 +174,13 @@ export async function scanRepo(repoPath, opts = {}) {
     }
   }
 
+  // Route file paths are relative to the repo for framework routes, and to
+  // apiRoot/../.. for Next.js routes; findings carry the repo-relative path.
+  const repoRelative = (filePath) => {
+    const abs = result.apiRoot ? resolve(result.apiRoot, "..", "..", filePath) : resolve(repoPath, filePath);
+    return relative(resolve(repoPath), abs).split(sep).join("/");
+  };
+
   // ── Phase 4: Risky pattern detection ───────────────────────────────────
   progress("Detecting risky code patterns...");
   const risky = findRiskyRoutes(result.attackSurface);
@@ -194,6 +202,8 @@ export async function scanRepo(repoPath, opts = {}) {
         title: `${name} in ${route.url}`,
         description: `Detected in ${route.filePath}`,
         url: route.url,
+        file: repoRelative(route.filePath),
+        pattern: name,
         category: "code-pattern",
         source: "static-analysis",
       });

@@ -387,6 +387,23 @@ where the evidence is real but the judgment is wrong: a health endpoint that
 is public by design, and AWS's published example key. See
 [bench/RESULTS.md](../bench/RESULTS.md).
 
+### Findings proposed by a model
+
+`penthera verify` reads findings that a model proposed elsewhere, for example
+an AI security audit run with Cloudflare's security-audit skill in a coding
+agent (Cloudflare, 2026). Language models find real issues that rules do not
+describe, but on realistic benchmarks their vulnerability detection is far
+less reliable than headline numbers suggest (Ding et al., 2025). So a model's
+finding never gets a confidence label on its own authority. It counts as
+`confirmed` or `likely` only through a Penthera rule that flags the same kind
+of issue in the same file; the rule's finding is then the record. Everything
+else is `needs-human-review`, labelled "model-proposed, unverified", kept apart
+from rule findings, and never changes the exit code. A rule that ran and did
+not fire does not count against a model's finding, because rules have false
+negatives too. How often model findings are confirmed, and how precise each
+group is, is not yet measured; a planned experiment (E9) will measure it on
+the E1 corpus.
+
 ## False-positive controls
 
 A black-box scanner loses trust through false positives faster than through

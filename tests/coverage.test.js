@@ -67,11 +67,11 @@ describe("coverage ledger", () => {
   }));
 
   it("shows when an Express routes/ folder is taken for a Next.js API folder", () => withTempDir("penthera-cov-", async (root) => {
-    // Known gap: findApiRoot picks routes/ as a Next.js API root, finds no
-    // route.js files, and route analysis never runs. The ledger must say so.
+    // routes/ holds no route.js files, so the scanner falls back to the
+    // Express/Hono/Fastify scan and the router file is read.
     put(root, "routes/users.js", "const router = require('express').Router();\nrouter.get('/users', (req, res) => res.json([]));\nmodule.exports = router;\n");
     const result = await scanRepo(root);
-    expect(fileCoverage(root, result).files.get("routes/users.js").routes).toBe("no-api-surface");
+    expect(fileCoverage(root, result).files.get("routes/users.js").routes).toBe("examined");
   }));
 
   it("does not follow symlinks or enter nested repos", () => withTempDir("penthera-cov-", async (root) => {

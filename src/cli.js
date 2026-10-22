@@ -66,6 +66,7 @@ const HELP = `
     $ penthera memory show|verify|forget  Local learning store (never leaves the machine)
     $ penthera fix --plan            Plan local fix recipes (penthera fix --help)
     $ penthera evidence verify <dir> Check an evidence bundle's hashes and signature
+    $ penthera verify <findings.json>  Check a model's findings against Penthera's rules
     $ penthera rules list|verify <dir>  Signed detection rule packs (penthera rules --help)
     $ penthera agent --loop          Scan, fix, verify, learn; local commits only (--help)
     $ penthera ui [--open] [--demo]  Local dashboard on 127.0.0.1 (penthera ui --help)
@@ -207,6 +208,11 @@ export async function run() {
   if (process.argv[2] === "evidence") {
     const { runEvidence } = await import("./cli/evidence.js");
     process.exit(runEvidence(process.argv.slice(3)));
+  }
+
+  if (process.argv[2] === "verify") {
+    const { runVerify } = await import("./cli/verify.js");
+    process.exit(await runVerify(process.argv.slice(3)));
   }
 
   if (process.argv[2] === "fix") {

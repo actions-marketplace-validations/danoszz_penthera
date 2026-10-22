@@ -8,7 +8,7 @@
  *   4. Detect risky code patterns
  */
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import { discoverAttackSurface, groupByTrustBoundary, findRiskyRoutes } from "../lib/attack-surface.js";
 import { scanSecrets } from "../lib/whitebox/secrets.js";
 import { scanCodeSinks } from "../lib/whitebox/code-sinks.js";
@@ -174,6 +174,13 @@ export async function scanRepo(repoPath, opts = {}) {
     }
   }
 
+  // Route file paths are relative to the repo for framework routes, and to
+  // apiRoot/../.. for Next.js routes; findings carry the repo-relative path.
+  const repoRelative = (filePath) => {
+    const abs = result.apiRoot ? resolve(result.apiRoot, "..", "..", filePath) : resolve(repoPath, filePath);
+    return relative(resolve(repoPath), abs).split(sep).join("/");
+  };
+
   // ── Phase 4: Risky pattern detection ───────────────────────────────────
   progress("Detecting risky code patterns...");
   const risky = findRiskyRoutes(result.attackSurface);
@@ -195,6 +202,8 @@ export async function scanRepo(repoPath, opts = {}) {
         title: `${name} in ${route.url}`,
         description: `Detected in ${route.filePath}`,
         url: route.url,
+        file: repoRelative(route.filePath),
+        pattern: name,
         category: "code-pattern",
         source: "static-analysis",
       });

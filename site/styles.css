@@ -495,10 +495,12 @@ main > .desk { max-width: none; padding-left: 0; padding-right: 0; }
 .paste summary::-webkit-details-marker { display: none; }
 .paste summary::before { content: "▸"; }
 .paste[open] summary::before { content: "▾"; }
-.paste-body { display: grid; gap: 8px; padding-top: 4px; }
+/* minmax(0, 1fr): the track follows the card, not the widest nowrap command. */
+.paste-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding-top: 4px; }
 .paste + .paste { margin-top: 4px; }
 .paste-note { max-width: 62ch; font-size: 15px; color: var(--text-2); }
 .paste-body > .cmd { justify-self: start; margin: 4px 0 8px; }
+.paste-body > .cmd code { white-space: normal; overflow-wrap: anywhere; line-height: 1.4; padding-block: 8px; }
 .f-note { padding-left: 12px; border-left: 4px solid var(--frame); color: var(--text-1); }
 .label { color: var(--text-3); display: inline-flex; align-items: center; min-height: var(--target); min-width: var(--target); }
 textarea, select {

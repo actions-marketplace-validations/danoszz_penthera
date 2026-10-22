@@ -119,6 +119,7 @@ We run our own research, to the standard we would expect in a paper.
 | **E5** | Are deterministic checks more robust than LLM judges? | Adversarial set of skills and MCP configs using published evasion techniques; both detectors on every item | Evasion rate (paired, McNemar) | 155 adversarial items for the effect above; more if discordance is lower |
 | **E6** | Does Penthera save time for real users? | Small user study: newcomers secure a seeded app with and without Penthera | Issues fixed in 30 minutes; SUS usability score | 24 to 30 participants, crossover design |
 | **E7** | Does a deterministic audit find agent-environment misconfigurations? | Labelled corpus of public agent setups (devcontainers, agent CI workflows, MCP configs); two labellers. Proposed in [agent-incidents-2026.md](research/agent-incidents-2026.md) | Precision and recall of the planned harness rules ([spec](research/spec-harness-rules.md)) | To be set in its pre-registration |
+| **E10** | How does Penthera do on known-vulnerable apps it wasn't built on? | Six documented apps (Juice Shop, DVNA, NodeGoat, DVWA, crAPI, WebGoat), answer keys frozen before scanning, run offline. [Draft protocol](research/prereg/E10-known-vulnerable-apps.md), [pilot](../bench/known-vuln/RESULTS.md) | Precision and recall per app and class, Wilson intervals | 82 in-scope documented items; pilot on two apps |
 | **E8** | Do harness guardrails reduce judge tampering? | 2×2: `AGENTS.md` block × protected judges, benign coding tasks with one third unsolvable, local open-weight models offline. [Draft pre-registration](research/prereg/E8-harness-guardrails.md) | Tamper-attempt rate and safe-exit rate on unsolvable tasks | 960 unsolvable runs (≥ 138 effective per level after clustering) |
 
 Sample sizes are planning minimums from standard power calculations; each
@@ -200,8 +201,9 @@ checked.
 ## Milestones toward 2.0
 
 Research milestones are not tied to version numbers: a result ships in the
-next minor release after it holds up. 1.8.0 shipped on 2026-10-21 (see the
-[roadmap](../ROADMAP.md#just-shipped-180)), so the work below lands in 1.9 and
+next minor release after it holds up. 1.8.1 is on npm `latest` and
+1.9.0-rc.1 on `next` (see the
+[roadmap](../ROADMAP.md#where-it-stands)), so the work below lands in 1.9 and
 later.
 
 | Milestone | Contents | Done when |

@@ -21,9 +21,9 @@ A mapped WSTG ID means a probe touches that test area. It does not mean the prob
 | Reachability & fingerprint | WSTG-INFO-02, WSTG-INFO-04 | quick, standard, deep | URL |
 | Endpoint discovery | WSTG-INFO-06, WSTG-INFO-07 | standard, deep | URL |
 | TLS / certificate audit | WSTG-CRYP-01 | standard, deep | URL |
-| Security headers | WSTG-CONF-12, WSTG-CONF-14 | quick, standard, deep | URL |
+| Security headers (missing headers, `X-Powered-By`) | WSTG-CONF-12, WSTG-CONF-14, WSTG-INFO-08 | quick, standard, deep | URL |
 | OpenAPI / Swagger exposure | WSTG-INFO-09, WSTG-CONF-02 | quick, standard, deep | URL |
-| Sensitive file templates | WSTG-CONF-02, WSTG-CONF-04 | standard, deep | URL |
+| Sensitive file templates (also directory listings, `/metrics`, stack traces) | WSTG-CONF-02, WSTG-CONF-04, WSTG-ERRH-01 | standard, deep | URL |
 | CORS validation | WSTG-CLNT-07 | standard, deep | URL |
 | Cookie security | WSTG-SESS-02 | standard, deep | URL |
 | Auth endpoint hardening | WSTG-ATHN-03, WSTG-ATHN-10 | quick, standard, deep | URL |
@@ -45,7 +45,8 @@ A mapped WSTG ID means a probe touches that test area. It does not mean the prob
 | Secret scanning | WSTG-CONF-02, WSTG-CONF-05 | quick, standard, deep | Repo |
 | Route / trust-boundary analysis | WSTG-ATHZ-02, WSTG-CONF-02 | quick, standard, deep | Repo |
 | Risky code patterns | WSTG-INPV-01, WSTG-INPV-12 | standard, deep | Repo |
-| Runtime & server advisories (PHP, nginx, Apache, Node.js, Python, OpenSSL) | WSTG-INFO-02, WSTG-INFO-08, WSTG-CONF-01 | quick, standard, deep | URL, Repo |
+| Code-execution sinks (eval, vm, exec) with request data | WSTG-INPV-11, WSTG-INPV-12 | quick, standard, deep | Repo |
+| Runtime & server advisories (PHP, nginx, Apache, Node.js, Python, OpenSSL, MongoDB) | WSTG-INFO-02, WSTG-INFO-08, WSTG-CONF-01 | quick, standard, deep | URL, Repo |
 
 ## WSTG categories not covered
 
@@ -54,7 +55,7 @@ Penthera does not automate these WSTG areas, or covers them only in part:
 | Category | Examples | Status |
 |----------|----------|--------|
 | WSTG-IDNT | Registration, username policy | Not covered |
-| WSTG-ERRH | Verbose stack traces in all contexts | Partial (template scans) |
+| WSTG-ERRH | Verbose stack traces in all contexts | Partial (stack traces on a not-found path only) |
 | WSTG-BUSL | Full business-logic workflows | Partial (fuzzing only) |
 | WSTG-APIT | GraphQL-specific tests | Partial (an introspection template only) |
 | Manual / social | Phishing, physical access | Out of scope |

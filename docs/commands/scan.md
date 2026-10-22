@@ -19,9 +19,15 @@ Pick a profile, or add individual flags for more depth:
 
 | Profile | Command | What runs |
 |---------|---------|-----------|
-| **quick** | `--profile quick` | Headers, OpenAPI, auth smoke tests (about 10s) |
-| **standard** | *(default)* | Full non-destructive scan |
-| **deep** | `--profile deep` | recon, injection probes, and API fuzzing |
+| **quick** | `--profile quick` | Headers, OpenAPI, auth checks; no login POSTs (about 10s) |
+| **standard** | *(default)* | Full non-destructive scan: no attack payloads, and one `POST /api/login` with invalid credentials |
+| **deep** | `--profile deep` | recon, injection probes, API fuzzing, and on `/api/login` an 8-attempt rate-limit burst and an SQL error check |
+
+What each profile sends to `/api/login`: `quick` nothing; `standard` one
+login with obviously invalid credentials, to catch a login that accepts
+anything; `--deep` also 8 rapid attempts (rate limiting) and an
+`' OR '1'='1` string (SQL errors). A CDN firewall can read the last two as an
+attack and start challenging you, so they only run with `--deep`.
 
 Individual flags: `--recon`, `--deep`, `--fuzz`, `--adaptive`, `--nuclei <path>`, `--templates <dirs>`, `--all`
 
@@ -66,15 +72,28 @@ next to it. `penthera init` can add `reports/` to your `.gitignore`.
 | **Markdown** | `--markdown file.md` or `-o file.json` | Human-readable report (exec summary, findings tables, fixes). Written next to `-o` automatically |
 | JSON | `--json` or `-o file.json` | CI pipelines, baseline diffs, custom tooling |
 | SARIF | `--sarif file.sarif` | GitHub Security / Code Scanning tab |
+| AI-audit seeds | `--audit-seeds seeds.json` (with `--repo`) | Repo findings in Cloudflare security-audit-skill `findings.json` form, so an agent running the skill starts from them ([verify.md](verify.md#the-other-way-seeds-for-the-skill)) |
 | Audience report | `--audience developer\|owner\|auditor` | The same scan written for a developer, an owner or an auditor ([docs/evidence.md](../evidence.md#audience-reports)) |
 | Your template | `--report-template file.md` | Your own Markdown with `{{summary.critical}}`, `{{#each findings}}`, `{{#if x}}`; no code runs |
 | **Evidence bundle** | `--evidence <dir> [--sign-key <ssh-key>]` | All reports plus `manifest.json` with SHA-256s, optionally SSH-signed. Auditors check it with `penthera evidence verify <dir> --allowed-signers <file>` ([docs/evidence.md](../evidence.md)) |
+
+### Coverage: what a repo scan read
+
+Every `--repo` scan adds a **Coverage** section to the terminal, Markdown and
+JSON (`coverage`) reports. For each check (the secret scan, route and
+code-pattern analysis, runtime versions) it says how many files were read and
+why the others were not: file type not read, over the size limit, a language
+route analysis does not support, or no API routes found. Source files no code
+analysis read are listed as blind spots, up to 200. A file that was not read
+is unchecked, not clean. Dependency behaviour and agent config have their own
+commands (`penthera deps`, `penthera agents`) and are listed as not part of a
+repo scan.
 
 ## CI integration
 
 ```yaml
 # Scan a staging URL on a schedule and upload results to GitHub Security.
-- run: npx penthera@1.7.0 "$PENTEST_URL" --profile standard --sarif reports/scan.sarif
+- run: npx penthera@1.8.1 "$PENTEST_URL" --profile standard --sarif reports/scan.sarif
 - uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
   with:
     sarif_file: reports/scan.sarif

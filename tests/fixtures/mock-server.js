@@ -93,8 +93,17 @@ function handle(req, res) {
 }
 
 export function startMockServer(port = 0) {
+  // Every request the scanner sent, with its body, for tests that check what a profile sends.
+  const requests = [];
   return new Promise((resolve) => {
-    const server = http.createServer(handle);
+    const server = http.createServer((req, res) => {
+      const chunks = [];
+      req.on("data", (c) => chunks.push(c));
+      req.on("end", () => {
+        requests.push({ method: req.method, url: req.url, body: Buffer.concat(chunks).toString() });
+        handle(req, res);
+      });
+    });
     server.listen(port, "127.0.0.1", () => {
       const addr = server.address();
       const resolvedPort = typeof addr === "object" ? addr.port : port;
@@ -102,6 +111,7 @@ export function startMockServer(port = 0) {
         server,
         port: resolvedPort,
         url: `http://127.0.0.1:${resolvedPort}`,
+        requests,
         // closeAllConnections: a probe that timed out can leave a socket open, and
         // close() alone would wait for it.
         close: () => new Promise((r) => { server.close(() => r()); server.closeAllConnections(); }),

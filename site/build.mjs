@@ -26,6 +26,7 @@ import { build } from "rolldown";
 import { bundledPackDirs, activePacks, loadSigners, NAMESPACE } from "../lib/rules/index.js";
 import { verifyWithSigners } from "../lib/rules/sshsig.js";
 import { COUNTS } from "../scripts/docs-numbers.mjs";
+import { agentFiles, docPages, fill, REPO } from "./agents.mjs";
 
 const SITE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(SITE, "..");
@@ -115,13 +116,127 @@ function ruleNumbers() {
   };
 }
 
+/**
+ * The before/after example: a real scan of the test server, from
+ * site/example.json (written by site/tools/example.mjs), and the rule counts
+ * behind it. Fix recipes are not counted as rules.
+ */
+export function exampleValues(packRules) {
+  const e = JSON.parse(readFileSync(join(SITE, "example.json"), "utf8"));
+  const f = e.finding, u = new URL(f.url);
+  const sum = ["critical", "high", "medium", "low"].filter((s) => e.counts[s]).map((s) => `<span class="nowrap">${e.counts[s]} ${s}</span>`);
+  const rules = COUNTS.urlTemplates + COUNTS.secretPatterns + COUNTS.capabilities + COUNTS.agentRules + packRules;
+  return {
+    EX_CMD: esc(e.command), EX_SUM: sum.join(" · "), EX_INFO: String(e.counts.info),
+    EX_CHECKS: String(e.checks), EX_REQ: String(e.requests), EX_HOST: esc(u.hostname),
+    EX_SEV: f.severity.toUpperCase(), EX_TITLE: esc(f.title), EX_DESC: esc(f.description), EX_CONF: esc(f.confidence),
+    EX_EVIDENCE: esc(`GET ${decodeURIComponent(u.pathname + u.search)}`), EX_STATUS: String(f.status),
+    RULES_ALL: String(rules), REFS: String(COUNTS.references),
+    PKGS: (COUNTS.popularNpm + COUNTS.popularPypi).toLocaleString("en-US"),
+  };
+}
+
 /** Wilson score interval, 95%, as README and bench/ report it. */
 function wilson(k, n, z = 1.96) {
   const p = k / n;
   const d = 1 + z * z / n;
   const c = (p + z * z / (2 * n)) / d;
   const h = (z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n))) / d;
-  return `${(c - h).toFixed(2)} to ${(c + h).toFixed(2)}`;
+  return `${Math.max(0, c - h).toFixed(2)} to ${Math.min(1, c + h).toFixed(2)}`;
+}
+
+const KNOWN_VULN = join(ROOT, "bench", "known-vuln");
+
+/**
+ * Pooled precision of a scorer report's standard run: findings that match the
+ * answer key or were labelled correct, over every labelled finding (cannot-tell
+ * counts as incorrect), as bench/known-vuln/score.mjs computes it.
+ */
+function e10Precision(file) {
+  const md = readFileSync(file, "utf8");
+  const run = md.slice(md.indexOf("Run `standard`"));
+  const line = run.split("\n").find((l) => l.startsWith("| **Pooled** |"));
+  if (!line) throw new Error(`E10: no pooled standard row in ${file}`);
+  const [, matched, correct, incorrect] = line.split("|").slice(2, 6).map((c) => +c.trim());
+  const k = matched + correct, n = k + incorrect;
+  return { k, n, rate: k / n, ci: wilson(k, n) };
+}
+
+/**
+ * The E10 pilot, before and after the recall fixes, from
+ * bench/known-vuln/RESULTS-after-fixes.md ("Before and after" table and the
+ * held-out WebGoat line) and the pooled rows of the two scorer reports. Only
+ * counts are read; rates and Wilson intervals are computed here, and
+ * tests/site.test.js checks them against what the files state.
+ * @returns {{ apps: object[], pooled: object, precision: object, heldOut: object }}
+ */
+export function e10Numbers(dir = KNOWN_VULN) {
+  const file = join(dir, "RESULTS-after-fixes.md");
+  const md = readFileSync(file, "utf8");
+  const table = md.slice(md.indexOf("## Before and after"));
+  const kn = (s) => { const m = /(\d+)\/(\d+)/.exec(s); if (!m) throw new Error(`E10: no k/n in "${s}"`); return { k: +m[1], n: +m[2] }; };
+  const pair = (label) => {
+    const line = table.split("\n").find((l) => l.startsWith(`| ${label} |`));
+    if (!line) throw new Error(`E10: no "${label}" row in ${file}`);
+    const [b, a] = line.split("|").slice(2, 4).map((c) => kn(c));
+    return { before: { ...b, rate: b.k / b.n, ci: wilson(b.k, b.n) }, after: { ...a, rate: a.k / a.n, ci: wilson(a.k, a.n) } };
+  };
+  const held = /Held-out check: WebGoat[\s\S]*?\*\*(\d+)\/(\d+),[^*]*\*\* both times/.exec(md);
+  if (!held) throw new Error(`E10: no held-out WebGoat result in ${file}`);
+  const hk = +held[1], hn = +held[2];
+  return {
+    apps: [
+      { id: "juice-shop", name: "OWASP Juice Shop", ...pair("juice-shop") },
+      { id: "dvna", name: "DVNA", ...pair("dvna") },
+    ],
+    pooled: pair("**Pooled recall**"),
+    precision: { before: e10Precision(join(dir, "RESULTS.md")), after: e10Precision(file) },
+    heldOut: { name: "WebGoat", k: hk, n: hn, rate: hk / hn, ci: wilson(hk, hn) },
+  };
+}
+
+/**
+ * The before/after bars, one row per app. Names and numbers are HTML text; the
+ * SVG only draws (the CSP forbids inline styles, so widths are attributes).
+ */
+function e10Bars(e) {
+  const rows = [...e.apps, { name: "Both apps", ...e.pooled }];
+  const ci = (s) => s.split(" to ").map((x) => (Number(x) * 100).toFixed(1));
+  // Each slot is 12 units tall: the bar fills the middle 8, the interval's
+  // caps run the full 12 so they stay visible past the bar's edges.
+  const bar = (y, r, cls) => {
+    const [lo, hi] = ci(r.ci), mid = y + 6;
+    return `<rect class="${cls}" x="0" y="${y + 2}" width="${Math.max(0.6, r.rate * 100).toFixed(1)}" height="8"/>`
+      + `<path class="e10-ci" d="M${lo} ${mid}H${hi}M${lo} ${y}V${y + 12}M${hi} ${y}V${y + 12}"/>`;
+  };
+  return rows.map((r) => `<div class="e10-row"><span class="e10-name">${esc(r.name)}</span>`
+    + `<svg class="e10-bar" viewBox="0 0 100 26" preserveAspectRatio="none" aria-hidden="true">${bar(0, r.before, "e10-before")}${bar(14, r.after, "e10-after")}</svg>`
+    + `<span class="e10-nums">${r.before.k}/${r.before.n} <span aria-hidden="true">→</span><span class="sr"> to </span> ${r.after.k}/${r.after.n}</span></div>`).join("\n");
+}
+
+function e10Values() {
+  const e = e10Numbers();
+  const r = (x) => x.toFixed(2);
+  const v = {};
+  for (const a of e.apps) {
+    const key = a.id === "juice-shop" ? "JS" : "DV";
+    Object.assign(v, {
+      [`E10_${key}_B`]: `${a.before.k}/${a.before.n}`, [`E10_${key}_A`]: `${a.after.k}/${a.after.n}`,
+      [`E10_${key}_B_R`]: r(a.before.rate), [`E10_${key}_B_CI`]: a.before.ci,
+      [`E10_${key}_A_R`]: r(a.after.rate), [`E10_${key}_A_CI`]: a.after.ci,
+    });
+  }
+  const p = e.pooled, pr = e.precision, w = e.heldOut;
+  Object.assign(v, {
+    E10_P_B: `${p.before.k}/${p.before.n}`, E10_P_A: `${p.after.k}/${p.after.n}`,
+    E10_P_B_OF: `${p.before.k} of ${p.before.n}`, E10_P_A_OF: `${p.after.k} of ${p.after.n}`,
+    E10_P_B_R: r(p.before.rate), E10_P_B_CI: p.before.ci, E10_P_A_R: r(p.after.rate), E10_P_A_CI: p.after.ci,
+    E10_PR_B: r(pr.before.rate), E10_PR_B_CI: pr.before.ci, E10_PR_B_N: String(pr.before.n),
+    E10_PR_A: r(pr.after.rate), E10_PR_A_CI: pr.after.ci, E10_PR_A_N: String(pr.after.n),
+    E10_WG: `${w.k}/${w.n}`, E10_WG_R: r(w.rate), E10_WG_CI: w.ci,
+    E10_BARS: e10Bars(e),
+  });
+  return v;
 }
 
 /** The benchmark's Total row from bench/RESULTS.md (generated by npm run bench). */
@@ -136,6 +251,42 @@ function benchNumbers() {
     BENCH_TP: String(tp), BENCH_FP: String(fp), BENCH_FN: String(fn),
     BENCH_EGRESS: (readFileSync(join(ROOT, "bench", "RESULTS.md"), "utf8").match(/Requests to non-loopback hosts: \*\*(\d+)\*\*/) || [])[1] ?? "not reported",
   };
+}
+
+const REPO_BLOB = "https://github.com/danoszz/penthera/blob/main/";
+/** The production origin, from package.json: sitemap, robots.txt, security.txt and the doc mirrors use it. */
+const ORIGIN = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).homepage.replace(/\/+$/, "");
+
+/** site/compare.json, parsed and checked: every filled cell has a source. */
+export function readCompare(file = join(SITE, "compare.json")) {
+  const c = JSON.parse(readFileSync(file, "utf8"));
+  for (const r of c.rows) {
+    for (const t of c.tools) {
+      const cell = r.cells[t.id];
+      if (!cell) throw new Error(`compare.json: "${r.label}" has no cell for ${t.id}`);
+      if (cell.t && !cell.s.length) throw new Error(`compare.json: "${r.label}" / ${t.id} has no source`);
+    }
+  }
+  return c;
+}
+
+/**
+ * The comparison table. A source in the repo links to its file on GitHub and
+ * is named by its file; a vendor source is named by its host.
+ */
+function compareTable(c, values) {
+  const url = (s) => (/^https:\/\//.test(s) ? s : REPO_BLOB + s);
+  const name = (s) => (/^https:\/\//.test(s) ? new URL(s).hostname.replace(/^(www|docs)\./, "") : s.split("#")[0].split("/").pop());
+  const fill = (t) => t.replace(/\{\{(\w+)\}\}/g, (m, k) => { if (!(k in values)) throw new Error(`compare.json: unknown placeholder ${m}`); return values[k]; });
+  const head = c.tools.map((t) => `<th scope="col"><a href="${REPO_BLOB}${t.page}">${esc(t.name)}</a>`
+    + (t.checked ? `<span class="cmp-date">checked ${t.checked}</span>` : "") + "</th>").join("");
+  const body = c.rows.map((r) => `<tr><th scope="row">${esc(r.label)}</th>` + c.tools.map((t) => {
+    const cell = r.cells[t.id];
+    if (!cell.t) return `<td class="cmp-none"><span aria-hidden="true">—</span><span class="sr">Not covered on our compare page</span></td>`;
+    const src = cell.s.map((s) => `<a href="${esc(url(s))}">${esc(name(s))}</a>`).join(", ");
+    return `<td><p>${esc(fill(cell.t))} <span class="cmp-src">Source: ${src}</span></p></td>`;
+  }).join("") + "</tr>").join("\n");
+  return `<table class="cmp"><thead><tr><th scope="col"><span class="sr">Question</span></th>${head}</tr></thead>\n<tbody>\n${body}\n</tbody></table>`;
 }
 
 const STARS_FILE = join(SITE, "stars.json");
@@ -167,6 +318,45 @@ async function starCount() {
   if (n == null && existsSync(STARS_FILE)) n = JSON.parse(readFileSync(STARS_FILE, "utf8")).stars;
   if (!Number.isFinite(n) || n < 0) return "";
   return n >= 1000 ? `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1).replace(/\.0$/, "")}k` : String(n);
+}
+
+/**
+ * AGENTS.md, the repo's instructions for coding agents, is linked from the
+ * page and llms.txt only once it exists, so neither points at a missing file.
+ */
+function agentsMd() {
+  if (!existsSync(join(ROOT, "AGENTS.md"))) return { AGENTS_MD_LI: "", AGENTS_MD_LLMS: "" };
+  const url = `${REPO}/blob/main/AGENTS.md`;
+  return {
+    AGENTS_MD_LI: `        <li><a href="${url}"><code>AGENTS.md</code></a><span>How to work on Penthera's own code, for coding agents.</span></li>\n`,
+    AGENTS_MD_LLMS: `- [AGENTS.md](${url}): how to work on Penthera's own code, for coding agents\n`,
+  };
+}
+
+/** True for a semver pre-release such as 1.9.0-rc.1. */
+export const prerelease = (v) => /^\d+\.\d+\.\d+-/.test(v);
+
+/** The oldest release in CHANGELOG.md whose notes mention `text`, or null. */
+export function firstRelease(text, file = join(ROOT, "CHANGELOG.md")) {
+  let first = null;
+  for (const sec of readFileSync(file, "utf8").split(/^## /m).slice(1)) {
+    const v = /^\[(\d[^\]]*)\]/.exec(sec)?.[1];
+    if (v && sec.includes(text)) first = v;
+  }
+  return first;
+}
+
+/**
+ * While the package version is a release candidate, the MCP server is not on
+ * npm's `latest` tag: say so wherever its config is shown. Empty once stable.
+ */
+export function mcpNote(version) {
+  if (!prerelease(version)) return { MCP_NOTE: "", MCP_NOTE_MD: "" };
+  const since = firstRelease("`penthera mcp`") || version;
+  return {
+    MCP_NOTE: `New in ${since}, a release candidate on npm's <code>next</code> tag (<code>penthera@next</code>).`,
+    MCP_NOTE_MD: `New in ${since}, a release candidate on npm's \`next\` tag (\`penthera@next\`).`,
+  };
 }
 
 const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -240,7 +430,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
   if (engine) await bundle(join(SITE, "check", "engine.js"), resolve(engine), { minify: false });
 
   // Static files, as they are.
-  for (const f of ["styles.css", "theme.js", "robots.txt"]) cpSync(join(SITE, f), join(OUT, f));
+  for (const f of ["styles.css", "theme.js"]) cpSync(join(SITE, f), join(OUT, f));
   cpSync(join(SITE, "media"), join(OUT, "media"), { recursive: true });
   // The dashboard's own font and marks, so the site and penthera ui match.
   const UI = join(ROOT, "src", "ui", "static");
@@ -250,6 +440,9 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
   cpSync(join(ROOT, "assets", "walkthrough.mp4"), join(OUT, "media", "walkthrough.mp4"));
   cpSync(join(ROOT, "assets", "walkthrough-poster.jpg"), join(OUT, "media", "walkthrough.jpg"));
   cpSync(join(ROOT, "assets", "walkthrough.vtt"), join(OUT, "media", "walkthrough.vtt"));
+  // The tour's dashboard shots: the same files the docs show.
+  mkdirSync(join(OUT, "media", "tour"), { recursive: true });
+  for (const f of ["ui-dark.jpg", "ui-light.jpg", "ui-run.jpg"]) cpSync(join(ROOT, "assets", "dashboard", f), join(OUT, "media", "tour", f));
 
   // The page: version-stamp the assets it loads and fill in measured numbers.
   const packs = activePacks();
@@ -263,18 +456,28 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
     CHECK_KB: String(kb(checkBytes)),
     ...benchNumbers(),
     ...ruleNumbers(),
+    ...exampleValues(packs.reduce((n, p) => n + p.count, 0)),
+    ...e10Values(),
     STARS: await starCount(),
     TICKER: tickerHtml(readNews()),
     SITE_URL: siteUrl(),
+    ...mcpNote(version),
+    ORIGIN,
+    DOC_PAGES: String(docPages(ROOT).length - 1),
+    ...agentsMd(),
   };
   values.STARS_LABEL = values.STARS ? `, ${values.STARS} stars` : "";
-  let html = readFileSync(join(SITE, "index.html"), "utf8");
-  html = html.replace(/\{\{(\w+)\}\}/g, (m, k) => {
-    if (!(k in values)) throw new Error(`index.html: unknown placeholder ${m}`);
-    return values[k];
-  });
+  values.COMPARE = compareTable(readCompare(), values);
+  let html = fill(readFileSync(join(SITE, "index.html"), "utf8"), values, "index.html");
   html = html.replace(/(href|src)="\/(styles\.css|theme\.js|check\.js)"/g, (m, attr, f) => `${attr}="/${f}?v=${hash(readFileSync(join(OUT, f)))}"`);
   writeFileSync(join(OUT, "index.html"), html);
+  // For agents and crawlers: llms.txt (the same placeholders, so its pins
+  // match the page), the docs as Markdown, the sitemap, robots.txt and
+  // security.txt. All from the repo, at the package's homepage.
+  for (const [f, text] of Object.entries(agentFiles({ root: ROOT, site: SITE, version, origin: ORIGIN, values }))) {
+    mkdirSync(dirname(join(OUT, f)), { recursive: true });
+    writeFileSync(join(OUT, f), text);
+  }
 
   const total = readdirSync(OUT, { recursive: true }).map((f) => join(OUT, f)).filter((f) => statSync(f).isFile()).reduce((n, f) => n + statSync(f).size, 0);
   writeFileSync(join(OUT, "build.json"), JSON.stringify({ version, ...values, bytes: total }, null, 2) + "\n");

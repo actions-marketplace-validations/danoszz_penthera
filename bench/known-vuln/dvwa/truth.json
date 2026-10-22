@@ -1,0 +1,498 @@
+{
+  "schema": "penthera-known-vuln-truth/1",
+  "app": "dvwa",
+  "name": "Damn Vulnerable Web Application (DVWA)",
+  "license": "GPL-3.0-or-later",
+  "licenseUrl": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/COPYING.txt",
+  "intendedUse": "The README says DVWA is deliberately vulnerable, for practising security testing and teaching in a legal setting, never Internet-facing: https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/README.md",
+  "source": {
+    "repo": "https://github.com/digininja/DVWA",
+    "ref": "2.5",
+    "commit": "a96943dc1f52f390ee5df72144660636c4b7dd06"
+  },
+  "image": {
+    "ref": "ghcr.io/digininja/dvwa:a96943d",
+    "digest": "sha256:d8e960e0e3ca2aa487532b404a6af2669f46854a74b5182f2f8e0e31895e0e29",
+    "note": "GHCR has no '2.5' tag; images are tagged by short commit SHA, and a96943d is exactly the 2.5 commit (single-platform Docker v2 manifest, not an index). compose.yml at the tag uses :latest (currently sha256:8029450682bd70e2e8cd1ffe8e46dd1885ff2a913296091cebfa8ba0a7d36498, a later build, not used). DB service per compose.yml: docker.io/library/mariadb:10 @ sha256:0d0945c57f75b3a3b9ebe71aedaaad005fa5305054e8fca3d2e42a8c92b43b5e (index digest of the moving tag, resolved 2026-10-22; set DB_SERVER=db). Runner steps: log in at /login.php with admin/password, create the DB via /setup.php (Create / Reset Database), then set security level to low (the tag defaults to impossible; DEFAULT_SECURITY_LEVEL=low or /security.php). All /vulnerabilities/<module>/ pages need the logged-in session."
+  },
+  "answerKey": [
+    {
+      "title": "DVWA vulnerability modules (vulnerabilities/<module>/source and help pages)",
+      "url": "https://github.com/digininja/DVWA/tree/a96943dc1f52f390ee5df72144660636c4b7dd06/vulnerabilities"
+    },
+    {
+      "title": "Menu listing the modules",
+      "url": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/dvwa/includes/dvwaPage.inc.php#L290-L309"
+    },
+    {
+      "title": "README (setup, default credentials, database)",
+      "url": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/README.md"
+    }
+  ],
+  "frozenOn": "2026-10-22",
+  "frozenBeforeScan": true,
+  "builtBy": "Claude (AI-assisted), from the DVWA 2.5 module list, help pages, low.php sources and README; to be checked by labeller A",
+  "vulnerabilities": [
+    {
+      "id": "brute",
+      "title": "Brute Force",
+      "ref": "brute",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/vulnerabilities/brute/help/help.php",
+      "description": "Login form has no attempt limiting or lockout, so passwords can be guessed repeatedly.",
+      "appCategory": "Brute Force",
+      "class": "auth",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "/vulnerabilities/brute/"
+        },
+        {
+          "file": "vulnerabilities/brute/source/low.php"
+        }
+      ],
+      "group": "brute",
+      "note": "Low level only; medium/high not scored. GET form with username/password params; the page itself sits behind the DVWA session. Low also concatenates username into SQL (not documented, not listed)."
+    },
+    {
+      "id": "exec-url",
+      "title": "Command Injection",
+      "ref": "exec",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/vulnerabilities/exec/help/help.php",
+      "description": "IP address field is passed to a ping shell command, allowing extra OS commands.",
+      "appCategory": "Command Injection",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/vulnerabilities/exec/"
+        },
+        {
+          "file": "vulnerabilities/exec/source/low.php"
+        }
+      ],
+      "group": "exec",
+      "note": "Low level only; medium/high not scored. POST param ip."
+    },
+    {
+      "id": "exec-repo",
+      "title": "Command Injection (source sink)",
+      "ref": "exec",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/vulnerabilities/exec/source/low.php",
+      "description": "Request input concatenated straight into shell_exec ping command.",
+      "appCategory": "Command Injection",
+      "class": "code-sink",
+      "inScope": true,
+      "surface": "repo",
+      "locations": [
+        {
+          "path": "/vulnerabilities/exec/"
+        },
+        {
+          "file": "vulnerabilities/exec/source/low.php"
+        }
+      ],
+      "group": "exec",
+      "note": "Low level only; medium/high not scored. PHP: Penthera's route analysis reads JS/TS only."
+    },
+    {
+      "id": "csrf",
+      "title": "CSRF",
+      "ref": "csrf",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/vulnerabilities/csrf/help/help.php",
+      "description": "Password change via GET without any anti-CSRF token or re-authentication.",
+      "appCategory": "CSRF",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/vulnerabilities/csrf/"
+        },
+        {
+          "file": "vulnerabilities/csrf/source/low.php"
+        }
+      ],
+      "group": "csrf",
+      "note": "Low level only; medium/high not scored."
+    },
+    {
+      "id": "fi",
+      "title": "File Inclusion",
+      "ref": "fi",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/vulnerabilities/fi/help/help.php",
+      "description": "page parameter is included directly, allowing local and remote file inclusion.",
+      "appCategory": "File Inclusion",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/vulnerabilities/fi/"
+        },
+        {
+          "file": "vulnerabilities/fi/source/low.php"
+        },
+        {
+          "file": "vulnerabilities/fi/index.php"
+        }
+      ],
+      "group": "fi",
+      "note": "Low level only; medium/high not scored. LFI/path traversal not claimed; RFI would also need an external server (allow_url_include is on in the shipped php.ini)."
+    },
+    {
+      "id": "upload",
+      "title": "File Upload",
+      "ref": "upload",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/vulnerabilities/upload/help/help.php",
+      "description": "Uploads are stored in a web-served folder without any type or content checks.",
+      "appCategory": "File Upload",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/vulnerabilities/upload/"
+        },
+        {
+          "file": "vulnerabilities/upload/source/low.php"
+        },
+        {
+          "path": "/hackable/uploads/"
+        }
+      ],
+      "group": "upload",
+      "note": "Low level only; medium/high not scored."
+    },
+    {
+      "id": "captcha",
+      "title": "Insecure CAPTCHA",
+      "ref": "captcha",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/vulnerabilities/captcha/help/help.php",
+      "description": "Second step of the password change trusts a client-supplied step value, skipping the CAPTCHA.",
+      "appCategory": "Insecure CAPTCHA",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/vulnerabilities/captcha/"
+        },
+        {
+          "file": "vulnerabilities/captcha/source/low.php"
+        }
+      ],
+      "group": "captcha",
+      "note": "Low level only; medium/high not scored. Needs reCAPTCHA keys configured; the default config has none."
+    },
+    {
+      "id": "sqli",
+      "title": "SQL Injection",
+      "ref": "sqli",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/vulnerabilities/sqli/help/help.php",
+      "description": "User id parameter is concatenated into a SQL query; database errors are shown.",
+      "appCategory": "SQL Injection",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/vulnerabilities/sqli/"
+        },
+        {
+          "file": "vulnerabilities/sqli/source/low.php"
+        }
+      ],
+      "group": "sqli",
+      "note": "Low level only; medium/high not scored. GET param id (with Submit). SQL string building in source is not a code-sink entry per spec."
+    },
+    {
+      "id": "sqli_blind",
+      "title": "SQL Injection (Blind)",
+      "ref": "sqli_blind",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/vulnerabilities/sqli_blind/help/help.php",
+      "description": "User id is concatenated into SQL; only exists/missing (200/404) differs, so boolean or time based.",
+      "appCategory": "SQL Injection (Blind)",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/vulnerabilities/sqli_blind/"
+        },
+        {
+          "file": "vulnerabilities/sqli_blind/source/low.php"
+        }
+      ],
+      "group": "sqli_blind",
+      "note": "Low level only; medium/high not scored. GET param id (with Submit); errors suppressed."
+    },
+    {
+      "id": "weak_id",
+      "title": "Weak Session IDs",
+      "ref": "weak_id",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/vulnerabilities/weak_id/help/help.php",
+      "description": "dvwaSession cookie value is a simple incrementing counter, so it is predictable.",
+      "appCategory": "Weak Session IDs",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/vulnerabilities/weak_id/"
+        },
+        {
+          "file": "vulnerabilities/weak_id/source/low.php"
+        }
+      ],
+      "group": "weak_id",
+      "note": "Low level only; medium/high not scored. Predictable token is weak-crypto/session class. The cookie also lacks HttpOnly/Secure at low, but that is not the documented item."
+    },
+    {
+      "id": "xss_d",
+      "title": "XSS (DOM)",
+      "ref": "xss_d",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/vulnerabilities/xss_d/help/help.php",
+      "description": "Page script writes the default URL parameter into the document without encoding.",
+      "appCategory": "XSS (DOM)",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "needs-browser",
+      "locations": [
+        {
+          "path": "/vulnerabilities/xss_d/"
+        },
+        {
+          "file": "vulnerabilities/xss_d/index.php"
+        }
+      ],
+      "group": "xss_d",
+      "note": "Low level only; medium/high not scored."
+    },
+    {
+      "id": "xss_r",
+      "title": "XSS (Reflected)",
+      "ref": "xss_r",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/vulnerabilities/xss_r/help/help.php",
+      "description": "name parameter is echoed into the HTML response unencoded; X-XSS-Protection disabled.",
+      "appCategory": "XSS (Reflected)",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/vulnerabilities/xss_r/"
+        },
+        {
+          "file": "vulnerabilities/xss_r/source/low.php"
+        }
+      ],
+      "group": "xss_r",
+      "note": "Low level only; medium/high not scored. GET param name. No repo entry: the sink is a PHP string echo, not a JS innerHTML sink."
+    },
+    {
+      "id": "xss_s",
+      "title": "XSS (Stored)",
+      "ref": "xss_s",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/vulnerabilities/xss_s/help/help.php",
+      "description": "Guestbook name and message are stored and rendered later without HTML encoding.",
+      "appCategory": "XSS (Stored)",
+      "class": "injection",
+      "inScope": false,
+      "excludedBecause": "stored-or-multistep",
+      "locations": [
+        {
+          "path": "/vulnerabilities/xss_s/"
+        },
+        {
+          "file": "vulnerabilities/xss_s/source/low.php"
+        }
+      ],
+      "group": "xss_s",
+      "note": "Low level only; medium/high not scored."
+    },
+    {
+      "id": "csp",
+      "title": "CSP Bypass",
+      "ref": "csp",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/vulnerabilities/csp/help/help.php",
+      "description": "Content-Security-Policy script-src allows third-party hosts where attackers can host scripts.",
+      "appCategory": "CSP Bypass",
+      "class": "misconfig",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": true,
+      "needsPayloads": false,
+      "locations": [
+        {
+          "path": "/vulnerabilities/csp/"
+        },
+        {
+          "file": "vulnerabilities/csp/source/low.php"
+        }
+      ],
+      "group": "csp",
+      "note": "Low level only; medium/high not scored. Over-permissive CSP header only on this page. Exploiting it (POST include param) needs a browser; the permissive header itself is the scored item."
+    },
+    {
+      "id": "javascript",
+      "title": "JavaScript",
+      "ref": "javascript",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/vulnerabilities/javascript/help/help.php",
+      "description": "Security token is computed client-side in page JavaScript, so it can be forged.",
+      "appCategory": "JavaScript",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "needs-browser",
+      "locations": [
+        {
+          "path": "/vulnerabilities/javascript/"
+        },
+        {
+          "file": "vulnerabilities/javascript/source/low.php"
+        }
+      ],
+      "group": "javascript",
+      "note": "Low level only; medium/high not scored."
+    },
+    {
+      "id": "authbypass",
+      "title": "Authorisation Bypass",
+      "ref": "authbypass",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/vulnerabilities/authbypass/help/help.php",
+      "description": "Admin-only page is hidden from the menu but not access-checked for other users.",
+      "appCategory": "Authorisation Bypass",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "access-control-logic",
+      "locations": [
+        {
+          "path": "/vulnerabilities/authbypass/"
+        },
+        {
+          "file": "vulnerabilities/authbypass/index.php"
+        }
+      ],
+      "group": "authbypass",
+      "note": "Low level only; medium/high not scored. Needs a second, non-admin account (e.g. gordonb) to observe."
+    },
+    {
+      "id": "open_redirect",
+      "title": "Open HTTP Redirect",
+      "ref": "open_redirect",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/vulnerabilities/open_redirect/help/help.php",
+      "description": "redirect parameter is placed in the Location header without any validation.",
+      "appCategory": "Open HTTP Redirect",
+      "class": "injection",
+      "inScope": true,
+      "surface": "url",
+      "needsAuth": false,
+      "needsPayloads": true,
+      "locations": [
+        {
+          "path": "/vulnerabilities/open_redirect/source/low.php"
+        },
+        {
+          "file": "vulnerabilities/open_redirect/source/low.php"
+        }
+      ],
+      "group": "open_redirect",
+      "note": "Low level only; medium/high not scored. The redirect script is linked from the authenticated module page but does not itself check the session; it answers 500 without the param."
+    },
+    {
+      "id": "cryptography",
+      "title": "Cryptography",
+      "ref": "cryptography",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/vulnerabilities/cryptography/help/help.php",
+      "description": "Messages are XOR-encoded with a fixed key and Base64, which is reversible encoding, not encryption.",
+      "appCategory": "Cryptography",
+      "class": "other",
+      "inScope": false,
+      "excludedBecause": "class-not-claimed",
+      "locations": [
+        {
+          "path": "/vulnerabilities/cryptography/"
+        },
+        {
+          "file": "vulnerabilities/cryptography/source/low.php"
+        }
+      ],
+      "group": "cryptography",
+      "note": "Low level only; medium/high not scored. The XOR key is hardcoded in low.php, but it is the exercise's cipher key, not a credential/API/signing secret."
+    },
+    {
+      "id": "api",
+      "title": "API",
+      "ref": "api",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/vulnerabilities/api/help/help.php",
+      "description": "Older v1 user endpoint is still live and returns password hashes that v2 hides.",
+      "appCategory": "API",
+      "class": "exposure",
+      "inScope": false,
+      "excludedBecause": "other",
+      "locations": [
+        {
+          "path": "/vulnerabilities/api/v1/user/"
+        },
+        {
+          "file": "vulnerabilities/api/src/User.php"
+        },
+        {
+          "file": "vulnerabilities/api/public/index.php"
+        }
+      ],
+      "group": "api",
+      "note": "Low level only; medium/high not scored. Excess fields in a versioned API response need app knowledge to judge; not a served file/spec/debug endpoint. API router has no DVWA session check. Needs composer vendor/, which the Dockerfile does not install, so it may not work in the image."
+    },
+    {
+      "id": "default-login",
+      "title": "Default credentials",
+      "ref": "README: Default Credentials",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/README.md#default-credentials",
+      "description": "Application ships with documented default login admin / password.",
+      "appCategory": "Setup",
+      "class": "auth",
+      "inScope": false,
+      "excludedBecause": "weak-credentials",
+      "locations": [
+        {
+          "path": "/login.php"
+        }
+      ],
+      "group": "default-login",
+      "note": "Low level only; medium/high not scored. The runner uses these to log in; other seeded users have weak passwords too."
+    },
+    {
+      "id": "config-db-password",
+      "title": "Default database password in config template",
+      "ref": "README: Database Setup",
+      "source": "https://github.com/digininja/DVWA/blob/a96943dc1f52f390ee5df72144660636c4b7dd06/README.md#database-setup",
+      "description": "Config template falls back to a documented default database password when no environment variable is set.",
+      "appCategory": "Setup",
+      "class": "secrets",
+      "inScope": false,
+      "excludedBecause": "weak-credentials",
+      "locations": [
+        {
+          "file": "config/config.inc.php.dist"
+        },
+        {
+          "file": "compose.yml"
+        }
+      ],
+      "group": "config-db-password",
+      "note": "Documented default in a .dist template (Dockerfile copies it to config.inc.php); compose.yml sets the same DB password plus a root password. Not a leaked secret, so not scored as secrets; a secrets finding here is a documented default, not a false positive."
+    }
+  ]
+}

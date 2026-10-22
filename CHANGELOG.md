@@ -4,6 +4,240 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+## [1.9.0-rc.1] - 2026-10-22
+
+Release candidate for 1.9.0, on npm's `next` dist-tag (`npm install penthera@next`).
+New: `penthera mcp` (an MCP server for coding agents, local and read-only by
+default), opt-in AI mode where a local model proposes and Penthera's rules
+verify, new detection rules, and default scans that send no attack payloads.
+
+### Added
+
+- **Coverage ledger** in every `--repo` report (terminal, Markdown, JSON
+  `coverage`): which files each check read, which it did not and why, and the
+  source files no code analysis looked at. It reads only file names and sizes,
+  and is the first step toward an opt-in AI mode.
+- **AI mode, opt-in and experimental: `penthera --repo . --ai`.** A model in
+  your local Ollama reads your code part by part and proposes problems no rule
+  describes; Penthera checks each proposal with its rules. Confirmed ones mark
+  the rule finding "also proposed by AI"; the rest are shown as
+  "model-proposed, unverified", apart from rule findings, and never change the
+  exit code. Every run asks first (default no), on stderr; runs that cannot ask
+  need `--ai-consent local` or `"ai": { "allow": ["local"] }` in
+  `penthera.policy.json`, or stop with exit 2 before scanning. Ollama cloud
+  models (`-cloud`) are recognised and need a second screen where you type
+  `ollama.com`. Secrets are masked before any code reaches the model; budgets
+  (`--ai-budget`) are hard stops; consents are logged locally
+  (`penthera ai consent`). `penthera ai models` lists models and where they
+  run. See [docs/ai-mode.md](docs/ai-mode.md).
+- **AI mode in the dashboard.** New scan has an AI mode switch, off; turning
+  it on opens the consent sheet on every scan (a picture of where the code
+  goes, the model picker, the terminal's exact consent lines, two equal
+  buttons; cloud models need `ollama.com` typed). The server checks the
+  model's route with Ollama itself and logs the consent. Runs show an
+  "AI · local" tag, unverified proposals are folded under their own heading,
+  and Settings lists the consent log.
+- **`penthera verify <findings.json>`** checks findings from an AI security
+  audit against Penthera's rules on your checkout. It reads Cloudflare's
+  security-audit skill `findings.json` (schema vendored from commit `c1c8a8c`,
+  MIT). A finding a rule agrees with is shown as Penthera's own finding, marked
+  "also proposed by" the model; the rest are labelled "model-proposed,
+  unverified" and never fail CI. Penthera runs no model and sends nothing
+  anywhere. See [docs/commands/verify.md](docs/commands/verify.md).
+- **`--audit-seeds <file>`** writes repo findings in the security-audit
+  skill's `findings.json` schema, as seeds for an AI audit: each entry is
+  `needs_validation`, names its class and the line the rule matched, and is
+  checked against the skill's schema before it is written.
+- Risky-pattern findings from `--repo` now carry the repo-relative `file` and
+  the `pattern` name.
+- **`penthera mcp`: Penthera as an MCP server for your coding agent.** Claude
+  Code, Cursor, Codex, VS Code and Windsurf can call it over stdio. Add it
+  with a pinned version: `claude mcp add penthera -- npx -y penthera@1.9.0 mcp`.
+  Six read-only tools: `scan_repo`, `scan_url` (passive only),
+  `check_dependencies`, `audit_ai_tooling`, `explain_finding` and
+  `runtime_advisories`. Results are structured JSON plus a summary, with
+  evidence at `file:line`, confidence labels and each tool's limits.
+  - Tools read only inside the workspace roots, and symlinks cannot lead
+    out. `scan_url` reaches loopback, or hosts you list with
+    `--allow-host`; active modes are not reachable over MCP.
+  - Text from scanned files has invisible characters removed and is marked
+    as data, so a file cannot steer the agent through the results.
+  - Speaks MCP 2026-07-28 and the earlier `initialize` versions. No new
+    dependency, no port, no telemetry.
+  - `server.json` and `mcpName` for the MCP Registry
+    (`io.github.danoszz/penthera`). See `docs/commands/mcp.md`.
+- **Secret findings carry the line number**, so reports and SARIF point at
+  the line.
+
+### Detection
+
+- Three exposure checks in the default URL scan, each a documented miss in
+  the E10 pilot (Juice Shop). All send plain `GET`s, no payloads:
+  - a public Prometheus `/metrics` endpoint (medium), matched on the
+    exposition format, so an SPA's index page at `/metrics` does not count;
+  - browsable directory listings (medium) in folders that `robots.txt`
+    disallows and in common upload and backup folders, matched on the
+    listing's page title;
+  - a stack trace in the error page for a path that does not exist (low),
+    matched on Node.js, Python, Java, PHP and .NET frame shapes.
+- The header audit reports an `X-Powered-By` header (low, `confirmed`), such
+  as Express's default `X-Powered-By: Express`. It was a documented miss in
+  the E10 pilot (DVNA). The finding names the value and how to turn the
+  header off.
+- The secret scan reads Terraform and HCL files (`.tf`, `.tfvars`, `.hcl`).
+  A private key inline in a Terraform file was a documented miss in the E10
+  pilot (Juice Shop).
+- New secret rule: a session signing secret written into
+  `session({ secret: '...' })` or `cookieSession(...)`, including a hardcoded
+  fallback after `process.env.X ||` (high). Express's documented example,
+  `'keyboard cat'`, was a documented miss in the E10 pilot (DVNA).
+- The repo scan looks for code-execution sinks in all server code, not just
+  route handlers: `eval`/`new Function` with a non-constant argument, `vm`
+  calls and `child_process` `exec` with request data in their arguments.
+  A taint-lite pass (assignments and destructuring within one file) sets the
+  confidence: `likely` when request data reaches the sink, `potential` for an
+  `eval` of a value it cannot trace. Before, a repo with an Express `routes/`
+  folder stopped before any code-pattern check; three E10 pilot misses (DVNA's
+  `exec` in `core/appHandler.js`, Juice Shop's B2B `vm` and profile `eval`)
+  came from this.
+- The advisories pack knows MongoDB: end-of-life lines from MongoDB's
+  lifecycle schedule (4.4 ended 2024-02-29, 5.0 on 2024-10-31, 6.0 on
+  2025-07-31, and the interim releases), matched against the official `mongo`
+  image in Dockerfiles and compose files and `mongodb` in `.tool-versions`.
+  `mongo:4.4.29` in Juice Shop's compose file was a documented miss in the
+  E10 pilot. **The pack is unsigned in this change**: the maintainer signs it
+  (`scripts/rules/sign-pack.sh`) before release.
+
+### Changed
+
+- **Faster merges for contributors.** Pull requests get a quicker install check
+  (Linux and macOS, Node 22), and docs-, site- or benchmark-only changes skip it.
+  The merge queue and `main` still run the full matrix (Linux, macOS and
+  Windows on Node 22 and 24, plus the upgrade test). Release notes are written
+  as fragments in `changelog.d/`, so parallel pull requests no longer conflict
+  on `CHANGELOG.md`.
+- **The default scan sends no attack payloads to your login.** A URL scan
+  used to POST nine logins and an `' OR '1'='1` string to `/api/login`,
+  which a CDN firewall (Vercel, Cloudflare) can read as an attack and start
+  challenging you. Now `quick` sends no login request, `standard` sends one
+  login with invalid credentials (to catch a login that accepts anything),
+  and the rate-limit burst and the SQL error check run only with `--deep`.
+  The MCP `scan_url` tool follows the same profiles.
+
+### Fixed
+
+- `penthera ui` listens for SIGINT and SIGTERM before it prints that it is
+  listening. A signal that arrived in between got the default action and
+  killed the process without "Stopped." (seen as a hung CI test; about one
+  run in a hundred locally). The test now fails within seconds with the
+  child's output instead of hanging for three minutes.
+- `--repo` scans of Express, Hono and Fastify apps with a `routes/`, `api/` or
+  `server/routes/` folder now get route discovery, trust-boundary and
+  risky-pattern checks. That folder was taken for a Next.js API root, no
+  `route.js` files were found there, and route analysis stopped. An explicit
+  `--api-root` is still used as given.
+- **TLS keys anyone can compute.** URL scans report, as critical, any
+  certificate in the served chain whose EC public key (P-256, P-384, P-521) is
+  k·G for a private scalar k below 1024. The private key then follows from
+  the certificate alone. This is the flaw in eMudhra's P-384 intermediates
+  ([Mozilla bug 2083449](https://bugzilla.mozilla.org/show_bug.cgi?id=2083449),
+  private keys below 256). The check is arithmetic, not a list, so it has no
+  false positives and no data to maintain. Research note:
+  [docs/research/emudhra-weak-keys-2026-10.md](docs/research/emudhra-weak-keys-2026-10.md).
+- **Node.js security release of 21 October 2026** in the `advisories` pack:
+  CVE-2026-111497 (Brotli decoder out-of-bounds write, remote code execution)
+  and the TLS certificate hostname bypasses CVE-2026-106069, CVE-2026-105483
+  and CVE-2026-106072, fixed in 22.23.4, 24.22.1 and 26.12.1, from
+  [nodejs.org](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases).
+  Node.js has no server banner, so repo scans find it (`.nvmrc`,
+  `.node-version`, `.tool-versions`, `node:` images); 20.x and 25.x are
+  reported as end-of-life lines. The pack's signature was removed with the
+  change; `npm run rules:check` fails until the maintainer re-signs it.
+- **Python start-up code in wheels.** `penthera deps` now finds `.pth` files
+  and a shipped `sitecustomize.py` / `usercustomize.py` wherever a wheel puts
+  them at the site-packages root, including `<name>-<version>.data/purelib/`
+  and `platlib/`, the layout the malicious litellm 1.107.0 used
+  ([OSV MAL-2026-2144](https://osv.dev/vulnerability/MAL-2026-2144)). Before,
+  only top-level `.pth` files were read, so that wheel's hook was missed until
+  it was installed. A `.pth` import of clean code is now medium (was low);
+  risky code behind it, or any shipped `sitecustomize.py`, is high. The
+  `penthera install` policy holds `startup-hook` for approval by default.
+- **PyPI indicators.** A new rule kind, `ioc-pypi-package` (PEP 503 names,
+  PEP 440 versions, kept apart from npm names), and a new bundled pack,
+  `ioc-pypi-2026`, with the litellm 1.82.7, 1.82.8 and 1.107.0 versions, the
+  1.107.0 payload files by SHA-256 and its endpoints. Python scans now run
+  `ioc-file` and `ioc-host` rules too. The pack is unsigned until the
+  maintainer signs it, so `npm run rules:check` fails until then.
+- **The pre-commit hook keeps working when the npx cache is cleaned.** A hook
+  installed through `npx penthera` pointed at a copy in npm's cache; once
+  that was gone, every commit skipped the check silently. It now falls back
+  to the same version through npx (`npx -y penthera@<version> hook run`,
+  pinned), and only skips, with a clear warning, when that cannot run either.
+
+### Site
+
+- The FAQ says how to scan your own site behind Vercel's or Cloudflare's
+  firewall: allow your IP first, or scan a preview URL.
+
+### Docs
+
+- README, ROADMAP and the research plan describe what is on main for 1.9
+  (`penthera mcp`, AI mode, new detection, no attack payloads by default) and
+  list the E10 benchmark.
+
+## [1.8.1] - 2026-10-22
+
+A fixes-only release. Runtime advisories are more careful: pre-release builds
+are never reported as having the fix, a banner without a distribution token is
+at most `potential`, release lines older than a flaw are not reported as
+affected, and two more banner formats are read. `penthera ui` now stops
+cleanly under `npx`.
+
+### Fixed
+
+- Runtime advisories no longer claim `likely` for a banner that may be a
+  patched distribution package. Debian 11 to 13, Ubuntu 24.04 and later, and
+  RHEL print plain upstream PHP versions, so a patched Ubuntu 24.04
+  `X-Powered-By: PHP/8.3.6` behind nginx or a CDN was reported as critical
+  and likely affected. For PHP, Apache httpd, nginx, Python and OpenSSL,
+  "affected" and "end of life" findings from a banner with no distribution
+  token are now `potential`, with a "check on server" note and the check
+  command. Severity is unchanged. Official images and version files are
+  upstream builds and stay `likely`. Found by the runtime-strings test set
+  (L1 in [#97](https://github.com/danoszz/penthera/pull/97)).
+
+- Runtime advisories resolve Node.js LTS codenames to their release line:
+  nvm's `lts/iron` in `.nvmrc` and the node image's `iron`, `jod-alpine`
+  and `hydrogen` tags. They read as no version before, so `lts/iron` (Node.js
+  20, end of life 30 April 2026) went unreported. Found by the
+  runtime-strings test set (B4 in
+  [#97](https://github.com/danoszz/penthera/pull/97)).
+- Runtime advisories read aiohttp's `Server: Python/3.9 aiohttp/3.8.6`.
+  aiohttp prints only the Python release line, and the banner pattern needed
+  x.y.z, so an end-of-life Python behind aiohttp went unreported. Found by
+  the runtime-strings test set (B3 in
+  [#97](https://github.com/danoszz/penthera/pull/97)).
+- Runtime advisories honour `introduced` on older release lines. CVE-2021-41773
+  and CVE-2021-42013 exist only in httpd 2.4.49 and 2.4.50. Yet
+  `Apache/2.2.34` and `httpd:2.2` were reported critical, "end of life, no
+  fix", and CentOS 6's `Apache/2.2.15 (CentOS)` was "check on server". A line
+  older than the one the flaw was introduced on now gets no verdict for it.
+  The end-of-life finding stays. Found by the runtime-strings test set (B1 in
+  [#97](https://github.com/danoszz/penthera/pull/97)).
+- Runtime advisories read pre-releases correctly. `PHP/8.4.27-dev`, a PHP-8.4
+  branch build from before 8.4.27, was taken for a distribution build of
+  8.4.27 and reported as having the 21 October fix. Now `-dev`, alpha, beta
+  and RC builds (`8.5.0RC1`, `3.15.0rc1`, `4.1.0-beta2`, `php:8.6.0RC4-fpm`)
+  sort below their release, so a pre-release of the fixed version is
+  affected. A pre-release of the version after the fix (`8.4.28-dev`) is
+  "check on server", never "has the fix". Found by the runtime-strings test set
+  (B2 in [#97](https://github.com/danoszz/penthera/pull/97)).
+- **`npx penthera ui` stops cleanly on Ctrl-C and SIGTERM.** npm forwards
+  the signal to penthera right after the terminal delivered it, and the
+  second copy could kill the dashboard before it printed "Stopped." and
+  closed its server. Repeated signals are now ignored while it stops. This
+  was the intermittent macOS failure in the install-matrix smoke check.
+
 ### Site
 
 - penthera.org counts anonymous page views and load times with Vercel Web
@@ -11,9 +245,34 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   CSP now allows connections only to those two paths on penthera.org; the
   browser check still sends nothing, and the page says so. The CLI, the
   dashboard and the npm package have no telemetry, unchanged.
+- A shared penthera.org link now plays a 14-second muted reel in iMessage
+  and other apps that support `og:video`: setup, an offline scan, the
+  verdict, the PHP advisory of 21 October 2026, and the share card.
+  `og.png` stays the poster and the fallback; X keeps the image card.
+  Rendered by `site/tools/reel.mjs`.
+
+### Research
+
+- Draft protocol for experiment E10: Penthera against six deliberately
+  vulnerable apps with public answer keys (Juice Shop, DVNA, NodeGoat, DVWA,
+  crAPI, WebGoat), each pinned by commit and image digest. Answer keys in
+  `bench/known-vuln/`, frozen before any scan; an opt-in runner
+  (`npm run bench:known`, not in `npm test` or the package) starts the apps
+  isolated in Docker on 127.0.0.1. A pilot on Juice Shop and DVNA is in
+  `bench/known-vuln/RESULTS.md`, marked as a pilot.
+- Each of the pilot's 13 standard-run misses is verified in
+  `bench/known-vuln/MISSES.md` (all real gaps; none a scoring artefact).
+  A re-run after the fixes that followed (#107, #108, #110, #111) is in
+  `bench/known-vuln/RESULTS-after-fixes.md`, next to the unchanged pilot:
+  pooled standard recall 1/14 to 10/14 at the same precision, flagged as not
+  independent, with WebGoat as a held-out app that did not change. The
+  runner gains `--out <file>`.
 
 ### Docs
 
+- Compared with Cloudflare's security-audit skill: a side-by-side in
+  `docs/compare/` and a research note on how Penthera can read its findings,
+  re-check them with rules and seed it, plus a proposed experiment (E9).
 - The PHP case study and `docs/runtime-advisories.md` cite OpenAI's
   php2shell-checker as an independent cross-check. A test pins that Penthera
   agrees with its table on all 14 PHP branches.

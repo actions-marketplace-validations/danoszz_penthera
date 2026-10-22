@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, mkdirSync
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync, spawnSync } from "node:child_process";
-import { runHook, installHook, uninstallHook, fixHint, BACKUP_NAME, HOOK_MARKER, isAgentConfig } from "../lib/hook/index.js";
+import { runHook, installHook, uninstallHook, fixHint, BACKUP_NAME, HOOK_MARKER, isAgentConfig, hookScript } from "../lib/hook/index.js";
 import { cpuMs } from "./fixtures/cpu-time.js";
 import { globToRegExp, normalizeHookPolicy } from "../lib/hook/policy.js";
 
@@ -330,6 +330,43 @@ describe("penthera hook install / uninstall", () => {
     } finally {
       rmSync(shared, { recursive: true, force: true });
     }
+  });
+});
+
+describe("hook script when the installing Penthera is gone (e2e 2026-10-22, D4)", () => {
+  // npx installs live in ~/.npm/_npx/<hash>/; the hook used to skip silently once that was cleaned.
+  let dir;
+  beforeEach(() => { dir = mkdtempSync(join(tmpdir(), "penthera-hookscript-")); });
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+  function runScript(npxBody) {
+    const bin = join(dir, "bin");
+    mkdirSync(bin);
+    // A fake npx that logs its arguments; no global penthera on this PATH.
+    writeFileSync(join(bin, "npx"), `#!/bin/sh\necho "$@" >> ${JSON.stringify(join(dir, "npx.log"))}\n${npxBody}\n`);
+    chmodSync(join(bin, "npx"), 0o755);
+    const hook = join(dir, "pre-commit");
+    writeFileSync(hook, hookScript({ node: process.execPath, bin: join(dir, "gone", "penthera.js"), version: "9.9.9" }));
+    chmodSync(hook, 0o755);
+    const r = spawnSync("/bin/sh", [hook], { encoding: "utf-8", env: { PATH: `${bin}:/usr/bin:/bin` } });
+    const log = existsSync(join(dir, "npx.log")) ? readFileSync(join(dir, "npx.log"), "utf-8") : "";
+    return { ...r, log };
+  }
+
+  it("runs the same version through npx, pinned, and keeps its exit code", () => {
+    // --version works; the check itself blocks the commit (exit 1).
+    const r = runScript('case "$*" in *--version*) exit 0;; *) exit 1;; esac');
+    expect(r.log).toContain("-y penthera@9.9.9 --version");
+    expect(r.log).toContain("-y penthera@9.9.9 hook run");
+    expect(r.status).toBe(1);
+  });
+
+  it("skips with a clear warning, exit 0, only when npx cannot run it either", () => {
+    const r = runScript("exit 1");
+    expect(r.log).not.toContain("hook run");
+    expect(r.status).toBe(0);
+    expect(r.stderr).toMatch(/WARNING: pre-commit check SKIPPED/);
+    expect(r.stderr).toContain("penthera@9.9.9");
   });
 });
 

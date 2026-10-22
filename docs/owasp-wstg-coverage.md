@@ -45,6 +45,7 @@ A mapped WSTG ID means a probe touches that test area. It does not mean the prob
 | Secret scanning | WSTG-CONF-02, WSTG-CONF-05 | quick, standard, deep | Repo |
 | Route / trust-boundary analysis | WSTG-ATHZ-02, WSTG-CONF-02 | quick, standard, deep | Repo |
 | Risky code patterns | WSTG-INPV-01, WSTG-INPV-12 | standard, deep | Repo |
+| Code-execution sinks (eval, vm, exec) with request data | WSTG-INPV-11, WSTG-INPV-12 | quick, standard, deep | Repo |
 | Runtime & server advisories (PHP, nginx, Apache, Node.js, Python, OpenSSL) | WSTG-INFO-02, WSTG-INFO-08, WSTG-CONF-01 | quick, standard, deep | URL, Repo |
 
 ## WSTG categories not covered

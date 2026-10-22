@@ -11,6 +11,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { discoverAttackSurface, groupByTrustBoundary, findRiskyRoutes } from "../lib/attack-surface.js";
 import { scanSecrets } from "../lib/whitebox/secrets.js";
+import { scanCodeSinks } from "../lib/whitebox/code-sinks.js";
 import { discoverFrameworkRoutes } from "../lib/whitebox/frameworks.js";
 import { runtimeAdvisoriesForRepo } from "../lib/advisories/index.js";
 
@@ -67,6 +68,11 @@ export async function scanRepo(repoPath, opts = {}) {
   progress("Checking pinned runtime versions against advisories...");
   result.findings.push(...runtimeAdvisoriesForRepo(repoPath));
   result.executedProbes.push("runtime-advisories");
+
+  // ── Phase 1c: Code-execution sinks (all server code, not just routes) ──
+  progress("Looking for eval, vm and exec sinks...");
+  result.findings.push(...scanCodeSinks(repoPath));
+  result.executedProbes.push("code-sinks");
 
   // ── Phase 2: Locate API root ───────────────────────────────────────────
   progress("Locating API routes directory...");

@@ -173,6 +173,19 @@ across many formats, is the natural yardstick for that gap (Basak et al.,
 2023). The bundled benchmark includes an unprefixed signing key that Penthera
 misses for this reason.
 
+Code-execution sinks are looked for in every server code file, not only in
+recognized route handlers: `eval` and `new Function` with a non-constant
+argument, `node:vm` calls, and `child_process` `exec`/`execSync`. A taint-lite
+pass marks request data (`req.body`, `req.query`, `req.params`, headers,
+cookies, uploaded files, and those fields destructured from the request) and
+every variable assigned from an expression that uses it, within one file. It
+has no call graph, scopes or sanitizers, so `likely` means "derived from the
+request", not "exploitable". A sink whose arguments carry request data is
+`likely`; an `eval` of a value Penthera cannot trace is `potential`. A `vm`
+call or a shell command without request data is not reported, since build
+scripts and CLIs build commands from their own constants all the time. Tests,
+build tooling, browser assets and minified files are skipped.
+
 White-box scanning cannot see runtime configuration (headers added by a CDN, a
 WAF in front of the app), secrets injected at deploy time, or anything in
 dependencies that is only known from a vulnerability database.

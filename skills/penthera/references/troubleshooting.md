@@ -91,10 +91,10 @@ penthera https://myapp.com -o reports/previous.json
 
 ## Preflight script failures
 
-Run manually for diagnostics:
+Run manually for diagnostics, from the project folder (the script is in this skill's folder):
 
 ```bash
-bash skills/penthera/scripts/preflight.sh https://myapp.com
+bash <this skill's folder>/scripts/preflight.sh https://myapp.com
 ```
 
 Fix each reported check before scanning.

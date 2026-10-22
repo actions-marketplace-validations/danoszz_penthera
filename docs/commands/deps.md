@@ -67,13 +67,19 @@ Capabilities and evidence are the same as for npm (`subprocess`/`os.system`,
 `socket`/`requests`/`httpx`/`aiohttp`, `os.environ` bulk access,
 `eval`/`exec`/`compile`, computed `__import__`, native `.so`/`.pyd`, AI-agent
 indicators), plus what is specific to Python: `setup.py` custom commands
-(install-time code), `.pth` files with `import` lines (they run on every
-interpreter start, a known persistence trick), unpickling, `exec` of a
+(install-time code), `.pth` files with `import` lines and a shipped
+`sitecustomize.py` or `usercustomize.py` (they run on every interpreter start,
+so installing the package is enough to run them: medium, high when the code
+they load is risky), including ones a wheel places at the site-packages root
+from `<name>-<version>.data/purelib/` or `platlib/`, as the malicious litellm
+1.107.0 did, unpickling, `exec` of a
 base64/zlib-decoded payload, installed files that no longer match their
 `RECORD` hash, and `.pth` files no distribution owns. Old versions for the diff
 come from pip's HTTP cache (matched by the lockfile's sha256) or uv's cache
 (by recorded hash), otherwise they are marked "not compared". Typosquats are
-checked against the top 8,000 PyPI projects, PEP 503 normalized.
+checked against the top 8,000 PyPI projects, PEP 503 normalized. Known-malicious
+PyPI versions, dropped files and endpoints come from the `ioc-pypi-2026` rule
+pack and match whether or not the package is installed.
 `--online` registry checks are npm-only for now.
 
 ### License policy

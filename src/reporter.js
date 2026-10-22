@@ -8,6 +8,7 @@ import { dirname } from "node:path";
 import { resolveWstgTags } from "../lib/owasp-wstg.js";
 import { referencesFor } from "../lib/references.js";
 import { formatDepsTerminal } from "../lib/deps/report.js";
+import { describeCoverage } from "../lib/coverage.js";
 
 const PKG_VERSION = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf-8"),
@@ -387,6 +388,20 @@ export function printReport(result, opts = {}) {
     w("");
     w(`  Coverage   ${c.bold(`${s.coveredThisScan}/${s.testable}`)} testable Article 21 measures exercised this scan`);
     w(`  ${c.dim("Technical evidence toward the duty of care, not a certification. Full mapping in the Markdown report.")}`);
+    w("");
+  }
+
+  // Coverage: what the repo scan read, and where it did not look
+  if (result.coverage) {
+    const cov = result.coverage;
+    w(`  ${c.dim(line())}`);
+    w(`  ${c.bold("Coverage")} ${c.dim("what was read, and what was not")}`);
+    w("");
+    for (const { family, text } of describeCoverage(cov)) w(`  ${pad(family, 32)} ${text}`);
+    if (cov.blindSpots.count > 0) {
+      w(`  ${c.yellow(`${cov.blindSpots.count} of ${cov.sourceFiles}`)} source files not analysed for code patterns ${c.dim("(listed in the Markdown and JSON reports)")}`);
+    }
+    w(`  ${c.dim(`Not part of a repo scan: ${cov.notRun.map((n) => n.command).join(", ")}`)}`);
     w("");
   }
 

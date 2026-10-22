@@ -87,7 +87,7 @@ describe("rule schema", () => {
 describe("black-box verdicts", () => {
   it("affected: an exact upstream version below the fix", () => {
     const f = scanHeaders({ "x-powered-by": "PHP/8.3.12" });
-    expect(verdicts(f)).toEqual(["critical/likely: PHP 8.3.12 is affected by Test RCE in PHP"]);
+    expect(verdicts(f)).toEqual(["critical/potential: PHP 8.3.12 is affected by Test RCE in PHP"]);
     expect(f[0]).toMatchObject({ category: "runtime-advisory", source: "runtime-advisory", url: "x-powered-by header", cves: ["CVE-2026-11111"], rule: "php-test-rce" });
     expect(f[0].description).toMatch(/below 8\.3\.27/);
     expect(f[0].remediation).toMatch(/8\.3\.27 or later/);
@@ -106,6 +106,44 @@ describe("black-box verdicts", () => {
     }
   });
 
+  it("a banner with no distribution token is at most potential, with a check-on-server note", () => {
+    // Ubuntu 24.04's patched php8.3 prints plain PHP/8.3.6, the same as upstream
+    // 8.3.6 (bench/runtime-strings, L1). Severity stays; confidence drops.
+    const f = scanHeaders({ "x-powered-by": "PHP/8.3.6" });
+    expect(verdicts(f)).toEqual(["critical/potential: PHP 8.3.6 is affected by Test RCE in PHP"]);
+    expect(f[0].description).toMatch(/Check on server: your distribution may have patched this under the same version number/);
+    expect(f[0].description).toContain("`php -v`");
+    const old = scanHeaders({ server: "nginx/1.20.1", "x-powered-by": "PHP/7.4.33" });
+    expect(verdicts(old)).toEqual([
+      "critical/potential: PHP 7.4.33 is on an end-of-life line with no fix for Test RCE in PHP",
+      "high/potential: PHP 7.4.33 is end of life: no more security fixes",
+    ]);
+    for (const x of old) expect(x.description).toMatch(/may have patched this under the same version number/);
+    const nginxEol = eolRule({ product: "nginx", source: "https://nginx.org/", branches: [{ branch: "1.22", eol: "2023-04-11" }] });
+    const deb = runtimeAdvisoriesForResponse({ headers: { server: "nginx/1.22.1" } }, { advisories: [], eol: [nginxEol] });
+    expect(verdicts(deb)).toEqual(["high/potential: nginx 1.22.1 is end of life: no more security fixes"]);
+    expect(deb[0].description).toContain("`nginx -v`");
+    // A distribution token still means check on server, with no affected claim.
+    expect(verdicts(scanHeaders({ server: "Apache/2.4.58 (Ubuntu)", "x-powered-by": "PHP/8.3.6" }))[0]).toMatch(/^medium\/needs-human-review/);
+  });
+
+  it("an official image or a version file is an upstream build and stays likely", () => {
+    const dir = mkdtempSync(join(tmpdir(), "penthera-upstream-"));
+    try {
+      writeFileSync(join(dir, "Dockerfile"), "FROM php:8.3.12-fpm\n");
+      writeFileSync(join(dir, ".php-version"), "7.4.33\n");
+      const f = runtimeAdvisoriesForRepo(dir, rules);
+      expect(verdicts(f).sort()).toEqual([
+        "critical/likely: PHP 8.3.12 is affected by Test RCE in PHP",
+        "critical/potential: PHP 7.4.33 is on an end-of-life line with no fix for Test RCE in PHP",
+        "high/likely: PHP 7.4.33 is end of life: no more security fixes",
+      ]);
+      expect(f.every((x) => !/may have patched this/.test(x.description))).toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("a distro build whose upstream number already has the fix is patched", () => {
     expect(verdicts(scanHeaders({ "x-powered-by": "PHP/8.3.28-1+deb13u1" }))[0]).toMatch(/^info/);
   });
@@ -113,8 +151,8 @@ describe("black-box verdicts", () => {
   it("pre-releases: below the fix is affected, the fixed version or the next is never 'has the fix'", () => {
     // Strings from bench/runtime-strings (docs/research/runtime-strings.md, B2).
     // PHP-8.3's branch reports the next patch with -dev; RCs have no separator.
-    expect(verdicts(scanHeaders({ "x-powered-by": "PHP/8.3.27-dev" }))).toEqual(["critical/likely: PHP 8.3.27-dev is affected by Test RCE in PHP"]);
-    expect(verdicts(scanHeaders({ "x-powered-by": "PHP/8.3.27RC1" }))).toEqual(["critical/likely: PHP 8.3.27RC1 is affected by Test RCE in PHP"]);
+    expect(verdicts(scanHeaders({ "x-powered-by": "PHP/8.3.27-dev" }))).toEqual(["critical/potential: PHP 8.3.27-dev is affected by Test RCE in PHP"]);
+    expect(verdicts(scanHeaders({ "x-powered-by": "PHP/8.3.27RC1" }))).toEqual(["critical/potential: PHP 8.3.27RC1 is affected by Test RCE in PHP"]);
     for (const v of ["8.3.28-dev", "8.4.15RC1"]) {
       const f = scanHeaders({ "x-powered-by": `PHP/${v}` });
       expect(verdicts(f), v).toEqual([`medium/needs-human-review: PHP ${v} in use: check whether it is affected by Test RCE in PHP`]);
@@ -150,14 +188,14 @@ describe("black-box verdicts", () => {
     const f = scanHeaders({ "x-powered-by": "PHP/7.4.33" });
     expect(verdicts(f)).toEqual([
       "critical/potential: PHP 7.4.33 is on an end-of-life line with no fix for Test RCE in PHP",
-      "high/likely: PHP 7.4.33 is end of life: no more security fixes",
+      "high/potential: PHP 7.4.33 is end of life: no more security fixes",
     ]);
     expect(f[1].description).toMatch(/2022-11-28/);
   });
 
   it("end of life is judged by the pack's date, not the scan's clock", () => {
     // 8.2's end of life (2026-12-31) is after the rule's date, so 8.2 is still supported.
-    expect(verdicts(scanHeaders({ "x-powered-by": "PHP/8.2.29" }))).toEqual(["critical/likely: PHP 8.2.29 is affected by Test RCE in PHP"]);
+    expect(verdicts(scanHeaders({ "x-powered-by": "PHP/8.2.29" }))).toEqual(["critical/potential: PHP 8.2.29 is affected by Test RCE in PHP"]);
   });
 
   it("a newer release line than any the advisory lists is not matched", () => {
@@ -180,7 +218,7 @@ describe("black-box verdicts", () => {
   it("respects `introduced`: versions before the bug are not affected", () => {
     const trav = adv({ id: "trav", product: "apache-httpd", title: "Path traversal", fixed: [{ branch: "2.4", version: "2.4.51", introduced: "2.4.49" }] });
     const one = (server) => runtimeAdvisoriesForResponse({ headers: { server } }, { advisories: [trav], eol: [] });
-    expect(verdicts(one("Apache/2.4.49 (Unix)"))[0]).toMatch(/^critical\/likely: Apache HTTP Server 2.4.49 is affected/);
+    expect(verdicts(one("Apache/2.4.49 (Unix)"))[0]).toMatch(/^critical\/potential: Apache HTTP Server 2.4.49 is affected/);
     expect(verdicts(one("Apache/2.4.50"))[0]).toMatch(/affected/);
     expect(one("Apache/2.4.48")).toEqual([]);
     expect(verdicts(one("Apache/2.4.62"))[0]).toMatch(/^info/);
@@ -205,7 +243,7 @@ describe("black-box verdicts", () => {
     const opts = { advisories: [trav], eol: [httpdEol] };
     for (const server of ["Apache/2.2.34 (Unix)", "Apache/2.0.65 (Unix)"]) {
       expect(verdicts(runtimeAdvisoriesForResponse({ headers: { server } }, opts)), server).toEqual([
-        `high/likely: Apache HTTP Server ${server.split(/[/ ]/)[1]} is end of life: no more security fixes`,
+        `high/potential: Apache HTTP Server ${server.split(/[/ ]/)[1]} is end of life: no more security fixes`,
       ]);
     }
     expect(verdicts(runtimeAdvisoriesForResponse({ headers: { server: "Apache/2.2.15 (CentOS)" } }, opts))).toEqual([
@@ -278,6 +316,29 @@ describe("white-box evidence and verdicts", () => {
     }
   });
 
+  it("resolves Node.js LTS codenames in .nvmrc and image tags to their line", () => {
+    // Strings from bench/runtime-strings (docs/research/runtime-strings.md, B4).
+    expect(parseImageRef("node:iron")).toMatchObject({ product: "nodejs", kind: "branch", version: { major: 20 } });
+    expect(parseImageRef("node:jod-alpine")).toMatchObject({ product: "nodejs", kind: "branch", version: { major: 22 } });
+    expect(parseImageRef("node:lts")).toMatchObject({ product: "nodejs", kind: "present" });
+    expect(parseImageRef("node:constructor")).toMatchObject({ product: "nodejs", kind: "present" });
+    const nodeEol = eolRule({ product: "nodejs", source: "https://nodejs.org/en/about/previous-releases", branches: [{ branch: "18", eol: "2025-04-30" }, { branch: "20", eol: "2026-04-30" }] });
+    const dir = mkdtempSync(join(tmpdir(), "penthera-codenames-"));
+    try {
+      writeFileSync(join(dir, ".nvmrc"), "lts/iron\n");
+      mkdirSync(join(dir, "api"));
+      writeFileSync(join(dir, "api", "Dockerfile"), "FROM node:hydrogen-alpine\n");
+      expect(verdicts(runtimeAdvisoriesForRepo(dir, { advisories: [], eol: [nodeEol] })).sort()).toEqual([
+        "high/likely: Node.js 18 is end of life: no more security fixes",
+        "high/likely: Node.js 20 is end of life: no more security fixes",
+      ]);
+      writeFileSync(join(dir, ".nvmrc"), "lts/*\n");
+      expect(evidenceFromRepo(dir).find((e) => e.where === ".nvmrc")).toMatchObject({ kind: "present" });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("a pinned image below the fix is affected; a floating tag is 'check'", () => {
     const dir = repo({ Dockerfile: "FROM php:8.3.12-apache\n", "worker/Dockerfile": "FROM php:8.4-cli\n" });
     try {
@@ -316,8 +377,8 @@ describe("bundled pack", () => {
     const rules = (v) => runtimeAdvisoriesForResponse({ headers: { "x-powered-by": `PHP/${v}` } }).filter((f) => /^php-cve-2026-10961[89]/.test(f.rule || ""));
     for (const v of ["8.2.34", "8.3.35", "8.4.26", "8.5.11"]) {
       expect(rules(v).map((f) => [f.rule, f.severity, f.confidence]), v).toEqual([
-        ["php-cve-2026-109618", "critical", "likely"],
-        ["php-cve-2026-109619", "critical", "likely"],
+        ["php-cve-2026-109618", "critical", "potential"],
+        ["php-cve-2026-109619", "critical", "potential"],
       ]);
     }
     for (const v of ["8.2.35", "8.3.36", "8.4.27", "8.5.12"]) expect(rules(v), v).toEqual([]);
@@ -348,6 +409,37 @@ describe("bundled pack", () => {
     for (const branch of ["8.2", "8.3", "8.4", "8.5"]) {
       const next = `${branch}.${VULNERABLE_THROUGH[branch] + 1}`;
       expect(cves(next), next).toEqual([]);
+    }
+  });
+
+  it("the October 2026 Node.js release: below the fix is affected, at the fix patched, 20 and 25 end of life", () => {
+    // https://nodejs.org/en/blog/vulnerability/october-2026-security-releases
+    const NODE_2026_10 = ["nodejs-cve-2026-111497", "nodejs-tls-hostname-2026-10"];
+    const dir = mkdtempSync(join(tmpdir(), "penthera-node-adv-"));
+    const scan = (v) => {
+      writeFileSync(join(dir, ".nvmrc"), `${v}\n`);
+      return runtimeAdvisoriesForRepo(dir).filter((f) => NODE_2026_10.includes(f.rule));
+    };
+    try {
+      for (const v of ["22.23.3", "24.22.0", "26.12.0"]) {
+        expect(scan(v).map((f) => [f.rule, f.severity, f.confidence]), v).toEqual([
+          ["nodejs-cve-2026-111497", "high", "likely"],
+          ["nodejs-tls-hostname-2026-10", "high", "likely"],
+        ]);
+      }
+      for (const v of ["22.23.4", "24.22.1", "26.12.1", "26.13.0"]) expect(scan(v), v).toEqual([]);
+      for (const v of ["20.20.2", "25.9.0"]) {
+        expect(scan(v).map((f) => f.rule).sort(), v).toEqual(NODE_2026_10);
+        expect(scan(v).every((f) => /end-of-life line/.test(f.title)), v).toBe(true);
+      }
+      // Only the release line pinned: check, not affected.
+      writeFileSync(join(dir, ".nvmrc"), "24\n");
+      expect(runtimeAdvisoriesForRepo(dir).filter((f) => NODE_2026_10.includes(f.rule)).every((f) => f.confidence === "needs-human-review")).toBe(true);
+      const rce = rulesOf("runtime-advisory").find((r) => r.id === "nodejs-cve-2026-111497");
+      expect(rce.fixed).toEqual([{ branch: "22", version: "22.23.4" }, { branch: "24", version: "24.22.1" }, { branch: "26", version: "26.12.1" }]);
+      expect(rce.source).toBe("https://nodejs.org/en/blog/vulnerability/october-2026-security-releases");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
     }
   });
 

@@ -22,8 +22,19 @@ version:
 |---|---|---|
 | **affected** | An exact upstream version is visible and is below the fix | Upgrade to the fixed version on that line |
 | **end of life, no fix** | The version is on a line the vendor no longer supports | Move to a supported line |
-| **check on server** | The product is in use but the version is hidden, floating (`php:8.3`), a distribution build (`8.1.2-1ubuntu2.19`), or a pre-release of the fixed version or the next one (`8.4.28-dev`, which PHP's branch reports from 8.4.27's release candidate on) | Run the check command in the finding (`php -v`, `nginx -v`, ...) on the server or in the container |
+| **check on server** | The product is in use but the version is hidden, floating (`php:8.3`), a distribution build (`8.1.2-1ubuntu2.19`), or a pre-release of the version after the fix (`8.4.28-dev`, which PHP's branch reports from 8.4.27's release candidate on; a pre-release of the fixed version itself is affected) | Run the check command in the finding (`php -v`, `nginx -v`, ...) on the server or in the container |
 | **has the fix (as advertised)** | The visible version is at or above every fix | Nothing, unless a proxy or a stale banner could be lying |
+
+**Banners that name no distribution.** For products that distributions patch
+under the same version number (PHP, Apache httpd, nginx, Python and OpenSSL),
+an "affected" or "end of life" answer from a banner with no distribution token
+is at most `potential`. Severity stays as it is. Debian 11 to 13, Ubuntu 24.04
+and later, and RHEL print plain upstream PHP numbers, so a patched Ubuntu
+24.04 `X-Powered-By: PHP/8.3.6` behind nginx or a CDN looks exactly like
+upstream 8.3.6. The finding says to check on the server and gives the check
+command. An official Docker image (`php:8.3.12-fpm`) or a version file pins
+an upstream build, so a repo scan stays `likely`. The research behind this is
+the runtime-strings test set ([#97](https://github.com/danoszz/penthera/pull/97), L1).
 
 No answer means no evidence of the product, which is **not** a clean bill of
 health. Most production servers hide their version, and a CDN in front of the

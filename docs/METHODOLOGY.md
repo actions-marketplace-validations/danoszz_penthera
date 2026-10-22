@@ -339,10 +339,12 @@ Exploited Vulnerabilities catalog, which is CC0-licensed, is a candidate source
 for an exploited-in-the-wild flag (Cybersecurity and Infrastructure Security
 Agency, n.d.).
 
-End-of-life lines come from each vendor's support page (OpenJS Foundation and
-Node.js contributors, n.d.; Python Software Foundation, n.d.; The PHP Group,
-n.d.-c), cross-checked against endoflife.date (endoflife.date contributors,
-n.d.). A line counts as ended only when its end date is on or before the
+End-of-life lines come from each vendor's support page (MongoDB, Inc., n.d.;
+OpenJS Foundation and Node.js contributors, n.d.; Python Software Foundation,
+n.d.; The PHP Group, n.d.-c), cross-checked against endoflife.date
+(endoflife.date contributors, n.d.). MongoDB is the one database in the pack:
+it has no HTTP banner, so it is checked only where a repository pins it (the
+official `mongo` image in a Dockerfile or compose file, or `.tool-versions`). A line counts as ended only when its end date is on or before the
 date of the rule, so the same scan with the same packs gives the same result on
 any day.
 

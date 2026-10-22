@@ -7,7 +7,7 @@
 | Status | **Draft, not registered.** Nothing here binds until the maintainer accepts it; the commit that merges the final version to `main` is the registration timestamp |
 | Date written | 2026-10-22 |
 | Authors | Daan van der Zwaag (PI, labeller A); labeller B named in an amendment before calibration. Drafted with Claude (AI-assisted) |
-| Data collected before registration | Answer keys for six apps, frozen before any scan (commits `ce0cf42` and `1163b0e` on the E10 branch). A pilot on two apps ran after the keys were frozen (§ 12); its results are a pipeline check, published only as a pilot |
+| Data collected before registration | Answer keys for six apps, frozen before any scan (commits `77dc24b` and `1163b0e` on the E10 branch). A pilot on two apps ran after the keys were frozen (§ 12); its results are a pipeline check, published only as a pilot |
 | Structure | Mirrors E1: questions and hypotheses, variables, targets, scope, procedure, labelling, analysis, threats, safety, deviations |
 
 ## 1. Research questions and hypotheses
@@ -350,6 +350,27 @@ were frozen, with both runs (standard and deep, no session). Results are in
 [`bench/known-vuln/RESULTS.md`](../../../bench/known-vuln/RESULTS.md), headed
 as a pilot. Its labels are one provisional, AI-assisted labeller's, who was
 not blinded. They are a pipeline check, not evidence for H1 to H3.
+
+What it showed (pilot labels, not evidence for H1 to H3):
+
+- Standard run, pooled: 62 findings, precision 0.87 [0.77, 0.93], but
+  actionable precision 0.18 [0.10, 0.29]: 46 of the correct findings are
+  passwords in Juice Shop's test suites. Recall 1 of 14 root causes.
+- Deep run, pooled: recall 1 of 18. No documented injection was found:
+  Juice Shop's search and login SQL injection and its open redirect were
+  missed, and on DVNA the payload probes did not run at all, because every
+  route but `/app/redirect` redirects to the login page and nothing was
+  discovered to probe.
+- Misses with a visible cause, for later fix PRs (no rule was changed
+  here): Juice Shop's served `/ftp`, `/metrics`, `/support/logs` and
+  `/infrastructure` listings were not discovered; `.tf` files are not read
+  by the secret scan; the repo scan treats an Express `routes/` folder as a
+  Next.js route folder, finds no route files and stops, so DVNA's code
+  sinks are never read; DVNA's `keyboard cat` session secret matches no
+  secret pattern.
+- False positives: Juice Shop answers every unknown path with its index
+  page, and Penthera reported PHP, a Next.js CVE, Swagger UI and a login
+  endpoint on such paths.
 
 What the pilot changed, before registration:
 

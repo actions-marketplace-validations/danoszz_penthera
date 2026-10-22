@@ -43,7 +43,7 @@ from each finding's title, description and root cause with a fixed table
 | Class | Confirmed by |
 |---|---|
 | Hardcoded secret | The secret scan, same file |
-| Command injection, code injection (`eval`), XSS (`innerHTML`), permissive CORS, error details disclosed | The risky-pattern checks over discovered routes, same file and pattern |
+| Command injection, code injection (`eval`), XSS (`innerHTML`), permissive CORS, error message disclosure | The risky-pattern checks over discovered routes, same file and pattern |
 | AI agent configuration (MCP, hooks, skills) | `penthera agents`, same file |
 | SQL injection, path traversal, SSRF, open redirect, prototype pollution, deserialization, access control, authentication, CSRF, race conditions, resource exhaustion, anything else | No rule: always unverified for now |
 
@@ -58,6 +58,21 @@ fingerprints and safe repository-relative paths. A file that does not match is
 refused whole, with the first errors, and nothing is imported. Limits: 8 MB and
 2,000 findings. Reproduction payloads and fixed code from the file are not
 copied into Penthera's output.
+
+## The other way: seeds for the skill
+
+```bash
+penthera --repo . --audit-seeds seeds.json
+```
+
+writes Penthera's repo findings in the same `findings.json` schema, so an agent
+running the skill can start from what rules already found and spend its budget
+where they cannot look. Every entry is `needs_validation` (a rule reads code; it
+does not run it), names its class in the root cause, and points at the line the
+rule matched, or says the line is not known. Only findings in a file of the
+repository are written; URL-scan findings have no source location. The file is
+checked against the skill's schema before it is written, and `penthera verify`
+on it confirms each entry by rule.
 
 ## Options
 

@@ -21,6 +21,7 @@
  *    13. Historical URL mining (Wayback Machine + AlienVault OTX)
  *
  *   --deep (active injection probes, sends attack payloads):
+ *    13b. Login rate-limit burst (8 POSTs) and an SQL error smoke string on /api/login
  *    14. SQL injection (error-based + time-based blind)
  *    15. Server-Side Template Injection (SSTI)
  *    16. Server-Side Request Forgery (SSRF)
@@ -210,8 +211,13 @@ async function scanUrlInContext(target, opts) {
   };
   result.findings.push(...openApiResult.findings);
 
-  const authFindings = await probeAuthEndpoints(target, { timeout });
-  result.findings.push(...authFindings);
+  // Login probes: none in quick, one invalid-credential POST in standard, the
+  // rate-limit burst and SQLi smoke string only with --deep (profiles.js).
+  const loginProbe = opts.loginProbe || (opts.deep ? "full" : opts.profile === "quick" ? "none" : "single");
+  if (loginProbe !== "none") {
+    const authFindings = await probeAuthEndpoints(target, { timeout, level: loginProbe });
+    result.findings.push(...authFindings);
+  }
 
   const clientAuthFindings = await probeClientSideAuth(target, { timeout });
   result.findings.push(...clientAuthFindings);

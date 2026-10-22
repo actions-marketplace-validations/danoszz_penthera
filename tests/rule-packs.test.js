@@ -407,8 +407,11 @@ describe("bundled packs", () => {
     expect(EXEC_PATTERNS.map((p) => ({ rule: p.rule, label: p.label, source: p.re.source, flags: p.re.flags }))).toEqual(BEFORE.exec);
   });
 
-  it("built-in templates are the same, in the same order", () => {
-    expect(JSON.parse(JSON.stringify(BUILT_IN_TEMPLATES))).toEqual(BEFORE.templates);
+  it("built-in templates from before packs are unchanged, in the same order", () => {
+    // New templates may be added (E10 exposure checks); none of the old ones
+    // may change, move or disappear.
+    const before = new Set(BEFORE.templates.map((t) => t.id));
+    expect(JSON.parse(JSON.stringify(BUILT_IN_TEMPLATES.filter((t) => before.has(t.id))))).toEqual(BEFORE.templates);
   });
 
   it("detections that moved into core still fire", () => {

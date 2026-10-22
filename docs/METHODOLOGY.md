@@ -391,6 +391,18 @@ misses. The probes apply these controls:
   Context-aware tools such as Dalfox take the same approach.
 - **Baseline comparison.** Error-based SQL injection is reported only when the
   database error appears in the injected response and not in the baseline.
+- **Format, not keyword.** Exposure templates match the format of what they
+  look for, not a word that might appear in any page. The Prometheus template
+  needs both a `# HELP` and a `# TYPE <name> <kind>` line and no HTML, so a
+  single-page app that answers `/metrics` with its index page does not match.
+  A directory listing needs the listing in the page title (`Index of /`,
+  `listing directory /`, `Directory listing for /`) or IIS's
+  `[To Parent Directory]`. A stack trace needs a runtime's frame shape with a
+  file and line number (V8, Python, Java, PHP, .NET), not just the word
+  "error". The listing check reads the plain folder paths in `robots.txt`
+  (no wildcards, at most 20) plus a short list of common upload and backup
+  folders; the stack-trace check requests a path that does not exist. Both
+  send only `GET`s without payloads.
 - **Timing re-sampling.** A single slow response proves nothing: garbage
   collection, cold starts, and network jitter all look like an injected sleep.
   Time-based SQL and command injection candidates are re-sent and reported only

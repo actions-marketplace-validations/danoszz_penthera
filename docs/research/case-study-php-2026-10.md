@@ -103,6 +103,23 @@ reports that details circulated in that window. A version check cannot help
 until the vendor says which versions are fixed. We did not try to guess them,
 and the pack contains only versions copied from php-src after the release.
 
+## An independent cross-check
+
+On the same day, OpenAI published its own checker for these flaws,
+[php2shell-checker](https://github.com/openai/php2shell-checker) (OpenAI,
+2026). It reads the same evidence (`X-Powered-By` and `Server`, or `php -v`
+locally) and compares it against a table of the last vulnerable patch per
+branch. Its fixed versions match the ones Penthera copied from php-src:
+8.2.35, 8.3.36, 8.4.27 and 8.5.12. Both tools also treat every release of
+8.1 and older as vulnerable. A test in `tests/runtime-advisories.test.js`
+checks all 14 branches in OpenAI's table against Penthera, and fails if the
+two ever disagree.
+
+The two tools were built separately from the same vendor data, so agreement
+shows the version data was copied correctly. It does not show that either
+check is complete: both see only what a server reveals, and both say a hidden
+version or a distribution build cannot be judged from outside.
+
 ## What to do
 
 1. List every place that runs PHP, including forgotten sites, admin panels and
@@ -138,6 +155,8 @@ Kar, A., Natadze, A., Branca, E., & Stakhanova, N. (2022). HTTPFuzz: Web server 
 Lavrenovs, A., & Melon, F. J. R. (2018). HTTP security headers analysis of top one million websites. In *2018 10th International Conference on Cyber Conflict (CyCon)* (pp. 345–370). IEEE. <https://doi.org/10.23919/CYCON.2018.8405025>
 
 Nationaal Cyber Security Centrum. (2024, May). *ICT-beveiligingsrichtlijnen voor webapplicaties* [ICT security guidelines for web applications].
+
+OpenAI. (2026). *php2shell-checker* [Computer software]. GitHub. <https://github.com/openai/php2shell-checker/tree/40a4746ec4925d4d7510b99f9e134277918b1ac3>
 
 NOS. (2026, October 21). *Websites kwetsbaar voor softwarelek: RTL Nieuws, DigiD en MijnOverheid uit de lucht* [Liveblog]. <https://nos.nl/liveblog/2636066-websites-kwetsbaar-voor-softwarelek-digid-en-mijnoverheid-uit-de-lucht>
 

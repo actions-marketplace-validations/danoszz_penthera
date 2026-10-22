@@ -31,7 +31,7 @@ describe("smallPrivateScalar", () => {
   });
 
   it("flags the real eMudhra G3B and G3C intermediates", () => {
-    for (const f of ["emudhra-em-dv-tls-ca-g3b.pem", "emudhra-em-dv-tls-ca-g3c.pem"]) {
+    for (const f of ["emudhra-em-dv-tls-ca-g3b.crt", "emudhra-em-dv-tls-ca-g3c.crt"]) {
       const x = new X509Certificate(readFileSync(join(FX, f)));
       expect(x.subject).toMatch(/EM DV TLS CA - G3[BC]/);
       expect(smallPrivateScalar(x.publicKey), f).not.toBeNull();

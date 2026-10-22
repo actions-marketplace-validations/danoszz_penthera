@@ -28,7 +28,7 @@ software. The metadata are in [CITATION.cff](../CITATION.cff), which GitHub
 renders as "Cite this repository".
 
 ```text
-van der Zwaag, D. (2026). Penthera: An offline security scanner for web apps and AI-built code (Version 1.8.0) [Computer software]. https://github.com/danoszz/penthera
+van der Zwaag, D. (2026). Penthera: An offline security scanner for web apps and AI-built code (Version 1.8.1) [Computer software]. https://github.com/danoszz/penthera
 ```
 
 ```bibtex
@@ -36,7 +36,7 @@ van der Zwaag, D. (2026). Penthera: An offline security scanner for web apps and
   author  = {van der Zwaag, Daan},
   title   = {Penthera: An Offline Security Scanner for Web Apps and {AI}-Built Code},
   year    = {2026},
-  version = {1.8.0},
+  version = {1.8.1},
   license = {MIT},
   url     = {https://github.com/danoszz/penthera}
 }
@@ -230,7 +230,7 @@ Each product and version gets one of four answers:
 
 | Verdict | Evidence | Severity, confidence |
 |---|---|---|
-| Affected | An exact upstream version below the first fixed version on its line | The vendor's severity, `likely` |
+| Affected | An exact upstream version below the first fixed version on its line | The vendor's severity; `likely` from a pinned image or version file, `potential` from a banner that names no distribution |
 | End of life, no fix | A version on a line the vendor no longer supports | The advisory's severity, `potential`; plus an end-of-life finding |
 | Check on server | The product is in use, but the version is hidden, floating, or a distribution build, or the advisory lists no fix for that line | Medium, `needs-human-review` |
 | Has the fix (as advertised) | The visible version is at or above every fix | Info |
@@ -268,6 +268,21 @@ with the advice to look up the CVE in the distribution's security tracker. We
 found no peer-reviewed measurement of how many false positives backports cause
 in version-based scanners. The support for this rule is the distributions' own
 statements and the Nmap project's.
+
+**A banner that names no distribution may still be one.** Many distribution
+builds print a plain upstream number. Debian 11 to 13, Ubuntu 24.04 and later,
+and RHEL put no package revision in PHP's version, Debian's and RHEL's nginx
+add no OS token, and distribution Pythons print the plain interpreter
+version. Apache httpd is the exception: Debian, Ubuntu and RHEL put the
+distribution name in its banner. Penthera's labelled test set of 253 real
+version strings found 14 such builds
+([#97](https://github.com/danoszz/penthera/pull/97)). So for PHP, Apache
+httpd, nginx, Python and OpenSSL, an "affected" or "end of life" answer from
+a banner without a distribution token is capped at `potential`, with a note to
+check on the server. The severity is unchanged, because an upstream build at
+that version really is exposed. An official Docker image or a version file
+pins an upstream build and stays `likely`. Node.js sends no version banner, so
+the cap never applies to it.
 
 **A version match is necessary, not sufficient.** Many advisories need more
 than a version. CVE-2024-4577, an argument injection in PHP-CGI, only

@@ -105,15 +105,20 @@ export async function startUiServer(opts = {}) {
   }
   if (!source) source = createDataSource({ projects, reportsDir, home, memoryRoot, settings, version: opts.version });
   if (!runDeps) {
-    const [{ runLoop }, { executeScan }, { scanDeps }, { scanAgents }] = await Promise.all([
+    const [{ runLoop }, { executeScan }, { scanDeps }, { scanAgents }, { createOllama }, { runAiMode, attachProposals }] = await Promise.all([
       import("../agent/loop.js"), import("../cli/run-scan.js"),
       import("../../lib/deps/index.js"), import("../../lib/agents/index.js"),
+      import("../../lib/ai/ollama.js"), import("../../lib/ai/index.js"),
     ]);
     runDeps = {
       runLoop,
       executeScan,
       scanDeps,
       scanAgents,
+      // AI mode (docs/ai-mode.md): Ollama on 127.0.0.1 only. Absent in --demo.
+      ollama: createOllama(),
+      runAiMode,
+      attachProposals,
       saveLoopRun: (l) => source.saveLoopRun?.(l),
       writeReport: (result, name) => source.writeReport(name, result),
     };

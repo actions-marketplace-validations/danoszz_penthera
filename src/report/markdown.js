@@ -154,7 +154,7 @@ export function formatMarkdownReport(result, opts = {}) {
       lines.push("|---------|-----|-----------|--------|");
 
       for (const f of group) {
-        lines.push(`| **${mdEscape(f.title)}** | ${f.url ? `[link](${f.url})` : "-"} | ${f.confidence || "-"} | ${mdEscape(f.source || "-")} |`);
+        lines.push(`| **${mdEscape(f.title)}**${f.alsoProposedBy?.length ? " (also proposed by AI)" : ""} | ${f.url ? `[link](${f.url})` : "-"} | ${f.confidence || "-"} | ${mdEscape(f.source || "-")} |`);
       }
       lines.push("");
 
@@ -202,6 +202,7 @@ export function formatMarkdownReport(result, opts = {}) {
   }
 
   if (result.coverage) lines.push(...coverageMarkdown(result.coverage));
+  if (result.ai) lines.push(...aiMarkdown(result.ai));
 
   if (result.egress) {
     const e = result.egress;
@@ -281,5 +282,34 @@ export function coverageMarkdown(cov) {
   }
   if (cov.excludedDirs.length) L.push(`Folders no check reads: ${cov.excludedDirs.map((d) => `\`${d}\``).join(", ")}.`, "");
   if (cov.truncated) L.push("The ledger stopped at 50,000 files; counts above cover those files only.", "");
+  return L;
+}
+
+/** AI mode: the route, what the model read, and its findings by what Penthera made of them. */
+export function aiMarkdown(ai) {
+  const L = ["## AI mode", ""];
+  if (ai.ran === false) {
+    L.push(`AI mode did not run: ${mdEscape(ai.reason)}`, "");
+    return L;
+  }
+  const where = ai.route === "local"
+    ? "on this computer (Ollama on 127.0.0.1). Nothing was sent off it."
+    : `on ${ai.forwardedTo}, through Ollama on 127.0.0.1. Code was sent to ${ai.forwardedTo}.`;
+  L.push(`Model \`${mdEscape(ai.model.name)}\` ran ${where} Consent: ${mdEscape(ai.consent.via)} (text version ${ai.consent.textVersion}). Hosts Penthera contacted: ${ai.hostsContacted.map((h) => `\`${h}\``).join(", ")}.`);
+  L.push("");
+  L.push(`The model read ${ai.units.examined} of ${ai.units.units} code parts${ai.partial ? `; the run is **partial** (${mdEscape(ai.stopReason)}), and ${ai.units.notExamined} parts were not read` : ""}. Tokens: ${ai.tokens.prompt + ai.tokens.output}. Prompt \`${ai.promptHash.slice(0, 12)}\` (version ${ai.promptVersion}).`);
+  L.push("");
+  L.push("| Result | Findings |", "|---|---:|");
+  L.push(`| Confirmed by a Penthera rule (marked in Findings) | ${ai.counts["confirmed-by-rule"]} |`);
+  L.push(`| Model-proposed, unverified | ${ai.counts.unverified} |`);
+  L.push(`| Not kept: pointed at a line or file that is not there | ${ai.counts["location-not-found"] + ai.counts["out-of-scope"]} |`);
+  L.push("");
+  if (ai.findings.length) {
+    L.push("### Model-proposed, unverified", "");
+    L.push("No Penthera rule confirmed these. They are a model's claims: read the code before acting on them. They are not counted in the summary and never change the exit code.", "");
+    L.push("| Finding | Location | Class | Claimed severity |", "|---|---|---|---|");
+    for (const f of ai.findings) L.push(`| ${mdEscape(f.title)} | \`${mdEscape(f.url)}:${f.line}\` | ${mdEscape(f.class)} | ${mdEscape(f.severity)} |`);
+    L.push("");
+  }
   return L;
 }

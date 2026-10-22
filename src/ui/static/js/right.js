@@ -4,8 +4,8 @@ import { h, clear, empty, sevBadge, diffBlock } from "./dom.js";
 import { api } from "./api.js";
 import { state, set, simple, countsInView, currentProject } from "./state.js";
 import { halftone, riskLevel } from "./charts.js";
-import { SEVERITIES } from "./format.js";
-import { EMPTY, KEYS, SEV_WORD } from "./copy.js";
+import { SEVERITIES, shortProject } from "./format.js";
+import { EMPTY, KEYS, SEV_WORD, AI } from "./copy.js";
 
 let seq = 0;
 
@@ -114,7 +114,7 @@ async function findingView(el, ctx, my) {
 // ── Settings (behind the gear) ──────────────────────────────────────────
 
 async function settingsView(el, ctx, my) {
-  const [settings, mem] = await Promise.all([api.get("/api/settings"), api.get("/api/memory")]);
+  const [settings, mem, aiLog] = await Promise.all([api.get("/api/settings"), api.get("/api/memory"), api.get("/api/ai-mode/consent").catch(() => ({ log: [] }))]);
   if (my !== seq) return;
   const radios = ["dark", "light"].map((t) => {
     const r = h("input", { type: "radio", name: "theme", value: t, checked: ctx.theme.get() === t });
@@ -141,6 +141,13 @@ async function settingsView(el, ctx, my) {
           h("dt", {}, "projects"), h("dd", {}, state.meta.projects.map((p) => h("div", {}, p)))),
         h("p", { class: "muted" }, "Only these folders and ~/.penthera are read. Add folders with penthera ui --project <dir>.")),
       h("section", {}, h("p", { class: "label" }, "Egress for scans started here"), h("p", {}, settings.offline ? "Offline: only the target." : "Online: target plus recon sources.")),
+      h("section", {}, h("p", { class: "label" }, "AI mode"),
+        h("p", { class: "muted prose" }, AI.settings),
+        aiLog.log.length
+          ? h("ul", { class: "mini" }, aiLog.log.slice(-10).reverse().map((e) => h("li", { class: "stacked" },
+            h("span", {}, `${e.model} · ${e.route === "ollama-cloud" ? "ollama.com" : "this computer"}`),
+            h("span", { class: "muted" }, `${shortProject(e.project || "")} · ${String(e.at || "").slice(0, 16).replace("T", " ")} · ${e.via}`))))
+          : empty(AI.settingsEmpty)),
       h("section", {}, h("p", { class: "label" }, "Memory chains"),
         mem.projects.length ? h("ul", { class: "mini" }, mem.projects.map((p) => h("li", {}, h("span", { class: p.chain === "ok" ? "t1" : "bad" }, p.chain === "ok" ? "✓" : "[!]"), h("span", { class: "grow" }, p.label), h("span", { class: "muted" }, `${p.events} events`)))) : empty(EMPTY.memory)),
       h("section", {}, h("p", { class: "label" }, "Keys"), h("dl", { class: "kv" }, KEYS.flatMap(([k, v]) => [h("dt", {}, h("kbd", {}, k)), h("dd", {}, v)]))),

@@ -192,6 +192,42 @@
       </div>
     </section>
 
+    <!-- 2b · Before and after: a real scan of the test server, from site/example.json. -->
+    <section class="ba" aria-labelledby="ba-title">
+      <h2 id="ba-title" class="sr">Before and after</h2>
+      <div class="ba-grid">
+        <figure class="ba-before">
+          <figcaption class="ba-label">Before</figcaption>
+          <p class="bubble">yo, is my app safe?</p>
+        </figure>
+        <figure class="ba-after">
+          <figcaption class="ba-label">After</figcaption>
+          <div class="ba-out">
+            <p class="ba-cmd"><span aria-hidden="true">$ </span>{{EX_CMD}}</p>
+            <p class="ba-sum">{{EX_SUM}}</p>
+            <p class="ba-meta">{{EX_CHECKS}} checks, {{EX_REQ}} requests, all to {{EX_HOST}}. {{EX_INFO}} info notes.</p>
+            <div class="ba-finding">
+              <p class="ba-title"><span class="ba-sev">{{EX_SEV}}</span> {{EX_TITLE}} <span class="ba-conf">{{EX_CONF}}</span></p>
+              <p>{{EX_DESC}}</p>
+              <p class="ba-ev">Evidence: <code>{{EX_EVIDENCE}}</code> returned {{EX_STATUS}}.</p>
+            </div>
+          </div>
+        </figure>
+      </div>
+      <ul class="ba-counts">
+        <li><span class="ba-n">{{RULES_ALL}}</span> readable rules</li>
+        <li><span class="ba-n">{{REFS}}</span> cited sources</li>
+        <li><span class="ba-n">{{PKGS}}</span> package names</li>
+      </ul>
+      <p class="ba-cap">The after is real output: a standard scan of Penthera's <a href="https://github.com/danoszz/penthera/blob/main/tests/fixtures/mock-server.js">test server</a>, written by <code>site/tools/example.mjs</code> and re-checked by the tests. The rules are URL templates, secret patterns, dependency capabilities, AI-tooling rules and rule packs, each a plain file you can read. The package names are the popular npm and PyPI names the typosquat check compares against. <a href="https://github.com/danoszz/penthera/blob/main/docs/METHODOLOGY.md">How each check works</a></p>
+      <button class="cmd" type="button" data-copy="npx penthera">
+        <span class="cmd-prompt" aria-hidden="true">$</span>
+        <code>npx penthera</code>
+        <span class="cmd-act" aria-hidden="true" data-js><span class="cmd-copy">Copy</span><span class="cmd-done">Copied</span></span>
+        <span class="sr" aria-live="polite" data-copy-status>, copy to clipboard</span>
+      </button>
+    </section>
+
     <!-- 3 · Get it -->
     <section class="get band band-blue" id="get" aria-labelledby="get-title">
       <h2 id="get-title">Get it</h2>

@@ -9,6 +9,9 @@ import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 import { buildSite, readNews, e10Numbers } from "../site/build.mjs";
+import { scanExample } from "../site/tools/example.mjs";
+import { COUNTS } from "../scripts/docs-numbers.mjs";
+import { activePacks } from "../lib/rules/index.js";
 import { serve, headersFor } from "../site/serve.mjs";
 import { buildFixtures } from "./fixtures/deps/build.js";
 import { scanAgents } from "../lib/agents/index.js";
@@ -147,6 +150,33 @@ describe("site FAQ", () => {
     expect(faq).toContain(`from ${tp} true positives, ${fp} false positives and ${fn} misses`);
     expect(faq).toMatch(/one runtime dependency \(yaml\)|\d+ runtime dependencies/);
     expect(faq).not.toMatch(/\{\{\w+\}\}/);
+  });
+});
+
+describe("site before and after", () => {
+  it("shows a real scan: site/example.json is what Penthera reports on the test server today", async () => {
+    const saved = JSON.parse(readFileSync(join(ROOT, "site", "example.json"), "utf8"));
+    expect(await scanExample()).toEqual(saved);
+    expect(saved.thirdParty).toBe(0); // the page says every request went to the target
+  }, 60_000);
+
+  it("fills in the scan and counts every rule from the repo, without the fix recipes", () => {
+    const html = readFileSync(join(out, "index.html"), "utf8");
+    const sec = html.slice(html.indexOf('class="ba"'), html.indexOf("<!-- 3 · Get it -->"));
+    const e = JSON.parse(readFileSync(join(ROOT, "site", "example.json"), "utf8"));
+    expect(sec).not.toMatch(/\{\{\w+\}\}/);
+    expect(sec).toContain("yo, is my app safe?");
+    for (const s of ["high", "medium", "low"]) if (e.counts[s]) expect(sec).toContain(`${e.counts[s]} ${s}`);
+    expect(sec).toContain(`${e.checks} checks, ${e.requests} requests, all to 127.0.0.1.`);
+    expect(sec).toContain(`${e.finding.title} <span class="ba-conf">${e.finding.confidence}</span>`);
+    expect(sec).toContain("<code>GET /api/oauth/callback?redirect_uri=https://evil-attacker.example/capture</code> returned 302.");
+    const packRules = activePacks().reduce((n, p) => n + p.count, 0);
+    const rules = COUNTS.urlTemplates + COUNTS.secretPatterns + COUNTS.capabilities + COUNTS.agentRules + packRules;
+    expect(sec).toContain(`<span class="ba-n">${rules}</span> readable rules`);
+    expect(sec).toContain(`<span class="ba-n">${COUNTS.references}</span> cited sources`);
+    expect(sec).toContain(`<span class="ba-n">${(COUNTS.popularNpm + COUNTS.popularPypi).toLocaleString("en-US")}</span> package names`);
+    expect(rules).toBeLessThan(1000); // the count is what it is; never round it up
+    expect(sec).not.toMatch(/1,?000\+/);
   });
 });
 

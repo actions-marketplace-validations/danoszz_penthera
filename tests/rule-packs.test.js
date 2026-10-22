@@ -343,6 +343,8 @@ describe("verifyPack", () => {
     bad({ "t.json": tpl("//attacker.example/x") }, {}, /path on the target/);
     bad({ "i.json": { kind: "ioc-package", rules: [{ id: "i", campaign: "c", packages: [{ name: "Bad Name", versions: ["1.0.0"] }], ...meta }] } }, {}, /npm package name/);
     bad({ "i.json": { kind: "ioc-package", rules: [{ id: "i", campaign: "c", packages: [{ name: "ok", versions: [">=1.0.0"] }], ...meta }] } }, {}, /exact version/);
+    bad({ "i.json": { kind: "ioc-pypi-package", rules: [{ id: "i", campaign: "c", packages: [{ name: "Lite_LLM", versions: ["1.0"] }], ...meta }] } }, {}, /normalized PyPI name/);
+    bad({ "i.json": { kind: "ioc-pypi-package", rules: [{ id: "i", campaign: "c", packages: [{ name: "litellm", versions: ["~=1.0"] }], ...meta }] } }, {}, /PEP 440/);
     bad({ "h.json": { kind: "ioc-host", rules: [{ id: "h", campaign: "c", hosts: ["Evil.Example"], ...meta }] } }, {}, /lowercase hostname/);
     bad({ "f.json": { kind: "ioc-file", rules: [{ id: "f", campaign: "c", files: [{ path: "../x.js" }], ...meta }] } }, {}, /relative path/);
     expect(verifyPack(makePack({ "s.json": secretRule() })).ok).toBe(true);
@@ -366,17 +368,17 @@ describe("verifyPack", () => {
   });
 
   it("every kind has a validator and nothing else is accepted", () => {
-    expect(Object.keys(KINDS).sort()).toEqual(["agent-exec", "agent-instruction", "ioc-file", "ioc-host", "ioc-package", "nuclei-template", "runtime-advisory", "runtime-eol", "secret", "typosquat-target"]);
+    expect(Object.keys(KINDS).sort()).toEqual(["agent-exec", "agent-instruction", "ioc-file", "ioc-host", "ioc-package", "ioc-pypi-package", "nuclei-template", "runtime-advisory", "runtime-eol", "secret", "typosquat-target"]);
   });
 });
 
 // ── Bundled packs and identical behaviour ─────────────────────────────────
 
 describe("bundled packs", () => {
-  it("core, advisories and ioc-2025-2026 load and verify", () => {
-    expect(bundledPackDirs().map((d) => d.split("/").pop())).toEqual(["core", "advisories", "ioc-2025-2026"]);
+  it("core, advisories, ioc-2025-2026 and ioc-pypi-2026 load and verify", () => {
+    expect(bundledPackDirs().map((d) => d.split("/").pop())).toEqual(["core", "advisories", "ioc-2025-2026", "ioc-pypi-2026"]);
     for (const d of bundledPackDirs()) expect(verifyPack(d).errors, d).toEqual([]);
-    expect(activePacks().map((p) => [p.name, p.origin])).toEqual([["core", "bundled"], ["advisories", "bundled"], ["ioc-2025-2026", "bundled"]]);
+    expect(activePacks().map((p) => [p.name, p.origin])).toEqual([["core", "bundled"], ["advisories", "bundled"], ["ioc-2025-2026", "bundled"], ["ioc-pypi-2026", "bundled"]]);
   });
 
   it("every rule cites a source and only references keys in docs/references.bib", () => {
@@ -516,7 +518,7 @@ describe("penthera rules / --rules", () => {
   it("rules list shows bundled packs and --rules packs", () => {
     const r = cli("rules", "list", "--rules", SIGNED, "--rules-signers", TEST_SIGNERS, "--json");
     expect(r.status).toBe(0);
-    expect(JSON.parse(r.stdout).map((p) => p.name)).toEqual(["core", "advisories", "ioc-2025-2026", "fixture-signed"]);
+    expect(JSON.parse(r.stdout).map((p) => p.name)).toEqual(["core", "advisories", "ioc-2025-2026", "ioc-pypi-2026", "fixture-signed"]);
   });
 
   it("--rules refuses an untrusted pack, and --allow-unsigned-rules loads it with a warning", () => {

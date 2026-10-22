@@ -257,6 +257,28 @@ describe("bundled pack", () => {
     expect(deb.every((f) => f.severity !== "critical")).toBe(true);
   });
 
+  it("agrees with OpenAI's php2shell-checker on every branch it lists", () => {
+    // An independent implementation of the same check, published 2026-10-21:
+    // https://github.com/openai/php2shell-checker/blob/40a4746ec4925d4d7510b99f9e134277918b1ac3/skills/phpcheck-url/scripts/phpcheck.js
+    // Its VULNERABLE_THROUGH table, "as of 2026-10-20": the last vulnerable patch per branch.
+    const VULNERABLE_THROUGH = {
+      "5.4": 45, "5.5": 38, "5.6": 40,
+      "7.0": 33, "7.1": 33, "7.2": 34, "7.3": 33, "7.4": 33,
+      "8.0": 30, "8.1": 34, "8.2": 34, "8.3": 35, "8.4": 26, "8.5": 11,
+    };
+    const cves = (v) => runtimeAdvisoriesForResponse({ headers: { "x-powered-by": `PHP/${v}` } })
+      .filter((f) => /^php-cve-2026-10961[89]$/.test(f.rule || "")).map((f) => f.rule).sort();
+    for (const [branch, last] of Object.entries(VULNERABLE_THROUGH)) {
+      // Their "vulnerable" is our "affected", or "on an end-of-life line with no fix".
+      expect(cves(`${branch}.${last}`), `${branch}.${last}`).toEqual(["php-cve-2026-109618", "php-cve-2026-109619"]);
+    }
+    // Where PHP shipped a fix, the next patch is clean in both tools.
+    for (const branch of ["8.2", "8.3", "8.4", "8.5"]) {
+      const next = `${branch}.${VULNERABLE_THROUGH[branch] + 1}`;
+      expect(cves(next), next).toEqual([]);
+    }
+  });
+
   it("the worked examples behave as documented", () => {
     const one = (headers) => verdicts(runtimeAdvisoriesForResponse({ headers }));
     // CVE-2021-41773 / CVE-2021-42013: Apache 2.4.49 and 2.4.50 only, and only

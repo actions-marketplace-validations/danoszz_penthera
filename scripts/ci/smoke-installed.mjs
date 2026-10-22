@@ -140,7 +140,14 @@ function prepareWork() {
  * Start `penthera ui --demo`, poll /api/meta until it answers 401 (no session), stop it,
  * and check the port is closed again.
  */
-async function checkUi(name) {
+/**
+ * `stoppedLine: false` is for the published version the upgrade job starts
+ * from: up to 1.8.0, a second SIGTERM forwarded by npx could kill penthera ui
+ * before it printed "Stopped." (fixed in #84). Released code cannot change,
+ * so for it the check still demands that the server stops and the port
+ * closes, but not the line.
+ */
+async function checkUi(name, { stoppedLine = true } = {}) {
   const child = spawn(npxLine(["ui", "--demo"]), { cwd: prefix, env, shell: true, detached: !WIN, stdio: ["ignore", "pipe", "pipe"] });
   let out = "";
   child.stdout.on("data", (d) => { out += d; });
@@ -190,7 +197,7 @@ async function checkUi(name) {
     }
     if (stillUp) problems.push("server still answering after stop");
   }
-  if (!WIN && base && !/Stopped\./.test(out)) problems.push('no "Stopped." on SIGTERM');
+  if (stoppedLine && !WIN && base && !/Stopped\./.test(out)) problems.push('no "Stopped." on SIGTERM');
   record(name, problems.length === 0, problems.join("; "));
   if (problems.length) console.log(out.split("\n").map((l) => `      | ${l}`).join("\n"));
 }
@@ -249,7 +256,7 @@ async function upgradeBefore() {
   check(`--version (old ${installed.version})`, ["--version"], { has: [`penthera v${installed.version}`] }, { cwd: prefix });
   check("--repo . --memory (old)", ["--repo", ".", "--memory"], { has: [/Mode\s+repo/] });
   check("memory verify (old)", ["memory", "verify", "--repo", "."], { has: [CHAIN_OK] });
-  await checkUi("ui --demo (old)");
+  await checkUi("ui --demo (old)", { stoppedLine: false });
 }
 
 async function upgradeAfter() {

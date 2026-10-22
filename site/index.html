@@ -309,7 +309,7 @@
       <figure class="bench-fig">
         <div class="e10-legend" aria-hidden="true"><span class="key-before">Before</span><span class="key-after">After</span></div>
 {{E10_BARS}}
-        <figcaption>Recall: the documented flaws found, out of those in the answer key that Penthera claims to detect. Bars show the rate, whiskers the 95% Wilson interval. Standard run, no attack payloads.</figcaption>
+        <figcaption>Recall: the documented flaws found, out of those in the answer key that Penthera claims to detect. Bars show the rate, whiskers the 95% Wilson interval. Standard run, no injection payloads except one SQL error check on the login, which has since moved to <code>--deep</code>; a re-run is due.</figcaption>
       </figure>
 
       <p class="bench-prec">Precision stayed level: {{E10_PR_B}} (95% CI {{E10_PR_B_CI}}) on {{E10_PR_B_N}} findings before, {{E10_PR_A}} ({{E10_PR_A_CI}}) on {{E10_PR_A_N}} after.</p>
@@ -412,6 +412,7 @@
           <summary>Is it safe to point at any site?</summary>
           <div class="faq-a">
             <p>Point it only at sites you own or are authorized to test. The default scan sends only requests a browser would send. Payload testing (<code>--deep</code>, <code>--fuzz</code>, <code>--all</code>) is opt-in and asks for confirmation, and the guided start scans your running app only after you confirm the app is yours.</p>
+            <p>Scanning your own Vercel or Cloudflare site? Allow your IP in the firewall first, or scan a preview URL.</p>
           </div>
         </details>
         <details>

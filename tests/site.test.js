@@ -160,6 +160,12 @@ describe("site FAQ", () => {
     expect(faq).toMatch(/one runtime dependency \(yaml\)|\d+ runtime dependencies/);
     expect(faq).not.toMatch(/\{\{\w+\}\}/);
   });
+
+  it("tells you how to scan your own site behind a CDN firewall (e2e 2026-10-22, D3)", () => {
+    const html = readFileSync(join(out, "index.html"), "utf8");
+    const faq = html.slice(html.indexOf('id="faq"'), html.indexOf("<!-- 9 · Vision -->"));
+    expect(faq).toContain("Scanning your own Vercel or Cloudflare site? Allow your IP in the firewall first, or scan a preview URL.");
+  });
 });
 
 describe("site comparison table", () => {

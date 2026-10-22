@@ -263,13 +263,14 @@ export function renderResults(report) {
 // ── CLI ──────────────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-  const a = { apps: [], runs: [], write: true, json: null };
+  const a = { apps: [], runs: [], write: true, json: null, out: "RESULTS.md" };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     if (k === "--app") a.apps.push(argv[++i]);
     else if (k === "--run") a.runs.push(argv[++i]);
     else if (k === "--no-write") a.write = false;
     else if (k === "--json") a.json = argv[++i];
+    else if (k === "--out") a.out = argv[++i];
     else if (k === "--help" || k === "-h") a.help = true;
     else throw new Error(`Unknown option ${k}`);
   }
@@ -279,6 +280,7 @@ function parseArgs(argv) {
     if (!APPS[app]) throw new Error(`Unknown app "${app}". Known: ${Object.keys(APPS).join(", ")}`);
     if (!APPS[app].runnable) throw new Error(`${app} is not runnable yet: ${APPS[app].reason}`);
   }
+  if (!/^[\w.-]+\.md$/.test(a.out)) throw new Error(`--out takes a file name in bench/known-vuln, such as RESULTS-after-fixes.md`);
   for (const r of a.runs) if (!RUNS[r]) throw new Error(`Unknown run "${r}". Known: ${Object.keys(RUNS).join(", ")}`);
   return a;
 }
@@ -286,7 +288,7 @@ function parseArgs(argv) {
 async function main(argv) {
   const args = parseArgs(argv);
   if (args.help) {
-    console.log("Usage: npm run bench:known -- [--app <name>]... [--run standard|deep]... [--no-write] [--json <file>]");
+    console.log("Usage: npm run bench:known -- [--app <name>]... [--run standard|deep]... [--no-write] [--json <file>] [--out <file in bench/known-vuln>]");
     return;
   }
   const report = {
@@ -308,7 +310,7 @@ async function main(argv) {
     report.apps.push(r);
   }
   const md = renderResults(report);
-  if (args.write) writeFileSync(join(HERE, "RESULTS.md"), md + "\n");
+  if (args.write) writeFileSync(join(HERE, args.out), md + "\n");
   else console.log(md);
   if (args.json) {
     const slim = { ...report, apps: report.apps.map(({ truth, ...rest }) => ({ ...rest, truth: { app: truth.app, source: truth.source } })) };

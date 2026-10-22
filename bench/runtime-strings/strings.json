@@ -50,6 +50,7 @@
     },
     "B3": {
       "type": "bug",
+      "status": "fixed in #103",
       "title": "Python banners with only major.minor are ignored",
       "detail": "aiohttp sends Server: Python/3.9 aiohttp/3.8.6 (aiohttp/http.py). The Python banner pattern needs x.y.z, so an end-of-life 3.9 is not reported; PHP's pattern already accepts x.y.",
       "fix": "Accept Python/x.y in the banner pattern, which gives `branch` evidence."
@@ -3617,13 +3618,7 @@
       "verdicts": {},
       "eol": "none",
       "source": "https://github.com/aio-libs/aiohttp/blob/master/aiohttp/http.py",
-      "note": "aiohttp prints only major.minor",
-      "deviation": {
-        "id": "B3",
-        "engine": {
-          "kind": "none"
-        }
-      }
+      "note": "aiohttp prints only major.minor"
     },
     {
       "id": "python-server-python-3.9",
@@ -3639,14 +3634,7 @@
       "verdicts": {},
       "eol": "end-of-life",
       "source": "https://github.com/aio-libs/aiohttp/blob/master/aiohttp/http.py",
-      "note": "an end-of-life line behind aiohttp",
-      "deviation": {
-        "id": "B3",
-        "engine": {
-          "kind": "none",
-          "eol": "none"
-        }
-      }
+      "note": "an end-of-life line behind aiohttp"
     },
     {
       "id": "python-server-werkzeug-3.12.3",

@@ -26,9 +26,10 @@ It does not hold on 14 distribution builds whose string is identical to an
 upstream one. Six of those are PHP builds: four are reported as critical and
 likely affected, including Ubuntu 24.04's patched `PHP/8.3.6` behind a CDN.
 The other two get a critical "end of life, no fix". The set
-also found four small engine bugs. Each has its own fix PR: B2 and B1 are
-merged ([#101](https://github.com/danoszz/penthera/pull/101),
-[#102](https://github.com/danoszz/penthera/pull/102)), and B3, B4 and the L1
+also found four small engine bugs. Each has its own fix PR: B2, B1 and B3
+are merged ([#101](https://github.com/danoszz/penthera/pull/101),
+[#102](https://github.com/danoszz/penthera/pull/102),
+[#103](https://github.com/danoszz/penthera/pull/103)), and B4 and the L1
 mitigation are open.
 
 ## Results
@@ -38,7 +39,7 @@ whole label: evidence kind, every verdict and end of life. "Report" counts
 only what the user sees, the verdicts and end of life. A kind-only miss gives
 the right findings for the wrong reason.
 
-| Category | Entries | First run: label | First run: report | With #101 and #102: label | With #101 and #102: report |
+| Category | Entries | First run: label | First run: report | With #101–#103: label | With #101–#103: report |
 |---|---:|---:|---:|---:|---:|
 | distro-backport | 43 | 100.0% | 100.0% | 100.0% | 100.0% |
 | distro-unmarked | 14 | 0.0% | 7.1% | 0.0% | 7.1% |
@@ -46,14 +47,15 @@ the right findings for the wrong reason.
 | docker-pinned | 24 | 100.0% | 100.0% | 100.0% | 100.0% |
 | end-of-life | 23 | 82.6% | 82.6% | 100.0% | 100.0% |
 | exact-upstream | 41 | 100.0% | 100.0% | 100.0% | 100.0% |
-| hidden-partial | 14 | 85.7% | 92.9% | 85.7% | 92.9% |
+| hidden-partial | 14 | 85.7% | 92.9% | 100.0% | 100.0% |
 | lookalike | 17 | 100.0% | 100.0% | 100.0% | 100.0% |
 | prerelease-suffix | 12 | 0.0% | 58.3% | 100.0% | 100.0% |
 | version-file | 22 | 90.9% | 90.9% | 90.9% | 90.9% |
-| **total** | **253** | **84.6%** | **88.5%** | **91.3%** | **92.5%** |
+| **total** | **253** | **84.6%** | **88.5%** | **92.1%** | **92.9%** |
 
 The first run is the engine as released in 1.8.0. The remaining misses are
-B3 (2), B4 (5), G1 (1) and L1 (14). B3 and B4 have open fixes. L1 entries
+B4 (5), G1 (1) and L1 (14). B4 has an open fix
+([#106](https://github.com/danoszz/penthera/pull/106)). L1 entries
 stay misses after the L1 mitigation, because the verdict is still "affected"
 (at `potential` confidence).
 
@@ -74,7 +76,7 @@ as a change to this table.
 | B2 (fixed, #101) | bug | 12 | `-dev` is read as a distribution build, and `RC`, `rc` or `-beta` as no version | `PHP/8.4.27-dev`, a build from before 8.4.27: **"has the fix"** |
 | B1 (fixed, #102) | bug | 5 | `introduced` is ignored on release lines older than the flaw | `Apache/2.2.34`: **critical, "end of life, no fix"** for a flaw that only exists in 2.4.49 and 2.4.50 |
 | B4 | bug | 5 | Node.js LTS codenames (`lts/iron`, `node:iron`) are not resolved | `.nvmrc: lts/iron` (Node.js 20) is not reported as end of life |
-| B3 | bug | 2 | `Server: Python/3.9 aiohttp/3.8.6` is ignored, because the Python pattern needs x.y.z | an end-of-life Python 3.9 is not reported |
+| B3 (fixed, #103) | bug | 2 | `Server: Python/3.9 aiohttp/3.8.6` is ignored, because the Python pattern needs x.y.z | an end-of-life Python 3.9 is not reported |
 | G1 | gap | 1 | Only `library/` images are read | `nginxinc/nginx-unprivileged:1.27` gives no evidence |
 
 L1 and B2 break the promises. B1 overstates. B3, B4 and G1 understate, which

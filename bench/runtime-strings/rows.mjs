@@ -44,6 +44,7 @@ export const DEVIATIONS = {
   },
   B3: {
     type: "bug",
+    status: "fixed in #103",
     title: "Python banners with only major.minor are ignored",
     detail: "aiohttp sends Server: Python/3.9 aiohttp/3.8.6 (aiohttp/http.py). The Python banner pattern needs x.y.z, so an end-of-life 3.9 is not reported; PHP's pattern already accepts x.y.",
     fix: "Accept Python/x.y in the banner pattern, which gives `branch` evidence.",
@@ -446,13 +447,13 @@ for (const [banner, kind, v, src, note, extra] of [
   ["BaseHTTP/0.6 Python/3.9.25", "exact", "3.9.25", CPY_SERVER, "last 3.9 release"],
   ["Werkzeug/2.0.3 Python/3.8.20", "exact", "3.8.20", WERKZEUG, "last 3.8 release"],
   ["Werkzeug/3.1.3 Python/3.15.0rc1", "exact", "3.15.0", "https://www.python.org/downloads/release/python-3150rc1/", "a 3.15 release candidate: Python spells rc in lowercase with no separator", { pre: true }],
-  ["Python/3.11 aiohttp/3.9.5", "branch", "3.11", AIOHTTP, "aiohttp prints only major.minor", { deviation: "B3" }],
-  ["Python/3.9 aiohttp/3.8.6", "branch", "3.9", AIOHTTP, "an end-of-life line behind aiohttp", { deviation: "B3" }],
+  ["Python/3.11 aiohttp/3.9.5", "branch", "3.11", AIOHTTP, "aiohttp prints only major.minor"],
+  ["Python/3.9 aiohttp/3.8.6", "branch", "3.9", AIOHTTP, "an end-of-life line behind aiohttp"],
   ["Werkzeug/3.0.1 Python/3.12.3", "distro", "3.12.3", LP("python3.12", "noble"), "Ubuntu 24.04's python3.12 (3.12.3-1ubuntu0.17): sys.version carries no package revision", { deviation: "L1" }],
   ["Werkzeug/2.0.2 Python/3.10.12", "distro", "3.10.12", LP("python3.10", "jammy"), "Ubuntu 22.04's python3.10, supported by Ubuntu past upstream end of life", { deviation: "L1" }],
   ["Werkzeug/2.0.3 Python/3.6.8", "distro", "3.6.8", ALMA(8, "BaseOS"), "EL8's platform python 3.6.8", { deviation: "L1" }],
   ["Werkzeug/3.0.1 Python/3.9.2", "distro", "3.9.2", MADISON("python3.9"), "Debian 11's python3.9 (3.9.2-1+deb11u7)", { deviation: "L1" }],
-]) add(extra?.deviation === "L1" ? "distro-unmarked" : extra?.deviation === "B3" ? "hidden-partial" : extra?.pre ? "prerelease-suffix" : /^3\.(8|9|10)\b/.test(v) ? "end-of-life" : "exact-upstream",
+]) add(extra?.deviation === "L1" ? "distro-unmarked" : kind === "branch" ? "hidden-partial" : extra?.pre ? "prerelease-suffix" : /^3\.(8|9|10)\b/.test(v) ? "end-of-life" : "exact-upstream",
   "python", `python-server-${banner.split(" ")[0].split("/")[0].toLowerCase()}-${v}`, SRV(banner), kind, v, src, note, extra);
 for (const [banner, src, note] of [
   ["gunicorn", "https://github.com/benoitc/gunicorn/blob/master/gunicorn/http/wsgi.py", "gunicorn names itself, not the interpreter"],

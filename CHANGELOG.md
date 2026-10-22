@@ -4,13 +4,70 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
-### Fixed
+## [1.9.0-rc.1] - 2026-10-22
 
-- `penthera ui` listens for SIGINT and SIGTERM before it prints that it is
-  listening. A signal that arrived in between got the default action and
-  killed the process without "Stopped." (seen as a hung CI test; about one
-  run in a hundred locally). The test now fails within seconds with the
-  child's output instead of hanging for three minutes.
+Release candidate for 1.9.0, on npm's `next` dist-tag (`npm install penthera@next`).
+New: `penthera mcp` (an MCP server for coding agents, local and read-only by
+default), opt-in AI mode where a local model proposes and Penthera's rules
+verify, new detection rules, and default scans that send no attack payloads.
+
+### Added
+
+- **Coverage ledger** in every `--repo` report (terminal, Markdown, JSON
+  `coverage`): which files each check read, which it did not and why, and the
+  source files no code analysis looked at. It reads only file names and sizes,
+  and is the first step toward an opt-in AI mode.
+- **AI mode, opt-in and experimental: `penthera --repo . --ai`.** A model in
+  your local Ollama reads your code part by part and proposes problems no rule
+  describes; Penthera checks each proposal with its rules. Confirmed ones mark
+  the rule finding "also proposed by AI"; the rest are shown as
+  "model-proposed, unverified", apart from rule findings, and never change the
+  exit code. Every run asks first (default no), on stderr; runs that cannot ask
+  need `--ai-consent local` or `"ai": { "allow": ["local"] }` in
+  `penthera.policy.json`, or stop with exit 2 before scanning. Ollama cloud
+  models (`-cloud`) are recognised and need a second screen where you type
+  `ollama.com`. Secrets are masked before any code reaches the model; budgets
+  (`--ai-budget`) are hard stops; consents are logged locally
+  (`penthera ai consent`). `penthera ai models` lists models and where they
+  run. See [docs/ai-mode.md](docs/ai-mode.md).
+- **AI mode in the dashboard.** New scan has an AI mode switch, off; turning
+  it on opens the consent sheet on every scan (a picture of where the code
+  goes, the model picker, the terminal's exact consent lines, two equal
+  buttons; cloud models need `ollama.com` typed). The server checks the
+  model's route with Ollama itself and logs the consent. Runs show an
+  "AI · local" tag, unverified proposals are folded under their own heading,
+  and Settings lists the consent log.
+- **`penthera verify <findings.json>`** checks findings from an AI security
+  audit against Penthera's rules on your checkout. It reads Cloudflare's
+  security-audit skill `findings.json` (schema vendored from commit `c1c8a8c`,
+  MIT). A finding a rule agrees with is shown as Penthera's own finding, marked
+  "also proposed by" the model; the rest are labelled "model-proposed,
+  unverified" and never fail CI. Penthera runs no model and sends nothing
+  anywhere. See [docs/commands/verify.md](docs/commands/verify.md).
+- **`--audit-seeds <file>`** writes repo findings in the security-audit
+  skill's `findings.json` schema, as seeds for an AI audit: each entry is
+  `needs_validation`, names its class and the line the rule matched, and is
+  checked against the skill's schema before it is written.
+- Risky-pattern findings from `--repo` now carry the repo-relative `file` and
+  the `pattern` name.
+- **`penthera mcp`: Penthera as an MCP server for your coding agent.** Claude
+  Code, Cursor, Codex, VS Code and Windsurf can call it over stdio. Add it
+  with a pinned version: `claude mcp add penthera -- npx -y penthera@1.9.0 mcp`.
+  Six read-only tools: `scan_repo`, `scan_url` (passive only),
+  `check_dependencies`, `audit_ai_tooling`, `explain_finding` and
+  `runtime_advisories`. Results are structured JSON plus a summary, with
+  evidence at `file:line`, confidence labels and each tool's limits.
+  - Tools read only inside the workspace roots, and symlinks cannot lead
+    out. `scan_url` reaches loopback, or hosts you list with
+    `--allow-host`; active modes are not reachable over MCP.
+  - Text from scanned files has invisible characters removed and is marked
+    as data, so a file cannot steer the agent through the results.
+  - Speaks MCP 2026-07-28 and the earlier `initialize` versions. No new
+    dependency, no port, no telemetry.
+  - `server.json` and `mcpName` for the MCP Registry
+    (`io.github.danoszz/penthera`). See `docs/commands/mcp.md`.
+- **Secret findings carry the line number**, so reports and SARIF point at
+  the line.
 
 ### Detection
 
@@ -23,7 +80,6 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
     listing's page title;
   - a stack trace in the error page for a path that does not exist (low),
     matched on Node.js, Python, Java, PHP and .NET frame shapes.
-
 - The header audit reports an `X-Powered-By` header (low, `confirmed`), such
   as Express's default `X-Powered-By: Express`. It was a documented miss in
   the E10 pilot (DVNA). The finding names the value and how to turn the
@@ -52,59 +108,34 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   E10 pilot. **The pack is unsigned in this change**: the maintainer signs it
   (`scripts/rules/sign-pack.sh`) before release.
 
-### Added
+### Changed
 
-- **Coverage ledger** in every `--repo` report (terminal, Markdown, JSON
-  `coverage`): which files each check read, which it did not and why, and the
-  source files no code analysis looked at. It reads only file names and sizes,
-  and is the first step toward an opt-in AI mode.
-- **AI mode, opt-in and experimental: `penthera --repo . --ai`.** A model in
-  your local Ollama reads your code part by part and proposes problems no rule
-  describes; Penthera checks each proposal with its rules. Confirmed ones mark
-  the rule finding "also proposed by AI"; the rest are shown as
-  "model-proposed, unverified", apart from rule findings, and never change the
-  exit code. Every run asks first (default no), on stderr; runs that cannot ask
-  need `--ai-consent local` or `"ai": { "allow": ["local"] }` in
-  `penthera.policy.json`, or stop with exit 2 before scanning. Ollama cloud
-  models (`-cloud`) are recognised and need a second screen where you type
-  `ollama.com`. Secrets are masked before any code reaches the model; budgets
-  (`--ai-budget`) are hard stops; consents are logged locally
-  (`penthera ai consent`). `penthera ai models` lists models and where they
-  run. See [docs/ai-mode.md](docs/ai-mode.md).
-- **AI mode in the dashboard.** New scan has an AI mode switch, off; turning
-  it on opens the consent sheet on every scan (a picture of where the code
-  goes, the model picker, the terminal's exact consent lines, two equal
-  buttons; cloud models need `ollama.com` typed). The server checks the
-  model's route with Ollama itself and logs the consent. Runs show an
-  "AI · local" tag, unverified proposals are folded under their own heading,
-  and Settings lists the consent log.
-
-
-- **`penthera verify <findings.json>`** checks findings from an AI security
-  audit against Penthera's rules on your checkout. It reads Cloudflare's
-  security-audit skill `findings.json` (schema vendored from commit `c1c8a8c`,
-  MIT). A finding a rule agrees with is shown as Penthera's own finding, marked
-  "also proposed by" the model; the rest are labelled "model-proposed,
-  unverified" and never fail CI. Penthera runs no model and sends nothing
-  anywhere. See [docs/commands/verify.md](docs/commands/verify.md).
-- **`--audit-seeds <file>`** writes repo findings in the security-audit
-  skill's `findings.json` schema, as seeds for an AI audit: each entry is
-  `needs_validation`, names its class and the line the rule matched, and is
-  checked against the skill's schema before it is written.
-- Risky-pattern findings from `--repo` now carry the repo-relative `file` and
-  the `pattern` name.
-
-
-
+- **Faster merges for contributors.** Pull requests get a quicker install check
+  (Linux and macOS, Node 22), and docs-, site- or benchmark-only changes skip it.
+  The merge queue and `main` still run the full matrix (Linux, macOS and
+  Windows on Node 22 and 24, plus the upgrade test). Release notes are written
+  as fragments in `changelog.d/`, so parallel pull requests no longer conflict
+  on `CHANGELOG.md`.
+- **The default scan sends no attack payloads to your login.** A URL scan
+  used to POST nine logins and an `' OR '1'='1` string to `/api/login`,
+  which a CDN firewall (Vercel, Cloudflare) can read as an attack and start
+  challenging you. Now `quick` sends no login request, `standard` sends one
+  login with invalid credentials (to catch a login that accepts anything),
+  and the rate-limit burst and the SQL error check run only with `--deep`.
+  The MCP `scan_url` tool follows the same profiles.
 
 ### Fixed
 
+- `penthera ui` listens for SIGINT and SIGTERM before it prints that it is
+  listening. A signal that arrived in between got the default action and
+  killed the process without "Stopped." (seen as a hung CI test; about one
+  run in a hundred locally). The test now fails within seconds with the
+  child's output instead of hanging for three minutes.
 - `--repo` scans of Express, Hono and Fastify apps with a `routes/`, `api/` or
   `server/routes/` folder now get route discovery, trust-boundary and
   risky-pattern checks. That folder was taken for a Next.js API root, no
   `route.js` files were found there, and route analysis stopped. An explicit
   `--api-root` is still used as given.
-
 - **TLS keys anyone can compute.** URL scans report, as critical, any
   certificate in the served chain whose EC public key (P-256, P-384, P-521) is
   k·G for a private scalar k below 1024. The private key then follows from
@@ -113,7 +144,6 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   private keys below 256). The check is arithmetic, not a list, so it has no
   false positives and no data to maintain. Research note:
   [docs/research/emudhra-weak-keys-2026-10.md](docs/research/emudhra-weak-keys-2026-10.md).
-
 - **Node.js security release of 21 October 2026** in the `advisories` pack:
   CVE-2026-111497 (Brotli decoder out-of-bounds write, remote code execution)
   and the TLS certificate hostname bypasses CVE-2026-106069, CVE-2026-105483
@@ -123,7 +153,6 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   `.node-version`, `.tool-versions`, `node:` images); 20.x and 25.x are
   reported as end-of-life lines. The pack's signature was removed with the
   change; `npm run rules:check` fails until the maintainer re-signs it.
-
 - **Python start-up code in wheels.** `penthera deps` now finds `.pth` files
   and a shipped `sitecustomize.py` / `usercustomize.py` wherever a wheel puts
   them at the site-packages root, including `<name>-<version>.data/purelib/`
@@ -139,6 +168,22 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
   1.107.0 payload files by SHA-256 and its endpoints. Python scans now run
   `ioc-file` and `ioc-host` rules too. The pack is unsigned until the
   maintainer signs it, so `npm run rules:check` fails until then.
+- **The pre-commit hook keeps working when the npx cache is cleaned.** A hook
+  installed through `npx penthera` pointed at a copy in npm's cache; once
+  that was gone, every commit skipped the check silently. It now falls back
+  to the same version through npx (`npx -y penthera@<version> hook run`,
+  pinned), and only skips, with a clear warning, when that cannot run either.
+
+### Site
+
+- The FAQ says how to scan your own site behind Vercel's or Cloudflare's
+  firewall: allow your IP first, or scan a preview URL.
+
+### Docs
+
+- README, ROADMAP and the research plan describe what is on main for 1.9
+  (`penthera mcp`, AI mode, new detection, no attack payloads by default) and
+  list the E10 benchmark.
 
 ## [1.8.1] - 2026-10-22
 

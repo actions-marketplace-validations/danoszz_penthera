@@ -1,0 +1,19 @@
+{
+  "kind": "ioc-host",
+  "rules": [
+    {
+      "id": "litellm-exfil",
+      "campaign": "litellm PyPI compromise",
+      "description": "Where the litellm payloads send stolen data and fetch code from. litellm.cloud is the attacker domain the OSV record lists; the other two are exact endpoints, one of them a file on a shared service (raw.githubusercontent.com), so only that URL is an indicator.",
+      "hosts": ["litellm.cloud"],
+      "urls": [
+        "http://www.litellm.dev/healthcheck",
+        "https://raw.githubusercontent.com/letters9813/pythonclient-test/main/domain.txt"
+      ],
+      "source": "https://osv.dev/vulnerability/MAL-2026-2144",
+      "date": "2026-10-21",
+      "confidence": "confirmed",
+      "references": ["ohm2020backstabber", "ladisa2023sok"]
+    }
+  ]
+}

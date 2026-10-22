@@ -151,6 +151,31 @@ describe("black-box verdicts", () => {
     expect(verdicts(one("Apache/2.4.62"))[0]).toMatch(/^info/);
   });
 
+  it("respects `introduced` on older release lines: a line older than the flaw never had it", () => {
+    // Strings from bench/runtime-strings (docs/research/runtime-strings.md, B1).
+    const trav = adv({ id: "trav", product: "apache-httpd", title: "Path traversal", fixed: [{ branch: "2.4", version: "2.4.51", introduced: "2.4.49" }] });
+    const httpdEol = eolRule({ product: "apache-httpd", source: "https://httpd.apache.org/", branches: [{ branch: "2.2", eol: "2017-07-11" }, { branch: "2.0", eol: "2013-07-10" }] });
+    const opts = { advisories: [trav], eol: [httpdEol] };
+    for (const server of ["Apache/2.2.34 (Unix)", "Apache/2.0.65 (Unix)"]) {
+      expect(verdicts(runtimeAdvisoriesForResponse({ headers: { server } }, opts)), server).toEqual([
+        `high/likely: Apache HTTP Server ${server.split(/[/ ]/)[1]} is end of life: no more security fixes`,
+      ]);
+    }
+    expect(verdicts(runtimeAdvisoriesForResponse({ headers: { server: "Apache/2.2.15 (CentOS)" } }, opts))).toEqual([
+      "medium/needs-human-review: Apache HTTP Server 2.2.15 is a distribution build of an end-of-life Apache HTTP Server line",
+    ]);
+    const dir = mkdtempSync(join(tmpdir(), "penthera-introduced-"));
+    try {
+      writeFileSync(join(dir, "Dockerfile"), "FROM httpd:2.2\n");
+      expect(verdicts(runtimeAdvisoriesForRepo(dir, opts))).toEqual(["high/likely: Apache HTTP Server 2.2 is end of life: no more security fixes"]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+    // Without `introduced`, an unlisted end-of-life line is still treated as affected.
+    const noIntro = adv({ id: "x", product: "apache-httpd", title: "Other flaw", fixed: [{ branch: "2.4", version: "2.4.51" }] });
+    expect(verdicts(runtimeAdvisoriesForResponse({ headers: { server: "Apache/2.2.34" } }, { advisories: [noIntro], eol: [httpdEol] }))[0]).toMatch(/end-of-life line with no fix for Other flaw/);
+  });
+
   it("reads nginx, OpenSSL and Python from Server banners, and not Tomcat as Apache", () => {
     const ev = evidenceFromResponse({ headers: { server: "Apache/2.4.58 (Unix) OpenSSL/3.0.13", "x-powered-by": "PHP/8.3.12" } });
     expect(ev.map((e) => `${e.product} ${e.version?.raw} ${e.kind}`)).toEqual(["php 8.3.12 exact", "apache-httpd 2.4.58 exact", "openssl 3.0.13 exact"]);

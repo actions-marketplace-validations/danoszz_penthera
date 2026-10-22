@@ -4,6 +4,16 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Fixed
+
+- Runtime advisories honour `introduced` on older release lines. CVE-2021-41773
+  and CVE-2021-42013 exist only in httpd 2.4.49 and 2.4.50. Yet
+  `Apache/2.2.34` and `httpd:2.2` were reported critical, "end of life, no
+  fix", and CentOS 6's `Apache/2.2.15 (CentOS)` was "check on server". A line
+  older than the one the flaw was introduced on now gets no verdict for it.
+  The end-of-life finding stays. Found by the runtime-strings test set (B1 in
+  [#97](https://github.com/danoszz/penthera/pull/97)).
+
 ### Site
 
 - penthera.org counts anonymous page views and load times with Vercel Web

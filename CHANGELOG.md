@@ -4,6 +4,14 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+### Fixed
+
+- `penthera ui` listens for SIGINT and SIGTERM before it prints that it is
+  listening. A signal that arrived in between got the default action and
+  killed the process without "Stopped." (seen as a hung CI test; about one
+  run in a hundred locally). The test now fails within seconds with the
+  child's output instead of hanging for three minutes.
+
 ### Detection
 
 - Three exposure checks in the default URL scan, each a documented miss in
@@ -185,6 +193,28 @@ cleanly under `npx`.
   CSP now allows connections only to those two paths on penthera.org; the
   browser check still sends nothing, and the page says so. The CLI, the
   dashboard and the npm package have no telemetry, unchanged.
+- A shared penthera.org link now plays a 14-second muted reel in iMessage
+  and other apps that support `og:video`: setup, an offline scan, the
+  verdict, the PHP advisory of 21 October 2026, and the share card.
+  `og.png` stays the poster and the fallback; X keeps the image card.
+  Rendered by `site/tools/reel.mjs`.
+
+### Research
+
+- Draft protocol for experiment E10: Penthera against six deliberately
+  vulnerable apps with public answer keys (Juice Shop, DVNA, NodeGoat, DVWA,
+  crAPI, WebGoat), each pinned by commit and image digest. Answer keys in
+  `bench/known-vuln/`, frozen before any scan; an opt-in runner
+  (`npm run bench:known`, not in `npm test` or the package) starts the apps
+  isolated in Docker on 127.0.0.1. A pilot on Juice Shop and DVNA is in
+  `bench/known-vuln/RESULTS.md`, marked as a pilot.
+- Each of the pilot's 13 standard-run misses is verified in
+  `bench/known-vuln/MISSES.md` (all real gaps; none a scoring artefact).
+  A re-run after the fixes that followed (#107, #108, #110, #111) is in
+  `bench/known-vuln/RESULTS-after-fixes.md`, next to the unchanged pilot:
+  pooled standard recall 1/14 to 10/14 at the same precision, flagged as not
+  independent, with WebGoat as a held-out app that did not change. The
+  runner gains `--out <file>`.
 
 ### Docs
 

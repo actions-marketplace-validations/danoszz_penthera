@@ -1,0 +1,4882 @@
+{
+  "name": "runtime-strings",
+  "description": "Real-world version strings for Penthera's runtime-advisory check, labelled by hand from primary sources. See docs/research/runtime-strings.md.",
+  "license": "CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Individual strings are factual version identifiers quoted from the cited sources.",
+  "labels_relative_to": {
+    "pack": "advisories",
+    "advisories": [
+      "2021-10-07",
+      "2024-06-06",
+      "2024-09-26",
+      "2026-10-21"
+    ],
+    "eol_date": [
+      "2026-10-21",
+      "2026-10-22"
+    ]
+  },
+  "verdict_words": {
+    "affected": "exact upstream version below the fix",
+    "end-of-life-no-fix": "the version is on an end-of-life line the advisory gives no fix for",
+    "check-on-server": "the product is in use but the string cannot say (hidden, partial, floating, distribution build)",
+    "has-fix": "at or above the fixed version (as advertised)",
+    "none": "not in the advisory's scope, or no evidence (omitted from `verdicts`)"
+  },
+  "categories": {
+    "exact-upstream": "An exact upstream version as the product prints it",
+    "distro-backport": "A distribution build that says so (a package revision, or a Server header naming the distribution)",
+    "distro-unmarked": "A distribution build whose string is identical to an upstream one",
+    "hidden-partial": "The product with its version hidden or cut short (ServerTokens, server_tokens, expose_php, PHPSESSID, composer.json)",
+    "prerelease-suffix": "Version suffixes: -dev, RC, OpenSSL letters, -fips",
+    "docker-pinned": "Official Docker image tags with an exact version",
+    "docker-floating": "Official Docker image tags that float (8.3, fpm, latest, lts, stable)",
+    "version-file": ".php-version, .nvmrc, .node-version, .python-version, .tool-versions, runtime.txt",
+    "end-of-life": "Exact or line-only versions on release lines past their end of support",
+    "lookalike": "Strings and images that look like one of the products but are not"
+  },
+  "deviations": {
+    "B1": {
+      "type": "bug",
+      "status": "fixed in #102",
+      "title": "`introduced` is ignored for release lines older than the one the flaw was introduced on",
+      "detail": "CVE-2021-41773/42013 exist only in httpd 2.4.49 and 2.4.50 (`introduced: 2.4.49` on the 2.4 line). An exact 2.2 or 2.0 version is reported as \"end of life, no fix\" (critical, potential) for it, a distribution 2.2 build and a line-only 2.2 tag as \"check on server\". Lines below the oldest line that carries `introduced` cannot have the flaw.",
+      "fix": "In verdictFor, when the version's line has no fix entry and is older than the oldest listed line, and that line's entry has `introduced`, return none."
+    },
+    "B2": {
+      "type": "bug",
+      "status": "fixed in #101",
+      "title": "Pre-release versions are misread: -dev as a distribution build, RC/beta as no version",
+      "detail": "PHP/8.4.27-dev (a PHP-8.4 branch build from before 8.4.27) is reported as \"has the fix\": the -dev suffix is taken for a distribution build string and its upstream number compared with the fix. PHP/8.5.0RC1 and php:8.5.0RC1 parse as no version (\"check on server\" instead of affected); PHP/8.6.0RC4 gets \"check on server\" for advisories that do not cover 8.6. Python's 3.15.0rc1 and OpenSSL's 4.1.0-beta2 are dropped or taken for distribution builds.",
+      "fix": "Parse -dev, alpha, beta and RC (any case, with or without a separator) as a pre-release of the upstream number, sorting below the release, and never as a distribution build."
+    },
+    "B3": {
+      "type": "bug",
+      "status": "fixed in #103",
+      "title": "Python banners with only major.minor are ignored",
+      "detail": "aiohttp sends Server: Python/3.9 aiohttp/3.8.6 (aiohttp/http.py). The Python banner pattern needs x.y.z, so an end-of-life 3.9 is not reported; PHP's pattern already accepts x.y.",
+      "fix": "Accept Python/x.y in the banner pattern, which gives `branch` evidence."
+    },
+    "B4": {
+      "type": "bug",
+      "status": "fixed in #106",
+      "title": "Node.js LTS codenames are not resolved to their line",
+      "detail": "nvm accepts lts/iron in .nvmrc and the node image has iron, jod and hydrogen tags. They read as no version, so lts/iron (Node.js 20, end of life 30 Apr 2026) is not reported as end of life.",
+      "fix": "Map the LTS codenames (argon 4 … krypton 24) to their major line in lib/advisories/products.js."
+    },
+    "L1": {
+      "type": "limitation",
+      "title": "A distribution build whose string equals an upstream one is read as upstream",
+      "detail": "Debian 11-13 and Ubuntu 24.04+ print plain upstream PHP numbers (PHP/8.3.6), RHEL never adds a suffix, Debian's and RHEL's nginx add no OS token, and distribution Pythons print sys.version. Without a Server header naming the distribution, these read as exact upstream builds: PHP/8.3.6 from a patched Ubuntu 24.04 is reported critical and likely affected. The promise holds only for strings that mark themselves as distribution builds.",
+      "fix": "Not fixable from the string alone. Decided by the maintainer: such a banner gives at most `potential`, with a check-on-server note (#114). The verdict stays \"affected\" (labels here are verdicts, not confidence), so these entries keep this deviation. A list of frozen distribution versions in the pack is a possible follow-up."
+    },
+    "G1": {
+      "type": "gap",
+      "title": "Only official library images are read",
+      "detail": "nginxinc/nginx-unprivileged:1.27 is nginx 1.27 (end of life) and mongodb/mongodb-community-server:7.0-ubi8 is MongoDB 7.0, but neither is a library/ image, so there is no evidence. Absence is not reported as safe, so no promise breaks.",
+      "fix": "Optionally add well-known vendor images (nginxinc/nginx-unprivileged, bitnami/*) to dockerImages."
+    }
+  },
+  "entries": [
+    {
+      "id": "php-xpb-8.3.7",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.3.7"
+        }
+      },
+      "kind": "exact",
+      "version": "8.3.7",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected",
+        "php-cve-2024-4577": "affected",
+        "php-cve-2024-8926": "affected"
+      },
+      "eol": "none",
+      "source": "https://www.php.net/releases/",
+      "note": "last 8.3 release before CVE-2024-4577's fix (8.3.8): every bundled PHP advisory applies"
+    },
+    {
+      "id": "php-xpb-8.3.8",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.3.8"
+        }
+      },
+      "kind": "exact",
+      "version": "8.3.8",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "affected"
+      },
+      "eol": "none",
+      "source": "https://www.php.net/releases/",
+      "note": "fixes CVE-2024-4577, not CVE-2024-8926 (8.3.12)"
+    },
+    {
+      "id": "php-xpb-8.3.11",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.3.11"
+        }
+      },
+      "kind": "exact",
+      "version": "8.3.11",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "affected"
+      },
+      "eol": "none",
+      "source": "https://www.php.net/releases/",
+      "note": "one release below CVE-2024-8926's fix"
+    },
+    {
+      "id": "php-xpb-8.3.12",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.3.12"
+        }
+      },
+      "kind": "exact",
+      "version": "8.3.12",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://www.php.net/releases/",
+      "note": "the worked example in the 1.8.0 docs"
+    },
+    {
+      "id": "php-xpb-8.3.35",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.3.35"
+        }
+      },
+      "kind": "exact",
+      "version": "8.3.35",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://www.php.net/releases/",
+      "note": "last 8.3 release before 21 Oct 2026 (8.3.34 was never released)"
+    },
+    {
+      "id": "php-xpb-8.3.36",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.3.36"
+        }
+      },
+      "kind": "exact",
+      "version": "8.3.36",
+      "verdicts": {
+        "php-cve-2026-109618": "has-fix",
+        "php-cve-2026-109619": "has-fix",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://www.php.net/releases/",
+      "note": "the 21 Oct 2026 fix on 8.3: has every fix"
+    },
+    {
+      "id": "php-xpb-8.2.12",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.2.12"
+        }
+      },
+      "kind": "exact",
+      "version": "8.2.12",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected",
+        "php-cve-2024-4577": "affected",
+        "php-cve-2024-8926": "affected"
+      },
+      "eol": "none",
+      "source": "https://www.php.net/releases/",
+      "note": "the PHP XAMPP for Windows 8.2.12 bundles"
+    },
+    {
+      "id": "php-xpb-8.2.19",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.2.19"
+        }
+      },
+      "kind": "exact",
+      "version": "8.2.19",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected",
+        "php-cve-2024-4577": "affected",
+        "php-cve-2024-8926": "affected"
+      },
+      "eol": "none",
+      "source": "https://www.php.net/releases/",
+      "note": "below CVE-2024-4577's fix on 8.2 (8.2.20)"
+    },
+    {
+      "id": "php-xpb-8.2.20",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.2.20"
+        }
+      },
+      "kind": "exact",
+      "version": "8.2.20",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "affected"
+      },
+      "eol": "none",
+      "source": "https://www.php.net/releases/",
+      "note": "CVE-2024-4577 fixed, CVE-2024-8926 not (8.2.24)"
+    },
+    {
+      "id": "php-xpb-8.2.24",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.2.24"
+        }
+      },
+      "kind": "exact",
+      "version": "8.2.24",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://www.php.net/releases/",
+      "note": "both 2024 CGI fixes, not the 2026 ones"
+    },
+    {
+      "id": "php-xpb-8.2.34",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.2.34"
+        }
+      },
+      "kind": "exact",
+      "version": "8.2.34",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://www.php.net/releases/",
+      "note": "last 8.2 release before 21 Oct 2026"
+    },
+    {
+      "id": "php-xpb-8.2.35",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.2.35"
+        }
+      },
+      "kind": "exact",
+      "version": "8.2.35",
+      "verdicts": {
+        "php-cve-2026-109618": "has-fix",
+        "php-cve-2026-109619": "has-fix",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://www.php.net/releases/",
+      "note": "the 21 Oct 2026 fix on 8.2"
+    },
+    {
+      "id": "php-xpb-8.4.1",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.4.1"
+        }
+      },
+      "kind": "exact",
+      "version": "8.4.1",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected"
+      },
+      "eol": "none",
+      "source": "https://www.php.net/releases/",
+      "note": "first 8.4 GA release (8.4.0 was not published); the 2024 CGI advisories predate 8.4"
+    },
+    {
+      "id": "php-xpb-8.4.26",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.4.26"
+        }
+      },
+      "kind": "exact",
+      "version": "8.4.26",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected"
+      },
+      "eol": "none",
+      "source": "https://www.php.net/releases/",
+      "note": "one release below the 2026 fix on 8.4"
+    },
+    {
+      "id": "php-xpb-8.4.27",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.4.27"
+        }
+      },
+      "kind": "exact",
+      "version": "8.4.27",
+      "verdicts": {
+        "php-cve-2026-109618": "has-fix",
+        "php-cve-2026-109619": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://www.php.net/releases/",
+      "note": "the 21 Oct 2026 fix on 8.4"
+    },
+    {
+      "id": "php-xpb-8.5.0",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.5.0"
+        }
+      },
+      "kind": "exact",
+      "version": "8.5.0",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected"
+      },
+      "eol": "none",
+      "source": "https://www.php.net/releases/",
+      "note": "first 8.5 release"
+    },
+    {
+      "id": "php-xpb-8.5.11",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.5.11"
+        }
+      },
+      "kind": "exact",
+      "version": "8.5.11",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected"
+      },
+      "eol": "none",
+      "source": "https://www.php.net/releases/",
+      "note": "one release below the 2026 fix on 8.5"
+    },
+    {
+      "id": "php-xpb-8.5.12",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.5.12"
+        }
+      },
+      "kind": "exact",
+      "version": "8.5.12",
+      "verdicts": {
+        "php-cve-2026-109618": "has-fix",
+        "php-cve-2026-109619": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://www.php.net/releases/",
+      "note": "the 21 Oct 2026 fix on 8.5"
+    },
+    {
+      "id": "php-server-full-apache-unix-8.3.12",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.62 (Unix) PHP/8.3.12"
+        }
+      },
+      "kind": "exact",
+      "version": "8.3.12",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://httpd.apache.org/docs/2.4/mod/core.html#servertokens",
+      "note": "mod_php adds PHP/x.y.z to Server under ServerTokens Full; (Unix) marks a source build, not a distribution"
+    },
+    {
+      "id": "php-xpb-and-server-same-version",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.62 (Unix) PHP/8.4.26",
+          "x-powered-by": "PHP/8.4.26"
+        }
+      },
+      "kind": "exact",
+      "version": "8.4.26",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected"
+      },
+      "eol": "none",
+      "source": "https://httpd.apache.org/docs/2.4/mod/core.html#servertokens",
+      "note": "the same version in two headers is one finding"
+    },
+    {
+      "id": "httpd-server-os-2.4.48",
+      "category": "exact-upstream",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.48 (Unix)"
+        }
+      },
+      "kind": "exact",
+      "version": "2.4.48",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://httpd.apache.org/security/vulnerabilities_24.html",
+      "note": "the release before CVE-2021-41773 was introduced: not affected"
+    },
+    {
+      "id": "httpd-server-os-2.4.49",
+      "category": "exact-upstream",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.49 (Unix)"
+        }
+      },
+      "kind": "exact",
+      "version": "2.4.49",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "affected"
+      },
+      "eol": "none",
+      "source": "https://httpd.apache.org/security/vulnerabilities_24.html",
+      "note": "CVE-2021-41773 was introduced in 2.4.49"
+    },
+    {
+      "id": "httpd-server-os-2.4.50",
+      "category": "exact-upstream",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.50 (Unix)"
+        }
+      },
+      "kind": "exact",
+      "version": "2.4.50",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "affected"
+      },
+      "eol": "none",
+      "source": "https://httpd.apache.org/security/vulnerabilities_24.html",
+      "note": "2.4.50's fix was incomplete (CVE-2021-42013)"
+    },
+    {
+      "id": "httpd-server-min-2.4.50",
+      "category": "exact-upstream",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.50"
+        }
+      },
+      "kind": "exact",
+      "version": "2.4.50",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "affected"
+      },
+      "eol": "none",
+      "source": "https://httpd.apache.org/security/vulnerabilities_24.html",
+      "note": "ServerTokens Min: the version without the OS"
+    },
+    {
+      "id": "httpd-server-os-2.4.51",
+      "category": "exact-upstream",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.51 (Unix)"
+        }
+      },
+      "kind": "exact",
+      "version": "2.4.51",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://httpd.apache.org/security/vulnerabilities_24.html",
+      "note": "fixes both"
+    },
+    {
+      "id": "httpd-server-os-2.4.62",
+      "category": "exact-upstream",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.62 (Unix)"
+        }
+      },
+      "kind": "exact",
+      "version": "2.4.62",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://httpd.apache.org/security/vulnerabilities_24.html",
+      "note": "a 2024 release"
+    },
+    {
+      "id": "httpd-server-os-2.4.69",
+      "category": "exact-upstream",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.69 (Unix)"
+        }
+      },
+      "kind": "exact",
+      "version": "2.4.69",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://archive.apache.org/dist/httpd/",
+      "note": "newest 2.4 release in the Apache archive on 22 Oct 2026"
+    },
+    {
+      "id": "httpd-server-full-openssl-php",
+      "category": "exact-upstream",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.49 (Unix) OpenSSL/1.1.1l PHP/8.0.11"
+        }
+      },
+      "kind": "exact",
+      "version": "2.4.49",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "affected"
+      },
+      "eol": "none",
+      "source": "https://httpd.apache.org/docs/2.4/mod/core.html#servertokens",
+      "note": "ServerTokens Full with mod_ssl and mod_php: three products in one header"
+    },
+    {
+      "id": "httpd-server-tokens-prod",
+      "category": "hidden-partial",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache"
+        }
+      },
+      "kind": "present",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://httpd.apache.org/docs/2.4/mod/core.html#servertokens",
+      "note": "ServerTokens Prod: the patch version is hidden, so 2.4.49/2.4.50 cannot be ruled out"
+    },
+    {
+      "id": "httpd-server-tokens-major",
+      "category": "hidden-partial",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2"
+        }
+      },
+      "kind": "present",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://httpd.apache.org/docs/2.4/mod/core.html#servertokens",
+      "note": "ServerTokens Major: the patch version is hidden, so 2.4.49/2.4.50 cannot be ruled out"
+    },
+    {
+      "id": "httpd-server-tokens-minor",
+      "category": "hidden-partial",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4"
+        }
+      },
+      "kind": "present",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://httpd.apache.org/docs/2.4/mod/core.html#servertokens",
+      "note": "ServerTokens Minor: the patch version is hidden, so 2.4.49/2.4.50 cannot be ruled out"
+    },
+    {
+      "id": "httpd-server-eol-2.2.34",
+      "category": "end-of-life",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.2.34 (Unix)"
+        }
+      },
+      "kind": "exact",
+      "version": "2.2.34",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://archive.apache.org/dist/httpd/",
+      "note": "last 2.2 release (2.2 end of life July 2017); the 2.4.49 path traversal never existed on 2.2"
+    },
+    {
+      "id": "httpd-server-eol-2.0.65",
+      "category": "end-of-life",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.0.65 (Unix)"
+        }
+      },
+      "kind": "exact",
+      "version": "2.0.65",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://archive.apache.org/dist/httpd/",
+      "note": "last 2.0 release; not affected by a flaw introduced in 2.4.49"
+    },
+    {
+      "id": "php-xpb-eol-8.1.28",
+      "category": "end-of-life",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.1.28"
+        }
+      },
+      "kind": "exact",
+      "version": "8.1.28",
+      "verdicts": {
+        "php-cve-2026-109618": "end-of-life-no-fix",
+        "php-cve-2026-109619": "end-of-life-no-fix",
+        "php-cve-2024-4577": "affected",
+        "php-cve-2024-8926": "affected"
+      },
+      "eol": "end-of-life",
+      "source": "https://www.php.net/eol.php",
+      "note": "8.1 is end of life (31 Dec 2025); below CVE-2024-4577's fix on 8.1"
+    },
+    {
+      "id": "php-xpb-eol-8.1.29",
+      "category": "end-of-life",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.1.29"
+        }
+      },
+      "kind": "exact",
+      "version": "8.1.29",
+      "verdicts": {
+        "php-cve-2026-109618": "end-of-life-no-fix",
+        "php-cve-2026-109619": "end-of-life-no-fix",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "affected"
+      },
+      "eol": "end-of-life",
+      "source": "https://www.php.net/eol.php",
+      "note": "has CVE-2024-4577's fix, not CVE-2024-8926's (8.1.30)"
+    },
+    {
+      "id": "php-xpb-eol-8.1.34",
+      "category": "end-of-life",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.1.34"
+        }
+      },
+      "kind": "exact",
+      "version": "8.1.34",
+      "verdicts": {
+        "php-cve-2026-109618": "end-of-life-no-fix",
+        "php-cve-2026-109619": "end-of-life-no-fix",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "has-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://www.php.net/eol.php",
+      "note": "last 8.1 release: both 2024 fixes, no 2026 fix"
+    },
+    {
+      "id": "php-xpb-eol-8.0.30",
+      "category": "end-of-life",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.0.30"
+        }
+      },
+      "kind": "exact",
+      "version": "8.0.30",
+      "verdicts": {
+        "php-cve-2026-109618": "end-of-life-no-fix",
+        "php-cve-2026-109619": "end-of-life-no-fix",
+        "php-cve-2024-4577": "end-of-life-no-fix",
+        "php-cve-2024-8926": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://www.php.net/eol.php",
+      "note": "last 8.0 release"
+    },
+    {
+      "id": "php-xpb-eol-7.4.33",
+      "category": "end-of-life",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/7.4.33"
+        }
+      },
+      "kind": "exact",
+      "version": "7.4.33",
+      "verdicts": {
+        "php-cve-2026-109618": "end-of-life-no-fix",
+        "php-cve-2026-109619": "end-of-life-no-fix",
+        "php-cve-2024-4577": "end-of-life-no-fix",
+        "php-cve-2024-8926": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://www.php.net/eol.php",
+      "note": "last 7.4 release"
+    },
+    {
+      "id": "php-xpb-eol-7.3.33",
+      "category": "end-of-life",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/7.3.33"
+        }
+      },
+      "kind": "exact",
+      "version": "7.3.33",
+      "verdicts": {
+        "php-cve-2026-109618": "end-of-life-no-fix",
+        "php-cve-2026-109619": "end-of-life-no-fix",
+        "php-cve-2024-4577": "end-of-life-no-fix",
+        "php-cve-2024-8926": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://www.php.net/eol.php",
+      "note": "last 7.3 release"
+    },
+    {
+      "id": "php-xpb-eol-5.6.40",
+      "category": "end-of-life",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/5.6.40"
+        }
+      },
+      "kind": "exact",
+      "version": "5.6.40",
+      "verdicts": {
+        "php-cve-2026-109618": "end-of-life-no-fix",
+        "php-cve-2026-109619": "end-of-life-no-fix",
+        "php-cve-2024-4577": "end-of-life-no-fix",
+        "php-cve-2024-8926": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://www.php.net/eol.php",
+      "note": "last 5.6 release"
+    },
+    {
+      "id": "php-xpb-dev-at-fix",
+      "category": "prerelease-suffix",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.4.27-dev"
+        }
+      },
+      "kind": "exact",
+      "version": "8.4.27 (pre-release)",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected"
+      },
+      "eol": "none",
+      "source": "https://github.com/php/php-src/blob/PHP-8.4/main/php_version.h",
+      "note": "a PHP-8.4 branch build between 8.4.26 and 8.4.27: it predates the 21 Oct 2026 fix"
+    },
+    {
+      "id": "php-xpb-dev-after-fix",
+      "category": "prerelease-suffix",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.4.28-dev"
+        }
+      },
+      "kind": "exact",
+      "version": "8.4.28 (pre-release)",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://github.com/php/php-src/blob/PHP-8.4/main/php_version.h",
+      "note": "the PHP-8.4 branch today: after 8.4.27, so it has the fix"
+    },
+    {
+      "id": "php-xpb-dev-8.5.13",
+      "category": "prerelease-suffix",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.5.13-dev"
+        }
+      },
+      "kind": "exact",
+      "version": "8.5.13 (pre-release)",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://github.com/php/php-src/blob/PHP-8.5/main/php_version.h",
+      "note": "the PHP-8.5 branch today"
+    },
+    {
+      "id": "php-xpb-dev-master",
+      "category": "prerelease-suffix",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.7.0-dev"
+        }
+      },
+      "kind": "exact",
+      "version": "8.7.0 (pre-release)",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/php/php-src/blob/master/main/php_version.h",
+      "note": "php-src master: a line newer than any advisory lists"
+    },
+    {
+      "id": "php-xpb-rc-8.5.0RC1",
+      "category": "prerelease-suffix",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.5.0RC1"
+        }
+      },
+      "kind": "exact",
+      "version": "8.5.0 (pre-release)",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected"
+      },
+      "eol": "none",
+      "source": "https://github.com/php/php-src/blob/php-8.5.0RC1/main/php_version.h",
+      "note": "an 8.5 release candidate from 2025: below every 8.5 fix"
+    },
+    {
+      "id": "php-xpb-rc-8.6.0RC4",
+      "category": "prerelease-suffix",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.6.0RC4"
+        }
+      },
+      "kind": "exact",
+      "version": "8.6.0 (pre-release)",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/php/php-src/blob/php-8.6.0RC4/main/php_version.h",
+      "note": "the current 8.6 release candidate: a line no bundled advisory lists"
+    },
+    {
+      "id": "php-xpb-ubuntu-jammy-2.28",
+      "category": "distro-backport",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.1.2-1ubuntu2.28"
+        }
+      },
+      "kind": "distro",
+      "version": "8.1.2",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "end-of-life-distro",
+      "source": "https://launchpad.net/ubuntu/jammy/+source/php8.1",
+      "note": "Ubuntu 22.04 adds the package revision to PHP_VERSION (debian/rules); 2.28 was published 21 Oct 2026"
+    },
+    {
+      "id": "php-xpb-ubuntu-jammy-2.19",
+      "category": "distro-backport",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.1.2-1ubuntu2.19"
+        }
+      },
+      "kind": "distro",
+      "version": "8.1.2",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "end-of-life-distro",
+      "source": "https://git.launchpad.net/ubuntu/+source/php8.1/plain/debian/rules?h=ubuntu/jammy-updates",
+      "note": "an older jammy build; the upstream number 8.1.2 never changes on jammy"
+    },
+    {
+      "id": "php-xpb-ubuntu-focal",
+      "category": "distro-backport",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/7.4.3-4ubuntu2.29"
+        }
+      },
+      "kind": "distro",
+      "version": "7.4.3",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "end-of-life-distro",
+      "source": "https://launchpad.net/ubuntu/focal/+source/php7.4",
+      "note": "Ubuntu 20.04: 7.4 is end of life upstream, Ubuntu (and ESM) still patch it"
+    },
+    {
+      "id": "php-noble-behind-apache-ubuntu",
+      "category": "distro-backport",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.58 (Ubuntu)",
+          "x-powered-by": "PHP/8.3.6"
+        }
+      },
+      "kind": "distro",
+      "version": "8.3.6",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://git.launchpad.net/ubuntu/+source/php8.3/plain/debian/rules?h=ubuntu/noble-updates",
+      "note": "Ubuntu 24.04 prints plain 8.3.6 (no EXTRA_VERSION); the Server header names the distribution"
+    },
+    {
+      "id": "php-noble-behind-nginx-ubuntu",
+      "category": "distro-backport",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "nginx/1.24.0 (Ubuntu)",
+          "x-powered-by": "PHP/8.3.6"
+        }
+      },
+      "kind": "distro",
+      "version": "8.3.6",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://git.launchpad.net/ubuntu/+source/nginx/plain/debian/patches/ubuntu-branding.patch?h=ubuntu/noble-updates",
+      "note": "PHP-FPM behind Ubuntu's nginx, which adds (Ubuntu) to its version"
+    },
+    {
+      "id": "php-bookworm-current",
+      "category": "distro-backport",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.68 (Debian)",
+          "x-powered-by": "PHP/8.2.35"
+        }
+      },
+      "kind": "distro",
+      "version": "8.2.35",
+      "verdicts": {
+        "php-cve-2026-109618": "has-fix",
+        "php-cve-2026-109619": "has-fix",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://qa.debian.org/madison.php?package=php8.2&table=debian&text=on",
+      "note": "Debian 12 ships 8.2.35-1~deb12u1; Debian's PHP_VERSION carries no revision, the Server header names Debian"
+    },
+    {
+      "id": "php-bookworm-before-update",
+      "category": "distro-backport",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.68 (Debian)",
+          "x-powered-by": "PHP/8.2.32"
+        }
+      },
+      "kind": "distro",
+      "version": "8.2.32",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://sources.debian.org/data/main/p/php8.2/8.2.32-1~deb12u1/debian/rules",
+      "note": "a bookworm box not yet updated: the number is below the fix, but a distribution build is never 'affected'"
+    },
+    {
+      "id": "php-bullseye-lts",
+      "category": "distro-backport",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.62 (Debian)",
+          "x-powered-by": "PHP/7.4.33"
+        }
+      },
+      "kind": "distro",
+      "version": "7.4.33",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "end-of-life-distro",
+      "source": "https://qa.debian.org/madison.php?package=php7.4&table=debian&text=on",
+      "note": "Debian 11 LTS patches 7.4.33 (7.4.33-1+deb11u12) long after upstream end of life"
+    },
+    {
+      "id": "php-trixie-current",
+      "category": "distro-backport",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.69 (Debian)",
+          "x-powered-by": "PHP/8.4.27"
+        }
+      },
+      "kind": "distro",
+      "version": "8.4.27",
+      "verdicts": {
+        "php-cve-2026-109618": "has-fix",
+        "php-cve-2026-109619": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://salsa.debian.org/php-team/php/-/commit/c53a23122e2e9d01089244cd6933e424004aaa41",
+      "note": "Debian 13: 8.4.27-1~deb13u1; Debian stopped setting PHP_EXTRA_VERSION in 2024"
+    },
+    {
+      "id": "php-rocky9-default-stream",
+      "category": "distro-backport",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.62 (Rocky Linux)",
+          "x-powered-by": "PHP/8.0.30"
+        }
+      },
+      "kind": "distro",
+      "version": "8.0.30",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "end-of-life-distro",
+      "source": "https://gitlab.com/redhat/centos-stream/rpms/php/-/raw/c9s/php.spec",
+      "note": "EL9's default php is 8.0.30, supported by the distribution; RHEL adds no suffix, the httpd banner carries os-release NAME"
+    },
+    {
+      "id": "php-alma9-8.1-stream",
+      "category": "distro-backport",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.62 (AlmaLinux)",
+          "x-powered-by": "PHP/8.1.32"
+        }
+      },
+      "kind": "distro",
+      "version": "8.1.32",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "has-fix"
+      },
+      "eol": "end-of-life-distro",
+      "source": "https://repo.almalinux.org/almalinux/9/AppStream/x86_64/os/Packages/",
+      "note": "EL9 php:8.1 module stream, 8.1.32"
+    },
+    {
+      "id": "php-alma9-8.3-stream",
+      "category": "distro-backport",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.62 (AlmaLinux)",
+          "x-powered-by": "PHP/8.3.36"
+        }
+      },
+      "kind": "distro",
+      "version": "8.3.36",
+      "verdicts": {
+        "php-cve-2026-109618": "has-fix",
+        "php-cve-2026-109619": "has-fix",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://repo.almalinux.org/almalinux/9/AppStream/x86_64/os/Packages/",
+      "note": "EL9 php:8.3 module stream, already at 8.3.36"
+    },
+    {
+      "id": "php-alma10",
+      "category": "distro-backport",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.63 (AlmaLinux)",
+          "x-powered-by": "PHP/8.3.36"
+        }
+      },
+      "kind": "distro",
+      "version": "8.3.36",
+      "verdicts": {
+        "php-cve-2026-109618": "has-fix",
+        "php-cve-2026-109619": "has-fix",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://repo.almalinux.org/almalinux/10/AppStream/x86_64/os/Packages/",
+      "note": "EL10 ships php 8.3.36 and httpd 2.4.63"
+    },
+    {
+      "id": "php-rocky8-default",
+      "category": "distro-backport",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.37 (Rocky Linux)",
+          "x-powered-by": "PHP/7.2.24"
+        }
+      },
+      "kind": "distro",
+      "version": "7.2.24",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "end-of-life-distro",
+      "source": "https://repo.almalinux.org/almalinux/8/AppStream/x86_64/os/Packages/",
+      "note": "EL8's php:7.2 stream"
+    },
+    {
+      "id": "php-centos7-full",
+      "category": "distro-backport",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.6 (CentOS) OpenSSL/1.0.2k-fips mod_fcgid/2.3.9 PHP/5.4.16"
+        }
+      },
+      "kind": "distro",
+      "version": "5.4.16",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "end-of-life-distro",
+      "source": "https://vault.centos.org/7.9.2009/os/x86_64/Packages/",
+      "note": "CentOS 7's httpd 2.4.6, openssl 1.0.2k and php 5.4.16 under ServerTokens Full (the combination is constructed from those packages)"
+    },
+    {
+      "id": "php-noble-behind-cdn",
+      "category": "distro-unmarked",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.3.6"
+        }
+      },
+      "kind": "distro",
+      "version": "8.3.6",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://git.launchpad.net/ubuntu/+source/php8.3/plain/debian/rules?h=ubuntu/noble-updates",
+      "note": "Ubuntu 24.04's php8.3 (8.3.6-0ubuntu0.24.04.13) with no distribution in Server (server_tokens off, or a CDN): the string equals upstream 8.3.6",
+      "deviation": {
+        "id": "L1",
+        "engine": {
+          "kind": "exact",
+          "verdicts": {
+            "php-cve-2026-109618": "affected",
+            "php-cve-2026-109619": "affected",
+            "php-cve-2024-4577": "affected",
+            "php-cve-2024-8926": "affected"
+          }
+        }
+      }
+    },
+    {
+      "id": "php-bookworm-behind-debian-nginx",
+      "category": "distro-unmarked",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "nginx/1.22.1",
+          "x-powered-by": "PHP/8.2.32"
+        }
+      },
+      "kind": "distro",
+      "version": "8.2.32",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://sources.debian.org/data/main/n/nginx/1.22.1-9+deb12u9/debian/patches/series",
+      "note": "Debian's nginx adds no (Debian) token and Debian's PHP no revision: nothing marks the distribution",
+      "deviation": {
+        "id": "L1",
+        "engine": {
+          "kind": "exact",
+          "verdicts": {
+            "php-cve-2026-109618": "affected",
+            "php-cve-2026-109619": "affected",
+            "php-cve-2024-4577": "has-fix",
+            "php-cve-2024-8926": "has-fix"
+          }
+        }
+      }
+    },
+    {
+      "id": "php-bullseye-behind-nginx",
+      "category": "distro-unmarked",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "nginx/1.18.0",
+          "x-powered-by": "PHP/7.4.33"
+        }
+      },
+      "kind": "distro",
+      "version": "7.4.33",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "end-of-life-distro",
+      "source": "https://qa.debian.org/madison.php?package=php7.4&table=debian&text=on",
+      "note": "Debian 11 LTS php7.4 behind Debian's nginx",
+      "deviation": {
+        "id": "L1",
+        "engine": {
+          "kind": "exact",
+          "verdicts": {
+            "php-cve-2026-109618": "end-of-life-no-fix",
+            "php-cve-2026-109619": "end-of-life-no-fix",
+            "php-cve-2024-4577": "end-of-life-no-fix",
+            "php-cve-2024-8926": "end-of-life-no-fix"
+          },
+          "eol": "end-of-life"
+        }
+      }
+    },
+    {
+      "id": "php-el9-behind-nginx",
+      "category": "distro-unmarked",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "nginx/1.20.1",
+          "x-powered-by": "PHP/8.0.30"
+        }
+      },
+      "kind": "distro",
+      "version": "8.0.30",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "end-of-life-distro",
+      "source": "https://gitlab.com/redhat/centos-stream/rpms/php/-/raw/c9s/php.spec",
+      "note": "EL9 default php behind EL9's nginx (no OS token)",
+      "deviation": {
+        "id": "L1",
+        "engine": {
+          "kind": "exact",
+          "verdicts": {
+            "php-cve-2026-109618": "end-of-life-no-fix",
+            "php-cve-2026-109619": "end-of-life-no-fix",
+            "php-cve-2024-4577": "end-of-life-no-fix",
+            "php-cve-2024-8926": "end-of-life-no-fix"
+          },
+          "eol": "end-of-life"
+        }
+      }
+    },
+    {
+      "id": "php-el8-8.2-stream-prod-tokens",
+      "category": "distro-unmarked",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "Apache",
+          "x-powered-by": "PHP/8.2.33"
+        }
+      },
+      "kind": "distro",
+      "version": "8.2.33",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://repo.almalinux.org/almalinux/8/AppStream/x86_64/os/Packages/",
+      "note": "EL8's php:8.2 stream at 8.2.33 with ServerTokens Prod",
+      "deviation": {
+        "id": "L1",
+        "engine": {
+          "kind": "exact",
+          "verdicts": {
+            "php-cve-2026-109618": "affected",
+            "php-cve-2026-109619": "affected",
+            "php-cve-2024-4577": "has-fix",
+            "php-cve-2024-8926": "has-fix"
+          }
+        }
+      }
+    },
+    {
+      "id": "php-resolute-xpb",
+      "category": "distro-unmarked",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.5.4"
+        }
+      },
+      "kind": "distro",
+      "version": "8.5.4",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://launchpad.net/ubuntu/resolute/+source/php8.5",
+      "note": "Ubuntu 26.04's php8.5 (8.5.4-0ubuntu1.5), which also prints plain upstream",
+      "deviation": {
+        "id": "L1",
+        "engine": {
+          "kind": "exact",
+          "verdicts": {
+            "php-cve-2026-109618": "affected",
+            "php-cve-2026-109619": "affected"
+          }
+        }
+      }
+    },
+    {
+      "id": "php-cookie-only",
+      "category": "hidden-partial",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "nginx"
+        },
+        "cookies": [
+          "PHPSESSID"
+        ]
+      },
+      "kind": "present",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://www.php.net/manual/en/session.configuration.php#ini.session.name",
+      "note": "expose_php=Off, but PHPSESSID is PHP's default session.name"
+    },
+    {
+      "id": "php-xpb-major-only",
+      "category": "hidden-partial",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8"
+        }
+      },
+      "kind": "present",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://github.com/php/php-src/blob/master/main/SAPI.h",
+      "note": "a cut-short banner (PHP itself prints the full version; a proxy or header rewrite leaves 'PHP/8')"
+    },
+    {
+      "id": "php-xpb-minor-only",
+      "category": "hidden-partial",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP/8.3"
+        }
+      },
+      "kind": "branch",
+      "version": "8.3",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://github.com/php/php-src/blob/master/main/SAPI.h",
+      "note": "a cut-short banner naming the release line only"
+    },
+    {
+      "id": "php-xpb-fpm-word",
+      "category": "hidden-partial",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "PHP-FPM"
+        }
+      },
+      "kind": "present",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://www.php.net/manual/en/install.fpm.php",
+      "note": "a hand-set X-Powered-By naming PHP-FPM, no version"
+    },
+    {
+      "id": "php-composer-json",
+      "category": "hidden-partial",
+      "product": "php",
+      "input": {
+        "file": "composer.json",
+        "content": "{\"require\":{\"php\":\"^8.2\"}}\n"
+      },
+      "kind": "present",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://getcomposer.org/doc/01-basic-usage.md#platform-packages",
+      "note": "require.php is a constraint, not the PHP that runs"
+    },
+    {
+      "id": "php-img-8.3.12-fpm-alpine",
+      "category": "docker-pinned",
+      "product": "php",
+      "input": {
+        "image": "php:8.3.12-fpm-alpine"
+      },
+      "kind": "exact",
+      "version": "8.3.12",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/php/tags/8.3.12-fpm-alpine",
+      "note": "pinned 2024 build; official images are upstream builds, -fpm-alpine is a variant"
+    },
+    {
+      "id": "php-img-8.2.12-apache",
+      "category": "docker-pinned",
+      "product": "php",
+      "input": {
+        "image": "php:8.2.12-apache"
+      },
+      "kind": "exact",
+      "version": "8.2.12",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected",
+        "php-cve-2024-4577": "affected",
+        "php-cve-2024-8926": "affected"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/php/tags/8.2.12-apache",
+      "note": "pinned Apache variant"
+    },
+    {
+      "id": "php-img-8.3.36-fpm",
+      "category": "docker-pinned",
+      "product": "php",
+      "input": {
+        "image": "php:8.3.36-fpm"
+      },
+      "kind": "exact",
+      "version": "8.3.36",
+      "verdicts": {
+        "php-cve-2026-109618": "has-fix",
+        "php-cve-2026-109619": "has-fix",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/php/tags/8.3.36-fpm",
+      "note": "pinned at the fix"
+    },
+    {
+      "id": "php-img-7.4.33-fpm",
+      "category": "docker-pinned",
+      "product": "php",
+      "input": {
+        "image": "php:7.4.33-fpm"
+      },
+      "kind": "exact",
+      "version": "7.4.33",
+      "verdicts": {
+        "php-cve-2026-109618": "end-of-life-no-fix",
+        "php-cve-2026-109619": "end-of-life-no-fix",
+        "php-cve-2024-4577": "end-of-life-no-fix",
+        "php-cve-2024-8926": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/php/tags/7.4.33-fpm",
+      "note": "last 7.4 image"
+    },
+    {
+      "id": "php-img-8.1.34-apache",
+      "category": "docker-pinned",
+      "product": "php",
+      "input": {
+        "image": "php:8.1.34-apache"
+      },
+      "kind": "exact",
+      "version": "8.1.34",
+      "verdicts": {
+        "php-cve-2026-109618": "end-of-life-no-fix",
+        "php-cve-2026-109619": "end-of-life-no-fix",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "has-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/php/tags/8.1.34-apache",
+      "note": "last 8.1 image (pushed Jan 2026)"
+    },
+    {
+      "id": "php-img-8.5.0RC1",
+      "category": "prerelease-suffix",
+      "product": "php",
+      "input": {
+        "image": "php:8.5.0RC1"
+      },
+      "kind": "exact",
+      "version": "8.5.0 (pre-release)",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/php/tags/8.5.0RC1",
+      "note": "an RC image from Oct 2025"
+    },
+    {
+      "id": "php-img-8.6.0RC4-fpm",
+      "category": "prerelease-suffix",
+      "product": "php",
+      "input": {
+        "image": "php:8.6.0RC4-fpm"
+      },
+      "kind": "exact",
+      "version": "8.6.0 (pre-release)",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/docker-library/official-images/blob/master/library/php",
+      "note": "the current RC image: a line no bundled advisory lists"
+    },
+    {
+      "id": "php-img-8.3",
+      "category": "docker-floating",
+      "product": "php",
+      "input": {
+        "image": "php:8.3"
+      },
+      "kind": "branch",
+      "version": "8.3",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/php/tags/8.3",
+      "note": "floats along 8.3: the patch level depends on when it was pulled"
+    },
+    {
+      "id": "php-img-8.4-cli",
+      "category": "docker-floating",
+      "product": "php",
+      "input": {
+        "image": "php:8.4-cli"
+      },
+      "kind": "branch",
+      "version": "8.4",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/php/tags/8.4-cli",
+      "note": "floating 8.4 CLI"
+    },
+    {
+      "id": "php-img-8.1-fpm",
+      "category": "docker-floating",
+      "product": "php",
+      "input": {
+        "image": "php:8.1-fpm"
+      },
+      "kind": "branch",
+      "version": "8.1",
+      "verdicts": {
+        "php-cve-2026-109618": "end-of-life-no-fix",
+        "php-cve-2026-109619": "end-of-life-no-fix",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/php/tags/8.1-fpm",
+      "note": "8.1 is end of life; the tag stopped at 8.1.34"
+    },
+    {
+      "id": "php-img-7.4-apache",
+      "category": "docker-floating",
+      "product": "php",
+      "input": {
+        "image": "php:7.4-apache"
+      },
+      "kind": "branch",
+      "version": "7.4",
+      "verdicts": {
+        "php-cve-2026-109618": "end-of-life-no-fix",
+        "php-cve-2026-109619": "end-of-life-no-fix",
+        "php-cve-2024-4577": "end-of-life-no-fix",
+        "php-cve-2024-8926": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/php/tags/7.4-apache",
+      "note": "end-of-life line"
+    },
+    {
+      "id": "php-img-5.6-apache",
+      "category": "docker-floating",
+      "product": "php",
+      "input": {
+        "image": "php:5.6-apache"
+      },
+      "kind": "branch",
+      "version": "5.6",
+      "verdicts": {
+        "php-cve-2026-109618": "end-of-life-no-fix",
+        "php-cve-2026-109619": "end-of-life-no-fix",
+        "php-cve-2024-4577": "end-of-life-no-fix",
+        "php-cve-2024-8926": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/php/tags/5.6-apache",
+      "note": "end-of-life line"
+    },
+    {
+      "id": "php-img-8.6-rc",
+      "category": "docker-floating",
+      "product": "php",
+      "input": {
+        "image": "php:8.6-rc"
+      },
+      "kind": "branch",
+      "version": "8.6",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/php/tags/8.6-rc",
+      "note": "the 8.6 RC line: newer than any line the advisories list"
+    },
+    {
+      "id": "php-img-8",
+      "category": "docker-floating",
+      "product": "php",
+      "input": {
+        "image": "php:8"
+      },
+      "kind": "present",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/php/tags/8",
+      "note": "spans release lines"
+    },
+    {
+      "id": "php-img-8-fpm-alpine",
+      "category": "docker-floating",
+      "product": "php",
+      "input": {
+        "image": "php:8-fpm-alpine"
+      },
+      "kind": "present",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/php/tags/8-fpm-alpine",
+      "note": "spans release lines"
+    },
+    {
+      "id": "php-img-fpm",
+      "category": "docker-floating",
+      "product": "php",
+      "input": {
+        "image": "php:fpm"
+      },
+      "kind": "present",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/php/tags/fpm",
+      "note": "no version at all"
+    },
+    {
+      "id": "php-img-apache",
+      "category": "docker-floating",
+      "product": "php",
+      "input": {
+        "image": "php:apache"
+      },
+      "kind": "present",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/php/tags/apache",
+      "note": "no version at all"
+    },
+    {
+      "id": "php-img-latest",
+      "category": "docker-floating",
+      "product": "php",
+      "input": {
+        "image": "php:latest"
+      },
+      "kind": "present",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/php/tags/latest",
+      "note": "no version at all"
+    },
+    {
+      "id": "php-img-untagged",
+      "category": "docker-floating",
+      "product": "php",
+      "input": {
+        "image": "php"
+      },
+      "kind": "present",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://github.com/docker-library/official-images/blob/master/library/php",
+      "note": "no tag means latest"
+    },
+    {
+      "id": "php-file-php-version-line",
+      "category": "version-file",
+      "product": "php",
+      "input": {
+        "file": ".php-version",
+        "content": "8.3\n"
+      },
+      "kind": "branch",
+      "version": "8.3",
+      "verdicts": {
+        "php-cve-2026-109618": "check-on-server",
+        "php-cve-2026-109619": "check-on-server",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://github.com/phpenv/phpenv",
+      "note": "phpenv-style line pin"
+    },
+    {
+      "id": "php-file-php-version-exact",
+      "category": "version-file",
+      "product": "php",
+      "input": {
+        "file": ".php-version",
+        "content": "8.3.12\n"
+      },
+      "kind": "exact",
+      "version": "8.3.12",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://github.com/phpenv/phpenv",
+      "note": "exact pin below the fix"
+    },
+    {
+      "id": "php-file-php-version-eol",
+      "category": "version-file",
+      "product": "php",
+      "input": {
+        "file": ".php-version",
+        "content": "8.1\n"
+      },
+      "kind": "branch",
+      "version": "8.1",
+      "verdicts": {
+        "php-cve-2026-109618": "end-of-life-no-fix",
+        "php-cve-2026-109619": "end-of-life-no-fix",
+        "php-cve-2024-4577": "check-on-server",
+        "php-cve-2024-8926": "check-on-server"
+      },
+      "eol": "end-of-life",
+      "source": "https://github.com/phpenv/phpenv",
+      "note": "end-of-life line"
+    },
+    {
+      "id": "php-file-tool-versions-affected",
+      "category": "version-file",
+      "product": "php",
+      "input": {
+        "file": ".tool-versions",
+        "content": "php 8.2.34\nnodejs 22.23.4\n"
+      },
+      "kind": "exact",
+      "version": "8.2.34",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected",
+        "php-cve-2024-4577": "has-fix",
+        "php-cve-2024-8926": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://asdf-vm.com/manage/configuration.html#tool-versions",
+      "note": "asdf pin below the fix"
+    },
+    {
+      "id": "php-file-tool-versions-fixed",
+      "category": "version-file",
+      "product": "php",
+      "input": {
+        "file": ".tool-versions",
+        "content": "php 8.4.27\n"
+      },
+      "kind": "exact",
+      "version": "8.4.27",
+      "verdicts": {
+        "php-cve-2026-109618": "has-fix",
+        "php-cve-2026-109619": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://asdf-vm.com/manage/configuration.html#tool-versions",
+      "note": "asdf pin at the fix"
+    },
+    {
+      "id": "php-xampp-windows",
+      "category": "exact-upstream",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.58 (Win64) OpenSSL/3.1.3 PHP/8.2.12"
+        }
+      },
+      "kind": "exact",
+      "version": "8.2.12",
+      "verdicts": {
+        "php-cve-2026-109618": "affected",
+        "php-cve-2026-109619": "affected",
+        "php-cve-2024-4577": "affected",
+        "php-cve-2024-8926": "affected"
+      },
+      "eol": "none",
+      "source": "https://www.apachefriends.org/download.html",
+      "note": "XAMPP for Windows 8.2.12's bundle under ServerTokens Full (header shape inferred from the bundle and httpd's banner code); the CGI advisories' Windows condition fits"
+    },
+    {
+      "id": "php-xpb-eol-8.0-with-hint-free-server",
+      "category": "end-of-life",
+      "product": "php",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.62 (Unix)",
+          "x-powered-by": "PHP/8.0.30"
+        }
+      },
+      "kind": "exact",
+      "version": "8.0.30",
+      "verdicts": {
+        "php-cve-2026-109618": "end-of-life-no-fix",
+        "php-cve-2026-109619": "end-of-life-no-fix",
+        "php-cve-2024-4577": "end-of-life-no-fix",
+        "php-cve-2024-8926": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://www.php.net/eol.php",
+      "note": "a source-built stack: (Unix) names no distribution"
+    },
+    {
+      "id": "httpd-apache-2.4.41-ubuntu",
+      "category": "distro-backport",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.41 (Ubuntu)"
+        }
+      },
+      "kind": "distro",
+      "version": "2.4.41",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://launchpad.net/ubuntu/focal/+source/apache2",
+      "note": "Ubuntu 20.04: older than the flaw"
+    },
+    {
+      "id": "httpd-apache-2.4.52-ubuntu",
+      "category": "distro-backport",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.52 (Ubuntu)"
+        }
+      },
+      "kind": "distro",
+      "version": "2.4.52",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://launchpad.net/ubuntu/jammy/+source/apache2",
+      "note": "Ubuntu 22.04 (2.4.52-1ubuntu4.25)"
+    },
+    {
+      "id": "httpd-apache-2.4.58-ubuntu",
+      "category": "distro-backport",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.58 (Ubuntu)"
+        }
+      },
+      "kind": "distro",
+      "version": "2.4.58",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://launchpad.net/ubuntu/noble/+source/apache2",
+      "note": "Ubuntu 24.04 (2.4.58-1ubuntu8.17)"
+    },
+    {
+      "id": "httpd-apache-2.4.64-ubuntu",
+      "category": "distro-backport",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.64 (Ubuntu)"
+        }
+      },
+      "kind": "distro",
+      "version": "2.4.64",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://launchpad.net/ubuntu/questing/+source/apache2",
+      "note": "Ubuntu 25.10"
+    },
+    {
+      "id": "httpd-apache-2.4.66-ubuntu",
+      "category": "distro-backport",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.66 (Ubuntu)"
+        }
+      },
+      "kind": "distro",
+      "version": "2.4.66",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://launchpad.net/ubuntu/resolute/+source/apache2",
+      "note": "Ubuntu 26.04"
+    },
+    {
+      "id": "httpd-apache-2.4.62-debian",
+      "category": "distro-backport",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.62 (Debian)"
+        }
+      },
+      "kind": "distro",
+      "version": "2.4.62",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://qa.debian.org/madison.php?package=apache2&table=debian&text=on",
+      "note": "Debian 11 point release (2.4.62-1~deb11u1)"
+    },
+    {
+      "id": "httpd-apache-2.4.67-debian",
+      "category": "distro-backport",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.67 (Debian)"
+        }
+      },
+      "kind": "distro",
+      "version": "2.4.67",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://qa.debian.org/madison.php?package=apache2&table=debian&text=on",
+      "note": "Debian 11 LTS security (2.4.67-1~deb11u3)"
+    },
+    {
+      "id": "httpd-apache-2.4.68-debian",
+      "category": "distro-backport",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.68 (Debian)"
+        }
+      },
+      "kind": "distro",
+      "version": "2.4.68",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://sources.debian.org/data/main/a/apache2/2.4.68-1~deb12u1/debian/rules",
+      "note": "Debian 12 (2.4.68-1~deb12u1)"
+    },
+    {
+      "id": "httpd-apache-2.4.69-debian",
+      "category": "distro-backport",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.69 (Debian)"
+        }
+      },
+      "kind": "distro",
+      "version": "2.4.69",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://qa.debian.org/madison.php?package=apache2&table=debian&text=on",
+      "note": "Debian 13 security"
+    },
+    {
+      "id": "httpd-apache-2.4.37-rocky-linux",
+      "category": "distro-backport",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.37 (Rocky Linux)"
+        }
+      },
+      "kind": "distro",
+      "version": "2.4.37",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://repo.almalinux.org/almalinux/8/AppStream/x86_64/os/Packages/",
+      "note": "EL8 httpd 2.4.37 with years of backports: older than the flaw"
+    },
+    {
+      "id": "httpd-apache-2.4.62-rocky-linux-openssl-3.5.8",
+      "category": "distro-backport",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.62 (Rocky Linux) OpenSSL/3.5.8"
+        }
+      },
+      "kind": "distro",
+      "version": "2.4.62",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://gitlab.com/redhat/centos-stream/rpms/httpd/-/raw/c9s/httpd.spec",
+      "note": "EL9 httpd under ServerTokens Full, with mod_ssl"
+    },
+    {
+      "id": "httpd-apache-2.4.62-almalinux",
+      "category": "distro-backport",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.62 (AlmaLinux)"
+        }
+      },
+      "kind": "distro",
+      "version": "2.4.62",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://repo.almalinux.org/almalinux/9/AppStream/x86_64/os/Packages/",
+      "note": "EL9 (2.4.62-13.el9_8.6)"
+    },
+    {
+      "id": "httpd-apache-2.4.63-almalinux",
+      "category": "distro-backport",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.63 (AlmaLinux)"
+        }
+      },
+      "kind": "distro",
+      "version": "2.4.63",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://repo.almalinux.org/almalinux/10/AppStream/x86_64/os/Packages/",
+      "note": "EL10 (2.4.63-13.el10_2.6)"
+    },
+    {
+      "id": "httpd-apache-2.4.62-centos-stream",
+      "category": "distro-backport",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.62 (CentOS Stream)"
+        }
+      },
+      "kind": "distro",
+      "version": "2.4.62",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://gitlab.com/redhat/centos-stream/rpms/httpd/-/raw/c9s/httpd.spec",
+      "note": "CentOS Stream 9"
+    },
+    {
+      "id": "httpd-apache-2.4.62-red-hat-enterprise-linux",
+      "category": "distro-backport",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.62 (Red Hat Enterprise Linux)"
+        }
+      },
+      "kind": "distro",
+      "version": "2.4.62",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://gitlab.com/redhat/centos-stream/rpms/httpd/-/raw/c9s/httpd.spec",
+      "note": "RHEL 9"
+    },
+    {
+      "id": "httpd-apache-2.4.6-centos",
+      "category": "distro-backport",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.6 (CentOS)"
+        }
+      },
+      "kind": "distro",
+      "version": "2.4.6",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://vault.centos.org/7.9.2009/os/x86_64/Packages/",
+      "note": "CentOS 7: older than the flaw"
+    },
+    {
+      "id": "httpd-centos6-2.2.15",
+      "category": "end-of-life",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.2.15 (CentOS)"
+        }
+      },
+      "kind": "distro",
+      "version": "2.2.15",
+      "verdicts": {},
+      "eol": "end-of-life-distro",
+      "source": "https://vault.centos.org/6.10/os/x86_64/Packages/",
+      "note": "CentOS 6's httpd 2.2.15: end-of-life line, never had the 2.4.49 flaw"
+    },
+    {
+      "id": "httpd-dev-build",
+      "category": "prerelease-suffix",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.70-dev (Unix)"
+        }
+      },
+      "kind": "exact",
+      "version": "2.4.70 (pre-release)",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://github.com/apache/httpd/blob/2.4.x/include/ap_release.h",
+      "note": "a build from the 2.4.x branch (ap_release.h: 2.4.70 with DEVBUILD)"
+    },
+    {
+      "id": "httpd-xampp-windows",
+      "category": "exact-upstream",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.58 (Win64) OpenSSL/3.1.3 PHP/8.2.12"
+        }
+      },
+      "kind": "exact",
+      "version": "2.4.58",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://www.apachefriends.org/download.html",
+      "note": "XAMPP's Apache Lounge build: (Win64) names no distribution"
+    },
+    {
+      "id": "httpd-img-2.4.48",
+      "category": "docker-pinned",
+      "product": "apache-httpd",
+      "input": {
+        "image": "httpd:2.4.48"
+      },
+      "kind": "exact",
+      "version": "2.4.48",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/httpd/tags/2.4.48",
+      "note": "the release before the flaw"
+    },
+    {
+      "id": "httpd-img-2.4.49",
+      "category": "docker-pinned",
+      "product": "apache-httpd",
+      "input": {
+        "image": "httpd:2.4.49"
+      },
+      "kind": "exact",
+      "version": "2.4.49",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "affected"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/httpd/tags/2.4.49",
+      "note": "pinned to the vulnerable release (pushed 5 Oct 2021)"
+    },
+    {
+      "id": "httpd-img-2.4.50",
+      "category": "docker-pinned",
+      "product": "apache-httpd",
+      "input": {
+        "image": "httpd:2.4.50"
+      },
+      "kind": "exact",
+      "version": "2.4.50",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "affected"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/httpd/tags/2.4.50",
+      "note": "the incomplete fix"
+    },
+    {
+      "id": "httpd-img-2.4.69-alpine",
+      "category": "docker-pinned",
+      "product": "apache-httpd",
+      "input": {
+        "image": "httpd:2.4.69-alpine"
+      },
+      "kind": "exact",
+      "version": "2.4.69",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/httpd/tags/2.4.69-alpine",
+      "note": "current"
+    },
+    {
+      "id": "httpd-img-2.2.34",
+      "category": "end-of-life",
+      "product": "apache-httpd",
+      "input": {
+        "image": "httpd:2.2.34"
+      },
+      "kind": "exact",
+      "version": "2.2.34",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/httpd/tags/2.2.34",
+      "note": "last 2.2 image"
+    },
+    {
+      "id": "httpd-img-2.4",
+      "category": "docker-floating",
+      "product": "apache-httpd",
+      "input": {
+        "image": "httpd:2.4"
+      },
+      "kind": "branch",
+      "version": "2.4",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/httpd/tags/2.4",
+      "note": "floats along 2.4: 2.4.49 cannot be ruled out from the tag"
+    },
+    {
+      "id": "httpd-img-2.2",
+      "category": "docker-floating",
+      "product": "apache-httpd",
+      "input": {
+        "image": "httpd:2.2"
+      },
+      "kind": "branch",
+      "version": "2.2",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/httpd/tags/2.2",
+      "note": "end-of-life line"
+    },
+    {
+      "id": "httpd-img-2",
+      "category": "docker-floating",
+      "product": "apache-httpd",
+      "input": {
+        "image": "httpd:2"
+      },
+      "kind": "present",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/httpd/tags/2",
+      "note": "spans release lines"
+    },
+    {
+      "id": "httpd-img-alpine",
+      "category": "docker-floating",
+      "product": "apache-httpd",
+      "input": {
+        "image": "httpd:alpine"
+      },
+      "kind": "present",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/httpd/tags/alpine",
+      "note": "no version"
+    },
+    {
+      "id": "httpd-img-latest",
+      "category": "docker-floating",
+      "product": "apache-httpd",
+      "input": {
+        "image": "httpd:latest"
+      },
+      "kind": "present",
+      "verdicts": {
+        "httpd-cve-2021-41773-42013": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/httpd/tags/latest",
+      "note": "no version"
+    },
+    {
+      "id": "httpd-tomcat-coyote",
+      "category": "lookalike",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Apache-Coyote/1.1"
+        }
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/apache/tomcat/blob/7.0.x/java/org/apache/coyote/http11/Constants.java",
+      "note": "Tomcat 7's connector banner: Apache Tomcat, not the Apache HTTP Server"
+    },
+    {
+      "id": "httpd-litespeed",
+      "category": "lookalike",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "LiteSpeed"
+        }
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/litespeedtech/openlitespeed/blob/master/src/http/httpserverversion.cpp",
+      "note": "OpenLiteSpeed's default banner"
+    },
+    {
+      "id": "httpd-iis",
+      "category": "lookalike",
+      "product": "apache-httpd",
+      "input": {
+        "headers": {
+          "server": "Microsoft-IIS/10.0",
+          "x-powered-by": "ASP.NET"
+        }
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://learn.microsoft.com/en-us/iis/configuration/system.webserver/security/requestfiltering/",
+      "note": "IIS with ASP.NET"
+    },
+    {
+      "id": "php-hhvm",
+      "category": "lookalike",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "HHVM/4.172.1"
+        }
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/facebook/hhvm/blob/master/hphp/runtime/server/transport.cpp",
+      "note": "HHVM runs Hack/PHP code but is not php-src: PHP advisories do not apply"
+    },
+    {
+      "id": "php-phpmyadmin-image",
+      "category": "lookalike",
+      "product": "php",
+      "input": {
+        "image": "phpmyadmin:5.2"
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/phpmyadmin/tags/5.2",
+      "note": "the phpMyAdmin image: a PHP application, its tag is phpMyAdmin's version"
+    },
+    {
+      "id": "php-aspnet",
+      "category": "lookalike",
+      "product": "php",
+      "input": {
+        "headers": {
+          "x-powered-by": "ASP.NET"
+        }
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://learn.microsoft.com/en-us/iis/configuration/system.webserver/httpprotocol/customheaders/",
+      "note": "IIS's default X-Powered-By"
+    },
+    {
+      "id": "nginx-server-1.31.8",
+      "category": "exact-upstream",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "nginx/1.31.8"
+        }
+      },
+      "kind": "exact",
+      "version": "1.31.8",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://nginx.org/en/download.html",
+      "note": "current mainline (21 Oct 2026)"
+    },
+    {
+      "id": "nginx-server-1.30.6",
+      "category": "exact-upstream",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "nginx/1.30.6"
+        }
+      },
+      "kind": "exact",
+      "version": "1.30.6",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://nginx.org/en/download.html",
+      "note": "current stable"
+    },
+    {
+      "id": "nginx-server-1.30.0",
+      "category": "exact-upstream",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "nginx/1.30.0"
+        }
+      },
+      "kind": "exact",
+      "version": "1.30.0",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://nginx.org/en/download.html",
+      "note": "first 1.30 stable (14 Apr 2026)"
+    },
+    {
+      "id": "nginx-server-tokens-build",
+      "category": "exact-upstream",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "nginx/1.31.8 (penthera-test)"
+        }
+      },
+      "kind": "exact",
+      "version": "1.31.8",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://nginx.org/en/docs/http/ngx_http_core_module.html#server_tokens",
+      "note": "server_tokens build appends the build name in parentheses; it is not a distribution"
+    },
+    {
+      "id": "nginx-server-eol-1.28.3",
+      "category": "end-of-life",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "nginx/1.28.3"
+        }
+      },
+      "kind": "exact",
+      "version": "1.28.3",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://nginx.org/en/CHANGES",
+      "note": "legacy on download.html: 1.28 stopped getting fixes when 1.30 came out"
+    },
+    {
+      "id": "nginx-server-eol-1.27.3",
+      "category": "end-of-life",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "nginx/1.27.3"
+        }
+      },
+      "kind": "exact",
+      "version": "1.27.3",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://nginx.org/en/CHANGES",
+      "note": "an old mainline"
+    },
+    {
+      "id": "nginx-server-eol-1.25.3",
+      "category": "end-of-life",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "nginx/1.25.3"
+        }
+      },
+      "kind": "exact",
+      "version": "1.25.3",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://nginx.org/en/CHANGES",
+      "note": "an old mainline"
+    },
+    {
+      "id": "nginx-server-tokens-off",
+      "category": "hidden-partial",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "nginx"
+        }
+      },
+      "kind": "present",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://nginx.org/en/docs/http/ngx_http_core_module.html#server_tokens",
+      "note": "server_tokens off"
+    },
+    {
+      "id": "nginx-ubuntu-jammy",
+      "category": "distro-backport",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "nginx/1.18.0 (Ubuntu)"
+        }
+      },
+      "kind": "distro",
+      "version": "1.18.0",
+      "verdicts": {},
+      "eol": "end-of-life-distro",
+      "source": "https://launchpad.net/ubuntu/jammy/+source/nginx",
+      "note": "Ubuntu 22.04 (1.18.0-6ubuntu14.21) and 20.04"
+    },
+    {
+      "id": "nginx-ubuntu-noble",
+      "category": "distro-backport",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "nginx/1.24.0 (Ubuntu)"
+        }
+      },
+      "kind": "distro",
+      "version": "1.24.0",
+      "verdicts": {},
+      "eol": "end-of-life-distro",
+      "source": "https://git.launchpad.net/ubuntu/+source/nginx/plain/debian/patches/ubuntu-branding.patch?h=ubuntu/noble-updates",
+      "note": "Ubuntu 24.04 (1.24.0-2ubuntu7.18)"
+    },
+    {
+      "id": "nginx-ubuntu-questing",
+      "category": "distro-backport",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "nginx/1.28.0 (Ubuntu)"
+        }
+      },
+      "kind": "distro",
+      "version": "1.28.0",
+      "verdicts": {},
+      "eol": "end-of-life-distro",
+      "source": "https://launchpad.net/ubuntu/questing/+source/nginx",
+      "note": "Ubuntu 25.10"
+    },
+    {
+      "id": "nginx-ubuntu-resolute",
+      "category": "distro-backport",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "nginx/1.28.3 (Ubuntu)"
+        }
+      },
+      "kind": "distro",
+      "version": "1.28.3",
+      "verdicts": {},
+      "eol": "end-of-life-distro",
+      "source": "https://launchpad.net/ubuntu/resolute/+source/nginx",
+      "note": "Ubuntu 26.04 (server_tokens build with --build=Ubuntu)"
+    },
+    {
+      "id": "nginx-unmarked-1.22.1",
+      "category": "distro-unmarked",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "nginx/1.22.1"
+        }
+      },
+      "kind": "distro",
+      "version": "1.22.1",
+      "verdicts": {},
+      "eol": "end-of-life-distro",
+      "source": "https://sources.debian.org/data/main/n/nginx/1.22.1-9+deb12u9/debian/patches/series",
+      "note": "Debian 12 (1.22.1-9+deb12u10): Debian adds no branding; the string equals upstream 1.22.1",
+      "deviation": {
+        "id": "L1",
+        "engine": {
+          "kind": "exact",
+          "eol": "end-of-life"
+        }
+      }
+    },
+    {
+      "id": "nginx-unmarked-1.26.3",
+      "category": "distro-unmarked",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "nginx/1.26.3"
+        }
+      },
+      "kind": "distro",
+      "version": "1.26.3",
+      "verdicts": {},
+      "eol": "end-of-life-distro",
+      "source": "https://qa.debian.org/madison.php?package=nginx&table=debian&text=on",
+      "note": "Debian 13 (1.26.3-3+deb13u10); the string equals upstream 1.26.3",
+      "deviation": {
+        "id": "L1",
+        "engine": {
+          "kind": "exact",
+          "eol": "end-of-life"
+        }
+      }
+    },
+    {
+      "id": "nginx-unmarked-1.20.1",
+      "category": "distro-unmarked",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "nginx/1.20.1"
+        }
+      },
+      "kind": "distro",
+      "version": "1.20.1",
+      "verdicts": {},
+      "eol": "end-of-life-distro",
+      "source": "https://repo.almalinux.org/almalinux/9/AppStream/x86_64/os/Packages/",
+      "note": "EL9's default nginx; the string equals upstream 1.20.1",
+      "deviation": {
+        "id": "L1",
+        "engine": {
+          "kind": "exact",
+          "eol": "end-of-life"
+        }
+      }
+    },
+    {
+      "id": "nginx-unmarked-1.14.1",
+      "category": "distro-unmarked",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "nginx/1.14.1"
+        }
+      },
+      "kind": "distro",
+      "version": "1.14.1",
+      "verdicts": {},
+      "eol": "end-of-life-distro",
+      "source": "https://repo.almalinux.org/almalinux/8/AppStream/x86_64/os/Packages/",
+      "note": "EL8's nginx:1.14 stream; the string equals upstream 1.14.1",
+      "deviation": {
+        "id": "L1",
+        "engine": {
+          "kind": "exact",
+          "eol": "end-of-life"
+        }
+      }
+    },
+    {
+      "id": "nginx-img-1.31.8",
+      "category": "docker-pinned",
+      "product": "nginx",
+      "input": {
+        "image": "nginx:1.31.8"
+      },
+      "kind": "exact",
+      "version": "1.31.8",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/nginx/tags/1.31.8",
+      "note": "current mainline"
+    },
+    {
+      "id": "nginx-img-1.30.6-alpine",
+      "category": "docker-pinned",
+      "product": "nginx",
+      "input": {
+        "image": "nginx:1.30.6-alpine"
+      },
+      "kind": "exact",
+      "version": "1.30.6",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/nginx/tags/1.30.6-alpine",
+      "note": "current stable"
+    },
+    {
+      "id": "nginx-img-1.28.3",
+      "category": "docker-pinned",
+      "product": "nginx",
+      "input": {
+        "image": "nginx:1.28.3"
+      },
+      "kind": "exact",
+      "version": "1.28.3",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/nginx/tags/1.28.3",
+      "note": "legacy"
+    },
+    {
+      "id": "nginx-img-1.27.3",
+      "category": "docker-pinned",
+      "product": "nginx",
+      "input": {
+        "image": "nginx:1.27.3"
+      },
+      "kind": "exact",
+      "version": "1.27.3",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/nginx/tags/1.27.3",
+      "note": "old mainline (pushed Feb 2025)"
+    },
+    {
+      "id": "nginx-img-1.24.0",
+      "category": "docker-pinned",
+      "product": "nginx",
+      "input": {
+        "image": "nginx:1.24.0"
+      },
+      "kind": "exact",
+      "version": "1.24.0",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/nginx/tags/1.24.0",
+      "note": "old stable"
+    },
+    {
+      "id": "nginx-img-1.30",
+      "category": "docker-floating",
+      "product": "nginx",
+      "input": {
+        "image": "nginx:1.30"
+      },
+      "kind": "branch",
+      "version": "1.30",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/nginx/tags/1.30",
+      "note": "floating stable line"
+    },
+    {
+      "id": "nginx-img-1.18",
+      "category": "docker-floating",
+      "product": "nginx",
+      "input": {
+        "image": "nginx:1.18"
+      },
+      "kind": "branch",
+      "version": "1.18",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/nginx/tags/1.18",
+      "note": "end-of-life line"
+    },
+    {
+      "id": "nginx-img-stable",
+      "category": "docker-floating",
+      "product": "nginx",
+      "input": {
+        "image": "nginx:stable"
+      },
+      "kind": "present",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/nginx/tags/stable",
+      "note": "no version"
+    },
+    {
+      "id": "nginx-img-mainline",
+      "category": "docker-floating",
+      "product": "nginx",
+      "input": {
+        "image": "nginx:mainline"
+      },
+      "kind": "present",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/nginx/tags/mainline",
+      "note": "no version"
+    },
+    {
+      "id": "nginx-img-alpine",
+      "category": "docker-floating",
+      "product": "nginx",
+      "input": {
+        "image": "nginx:alpine"
+      },
+      "kind": "present",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/nginx/tags/alpine",
+      "note": "no version"
+    },
+    {
+      "id": "nginx-img-latest",
+      "category": "docker-floating",
+      "product": "nginx",
+      "input": {
+        "image": "nginx:latest"
+      },
+      "kind": "present",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/nginx/tags/latest",
+      "note": "no version"
+    },
+    {
+      "id": "nginx-img-unprivileged",
+      "category": "docker-floating",
+      "product": "nginx",
+      "input": {
+        "image": "nginxinc/nginx-unprivileged:1.27"
+      },
+      "kind": "branch",
+      "version": "1.27",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/nginxinc/nginx-unprivileged/tags/1.27",
+      "note": "NGINX's own unprivileged image, not library/nginx: the tag is the nginx line",
+      "deviation": {
+        "id": "G1",
+        "engine": {
+          "kind": "none",
+          "eol": "none"
+        }
+      }
+    },
+    {
+      "id": "nginx-lookalike-openresty-versioned",
+      "category": "lookalike",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "openresty/1.31.1.1"
+        }
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/openresty/openresty/tags",
+      "note": "OpenResty rebrands nginx's version string"
+    },
+    {
+      "id": "nginx-lookalike-openresty",
+      "category": "lookalike",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "openresty"
+        }
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/openresty/openresty",
+      "note": "OpenResty with server_tokens off"
+    },
+    {
+      "id": "nginx-lookalike-tengine-versioned",
+      "category": "lookalike",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "Tengine/3.2.0"
+        }
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/alibaba/tengine/blob/master/src/http/ngx_http_header_filter_module.c",
+      "note": "Tengine, an nginx fork"
+    },
+    {
+      "id": "nginx-lookalike-angie-versioned",
+      "category": "lookalike",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "Angie/1.13.0"
+        }
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/webserver-llc/angie/blob/master/src/http/ngx_http_header_filter_module.c",
+      "note": "Angie, an nginx fork"
+    },
+    {
+      "id": "nginx-lookalike-cloudflare",
+      "category": "lookalike",
+      "product": "nginx",
+      "input": {
+        "headers": {
+          "server": "cloudflare"
+        }
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://developers.cloudflare.com/fundamentals/reference/http-headers/",
+      "note": "Cloudflare's edge, often in front of nginx"
+    },
+    {
+      "id": "openssl-3.1.3",
+      "category": "end-of-life",
+      "product": "openssl",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.58 (Win64) OpenSSL/3.1.3 PHP/8.2.12"
+        }
+      },
+      "kind": "exact",
+      "version": "3.1.3",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://www.apachefriends.org/download.html",
+      "note": "XAMPP's OpenSSL 3.1.3: 3.1 is end of life"
+    },
+    {
+      "id": "openssl-3.5.9",
+      "category": "exact-upstream",
+      "product": "openssl",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.69 (Unix) OpenSSL/3.5.9"
+        }
+      },
+      "kind": "exact",
+      "version": "3.5.9",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://openssl-library.org/source/",
+      "note": "3.5 LTS, current"
+    },
+    {
+      "id": "openssl-3.4.8",
+      "category": "exact-upstream",
+      "product": "openssl",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.69 (Unix) OpenSSL/3.4.8"
+        }
+      },
+      "kind": "exact",
+      "version": "3.4.8",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://openssl-library.org/source/",
+      "note": "3.4 reaches end of life on 22 Oct 2026, a day after the pack's date, so the pack does not call it end of life yet"
+    },
+    {
+      "id": "openssl-3.6.5",
+      "category": "exact-upstream",
+      "product": "openssl",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.69 (Unix) OpenSSL/3.6.5"
+        }
+      },
+      "kind": "exact",
+      "version": "3.6.5",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://openssl-library.org/source/",
+      "note": "3.6, supported until 1 Nov 2026"
+    },
+    {
+      "id": "openssl-4.0.3",
+      "category": "exact-upstream",
+      "product": "openssl",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.69 (Unix) OpenSSL/4.0.3"
+        }
+      },
+      "kind": "exact",
+      "version": "4.0.3",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://openssl-library.org/source/",
+      "note": "4.0"
+    },
+    {
+      "id": "openssl-3.0.19",
+      "category": "end-of-life",
+      "product": "openssl",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.62 (Unix) OpenSSL/3.0.19"
+        }
+      },
+      "kind": "exact",
+      "version": "3.0.19",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://openssl-library.org/source/",
+      "note": "3.0 LTS ended 7 Sep 2026"
+    },
+    {
+      "id": "openssl-1.1.1w",
+      "category": "end-of-life",
+      "product": "openssl",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.57 (Unix) OpenSSL/1.1.1w"
+        }
+      },
+      "kind": "exact",
+      "version": "1.1.1w",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://openssl-library.org/news/vulnerabilities-1.1.1/",
+      "note": "1.1.1w, the last public 1.1.1 release"
+    },
+    {
+      "id": "openssl-1.1.1zj",
+      "category": "end-of-life",
+      "product": "openssl",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.62 (Unix) OpenSSL/1.1.1zj"
+        }
+      },
+      "kind": "exact",
+      "version": "1.1.1zj",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://openssl-library.org/news/vulnerabilities-1.1.1/",
+      "note": "premium-support 1.1.1zj: still past public end of life"
+    },
+    {
+      "id": "openssl-1.0.2u",
+      "category": "end-of-life",
+      "product": "openssl",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.41 (Unix) OpenSSL/1.0.2u"
+        }
+      },
+      "kind": "exact",
+      "version": "1.0.2u",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://openssl-library.org/source/",
+      "note": "last public 1.0.2"
+    },
+    {
+      "id": "openssl-4.1.0",
+      "category": "prerelease-suffix",
+      "product": "openssl",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.69 (Unix) OpenSSL/4.1.0-beta2"
+        }
+      },
+      "kind": "exact",
+      "version": "4.1.0 (pre-release)",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://openssl-library.org/source/",
+      "note": "a 4.1 beta (9 Oct 2026)"
+    },
+    {
+      "id": "openssl-1.0.2k-centos",
+      "category": "distro-backport",
+      "product": "openssl",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.6 (CentOS) OpenSSL/1.0.2k-fips"
+        }
+      },
+      "kind": "distro",
+      "version": "1.0.2k",
+      "verdicts": {},
+      "eol": "end-of-life-distro",
+      "source": "https://github.com/openssl/openssl/blob/OpenSSL_1_0_2k/crypto/opensslv.h",
+      "note": "CentOS/RHEL 7: -fips comes from the FIPS build"
+    },
+    {
+      "id": "openssl-1.0.2k-red-hat-enterprise-linux",
+      "category": "distro-backport",
+      "product": "openssl",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.6 (Red Hat Enterprise Linux) OpenSSL/1.0.2k-fips"
+        }
+      },
+      "kind": "distro",
+      "version": "1.0.2k",
+      "verdicts": {},
+      "eol": "end-of-life-distro",
+      "source": "https://vault.centos.org/7.9.2009/os/x86_64/Packages/",
+      "note": "RHEL 7"
+    },
+    {
+      "id": "openssl-1.1.1k-rocky-linux",
+      "category": "distro-backport",
+      "product": "openssl",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k"
+        }
+      },
+      "kind": "distro",
+      "version": "1.1.1k",
+      "verdicts": {},
+      "eol": "end-of-life-distro",
+      "source": "https://repo.almalinux.org/almalinux/8/BaseOS/x86_64/os/Packages/",
+      "note": "EL8's openssl 1.1.1k-18: RHEL's version text drops -fips at mod_ssl's cut"
+    },
+    {
+      "id": "openssl-3.2.2-red-hat-enterprise-linux",
+      "category": "distro-backport",
+      "product": "openssl",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.62 (Red Hat Enterprise Linux) OpenSSL/3.2.2"
+        }
+      },
+      "kind": "distro",
+      "version": "3.2.2",
+      "verdicts": {},
+      "eol": "end-of-life-distro",
+      "source": "https://gitlab.com/redhat/centos-stream/rpms/httpd/-/raw/c9s/httpd.spec",
+      "note": "RHEL 9.5's openssl 3.2.2 (3.2 is end of life upstream)"
+    },
+    {
+      "id": "openssl-3.5.8-rocky-linux",
+      "category": "distro-backport",
+      "product": "openssl",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.62 (Rocky Linux) OpenSSL/3.5.8"
+        }
+      },
+      "kind": "distro",
+      "version": "3.5.8",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://repo.almalinux.org/almalinux/9/BaseOS/x86_64/os/Packages/",
+      "note": "EL9.8's openssl 3.5.8"
+    },
+    {
+      "id": "openssl-3.0.2-ubuntu",
+      "category": "distro-backport",
+      "product": "openssl",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.52 (Ubuntu) OpenSSL/3.0.2"
+        }
+      },
+      "kind": "distro",
+      "version": "3.0.2",
+      "verdicts": {},
+      "eol": "end-of-life-distro",
+      "source": "https://launchpad.net/ubuntu/jammy/+source/openssl",
+      "note": "Ubuntu 22.04 (3.0.2-0ubuntu1.30) with ServerTokens Full"
+    },
+    {
+      "id": "openssl-3.0.22-debian",
+      "category": "distro-backport",
+      "product": "openssl",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.68 (Debian) OpenSSL/3.0.22"
+        }
+      },
+      "kind": "distro",
+      "version": "3.0.22",
+      "verdicts": {},
+      "eol": "end-of-life-distro",
+      "source": "https://qa.debian.org/madison.php?package=openssl&table=debian&text=on",
+      "note": "Debian 12 (3.0.22-1~deb12u1) with ServerTokens Full"
+    },
+    {
+      "id": "openssl-1.1.1f-ubuntu",
+      "category": "distro-backport",
+      "product": "openssl",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.41 (Ubuntu) OpenSSL/1.1.1f"
+        }
+      },
+      "kind": "distro",
+      "version": "1.1.1f",
+      "verdicts": {},
+      "eol": "end-of-life-distro",
+      "source": "https://launchpad.net/ubuntu/focal/+source/openssl",
+      "note": "Ubuntu 20.04 (1.1.1f-1ubuntu2.24)"
+    },
+    {
+      "id": "openssl-libressl-style",
+      "category": "lookalike",
+      "product": "openssl",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.69 (Unix) LibreSSL/3.9.2"
+        }
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://www.libressl.org/releases.html",
+      "note": "LibreSSL is an OpenSSL fork with its own versions; OpenSSL's end-of-life dates do not apply"
+    },
+    {
+      "id": "openssl-hidden-by-tokens-os",
+      "category": "hidden-partial",
+      "product": "openssl",
+      "input": {
+        "headers": {
+          "server": "Apache/2.4.62 (Debian)"
+        }
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/apache/httpd/blob/2.4.x/modules/ssl/ssl_engine_vars.c",
+      "note": "mod_ssl's OpenSSL token only appears under ServerTokens Full: no OpenSSL evidence at all"
+    },
+    {
+      "id": "python-server-simplehttp-3.12.15",
+      "category": "exact-upstream",
+      "product": "python",
+      "input": {
+        "headers": {
+          "server": "SimpleHTTP/0.6 Python/3.12.15"
+        }
+      },
+      "kind": "exact",
+      "version": "3.12.15",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/python/cpython/blob/main/Lib/http/server.py",
+      "note": "python -m http.server"
+    },
+    {
+      "id": "python-server-simplehttp-3.15.1",
+      "category": "exact-upstream",
+      "product": "python",
+      "input": {
+        "headers": {
+          "server": "SimpleHTTP/0.6 Python/3.15.1"
+        }
+      },
+      "kind": "exact",
+      "version": "3.15.1",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/python/cpython/blob/main/Lib/http/server.py",
+      "note": "current 3.15"
+    },
+    {
+      "id": "python-server-werkzeug-3.13.17",
+      "category": "exact-upstream",
+      "product": "python",
+      "input": {
+        "headers": {
+          "server": "Werkzeug/3.1.3 Python/3.13.17"
+        }
+      },
+      "kind": "exact",
+      "version": "3.13.17",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/pallets/werkzeug/blob/main/src/werkzeug/serving.py",
+      "note": "Flask's dev server"
+    },
+    {
+      "id": "python-server-werkzeug-3.10.22",
+      "category": "end-of-life",
+      "product": "python",
+      "input": {
+        "headers": {
+          "server": "Werkzeug/3.1.3 Python/3.10.22"
+        }
+      },
+      "kind": "exact",
+      "version": "3.10.22",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://github.com/pallets/werkzeug/blob/main/src/werkzeug/serving.py",
+      "note": "3.10 ended 1 Oct 2026, with 3.10.22 its last release"
+    },
+    {
+      "id": "python-server-basehttp-3.9.25",
+      "category": "end-of-life",
+      "product": "python",
+      "input": {
+        "headers": {
+          "server": "BaseHTTP/0.6 Python/3.9.25"
+        }
+      },
+      "kind": "exact",
+      "version": "3.9.25",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://github.com/python/cpython/blob/main/Lib/http/server.py",
+      "note": "last 3.9 release"
+    },
+    {
+      "id": "python-server-werkzeug-3.8.20",
+      "category": "end-of-life",
+      "product": "python",
+      "input": {
+        "headers": {
+          "server": "Werkzeug/2.0.3 Python/3.8.20"
+        }
+      },
+      "kind": "exact",
+      "version": "3.8.20",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://github.com/pallets/werkzeug/blob/main/src/werkzeug/serving.py",
+      "note": "last 3.8 release"
+    },
+    {
+      "id": "python-server-werkzeug-3.15.0",
+      "category": "prerelease-suffix",
+      "product": "python",
+      "input": {
+        "headers": {
+          "server": "Werkzeug/3.1.3 Python/3.15.0rc1"
+        }
+      },
+      "kind": "exact",
+      "version": "3.15.0 (pre-release)",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://www.python.org/downloads/release/python-3150rc1/",
+      "note": "a 3.15 release candidate: Python spells rc in lowercase with no separator"
+    },
+    {
+      "id": "python-server-python-3.11",
+      "category": "hidden-partial",
+      "product": "python",
+      "input": {
+        "headers": {
+          "server": "Python/3.11 aiohttp/3.9.5"
+        }
+      },
+      "kind": "branch",
+      "version": "3.11",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/aio-libs/aiohttp/blob/master/aiohttp/http.py",
+      "note": "aiohttp prints only major.minor"
+    },
+    {
+      "id": "python-server-python-3.9",
+      "category": "hidden-partial",
+      "product": "python",
+      "input": {
+        "headers": {
+          "server": "Python/3.9 aiohttp/3.8.6"
+        }
+      },
+      "kind": "branch",
+      "version": "3.9",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://github.com/aio-libs/aiohttp/blob/master/aiohttp/http.py",
+      "note": "an end-of-life line behind aiohttp"
+    },
+    {
+      "id": "python-server-werkzeug-3.12.3",
+      "category": "distro-unmarked",
+      "product": "python",
+      "input": {
+        "headers": {
+          "server": "Werkzeug/3.0.1 Python/3.12.3"
+        }
+      },
+      "kind": "distro",
+      "version": "3.12.3",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://launchpad.net/ubuntu/noble/+source/python3.12",
+      "note": "Ubuntu 24.04's python3.12 (3.12.3-1ubuntu0.17): sys.version carries no package revision",
+      "deviation": {
+        "id": "L1",
+        "engine": {
+          "kind": "exact"
+        }
+      }
+    },
+    {
+      "id": "python-server-werkzeug-3.10.12",
+      "category": "distro-unmarked",
+      "product": "python",
+      "input": {
+        "headers": {
+          "server": "Werkzeug/2.0.2 Python/3.10.12"
+        }
+      },
+      "kind": "distro",
+      "version": "3.10.12",
+      "verdicts": {},
+      "eol": "end-of-life-distro",
+      "source": "https://launchpad.net/ubuntu/jammy/+source/python3.10",
+      "note": "Ubuntu 22.04's python3.10, supported by Ubuntu past upstream end of life",
+      "deviation": {
+        "id": "L1",
+        "engine": {
+          "kind": "exact",
+          "eol": "end-of-life"
+        }
+      }
+    },
+    {
+      "id": "python-server-werkzeug-3.6.8",
+      "category": "distro-unmarked",
+      "product": "python",
+      "input": {
+        "headers": {
+          "server": "Werkzeug/2.0.3 Python/3.6.8"
+        }
+      },
+      "kind": "distro",
+      "version": "3.6.8",
+      "verdicts": {},
+      "eol": "end-of-life-distro",
+      "source": "https://repo.almalinux.org/almalinux/8/BaseOS/x86_64/os/Packages/",
+      "note": "EL8's platform python 3.6.8",
+      "deviation": {
+        "id": "L1",
+        "engine": {
+          "kind": "exact",
+          "eol": "end-of-life"
+        }
+      }
+    },
+    {
+      "id": "python-server-werkzeug-3.9.2",
+      "category": "distro-unmarked",
+      "product": "python",
+      "input": {
+        "headers": {
+          "server": "Werkzeug/3.0.1 Python/3.9.2"
+        }
+      },
+      "kind": "distro",
+      "version": "3.9.2",
+      "verdicts": {},
+      "eol": "end-of-life-distro",
+      "source": "https://qa.debian.org/madison.php?package=python3.9&table=debian&text=on",
+      "note": "Debian 11's python3.9 (3.9.2-1+deb11u7)",
+      "deviation": {
+        "id": "L1",
+        "engine": {
+          "kind": "exact",
+          "eol": "end-of-life"
+        }
+      }
+    },
+    {
+      "id": "python-server-gunicorn",
+      "category": "hidden-partial",
+      "product": "python",
+      "input": {
+        "headers": {
+          "server": "gunicorn"
+        }
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/benoitc/gunicorn/blob/master/gunicorn/http/wsgi.py",
+      "note": "gunicorn names itself, not the interpreter"
+    },
+    {
+      "id": "python-server-uvicorn",
+      "category": "hidden-partial",
+      "product": "python",
+      "input": {
+        "headers": {
+          "server": "uvicorn"
+        }
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/encode/uvicorn/blob/master/uvicorn/protocols/http/h11_impl.py",
+      "note": "uvicorn names itself, not the interpreter"
+    },
+    {
+      "id": "python-img-3.12.15-slim-bookworm",
+      "category": "docker-pinned",
+      "product": "python",
+      "input": {
+        "image": "python:3.12.15-slim-bookworm"
+      },
+      "kind": "exact",
+      "version": "3.12.15",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/python/tags/3.12.15-slim-bookworm",
+      "note": "official images build CPython from source: -slim-bookworm is the base, not a distribution Python"
+    },
+    {
+      "id": "python-img-3.10.22",
+      "category": "docker-pinned",
+      "product": "python",
+      "input": {
+        "image": "python:3.10.22"
+      },
+      "kind": "exact",
+      "version": "3.10.22",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/python/tags/3.10.22",
+      "note": "last 3.10 image"
+    },
+    {
+      "id": "python-img-3.9.25",
+      "category": "docker-pinned",
+      "product": "python",
+      "input": {
+        "image": "python:3.9.25"
+      },
+      "kind": "exact",
+      "version": "3.9.25",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/python/tags/3.9.25",
+      "note": "last 3.9 image"
+    },
+    {
+      "id": "python-img-3.8.20",
+      "category": "docker-pinned",
+      "product": "python",
+      "input": {
+        "image": "python:3.8.20"
+      },
+      "kind": "exact",
+      "version": "3.8.20",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/python/tags/3.8.20",
+      "note": "last 3.8 image"
+    },
+    {
+      "id": "python-img-3.15.0rc1",
+      "category": "prerelease-suffix",
+      "product": "python",
+      "input": {
+        "image": "python:3.15.0rc1"
+      },
+      "kind": "exact",
+      "version": "3.15.0 (pre-release)",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/python/tags/3.15.0rc1",
+      "note": "a release-candidate image"
+    },
+    {
+      "id": "python-img-3.13",
+      "category": "docker-floating",
+      "product": "python",
+      "input": {
+        "image": "python:3.13"
+      },
+      "kind": "branch",
+      "version": "3.13",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/python/tags/3.13",
+      "note": "floating line"
+    },
+    {
+      "id": "python-img-3.10-slim",
+      "category": "docker-floating",
+      "product": "python",
+      "input": {
+        "image": "python:3.10-slim"
+      },
+      "kind": "branch",
+      "version": "3.10",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/python/tags/3.10-slim",
+      "note": "end-of-life line"
+    },
+    {
+      "id": "python-img-3.9",
+      "category": "docker-floating",
+      "product": "python",
+      "input": {
+        "image": "python:3.9"
+      },
+      "kind": "branch",
+      "version": "3.9",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/python/tags/3.9",
+      "note": "end-of-life line"
+    },
+    {
+      "id": "python-img-2.7",
+      "category": "docker-floating",
+      "product": "python",
+      "input": {
+        "image": "python:2.7"
+      },
+      "kind": "branch",
+      "version": "2.7",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/python/tags/2.7",
+      "note": "end-of-life line"
+    },
+    {
+      "id": "python-img-3.16-rc-slim",
+      "category": "docker-floating",
+      "product": "python",
+      "input": {
+        "image": "python:3.16-rc-slim"
+      },
+      "kind": "branch",
+      "version": "3.16",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/python/tags/3.16-rc-slim",
+      "note": "the 3.16 pre-release line"
+    },
+    {
+      "id": "python-img-3",
+      "category": "docker-floating",
+      "product": "python",
+      "input": {
+        "image": "python:3"
+      },
+      "kind": "present",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/python/tags/3",
+      "note": "spans release lines"
+    },
+    {
+      "id": "python-img-latest",
+      "category": "docker-floating",
+      "product": "python",
+      "input": {
+        "image": "python:latest"
+      },
+      "kind": "present",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/python/tags/latest",
+      "note": "no version"
+    },
+    {
+      "id": "python-img-pypy",
+      "category": "lookalike",
+      "product": "python",
+      "input": {
+        "image": "pypy:3.10"
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/pypy/tags/3.10",
+      "note": "PyPy implements the Python 3.10 language; CPython's release lines do not apply"
+    },
+    {
+      "id": "python-file-python-version-3.12.15",
+      "category": "version-file",
+      "product": "python",
+      "input": {
+        "file": ".python-version",
+        "content": "3.12.15\n"
+      },
+      "kind": "exact",
+      "version": "3.12.15",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/pyenv/pyenv#understanding-python-version-selection",
+      "note": "pyenv exact pin"
+    },
+    {
+      "id": "python-file-python-version-3.10",
+      "category": "version-file",
+      "product": "python",
+      "input": {
+        "file": ".python-version",
+        "content": "3.10\n"
+      },
+      "kind": "branch",
+      "version": "3.10",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://github.com/pyenv/pyenv#understanding-python-version-selection",
+      "note": "pyenv line pin on an end-of-life line"
+    },
+    {
+      "id": "python-file-python-version-3.9.25",
+      "category": "version-file",
+      "product": "python",
+      "input": {
+        "file": ".python-version",
+        "content": "3.9.25\n"
+      },
+      "kind": "exact",
+      "version": "3.9.25",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://github.com/pyenv/pyenv#understanding-python-version-selection",
+      "note": "exact pin on an end-of-life line"
+    },
+    {
+      "id": "python-file-python-version-system",
+      "category": "version-file",
+      "product": "python",
+      "input": {
+        "file": ".python-version",
+        "content": "system\n"
+      },
+      "kind": "present",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/pyenv/pyenv#understanding-python-version-selection",
+      "note": "pyenv's system Python: version unknown"
+    },
+    {
+      "id": "python-file-runtime.txt-python-3.12.15",
+      "category": "version-file",
+      "product": "python",
+      "input": {
+        "file": "runtime.txt",
+        "content": "python-3.12.15\n"
+      },
+      "kind": "exact",
+      "version": "3.12.15",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://devcenter.heroku.com/articles/python-runtimes",
+      "note": "Heroku-style runtime.txt"
+    },
+    {
+      "id": "python-file-runtime.txt-python-3.8.20",
+      "category": "version-file",
+      "product": "python",
+      "input": {
+        "file": "runtime.txt",
+        "content": "python-3.8.20\n"
+      },
+      "kind": "exact",
+      "version": "3.8.20",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://devcenter.heroku.com/articles/python-runtimes",
+      "note": "end-of-life runtime.txt"
+    },
+    {
+      "id": "python-file-tool-versions-python-3.11.17",
+      "category": "version-file",
+      "product": "python",
+      "input": {
+        "file": ".tool-versions",
+        "content": "python 3.11.17\n"
+      },
+      "kind": "exact",
+      "version": "3.11.17",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://asdf-vm.com/manage/configuration.html#tool-versions",
+      "note": "asdf pin"
+    },
+    {
+      "id": "python-file-pypy",
+      "category": "lookalike",
+      "product": "python",
+      "input": {
+        "file": ".python-version",
+        "content": "pypy3.10-7.3.17\n"
+      },
+      "kind": "present",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/pyenv/pyenv#understanding-python-version-selection",
+      "note": "a pyenv PyPy name: a Python is in use but not a CPython version, so no CPython release line is read from it"
+    },
+    {
+      "id": "node-xpb-express",
+      "category": "lookalike",
+      "product": "nodejs",
+      "input": {
+        "headers": {
+          "x-powered-by": "Express"
+        }
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/expressjs/express/blob/master/lib/application.js",
+      "note": "Express's X-Powered-By has no Node.js version"
+    },
+    {
+      "id": "node-xpb-nextjs",
+      "category": "lookalike",
+      "product": "nodejs",
+      "input": {
+        "headers": {
+          "x-powered-by": "Next.js"
+        }
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/vercel/next.js/blob/canary/packages/next/src/server/send-payload.ts",
+      "note": "Next.js's X-Powered-By has no Node.js version"
+    },
+    {
+      "id": "node-img-node-red",
+      "category": "lookalike",
+      "product": "nodejs",
+      "input": {
+        "image": "nodered/node-red:4.0"
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/r/nodered/node-red",
+      "note": "Node-RED's tag is Node-RED's version"
+    },
+    {
+      "id": "node-img-20.11.1",
+      "category": "docker-pinned",
+      "product": "nodejs",
+      "input": {
+        "image": "node:20.11.1"
+      },
+      "kind": "exact",
+      "version": "20.11.1",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "end-of-life-no-fix",
+        "nodejs-tls-hostname-2026-10": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/node/tags/20.11.1",
+      "note": "pinned 20 (end of life 30 Apr 2026)"
+    },
+    {
+      "id": "node-img-18.20.8",
+      "category": "docker-pinned",
+      "product": "nodejs",
+      "input": {
+        "image": "node:18.20.8"
+      },
+      "kind": "exact",
+      "version": "18.20.8",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "end-of-life-no-fix",
+        "nodejs-tls-hostname-2026-10": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/node/tags/18.20.8",
+      "note": "last 18 release"
+    },
+    {
+      "id": "node-img-22.23.4-slim",
+      "category": "docker-pinned",
+      "product": "nodejs",
+      "input": {
+        "image": "node:22.23.4-slim"
+      },
+      "kind": "exact",
+      "version": "22.23.4",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "has-fix",
+        "nodejs-tls-hostname-2026-10": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/node/tags/22.23.4-slim",
+      "note": "current 22 LTS"
+    },
+    {
+      "id": "node-img-24.22.1-alpine",
+      "category": "docker-pinned",
+      "product": "nodejs",
+      "input": {
+        "image": "node:24.22.1-alpine"
+      },
+      "kind": "exact",
+      "version": "24.22.1",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "has-fix",
+        "nodejs-tls-hostname-2026-10": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/node/tags/24.22.1-alpine",
+      "note": "current 24 LTS"
+    },
+    {
+      "id": "node-img-26.12.1",
+      "category": "docker-pinned",
+      "product": "nodejs",
+      "input": {
+        "image": "node:26.12.1"
+      },
+      "kind": "exact",
+      "version": "26.12.1",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "has-fix",
+        "nodejs-tls-hostname-2026-10": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/node/tags/26.12.1",
+      "note": "current"
+    },
+    {
+      "id": "node-img-25.9.0",
+      "category": "docker-pinned",
+      "product": "nodejs",
+      "input": {
+        "image": "node:25.9.0"
+      },
+      "kind": "exact",
+      "version": "25.9.0",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "end-of-life-no-fix",
+        "nodejs-tls-hostname-2026-10": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/node/tags/25.9.0",
+      "note": "last 25 (odd lines end after six months)"
+    },
+    {
+      "id": "node-img-20",
+      "category": "docker-floating",
+      "product": "nodejs",
+      "input": {
+        "image": "node:20"
+      },
+      "kind": "branch",
+      "version": "20",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "end-of-life-no-fix",
+        "nodejs-tls-hostname-2026-10": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/node/tags/20",
+      "note": "end-of-life line, still on Docker Hub"
+    },
+    {
+      "id": "node-img-20-alpine",
+      "category": "docker-floating",
+      "product": "nodejs",
+      "input": {
+        "image": "node:20-alpine"
+      },
+      "kind": "branch",
+      "version": "20",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "end-of-life-no-fix",
+        "nodejs-tls-hostname-2026-10": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/node/tags/20-alpine",
+      "note": "end-of-life line"
+    },
+    {
+      "id": "node-img-18",
+      "category": "docker-floating",
+      "product": "nodejs",
+      "input": {
+        "image": "node:18"
+      },
+      "kind": "branch",
+      "version": "18",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "end-of-life-no-fix",
+        "nodejs-tls-hostname-2026-10": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/node/tags/18",
+      "note": "end-of-life line"
+    },
+    {
+      "id": "node-img-16-alpine",
+      "category": "docker-floating",
+      "product": "nodejs",
+      "input": {
+        "image": "node:16-alpine"
+      },
+      "kind": "branch",
+      "version": "16",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "end-of-life-no-fix",
+        "nodejs-tls-hostname-2026-10": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/node/tags/16-alpine",
+      "note": "end-of-life line"
+    },
+    {
+      "id": "node-img-14",
+      "category": "docker-floating",
+      "product": "nodejs",
+      "input": {
+        "image": "node:14"
+      },
+      "kind": "branch",
+      "version": "14",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "end-of-life-no-fix",
+        "nodejs-tls-hostname-2026-10": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/node/tags/14",
+      "note": "end-of-life line"
+    },
+    {
+      "id": "node-img-24",
+      "category": "docker-floating",
+      "product": "nodejs",
+      "input": {
+        "image": "node:24"
+      },
+      "kind": "branch",
+      "version": "24",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "check-on-server",
+        "nodejs-tls-hostname-2026-10": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/node/tags/24",
+      "note": "supported LTS line"
+    },
+    {
+      "id": "node-img-lts",
+      "category": "docker-floating",
+      "product": "nodejs",
+      "input": {
+        "image": "node:lts"
+      },
+      "kind": "present",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "check-on-server",
+        "nodejs-tls-hostname-2026-10": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/node/tags/lts",
+      "note": "floats across lines"
+    },
+    {
+      "id": "node-img-current",
+      "category": "docker-floating",
+      "product": "nodejs",
+      "input": {
+        "image": "node:current"
+      },
+      "kind": "present",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "check-on-server",
+        "nodejs-tls-hostname-2026-10": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/node/tags/current",
+      "note": "floats across lines"
+    },
+    {
+      "id": "node-img-lts-alpine",
+      "category": "docker-floating",
+      "product": "nodejs",
+      "input": {
+        "image": "node:lts-alpine"
+      },
+      "kind": "present",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "check-on-server",
+        "nodejs-tls-hostname-2026-10": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/node/tags/lts-alpine",
+      "note": "floats across lines"
+    },
+    {
+      "id": "node-img-iron",
+      "category": "docker-floating",
+      "product": "nodejs",
+      "input": {
+        "image": "node:iron"
+      },
+      "kind": "branch",
+      "version": "20",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "end-of-life-no-fix",
+        "nodejs-tls-hostname-2026-10": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/node/tags/iron",
+      "note": "the codename tag for 20, an end-of-life line"
+    },
+    {
+      "id": "node-img-hydrogen",
+      "category": "docker-floating",
+      "product": "nodejs",
+      "input": {
+        "image": "node:hydrogen"
+      },
+      "kind": "branch",
+      "version": "18",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "end-of-life-no-fix",
+        "nodejs-tls-hostname-2026-10": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/node/tags/hydrogen",
+      "note": "the codename tag for 18"
+    },
+    {
+      "id": "node-img-jod",
+      "category": "docker-floating",
+      "product": "nodejs",
+      "input": {
+        "image": "node:jod"
+      },
+      "kind": "branch",
+      "version": "22",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "check-on-server",
+        "nodejs-tls-hostname-2026-10": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/node/tags/jod",
+      "note": "the codename tag for 22"
+    },
+    {
+      "id": "node-file-nvmrc-20",
+      "category": "version-file",
+      "product": "nodejs",
+      "input": {
+        "file": ".nvmrc",
+        "content": "20\n"
+      },
+      "kind": "branch",
+      "version": "20",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "end-of-life-no-fix",
+        "nodejs-tls-hostname-2026-10": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://github.com/nvm-sh/nvm#nvmrc",
+      "note": "line pin on an end-of-life line"
+    },
+    {
+      "id": "node-file-nvmrc-v20.11.1",
+      "category": "version-file",
+      "product": "nodejs",
+      "input": {
+        "file": ".nvmrc",
+        "content": "v20.11.1\n"
+      },
+      "kind": "exact",
+      "version": "20.11.1",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "end-of-life-no-fix",
+        "nodejs-tls-hostname-2026-10": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://github.com/nvm-sh/nvm#nvmrc",
+      "note": "nvm accepts a leading v"
+    },
+    {
+      "id": "node-file-nvmrc-24",
+      "category": "version-file",
+      "product": "nodejs",
+      "input": {
+        "file": ".nvmrc",
+        "content": "24\n"
+      },
+      "kind": "branch",
+      "version": "24",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "check-on-server",
+        "nodejs-tls-hostname-2026-10": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://github.com/nvm-sh/nvm#nvmrc",
+      "note": "supported line"
+    },
+    {
+      "id": "node-file-nvmrc-node",
+      "category": "version-file",
+      "product": "nodejs",
+      "input": {
+        "file": ".nvmrc",
+        "content": "node\n"
+      },
+      "kind": "present",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "check-on-server",
+        "nodejs-tls-hostname-2026-10": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://github.com/nvm-sh/nvm#nvmrc",
+      "note": "nvm's alias for the newest release"
+    },
+    {
+      "id": "node-file-nvmrc-lts-",
+      "category": "version-file",
+      "product": "nodejs",
+      "input": {
+        "file": ".nvmrc",
+        "content": "lts/*\n"
+      },
+      "kind": "present",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "check-on-server",
+        "nodejs-tls-hostname-2026-10": "check-on-server"
+      },
+      "eol": "none",
+      "source": "https://github.com/nvm-sh/nvm#nvmrc",
+      "note": "the newest LTS, whichever line that is"
+    },
+    {
+      "id": "node-file-nvmrc-lts-iron",
+      "category": "version-file",
+      "product": "nodejs",
+      "input": {
+        "file": ".nvmrc",
+        "content": "lts/iron\n"
+      },
+      "kind": "branch",
+      "version": "20",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "end-of-life-no-fix",
+        "nodejs-tls-hostname-2026-10": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://github.com/nvm-sh/nvm#nvmrc",
+      "note": "nvm's LTS codename alias for 20"
+    },
+    {
+      "id": "node-file-nvmrc-lts-hydrogen",
+      "category": "version-file",
+      "product": "nodejs",
+      "input": {
+        "file": ".nvmrc",
+        "content": "lts/hydrogen\n"
+      },
+      "kind": "branch",
+      "version": "18",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "end-of-life-no-fix",
+        "nodejs-tls-hostname-2026-10": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://github.com/nvm-sh/nvm#nvmrc",
+      "note": "nvm's LTS codename alias for 18"
+    },
+    {
+      "id": "node-file-node-version-22.23.4",
+      "category": "version-file",
+      "product": "nodejs",
+      "input": {
+        "file": ".node-version",
+        "content": "22.23.4\n"
+      },
+      "kind": "exact",
+      "version": "22.23.4",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "has-fix",
+        "nodejs-tls-hostname-2026-10": "has-fix"
+      },
+      "eol": "none",
+      "source": "https://nodejs.org/dist/index.json",
+      "note": "nodenv / fnm pin"
+    },
+    {
+      "id": "node-file-tool-versions-nodejs-18.20.4",
+      "category": "version-file",
+      "product": "nodejs",
+      "input": {
+        "file": ".tool-versions",
+        "content": "nodejs 18.20.4\n"
+      },
+      "kind": "exact",
+      "version": "18.20.4",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "end-of-life-no-fix",
+        "nodejs-tls-hostname-2026-10": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://nodejs.org/dist/index.json",
+      "note": "asdf pin on an end-of-life line"
+    },
+    {
+      "id": "node-file-tool-versions-node-16.20.2",
+      "category": "version-file",
+      "product": "nodejs",
+      "input": {
+        "file": ".tool-versions",
+        "content": "node 16.20.2\n"
+      },
+      "kind": "exact",
+      "version": "16.20.2",
+      "verdicts": {
+        "nodejs-cve-2026-111497": "end-of-life-no-fix",
+        "nodejs-tls-hostname-2026-10": "end-of-life-no-fix"
+      },
+      "eol": "end-of-life",
+      "source": "https://nodejs.org/dist/index.json",
+      "note": "mise accepts `node`"
+    },
+    {
+      "id": "mongo-img-9.0.4",
+      "category": "docker-pinned",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:9.0.4"
+      },
+      "kind": "exact",
+      "version": "9.0.4",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/9.0.4",
+      "note": "current 9.0"
+    },
+    {
+      "id": "mongo-img-8.3.13",
+      "category": "docker-pinned",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:8.3.13"
+      },
+      "kind": "exact",
+      "version": "8.3.13",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/8.3.13",
+      "note": "current 8.3"
+    },
+    {
+      "id": "mongo-img-8.0.34",
+      "category": "docker-pinned",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:8.0.34"
+      },
+      "kind": "exact",
+      "version": "8.0.34",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/8.0.34",
+      "note": "current 8.0"
+    },
+    {
+      "id": "mongo-img-7.0.45-jammy",
+      "category": "docker-pinned",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:7.0.45-jammy"
+      },
+      "kind": "exact",
+      "version": "7.0.45",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/7.0.45-jammy",
+      "note": "current 7.0, Ubuntu-based variant: the image builds MongoDB's own packages, so the base is not a distribution MongoDB"
+    },
+    {
+      "id": "mongo-img-8.2.1",
+      "category": "end-of-life",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:8.2.1"
+      },
+      "kind": "exact",
+      "version": "8.2.1",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/8.2.1",
+      "note": "8.2 rapid release, end of life 31 Jul 2026"
+    },
+    {
+      "id": "mongo-img-6.0.19",
+      "category": "end-of-life",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:6.0.19"
+      },
+      "kind": "exact",
+      "version": "6.0.19",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/6.0.19",
+      "note": "6.0 ended 31 Jul 2025"
+    },
+    {
+      "id": "mongo-img-5.0.31",
+      "category": "end-of-life",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:5.0.31"
+      },
+      "kind": "exact",
+      "version": "5.0.31",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/5.0.31",
+      "note": "5.0 ended 31 Oct 2024"
+    },
+    {
+      "id": "mongo-img-4.4.29",
+      "category": "end-of-life",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:4.4.29"
+      },
+      "kind": "exact",
+      "version": "4.4.29",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/4.4.29",
+      "note": "the pin in OWASP Juice Shop's compose file; 4.4 ended 29 Feb 2024"
+    },
+    {
+      "id": "mongo-img-8.0",
+      "category": "docker-floating",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:8.0"
+      },
+      "kind": "branch",
+      "version": "8.0",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/8.0",
+      "note": "floating supported line"
+    },
+    {
+      "id": "mongo-img-7.0-jammy",
+      "category": "docker-floating",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:7.0-jammy"
+      },
+      "kind": "branch",
+      "version": "7.0",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/7.0-jammy",
+      "note": "floating supported line"
+    },
+    {
+      "id": "mongo-img-8.2",
+      "category": "docker-floating",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:8.2"
+      },
+      "kind": "branch",
+      "version": "8.2",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/8.2",
+      "note": "floating end-of-life rapid release"
+    },
+    {
+      "id": "mongo-img-6.0",
+      "category": "docker-floating",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:6.0"
+      },
+      "kind": "branch",
+      "version": "6.0",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/6.0",
+      "note": "floating end-of-life line"
+    },
+    {
+      "id": "mongo-img-4.2",
+      "category": "docker-floating",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:4.2"
+      },
+      "kind": "branch",
+      "version": "4.2",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/4.2",
+      "note": "floating end-of-life line"
+    },
+    {
+      "id": "mongo-img-3.6",
+      "category": "docker-floating",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:3.6"
+      },
+      "kind": "branch",
+      "version": "3.6",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/3.6",
+      "note": "floating end-of-life line"
+    },
+    {
+      "id": "mongo-img-8",
+      "category": "docker-floating",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:8"
+      },
+      "kind": "present",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/8",
+      "note": "spans release lines"
+    },
+    {
+      "id": "mongo-img-latest",
+      "category": "docker-floating",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo:latest"
+      },
+      "kind": "present",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo/tags/latest",
+      "note": "no version"
+    },
+    {
+      "id": "mongo-file-tool-versions-7.0.14",
+      "category": "version-file",
+      "product": "mongodb",
+      "input": {
+        "file": ".tool-versions",
+        "content": "mongodb 7.0.14\n"
+      },
+      "kind": "exact",
+      "version": "7.0.14",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://github.com/sylph01/asdf-mongodb",
+      "note": "asdf-mongodb pin on a supported line"
+    },
+    {
+      "id": "mongo-file-tool-versions-6.0.19",
+      "category": "version-file",
+      "product": "mongodb",
+      "input": {
+        "file": ".tool-versions",
+        "content": "mongodb 6.0.19\n"
+      },
+      "kind": "exact",
+      "version": "6.0.19",
+      "verdicts": {},
+      "eol": "end-of-life",
+      "source": "https://github.com/sylph01/asdf-mongodb",
+      "note": "asdf-mongodb pin on an end-of-life line"
+    },
+    {
+      "id": "mongo-img-mongo-express",
+      "category": "lookalike",
+      "product": "mongodb",
+      "input": {
+        "image": "mongo-express:1.0"
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/library/mongo-express/tags/1.0",
+      "note": "mongo-express, a web admin UI: its tag is its own version"
+    },
+    {
+      "id": "mongo-img-percona",
+      "category": "lookalike",
+      "product": "mongodb",
+      "input": {
+        "image": "percona/percona-server-mongodb:7.0"
+      },
+      "kind": "none",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/percona/percona-server-mongodb/tags/7.0",
+      "note": "Percona Server for MongoDB, a fork with its own support lifecycle"
+    },
+    {
+      "id": "mongo-img-community-server",
+      "category": "docker-floating",
+      "product": "mongodb",
+      "input": {
+        "image": "mongodb/mongodb-community-server:7.0-ubi8"
+      },
+      "kind": "branch",
+      "version": "7.0",
+      "verdicts": {},
+      "eol": "none",
+      "source": "https://hub.docker.com/v2/repositories/mongodb/mongodb-community-server/tags/7.0-ubi8",
+      "note": "MongoDB Inc.'s own image, not library/mongo: the tag is the MongoDB line",
+      "deviation": {
+        "id": "G1",
+        "engine": {
+          "kind": "none"
+        }
+      }
+    }
+  ]
+}

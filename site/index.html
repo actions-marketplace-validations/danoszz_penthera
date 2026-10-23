@@ -70,7 +70,7 @@
     <section class="hero" aria-labelledby="hero-title">
       <img class="field" src="/media/field.png" alt="" width="360" height="225" aria-hidden="true">
       <div class="hero-text">
-        <p class="problem">AI coding tools ship faster than anyone can check.</p>
+        <p class="problem"><span>AI coding tools ship faster than anyone can check.</span></p>
         <ul class="pills" aria-label="Open source, MIT license, works offline"><li>Open source</li><li>MIT</li><li>Offline</li></ul>
         <h1 id="hero-title">Penthera: your <span class="nowrap">open-source</span> cyber security agent</h1>
         <p class="lede">The security review you never had time for. Offline, rule-based, and you can verify every finding yourself.</p>
@@ -282,7 +282,7 @@
       </div>
     </section>
 
-    <!-- 4 · How to trust it: three principles, the benchmark with its caveats, the limits. -->
+    <!-- 4 · How to trust it: three principles, then the benchmark with its caveats. -->
     <section class="trust band band-invert" id="trust" aria-labelledby="trust-title">
       <p class="eyebrow">03 · How to trust it</p>
       <h2 id="trust-title">Don't take our word for it.</h2>
@@ -331,21 +331,44 @@
         <a href="https://github.com/danoszz/penthera/blob/main/docs/research/prereg/E1-real-world-accuracy.md">E1 protocol</a>
       </p>
       </div>
+    </section>
 
-      <!-- Limits, next to the claims. -->
-      <div class="limits" id="limits">
-        <h3 class="limits-title">What it does not do</h3>
-        <div class="limits-body">
-          <p>It finds known classes of problems, not novel ones: misconfigured headers, leaked keys, risky dependency behavior, unsafe agent setups, common injection patterns. It does not find business-logic flaws, complex authorization bugs or zero-days, and it does not replace a human penetration test.</p>
-          <p>On our own labs: precision {{BENCH_P}} (95% CI {{BENCH_P_CI}}) and recall {{BENCH_R}} (95% CI {{BENCH_R_CI}}), on {{BENCH_N}} findings in labs we wrote ourselves. These numbers catch regressions; they do not measure real-world accuracy.</p>
-          <p class="method"><a href="https://github.com/danoszz/penthera/blob/main/docs/METHODOLOGY.md#known-limitations">Known limitations, in the methodology</a></p>
-        </div>
+    <!-- 4b · Current limitations, on a dithered grey band: what it does not do, and what ROADMAP.md plans for each. -->
+    <section class="limits band band-grey" id="limits" aria-labelledby="limits-title">
+      <p class="eyebrow">04 · Current limitations</p>
+      <h2 id="limits-title">What it does not do.</h2>
+      <div class="limits-body">
+        <p>It finds known classes of problems, not novel ones: misconfigured headers, leaked keys, risky dependency behavior, unsafe agent setups, common injection patterns. It does not find business-logic flaws, complex authorization bugs or zero-days, and it does not replace a human penetration test.</p>
+        <p>On our own labs: precision {{BENCH_P}} (95% CI {{BENCH_P_CI}}) and recall {{BENCH_R}} (95% CI {{BENCH_R_CI}}), on {{BENCH_N}} findings in labs we wrote ourselves. These numbers catch regressions; they do not measure real-world accuracy.</p>
       </div>
+
+      <h3 class="road-title">What is planned for each</h3>
+      <p class="road-lede">Ordered, not dated. Penthera is maintained part-time, alongside a PhD.</p>
+      <ul class="road" aria-labelledby="limits-title">
+        <li><p class="road-k">Novel problems no rule describes</p><p>Opt-in AI mode: a local model proposes leads, and Penthera's rules check them. Anything unconfirmed is labeled so. Experiment E9 measures whether it finds more.</p><p class="road-s">In 1.9.0-rc.1, opt-in</p></li>
+        <li><p class="road-k">Business-logic and authorization flaws</p><p>Authenticated preview scans, with test accounts from your own seed data. A later candidate: an IDOR baseline that compares an authorized and an unauthorized user.</p><p class="road-s">Planned</p></li>
+        <li><p class="road-k">Zero-days</p><p>Penthera will not find them. Planned instead: an alert when something in your SBOM becomes a known vulnerability, as a reviewed rule-pack update.</p><p class="road-s">Planned</p></li>
+        <li><p class="road-k">A human penetration test</p><p>It will not replace one. Use it before and between tests. A planned ship check will give one pass or fail before you deploy.</p><p class="road-s">Stays a limit</p></li>
+        <li><p class="road-k">Accuracy on real code</p><p>Penthera Bench v1 and experiment E1 measure precision and recall on code we did not write, with intervals. The results are published whatever they are.</p><p class="road-s">Pre-registered</p></li>
+      </ul>
+
+      <h3 class="road-title" id="integrations-title">Planned integrations</h3>
+      <p class="road-lede">None of these ship today.</p>
+      <ul class="road" aria-labelledby="integrations-title">
+        <li><p class="road-k">Base44, Lovable, Bolt and other AI app builders</p><p>Check what they build: the exported code and the published app.</p><p class="road-s">Planned</p></li>
+        <li><p class="road-k">Vercel, Netlify and Cloudflare Pages previews</p><p>A GitHub Action that waits for a pull request's preview, scans it and comments the result.</p><p class="road-s">Planned</p></li>
+      </ul>
+
+      <p class="links">
+        <a href="https://github.com/danoszz/penthera/blob/main/docs/METHODOLOGY.md#known-limitations">Known limitations, in the methodology</a>
+        <a href="#faq-limits">What can't it do? In the FAQ</a>
+        <a href="https://github.com/danoszz/penthera/blob/main/ROADMAP.md">The full roadmap</a>
+      </p>
     </section>
 
     <!-- 5 · The tour: four numbered steps. Dashboard shots from assets/dashboard. -->
     <section class="tour" id="tour" aria-labelledby="tour-title">
-      <p class="eyebrow">04 · The tour</p>
+      <p class="eyebrow">05 · The tour</p>
       <h2 id="tour-title">From one command to a fix you approved.</h2>
       <ol class="steps">
         <li class="step">
@@ -416,19 +439,24 @@
 
     <!-- 6 · How it compares: the table is built from site/compare.json. -->
     <section class="compare" id="compare" aria-labelledby="compare-title">
-      <p class="eyebrow">05 · How it compares</p>
+      <p class="eyebrow">06 · How it compares</p>
       <h2 id="compare-title">Use it with the tools you have.</h2>
-      <p class="compare-lede">Most teams use Penthera with at least one of these. Here is what each is for, and where each goes further.</p>
-      <p class="cmp-hint">Scroll the table sideways to see all seven tools.</p>
-      <div class="cmp-scroll" role="region" aria-labelledby="compare-title" tabindex="0">
+      <p class="compare-lede">Most teams use Penthera with at least one of these. Here is where each goes further.</p>
+{{COMPARE_SUMMARY}}
+      <details class="cmp-more">
+        <summary>The full comparison, with sources</summary>
+        <p class="cmp-hint">Scroll the table sideways to see all seven tools.</p>
+        <div class="cmp-scroll" role="region" aria-labelledby="compare-title" tabindex="0">
 {{COMPARE}}
-      </div>
-      <p class="compare-note">Every cell links its source: the vendor's docs or one of our compare pages, each with the date we last checked it. Prices and plans change, so check the vendor's page before you rely on one. A dash means our page does not cover it. No row says which tool finds more; that has not been measured. <a href="https://github.com/danoszz/penthera/blob/main/docs/compare/README.md">All comparisons, and how to run each tool with Penthera</a></p>
+        </div>
+        <p class="compare-note">Every cell links its source: the vendor's docs or one of our compare pages, each with the date we last checked it. Prices and plans change, so check the vendor's page before you rely on one. A dash means our page does not cover it.</p>
+      </details>
+      <p class="compare-note">No row says which tool finds more; that has not been measured. <a href="https://github.com/danoszz/penthera/blob/main/docs/compare/README.md">All comparisons, and how to run each tool with Penthera</a></p>
     </section>
 
     <!-- 7 · Get started: the CLI, the skill and the MCP server. -->
     <section class="get band band-blue" id="get" aria-labelledby="get-title">
-      <p class="eyebrow">06 · Get started</p>
+      <p class="eyebrow">07 · Get started</p>
       <h2 id="get-title">Three ways in.</h2>
       <ol class="ways">
         <li>
@@ -546,7 +574,7 @@
 
     <!-- 8 · Before you install -->
     <section class="faq" id="faq" aria-labelledby="faq-title">
-      <p class="eyebrow">07 · Questions</p>
+      <p class="eyebrow">08 · Questions</p>
       <h2 id="faq-title">Before you install.</h2>
       <div class="faq-list">
         <details>
@@ -591,10 +619,10 @@
             <p>Every rule is readable: {{N_URL}} URL scan templates, {{N_SECRETS}} secret and AI-key patterns, {{N_CAPS}} dependency capabilities, {{N_AGENTS}} AI-tooling rules and {{N_RECIPES}} fix recipes, on {{DEPS_N}} ({{DEPS_LIST}}). <a href="https://github.com/danoszz/penthera/blob/main/bench/RESULTS.md">Benchmark results</a></p>
           </div>
         </details>
-        <details>
+        <details id="faq-limits">
           <summary>What can't it do?</summary>
           <div class="faq-a">
-            <p>It finds known classes of problems, not novel ones. It does not find business-logic flaws, complex authorization bugs or zero-days, and it does not replace a human penetration test or incident response. The full list is in the methodology's <a href="https://github.com/danoszz/penthera/blob/main/docs/METHODOLOGY.md#known-limitations">known limitations</a>.</p>
+            <p>It finds known classes of problems, not novel ones. It does not find business-logic flaws, complex authorization bugs or zero-days, and it does not replace a human penetration test or incident response. The full list is in the methodology's <a href="https://github.com/danoszz/penthera/blob/main/docs/METHODOLOGY.md#known-limitations">known limitations</a>, and what is planned for each is under <a href="#limits">Current limitations</a>.</p>
           </div>
         </details>
         <details>
@@ -634,7 +662,7 @@
 
     <!-- 9 · For agents: machine-readable entry points, all built from the repo. -->
     <section class="for-agents band band-invert" id="for-agents" aria-labelledby="agents-title">
-      <p class="eyebrow">08 · For agents</p>
+      <p class="eyebrow">09 · For agents</p>
       <h2 id="agents-title">Point your agent here.</h2>
       <p class="agents-lede">Everything on this page, as files an agent can read. Each is built from the repo when the site deploys, so it matches Penthera {{VERSION}}.</p>
       <ul class="entry">

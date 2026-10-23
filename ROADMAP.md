@@ -63,6 +63,7 @@ Ordered, not dated. Each item names the user question it answers.
 | Preview-deployment scanning | "Is this pull request safe?" A GitHub Action that waits for the Vercel, Netlify or Cloudflare Pages preview, scans it and comments the result |
 | Framework presets | "Why is my first scan empty?" Routes, auth flows and headers for Next.js, SvelteKit, Remix, Nuxt and Astro |
 | Authenticated preview scans | "Can it test pages behind a login?" With test accounts from your own seed data, never real credentials |
+| AI app builder integrations | "I built this in Base44, Lovable or Bolt. Is it safe?" Checks for what these tools build: the exported code and the published app |
 
 ### After you ship
 

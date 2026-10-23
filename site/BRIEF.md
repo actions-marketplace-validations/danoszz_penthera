@@ -41,7 +41,7 @@ typesafe.ai in spirit, in Penthera's own 1-bit look (`penthera ui` after #63):
 
 ## Structure
 
-A story in nine chapters (2026-10-22, restructured after caveman.so's
+A story in ten chapters (2026-10-22, restructured after caveman.so's
 structure, not its voice). Each chapter opens with a numbered eyebrow and one
 assertion; sections that repeated each other were merged.
 
@@ -53,21 +53,31 @@ assertion; sections that repeated each other were merged.
    tooling, a live URL), each with a count read from the rules, bold lead-ins
    and its command. Then the browser check, the one window you can use.
 4. How to trust it: three principles (rules decide, offline, measured in
-   public), the E10 benchmark with its caveats first, and the limits.
-5. The tour, numbered 01 to 04: the CLI (the walkthrough), the dashboard,
+   public), then the E10 benchmark with its caveats first.
+5. Current limitations, on its own dithered grey band: what it does not
+   do, what ROADMAP.md plans for each limit, and the planned integrations
+   (AI app builders such as Base44, preview deployments), each marked
+   planned. Links to the methodology, the FAQ and the roadmap.
+6. The tour, numbered 01 to 04: the CLI (the walkthrough), the dashboard,
    the MCP server, the fix loop.
-6. How it compares: the sourced table.
-7. Get started: the CLI, the Agent Skill and the MCP server, each with a copy
+7. How it compares: where each tool goes further, in one line each; the
+   full sourced table folds out below it.
+8. Get started: the CLI, the Agent Skill and the MCP server, each with a copy
    button; prompts and per-client MCP configs below.
-8. Before you install: the FAQ. The EU-rules section and Open R&D are answers
+9. Before you install: the FAQ. The EU-rules section and Open R&D are answers
    here now.
-9. For agents: `llms.txt`, `llms-full.txt`, the Markdown docs, `server.json`,
+10. For agents: `llms.txt`, `llms-full.txt`, the Markdown docs, `server.json`,
    the skill, `AGENTS.md` (once it exists), the sitemap and `security.txt`.
 
 Decided with the maintainer, 2026-10-22: the problem line is a kicker above
 the title (the title stays the h1); the browser check stays under "What it
 checks"; chapters keep a numbered eyebrow and an assertive h2; the
 per-client MCP configs are collapsed in a `<details>`.
+
+Decided with the maintainer, 2026-10-23: the limits leave the trust band
+for a grey band of their own (a 2 px checker, so still a dither, not a flat
+grey), with a roadmap line per limit; the comparison shows its summary and
+folds the table; the hero pills are blue highlighter marks.
 
 ## Anti-references
 

@@ -289,6 +289,14 @@ function compareTable(c, values) {
   return `<table class="cmp"><thead><tr><th scope="col"><span class="sr">Question</span></th>${head}</tr></thead>\n<tbody>\n${body}\n</tbody></table>`;
 }
 
+/** The short version above the table: each tool and where it goes further, from the same sourced row. */
+function compareSummary(c, values) {
+  const row = c.rows.find((r) => r.label === "Where it goes further");
+  const fill = (t) => t.replace(/\{\{(\w+)\}\}/g, (m, k) => values[k] ?? m);
+  const items = c.tools.map((t) => `<li><a href="${REPO_BLOB}${t.page}">${esc(t.name)}</a><span>${esc(fill(row.cells[t.id].t))}</span></li>`).join("\n");
+  return `<ul class="cmp-sum">\n${items}\n</ul>`;
+}
+
 const STARS_FILE = join(SITE, "stars.json");
 
 /**
@@ -467,7 +475,9 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
     ...agentsMd(),
   };
   values.STARS_LABEL = values.STARS ? `, ${values.STARS} stars` : "";
-  values.COMPARE = compareTable(readCompare(), values);
+  const cmp = readCompare();
+  values.COMPARE = compareTable(cmp, values);
+  values.COMPARE_SUMMARY = compareSummary(cmp, values);
   let html = fill(readFileSync(join(SITE, "index.html"), "utf8"), values, "index.html");
   html = html.replace(/(href|src)="\/(styles\.css|theme\.js|check\.js)"/g, (m, attr, f) => `${attr}="/${f}?v=${hash(readFileSync(join(OUT, f)))}"`);
   writeFileSync(join(OUT, "index.html"), html);

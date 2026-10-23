@@ -8,6 +8,8 @@
  *   /sitemap.xml                 the page and every file above
  *   /robots.txt                  everyone allowed, pointing at the sitemap
  *   /.well-known/security.txt    RFC 9116, pointing at SECURITY.md
+ *   /index.md, /openapi.json     the homepage as Markdown and the live check's spec
+ *                                (site/agent-ready.mjs)
  *
  * Every npm pin in a mirrored page (`penthera@1.2.3`) is rewritten to the
  * package's own version, so an agent that copies a command gets a version
@@ -16,6 +18,7 @@
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, posix } from "node:path";
+import { agentReadyFiles, whenToUse } from "./agent-ready.mjs";
 
 export const REPO = "https://github.com/danoszz/penthera";
 
@@ -88,9 +91,16 @@ export function agentFiles({ root, site, version, origin, values, now = new Date
     ...pages.flatMap((p) => ["", "---", "", `<!-- Source: ${REPO}/blob/main/${p} · ${origin}/${p} -->`, "", mirror(p)]),
   ].join("\n").replace(/\n{3,}/g, "\n\n");
 
-  out["llms.txt"] = fill(readFileSync(join(site, "llms.txt"), "utf8"), { ...values, ORIGIN: origin }, "llms.txt");
+  // llms.txt: the template, plus when to reach for Penthera (before the docs)
+  // and the live check's spec (with the other machine-readable files).
+  out["llms.txt"] = fill(readFileSync(join(site, "llms.txt"), "utf8"), { ...values, ORIGIN: origin }, "llms.txt")
+    .replace(/^## Docs$/m, (m) => `${whenToUse({ version, origin })}\n${m}`)
+    .replace(/^## Machine-readable\n\n/m, (m) => `${m}- [OpenAPI for the live check](${origin}/openapi.json): POST /api/check, a public site's passive security report\n`);
+  Object.assign(out, agentReadyFiles({ root, version, origin, values }));
 
-  const urls = ["", "llms.txt", "llms-full.txt", ...pages];
+  // /terms, the live check's terms: build.mjs renders it from this file.
+  const terms = existsSync(join(root, "docs", "live-check-terms.md")) ? ["terms"] : [];
+  const urls = ["", "index.md", ...terms, "llms.txt", "llms-full.txt", "openapi.json", ...pages];
   out["sitemap.xml"] = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${origin}/${u}</loc></url>`).join("\n")}\n</urlset>\n`;
 
   out["robots.txt"] = [

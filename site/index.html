@@ -4,33 +4,36 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Penthera</title>
-  <meta name="description" content="Offline security checks for your app, its dependencies and your AI coding tools. Open source, rule-based, and you can verify every finding.">
+  <meta name="description" content="Is your site/app safe? Check it with a free cyber security quick scan, then fix it with your coding agent. Open source, passive, nothing stored.">
   <meta name="color-scheme" content="dark light">
   <meta name="theme-color" content="#000000">
   <link rel="canonical" href="{{SITE_URL}}/">
+  {{JSONLD}}
   <meta property="og:site_name" content="Penthera">
   <meta property="og:title" content="Penthera: your open-source security agent">
-  <meta property="og:description" content="Offline security checks for your app, its dependencies and your AI coding tools. Open source, rule-based, and you can verify every finding.">
+  <meta property="og:description" content="Is your site/app safe? Check it with a free cyber security quick scan, then fix it with your coding agent. Open source, passive, nothing stored.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="{{SITE_URL}}/">
-  <meta property="og:image" content="{{SITE_URL}}/media/social/og.png">
+  <meta property="og:image" content="{{OG_IMAGE}}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="Penthera. Free. Your open-source cyber security agent. npx penthera, open source, MIT, offline.">
+  <meta property="og:image:alt" content="Is your site/app safe? A Penthera quick scan of penthera.org: 95 out of 100, with Prompt to fix.">
+  <!-- Share image and reel URLs carry a content hash (?v=), so link previews
+       (X caches cards by URL for days) fetch a changed file at once. -->
   <!-- A muted reel for link previews that play video (iMessage and others);
        og:image stays the poster and the fallback. Rendered by
        site/tools/reel.mjs. X keeps the image card: twitter:player needs an
        embeddable page, and frame-ancestors 'none' rules that out. -->
-  <meta property="og:video" content="{{SITE_URL}}/media/social/reel.mp4">
-  <meta property="og:video:secure_url" content="{{SITE_URL}}/media/social/reel.mp4">
+  <meta property="og:video" content="{{OG_VIDEO}}">
+  <meta property="og:video:secure_url" content="{{OG_VIDEO}}">
   <meta property="og:video:type" content="video/mp4">
   <meta property="og:video:width" content="1200">
   <meta property="og:video:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Penthera: your open-source security agent">
-  <meta name="twitter:description" content="Offline security checks for your app, its dependencies and your AI coding tools. Open source, rule-based, and you can verify every finding.">
-  <meta name="twitter:image" content="{{SITE_URL}}/media/social/og.png">
-  <meta name="twitter:image:alt" content="Penthera. Free. Your open-source cyber security agent. npx penthera, open source, MIT, offline.">
+  <meta name="twitter:description" content="Is your site/app safe? Check it with a free cyber security quick scan, then fix it with your coding agent. Open source, passive, nothing stored.">
+  <meta name="twitter:image" content="{{OG_IMAGE}}">
+  <meta name="twitter:image:alt" content="Is your site/app safe? A Penthera quick scan of penthera.org: 95 out of 100, with Prompt to fix.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt: Penthera for language models">
   <link rel="preload" href="/fonts/DepartureMono-Regular.woff2" as="font" type="font/woff2" crossorigin>
@@ -66,14 +69,26 @@
   </header>
 
   <main id="main">
-    <!-- 1 · Hero: the problem, then the title. -->
+    <!-- Hero: the problem, the title, and the live check as the first thing to do. -->
     <section class="hero" aria-labelledby="hero-title">
       <img class="field" src="/media/field.png" alt="" width="360" height="225" aria-hidden="true">
       <div class="hero-text">
         <p class="problem"><span>AI coding tools ship faster than anyone can check.</span></p>
+        <form class="scan" id="scan" data-scan novalidate>
+          <label class="scan-label" for="scan-url">Is your site/app safe? Check it with a free cyber security quick scan.</label>
+          <div class="scan-row">
+            <input id="scan-url" name="url" type="text" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="your-site.com" required>
+            <button class="btn scan-go" data-variant="default" type="submit">Check</button>
+          </div>
+          <p class="scan-note">Passive: only what one browser visit loads. Nothing is stored. Your own site only. <a href="/terms">Terms</a></p>
+          <noscript><p class="scan-note">The live check needs JavaScript. Or run <code>npx penthera https://your-site.com</code> on your own machine.</p></noscript>
+        </form>
+        <div class="report" data-report hidden></div>
         <ul class="pills" aria-label="Open source, MIT license, works offline"><li>Open source</li><li>MIT</li><li>Offline</li></ul>
         <h1 id="hero-title">Penthera: your <span class="nowrap">open-source</span> cyber security agent</h1>
         <p class="lede">The security review you never had time for. Offline, rule-based, and you can verify every finding yourself.</p>
+
+
         <div class="hero-actions">
         <button class="cmd" type="button" data-copy="npx penthera">
           <span class="cmd-prompt" aria-hidden="true">$</span>
@@ -83,20 +98,19 @@
         </button>
         <button class="btn btn-prompt" type="button" data-js data-copy="Set up Penthera in this repo. Run `npx penthera init --dry-run` and show me what it would do. Then run `npx penthera agents` and `npx penthera deps`, and list the findings by severity, with the file for each. Do not change, commit or push anything without asking me."><svg class="tool-icon" viewBox="0 0 9 9" aria-hidden="true"><path d="M0 0h1v1h-1zM4 0h1v1h-1zM8 0h1v1h-1zM1 1h1v1h-1zM4 1h1v1h-1zM7 1h1v1h-1zM2 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM3 3h3v1h-3zM0 4h9v1h-9zM3 5h3v1h-3zM2 6h1v1h-1zM4 6h1v1h-1zM6 6h1v1h-1zM1 7h1v1h-1zM4 7h1v1h-1zM7 7h1v1h-1zM0 8h1v1h-1zM4 8h1v1h-1zM8 8h1v1h-1z"/></svg><span data-copy-label>Copy prompt for your AI coding agent</span></button>
         </div>
-        <p class="note">Run it in your project folder, or paste the prompt into Claude Code, Cursor or Codex. No install, no account, Node 22 or later.</p>
-        <p class="note"><a href="#check">Or check one file in this tab first</a></p>
+        <p class="note">Or scan your code, dependencies and AI tooling on your machine. No install, no account, Node 22 or later.</p>
       </div>
       <figure class="loop">
         <video data-loop muted loop playsinline preload="metadata" poster="/media/hero.jpg" width="960" height="526" controls aria-label="A 12-second loop: npx penthera sets up a project, an offline scan runs in the terminal, the dashboard shows the verdict, and a fix is approved">
           <source src="/media/hero.mp4" type="video/mp4">
         </video>
-        <figcaption>12 seconds: setup, an offline scan, the dashboard, one fix approved.</figcaption>
+        <figcaption>12 seconds: setup, a scan, the dashboard, one fix.</figcaption>
       </figure>
     </section>
 
-    <!-- 2 · The answer: before and after (a real scan, from site/example.json), then the spec. -->
+    <!-- 01 · What it finds: one real finding, then the four places it looks. -->
     <section class="ba" id="answer" aria-labelledby="ba-title">
-      <p class="eyebrow">01 · The answer</p>
+      <p class="eyebrow">01 · What it finds</p>
       <h2 id="ba-title">Ask once. Get findings you can check.</h2>
       <div class="ba-grid">
         <figure class="ba-before">
@@ -117,187 +131,60 @@
           </div>
         </figure>
       </div>
-      <p class="ba-cap">The after is real output: a standard scan of Penthera's <a href="https://github.com/danoszz/penthera/blob/main/tests/fixtures/mock-server.js">test server</a>, written by <code>site/tools/example.mjs</code> and re-checked by the tests.</p>
+      <p class="ba-cap">Real output: a standard scan of Penthera's <a href="https://github.com/danoszz/penthera/blob/main/tests/fixtures/mock-server.js">test server</a>, re-checked by the tests.</p>
 
-      <dl class="spec" aria-label="Penthera at a glance">
-        <div><dt>For</dt><dd><strong>Developers who ship with AI coding tools.</strong> No security background needed.</dd></div>
-        <div><dt>Runs</dt><dd><strong>On your machine, offline.</strong> Node 22 or later, no account, {{DEPS_N}}.</dd></div>
-        <div><dt>Works with</dt><dd><strong>Claude Code, Cursor, Codex, VS Code, Windsurf.</strong> npm and Python projects, and any app you are authorized to test.</dd></div>
-        <div><dt>Price</dt><dd><strong class="spec-big">$0</strong> MIT license. Every feature, no account, no paid tier.</dd></div>
-      </dl>
-    </section>
-
-    <!-- 3 · What it checks: four areas in one window, then the check in this tab. -->
-    <section class="map-sec" id="checks" aria-labelledby="map-title">
-      <div class="map-head">
-        <p class="eyebrow">02 · What it checks</p>
-        <h2 id="map-title">Four places a problem hides.</h2>
-        <p class="map-lede">One command looks at all four. Each check is a rule you can read, with the evidence at <code>file:line</code> or in the response.</p>
-      </div>
-      <figure class="map" aria-labelledby="map-cap">
+      <figure class="map" id="checks" aria-labelledby="map-cap">
         <div class="map-bar"><span class="title">npx penthera</span><span class="status"><svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><use href="#i-lock"/></svg>Offline</span></div>
         <ul class="map-grid">
           <li class="map-cell map-app">
             <p class="map-k"><span class="swatch swatch-solid" aria-hidden="true"></span>Your app</p>
             <p class="map-n">{{N_SECRETS}}<span> secret and AI-key patterns</span></p>
-            <ul class="leads">
-              <li><strong>Secrets in code.</strong> Keys and tokens committed to the repo.</li>
-              <li><strong>Risky routes.</strong> Admin and API routes, code-execution sinks.</li>
-              <li><strong>Runtime pins.</strong> PHP, nginx, Node.js or Python versions with known advisories.</li>
-            </ul>
+            <p class="map-one"><strong>Secrets, risky routes, runtime versions.</strong> Keys in the repo, admin and API routes, and pinned versions with known advisories.</p>
             <p class="map-cmd"><code>penthera --repo .</code></p>
           </li>
           <li class="map-cell map-deps">
             <p class="map-k"><span class="swatch swatch-hatch" aria-hidden="true"></span>Dependencies</p>
             <p class="map-n">{{PKGS}}<span> package names</span></p>
-            <ul class="leads">
-              <li><strong>What a package can do.</strong> Shell, network, install scripts: {{N_CAPS}} capabilities.</li>
-              <li><strong>Typosquats.</strong> Names one typo away from a popular npm or PyPI package.</li>
-              <li><strong>Known-malicious versions.</strong> From signed rule packs, no download while it runs.</li>
-            </ul>
+            <p class="map-one"><strong>What each package can do.</strong> Shell, network and install scripts, typosquats and known-malicious versions.</p>
             <p class="map-cmd"><code>penthera deps</code></p>
           </li>
           <li class="map-cell map-ai">
             <p class="map-k"><span class="swatch swatch-half" aria-hidden="true"></span>AI tooling</p>
             <p class="map-n">{{N_AGENTS}}<span> AI-tooling rules</span></p>
-            <ul class="leads">
-              <li><strong>MCP servers.</strong> Unpinned versions, broad tools, secrets in config.</li>
-              <li><strong>Hooks and permissions.</strong> What your agent may run without asking.</li>
-              <li><strong>Skills and instructions.</strong> <code>CLAUDE.md</code>, <code>AGENTS.md</code> and skills that tell an agent to do harm.</li>
-            </ul>
+            <p class="map-one"><strong>What your agent may do.</strong> MCP servers, hooks, permissions, and instructions that tell an agent to do harm.</p>
             <p class="map-cmd"><code>penthera agents --home</code></p>
           </li>
-          <li class="map-cell map-url">
+          <li class="map-cell map-url" id="about-check">
             <p class="map-k"><span class="swatch swatch-sparse" aria-hidden="true"></span>A live URL</p>
             <p class="map-n">{{N_URL}}<span> URL scan templates</span></p>
-            <ul class="leads">
-              <li><strong>Headers and TLS.</strong> CSP, HSTS, cookies, CORS.</li>
-              <li><strong>Exposed files.</strong> OpenAPI specs, debug pages, open redirects.</li>
-              <li><strong>Only what you may test.</strong> The default scan sends what a browser would send.</li>
-            </ul>
+            <p class="map-one"><strong>Headers, TLS, cookies, exposed files.</strong> The check above does the passive part for any site; the full scan runs on sites you may test.</p>
             <p class="map-cmd"><code>penthera https://staging.example.com</code></p>
           </li>
         </ul>
-        <figcaption id="map-cap">Counts from this release's rules: {{RULES_ALL}} readable rules, citing {{REFS}} sources. The package names are the popular npm and PyPI names the typosquat check compares against. <a href="https://github.com/danoszz/penthera/blob/main/docs/METHODOLOGY.md">How each check works</a></figcaption>
+        <figcaption id="map-cap">Counts from this release's rules: {{RULES_ALL}} readable rules, citing {{REFS}} sources. <a href="https://github.com/danoszz/penthera/blob/main/docs/METHODOLOGY.md">How each check works</a></figcaption>
       </figure>
     </section>
 
-    <!-- 3b · The check: two of the four, in this tab. -->
-    <section class="desk" id="check" aria-labelledby="check-title">
-      <div class="desk-head">
-        <h3 id="check-title" class="desk-title">Try the AI-tooling and dependency checks in this tab</h3>
-        <p>Drop or paste a <code>package.json</code>, <code>.mcp.json</code>, <code>.claude/settings.json</code>, <code>CLAUDE.md</code> or <code>AGENTS.md</code>, or the files that pin your runtime: a <code>Dockerfile</code>, <code>compose.yaml</code>, <code>.php-version</code>, <code>.tool-versions</code> or <code>composer.json</code>. Or paste your site's response headers. Penthera's own rules run in the page, bundled from the same code as the CLI: {{RULES}} pack rules ({{PACKS}}), the agent-config and secret rules, and {{POPULAR}} popular npm names for the typosquat check.</p>
-      </div>
-
-      <div class="window" data-check>
-        <div class="titlebar">
-          <span class="title">Check</span>
-          <span class="status"><svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><use href="#i-lock"/></svg>Offline · rules from {{VERSION}}</span>
-        </div>
-        <div class="window-body">
-          <noscript><p class="empty">The check runs Penthera's rules in JavaScript, so it needs JavaScript on. Everything else on this page works without it.</p></noscript>
-
-          <div class="check-ui" data-js>
-          <label class="drop" data-drop>
-            <input type="file" multiple data-file accept=".json,.md,.mdc,.yaml,.yml,.txt,.tool-versions,.php-version,.nvmrc,.node-version,.python-version,.dockerfile,text/plain,application/json">
-            <span class="drop-title">Drop files here, or choose files</span>
-            <span class="drop-sub">package.json · .mcp.json · .claude/settings.json · CLAUDE.md · AGENTS.md</span>
-            <span class="drop-sub">Dockerfile · compose.yaml · .php-version · .tool-versions · composer.json</span>
-          </label>
-
-          <details class="paste">
-            <summary>Paste text instead</summary>
-            <div class="paste-body">
-              <label for="paste-text" class="label">Text</label>
-              <textarea id="paste-text" rows="8" spellcheck="false" autocomplete="off" data-paste></textarea>
-              <div class="row">
-                <label for="paste-kind" class="label">File</label>
-                <select id="paste-kind" data-paste-kind>
-                  <option value="">Work it out from the text</option>
-                  <option value="package.json">package.json</option>
-                  <option value=".mcp.json">.mcp.json</option>
-                  <option value=".claude/settings.json">.claude/settings.json</option>
-                  <option value="CLAUDE.md">CLAUDE.md</option>
-                  <option value="AGENTS.md">AGENTS.md</option>
-                  <option value="Dockerfile">Dockerfile</option>
-                  <option value="compose.yaml">compose.yaml</option>
-                  <option value="composer.json">composer.json</option>
-                  <option value=".php-version">.php-version</option>
-                  <option value=".tool-versions">.tool-versions</option>
-                </select>
-                <button class="btn" type="button" data-paste-add>Add text</button>
-              </div>
-            </div>
-          </details>
-
-          <details class="paste" data-headers-box>
-            <summary>Paste response headers</summary>
-            <div class="paste-body">
-              <p class="paste-note">Run this yourself, with your own site's address, and paste what it prints. Penthera reads <code>X-Powered-By</code>, <code>Server</code> and the <code>PHPSESSID</code> cookie name. This page never contacts your site.</p>
-              <button class="cmd" type="button" data-copy="curl -sI https://example.com">
-                <span class="cmd-prompt" aria-hidden="true">$</span>
-                <code>curl -sI https://example.com</code>
-                <span class="cmd-act" aria-hidden="true" data-js><span class="cmd-copy">Copy</span><span class="cmd-done">Copied</span></span>
-                <span class="sr" aria-live="polite" data-copy-status>, copy to clipboard</span>
-              </button>
-              <label for="headers-text" class="label">Headers</label>
-              <textarea id="headers-text" rows="6" spellcheck="false" autocomplete="off" placeholder="HTTP/2 200&#10;server: nginx&#10;x-powered-by: PHP/8.3.12" data-headers></textarea>
-              <div class="row">
-                <button class="btn" type="button" data-headers-add>Add headers</button>
-              </div>
-              <p class="paste-note"><a href="https://github.com/danoszz/penthera/blob/main/docs/research/case-study-php-2026-10.md">Why a version number alone is not proof: the PHP case study</a></p>
-            </div>
-          </details>
-
-          <ul class="staged" data-staged aria-label="Files to check"></ul>
-
-          <div class="actions">
-            <button class="btn" data-variant="default" type="button" data-run disabled>Check files</button>
-            <button class="btn" type="button" data-example>Load an example</button>
-            <button class="btn" type="button" data-clear disabled>Clear</button>
-          </div>
-
-          <div class="output" data-output aria-live="polite">
-            <p class="empty">Add a file to start. It stays in this tab: nothing is uploaded.</p>
-          </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="facts">
-        <div>
-          <h3><svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><use href="#i-lock"/></svg>Nothing leaves your browser</h3>
-          <p>The check runs in this tab and never sends what you paste. The page's Content-Security-Policy allows exactly two destinations: Vercel's cookieless page-view and load-time counters on penthera.org itself (<code>/_vercel/insights/</code> and <code>/_vercel/speed-insights/</code>). They record that the page was visited and how fast it loaded, never your files. Open your browser's network tab, run a check and see. No cookies, no third-party scripts.</p>
-        </div>
-        <div>
-          <h3>What this check cannot do</h3>
-          <ul>
-            <li>Read your dependencies' code. It sees the install scripts <code>package.json</code> declares, not what is in <code>node_modules</code>.</li>
-            <li>Read your lockfile, so version ranges are not matched against known-malicious versions.</li>
-            <li>Scan a running app or a URL. For headers, you run <code>curl</code> and paste the output; the page never contacts your site.</li>
-            <li>Fix anything, or write a report.</li>
-          </ul>
-          <p>The full scan does all of that on your machine, offline too: <code>npx penthera</code>.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- 4 · How to trust it: three principles, then the benchmark with its caveats. -->
+    <!-- 02 · Can I trust it: principles, the benchmark, and what it does not do. -->
     <section class="trust band band-invert" id="trust" aria-labelledby="trust-title">
-      <p class="eyebrow">03 · How to trust it</p>
+      <p class="eyebrow">02 · Can I trust it</p>
       <h2 id="trust-title">Don't take our word for it.</h2>
       <ul class="pillars">
-        <li><h3>Rules decide. Models only propose.</h3><p>Every finding comes from a readable rule and shows its evidence. A model may suggest a fix or, in opt-in AI mode, a lead; a rule, a re-scan and your tests decide whether it holds. <a href="https://github.com/danoszz/penthera/blob/main/docs/METHODOLOGY.md">Methodology</a></p></li>
-        <li><h3>Offline, on your machine.</h3><p>No account and no telemetry. With <code>--offline</code> it contacts only the target you named, and every report lists the hosts it contacted. During the benchmark it made {{BENCH_EGRESS}} requests to anything other than loopback. <a href="https://github.com/danoszz/penthera/blob/main/docs/privacy.md">Network use</a></p></li>
-        <li><h3>Measured in public.</h3><p>A benchmark runs on every release, and the release fails if precision or recall drops by more than 0.02. Experiments are pre-registered, and the results are published, good or bad. <a href="https://github.com/danoszz/penthera/blob/main/docs/vision-2.0.md">Research plan</a></p></li>
+        <li><h3>Rules decide. Models only propose.</h3><p>Every finding comes from a readable rule and shows its evidence. A model may propose a fix or a lead; a rule, a re-scan and your tests decide. <a href="https://github.com/danoszz/penthera/blob/main/docs/METHODOLOGY.md">Methodology</a></p></li>
+        <li><h3>Offline, on your machine.</h3><p>No account, no telemetry. With <code>--offline</code> it contacts only the target you named. In the benchmark: {{BENCH_EGRESS}} requests beyond loopback. <a href="https://github.com/danoszz/penthera/blob/main/docs/privacy.md">Network use</a></p></li>
+        <li><h3>Measured in public.</h3><p>Every release runs a benchmark and fails if precision or recall drops by more than 0.02. Experiments are pre-registered and published, good or bad. <a href="https://github.com/danoszz/penthera/blob/main/docs/vision-2.0.md">Research plan</a></p></li>
       </ul>
-
-      <!-- Benchmark: numbers from bench/known-vuln/, read at build time. -->
       <div class="bench" id="benchmark">
-        <p class="eyebrow">Benchmark · E10 pilot</p>
         <h3 id="bench-title" class="bench-title">Tested on apps built to be broken</h3>
-        <p class="bench-lede">We ran Penthera on OWASP Juice Shop and DVNA, two apps written to be vulnerable, and scored it against answer keys of their documented flaws. The first run found {{E10_P_B_OF}} of the flaws in scope. We fixed the gaps it showed and ran it again. The second run found {{E10_P_A_OF}}.</p>
-
+        <p class="bench-lede">OWASP Juice Shop and DVNA, scored against their documented flaws: {{E10_P_B_OF}} found at first, {{E10_P_A_OF}} after we fixed the gaps. A pilot, so read the caveats.</p>
+      <ul class="bench-stats">
+        <li><h4>OWASP Juice Shop</h4><p class="stat-num">{{E10_JS_A}}</p><p class="stat-was">was {{E10_JS_B}}</p><p class="stat-ci">Recall {{E10_JS_A_R}}, 95% CI {{E10_JS_A_CI}}. Before: {{E10_JS_B_R}}, {{E10_JS_B_CI}}.</p></li>
+        <li><h4>DVNA</h4><p class="stat-num">{{E10_DV_A}}</p><p class="stat-was">was {{E10_DV_B}}</p><p class="stat-ci">Recall {{E10_DV_A_R}}, 95% CI {{E10_DV_A_CI}}. Before: {{E10_DV_B_R}}, {{E10_DV_B_CI}}.</p></li>
+        <li class="stat-pooled"><h4>Both apps</h4><p class="stat-num">{{E10_P_A}}</p><p class="stat-was">was {{E10_P_B}}</p><p class="stat-ci">Recall {{E10_P_A_R}}, 95% CI {{E10_P_A_CI}}. Before: {{E10_P_B_R}}, {{E10_P_B_CI}}.</p></li>
+        <li class="stat-held"><h4>WebGoat, held out</h4><p class="stat-num">{{E10_WG}}</p><p class="stat-was">unchanged</p><p class="stat-ci">Recall {{E10_WG_R}}, 95% CI {{E10_WG_CI}}, before and after. A Java app; the fixes target Node.js.</p></li>
+      </ul>
+      <details class="cmp-more bench-more">
+        <summary>Caveats, the chart and precision</summary>
       <aside class="bench-caveats" aria-labelledby="bench-caveats-title">
         <h4 id="bench-caveats-title">Read this before the numbers</h4>
         <ul>
@@ -307,22 +194,13 @@
           <li>The preregistered studies are what count: E10 on six apps, still a draft protocol, and E1 on real code, registered.</li>
         </ul>
       </aside>
-
-      <ul class="bench-stats">
-        <li><h4>OWASP Juice Shop</h4><p class="stat-num">{{E10_JS_A}}</p><p class="stat-was">was {{E10_JS_B}}</p><p class="stat-ci">Recall {{E10_JS_A_R}}, 95% CI {{E10_JS_A_CI}}. Before: {{E10_JS_B_R}}, {{E10_JS_B_CI}}.</p></li>
-        <li><h4>DVNA</h4><p class="stat-num">{{E10_DV_A}}</p><p class="stat-was">was {{E10_DV_B}}</p><p class="stat-ci">Recall {{E10_DV_A_R}}, 95% CI {{E10_DV_A_CI}}. Before: {{E10_DV_B_R}}, {{E10_DV_B_CI}}.</p></li>
-        <li class="stat-pooled"><h4>Both apps</h4><p class="stat-num">{{E10_P_A}}</p><p class="stat-was">was {{E10_P_B}}</p><p class="stat-ci">Recall {{E10_P_A_R}}, 95% CI {{E10_P_A_CI}}. Before: {{E10_P_B_R}}, {{E10_P_B_CI}}.</p></li>
-        <li class="stat-held"><h4>WebGoat, held out</h4><p class="stat-num">{{E10_WG}}</p><p class="stat-was">unchanged</p><p class="stat-ci">Recall {{E10_WG_R}}, 95% CI {{E10_WG_CI}}, before and after. A Java app; the fixes target Node.js.</p></li>
-      </ul>
-
       <figure class="bench-fig">
         <div class="e10-legend" aria-hidden="true"><span class="key-before">Before</span><span class="key-after">After</span></div>
 {{E10_BARS}}
-        <figcaption>Recall: the documented flaws found, out of those in the answer key that Penthera claims to detect. Bars show the rate, whiskers the 95% Wilson interval. Standard run, no injection payloads except one SQL error check on the login, which has since moved to <code>--deep</code>; a re-run is due.</figcaption>
+        <figcaption>Recall on the flaws Penthera claims to detect, with 95% Wilson intervals. Standard run; its one SQL error check has since moved to <code>--deep</code>, so a re-run is due.</figcaption>
       </figure>
-
       <p class="bench-prec">Precision stayed level: {{E10_PR_B}} (95% CI {{E10_PR_B_CI}}) on {{E10_PR_B_N}} findings before, {{E10_PR_A}} ({{E10_PR_A_CI}}) on {{E10_PR_A_N}} after.</p>
-
+      </details>
       <p class="links">
         <a href="https://github.com/danoszz/penthera/blob/main/docs/research/prereg/E10-known-vulnerable-apps.md">Protocol</a>
         <a href="https://github.com/danoszz/penthera/tree/main/bench/known-vuln">Answer keys</a>
@@ -331,115 +209,52 @@
         <a href="https://github.com/danoszz/penthera/blob/main/docs/research/prereg/E1-real-world-accuracy.md">E1 protocol</a>
       </p>
       </div>
-    </section>
 
-    <!-- 4b · Current limitations, on a dithered grey band: what it does not do, and what ROADMAP.md plans for each. -->
-    <section class="limits band band-grey" id="limits" aria-labelledby="limits-title">
-      <p class="eyebrow">04 · Current limitations</p>
-      <h2 id="limits-title">What it does not do.</h2>
-      <div class="limits-body">
-        <p>It finds known classes of problems, not novel ones: misconfigured headers, leaked keys, risky dependency behavior, unsafe agent setups, common injection patterns. It does not find business-logic flaws, complex authorization bugs or zero-days, and it does not replace a human penetration test.</p>
-        <p>On our own labs: precision {{BENCH_P}} (95% CI {{BENCH_P_CI}}) and recall {{BENCH_R}} (95% CI {{BENCH_R_CI}}), on {{BENCH_N}} findings in labs we wrote ourselves. These numbers catch regressions; they do not measure real-world accuracy.</p>
-      </div>
-
-      <h3 class="road-title">What is planned for each</h3>
-      <p class="road-lede">Ordered, not dated. Penthera is maintained part-time, alongside a PhD.</p>
+      <div class="limits" id="limits">
+        <h3 class="road-title" id="limits-title">What it does not do</h3>
+        <p class="limits-one">It finds known classes of problems, not novel ones, and it does not replace a human penetration test. What is planned for each limit:</p>
       <ul class="road" aria-labelledby="limits-title">
-        <li><p class="road-k">Novel problems no rule describes</p><p>Opt-in AI mode: a local model proposes leads, and Penthera's rules check them. Anything unconfirmed is labeled so. Experiment E9 measures whether it finds more.</p><p class="road-s">In 1.9.0-rc.1, opt-in</p></li>
-        <li><p class="road-k">Business-logic and authorization flaws</p><p>Authenticated preview scans, with test accounts from your own seed data. A later candidate: an IDOR baseline that compares an authorized and an unauthorized user.</p><p class="road-s">Planned</p></li>
-        <li><p class="road-k">Zero-days</p><p>Penthera will not find them. Planned instead: an alert when something in your SBOM becomes a known vulnerability, as a reviewed rule-pack update.</p><p class="road-s">Planned</p></li>
-        <li><p class="road-k">A human penetration test</p><p>It will not replace one. Use it before and between tests. A planned ship check will give one pass or fail before you deploy.</p><p class="road-s">Stays a limit</p></li>
-        <li><p class="road-k">Accuracy on real code</p><p>Penthera Bench v1 and experiment E1 measure precision and recall on code we did not write, with intervals. The results are published whatever they are.</p><p class="road-s">Pre-registered</p></li>
+        <li><p class="road-k">Novel problems no rule describes</p><p>Opt-in AI mode: a local model proposes leads and the rules check them. E9 measures whether it finds more.</p><p class="road-s">In 1.9.0-rc.1, opt-in</p></li>
+        <li><p class="road-k">Business-logic and authorization flaws</p><p>Authenticated preview scans with test accounts from your seed data. Later: an IDOR baseline.</p><p class="road-s">Planned</p></li>
+        <li><p class="road-k">Zero-days</p><p>It will not find them. Planned: an alert when something in your SBOM becomes a known vulnerability.</p><p class="road-s">Planned</p></li>
+        <li><p class="road-k">A human penetration test</p><p>It will not replace one. Use it before and between tests; a planned ship check gives one pass or fail.</p><p class="road-s">Stays a limit</p></li>
+        <li><p class="road-k">Accuracy on real code</p><p>Penthera Bench v1 and E1 measure it on code we did not write, published whatever the result.</p><p class="road-s">Pre-registered</p></li>
       </ul>
-
-      <h3 class="road-title" id="integrations-title">Planned integrations</h3>
-      <p class="road-lede">None of these ship today.</p>
-      <ul class="road" aria-labelledby="integrations-title">
-        <li><p class="road-k">Base44, Lovable, Bolt and other AI app builders</p><p>Check what they build: the exported code and the published app.</p><p class="road-s">Planned</p></li>
-        <li><p class="road-k">Vercel, Netlify and Cloudflare Pages previews</p><p>A GitHub Action that waits for a pull request's preview, scans it and comments the result.</p><p class="road-s">Planned</p></li>
-      </ul>
-
-      <p class="links">
-        <a href="https://github.com/danoszz/penthera/blob/main/docs/METHODOLOGY.md#known-limitations">Known limitations, in the methodology</a>
-        <a href="#faq-limits">What can't it do? In the FAQ</a>
-        <a href="https://github.com/danoszz/penthera/blob/main/ROADMAP.md">The full roadmap</a>
-      </p>
+        <p class="limits-one">Planned integrations, none shipping today: Base44, Lovable, Bolt and other AI app builders; Vercel, Netlify and Cloudflare Pages previews.</p>
+        <p class="links">
+          <a href="https://github.com/danoszz/penthera/blob/main/docs/METHODOLOGY.md#known-limitations">Known limitations</a>
+          <a href="https://github.com/danoszz/penthera/blob/main/ROADMAP.md">The roadmap</a>
+        </p>
+      </div>
     </section>
 
-    <!-- 5 · The tour: four numbered steps. Dashboard shots from assets/dashboard. -->
+    <!-- 03 · See it work: the walkthrough, then the dashboard and the fix loop. -->
     <section class="tour" id="tour" aria-labelledby="tour-title">
-      <p class="eyebrow">05 · The tour</p>
-      <h2 id="tour-title">From one command to a fix you approved.</h2>
-      <ol class="steps">
-        <li class="step">
-          <div class="step-text">
-            <p class="step-n"><span>01</span> / 04</p>
-            <h3>The CLI</h3>
-            <p><code>npx penthera</code> finds what your project has, asks one question about what to check, and runs those checks offline. It scans your running app only after you confirm the app is yours.</p>
-            <dl class="commands">
-              <div><dt><code>npx penthera deps</code></dt><dd>What the packages in this project can do.</dd></div>
-              <div><dt><code>npx penthera agents --home</code></dt><dd>Your Claude Code, Cursor and MCP setup.</dd></div>
-            </dl>
-          </div>
-          <figure class="step-media">
+      <p class="eyebrow">03 · See it work</p>
+      <h2 id="tour-title">Eighty seconds, start to fix.</h2>
+      <figure class="tour-video">
             <video controls preload="none" playsinline poster="/media/walkthrough.jpg" width="1280" height="800" aria-describedby="walk-cap">
               <source src="/media/walkthrough.mp4" type="video/mp4">
               <track kind="captions" src="/media/walkthrough.vtt" srclang="en" label="English" default>
             </video>
-            <figcaption id="walk-cap">80 seconds: setup, a scan, the dashboard in Simple and Advanced mode, one fix approved, the report. Demo data, no sound, captions on.</figcaption>
-          </figure>
-        </li>
-        <li class="step">
-          <div class="step-text">
-            <p class="step-n"><span>02</span> / 04</p>
-            <h3>The dashboard</h3>
-            <p><code>npx penthera ui</code> opens it on <code>127.0.0.1</code>: whether your app is safe to ship, what to fix first, and each problem in plain words with how sure Penthera is. It reads only the folders you give it and never contacts the network.</p>
-          </div>
-          <figure class="step-media shot">
-            <img class="shot-dark" src="/media/tour/ui-dark.jpg" width="800" height="500" loading="lazy" alt="The dashboard in Simple mode, dark theme: the verdict 'Not ready to ship: 1 critical problem to fix first', the problems by severity, and a hardcoded Stripe key open with what is wrong, how sure Penthera is and what to do">
-            <img class="shot-light" src="/media/tour/ui-light.jpg" width="800" height="500" loading="lazy" alt="The dashboard in Advanced mode, light theme: a project with its tabs, the triage matrix and a missing Strict-Transport-Security header open with its evidence and sources">
-            <figcaption>Demo data, from <code>penthera ui --demo</code>. It follows this page's theme.</figcaption>
-          </figure>
-        </li>
-        <li class="step">
-          <div class="step-text">
-            <p class="step-n"><span>03</span> / 04</p>
-            <h3>In your agent</h3>
-            <p><code>penthera mcp</code> is an MCP server. Claude Code, Cursor, Codex, VS Code or Windsurf starts it and calls six read-only tools. They read only inside your project, never apply fixes, run no shell and send no attack payloads. {{MCP_NOTE}}</p>
-          </div>
-          <figure class="step-media">
-            <div class="tools" role="img" aria-labelledby="tools-cap">
-              <p class="tools-bar"><span>penthera mcp</span><span>6 tools · read-only</span></p>
-              <ul>
-                <li><code>scan_repo</code><span>Secrets, sinks, API routes and runtime pins in a project folder</span></li>
-                <li><code>check_dependencies</code><span>What each npm or Python package can do, typosquats, known-malicious</span></li>
-                <li><code>audit_ai_tooling</code><span>Skills, MCP servers, hooks and permissions, graded A to F</span></li>
-                <li><code>runtime_advisories</code><span>Advisories and end of life for the runtime a project pins</span></li>
-                <li><code>explain_finding</code><span>What a rule checks, why it matters, how to fix it</span></li>
-                <li><code>scan_url</code><span>A passive scan of a running app, loopback or hosts you allow</span></li>
-              </ul>
-            </div>
-            <figcaption id="tools-cap">The six tools, as <a href="https://github.com/danoszz/penthera/blob/main/docs/commands/mcp.md">docs/commands/mcp.md</a> lists them.</figcaption>
-          </figure>
-        </li>
-        <li class="step">
-          <div class="step-text">
-            <p class="step-n"><span>04</span> / 04</p>
-            <h3>The fix loop</h3>
-            <p>For common findings Penthera plans a fix as a diff: security headers, cookie flags, a CORS allowlist, a rate limit on login, a secret moved to an environment variable. You approve each one. A re-scan checks the problem is gone, and it never commits or pushes.</p>
-            <p class="note">A fix may not touch your tests, CI, lockfiles or Penthera's own files. <a href="https://github.com/danoszz/penthera/blob/main/docs/commands/fix.md">How fixes stay safe</a></p>
-          </div>
-          <figure class="step-media shot">
-            <img src="/media/tour/ui-run.jpg" width="800" height="500" loading="lazy" alt="The fix loop in the dashboard: 'Penthera wants to change 1 file to fix this: Missing Content-Security-Policy header', with Stop fixing, Skip this one and Apply this fix">
-            <figcaption>Fix 1 of 3: one file, shown before it changes. Demo data.</figcaption>
-          </figure>
-        </li>
-      </ol>
+        <figcaption id="walk-cap">Setup, a scan, the dashboard, one fix approved, the report. Demo data, captions on.</figcaption>
+      </figure>
+      <div class="tour-shots">
+        <figure class="shot">
+          <img class="shot-dark" src="/media/tour/ui-dark.jpg" width="800" height="500" loading="lazy" alt="The dashboard in Simple mode, dark theme: the verdict 'Not ready to ship: 1 critical problem to fix first', the problems by severity, and a hardcoded Stripe key open with what is wrong, how sure Penthera is and what to do">
+          <img class="shot-light" src="/media/tour/ui-light.jpg" width="800" height="500" loading="lazy" alt="The dashboard in Advanced mode, light theme: a project with its tabs, the triage matrix and a missing Strict-Transport-Security header open with its evidence and sources">
+          <figcaption><code>npx penthera ui</code>: what to fix first, in plain words. Local only.</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="/media/tour/ui-run.jpg" width="800" height="500" loading="lazy" alt="The fix loop in the dashboard: 'Penthera wants to change 1 file to fix this: Missing Content-Security-Policy header', with Stop fixing, Skip this one and Apply this fix">
+          <figcaption>Each fix is a diff you approve; a re-scan confirms it. It never commits or pushes.</figcaption>
+        </figure>
+      </div>
     </section>
 
-    <!-- 6 · How it compares: the table is built from site/compare.json. -->
+    <!-- 4 · How it compares: the table is built from site/compare.json. -->
     <section class="compare" id="compare" aria-labelledby="compare-title">
-      <p class="eyebrow">06 · How it compares</p>
+      <p class="eyebrow">04 · How it compares</p>
       <h2 id="compare-title">Use it with the tools you have.</h2>
       <p class="compare-lede">Most teams use Penthera with at least one of these. Here is where each goes further.</p>
 {{COMPARE_SUMMARY}}
@@ -454,9 +269,9 @@
       <p class="compare-note">No row says which tool finds more; that has not been measured. <a href="https://github.com/danoszz/penthera/blob/main/docs/compare/README.md">All comparisons, and how to run each tool with Penthera</a></p>
     </section>
 
-    <!-- 7 · Get started: the CLI, the skill and the MCP server. -->
+    <!-- 5 · Get started: the CLI, the skill and the MCP server. -->
     <section class="get band band-blue" id="get" aria-labelledby="get-title">
-      <p class="eyebrow">07 · Get started</p>
+      <p class="eyebrow">05 · Get started</p>
       <h2 id="get-title">Three ways in.</h2>
       <ol class="ways">
         <li>
@@ -468,7 +283,7 @@
             <span class="cmd-act" aria-hidden="true" data-js><span class="cmd-copy">Copy</span><span class="cmd-done">Copied</span></span>
             <span class="sr" aria-live="polite" data-copy-status>, copy to clipboard</span>
           </button>
-          <p>The guided start. It checks your code, dependencies and AI tooling, and asks before anything else. Nothing is committed or pushed.</p>
+          <p>The guided start. It asks before it changes anything and never commits or pushes.</p>
         </li>
         <li>
           <p class="step-n"><span>B</span> In your coding agent</p>
@@ -479,22 +294,23 @@
             <span class="cmd-act" aria-hidden="true" data-js><span class="cmd-copy">Copy</span><span class="cmd-done">Copied</span></span>
             <span class="sr" aria-live="polite" data-copy-status>, copy to clipboard</span>
           </button>
-          <p>Teaches Claude Code, Cursor, Codex and other agents to run authorized scans and explain what they find. <a href="https://github.com/danoszz/penthera/blob/main/docs/commands/skill.md">Other install routes</a></p>
+          <p>Teaches Claude Code, Cursor, Codex and other agents to run scans and explain them. <a href="https://github.com/danoszz/penthera/blob/main/docs/commands/skill.md">Other install routes</a></p>
         </li>
         <li>
           <p class="step-n"><span>C</span> As a tool your agent calls</p>
           <h3>The MCP server</h3>
           <button class="cmd" type="button" data-copy="claude mcp add penthera -- npx -y penthera@{{VERSION}} mcp">
             <span class="cmd-prompt" aria-hidden="true">$</span>
-            <code>claude mcp add penthera -- npx -y penthera@{{VERSION}} mcp</code>
+            <code>claude mcp add penthera -- npx -y <span class="nowrap">penthera@{{VERSION}}</span> mcp</code>
             <span class="cmd-act" aria-hidden="true" data-js><span class="cmd-copy">Copy</span><span class="cmd-done">Copied</span></span>
             <span class="sr" aria-live="polite" data-copy-status>, copy to clipboard</span>
           </button>
-          <p>Pinned to {{VERSION}}, so an update never runs without you. {{MCP_NOTE}} Configs for other clients are below.</p>
+          <p>Pinned to {{VERSION}}, so it never updates without you. {{MCP_NOTE}}</p>
         </li>
       </ol>
 
-      <h3 class="prompts-title">Or ask your coding agent</h3>
+      <details class="agent" id="prompts">
+        <summary class="prompts-title">Prompts for Claude Code, Cursor and Codex</summary>
       <div class="prompts">
         <article class="prompt-card" data-copy-root>
           <h4><svg class="tool-icon" viewBox="0 0 9 9" aria-hidden="true"><path d="M0 0h1v1h-1zM4 0h1v1h-1zM8 0h1v1h-1zM1 1h1v1h-1zM4 1h1v1h-1zM7 1h1v1h-1zM2 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM3 3h3v1h-3zM0 4h9v1h-9zM3 5h3v1h-3zM2 6h1v1h-1zM4 6h1v1h-1zM6 6h1v1h-1zM1 7h1v1h-1zM4 7h1v1h-1zM7 7h1v1h-1zM0 8h1v1h-1zM4 8h1v1h-1zM8 8h1v1h-1z"/></svg>Claude Code</h4>
@@ -512,6 +328,7 @@
           <button class="btn" type="button" data-copy-from data-js>Copy prompt</button>
         </article>
       </div>
+      </details>
       <details class="agent" id="agent">
         <summary class="prompts-title" id="agent-title">MCP configs for Claude Code, Codex, Cursor, VS Code and Windsurf</summary>
       <div class="prompts">
@@ -572,19 +389,11 @@
       </p>
     </section>
 
-    <!-- 8 · Before you install -->
+    <!-- 6 · Before you install -->
     <section class="faq" id="faq" aria-labelledby="faq-title">
-      <p class="eyebrow">08 · Questions</p>
+      <p class="eyebrow">06 · Questions</p>
       <h2 id="faq-title">Before you install.</h2>
       <div class="faq-list">
-        <details>
-          <summary>What is Penthera, and why does it exist?</summary>
-          <div class="faq-a">
-            <p>Penthera is a security agent you run on your own machine, and an open research project that measures how well it works. We want a safer internet for everyone who builds for their business or turns an idea into a product.</p>
-            <p>AI coding tools make building faster, and they bring new risks with them: leaked keys, dependencies that do more than they say, agent setups that run whatever they are told. Paid security tools are not something everyone can afford. Penthera is free and open, and its checks rest on published research, ongoing experiments and a public benchmark.</p>
-            <p>It is also built for ethical use of AI. Readable, deterministic rules decide; models may only propose a fix, and a re-scan and your tests decide whether it holds. You can read every check, so it cannot be quietly turned against you.</p>
-          </div>
-        </details>
         <details>
           <summary>What will it change on my machine?</summary>
           <div class="faq-a">
@@ -617,12 +426,6 @@
             <p>On the public benchmark: precision {{BENCH_P}} (95% CI {{BENCH_P_CI}}) and recall {{BENCH_R}} (95% CI {{BENCH_R_CI}}), from {{BENCH_TP}} true positives, {{BENCH_FP}} false positives and {{BENCH_FN}} misses in labs we built ourselves. During the benchmark it made {{BENCH_EGRESS}} requests to anything other than loopback.</p>
             <p>The sample is small and the labs are ours, so these numbers catch regressions; they do not measure real-world accuracy. Measuring that on other people's code is experiment E1, <a href="https://github.com/danoszz/penthera/blob/main/docs/research/prereg/E1-real-world-accuracy.md">pre-registered</a> before any data is collected.</p>
             <p>Every rule is readable: {{N_URL}} URL scan templates, {{N_SECRETS}} secret and AI-key patterns, {{N_CAPS}} dependency capabilities, {{N_AGENTS}} AI-tooling rules and {{N_RECIPES}} fix recipes, on {{DEPS_N}} ({{DEPS_LIST}}). <a href="https://github.com/danoszz/penthera/blob/main/bench/RESULTS.md">Benchmark results</a></p>
-          </div>
-        </details>
-        <details id="faq-limits">
-          <summary>What can't it do?</summary>
-          <div class="faq-a">
-            <p>It finds known classes of problems, not novel ones. It does not find business-logic flaws, complex authorization bugs or zero-days, and it does not replace a human penetration test or incident response. The full list is in the methodology's <a href="https://github.com/danoszz/penthera/blob/main/docs/METHODOLOGY.md#known-limitations">known limitations</a>, and what is planned for each is under <a href="#limits">Current limitations</a>.</p>
           </div>
         </details>
         <details>
@@ -660,11 +463,11 @@
       </div>
     </section>
 
-    <!-- 9 · For agents: machine-readable entry points, all built from the repo. -->
+    <!-- 07 · For agents: machine-readable entry points, all built from the repo. -->
     <section class="for-agents band band-invert" id="for-agents" aria-labelledby="agents-title">
-      <p class="eyebrow">09 · For agents</p>
+      <p class="eyebrow">07 · For agents</p>
       <h2 id="agents-title">Point your agent here.</h2>
-      <p class="agents-lede">Everything on this page, as files an agent can read. Each is built from the repo when the site deploys, so it matches Penthera {{VERSION}}.</p>
+      <p class="agents-lede">Everything on this page as files an agent can read, built from the repo for Penthera {{VERSION}}. The live check is an API too: <a href="/openapi.json"><code>/openapi.json</code></a>.</p>
       <ul class="entry">
         <li><a href="/llms.txt"><code>/llms.txt</code></a><span>What Penthera is, the pinned commands, and where each doc is.</span></li>
         <li><a href="/llms-full.txt"><code>/llms-full.txt</code></a><span>README.md and {{DOC_PAGES}} documentation pages as one Markdown file.</span></li>
@@ -680,7 +483,15 @@
         <span class="cmd-act" aria-hidden="true" data-js><span class="cmd-copy">Copy</span><span class="cmd-done">Copied</span></span>
         <span class="sr" aria-live="polite" data-copy-status>, copy the prompt to clipboard</span>
       </button>
-      <p class="note">A prompt to paste into your agent. Only scan what you own or are authorized to test.</p>
+    </section>
+
+    <!-- 08 · About: who builds it, and why. -->
+    <section class="about" id="about" aria-labelledby="about-title">
+      <p class="eyebrow">08 · About</p>
+      <h2 id="about-title">Why Penthera exists.</h2>
+      <p class="about-text">I build Penthera in the open, at night, alongside my PhD in AI and architecture. In 15 years I designed and built more than 100 apps for startups and governments, some used by millions of people. Security was always expected of me, so I collected the tricks and scripts I run before anything ships. Penthera is that sanity check, for everyone.</p>
+      <p class="about-text">AI coding tools let far more people build. The security basics have to keep up, or apps leak data and run up credit-card bills. I believe technology does more good than harm when it is designed for people. Penthera uses research-backed methods and what I learned building agents: readable rules, free and MIT-licensed, to help builders ship safe apps.</p>
+      <p class="about-contact">Questions or ideas: <a href="https://github.com/danoszz/penthera/discussions">GitHub Discussions</a>. Bugs and false positives: <a href="https://github.com/danoszz/penthera/issues">issues</a>. A vulnerability in Penthera itself: <a href="/.well-known/security.txt">security.txt</a>.</p>
       <a class="by" href="https://daanvanderzwaag.com"><span class="by-word">Made by</span><span class="dvdz" aria-hidden="true"></span><span class="sr">Daan van der Zwaag</span></a>
     </section>
   </main>

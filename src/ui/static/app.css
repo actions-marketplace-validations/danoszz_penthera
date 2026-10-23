@@ -14,10 +14,15 @@
  * selection, the default button, the focus ring, chart lines and links.
  * Green is retired: OK is a ✓ and a word.
  *
- * Type, three roles:
- *   --px    Departure Mono (OFL, self-hosted) at 11 / 22px :: chrome, labels, numbers
- *   --mono  ui-monospace :: data, paths, diffs, evidence, transcripts
- *   --sans  system-ui :: sentences for people (In plain words, notes, empty states)
+ * Type, four roles, as on penthera.org:
+ *   --display  Helvetica Neue, tight :: the verdict and window headlines
+ *   --px       Departure Mono (OFL, self-hosted) at 11 / 22px :: chrome, labels, numbers
+ *   --mono     ui-monospace :: data, paths, diffs, evidence, transcripts
+ *   --sans     the same grotesk at reading sizes :: sentences for people
+ *
+ * Metal (2026-10-23, from the site): the report, the plain-words box and the
+ * waiting note are brushed plates lit by one light from above, which follows
+ * the pointer on a mouse (dom.js metalLight). They are the only flat greys.
  *
  * One theming system: [data-theme] on <html>, set before paint by
  * /js/theme.js (localStorage, else prefers-color-scheme). Both themes are
@@ -60,6 +65,7 @@
   --series: #7a7aff;
   --desk: rgba(var(--ink-rgb), 0.42);     /* desktop dots */
   --scrim: rgba(0, 0, 0, 0.6);
+  --sheen: 0.12; --lit: 0.07; --shade: 0.35;
 }
 
 :root[data-theme="light"] {
@@ -81,12 +87,14 @@
   --series: #0000ed;
   --desk: rgba(var(--ink-rgb), 0.55);
   --scrim: rgba(10, 10, 10, 0.35);
+  --sheen: 0.95; --lit: 0.7; --shade: 0.07;
 }
 
 :root {
   --px: "Departure Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --sans: "Helvetica Neue", Helvetica, Arial, "Nimbus Sans", sans-serif;
+  --display: var(--sans);
   --fs: 13px;
   --bar-h: 28px;                          /* window title bars */
   --desk-gap: 6px;                        /* desktop showing between windows */
@@ -323,7 +331,6 @@ button.status:hover .lamp { border-color: var(--ground); }
 
 .new-scan { margin: 10px 10px 8px; justify-content: space-between; }
 .new-scan kbd { border-color: currentColor; }
-.side-label { margin: 14px 12px 6px; font: 11px / 1 var(--px); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); display: flex; justify-content: space-between; }
 .side-list { list-style: none; margin: 0; padding: 0 6px; display: grid; gap: 1px; }
 .item {
   all: unset;
@@ -398,17 +405,20 @@ button.status:hover .lamp { border-color: var(--ground); }
 .btn:hover { box-shadow: inset 0 0 0 1px var(--frame); background: var(--ground); color: var(--text-1); }
 .btn:active { background: var(--frame); color: var(--ground); }
 .btn[disabled] { color: var(--text-4); border-color: var(--text-4); box-shadow: none; background: var(--ground); }
+/* The one call to action per screen: a soft blue gradient, square corners. */
 .btn.primary {
-  background: var(--accent);
+  background: linear-gradient(180deg, #5a5aff 0%, #0000ed 55%, #0000b8 100%);
   color: var(--on-accent);
-  border-color: var(--frame);
-  box-shadow: 0 0 0 2px var(--ground), 0 0 0 3px var(--frame);
-  margin: 3px;
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 8px 24px -8px rgba(0, 0, 237, 0.75);
 }
-.btn.primary:hover { background: var(--accent-hover); color: var(--on-accent); }
+.btn.primary:hover { background: linear-gradient(180deg, #7676ff 0%, #2a2aff 55%, #0000d0 100%); color: var(--on-accent); }
 .btn.primary:active { background: var(--frame); color: var(--ground); }
 .btn.primary[disabled] { background: var(--ground); color: var(--text-4); border-color: var(--text-4); box-shadow: 0 0 0 2px var(--ground), 0 0 0 3px var(--text-4); }
 .btn.small { min-height: 24px; padding: 0 8px; }
+/* The second action: filled ink (white in the dark theme). */
+.btn.ink { background: var(--frame); color: var(--ground); }
+.btn.ink:hover { background: rgba(var(--ink-rgb), 0.82); color: var(--ground); box-shadow: none; }
 .btn .k { opacity: 0.75; }
 
 .chip { display: inline-block; border: 1px solid var(--frame); padding: 1px 5px; font: 11px / 1.2 var(--px); color: var(--text-1); white-space: nowrap; }
@@ -474,14 +484,8 @@ svg.chart { display: block; width: 100%; height: auto; }
 /* ── Centre: the document ──────────────────────────────────────────────── */
 
 .stream { flex: 1; min-height: 0; overflow-y: auto; }
-.col { max-width: 920px; margin: 0 auto; padding: 22px 24px 40px; }
+.col { max-width: 920px; margin: 0 auto; padding: 22px 24px 40px; container-type: inline-size; }
 
-.head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px 16px; align-items: center; margin-bottom: 18px; }
-.head h1 { margin: 0; font: 22px / 1.1 var(--px); color: var(--text-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.head .meta { grid-column: 2; color: var(--text-3); font-size: 12px; }
-.head .right-bits { grid-row: 1 / span 2; grid-column: 3; display: grid; justify-items: end; gap: 4px; }
-.head .counts { color: var(--text-2); font: 11px / 1 var(--px); }
-.head .counts b { color: var(--text-1); font-weight: 400; }
 
 .section { margin-top: 24px; }
 .section > h2 { margin: 0 0 8px; font: 11px / 1 var(--px); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); display: flex; justify-content: space-between; gap: 12px; }
@@ -550,7 +554,7 @@ svg.chart { display: block; width: 100%; height: auto; }
 .empty { color: var(--text-3); margin: 6px 0; }
 
 /* Sentences for people get the sans. */
-.prose, .empty, .plain p, .start > p, .start .step p, .detail section > p, .dialog-body p.prose {
+.prose, .empty, .plain p, .start > p, .start .step p, .detail section > p {
   font-family: var(--sans);
   font-size: 14px;
   line-height: 1.45;
@@ -562,7 +566,7 @@ svg.chart { display: block; width: 100%; height: auto; }
 .start > .logotype.xl { width: 279px; height: 63px; color: var(--text-1); margin-top: 12px; }
 .start > .halftone-wrap { height: 120px; border-block: 1px solid var(--frame); }
 .start > p { margin: 0; }
-.start h1 { margin: 6px 0 0; font: 22px / 1.1 var(--px); color: var(--text-1); }
+.start h1 { margin: 6px 0 0; font: 500 32px / 1.05 var(--display); letter-spacing: -0.03em; color: var(--text-1); }
 .start .steps { display: grid; gap: 0; margin-top: 18px; border-top: 1px solid var(--frame); }
 .start .step { display: grid; grid-template-columns: 3ch minmax(0, 1fr) auto; gap: 2px 12px; align-items: baseline; padding: 12px 0; border-bottom: 1px solid var(--hair); }
 .start .step .n { color: var(--text-3); font-family: var(--px); }
@@ -583,18 +587,9 @@ svg.chart { display: block; width: 100%; height: auto; }
 .cursor { display: inline-block; width: 1ch; height: 1.15em; vertical-align: text-bottom; background: var(--accent-ink); margin-left: 1px; animation: blink 1s steps(1, end) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 .run-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
-.run-head h1 { margin: 0; font: 22px / 1.1 var(--px); color: var(--text-1); }
+.run-head h1 { margin: 0; font: 500 26px / 1.1 var(--display); letter-spacing: -0.02em; color: var(--text-1); }
 .run-head .grow, .actions .grow { flex: 1; }
 
-/* The approval: a floating dialog, pinstriped because it waits on you. */
-.dialog { margin: 14px 3px 14px 0; border: 1px solid var(--frame); box-shadow: 3px 3px 0 var(--frame); background: var(--ground); }
-.dialog-bar { height: 22px; border-bottom: 1px solid var(--frame); display: flex; justify-content: center; align-items: center;
-  background: repeating-linear-gradient(to bottom, var(--frame) 0 1px, transparent 1px 2px) 0 5px / 100% 11px no-repeat, var(--ground); }
-.dialog-bar span { padding: 0 10px; background: var(--ground); color: var(--text-1); font: 11px / 1 var(--px); }
-.dialog-body { padding: 12px 14px; display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr); }
-.dialog-body > * { min-width: 0; }
-.dialog-body h3 { margin: 0; font-size: 13px; color: var(--text-1); }
-.dialog-body p { margin: 0; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; align-items: center; }
 .kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 3px 14px; margin: 0; }
 .kv dt { color: var(--text-3); font: 11px / 1.6 var(--px); }
@@ -610,10 +605,10 @@ pre.diff { white-space: pre; overflow-x: auto; }
 
 .detail { padding: 14px; display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); align-content: start; }
 .detail > * { min-width: 0; }
-.detail h2 { margin: 0; font-size: 14px; color: var(--text-1); }
+.detail h2 { margin: 0; font: 500 20px / 1.2 var(--display); letter-spacing: -0.015em; color: var(--text-1); }
 .detail section > .label { font: 11px / 1 var(--px); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); margin: 0 0 6px; }
 .detail section > p { margin: 0; color: var(--text-1); }
-.plain { border: 1px solid var(--frame); box-shadow: 3px 3px 0 var(--frame); padding: 10px 12px; display: grid; gap: 8px; margin-right: 3px; }
+.plain { padding: 12px 14px; display: grid; gap: 8px; }
 .plain p { margin: 0; color: var(--text-1); }
 .plain b { color: var(--text-1); }
 .seg { display: inline-flex; border: 1px solid var(--frame); }
@@ -701,8 +696,6 @@ dialog.window > .win-bar .icon.close-box:hover::before { background: var(--groun
   .row .sev { grid-column: 1 / -1; }
   .row .where { grid-column: 1 / -1; }
   .cols2 { grid-template-columns: minmax(0, 1fr); }
-  .head { grid-template-columns: auto minmax(0, 1fr); }
-  .head .right-bits { grid-row: auto; grid-column: 1 / -1; justify-items: start; }
   .menu-title.logo .logotype { display: none; }
   .menu-title.logo .mark { display: inline-block; }
   .menu-title { padding: 0 7px; }
@@ -719,18 +712,62 @@ dialog.window > .win-bar .icon.close-box:hover::before { background: var(--groun
 
 /* ── Phase 3: verdict, simple list, triage matrix, setup, approval ────── */
 
-/* The verdict: one sentence and one button. Critical inverts the box, so the
-   loudest state is the one with the most at stake. */
-.verdict { margin: 0 3px 8px 0; padding: 14px 16px; border: 1px solid var(--frame); box-shadow: 3px 3px 0 var(--frame); display: grid; gap: 6px; }
-.verdict p { margin: 0; }
-.verdict-text { font: 600 20px / 1.3 var(--sans); color: var(--text-1); }
-.verdict-sub { font: 13px / 1.4 var(--sans); }
-.verdict .actions { margin-top: 6px; }
-.verdict.v-stop { background: var(--frame); }
-.verdict.v-stop .verdict-text { color: var(--ground); }
-.verdict.v-stop .verdict-sub { color: var(--ground); opacity: 0.75; }
-.verdict.v-stop .btn:not(.primary) { border-color: var(--ground); }
-.verdict.v-stop .btn.primary { box-shadow: 0 0 0 2px var(--frame), 0 0 0 3px var(--ground); }
+/* The report, as on penthera.org's live check: the verdict as the headline,
+   the score as a 10 × 10 meter of pixels, one blue action. */
+.report { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px 32px; align-items: start; margin-bottom: 8px; padding: clamp(18px, 2.4vw, 28px); }
+.report p { margin: 0; }
+.report-main { display: grid; gap: 12px; justify-items: start; min-width: 0; }
+.report-host { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font: 11px / 1.4 var(--px); color: var(--text-3); }
+.report-host > span:nth-child(2) { color: var(--text-1); }
+.verdict-text { font: 500 clamp(26px, 5.4cqi, 40px) / 1.05 var(--display); letter-spacing: -0.03em; color: var(--text-1); text-wrap: balance; }
+.verdict-sub { font: 14px / 1.4 var(--sans); }
+.report .counts { font: 11px / 1 var(--px); color: var(--text-3); }
+.report .counts b { font: 500 22px / 1 var(--display); letter-spacing: -0.02em; margin-right: 4px; }
+.report .actions { margin-top: 4px; }
+.report-score { display: grid; justify-items: end; gap: 10px; }
+.score { display: flex; align-items: center; gap: 18px; }
+.meter { display: grid; grid-template-columns: repeat(10, 7px); gap: 2px; }
+.meter i { width: 7px; height: 7px; background: var(--pt-sparse); outline: 1px solid var(--hair); outline-offset: -1px; }
+.meter i.on { background: var(--frame); outline: 0; }
+.score-n { font: 500 clamp(48px, 5vw, 72px) / 0.9 var(--display); letter-spacing: -0.05em; }
+.score-n span { display: block; margin-top: 6px; font: 11px / 1 var(--px); letter-spacing: 0; color: var(--text-3); -webkit-text-fill-color: var(--text-3); }
+/* Numbers in polished type, lit from the same light above. */
+.score-n, .report .counts b {
+  background: linear-gradient(180deg, rgb(var(--ink-rgb)) 35%, color-mix(in srgb, rgb(var(--ink-rgb)) 55%, var(--ground)) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+/* One blue per screen: with a finding open, the inspector's fix is the one. */
+.app:not(.no-right):not([data-fix]):has(.right .btn.primary) .report .btn.primary { background: var(--frame); color: var(--ground); border-color: var(--frame); box-shadow: none; }
+
+/* Brushed metal in the old Apple manner: black steel on the dark ground,
+   silver on the light one. --lx / --ly come from the pointer (dom.js). */
+.plate {
+  position: relative; isolation: isolate;
+  border: 1px solid rgba(var(--ink-rgb), 0.22);
+  background:
+    radial-gradient(400px circle at var(--lx, 50%) var(--ly, -220px), rgba(255, 255, 255, var(--sheen)), transparent 72%),
+    linear-gradient(180deg, rgba(255, 255, 255, var(--lit)), transparent 48%, rgba(0, 0, 0, var(--shade))),
+    color-mix(in srgb, rgb(var(--ink-rgb)) 9%, var(--ground));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, calc(var(--lit) * 4)), inset 0 -1px 0 rgba(0, 0, 0, calc(var(--shade) * 0.8));
+}
+.plate::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: repeating-linear-gradient(180deg, rgba(var(--ink-rgb), 0.045) 0 1px, transparent 1px 3px); }
+
+/* What was fixed, folded into one line. */
+details.passed { margin-top: 14px; }
+details.passed > summary { display: inline-flex; align-items: center; gap: 10px; min-height: var(--target); list-style: none; cursor: default; font: 11px / 1 var(--px); color: var(--text-1); }
+details.passed > summary::-webkit-details-marker { display: none; }
+details.passed > summary::before { content: "+"; width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid var(--frame); }
+details.passed[open] > summary::before { content: "\2212"; }
+details.passed .mini { margin: 6px 0 0 30px; }
+
+/* Check and fix: a run takes the whole desktop, with Back at its top left. */
+.app[data-fix] { grid-template-columns: minmax(0, 1fr) !important; grid-template-areas: "center" !important; }
+.app[data-fix] .left, .app[data-fix] .right, .app[data-fix] .scrim { display: none !important; }
+.fix-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -4px 0 20px; }
+.back { display: inline-flex; align-items: center; gap: 10px; min-height: 32px; padding: 0 12px 0 10px; font: 11px / 1 var(--px); color: var(--text-1); background: none; border: 1px solid var(--hair); cursor: default; }
+.back::before { content: ""; width: 7px; height: 7px; margin-left: 3px; border-left: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); }
+.back:hover { border-color: var(--frame); }
+.fix-mode { font: 11px / 1 var(--px); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
 
 .rows.simple .row { grid-template-columns: 9em minmax(0, 1fr) auto; padding: 12px 8px; align-items: center; }
 .rows.simple .row .t { font: 15px / 1.35 var(--sans); }
@@ -767,7 +804,7 @@ details.more[open] > * + * { margin-top: 10px; }
 dialog.window.wide { width: min(640px, calc(100vw - 32px)); }
 .setup { display: grid; gap: 14px; justify-items: stretch; }
 .setup > .logotype.xl { justify-self: start; color: var(--text-1); margin: 4px 0 2px; }
-.setup h2 { margin: 0; font: 600 20px / 1.3 var(--sans); color: var(--text-1); }
+.setup h2 { margin: 0; font: 500 24px / 1.15 var(--display); letter-spacing: -0.02em; color: var(--text-1); }
 .setup p { margin: 0; }
 .setup .gate { border-left: 3px solid var(--frame); padding-left: 10px; color: var(--text-1); }
 .setup .form .field:first-child { margin-top: 0; }
@@ -786,11 +823,11 @@ dialog.window > .win-bar.striped .icon.close-box::before { background: var(--gro
 dialog.window > .win-bar.striped .icon.close-box { background: var(--ground); }
 .approval { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); }
 .approval > * { min-width: 0; }
-.approval h3 { margin: 0; font: 600 16px / 1.35 var(--sans); color: var(--text-1); }
+.approval h3 { margin: 0; font: 500 20px / 1.2 var(--display); letter-spacing: -0.015em; color: var(--text-1); }
 .approval p { margin: 0; }
 .approval .actions { margin-top: 6px; }
-.approval kbd, .btn kbd { border-color: currentColor; }
-.wait-note { display: flex; align-items: center; gap: 10px; margin: 14px 3px 14px 0; padding: 10px 12px; border: 1px solid var(--frame); box-shadow: 3px 3px 0 var(--frame); color: var(--text-1); flex-wrap: wrap; }
+.approval kbd, .btn kbd { border-color: currentColor; color: inherit; }
+.wait-note { display: flex; align-items: center; gap: 10px; margin: 14px 0; padding: 12px 14px; color: var(--text-1); flex-wrap: wrap; }
 
 /* Step gutter: every line done gets a filled square; the line being worked on is hollow. */
 .transcript.gutter { padding-left: 20px; }
@@ -800,7 +837,14 @@ dialog.window > .win-bar.striped .icon.close-box { background: var(--ground); }
 
 @media (max-width: 760px) {
   .rows.simple .row { grid-template-columns: minmax(0, 1fr) auto; }
-  .verdict-text { font-size: 18px; }
+}
+/* A narrow centre window (a phone, or a laptop with both side windows open):
+   one column, the score between the verdict and its actions. */
+@container (max-width: 640px) {
+  .report { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .report-main { display: contents; }
+  .report-score { order: 1; justify-items: start; margin: 4px 0; }
+  .report .actions { order: 2; }
 }
 
 /* ── Phase 4: the halftone field ───────────────────────────────────────── */

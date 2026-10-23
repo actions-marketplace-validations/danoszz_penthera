@@ -4,14 +4,17 @@
   "installCommand": "npm ci --ignore-scripts --no-audit --no-fund",
   "buildCommand": "node site/build.mjs",
   "outputDirectory": "site/dist",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- site lib src/ui/static assets README.md docs CHANGELOG.md AGENTS.md bench/RESULTS.md tests/fixtures/agents/malicious package.json package-lock.json vercel.json server.json",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- site api lib src/ui/static assets README.md docs CHANGELOG.md AGENTS.md bench/RESULTS.md tests/fixtures/agents/malicious package.json package-lock.json vercel.json server.json",
   "cleanUrls": true,
   "trailingSlash": false,
+  "rewrites": [
+    {"source": "/(.*)", "has": [{"type": "header", "key": "accept", "value": "(.*)text/markdown(.*)"}], "destination": "/api/not-found"}
+  ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Content-Security-Policy", "value": "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; media-src 'self'; font-src 'self'; connect-src https://penthera.org/_vercel/insights/ https://penthera.org/_vercel/speed-insights/ https://www.penthera.org/_vercel/insights/ https://www.penthera.org/_vercel/speed-insights/; manifest-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests" },
+        { "key": "Content-Security-Policy", "value": "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; media-src 'self'; font-src 'self'; connect-src https://penthera.org/_vercel/insights/ https://penthera.org/_vercel/speed-insights/ https://www.penthera.org/_vercel/insights/ https://www.penthera.org/_vercel/speed-insights/ https://penthera.org/api/check https://www.penthera.org/api/check; manifest-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests" },
         { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "DENY" },
@@ -20,6 +23,16 @@
         { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
         { "key": "Cross-Origin-Resource-Policy", "value": "same-origin" }
       ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        { "key": "Link", "value": "</index.md>; rel=\"alternate\"; type=\"text/markdown\", </llms.txt>; rel=\"describedby\"; type=\"text/plain\"" }
+      ]
+    },
+    {
+      "source": "/openapi\\.json",
+      "headers": [{ "key": "Content-Type", "value": "application/json; charset=utf-8" }]
     },
     {
       "source": "/(.*)\\.md",
@@ -37,5 +50,6 @@
       "source": "/(check.js|styles.css|theme.js)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     }
-  ]
+  ],
+  "functions": {"api/check.mjs": {"includeFiles": "{lib/rules/**,lib/data/**}", "maxDuration": 60}}
 }

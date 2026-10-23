@@ -81,19 +81,3 @@ export function createTyper(container) {
     },
   };
 }
-
-/** Type a short string into an element once (the header prompt). */
-const typing = new WeakMap(); // element -> timer, so a new line cancels the one still typing
-
-export function typeInto(el, text, { cps = 40 } = {}) {
-  clearTimeout(typing.get(el));
-  if (prefersReducedMotion()) { el.textContent = text; return; }
-  let i = 0;
-  const step = () => {
-    i++;
-    el.textContent = text.slice(0, i);
-    if (i < text.length) typing.set(el, setTimeout(step, 1000 / cps));
-  };
-  el.textContent = "";
-  step();
-}

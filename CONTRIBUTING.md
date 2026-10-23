@@ -332,8 +332,8 @@ live once a maintainer approves it with 2FA. **Do not run `npm publish` locally.
    - `docs/METHODOLOGY.md` (the "How to cite" block)
    - `server.json` (`version` and `packages[0].version`) and the pins in
      `docs/mcp-clients/`; a test keeps them equal
-   - `.mcp.json` at the root (the `penthera@<version>` pin); the internal audit
-     checks it
+   - `.mcp.json` and `gemini-extension.json` at the root (`version` and the
+     `penthera@<version>` pins); the internal audit checks them
 2. Fold the fragments in `changelog.d/` and the `[Unreleased]` notes into the
    new version, which also deletes the fragment files:
 

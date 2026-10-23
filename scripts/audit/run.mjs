@@ -672,6 +672,11 @@ async function gateVersionsDocs() {
     "skills/penthera/SKILL.md": skill,
     "CITATION.cff": citation,
     "docs/METHODOLOGY.md (How to cite)": howToCite,
+    // The repo's own MCP config (for agents that open this repo, and cursor.directory).
+    ".mcp.json (pin)": readJson(join(ROOT, ".mcp.json")).mcpServers?.penthera?.args?.find((x) => x.startsWith("penthera@"))?.slice("penthera@".length),
+    // The Gemini CLI extension: its version and its MCP pin.
+    "gemini-extension.json": readJson(join(ROOT, "gemini-extension.json")).version,
+    "gemini-extension.json (pin)": readJson(join(ROOT, "gemini-extension.json")).mcpServers?.penthera?.args?.find((x) => x.startsWith("penthera@"))?.slice("penthera@".length),
   };
   for (const [file, got] of Object.entries(found)) {
     if (got !== v) notes.push(`Version drift: ${file} has ${got ?? "none"}, package.json has ${v}`);

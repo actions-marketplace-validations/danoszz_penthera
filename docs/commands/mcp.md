@@ -63,6 +63,13 @@ args = ["-y", "penthera@1.9.0", "mcp"]
 }
 ```
 
+**Gemini CLI**, as an extension (it reads `gemini-extension.json` at the root of
+this repository, with the same pinned server):
+
+```bash
+gemini extensions install https://github.com/danoszz/penthera
+```
+
 The same files are in [docs/mcp-clients/](../mcp-clients/). The test suite
 checks each one with Penthera's own MCP rules.
 

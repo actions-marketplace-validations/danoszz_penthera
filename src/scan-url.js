@@ -66,7 +66,19 @@ import { dedupeFindings } from "./cli/merge-results.js";
 const SENSITIVE_RE = /private_key|SECRET|PASSWORD|API_KEY|FIREBASE_|STRIPE_|DATABASE_URL|client_email|\[core\]|\[remote/i;
 // A single-page app answers every path with its index.html, whose scripts often
 // say "API_KEY". That page is not a leaked file, so HTML never trips SENSITIVE_RE.
-const isHtmlPage = (body) => /^\s*(<!--[\s\S]*?-->\s*)*<(!doctype html|html)/i.test(body);
+// Leading comments are skipped with indexOf, not a regex: a repeated
+// (<!--...-->)* group backtracks exponentially on "<!---->" runs.
+function isHtmlPage(body) {
+  let i = 0;
+  for (;;) {
+    while (i < body.length && /\s/.test(body[i])) i++;
+    if (!body.startsWith("<!--", i)) break;
+    const end = body.indexOf("-->", i + 4);
+    if (end === -1) return false;
+    i = end + 3;
+  }
+  return /^<(?:!doctype html|html)/i.test(body.slice(i, i + 15));
+}
 // phpinfo() and mod_status are HTML pages, so they are known by their own text.
 const PHPINFO_RE = /<title>[^<]{0,80}phpinfo\(\)[^<]{0,80}<\/title>/i;
 const SERVER_STATUS_RE = /Apache Server Status for|Server uptime:|Total accesses:/i;

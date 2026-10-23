@@ -77,6 +77,16 @@ describe("phase 6 sensitive-file checks", () => {
     expect(sensitive(result)).toEqual([]);
   });
 
+  it("reads an index page behind leading comments as HTML, quickly on a comment run", async () => {
+    const index = "<!-- build 42 -->\n<!-- cdn -->" + "<!---->".repeat(20_000) + "<html><body><script>const k = 'API_KEY'</script></body></html>";
+    const base = await serve((req, res) => {
+      res.writeHead(200, { "Content-Type": "text/html" });
+      res.end(index);
+    });
+    const result = await scanUrl(base, { offline: true, timeout: 3000, concurrency: 2 });
+    expect(sensitive(result)).toEqual([]);
+  });
+
   it("still reports a non-HTML file that names a secret, and phpinfo and server-status by their page text", async () => {
     const pages = {
       "/actuator/env": ['application/json', '{"propertySources":[{"properties":{"DATABASE_URL":{"value":"******"}}}]}'],

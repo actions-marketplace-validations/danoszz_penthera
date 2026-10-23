@@ -38,15 +38,18 @@ export function headersFor(pathname, rules = headerRules()) {
 function local(headers) {
   const out = { ...headers };
   delete out["Strict-Transport-Security"];
-  if (out["Content-Security-Policy"]) out["Content-Security-Policy"] = out["Content-Security-Policy"].replace(/;\s*upgrade-insecure-requests/, "");
+  // Locally the live check is on this origin, not on penthera.org.
+  if (out["Content-Security-Policy"]) out["Content-Security-Policy"] = out["Content-Security-Policy"].replace(/;\s*upgrade-insecure-requests/, "").replace("connect-src ", "connect-src 'self' ");
   return out;
 }
 
 export function serve({ dir = join(SITE, "dist"), port = 4173, host = "127.0.0.1" } = {}) {
   const root = resolve(dir);
   const rules = headerRules();
-  const server = createServer((req, res) => {
+  const server = createServer(async (req, res) => {
     const url = new URL(req.url, "http://localhost");
+    // The live check runs as a Vercel Function in production; here, in process.
+    if (url.pathname === "/api/check") return (await import("../api/check.mjs")).default(req, res);
     let path = normalize(join(root, decodeURIComponent(url.pathname)));
     if (path !== root && !path.startsWith(root + sep)) { res.writeHead(403).end(); return; }
     let st;

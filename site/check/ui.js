@@ -233,7 +233,7 @@ function barPalette() {
   const sync = () => {
     const band = bands.find((b) => under.has(b));
     if (!band) delete bar.dataset.over;
-    else bar.dataset.over = band.classList.contains("band-blue") ? "blue" : "invert";
+    else bar.dataset.over = band.classList.contains("band-blue") ? "blue" : band.classList.contains("band-grey") ? "grey" : "invert";
   };
   // A strip half the bar's height at the top of the viewport; rebuilt when
   // the viewport changes size, since rootMargin is fixed per observer.

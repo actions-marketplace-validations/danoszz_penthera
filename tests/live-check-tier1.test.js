@@ -321,3 +321,19 @@ describe("live check: server software against the runtime advisories", () => {
     expect(runtimeCheck({ server: "Vercel" }, "https://example.org/")).toEqual([]);
   });
 });
+
+describe("live check: HTML edge cases (CodeQL)", () => {
+  it("ends an inline script at </script ...> with attributes or whitespace, as browsers do", async () => {
+    const { parsePage } = await import("../api/_lib/page.mjs");
+    const p = parsePage('<script>document.write("<script src=/inside.js>")</script\t\n bar><script src="/real.js"></script>', "https://example.org/");
+    const urls = p.assets.map((a) => new URL(a.url).pathname);
+    expect(urls).toContain("/real.js");
+    expect(urls).not.toContain("/inside.js");
+  });
+
+  it("decodes &amp; last, so an encoded entity stays text", async () => {
+    const { parsePage } = await import("../api/_lib/page.mjs");
+    const p = parsePage('<script src="/a.js?q=&amp;quot;x"></script>', "https://example.org/");
+    expect(new URL(p.assets[0].url).search).toBe("?q=&quot;x");
+  });
+});

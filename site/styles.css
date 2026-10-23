@@ -35,7 +35,11 @@
  *   ink     black ground, white ink (the dark theme; the inverted band in light)
  *   paper   #fdfdfa ground, near-black ink (the light theme; inverted in dark)
  *   blue    #0000ed ground, white ink, in both themes: one band, the call to act
+ *   grey    black ground under a 2 px checker of white at .34, white ink, in
+ *           both themes: the limits band. A dithered grey, never a flat one.
  * Blue band, measured: white 9.45 · text-2 (white .85) 6.9 · text-3 (white .72) 5.1
+ * Grey band, measured on its lighter pixel (#575757): white 7.2 · text-2
+ *   (white .85) 5.8 · text-3 (white .78) 5.2. Links are white, underlined.
  */
 :root,
 :root[data-theme="dark"],
@@ -90,6 +94,22 @@
   --focus: #ffffff;
 }
 
+:root .band-grey,
+:root .bar[data-over="grey"] {
+  color-scheme: dark;
+  --ground: #000000;
+  --ground-rgb: 0, 0, 0;
+  --ink-rgb: 255, 255, 255;
+  --t2: 0.85;
+  --t3: 0.78;
+  --desk-a: 0.42;
+  --accent: #0000ed;
+  --accent-hover: #2a2aff;
+  --accent-ink: #ffffff;
+  --on-accent: #ffffff;
+  --focus: #ffffff;
+}
+
 /* Derived: recomputed wherever a palette changes. The bar takes the palette
  * of the band under it (data-over, set by the page script), because it has
  * no background of its own. */
@@ -109,6 +129,10 @@
   --pt-desk: conic-gradient(from 90deg at 1px 1px, transparent 75%, var(--desk) 0) 0 0 / 4px 4px;
 }
 .band { background: var(--ground); color: var(--text-2); }
+.band-grey {
+  --grey-dot: rgba(255, 255, 255, 0.34);
+  background: conic-gradient(var(--grey-dot) 25%, transparent 0 50%, var(--grey-dot) 0 75%, transparent 0) 0 0 / 4px 4px, #000;
+}
 
 :root {
   --display: "Helvetica Neue", Helvetica, Arial, "Nimbus Sans", sans-serif;
@@ -437,9 +461,17 @@ main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
   background: var(--ground); box-shadow: -8px 0 0 var(--ground);
   text-wrap: balance;
 }
-/* Three separate pills, so the field shows through the gaps between them. */
-.pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 20px; padding: 0; list-style: none; }
-.pills li { padding: 4px 10px; color: var(--text-1); background: var(--ground); border: 1px solid var(--frame); }
+/* Three separate labels in blue highlighter: a solid #0000ed stroke with
+ * stepped, pixel-cut ends and a slight tilt each, so they read as marked by
+ * hand. White on #0000ed is 9.45:1 in both themes. */
+.pills { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 20px; padding: 0 0 0 4px; list-style: none; }
+.pills li {
+  padding: 5px 12px 4px; color: #fff; background: #0000ed;
+  clip-path: polygon(0 3px, 3px 3px, 3px 0, calc(100% - 6px) 0, calc(100% - 6px) 2px, 100% 2px, 100% calc(100% - 4px), calc(100% - 3px) calc(100% - 4px), calc(100% - 3px) 100%, 5px 100%, 5px calc(100% - 2px), 0 calc(100% - 2px));
+  transform: rotate(-1.2deg);
+}
+.pills li:nth-child(2) { transform: rotate(0.8deg) translateY(1px); }
+.pills li:nth-child(3) { transform: rotate(-0.4deg); }
 h1 {
   font-family: var(--display);
   font-size: clamp(42px, 8.2vw, 124px);
@@ -690,7 +722,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .prompt-card h4 small { margin-left: 10px; font-family: var(--px); font-size: 12px; font-weight: 400; letter-spacing: 0.02em; color: var(--text-3); }
 
 /* 03 · How to trust it: three principles with bold lead-ins, then the
- * benchmark (the caveats as a framed box before the numbers), then the limits. */
+ * benchmark (the caveats as a framed box before the numbers). */
 .pillars { list-style: none; margin: 56px 0 0; padding: 0; display: grid; border-top: 1px solid var(--frame); }
 @media (min-width: 900px) { .pillars { grid-template-columns: repeat(3, 1fr); } }
 .pillars li { padding: 24px 24px 28px 0; border-bottom: 1px solid var(--hair); }
@@ -698,7 +730,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .pillars h3 { margin-bottom: 12px; font-size: clamp(21px, 2vw, 26px); letter-spacing: -0.02em; }
 .pillars a { display: inline-block; font-family: var(--px); font-size: 13px; }
 .bench { margin-top: clamp(80px, 10vw, 140px); }
-.bench-title, .limits-title { font-size: clamp(30px, 4.4vw, 56px); line-height: 1; letter-spacing: -0.035em; max-width: 16ch; }
+.bench-title { font-size: clamp(30px, 4.4vw, 56px); line-height: 1; letter-spacing: -0.035em; max-width: 16ch; }
 .bench-lede { margin-top: 24px; max-width: 56ch; font-size: clamp(17px, 1.6vw, 20px); color: var(--text-1); }
 .bench-caveats { margin-top: 40px; max-width: 760px; padding: 24px; border: 1px solid var(--frame); box-shadow: 6px 6px 0 var(--frame); }
 .bench-caveats ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
@@ -734,9 +766,17 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .bench-fig figcaption { max-width: 70ch; font-family: var(--px); font-size: 13px; color: var(--text-3); }
 .bench-prec { margin-top: 32px; max-width: 64ch; font-size: clamp(17px, 1.6vw, 20px); }
 
-.limits { margin-top: clamp(80px, 10vw, 140px); }
-.limits-body { margin-top: 32px; display: grid; gap: 20px; max-width: 64ch; font-size: clamp(17px, 1.6vw, 20px); }
-.limits .method { font-family: var(--px); font-size: 15px; }
+/* 04 · Current limitations: its own band, a dithered grey between the black
+ * and white ones. Each limit, what is planned for it, and its state. */
+.limits-body { margin-top: 32px; display: grid; gap: 20px; max-width: 64ch; font-size: clamp(17px, 1.6vw, 20px); color: var(--text-1); }
+.road-title { margin-top: clamp(56px, 7vw, 96px); font-size: clamp(26px, 3vw, 40px); line-height: 1.05; letter-spacing: -0.03em; }
+.road-lede { margin-top: 12px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
+.road { list-style: none; margin: 24px 0 0; padding: 0; border-top: 1px solid var(--frame); max-width: 1040px; }
+.road li { display: grid; gap: 6px 32px; padding: 18px 0; border-bottom: 1px solid var(--hair); }
+@media (min-width: 860px) { .road li { grid-template-columns: 280px 1fr 200px; align-items: baseline; } }
+.road-k { font-family: var(--display); font-size: 19px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.25; color: var(--text-1); }
+.road-s { justify-self: start; padding: 2px 8px; white-space: nowrap; font-family: var(--px); font-size: 13px; color: var(--text-1); border: 1px solid var(--frame); background: #000; }
+@media (min-width: 860px) { .road-s { justify-self: end; } }
 
 /* 04 · The tour: four numbered steps, text beside media on wide screens,
  * the media side alternating. */
@@ -792,6 +832,19 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .cmp-src a { overflow-wrap: anywhere; }
 .cmp-none { color: var(--text-3); }
 .compare-note { margin-top: 24px; max-width: 70ch; font-family: var(--px); font-size: 13px; color: var(--text-3); }
+/* The short version: each tool and where it goes further. The full table
+ * folds out below it, in a native <details>. */
+.cmp-sum { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--frame); max-width: 1040px; }
+.cmp-sum li { display: grid; gap: 2px 32px; padding: 12px 0; border-bottom: 1px solid var(--hair); }
+@media (min-width: 760px) { .cmp-sum li { grid-template-columns: 280px 1fr; align-items: baseline; } }
+.cmp-sum a { justify-self: start; font-family: var(--display); font-weight: 500; color: var(--text-1); }
+.cmp-sum li:first-child a { color: var(--accent-ink); }
+.cmp-more { margin-top: 32px; }
+.cmp-more > summary { display: inline-flex; align-items: center; gap: 12px; min-height: var(--target); cursor: pointer; list-style: none; font-family: var(--px); font-size: 15px; color: var(--text-1); }
+.cmp-more > summary::-webkit-details-marker { display: none; }
+.cmp-more > summary::before { content: "+"; flex: none; width: 28px; height: 28px; display: grid; place-items: center; font-size: 18px; border: 1px solid var(--frame); }
+.cmp-more[open] > summary::before { content: "\2212"; background: var(--frame); color: var(--ground); }
+.cmp-more > summary:hover { text-decoration: underline; text-underline-offset: 4px; }
 
 /* 08 · For agents: each entry point, its path in mono and one line. */
 .agents-lede { margin-top: 24px; max-width: 56ch; font-size: clamp(17px, 1.6vw, 20px); color: var(--text-1); }

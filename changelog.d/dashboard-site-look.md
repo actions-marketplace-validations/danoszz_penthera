@@ -7,3 +7,7 @@ section: Changed
   by the pointer; the light is off with reduced motion and on touch screens.
   The inspector now says how to check a fix, and Simple mode folds what was
   fixed into one line. Nothing the dashboard reads, runs or sends changed.
+- **Fresh screenshots and recordings.** The dashboard screenshots, the
+  80-second walkthrough, the README loop, the terminal clips, the site's hero
+  loop and the link-preview reel show the current dashboard and CLI. The reel
+  now ends on the live-check share card.

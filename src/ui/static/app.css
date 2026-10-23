@@ -484,7 +484,7 @@ svg.chart { display: block; width: 100%; height: auto; }
 /* ── Centre: the document ──────────────────────────────────────────────── */
 
 .stream { flex: 1; min-height: 0; overflow-y: auto; }
-.col { max-width: 920px; margin: 0 auto; padding: 22px 24px 40px; }
+.col { max-width: 920px; margin: 0 auto; padding: 22px 24px 40px; container-type: inline-size; }
 
 
 .section { margin-top: 24px; }
@@ -719,7 +719,7 @@ dialog.window > .win-bar .icon.close-box:hover::before { background: var(--groun
 .report-main { display: grid; gap: 12px; justify-items: start; min-width: 0; }
 .report-host { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font: 11px / 1.4 var(--px); color: var(--text-3); }
 .report-host > span:nth-child(2) { color: var(--text-1); }
-.verdict-text { font: 500 clamp(26px, 3vw, 40px) / 1.05 var(--display); letter-spacing: -0.03em; color: var(--text-1); text-wrap: balance; }
+.verdict-text { font: 500 clamp(26px, 5.4cqi, 40px) / 1.05 var(--display); letter-spacing: -0.03em; color: var(--text-1); text-wrap: balance; }
 .verdict-sub { font: 14px / 1.4 var(--sans); }
 .report .counts { font: 11px / 1 var(--px); color: var(--text-3); }
 .report .counts b { font: 500 22px / 1 var(--display); letter-spacing: -0.02em; margin-right: 4px; }
@@ -837,7 +837,10 @@ dialog.window > .win-bar.striped .icon.close-box { background: var(--ground); }
 
 @media (max-width: 760px) {
   .rows.simple .row { grid-template-columns: minmax(0, 1fr) auto; }
-  /* One column: the score sits between the verdict and its actions. */
+}
+/* A narrow centre window (a phone, or a laptop with both side windows open):
+   one column, the score between the verdict and its actions. */
+@container (max-width: 640px) {
   .report { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .report-main { display: contents; }
   .report-score { order: 1; justify-items: start; margin: 4px 0; }

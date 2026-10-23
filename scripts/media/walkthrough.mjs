@@ -246,9 +246,9 @@ async function recordDashboard(b, scratch) {
 
     // Simple: the verdict, then the first problem in plain words.
     caption("Simple mode: one sentence on whether you can ship");
-    await point(".verdict .btn.primary", "Show me the first one");
+    await point(".verdict .btn.first", "Show me the first one");
     await sleep(1600);
-    await b.call(clickAt, ".verdict .btn.primary", "Show me the first one");
+    await b.call(clickAt, ".verdict .btn.first", "Show me the first one");
     await sleep(500);
     caption("Each problem in plain words: what is wrong, how sure Penthera is, what to do");
     await sleep(3800);
@@ -277,6 +277,10 @@ async function recordDashboard(b, scratch) {
     await wait("dialog[open] .approval");
     await sleep(1400);
     await click("dialog[open] .btn", "Stop", 2400);
+    // Check and fix mode ends with Back, at the top left.
+    await point(".fix-top .back");
+    await sleep(700);
+    await click(".fix-top .back", null, 900);
 
     // Proof: the report.
     caption("Proof: the report for the owner, an auditor or a developer");

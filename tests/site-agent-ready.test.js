@@ -210,6 +210,9 @@ describe("OpenAPI for the live check", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toMatch(/^application\/json/);
     await res.json();
+    const terms = await fetch(`${base}/terms`);
+    if (existsSync(join(ROOT, "docs", "live-check-terms.md"))) expect(terms.status).toBe(200);
+    await terms.text();
     expect(read("llms.txt")).toContain(`(${ORIGIN}/openapi.json)`);
     for (const u of ["openapi.json", "index.md"]) expect(read("sitemap.xml")).toContain(`<loc>${ORIGIN}/${u}</loc>`);
     const termsPage = existsSync(join(ROOT, "docs", "live-check-terms.md"));

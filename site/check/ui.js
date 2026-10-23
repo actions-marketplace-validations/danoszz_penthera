@@ -357,10 +357,21 @@ function setupScan() {
   const input = form.querySelector("input");
   const button = form.querySelector("button[type=submit]");
 
+  // The report starts 24 px below the header, wherever the header ends: the
+  // logotype grows with the viewport, so this is measured, not fixed.
+  const placeBelowHeader = () => {
+    // The logotype overflows the bar, so take the lowest of the two.
+    const parts = [$(".bar"), $(".bar .brand")].filter(Boolean);
+    if (!parts.length) return;
+    const top = Math.max(...parts.map((p) => p.getBoundingClientRect().bottom)) - hero.getBoundingClientRect().top;
+    hero.style.setProperty("--fix-top", `${Math.ceil(top + 24)}px`);
+  };
+  addEventListener("resize", () => { if (hero.dataset.mode === "fix") placeBelowHeader(); });
   const enter = () => {
     if (hero.dataset.mode !== "fix") history.pushState({ penthera: "fix" }, "", "#check");
     hero.dataset.mode = "fix";
     scrollTo({ top: 0, behavior: "instant" });
+    placeBelowHeader();
   };
   const exit = () => {
     delete hero.dataset.mode;

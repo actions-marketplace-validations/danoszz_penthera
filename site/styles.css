@@ -1206,7 +1206,8 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
  * takes the top of the screen. One blue button, Prompt to fix, on the right;
  * every other control is white (the ink colour, so black in the light
  * theme), so the eye lands on blue. */
-.hero[data-mode="fix"] .hero-text { min-height: 0; justify-content: flex-start; padding-top: calc(var(--ticker-h) + 96px); }
+/* --fix-top: where the header ends, measured by ui.js (the logotype scales with the viewport). */
+.hero[data-mode="fix"] .hero-text { min-height: 0; justify-content: flex-start; padding-top: var(--fix-top, calc(var(--ticker-h) + 140px)); }
 .hero[data-mode="fix"] .hero-text::before { top: 0; background: rgba(var(--ground-rgb), 0.82); }
 .hero[data-mode="fix"] :is(.problem, .scan, .pills, h1, .lede, .hero-actions, .note),
 .hero[data-mode="fix"] .loop { display: none; }

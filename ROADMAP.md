@@ -16,16 +16,13 @@ here.
 
 | npm tag | Version | Install |
 |---|---|---|
-| `latest` | 1.8.1 (2026-10-22) | `npx penthera` |
-| `next` | 1.9.0-rc.1 (2026-10-22) | `npx penthera@next` |
+| `latest` | 1.9.0 (2026-10-23) | `npx penthera` |
 
-## Now: 1.9.0 release candidate
+## Now: 1.9.0
 
-1.9.0-rc.1 is on npm's `next` tag. It becomes 1.9.0 on `latest` once it has run
-on real projects without a blocking issue and the maintainer approves. Until
-then, only fixes and docs go into 1.9.
+1.9.0 is on npm's `latest` tag since 2026-10-23.
 
-| In 1.9.0-rc.1 | What it means for you |
+| In 1.9.0 | What it means for you |
 |---|---|
 | `penthera mcp` | An MCP server, so Claude Code, Cursor, Codex and other agents can call Penthera. Local and read-only ([docs](docs/commands/mcp.md)) |
 | AI mode (opt-in) | A local model proposes findings where rules can't look. Penthera's rules check them, and anything unconfirmed is labelled so ([docs](docs/ai-mode.md)) |
@@ -34,8 +31,9 @@ then, only fixes and docs go into 1.9.
 | Default scans send no attack payloads | The login burst and SQL check moved behind `--deep` |
 | Signed rule packs | All four bundled packs are signed and verified on load ([docs](docs/rule-packs.md)) |
 | E10 benchmark | Penthera measured on known-vulnerable apps, published as a pilot ([results](bench/known-vuln/RESULTS.md)) |
+| Refreshed dashboard | `penthera ui` in the website's style: a check-and-fix mode, one primary action per screen, failures first |
 
-1.8.1 is a fixes-only patch on 1.8.0 (2026-10-21): runtime advisories, the
+1.8.1 was a fixes-only patch on 1.8.0 (2026-10-21): runtime advisories, the
 redesigned dashboard and fixes from a second independent security review. The
 details are in the [CHANGELOG](CHANGELOG.md).
 

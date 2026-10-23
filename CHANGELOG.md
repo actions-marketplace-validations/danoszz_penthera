@@ -4,6 +4,164 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-10-23
+
+Everything in [1.9.0-rc.1](#190-rc1---2026-10-22) below, plus:
+
+### Security
+
+- **Active modes ask before they start, and are rate-limited.** `--deep`,
+  `--fuzz`, `--adaptive`, `--all` and `--profile deep` now need a
+  confirmation bound to the target, as METHODOLOGY.md already promised;
+  before, `--deep` only printed a warning. In a terminal Penthera asks (a yes
+  for a target on this machine, the hostname typed back for any other).
+  Without a terminal, pass `--confirm-target <host>`; a missing or mismatched
+  host stops the run with exit code 2 before any request. This also covers
+  the login burst and SQL error check that now run only under `--deep`. The
+  wizard's deep and custom scans go through the same gate. Scripts that run
+  active modes in CI need the new flag.
+- New `--rate <n>`: one requests-per-second cap per scan, shared by all
+  concurrent probes. Active scans default to 10; other scans have no limit
+  unless set; `--rate 0` removes it. Waiting for a slot does not count toward
+  a request's timeout or its measured duration, so timing-based checks are
+  unaffected. The report records the cap as `egress.rateLimit`.
+
+### Changed
+
+- **`penthera ui` looks and reads like penthera.org.** The verdict is the
+  headline, the score is a 10 × 10 grid of pixels, and each screen has one
+  blue button. A run opens in check and fix mode, with Back at the top left
+  (or `Esc`). The report and the plain-words box are brushed-metal plates lit
+  by the pointer; the light is off with reduced motion and on touch screens.
+  The inspector now says how to check a fix, and Simple mode folds what was
+  fixed into one line. Nothing the dashboard reads, runs or sends changed.
+- **Fresh screenshots and recordings.** The dashboard screenshots, the
+  80-second walkthrough, the README loop, the terminal clips, the site's hero
+  loop and the link-preview reel show the current dashboard and CLI. The reel
+  now ends on the live-check share card.
+
+### Fixed
+
+- **A file that disappears mid-scan no longer stops the repo scan.** A SQLite
+  `-wal` file deleted while `--repo` walked the tree crashed it with `ENOENT`.
+  The walker now checks names before it stats an entry and skips any entry
+  that is gone, or is no longer a regular file, by the time it is read.
+- **Virtualenvs, Python tool caches and note vaults are skipped.** `venv`,
+  `.venv`, `site-packages`, `__pycache__`, `.tox`, `.nox`, the mypy, pytest
+  and ruff caches, `.obsidian`, and any folder with a `pyvenv.cfg` are no
+  longer scanned for secrets. On the Python repository that found this, 42 of
+  45 critical and high findings were third-party code in a venv.
+- **The secret scan follows `.gitignore`.** In a git work tree, ignored folders
+  are skipped like `node_modules`. A key in a single ignored file (the usual
+  local `.env`) is still reported, at low with `localOnly: true`, since it is
+  never committed.
+- **Large files are scanned instead of skipped.** Files are read in 8 MB
+  chunks that overlap, up to 512 MB per file (was a 16 MB skip), with the
+  same line numbers as before. Runs of 512 or more base64 characters (inlined
+  images, fonts) are blanked before matching, so `AIza...` or `AKIA...` shapes
+  inside image data are no longer reported.
+- **The coverage ledger matches what the secret scan read.** Files in a
+  folder the scan skips (a virtualenv, a tool cache, a folder git ignores)
+  are listed as "in a folder the secret scan skips", not as read.
+- **The `.env.local` template matches again.** Its regex used an inline
+  `(?m)` flag, which JavaScript rejects, and an unbounded repeat the regex
+  guard refuses, so a served `.env.local` was never reported. The multiline
+  flag now goes in the matcher's `flags`, and a test checks that every
+  built-in template regex compiles and passes the guard.
+- **A single-page app no longer reads as a leaked file.** The URL scan's
+  sensitive-file check reported `/.env.production`, `/actuator/env` and
+  others as "contains sensitive data" when an app served its index.html for
+  every path and that page named `API_KEY` or similar. HTML pages no longer
+  count for that check; `/phpinfo.php` and `/server-status` are recognised by
+  their own page text instead.
+- **No more critical "command-injection" for a Map lookup and a regex.** In a
+  repo scan, `results.get("/robots.txt")` counted as a route and
+  `/re/.exec(s)` as a shell exec. A route now needs a handler after its path,
+  and `.exec(` counts only on `child_process`, `cp` or `shell`, or as a bare
+  `exec(`. A route that passes request input to `child_process` still fires.
+- **penthera.org:** the check-and-fix report starts below the header at every
+  window size, instead of overlapping the logotype on wide screens.
+- **penthera.org:** the share image and the link-preview reel carry a content
+  hash in their URL, so X, LinkedIn and others pick up a changed card at once
+  instead of showing a cached one.
+
+### Site
+
+- **Two landing pages, one search question each.** `/website-security-check`
+  lists every check the live check runs and every request it sends;
+  `/lovable-bolt-app-security` says what it finds in an app built with
+  Lovable, Bolt or Base44, and what it cannot see, such as Supabase row level
+  security. Both lead to the live check, are in the sitemap and `llms.txt`, and
+  are linked from the footer. They are Markdown files in `site/pages/`.
+- **IndexNow.** The key file is served at the site root, and
+  `node scripts/indexnow.mjs` submits the sitemap's URLs after a deploy. It is
+  run by hand, never by the build.
+- **A 9:16 share card** for TikTok, Reels and Stories:
+  `site/media/social/story.png` (1080 × 1920).
+- **More npm keywords** for search on npmjs.com: `mcp-server`,
+  `model-context-protocol`, `agent-skill`, `security-scanner`, `vibe-coding`,
+  `secrets`, `website-security`, `security-headers`.
+- **Current limitations, with what is planned for each.** The limits have a
+  grey band of their own on penthera.org, with a roadmap line per limit,
+  planned integrations (AI app builders such as Base44, Lovable and Bolt;
+  preview deployments) marked as planned, and links to the methodology, the
+  FAQ and the roadmap. The comparison now shows where each tool goes further
+  and folds the full table behind a toggle. The hero labels are blue
+  highlighter marks, and the problem line above them is marked line by line.
+- **Only production builds on Vercel.** Pull request previews are skipped to
+  save build hours; `node site/serve.mjs` serves the same site, headers and
+  live check locally.
+- **penthera.org tells one story, and agents can read all of it.** The page
+  now runs problem, answer, what it checks, how to trust it, a numbered tour,
+  the comparison, three ways to start (CLI, Agent Skill, MCP server, each
+  with a copy button), "Before you install" and a "For agents" section.
+  Sections that repeated each other are merged: the EU rules and Open R&D are
+  FAQ answers, the walkthrough opens the tour. The build now also writes
+  `llms-full.txt` (README.md and the user docs as one file), each docs page
+  as Markdown under `/docs/`, `sitemap.xml`, `robots.txt` and
+  `/.well-known/security.txt`, all from the repo. On a 375 px phone the
+  comparison table no longer widens the page to 731 px.
+- **A live security check on penthera.org.** Type an address, confirm it
+  is your site and slide to scan. You get a score, the failures first with
+  evidence, a fix and a command to verify it, and a prompt for your coding
+  agent built from the checks you pick. The check is passive, only what one
+  browser visit loads: headers, TLS, cookies, secrets and vulnerable
+  libraries in the page and its scripts, SRI, mixed content, SPF, DMARC, CAA
+  and security.txt. Nothing is stored, site owners can opt out in
+  robots.txt, and the terms are at `/terms`. Deeper testing stays on your own
+  machine: `npx penthera <url>`. The API is described in `/openapi.json`.
+- **A clearer page.** Eight chapters, each answering one question once, and
+  an About chapter. The drag-and-drop file check is gone. Brushed-metal
+  plates lit by one light that follows the pointer, gradient numbers, a lit
+  blue band and soft gradient buttons.
+- **Ready for agents.** A Markdown version of the homepage at `/index.md`,
+  Markdown 404s for agents that ask for it, JSON-LD, and a When to use
+  section in llms.txt.
+- **Every version pin on penthera.org comes from `package.json`.** The MCP
+  configs and `llms.txt` pinned `penthera@1.9.0`, which is not on npm, so an
+  agent that followed them failed. The build now fills in the package version
+  (1.9.0-rc.1 today) everywhere, notes that the MCP server is on npm's `next`
+  tag while the version is a release candidate, and a test fails if a pin is
+  written into the page by hand.
+
+### Docs
+
+- **Docs reorganized around five journeys.** [docs/index.md](../docs/index.md)
+  now starts from who you are: I'm new, I use AI coding tools, I run it in CI,
+  I need evidence for an auditor, I'm a researcher. The five `docs/use-cases/`
+  pages are folded into the command pages that answer the same question, and
+  `docs/archive/` is removed (git history keeps it).
+- **A shorter README.** What it is, a 30-second start (CLI, skill, MCP), what
+  it checks, and how far to trust it, with the benchmark and E10 caveats next
+  to the numbers.
+- **`AGENTS.md`** for coding agents working on or with Penthera: commands,
+  layout, the rules CI enforces, and pinned versions.
+- **Correct version pins.** MCP examples pin `penthera@1.9.0-rc.1` (npm `next`)
+  until 1.9.0 ships; CI examples pin 1.8.1 instead of 1.7.0. CONTRIBUTING,
+  ROADMAP and SECURITY describe the 1.9 release candidate.
+- **Try a release candidate with `npx penthera@next`**, not an install: an
+  installed rc stays pinned in the lockfile. The Claude skill says so too.
+
 ## [1.9.0-rc.1] - 2026-10-22
 
 Release candidate for 1.9.0, on npm's `next` dist-tag (`npm install penthera@next`).

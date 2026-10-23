@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| Status | Implemented in the 1.9.0-rc.1 branch, not released |
+| Status | Released in 1.9.0 (2026-10-23) |
 | Date written | 2026-10-22 |
 | Protocol | MCP [2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28) (modern) and 2025-11-25, 2025-06-18, 2025-03-26, 2024-11-05 (legacy) |
 | Transport | stdio only |

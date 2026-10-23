@@ -5,7 +5,7 @@
  *   /llms.txt                    site/llms.txt with the build's placeholders filled in
  *   /llms-full.txt               README.md and the docs below, as one Markdown file
  *   /README.md, /docs/**.md      the same pages one by one, links made absolute
- *   /sitemap.xml                 the page and every file above
+ *   /sitemap.xml                 the page, the landing pages and every file above
  *   /robots.txt                  everyone allowed, pointing at the sitemap
  *   /.well-known/security.txt    RFC 9116, pointing at SECURITY.md
  *   /index.md, /openapi.json     the homepage as Markdown and the live check's spec
@@ -19,6 +19,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, posix } from "node:path";
 import { agentReadyFiles, whenToUse } from "./agent-ready.mjs";
+import { landingPages } from "./landing.mjs";
 
 export const REPO = "https://github.com/danoszz/penthera";
 
@@ -91,16 +92,20 @@ export function agentFiles({ root, site, version, origin, values, now = new Date
     ...pages.flatMap((p) => ["", "---", "", `<!-- Source: ${REPO}/blob/main/${p} · ${origin}/${p} -->`, "", mirror(p)]),
   ].join("\n").replace(/\n{3,}/g, "\n\n");
 
-  // llms.txt: the template, plus when to reach for Penthera (before the docs)
-  // and the live check's spec (with the other machine-readable files).
+  // llms.txt: the template, plus when to reach for Penthera (before the docs),
+  // the landing pages (after them) and the live check's spec (with the other
+  // machine-readable files).
+  const landing = landingPages(site);
+  const questions = landing.length ? `## Questions the live check answers\n\n${landing.map((p) => `- [${p.h1}](${origin}/${p.slug}.md): ${p.description}`).join("\n")}\n\n` : "";
   out["llms.txt"] = fill(readFileSync(join(site, "llms.txt"), "utf8"), { ...values, ORIGIN: origin }, "llms.txt")
     .replace(/^## Docs$/m, (m) => `${whenToUse({ version, origin })}\n${m}`)
+    .replace(/^## Trust$/m, (m) => `${questions}${m}`)
     .replace(/^## Machine-readable\n\n/m, (m) => `${m}- [OpenAPI for the live check](${origin}/openapi.json): POST /api/check, a public site's passive security report\n`);
   Object.assign(out, agentReadyFiles({ root, version, origin, values }));
 
   // /terms, the live check's terms: build.mjs renders it from this file.
   const terms = existsSync(join(root, "docs", "live-check-terms.md")) ? ["terms"] : [];
-  const urls = ["", "index.md", ...terms, "llms.txt", "llms-full.txt", "openapi.json", ...pages];
+  const urls = ["", "index.md", ...terms, ...landing.map((p) => p.slug), "llms.txt", "llms-full.txt", "openapi.json", ...pages];
   out["sitemap.xml"] = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${origin}/${u}</loc></url>`).join("\n")}\n</urlset>\n`;
 
   out["robots.txt"] = [

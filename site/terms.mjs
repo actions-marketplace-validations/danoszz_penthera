@@ -15,7 +15,8 @@ function inline(text) {
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, label, href) => {
-      const url = href.startsWith("#") || /^https:\/\//.test(href) ? href : new URL(href, REPO).href;
+      // Anchors, site paths and https links stay; a relative path is a file in docs/.
+      const url = /^(#|\/(?!\/)|https:\/\/)/.test(href) ? href : new URL(href, REPO).href;
       return `<a href="${url}">${label}</a>`;
     });
 }

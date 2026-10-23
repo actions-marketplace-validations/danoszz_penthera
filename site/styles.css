@@ -1140,11 +1140,16 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 /* /terms: the live check's terms, a plain reading page. */
 .terms { max-width: 720px; margin: 0 auto; padding: 64px var(--gutter) 120px; }
 .terms h1 { margin-top: 12px; font-size: clamp(34px, 5vw, 56px); line-height: 1; letter-spacing: -0.035em; }
-.terms h2 { margin-top: 48px; font-size: clamp(22px, 2.6vw, 30px); letter-spacing: -0.02em; }
+.terms h2 { max-width: none; margin-top: 48px; font-size: clamp(22px, 2.6vw, 30px); letter-spacing: -0.02em; }
 .terms p, .terms ul, .terms ol, .terms pre { margin-top: 14px; }
 .terms li + li { margin-top: 6px; }
 .terms pre { padding: 12px 14px; border: 1px solid var(--hair); overflow-x: auto; }
 .terms-for { font-family: var(--px); font-size: 13px; color: var(--text-3); }
+/* Landing pages (site/pages/): the terms frame, plus the live check as the one call to action. */
+.land-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin: 28px 0 8px; }
+.land-cta .btn { text-decoration: none; }
+.land-cta span { font-family: var(--px); font-size: 13px; color: var(--text-3); }
+.land-foot { margin-top: 64px; padding-top: 16px; border-top: 1px solid var(--hair); font-family: var(--px); font-size: 13px; color: var(--text-3); }
 
 /* Consent before a check: a heavy blur over the page, the terms in plain
  * words, and slide to scan, after the first iPhone's slide to unlock. The

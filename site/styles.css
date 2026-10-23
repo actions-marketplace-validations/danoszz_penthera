@@ -140,7 +140,7 @@
   --px: "Departure Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --gutter: 16px;
   --measure: 1240px;
-  --section: clamp(96px, 14vw, 200px);  /* poster spacing: one idea per screen */
+  --section: clamp(80px, 10vw, 144px);  /* poster spacing, tightened 2026-10-23 */
   --target: 44px;
   --veil-h: 224px;                      /* the bottom blur; check/ui.js reads it too */
   --ticker-h: 30px;
@@ -638,7 +638,7 @@ textarea:focus-visible, select:focus-visible { outline-offset: 0; }
 .ba-ev code { overflow-wrap: anywhere; color: var(--text-1); }
 .ba-cap { margin-top: 32px; max-width: 70ch; font-family: var(--px); font-size: 13px; color: var(--text-3); }
 
-.spec { margin: 72px 0 0; display: grid; border-top: 1px solid var(--frame); }
+.spec { margin: 48px 0 0; display: grid; border-top: 1px solid var(--frame); }
 .spec > div { display: grid; gap: 6px 32px; padding: 20px 0; border-bottom: 1px solid var(--hair); }
 @media (min-width: 720px) { .spec > div { grid-template-columns: 180px 1fr; align-items: baseline; } }
 .spec dt { font-family: var(--px); font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
@@ -689,7 +689,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 @media (min-width: 1000px) { .ways > li { padding: 24px 24px 32px 0; border-bottom: 0; } .ways > li + li { padding-left: 24px; border-left: 1px solid var(--hair); } }
 .ways h3 { font-size: clamp(24px, 2.6vw, 32px); letter-spacing: -0.02em; }
 .ways .cmd { justify-self: start; }
-.ways .cmd code { white-space: normal; overflow-wrap: anywhere; line-height: 1.4; padding-block: 10px; }
+.ways .cmd code { display: block; align-self: center; min-width: 0; white-space: normal; overflow-wrap: normal; line-height: 1.4; padding-block: 10px; }
 .commands { margin: 24px 0 0; display: grid; border-top: 1px solid var(--frame); }
 .commands div { display: grid; gap: 4px 32px; padding: 14px 0; border-bottom: 1px solid var(--hair); }
 @media (min-width: 720px) { .commands div { grid-template-columns: minmax(280px, auto) 1fr; align-items: baseline; } }
@@ -728,7 +728,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 
 /* 03 · How to trust it: three principles with bold lead-ins, then the
  * benchmark (the caveats as a framed box before the numbers). */
-.pillars { list-style: none; margin: 56px 0 0; padding: 0; display: grid; border-top: 1px solid var(--frame); }
+.pillars { list-style: none; margin: 40px 0 0; padding: 0; display: grid; border-top: 1px solid var(--frame); }
 @media (min-width: 900px) { .pillars { grid-template-columns: repeat(3, 1fr); } }
 .pillars li { padding: 24px 24px 28px 0; border-bottom: 1px solid var(--hair); }
 @media (min-width: 900px) { .pillars li { border-bottom: 0; } .pillars li + li { padding-left: 24px; border-left: 1px solid var(--hair); } }
@@ -741,7 +741,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .bench-caveats ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
 .bench-caveats li { position: relative; padding-left: 22px; color: var(--text-1); }
 .bench-caveats li::before { content: ""; position: absolute; left: 0; top: 0.5em; width: 9px; height: 9px; background: var(--accent-ink); }
-.bench-stats { list-style: none; margin: 56px 0 0; padding: 0; display: grid; border-top: 1px solid var(--frame); }
+.bench-stats { list-style: none; margin: 40px 0 0; padding: 0; display: grid; border-top: 1px solid var(--frame); }
 @media (min-width: 600px) { .bench-stats { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 1000px) { .bench-stats { grid-template-columns: repeat(4, 1fr); } }
 .bench-stats li { padding: 24px 24px 24px 0; border-bottom: 1px solid var(--hair); }
@@ -785,7 +785,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 
 /* 04 · The tour: four numbered steps, text beside media on wide screens,
  * the media side alternating. */
-.steps { list-style: none; margin: 56px 0 0; padding: 0; display: grid; gap: clamp(64px, 9vw, 120px); }
+.steps { list-style: none; margin: 48px 0 0; padding: 0; display: grid; gap: clamp(48px, 6vw, 80px); }
 .step { display: grid; gap: 28px; align-items: center; }
 @media (min-width: 960px) {
   .step { grid-template-columns: 5fr 7fr; gap: 56px; }
@@ -954,3 +954,71 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+/* ── Metal, glow and gradient (2026-10-23) ─────────────────────────────
+ * Futuristic, still brutalist: square corners, hard type, and a few
+ * surfaces that catch light. Every tone is mixed from the palette's own
+ * ground and ink, so the same rules give black steel on the dark ground,
+ * silver on the light one and blue steel on the blue band. A sparse dither
+ * sits over each plate to keep it in the 1-bit family. */
+:root, .band {
+  --metal: linear-gradient(158deg,
+    color-mix(in srgb, rgb(var(--ink-rgb)) 16%, var(--ground)) 0%,
+    var(--ground) 34%,
+    color-mix(in srgb, rgb(var(--ink-rgb)) 22%, var(--ground)) 50%,
+    color-mix(in srgb, rgb(var(--ink-rgb)) 4%, var(--ground)) 68%,
+    color-mix(in srgb, rgb(var(--ink-rgb)) 12%, var(--ground)) 100%);
+  --metal-edge: inset 0 1px 0 rgba(var(--ink-rgb), 0.4), inset 0 -1px 0 rgba(var(--ground-rgb), 0.6);
+}
+.plate, .pillars li, .bench-stats li, .road li, .ways > li, .prompt-card {
+  position: relative; isolation: isolate;
+  background: var(--metal);
+  border: 1px solid rgba(var(--ink-rgb), 0.28);
+  box-shadow: var(--metal-edge);
+}
+.pillars li::before, .bench-stats li::before, .road li::before, .ways > li::before, .prompt-card::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: var(--pt-sparse); opacity: 0.07;
+}
+
+/* Plates sit in a gapped grid instead of ruled columns. */
+.pillars, .bench-stats, .ways { gap: 12px; border-top: 0; }
+.pillars li, .pillars li + li, .bench-stats li, .bench-stats li + li, .bench-stats li:nth-child(even),
+.ways > li, .ways > li + li { padding: 24px; border-left-width: 1px; }
+.road { display: grid; gap: 8px; border-top: 0; }
+.road li { padding: 18px 20px; }
+.road-s { background: rgba(0, 0, 0, 0.6); }
+
+/* Numbers in polished type: the price and the benchmark counts. */
+.spec-big, .stat-num {
+  background: linear-gradient(176deg,
+    rgb(var(--ink-rgb)) 0%, rgb(var(--ink-rgb)) 42%,
+    color-mix(in srgb, rgb(var(--ink-rgb)) 45%, var(--ground)) 58%,
+    rgb(var(--ink-rgb)) 86%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.stat-pooled .stat-num { background: none; color: var(--accent-ink); }
+
+/* Get started: the blue band becomes light falling on blue. */
+.band-blue {
+  background:
+    radial-gradient(90% 70% at 85% 0%, rgba(255, 255, 255, 0.28), transparent 60%),
+    radial-gradient(120% 90% at 0% 100%, #000060, transparent 70%),
+    #0000ed;
+}
+
+/* Soft gradient buttons for the primary actions; corners stay square. */
+.download, .btn[data-variant="default"] {
+  background: linear-gradient(180deg, #5a5aff 0%, #0000ed 55%, #0000b8 100%);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 8px 24px -8px rgba(0, 0, 237, 0.75);
+}
+.download:hover, .btn[data-variant="default"]:hover:not(:disabled) {
+  background: linear-gradient(180deg, #7676ff 0%, #2a2aff 55%, #0000d0 100%);
+}
+.btn-prompt {
+  background: var(--metal); border-color: rgba(var(--ink-rgb), 0.5);
+  box-shadow: var(--metal-edge), 0 10px 28px -12px rgba(var(--ink-rgb), 0.35);
+}
+.btn-prompt:hover { --btn-bg: var(--frame); background: var(--frame); }
+.bench-more { margin-top: 32px; }

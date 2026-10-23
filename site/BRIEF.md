@@ -79,6 +79,17 @@ for a grey band of their own (a 2 px checker, so still a dither, not a flat
 grey), with a roadmap line per limit; the comparison shows its summary and
 folds the table; the hero pills are blue highlighter marks.
 
+Decided with the maintainer, 2026-10-23, later: tighter and more varied.
+The style is "futuristic yet brutalist and typographic". Square corners and
+hard type stay; a few surfaces now catch light: metallic plates (mixed from
+each palette's ground and ink, with a sparse dither over them) for the trust
+principles, benchmark counts, roadmap lines, ways in and prompts; polished
+gradient type for the price and the counts; light falling on the blue band;
+soft blue gradients on the primary buttons. This replaces "greys are dither
+patterns, never flat" for those plates. The bottom blur stays as it is.
+Secondary detail folds away: the benchmark chart and the agent prompts sit
+behind toggles, like the MCP configs and the comparison table.
+
 ## Anti-references
 
 - Security-vendor pages: dark gradients, shields, padlocks, "threat

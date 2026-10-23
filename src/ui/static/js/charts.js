@@ -39,8 +39,11 @@ export function bars(rows, { width = 24 } = {}) {
   return el;
 }
 
-export function severityBars(counts, opts = {}) {
-  return bars(SEVERITIES.map((sev) => ({ label: sev, value: counts?.[sev] || 0, cls: `sev sev-${sev}`, ch: SHADE[sev] })), opts);
+/** The score as a 10 × 10 grid of pixels, one per point, as on penthera.org. */
+export function meter(score) {
+  const n = Math.max(0, Math.min(100, Math.round(score)));
+  return h("div", { class: "meter", role: "img", "aria-label": `Score ${n} of 100` },
+    Array.from({ length: 100 }, (_, i) => h("i", { class: i < n ? "on" : null })));
 }
 
 /** One stacked bar across all severities, as shade characters. */
@@ -114,36 +117,6 @@ export function trendChart(points, { width = 640, height = 180 } = {}) {
   return svg;
 }
 
-/** Vertical columns, dither-filled, with value labels. */
-export function columns(items, { width = 320, height = 130, label = "distribution" } = {}) {
-  const m = { t: 16, b: 20 };
-  const max = Math.max(1, ...items.map((i) => i.n));
-  const bw = width / items.length;
-  const svg = s("svg", { class: "chart", viewBox: `0 0 ${width} ${height}`, role: "img", "aria-label": `${label}: ${items.map((i) => `${i.label} ${i.n}`).join(", ")}` });
-  svg.append(s("line", { class: "axis", x1: 0, x2: width, y1: height - m.b, y2: height - m.b }));
-  items.forEach((it, i) => {
-    const hgt = ((height - m.t - m.b) * it.n) / max;
-    const x0 = i * bw + bw * 0.22;
-    if (it.n) svg.append(s("rect", { class: "col", x: x0, y: height - m.b - hgt, width: bw * 0.56, height: hgt }));
-    svg.append(s("text", { class: "col-value", x: i * bw + bw / 2, y: height - m.b - hgt - 4, "text-anchor": "middle" }, String(it.n)));
-    svg.append(s("text", { class: "col-label", x: i * bw + bw / 2, y: height - 5, "text-anchor": "middle" }, it.label));
-  });
-  return svg;
-}
-
-const BIG = {
-  A: [" ▄▀▀▄ ", "█▄▄▄█", "█   █"],
-  B: ["█▀▀▄", "█▀▀▄", "█▄▄▀"],
-  C: ["▄▀▀▀", "█   ", "▀▄▄▄"],
-  D: ["█▀▀▄", "█  █", "█▄▄▀"],
-  F: ["█▀▀▀", "█▀▀ ", "█   "],
-};
-
-export function bigGrade(letter) {
-  const rows = BIG[letter] || ["", letter || "?", ""];
-  return h("pre", { class: `grade-big grade-${letter}`, "aria-hidden": "true" }, rows.join("\n"));
-}
-
 // ── The halftone field ──────────────────────────────────────────────────
 //
 // The one strange element: a field of halftone dots whose density is the
@@ -215,48 +188,6 @@ export function halftone({ risk = 0, seed = "penthera", label = "" } = {}) {
   ro.observe(wrap);
   mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   return wrap;
-}
-
-/**
- * Finding lifetimes as a Gantt chart: one lane per finding, a bar from the
- * scan it first appeared in to the last one it was seen in. Open findings are
- * hatched up to "now", critical ones solid, fixed ones an empty outline.
- * Every scan is a dashed line with a black chip (S1, S2, ...) on top.
- * @param {{ title: string, severity: string, from: number, to: number, open: boolean }[]} rows
- * @param {{ ts: string }[]} scans
- */
-export function ganttChart(rows, scans, { width = 1100 } = {}) {
-  const lane = 24;
-  const m = { l: 290, r: 16, t: 46, b: 10 };
-  const height = m.t + rows.length * lane + m.b;
-  const n = Math.max(1, scans.length - 1);
-  const iw = width - m.l - m.r;
-  const x = (i) => m.l + (i / n) * iw * 0.94;
-  const nowX = m.l + iw;
-  const svg = s("svg", { class: "chart gantt", viewBox: `0 0 ${width} ${height}`, role: "img",
-    "aria-label": `${rows.length} findings across ${scans.length} scans: ${rows.filter((r) => r.open).length} still open, ${rows.filter((r) => !r.open).length} fixed` });
-  // Axis: scan chips and dashed lines.
-  svg.append(s("line", { class: "axis", x1: m.l, x2: width - m.r, y1: m.t - 6, y2: m.t - 6 }));
-  scans.forEach((sc, i) => {
-    const cx = x(i);
-    svg.append(s("line", { class: "scan-line", x1: cx, x2: cx, y1: m.t - 6, y2: height - m.b }));
-    svg.append(s("rect", { class: "chip", x: cx - 13, y: 2, width: 26, height: 15 }));
-    svg.append(s("text", { class: "chip-t", x: cx, y: 13, "text-anchor": "middle" }, `S${i + 1}`));
-    svg.append(s("text", { class: "axis-t", x: cx, y: m.t - 12, "text-anchor": "middle" }, stamp(sc.ts).slice(5, 10)));
-  });
-  svg.append(s("line", { class: "now-line", x1: nowX, x2: nowX, y1: m.t - 14, y2: height - m.b }));
-  svg.append(s("path", { class: "chip", d: `M${nowX - 5},${m.t - 20}h10l-5,7z` }));
-  svg.append(s("text", { class: "axis-t", x: nowX - 8, y: m.t - 24, "text-anchor": "end" }, "now"));
-  rows.forEach((r, i) => {
-    const y = m.t + i * lane;
-    const label = r.title.length > 34 ? `${r.title.slice(0, 33)}…` : r.title;
-    svg.append(s("text", { class: "lane-code", x: 0, y: y + 15 }, ({ critical: "C+", high: "H+", medium: "M+", low: "L+" })[r.severity] || "I+"));
-    svg.append(s("text", { class: ["lane-label", r.open ? "b" : null].filter(Boolean).join(" "), x: 28, y: y + 15 }, s("title", {}, r.title), label));
-    const x0 = x(r.from);
-    const x1 = r.open ? nowX : Math.max(x(r.to) + 10, x0 + 10);
-    svg.append(s("rect", { class: `bar${r.open ? " open" : ""}${r.open && r.severity === "critical" ? " crit" : ""}`, x: x0, y: y + 5, width: x1 - x0, height: 13 }));
-  });
-  return svg;
 }
 
 const CONFIDENCE = [["confirmed", "Confirmed"], ["likely", "Likely"], ["needs-human-review", "Needs a person"]];

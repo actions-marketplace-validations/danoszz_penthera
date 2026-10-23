@@ -46,6 +46,12 @@ export const EMPTY = {
   changes: "No fixes applied yet. Run the fix loop to apply one.",
 };
 
+/** How to know a fix worked, under every finding: the same rule decides. */
+export const VERIFY = "run the check again. The same rule that found it decides: the fix worked when it is gone from this list.";
+
+/** A run is "check and fix" mode, as on penthera.org: Back at its top left. */
+export const FIX_MODE = { label: "Check and fix", back: "Back", backLabel: "Back to the project" };
+
 export const ERR = {
   session: "The session ended. Restart penthera ui and open the new one-time link it prints.",
 };

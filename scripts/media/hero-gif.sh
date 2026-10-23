@@ -19,10 +19,10 @@ FADE=0.35
 # start:length per scene, in seconds
 SCENES=(
   "2.2:2.6"    # npx penthera: framework, lockfiles, AI tooling found
-  "24.6:2.8"   # scan of the local mock server, offline
-  "36.4:2.6"   # Simple mode: one sentence on whether you can ship
-  "47.0:2.8"   # Advanced mode: severity against confidence
-  "59.6:2.8"   # a fix applied, re-scanned, kept
+  "24.1:2.8"   # scan of the local mock server, offline
+  "36.05:2.6"   # Simple mode: one sentence on whether you can ship
+  "46.7:2.8"   # Advanced mode: severity against confidence
+  "59.2:2.8"   # a fix applied, re-scanned, kept
 )
 
 inputs=()

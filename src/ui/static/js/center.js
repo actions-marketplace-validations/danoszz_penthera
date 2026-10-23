@@ -6,9 +6,9 @@ import { h, clear, empty, sevBadge, diffBlock, announce } from "./dom.js";
 import { api } from "./api.js";
 import { state, set, projectOf, TABS, simple } from "./state.js";
 import { createTyper } from "./typer.js";
-import { stackedBar, sparkline, matrix, halftone } from "./charts.js";
+import { stackedBar, sparkline, matrix, halftone, meter } from "./charts.js";
 import { ago, duration, shortProject, plural, SEVERITIES } from "./format.js";
-import { START, EMPTY, SEV_WORD, AI, verdict } from "./copy.js";
+import { START, EMPTY, SEV_WORD, AI, FIX_MODE, verdict } from "./copy.js";
 import { openWindow } from "./dialog.js";
 import { depsTab, aiTab, historyTab, proofTab } from "./panels.js";
 
@@ -36,18 +36,22 @@ export function renderCenter(el, ctx) {
     : state.sel.kind === "project" ? shortProject(state.sel.key)
       : state.sel.kind === "run" ? `Run :: ${state.sel.run?.kind || ""}` : "Fix loop run";
   const doc = state.sel.kind === "all" || state.sel.kind === "project";
+  // Check and fix (a run) has no side windows to toggle: Back leads out instead.
   const toolbar = h("div", { class: "win-bar" },
-    h("button", { type: "button", class: "icon", "aria-label": "Show or hide the projects window ([)", title: "Projects  [", onclick: toggleLeft }, "☰"),
+    doc ? h("button", { type: "button", class: "icon", "aria-label": "Show or hide the projects window ([)", title: "Projects  [", onclick: toggleLeft }, "☰") : null,
     h("span", { class: "title" }, title),
     h("span", { class: "grow" }),
     doc && state.tab === "findings" ? search : null,
-    h("button", { type: "button", class: "icon", "aria-label": "Show or hide the inspector (])", title: "Inspector  ]", onclick: toggleRight }, "◫"),
+    doc ? h("button", { type: "button", class: "icon", "aria-label": "Show or hide the inspector (])", title: "Inspector  ]", onclick: toggleRight }, "◫") : null,
   );
   const stream = h("div", { class: "stream pane-body", id: "stream" });
   const col = h("div", { class: "col" });
   stream.append(col);
   clear(el).append(toolbar, stream);
 
+  if (!doc) col.append(h("div", { class: "fix-top" },
+    h("button", { type: "button", class: "back", "aria-label": FIX_MODE.backLabel, title: `${FIX_MODE.backLabel}  Esc`, onclick: ctx.back }, FIX_MODE.back),
+    h("span", { class: "fix-mode" }, FIX_MODE.label)));
   if (state.sel.kind === "run") return runView(col, ctx);
   stopStream();
   if (state.sel.kind === "past") return pastRunView(col, ctx);
@@ -78,34 +82,43 @@ function projectView(col, ctx) {
   const trend = all ? combinedTrend(o.projects) : p.trend.map((t) => t.total);
   const easy = simple();
   const when = ago(all ? o.lastScans[0]?.ts : p.lastScan);
-  col.append(h("header", { class: "head" },
-    h("span", { class: `grade lg grade-${all ? "x" : p.grade}`, title: all ? "" : `score ${p.score}/100` }, all ? "∑" : p.grade),
-    h("h1", { title: key || "" }, all ? "All projects" : shortProject(key)),
-    h("div", { class: "meta" }, easy
-      ? (all ? `${plural(o.projects.length, "project")} · last checked ${when}` : `last checked ${when}`)
-      : (all ? `${plural(o.projects.length, "project")} · newest scan ${when}` : `${p.mode || "scan"} · last scan ${when} · ${plural(p.trend.length, "scan")}`)),
-    h("div", { class: "right-bits" },
-      easy ? null : stackedBar(counts, { width: 24 }),
-      easy ? null : sparkline(trend, { label: "open findings per scan" }),
-      h("div", { class: "counts" }, h("b", {}, String(open)), easy ? " to fix · " : " open · ", h("span", { class: "ok" }, String(fixed)), " fixed"),
-    ),
-  ));
-
-  // The verdict: one sentence, one button.
+  // The report: the verdict as the headline, the score as a 10 × 10 meter,
+  // and one blue action. The project and its counts sit around them.
   const mine = sorted(state.findings.filter((f) => !f.suppressed && (all || f.project === key)));
   const v = verdict({ counts, open, top: mine[0], scanned: true, when });
-  col.append(h("section", { class: ["verdict", `v-${v.level}`], "aria-label": "Verdict" },
-    h("p", { class: "verdict-text" }, v.text),
-    h("p", { class: "verdict-sub muted" }, v.sub),
-    v.top ? h("div", { class: "actions start" },
-      h("button", { type: "button", class: "btn primary", onclick: () => ctx.openFinding(v.top) }, easy ? "Show me the first one ▸" : `Open: ${v.top.title}`),
-      easy && v.level !== "clear" ? h("button", { type: "button", class: "btn", onclick: () => ctx.newScan("loop", all ? null : key) }, "Fix problems for me…") : null) : null,
+  const scores = all ? o.projects.map((x) => x.score).filter(Number.isFinite) : [p.score].filter(Number.isFinite);
+  const score = scores.length ? Math.min(...scores) : null;
+  const fix = easy && v.top && v.level !== "clear";
+  col.append(h("section", { class: ["report", "verdict", "plate", `v-${v.level}`], "aria-label": "Verdict" },
+    h("div", { class: "report-main" },
+      h("p", { class: "report-host" },
+        h("span", { class: `grade grade-${all ? "x" : p.grade}`, title: all ? "" : `score ${p.score}/100` }, all ? "∑" : p.grade),
+        h("span", { title: key || "" }, all ? "All projects" : shortProject(key)),
+        h("span", {}, easy
+          ? (all ? `${plural(o.projects.length, "project")} · last checked ${when}` : `last checked ${when}`)
+          : (all ? `${plural(o.projects.length, "project")} · newest scan ${when}` : `${p.mode || "scan"} · last scan ${when} · ${plural(p.trend.length, "scan")}`))),
+      h("h1", { class: "verdict-text" }, v.text),
+      h("p", { class: "counts" }, h("b", {}, String(open)), easy ? " to fix · " : " open · ", h("b", {}, String(fixed)), " fixed"),
+      v.top ? h("div", { class: "actions start" },
+        fix ? h("button", { type: "button", class: "btn primary", onclick: () => ctx.newScan("loop", all ? null : key) }, "Fix problems for me…") : null,
+        h("button", { type: "button", class: ["btn", fix ? "ink" : "primary", "first"], onclick: () => ctx.openFinding(v.top) }, easy ? "Show me the first one ▸" : `Open: ${v.top.title}`)) : null),
+    h("div", { class: "report-score" },
+      score == null ? null : h("div", { class: "score" }, meter(score),
+        h("p", { class: "score-n" }, String(score), h("span", {}, all && scores.length > 1 ? `/100, lowest of ${scores.length}` : "/100"))),
+      easy ? null : stackedBar(counts, { width: 24 }),
+      easy ? null : sparkline(trend, { label: "open findings per scan" })),
   ));
 
   if (easy) {
     const list = h("ul", { class: "rows simple", id: "findings-list", "aria-label": "Problems to fix" });
     col.append(h("section", { class: "section" }, h("h2", {}, h("span", {}, "To fix"), h("span", { id: "findings-count" })), list));
     fillFindings(list, ctx);
+    // What was fixed since the check before, folded into one line.
+    const done = o.columns.fixed.filter((r) => all || r.project === key);
+    if (done.length) {
+      col.append(h("details", { class: "passed" }, h("summary", {}, `${plural(done.length, "problem")} fixed since the check before`),
+        h("ul", { class: "mini" }, done.map((r) => h("li", {}, h("span", { class: `sw sev-${r.severity}`, "aria-hidden": "true" }), h("span", { class: "grow muted" }, `✓ ${r.title}`))))));
+    }
     col.append(h("p", { class: "muted prose more" }, "Looking for dependencies, AI tooling, history or evidence for an auditor? Switch to Advanced in the Penthera menu."));
     return;
   }
@@ -280,7 +293,7 @@ function runView(col, ctx) {
       aiTag(run.ai),
       h("span", { class: "grow" }), easy ? null : status, stop),
     // Node.append() would print a null as the text "null", so leave it out.
-    ...(easy ? [h("section", { class: "verdict" }, said, saidSub)] : []),
+    ...(easy ? [h("section", { class: "report verdict plate" }, h("div", { class: "report-main" }, said, saidSub))] : []),
     tail,
     easy ? h("details", { class: "more" }, h("summary", {}, "Show what it is doing"), lines) : lines,
   );
@@ -429,7 +442,7 @@ function decider(run, d, ty) {
 /** Inline in the transcript: what is waiting, and a way back to the window. */
 function waitingNote(run, d, ty) {
   decideFn = decider(run, d, ty);
-  return h("div", { class: "wait-note" },
+  return h("div", { class: "wait-note plate" },
     h("span", { class: "lamp live", "aria-hidden": "true" }),
     h("span", { class: "grow" }, `Fix ${d.index} of ${d.total} is waiting for you: ${d.plan.title}`),
     h("button", { type: "button", class: "btn primary", onclick: () => openApproval(run, d, ty) }, "Review the change…"));

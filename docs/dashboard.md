@@ -68,14 +68,16 @@ project with a run in progress shows a blinking square.
 
 **The document** (centre). For a project, or all of them:
 
-- **The verdict**: one sentence that answers "can I ship?", such as "Not ready
-  to ship: 1 critical problem to fix first.", with the age of the check it is
-  based on and one button to open the first problem. When something critical
-  is open the box is inverted, so the loudest state is the one with the most
-  at stake.
+- **The verdict**: one sentence as the headline that answers "can I ship?",
+  such as "Not ready to ship: 1 critical problem to fix first.", with the age
+  of the check, the counts to fix and fixed, and the score out of 100 as a
+  10 × 10 grid of pixels (for all projects, the lowest score). One button is
+  blue: **Fix problems for me…** in Simple, the first finding in Advanced.
+  While a problem is open in the inspector, its **Fix it for me…** is the blue
+  one instead.
 - **Simple**: the problems, in plain words (Critical, Serious, Worth fixing,
-  Minor), "Fix first" before "When you have time". No paths, categories or
-  charts.
+  Minor), "Fix first" before "When you have time", then what was fixed since
+  the check before, folded into one line. No paths, categories or charts.
 - **Advanced**: five tabs (`1` to `5`). **Findings** has what changed since
   the last scan, a triage matrix of severity against how sure Penthera is
   (Confirmed, Likely, Needs a person; pick a cell to filter) and the full list
@@ -86,15 +88,17 @@ project with a run in progress shows a blinking square.
   **Proof** has the hosts the last scan contacted and evidence bundles: create,
   verify, and download the auditor, owner or developer report.
 
-A run streams into the centre. In Simple mode it is one sentence ("Fix 2 of 3
+A run streams into the centre in **check and fix** mode: the side windows
+step aside, and **Back** at the top left (or `Esc`) returns to the project. In
+Simple mode it is one sentence ("Fix 2 of 3
 is waiting for you to approve it.", "Done. 2 fixes applied and checked, 1
 undone.") with the raw output folded under "Show what it is doing". In Advanced
 it is the transcript, with a gutter square per step: filled when done, hollow
 on the step in progress.
 
 **The inspector** (right, `]` to hide) shows one thing. With a problem picked:
-in Simple, what is wrong, how sure Penthera is and what to do, then **Fix it
-for me…**, with the evidence and the code change behind "Show the details"; in
+in Simple, what is wrong, how sure Penthera is, what to do and how to check
+the fix, then **Fix it for me…**, with the evidence and the code change behind "Show the details"; in
 Advanced, the same in plain words plus where, the evidence, sources and the
 fix-recipe diff. `Esc` goes back. With nothing picked it shows the **halftone
 field**: dark with dots when something serious is open, plain paper when

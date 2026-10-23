@@ -7,6 +7,7 @@ import { scanUrl } from "../scan-url.js";
 import { scanRepo } from "../scan-repo.js";
 import { mergeResults } from "./merge-results.js";
 import { resolveScanOptions } from "./profiles.js";
+import { activeModes, resolveRate } from "./active-gate.js";
 import { compareWithBaseline } from "./baseline.js";
 import { normalizeBaseUrl, urlToFilename } from "../utils/url.js";
 import {
@@ -43,10 +44,17 @@ export async function executeScan(config) {
   } = config;
 
   const profileOpts = resolveScanOptions({ profile, recon, deep, fuzz, all: false });
+  // Callers confirm payload modes with the user first (active-gate.js); this
+  // refuses an active URL scan that skipped that step.
+  const modes = activeModes({ deep: profileOpts.deep, fuzz: profileOpts.fuzz, adaptive: config.adaptive });
+  if (url && modes.length && config.activeConfirmed !== true) {
+    throw new Error(`Active modes (${modes.join(", ")}) need the user's confirmation before scanning ${url}.`);
+  }
 
   const scanOpts = {
     timeout: config.timeout || 10_000,
     concurrency: config.concurrency || 15,
+    rateLimit: resolveRate(config.rate, modes.length > 0),
     fuzz: profileOpts.fuzz,
     recon: profileOpts.recon,
     deep: profileOpts.deep,

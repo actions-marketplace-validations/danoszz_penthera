@@ -80,7 +80,7 @@ const HELP = `
                                + cookies + Retire.js + param discovery + OpenAPI/auth
                                (one invalid login POST, no attack payloads; quick: none)
         --recon                 + OSINT recon (subdomains, historical URLs)
-        --deep                  + Injection probes (SQLi, SSTI, SSRF, XSS, CMDi)
+        --deep                  + Injection probes (SQLi, SSTI, SSRF, XSS, CMDi); asks first
                                + login rate-limit burst and SQL error check on /api/login
         --fuzz                  + Property-based API fuzzing
         --nuclei <path>         + Community Nuclei YAML templates (alias for --templates)
@@ -155,6 +155,10 @@ const HELP = `
         --json              Output JSON to stdout
         --timeout <ms>      Request timeout (default: 10000)
         --concurrency <n>   Concurrent requests (default: 15)
+        --rate <n>          Max requests per second (default: no limit; 10 with
+                            --deep, --fuzz or --adaptive; 0 removes the limit)
+        --confirm-target <host>  Confirm an active scan (--deep, --fuzz, --adaptive)
+                            of this hostname without a prompt, for CI and scripts
         --user-agent <ua>   User-Agent header (default: penthera/${pkg.version} (+https://github.com/danoszz/penthera))
     -v, --verbose           Detailed output
     -q, --quiet             Findings only (for piping)
@@ -325,6 +329,8 @@ export async function run() {
         "user-agent": { type: "string" },
         timeout:     { type: "string",  default: "10000" },
         concurrency: { type: "string",  default: "15" },
+        rate:        { type: "string" },
+        "confirm-target": { type: "string" },
         verbose:     { type: "boolean", short: "v", default: false },
         quiet:       { type: "boolean", short: "q", default: false },
         help:        { type: "boolean", short: "h", default: false },
@@ -547,17 +553,33 @@ export async function run() {
   const deep = profileOpts.deep;
   const fuzz = profileOpts.fuzz;
 
-  // Warning for destructive modes
-  if (deep && !opts.quiet && !opts.json) {
-    process.stderr.write(
-      "\n  \x1b[33mWARN\x1b[0m --deep sends attack payloads (SQLi, SSTI, SSRF, XSS, CMDi) and a burst of login attempts.\n" +
-      "       Only scan targets you have permission to test.\n\n",
-    );
+  // Payload modes need an explicit confirmation bound to the target host
+  // (docs/METHODOLOGY.md, "Non-destructive by default"), and are rate-limited.
+  const { activeModes, confirmActiveScan, resolveRate } = await import("./cli/active-gate.js");
+  const modes = activeModes({ deep, fuzz, adaptive: opts.adaptive });
+  if (opts["confirm-target"] != null && !url) {
+    printError("--confirm-target names the URL being scanned; give a URL.");
+    process.exit(2);
+  }
+  let rateLimit;
+  try {
+    rateLimit = resolveRate(opts.rate, modes.length > 0);
+  } catch (e) {
+    printError(e.message);
+    process.exit(2);
+  }
+  if (url && modes.length) {
+    const consent = await confirmActiveScan({ url, modes, confirmTarget: opts["confirm-target"] ?? null });
+    if (!consent.ok) {
+      printError(consent.reason);
+      process.exit(2);
+    }
   }
 
   const scanOpts = {
     timeout: parseInt(opts.timeout, 10),
     concurrency: parseInt(opts.concurrency, 10),
+    rateLimit,
     fuzz,
     recon,
     deep,

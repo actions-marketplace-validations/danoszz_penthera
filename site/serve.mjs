@@ -6,9 +6,9 @@
  *   node site/serve.mjs [--port 4173] [--dir site/dist]
  */
 import { createServer } from "node:http";
-import { readFileSync, statSync, createReadStream } from "node:fs";
+import { readFileSync, statSync, createReadStream, existsSync } from "node:fs";
 import { dirname, extname, join, normalize, resolve, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 
 const SITE = dirname(fileURLToPath(import.meta.url));
@@ -24,23 +24,66 @@ export function headerRules(config = JSON.parse(readFileSync(join(SITE, "..", "v
   return config.headers.map((h) => [new RegExp(`^${h.source}$`), h.headers]);
 }
 
+/**
+ * vercel.json rewrites that send a filesystem miss to a function, as
+ * [RegExp, has conditions, function path]. Vercel applies them only after no
+ * file matched; only header conditions are used here.
+ */
+export function rewriteRules(config = JSON.parse(readFileSync(join(SITE, "..", "vercel.json"), "utf8"))) {
+  return (config.rewrites || []).filter((r) => r.destination.startsWith("/api/")).map((r) => [
+    new RegExp(`^${r.source}$`),
+    (r.has || []).map((h) => ({ key: h.key.toLowerCase(), re: new RegExp(`^${h.value ?? ".*"}$`, "i") })),
+    r.destination,
+  ]);
+}
+
 export function headersFor(pathname, rules = headerRules()) {
   const out = {};
   for (const [re, hs] of rules) if (re.test(pathname)) for (const h of hs) out[h.key] = h.value;
   return out;
 }
 
+/**
+ * The production headers, minus the two that only make sense over HTTPS.
+ * Safari applies upgrade-insecure-requests to localhost too, so over plain
+ * HTTP it would ask for https://localhost/styles.css and get nothing.
+ */
+function local(headers) {
+  const out = { ...headers };
+  delete out["Strict-Transport-Security"];
+  // Locally the live check is on this origin, not on penthera.org.
+  if (out["Content-Security-Policy"]) out["Content-Security-Policy"] = out["Content-Security-Policy"].replace(/;\s*upgrade-insecure-requests/, "").replace("connect-src ", "connect-src 'self' ");
+  return out;
+}
+
 export function serve({ dir = join(SITE, "dist"), port = 4173, host = "127.0.0.1" } = {}) {
   const root = resolve(dir);
   const rules = headerRules();
-  const server = createServer((req, res) => {
+  const rewrites = rewriteRules();
+  // Vercel Functions (api/*.mjs) run in process here.
+  const fn = async (name, req, res) => (await import(pathToFileURL(join(SITE, "..", "api", `${name}.mjs`)).href)).default(req, res);
+  const server = createServer(async (req, res) => {
     const url = new URL(req.url, "http://localhost");
+    const api = /^\/api\/([a-z-]+)$/.exec(url.pathname);
+    if (api && existsSync(join(SITE, "..", "api", `${api[1]}.mjs`))) return fn(api[1], req, res);
     let path = normalize(join(root, decodeURIComponent(url.pathname)));
     if (path !== root && !path.startsWith(root + sep)) { res.writeHead(403).end(); return; }
     let st;
-    try { st = statSync(path); if (st.isDirectory()) { path = join(path, "index.html"); st = statSync(path); } } catch { res.writeHead(404, headersFor(url.pathname, rules)).end("Not found"); return; }
+    // cleanUrls: /terms is terms.html, as on Vercel.
+    if (!existsSync(path) && existsSync(`${path}.html`)) path = `${path}.html`;
+    try { st = statSync(path); if (st.isDirectory()) { path = join(path, "index.html"); st = statSync(path); } } catch {
+      // No file: vercel.json rewrites apply now, as on Vercel (filesystem first).
+      for (const [re, has, dest] of rewrites) {
+        if (re.test(url.pathname) && has.every((h) => h.re.test(String(req.headers[h.key] ?? "")))) {
+          for (const [k, v] of Object.entries(local(headersFor(url.pathname, rules)))) res.setHeader(k, v);
+          return fn(dest.slice("/api/".length), req, res);
+        }
+      }
+      res.writeHead(404, headersFor(url.pathname, rules)).end("Not found");
+      return;
+    }
     // A Content-Type from vercel.json wins, as it does on Vercel.
-    const headers = { "Content-Type": TYPES[extname(path)] || "application/octet-stream", ...headersFor(url.pathname, rules), "Accept-Ranges": "bytes" };
+    const headers = { "Content-Type": TYPES[extname(path)] || "application/octet-stream", ...local(headersFor(url.pathname, rules)), "Accept-Ranges": "bytes" };
     const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || "");
     if (range) {
       const start = range[1] ? Number(range[1]) : st.size - Number(range[2]);

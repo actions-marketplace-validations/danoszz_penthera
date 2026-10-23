@@ -47,6 +47,7 @@
 :root[data-theme="light"] .bar[data-over="invert"] {
   color-scheme: dark;
   --ground: #000000;
+  --sheen: 0.12; --lit: 0.07; --shade: 0.35;
   --ground-rgb: 0, 0, 0;
   --ink-rgb: 255, 255, 255;
   --t2: 0.72;
@@ -65,6 +66,7 @@
 :root:not([data-theme="light"]) .bar[data-over="invert"] {
   color-scheme: light;
   --ground: #fdfdfa;
+  --sheen: 0.95; --lit: 0.7; --shade: 0.07;
   --ground-rgb: 253, 253, 250;
   --ink-rgb: 10, 10, 10;
   --t2: 0.72;
@@ -82,6 +84,7 @@
 :root .bar[data-over="blue"] {
   color-scheme: dark;
   --ground: #0000ed;
+  --sheen: 0.2; --lit: 0.1; --shade: 0.3;
   --ground-rgb: 0, 0, 237;
   --ink-rgb: 255, 255, 255;
   --t2: 0.85;
@@ -98,6 +101,7 @@
 :root .bar[data-over="grey"] {
   color-scheme: dark;
   --ground: #000000;
+  --sheen: 0.12; --lit: 0.07; --shade: 0.35;
   --ground-rgb: 0, 0, 0;
   --ink-rgb: 255, 255, 255;
   --t2: 0.85;
@@ -140,7 +144,7 @@
   --px: "Departure Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --gutter: 16px;
   --measure: 1240px;
-  --section: clamp(96px, 14vw, 200px);  /* poster spacing: one idea per screen */
+  --section: clamp(80px, 10vw, 144px);  /* poster spacing, tightened 2026-10-23 */
   --target: 44px;
   --veil-h: 224px;                      /* the bottom blur; check/ui.js reads it too */
   --ticker-h: 30px;
@@ -638,7 +642,7 @@ textarea:focus-visible, select:focus-visible { outline-offset: 0; }
 .ba-ev code { overflow-wrap: anywhere; color: var(--text-1); }
 .ba-cap { margin-top: 32px; max-width: 70ch; font-family: var(--px); font-size: 13px; color: var(--text-3); }
 
-.spec { margin: 72px 0 0; display: grid; border-top: 1px solid var(--frame); }
+.spec { margin: 48px 0 0; display: grid; border-top: 1px solid var(--frame); }
 .spec > div { display: grid; gap: 6px 32px; padding: 20px 0; border-bottom: 1px solid var(--hair); }
 @media (min-width: 720px) { .spec > div { grid-template-columns: 180px 1fr; align-items: baseline; } }
 .spec dt { font-family: var(--px); font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
@@ -689,7 +693,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 @media (min-width: 1000px) { .ways > li { padding: 24px 24px 32px 0; border-bottom: 0; } .ways > li + li { padding-left: 24px; border-left: 1px solid var(--hair); } }
 .ways h3 { font-size: clamp(24px, 2.6vw, 32px); letter-spacing: -0.02em; }
 .ways .cmd { justify-self: start; }
-.ways .cmd code { white-space: normal; overflow-wrap: anywhere; line-height: 1.4; padding-block: 10px; }
+.ways .cmd code { display: block; align-self: center; min-width: 0; white-space: normal; overflow-wrap: normal; line-height: 1.4; padding-block: 10px; }
 .commands { margin: 24px 0 0; display: grid; border-top: 1px solid var(--frame); }
 .commands div { display: grid; gap: 4px 32px; padding: 14px 0; border-bottom: 1px solid var(--hair); }
 @media (min-width: 720px) { .commands div { grid-template-columns: minmax(280px, auto) 1fr; align-items: baseline; } }
@@ -728,7 +732,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 
 /* 03 · How to trust it: three principles with bold lead-ins, then the
  * benchmark (the caveats as a framed box before the numbers). */
-.pillars { list-style: none; margin: 56px 0 0; padding: 0; display: grid; border-top: 1px solid var(--frame); }
+.pillars { list-style: none; margin: 40px 0 0; padding: 0; display: grid; border-top: 1px solid var(--frame); }
 @media (min-width: 900px) { .pillars { grid-template-columns: repeat(3, 1fr); } }
 .pillars li { padding: 24px 24px 28px 0; border-bottom: 1px solid var(--hair); }
 @media (min-width: 900px) { .pillars li { border-bottom: 0; } .pillars li + li { padding-left: 24px; border-left: 1px solid var(--hair); } }
@@ -741,7 +745,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .bench-caveats ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
 .bench-caveats li { position: relative; padding-left: 22px; color: var(--text-1); }
 .bench-caveats li::before { content: ""; position: absolute; left: 0; top: 0.5em; width: 9px; height: 9px; background: var(--accent-ink); }
-.bench-stats { list-style: none; margin: 56px 0 0; padding: 0; display: grid; border-top: 1px solid var(--frame); }
+.bench-stats { list-style: none; margin: 40px 0 0; padding: 0; display: grid; border-top: 1px solid var(--frame); }
 @media (min-width: 600px) { .bench-stats { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 1000px) { .bench-stats { grid-template-columns: repeat(4, 1fr); } }
 .bench-stats li { padding: 24px 24px 24px 0; border-bottom: 1px solid var(--hair); }
@@ -785,7 +789,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 
 /* 04 · The tour: four numbered steps, text beside media on wide screens,
  * the media side alternating. */
-.steps { list-style: none; margin: 56px 0 0; padding: 0; display: grid; gap: clamp(64px, 9vw, 120px); }
+.steps { list-style: none; margin: 48px 0 0; padding: 0; display: grid; gap: clamp(48px, 6vw, 80px); }
 .step { display: grid; gap: 28px; align-items: center; }
 @media (min-width: 960px) {
   .step { grid-template-columns: 5fr 7fr; gap: 56px; }
@@ -954,3 +958,274 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+/* ── Metal, glow and gradient (2026-10-23) ─────────────────────────────
+ * Futuristic, still brutalist: square corners, hard type, and a few
+ * surfaces that catch light. The plates are brushed aluminium in the old
+ * Apple manner, lit from one source: a still light above the page, which
+ * follows the pointer on devices with a mouse (ui.js sets --lx and --ly on
+ * every plate from the same pointer, so they all agree where it is). The
+ * base tone is mixed from each palette's ground and ink: black steel on the
+ * dark ground, silver on the light one, blue steel on the blue band. */
+.pillars li, .bench-stats li, .road li, .ways > li, .prompt-card, .btn-prompt {
+  --plate: color-mix(in srgb, rgb(var(--ink-rgb)) 9%, var(--ground));
+  --metal:
+    radial-gradient(400px circle at var(--lx, 50%) var(--ly, -220px), rgba(255, 255, 255, var(--sheen)), transparent 72%),
+    linear-gradient(180deg, rgba(255, 255, 255, var(--lit)), transparent 48%, rgba(0, 0, 0, var(--shade))),
+    var(--plate);
+  --metal-edge: inset 0 1px 0 rgba(255, 255, 255, calc(var(--lit) * 4)), inset 0 -1px 0 rgba(0, 0, 0, calc(var(--shade) * 0.8));
+}
+.pillars li, .bench-stats li, .road li, .ways > li, .prompt-card {
+  position: relative; isolation: isolate;
+  background: var(--metal);
+  border: 1px solid rgba(var(--ink-rgb), 0.22);
+  box-shadow: var(--metal-edge);
+}
+/* Brushing: hairlines along the plate, faint enough to read as grain. */
+.pillars li::before, .bench-stats li::before, .road li::before, .ways > li::before, .prompt-card::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: repeating-linear-gradient(180deg, rgba(var(--ink-rgb), 0.045) 0 1px, transparent 1px 3px);
+}
+
+/* Plates sit in a gapped grid instead of ruled columns. */
+.pillars, .bench-stats, .ways { gap: 12px; border-top: 0; }
+.pillars li, .pillars li + li, .bench-stats li, .bench-stats li + li, .bench-stats li:nth-child(even),
+.ways > li, .ways > li + li { padding: 24px; border-left-width: 1px; }
+.road { display: grid; gap: 8px; border-top: 0; }
+.road li { padding: 18px 20px; }
+.road-s { background: rgba(0, 0, 0, 0.6); }
+
+/* Numbers in polished type, lit from the same light above. */
+.spec-big, .stat-num {
+  background: linear-gradient(180deg,
+    rgb(var(--ink-rgb)) 35%,
+    color-mix(in srgb, rgb(var(--ink-rgb)) 55%, var(--ground)) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.stat-pooled .stat-num { background: none; color: var(--accent-ink); }
+
+/* Get started: the blue band becomes light falling on blue. */
+.band-blue {
+  background:
+    radial-gradient(90% 70% at 85% 0%, rgba(255, 255, 255, 0.28), transparent 60%),
+    radial-gradient(120% 90% at 0% 100%, #000060, transparent 70%),
+    #0000ed;
+}
+
+/* Soft gradient buttons for the primary actions; corners stay square. */
+.download, .btn[data-variant="default"] {
+  background: linear-gradient(180deg, #5a5aff 0%, #0000ed 55%, #0000b8 100%);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 8px 24px -8px rgba(0, 0, 237, 0.75);
+}
+.download:hover, .btn[data-variant="default"]:hover:not(:disabled) {
+  background: linear-gradient(180deg, #7676ff 0%, #2a2aff 55%, #0000d0 100%);
+}
+.btn-prompt {
+  background: var(--metal); border-color: rgba(var(--ink-rgb), 0.5);
+  box-shadow: var(--metal-edge), 0 10px 28px -12px rgba(var(--ink-rgb), 0.35);
+}
+.btn-prompt:hover { --btn-bg: var(--frame); background: var(--frame); }
+.bench-more { margin-top: 32px; }
+
+/* ── The live check (2026-10-23) ─────────────────────────────────────────
+ * The first thing to do on the page: a field, a button, and a report that
+ * opens in place. The score is a 10 × 10 grid of pixels, one per point. */
+.scan { margin: 8px 0 36px; max-width: 640px; display: grid; gap: 10px; }
+.report + .pills, .report[hidden] + .pills { margin-top: 0; }
+.report:not([hidden]) { margin-bottom: 48px; }
+.scan-label, .scan-note { justify-self: start; padding: 2px 8px; margin-left: -8px; background: var(--ground); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.scan-label { font-family: var(--display); font-size: clamp(19px, 2vw, 24px); font-weight: 500; letter-spacing: -0.01em; color: var(--text-1); }
+.scan-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.scan-row input {
+  min-height: 52px; min-width: 0; padding: 0 16px;
+  font: 17px / 1 var(--px); letter-spacing: 0.02em; color: var(--text-1);
+  background: var(--ground); border: 1px solid var(--frame); border-radius: 0;
+}
+.scan-row input::placeholder { color: var(--text-3); }
+.scan-row input:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+.scan-go { min-height: 52px; padding: 0 28px; font-size: 15px; }
+.scan-note { font-family: var(--px); font-size: 13px; color: var(--text-3); }
+
+.report {
+  position: relative; z-index: 1; margin-top: 28px; max-width: 980px;
+  padding: clamp(20px, 3vw, 32px); border: 1px solid rgba(var(--ink-rgb), 0.28);
+  background: color-mix(in srgb, var(--ground) 88%, transparent);
+  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+}
+.report-busy, .report-error { font-family: var(--px); font-size: 15px; color: var(--text-1); }
+.report-busy::after { content: "▌"; margin-left: 4px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .report-busy::after { animation: none; } }
+.report-head { display: grid; gap: 24px 40px; align-items: start; }
+@media (min-width: 760px) { .report-head { grid-template-columns: 1fr minmax(260px, 340px); } }
+.report-host { font-family: var(--px); font-size: 14px; color: var(--text-3); }
+.report-verdict { margin-top: 6px; font-size: clamp(26px, 3.4vw, 40px); line-height: 1.05; letter-spacing: -0.03em; }
+.report-score { display: flex; align-items: center; gap: 20px; }
+.meter { display: grid; grid-template-columns: repeat(10, 9px); gap: 2px; }
+.meter i { width: 9px; height: 9px; background: var(--pt-sparse); outline: 1px solid var(--hair); outline-offset: -1px; }
+.meter i.on { background: var(--frame); outline: 0; }
+.score-n { font-family: var(--display); font-size: clamp(56px, 7vw, 88px); line-height: 0.9; letter-spacing: -0.05em; color: var(--text-1); }
+.score-n span { font-family: var(--px); font-size: 15px; letter-spacing: 0; color: var(--text-3); margin-left: 6px; }
+.report-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.report-prompt { width: 100%; min-height: 56px; padding: 0 24px; font-size: 16px; }
+.report-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
+.linkish { padding: 0; border: 0; background: none; font: inherit; color: var(--text-1); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.report-cats { list-style: none; margin: 28px 0 0; padding: 0; display: grid; gap: 0 32px; border-top: 1px solid var(--frame); }
+@media (min-width: 760px) { .report-cats { grid-template-columns: 1fr 1fr; } }
+.report-cats li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--hair); color: var(--text-1); }
+.cat-n { font-family: var(--px); font-size: 13px; color: var(--text-3); }
+.report-cats li:not(.ok) .cat-n { color: var(--text-1); }
+.report-list { list-style: none; margin: 20px 0 0; padding: 0; display: grid; gap: 6px; }
+.finding details { border: 1px solid var(--hair); }
+.finding summary { display: flex; align-items: baseline; gap: 12px; padding: 12px 14px; cursor: pointer; list-style: none; color: var(--text-1); }
+.finding summary::-webkit-details-marker { display: none; }
+.finding-mark { flex: none; min-width: 64px; padding: 1px 6px; text-align: center; font-family: var(--px); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; border: 1px solid var(--frame); }
+.sev-high .finding-mark { background: var(--frame); color: var(--ground); }
+.sev-medium .finding-mark { background: var(--pt-half); color: var(--text-1); text-shadow: 0 0 3px var(--ground), 0 0 3px var(--ground); }
+.finding.ok .finding-mark { border-color: var(--hair); background: none; color: var(--text-3); text-shadow: none; }
+.finding.ok .finding-title { color: var(--text-2); }
+.finding-body { display: grid; gap: 8px; padding: 0 14px 14px 90px; }
+@media (max-width: 600px) { .finding-body { padding-left: 14px; } }
+.finding-ev { font-family: var(--px); font-size: 13px; color: var(--text-3); overflow-wrap: anywhere; }
+.finding-verify { margin: 0; padding: 8px 10px; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; border: 1px solid var(--hair); color: var(--text-1); }
+.report-passed { margin-top: 12px; }
+.report-passed > summary { display: inline-flex; align-items: center; gap: 10px; min-height: var(--target); cursor: pointer; list-style: none; font-family: var(--px); font-size: 14px; color: var(--text-1); }
+.report-passed > summary::-webkit-details-marker { display: none; }
+.report-passed > summary::before { content: "+"; width: 24px; height: 24px; display: grid; place-items: center; border: 1px solid var(--frame); }
+.report-passed[open] > summary::before { content: "\2212"; }
+.report-scope { margin-top: 16px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
+.report-deep { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--frame); display: grid; gap: 10px; justify-items: start; }
+.report-deep h3 { font-size: clamp(21px, 2.2vw, 26px); letter-spacing: -0.02em; }
+.report-deep p { max-width: 62ch; }
+.deep-steps { display: grid; gap: 8px; justify-items: start; }
+.deep-steps pre { margin: 0; padding: 8px 10px; border: 1px solid var(--hair); white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text-1); }
+
+.prompt-dialog {
+  width: min(640px, calc(100vw - 32px)); max-height: min(80vh, 760px); padding: 24px;
+  color: var(--text-2); background: var(--ground); border: 1px solid var(--frame); box-shadow: 8px 8px 0 var(--frame);
+}
+.prompt-dialog::backdrop { background: rgba(0, 0, 0, 0.6); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.prompt-dialog h3 { font-size: 24px; letter-spacing: -0.02em; }
+.prompt-count { margin-top: 4px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
+.prompt-presets { display: flex; gap: 8px; margin-top: 14px; }
+.prompt-list { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 2px; max-height: 46vh; overflow: auto; }
+.prompt-list label { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; padding: 10px 8px; cursor: pointer; }
+.prompt-list label:hover { background: rgba(var(--ink-rgb), 0.06); }
+.prompt-list input { grid-row: span 2; margin-top: 3px; accent-color: var(--accent); }
+.prompt-t { color: var(--text-1); }
+.prompt-s { font-family: var(--px); font-size: 12px; color: var(--text-3); }
+.prompt-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+
+/* Chapters after the 2026-10-23 restructure. */
+.map-one { margin-top: 12px; max-width: 40ch; }
+.map-one strong { color: var(--text-1); font-weight: 500; }
+.limits { margin-top: clamp(56px, 7vw, 96px); }
+.limits .road-title { margin-top: 0; }
+.limits-one { margin-top: 16px; max-width: 64ch; font-size: clamp(17px, 1.6vw, 20px); color: var(--text-1); }
+.limits .road + .limits-one { margin-top: 20px; font-size: 17px; color: var(--text-2); }
+.tour-video { margin: 40px 0 0; }
+.tour-video video { display: block; width: 100%; height: auto; border: 1px solid var(--frame); background: var(--ground); box-shadow: 6px 6px 0 var(--frame); }
+.tour-video figcaption, .tour-shots figcaption { margin-top: 10px; }
+.tour-shots { margin-top: 32px; display: grid; gap: 24px; }
+@media (min-width: 860px) { .tour-shots { grid-template-columns: 1fr 1fr; } }
+.tour-shots figure { margin: 0; }
+.tour-shots img { display: block; width: 100%; height: auto; border: 1px solid var(--frame); }
+.about-text + .about-text { margin-top: 20px; }
+.about { padding-bottom: clamp(96px, 12vw, 160px); }
+.about-text { margin-top: 28px; max-width: 60ch; font-family: var(--display); font-size: clamp(21px, 2.3vw, 28px); line-height: 1.35; letter-spacing: -0.01em; color: var(--text-1); }
+.about-contact { margin-top: 20px; max-width: 64ch; }
+.about .by { margin-top: 48px; }
+
+/* /terms: the live check's terms, a plain reading page. */
+.terms { max-width: 720px; margin: 0 auto; padding: 64px var(--gutter) 120px; }
+.terms h1 { margin-top: 12px; font-size: clamp(34px, 5vw, 56px); line-height: 1; letter-spacing: -0.035em; }
+.terms h2 { margin-top: 48px; font-size: clamp(22px, 2.6vw, 30px); letter-spacing: -0.02em; }
+.terms p, .terms ul, .terms ol, .terms pre { margin-top: 14px; }
+.terms li + li { margin-top: 6px; }
+.terms pre { padding: 12px 14px; border: 1px solid var(--hair); overflow-x: auto; }
+.terms-for { font-family: var(--px); font-size: 13px; color: var(--text-3); }
+
+/* Consent before a check: a heavy blur over the page, the terms in plain
+ * words, and slide to scan, after the first iPhone's slide to unlock. The
+ * track is a brushed plate; the thumb a square key; the label shimmers. */
+.consent {
+  width: min(560px, calc(100vw - 32px)); padding: 28px; color: var(--text-2);
+  background: var(--ground); border: 1px solid var(--frame); box-shadow: 10px 10px 0 var(--frame);
+}
+.consent::backdrop { background: rgba(0, 0, 0, 0.55); -webkit-backdrop-filter: blur(28px) saturate(0.6); backdrop-filter: blur(28px) saturate(0.6); }
+.consent-eyebrow { font-family: var(--px); font-size: 13px; color: var(--text-3); }
+.consent h3 { margin-top: 4px; font-size: clamp(26px, 4vw, 36px); line-height: 1.05; letter-spacing: -0.03em; overflow-wrap: anywhere; }
+.consent-list { margin: 18px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.consent-list li { position: relative; padding-left: 22px; color: var(--text-1); }
+.consent-list li::before { content: ""; position: absolute; left: 0; top: 0.5em; width: 9px; height: 9px; background: var(--frame); }
+.consent-terms { margin-top: 16px; font-size: 15px; }
+.consent-cancel { margin-top: 14px; }
+
+.slide {
+  --p: 0%;
+  position: relative; margin-top: 22px; height: 64px;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 237, 0.55) 0 var(--p), transparent var(--p)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.10), transparent 50%, rgba(0, 0, 0, 0.35)),
+    color-mix(in srgb, rgb(var(--ink-rgb)) 10%, var(--ground));
+  border: 1px solid rgba(var(--ink-rgb), 0.35);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+.slide.back { transition: --p 240ms var(--out); }
+.slide-label {
+  position: absolute; inset: 0; display: grid; place-items: center; padding-left: 56px; pointer-events: none;
+  font-family: var(--display); font-size: 21px; letter-spacing: 0.01em;
+  color: transparent;
+  background: linear-gradient(100deg, rgba(var(--ink-rgb), 0.35) 40%, rgb(var(--ink-rgb)) 50%, rgba(var(--ink-rgb), 0.35) 60%) 0 0 / 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: shimmer 2.6s linear infinite;
+}
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0% 0; } }
+@media (prefers-reduced-motion: reduce) { .slide-label { animation: none; color: rgba(var(--ink-rgb), 0.7); background: none; } }
+.slide input[type="range"] { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: grab; }
+.slide input[type="range"]:active { cursor: grabbing; }
+.slide input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.slide input[type="range"]::-webkit-slider-runnable-track { height: 100%; background: transparent; }
+.slide input[type="range"]::-moz-range-track { height: 100%; background: transparent; }
+.slide input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 56px; height: 56px; margin-top: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1px 0 #fff, 0 2px 6px rgba(0, 0, 0, 0.5);
+  /* The arrow: a pixel chevron, /media/slide-arrow.svg (the CSP allows no data: images). */
+  background-image: url("/media/slide-arrow.svg"), linear-gradient(180deg, #ffffff, #c9c9c6 55%, #a9a9a6);
+  background-size: 22px 22px, auto; background-position: center; background-repeat: no-repeat;
+}
+.slide input[type="range"]::-moz-range-thumb {
+  width: 56px; height: 56px; border-radius: 0; border: 1px solid rgba(0, 0, 0, 0.5);
+  background-image: url("/media/slide-arrow.svg"), linear-gradient(180deg, #ffffff, #c9c9c6 55%, #a9a9a6);
+  background-size: 22px 22px, auto; background-position: center; background-repeat: no-repeat;
+}
+
+/* Fix mode (ui.js): once a check starts, the hero steps aside and the report
+ * takes the top of the screen. One blue button, Prompt to fix, on the right;
+ * every other control is white (the ink colour, so black in the light
+ * theme), so the eye lands on blue. */
+/* --fix-top: where the header ends, measured by ui.js (the logotype scales with the viewport). */
+.hero[data-mode="fix"] .hero-text { min-height: 0; justify-content: flex-start; padding-top: var(--fix-top, calc(var(--ticker-h) + 140px)); }
+.hero[data-mode="fix"] .hero-text::before { top: 0; background: rgba(var(--ground-rgb), 0.82); }
+.hero[data-mode="fix"] :is(.problem, .scan, .pills, h1, .lede, .hero-actions, .note),
+.hero[data-mode="fix"] .loop { display: none; }
+.hero[data-mode="fix"] .report { margin-top: 0; max-width: none; width: 100%; }
+.report-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -4px 0 20px; }
+.report-back {
+  display: inline-flex; align-items: center; gap: 10px; min-height: var(--target); padding: 0 14px 0 10px;
+  font: 14px / 1 var(--px); color: var(--text-1); background: none; border: 1px solid var(--hair); cursor: pointer;
+}
+.report-back::before { content: ""; width: 10px; height: 10px; border-left: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); margin-left: 4px; }
+.report-back:hover { border-color: var(--frame); }
+.report-mode { font-family: var(--px); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-3); }
+.report-side { display: grid; gap: 14px; }
+.report-score { justify-content: flex-end; }
+@media (max-width: 759px) { .report-score { justify-content: flex-start; } }
+.report-clean { color: var(--text-1); }
+.btn-white { --btn-bg: var(--frame); --btn-fg: var(--ground); --btn-bd: var(--frame); }
+.btn-white:hover { --btn-bg: rgba(var(--ink-rgb), 0.82); --btn-fg: var(--ground); --btn-bd: transparent; }
+.cmd-white { --cmd-bd: var(--frame); --cmd-act-fg: var(--ground); --cmd-act-bg: var(--frame); --cmd-act-bd: var(--frame); background: var(--frame); color: var(--ground); }
+.cmd-white code, .cmd-white .cmd-prompt { color: var(--ground); }
+.report-deep .cmd { max-width: 100%; }

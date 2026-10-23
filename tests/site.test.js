@@ -630,6 +630,8 @@ describe("site headers", () => {
     // Vercel rejects the whole deployment when it's longer.
     const { ignoreCommand } = JSON.parse(readFileSync(join(ROOT, "vercel.json"), "utf8"));
     expect(ignoreCommand.length).toBeLessThanOrEqual(256);
+    // Only production builds: previews are skipped, and run locally with node site/serve.mjs.
+    expect(ignoreCommand.startsWith('[ "$VERCEL_ENV" != production ] || ')).toBe(true);
   });
 
   it("vercel.json allows only Vercel's two counters, and forbids framing and plain HTTP", () => {

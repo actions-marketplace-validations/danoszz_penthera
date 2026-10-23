@@ -279,7 +279,38 @@ function veilClear() {
   observe();
 }
 
+// ── One light for the metal plates ──────────────────────────────────────
+
+// The plates' sheen is a light above the page. With a mouse, the pointer
+// carries it: every plate gets the pointer's position in its own
+// coordinates, so they all catch the same light. Off with reduced motion.
+function metalLight() {
+  const fine = matchMedia("(hover: hover) and (pointer: fine)");
+  const still = matchMedia("(prefers-reduced-motion: reduce)");
+  if (!fine.matches || still.matches) return;
+  const plates = [...document.querySelectorAll(".pillars li, .bench-stats li, .road li, .ways > li, .prompt-card, .btn-prompt")];
+  let x = 0, y = 0, queued = false;
+  const paint = () => {
+    queued = false;
+    for (const el of plates) {
+      const r = el.getBoundingClientRect();
+      if (r.bottom < -200 || r.top > innerHeight + 200) continue;
+      el.style.setProperty("--lx", `${Math.round(x - r.left)}px`);
+      el.style.setProperty("--ly", `${Math.round(y - r.top)}px`);
+    }
+  };
+  let seen = false;
+  const queue = () => { if (seen && !queued) { queued = true; requestAnimationFrame(paint); } };
+  addEventListener("pointermove", (e) => { x = e.clientX; y = e.clientY; seen = true; queue(); }, { passive: true });
+  // Scrolling moves the plates under a still pointer.
+  addEventListener("scroll", queue, { passive: true });
+  document.documentElement.addEventListener("pointerleave", () => {
+    for (const el of plates) { el.style.removeProperty("--lx"); el.style.removeProperty("--ly"); }
+  });
+}
+
 copyButtons();
+metalLight();
 heroLoop();
 veilClear();
 liveField($(".hero .field"));

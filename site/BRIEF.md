@@ -81,8 +81,9 @@ folds the table; the hero pills are blue highlighter marks.
 
 Decided with the maintainer, 2026-10-23, later: tighter and more varied.
 The style is "futuristic yet brutalist and typographic". Square corners and
-hard type stay; a few surfaces now catch light: metallic plates (mixed from
-each palette's ground and ink, with a sparse dither over them) for the trust
+hard type stay; a few surfaces now catch light: brushed-metal plates in
+the old Apple manner, lit by one light from above that follows the pointer
+on a mouse (mixed from each palette's ground and ink) for the trust
 principles, benchmark counts, roadmap lines, ways in and prompts; polished
 gradient type for the price and the counts; light falling on the blue band;
 soft blue gradients on the primary buttons. This replaces "greys are dither

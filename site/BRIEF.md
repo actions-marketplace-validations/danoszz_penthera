@@ -96,16 +96,24 @@ behind toggles, like the MCP configs and the comparison table.
 - Security-vendor pages: dark gradients, shields, padlocks, "threat
   landscape" copy, a "Book a demo" button.
 - AI-startup pages: glowing orbs, logos-of-trust walls, testimonials.
-- Anything that implies a hosted scanner. Nothing is scanned on a server.
+- A scanner that keeps what it finds. The live check stores nothing and
+  publishes no per-site pages.
 
 ## Constraints
 
 - No third-party scripts, trackers or cookies; only Vercel's cookieless Web
   Analytics and Speed Insights, served from the same origin. All assets are
   served from the same origin.
-- CSP `connect-src` lists only `/_vercel/insights/` and `/_vercel/speed-insights/`
-  on penthera.org: the check cannot send anything anywhere else, which is what
-  "nothing you paste leaves your browser" rests on.
-- The check bundles `lib/` at build time (`site/build.mjs`). The site and the
-  CLI run the same rule code.
-- No URL scans and no server functions.
+- CSP `connect-src` lists the two Vercel counters and `/api/check` on
+  penthera.org, nothing else. The page sends only the address you type, to
+  penthera.org's own function.
+- The live check (decided with the maintainer, 2026-10-23): one function,
+  `api/check.mjs`, described in `/openapi.json`. Anyone can run the passive
+  report on any public site: only what a browser loads (the page, the files
+  it references, `/.well-known/security.txt`, public DNS). The owner-verified
+  scan (a DNS TXT record or a file, HMAC token, no storage) adds the CLI's
+  payload-free fixed paths, on the verified host only. Never payloads, never
+  `--deep` online. Every request goes through the guard in `api/_lib/guard.mjs`:
+  public addresses only, pinned, redirects re-checked. Nothing is stored or
+  logged; a count of scans may come later, never the results.
+- The rule code is the CLI's (`lib/`), so the site and `npx penthera` agree.

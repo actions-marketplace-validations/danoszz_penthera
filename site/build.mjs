@@ -27,6 +27,7 @@ import { bundledPackDirs, activePacks, loadSigners, NAMESPACE } from "../lib/rul
 import { verifyWithSigners } from "../lib/rules/sshsig.js";
 import { COUNTS } from "../scripts/docs-numbers.mjs";
 import { agentFiles, docPages, fill, REPO } from "./agents.mjs";
+import { jsonLd } from "./agent-ready.mjs";
 
 const SITE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(SITE, "..");
@@ -473,6 +474,8 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
     ORIGIN,
     DOC_PAGES: String(docPages(ROOT).length - 1),
     ...agentsMd(),
+    // Structured data for search engines and agents: <script type="application/ld+json"> in <head>.
+    JSONLD: jsonLd({ version, origin: ORIGIN }),
   };
   values.STARS_LABEL = values.STARS ? `, ${values.STARS} stars` : "";
   const cmp = readCompare();

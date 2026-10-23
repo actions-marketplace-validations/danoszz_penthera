@@ -3,6 +3,18 @@
  * Header rules are the CLI's own (lib/blackbox/headers.js), so the site and
  * `npx penthera <url>` agree; the rest needs the live response and lives here.
  * Each check has a weight; the score is the share of weight that passed.
+ * The passive report (tier1.mjs) adds the page, DNS and security.txt checks
+ * through opts.extra; a check with weight 0 is a note that does not move the
+ * score (a visible version, a key that may be public by design, a DNS answer
+ * that did not come).
+ *
+ * Weights for a site that passes everything (sum, so a clean site scores 100):
+ *   transport 42 (https 22, hsts 12, tls 4, cert 4)
+ *   headers   36 (csp 14, framing 8, nosniff 8, referrer 4, permissions 2) + csp-scripts 4, cors 4 when present
+ *   disclosure 6, cookies 8 when cookies are set
+ *   page      secrets 14, libraries 8, mixed-content 6 (https only), sri 4 and
+ *             source-maps 2 (only when there is something to judge)
+ *   email     dmarc 4, spf 3, caa 2;  contact: security-txt 3
  */
 import { auditSecurityHeaders } from "../../lib/blackbox/headers.js";
 
@@ -11,6 +23,10 @@ export const CATEGORIES = {
   headers: "Browser protections",
   cookies: "Cookies",
   disclosure: "What it gives away",
+  page: "What the page loads",
+  secrets: "Secrets in the page",
+  email: "Email and DNS",
+  contact: "Security contact",
 };
 
 const DAY = 86_400_000;
@@ -52,9 +68,9 @@ const get = (headers, name) => {
 
 /**
  * @param {{url: string, status: number, headers: object, tls: object|null, hops: object[]}} res
- * @param {{now?: number}} opts
+ * @param {{now?: number, extra?: object[], scope?: string}} opts
  */
-export function grade(res, { now = Date.now() } = {}) {
+export function grade(res, { now = Date.now(), extra = [], scope } = {}) {
   const { headers, url } = res;
   const secure = url.startsWith("https://");
   const checks = [];
@@ -159,6 +175,8 @@ export function grade(res, { now = Date.now() } = {}) {
     });
   }
 
+  for (const c of extra) add(c);
+
   const total = checks.reduce((n, c) => n + c.weight, 0);
   const got = checks.reduce((n, c) => n + (c.passed ? c.weight : 0), 0);
   const score = Math.round((got / total) * 100);
@@ -173,6 +191,6 @@ export function grade(res, { now = Date.now() } = {}) {
       return { id, label, passed: cs.filter((c) => c.passed).length, total: cs.length };
     }).filter((c) => c.total),
     checks: checks.map(({ weight, ...c }) => ({ ...c, weight })),
-    scope: "One passive GET request, like a browser's. No paths probed, no payloads sent, nothing stored. For a full scan, run npx penthera on your own machine.",
+    scope: scope || "One passive GET request, like a browser's. No paths probed, no payloads sent, nothing stored. For a full scan, run npx penthera on your own machine.",
   };
 }

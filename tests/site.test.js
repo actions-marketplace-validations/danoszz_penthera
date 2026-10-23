@@ -158,7 +158,8 @@ describe("site build", () => {
     for (const m of html.matchAll(/<(?:script|link|img|video|source|track)\b[^>]*\b(?:src|href)="([^"]+)"/g)) {
       expect(m[1], m[0]).toMatch(/^\//);
     }
-    expect(html).not.toMatch(/<script(?![^>]*\bsrc=)[^>]*>/);
+    // No inline script runs: the only script without src is the JSON-LD data block, which never executes.
+    expect(html).not.toMatch(/<script(?![^>]*\bsrc=)(?![^>]*type="application\/ld\+json")[^>]*>/);
     expect(readFileSync(join(out, "styles.css"), "utf8")).not.toMatch(/url\(["']?(https?:)?\/\//);
   });
 

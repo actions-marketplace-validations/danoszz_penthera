@@ -123,13 +123,41 @@ export async function fetchHeaders(start, { maxRedirects = 4, timeout = 6000, lo
   throw new CheckError("too_many_redirects", "The site redirected too many times.", 422, "Check the address for a redirect loop.");
 }
 
-function requestOnce(url, address, family, timeout) {
+/**
+ * GET a URL and read its body, up to maxBytes, as a browser would load it.
+ * Same guard as fetchHeaders: every hop resolved, checked and pinned again.
+ * `onHop` runs before each request (the caller's request budget); it may
+ * throw to stop. The body is decoded as UTF-8; a compressed body (which we
+ * never ask for) is left empty. Nothing is logged.
+ */
+export async function fetchBody(start, { maxRedirects = 4, timeout = 6000, maxBytes = 1_500_000, accept, onHop, lookup, allowPrivate = false, anyPort = false } = {}) {
+  let url = start;
+  const hops = [];
+  for (let i = 0; i <= maxRedirects; i++) {
+    onHop?.(url);
+    const host = url.hostname.replace(/^\[|\]$/g, "");
+    const { address, family } = await resolvePublic(host, { lookup, allowPrivate });
+    const res = await requestOnce(url, address, family, timeout, { maxBytes, accept });
+    hops.push({ url: url.href, status: res.status });
+    const location = res.headers.location;
+    if (res.status >= 300 && res.status < 400 && location) {
+      let next;
+      try { next = new URL(location, url); } catch { break; }
+      url = parseTarget(next.href, { anyPort });
+      continue;
+    }
+    return { ...res, url: url.href, hops };
+  }
+  throw new CheckError("too_many_redirects", "The site redirected too many times.", 422, "Check the address for a redirect loop.");
+}
+
+function requestOnce(url, address, family, timeout, body = null) {
   const secure = url.protocol === "https:";
   const lib = secure ? https : http;
   return new Promise((resolve, reject) => {
     const req = lib.request(url, {
       method: "GET",
-      headers: { "User-Agent": UA, Accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8" },
+      headers: { "User-Agent": UA, Accept: body?.accept || "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8" },
       // Pinned: connect to the address that passed the guard, nothing else.
       lookup: (_h, opts, cb) => (opts?.all ? cb(null, [{ address, family }]) : cb(null, address, family)),
       servername: secure && !isIP(url.hostname) ? url.hostname : undefined,
@@ -137,8 +165,32 @@ function requestOnce(url, address, family, timeout) {
       agent: false,
     }, (res) => {
       const tls = secure ? tlsInfo(res.socket) : null;
-      resolve({ status: res.statusCode, headers: res.headers, tls });
-      res.destroy();
+      const redirect = res.statusCode >= 300 && res.statusCode < 400;
+      const encoded = res.headers["content-encoding"] && !/^identity$/i.test(res.headers["content-encoding"]);
+      if (!body || redirect || encoded) {
+        resolve({ status: res.statusCode, headers: res.headers, tls, ...(body ? { body: "", truncated: false } : {}) });
+        return res.destroy();
+      }
+      // Read up to maxBytes, then stop; the whole read must fit the timeout.
+      const chunks = [];
+      let size = 0;
+      let done = false;
+      const finish = (truncated) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        resolve({ status: res.statusCode, headers: res.headers, tls, body: Buffer.concat(chunks).toString("utf8"), truncated });
+        res.destroy();
+      };
+      const timer = setTimeout(() => finish(true), timeout);
+      res.on("data", (c) => {
+        const room = body.maxBytes - size;
+        chunks.push(c.length > room ? c.subarray(0, room) : c);
+        size += Math.min(c.length, room);
+        if (size >= body.maxBytes) finish(true);
+      });
+      res.on("end", () => finish(false));
+      res.on("error", () => finish(true));
     });
     req.on("timeout", () => req.destroy(new CheckError("timeout", `${url.hostname} did not answer within ${timeout / 1000} seconds.`, 504, "Try again, or run npx penthera from your own machine.")));
     req.on("error", (e) => {
@@ -163,4 +215,60 @@ function tlsInfo(socket) {
   } catch {
     return null;
   }
+}
+
+export const VERIFIED_UA = "Penthera-VerifiedScan/1 (+https://penthera.org/#scan; owner-verified, no payloads)";
+
+/**
+ * The verified scan's request: one GET to a host whose address already passed
+ * resolvePublic, pinned to that address. Redirects are not followed (a 3xx is
+ * returned as is), the body is cut at maxBytes, and a URL for any other host
+ * is refused before a byte leaves.
+ * @param {URL} url
+ * @param {{host: string, address: string, family: number}} pin  from resolvePublic, plus the host it vetted
+ * @returns {Promise<{status: number, headers: object, body: string, truncated: boolean}>}
+ */
+export function fetchPinned(url, pin, { timeout = 5000, maxBytes = 32_768, anyPort = false } = {}) {
+  const host = url.hostname.replace(/^\[|\]$/g, "").replace(/\.$/, "").toLowerCase();
+  if (host !== pin.host || !/^https?:$/.test(url.protocol) || url.username || url.password
+    || (url.port && !anyPort && !["80", "443"].includes(url.port))) {
+    return Promise.reject(new CheckError("off_target", "The verified scan only requests the verified host.", 400, "Scan one host at a time."));
+  }
+  const secure = url.protocol === "https:";
+  const lib = secure ? https : http;
+  const { address, family } = pin;
+  return new Promise((resolve, reject) => {
+    const req = lib.request(url, {
+      method: "GET",
+      headers: { "User-Agent": VERIFIED_UA, Accept: "*/*" },
+      lookup: (_h, opts, cb) => (opts?.all ? cb(null, [{ address, family }]) : cb(null, address, family)),
+      servername: secure && !isIP(host) ? host : undefined,
+      timeout,
+      agent: false,
+    }, (res) => {
+      const chunks = [];
+      let size = 0;
+      let truncated = false;
+      const done = () => resolve({ status: res.statusCode, headers: res.headers, body: Buffer.concat(chunks).toString("utf8"), truncated });
+      res.on("data", (c) => {
+        const room = maxBytes - size;
+        if (c.length >= room) {
+          chunks.push(c.subarray(0, room));
+          size = maxBytes;
+          truncated = true;
+          res.removeAllListeners("data");
+          res.destroy();
+          done();
+          return;
+        }
+        chunks.push(c);
+        size += c.length;
+      });
+      res.on("end", done);
+      res.on("error", () => done());
+    });
+    req.on("timeout", () => req.destroy(new CheckError("timeout", `${host} did not answer within ${timeout / 1000} seconds.`, 504, "Try again later.")));
+    req.on("error", (e) => reject(e instanceof CheckError ? e : new CheckError("unreachable", `Could not connect to ${host}.`, 502, "Check that the site is up.")));
+    req.end();
+  });
 }

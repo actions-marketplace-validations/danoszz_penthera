@@ -133,6 +133,23 @@ npx -y penthera@1.9.0 mcp --help
 | `--allow-host <host>` | A host `scan_url` may contact besides loopback (repeatable, exact name, no wildcards) |
 | `--offline` | `scan_url` contacts only the target |
 
+## In a container
+
+The repo's `Dockerfile` builds an image whose entry point is `penthera`. Mount
+your project at `/src` and point `--root` at it:
+
+```bash
+docker build -t penthera-mcp .
+docker run -i --rm --network none -v "$PWD:/src:ro" penthera-mcp mcp --root /src
+```
+
+Your agent sends its roots as host paths, which do not exist inside the
+container. The server drops roots it cannot find. When none is left, it uses
+`--root` and logs "client sent no usable roots; using the server's roots" to
+stderr. If `--root` does not exist either, it does not start and names the
+folder. With `--network none`, `scan_url` has nothing to reach; the other
+tools need no network.
+
 ## Limits
 
 - A clean result is not proof of safety. Penthera reports what its rules

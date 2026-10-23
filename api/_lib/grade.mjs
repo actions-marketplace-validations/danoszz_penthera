@@ -8,6 +8,8 @@
  * score (a visible version, a key that may be public by design, a DNS answer
  * that did not come).
  *
+ * A failed check with severity critical caps the score at 40, high at 69.
+ *
  * Weights for a site that passes everything (sum, so a clean site scores 100):
  *   transport 42 (https 22, hsts 12, tls 4, cert 4)
  *   headers   36 (csp 14, framing 8, nosniff 8, referrer 4, permissions 2) + csp-scripts 4, cors 4 when present
@@ -179,7 +181,11 @@ export function grade(res, { now = Date.now(), extra = [], scope } = {}) {
 
   const total = checks.reduce((n, c) => n + c.weight, 0);
   const got = checks.reduce((n, c) => n + (c.passed ? c.weight : 0), 0);
-  const score = Math.round((got / total) * 100);
+  // A failed critical or high check caps the score, so a leaked key or a
+  // vulnerable library can never hide behind good headers.
+  const failed = checks.filter((c) => !c.passed);
+  const cap = failed.some((c) => c.severity === "critical") ? 40 : failed.some((c) => c.severity === "high") ? 69 : 100;
+  const score = Math.min(cap, Math.round((got / total) * 100));
   return {
     url,
     status: res.status,

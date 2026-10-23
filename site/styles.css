@@ -1134,3 +1134,68 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .about-text { margin-top: 28px; max-width: 60ch; font-family: var(--display); font-size: clamp(21px, 2.3vw, 28px); line-height: 1.35; letter-spacing: -0.01em; color: var(--text-1); }
 .about-contact { margin-top: 20px; max-width: 64ch; }
 .about .by { margin-top: 48px; }
+
+/* /terms: the live check's terms, a plain reading page. */
+.terms { max-width: 720px; margin: 0 auto; padding: 64px var(--gutter) 120px; }
+.terms h1 { margin-top: 12px; font-size: clamp(34px, 5vw, 56px); line-height: 1; letter-spacing: -0.035em; }
+.terms h2 { margin-top: 48px; font-size: clamp(22px, 2.6vw, 30px); letter-spacing: -0.02em; }
+.terms p, .terms ul, .terms ol, .terms pre { margin-top: 14px; }
+.terms li + li { margin-top: 6px; }
+.terms pre { padding: 12px 14px; border: 1px solid var(--hair); overflow-x: auto; }
+.terms-for { font-family: var(--px); font-size: 13px; color: var(--text-3); }
+
+/* Consent before a check: a heavy blur over the page, the terms in plain
+ * words, and slide to scan, after the first iPhone's slide to unlock. The
+ * track is a brushed plate; the thumb a square key; the label shimmers. */
+.consent {
+  width: min(560px, calc(100vw - 32px)); padding: 28px; color: var(--text-2);
+  background: var(--ground); border: 1px solid var(--frame); box-shadow: 10px 10px 0 var(--frame);
+}
+.consent::backdrop { background: rgba(0, 0, 0, 0.55); -webkit-backdrop-filter: blur(28px) saturate(0.6); backdrop-filter: blur(28px) saturate(0.6); }
+.consent-eyebrow { font-family: var(--px); font-size: 13px; color: var(--text-3); }
+.consent h3 { margin-top: 4px; font-size: clamp(26px, 4vw, 36px); line-height: 1.05; letter-spacing: -0.03em; overflow-wrap: anywhere; }
+.consent-list { margin: 18px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.consent-list li { position: relative; padding-left: 22px; color: var(--text-1); }
+.consent-list li::before { content: ""; position: absolute; left: 0; top: 0.5em; width: 9px; height: 9px; background: var(--frame); }
+.consent-terms { margin-top: 16px; font-size: 15px; }
+.consent-cancel { margin-top: 14px; }
+
+.slide {
+  --p: 0%;
+  position: relative; margin-top: 22px; height: 64px;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 237, 0.55) 0 var(--p), transparent var(--p)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.10), transparent 50%, rgba(0, 0, 0, 0.35)),
+    color-mix(in srgb, rgb(var(--ink-rgb)) 10%, var(--ground));
+  border: 1px solid rgba(var(--ink-rgb), 0.35);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+.slide.back { transition: --p 240ms var(--out); }
+.slide-label {
+  position: absolute; inset: 0; display: grid; place-items: center; padding-left: 56px; pointer-events: none;
+  font-family: var(--display); font-size: 21px; letter-spacing: 0.01em;
+  color: transparent;
+  background: linear-gradient(100deg, rgba(var(--ink-rgb), 0.35) 40%, rgb(var(--ink-rgb)) 50%, rgba(var(--ink-rgb), 0.35) 60%) 0 0 / 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: shimmer 2.6s linear infinite;
+}
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0% 0; } }
+@media (prefers-reduced-motion: reduce) { .slide-label { animation: none; color: rgba(var(--ink-rgb), 0.7); background: none; } }
+.slide input[type="range"] { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: grab; }
+.slide input[type="range"]:active { cursor: grabbing; }
+.slide input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.slide input[type="range"]::-webkit-slider-runnable-track { height: 100%; background: transparent; }
+.slide input[type="range"]::-moz-range-track { height: 100%; background: transparent; }
+.slide input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 56px; height: 56px; margin-top: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1px 0 #fff, 0 2px 6px rgba(0, 0, 0, 0.5);
+  /* The arrow: a pixel chevron, /media/slide-arrow.svg (the CSP allows no data: images). */
+  background-image: url("/media/slide-arrow.svg"), linear-gradient(180deg, #ffffff, #c9c9c6 55%, #a9a9a6);
+  background-size: 22px 22px, auto; background-position: center; background-repeat: no-repeat;
+}
+.slide input[type="range"]::-moz-range-thumb {
+  width: 56px; height: 56px; border-radius: 0; border: 1px solid rgba(0, 0, 0, 0.5);
+  background-image: url("/media/slide-arrow.svg"), linear-gradient(180deg, #ffffff, #c9c9c6 55%, #a9a9a6);
+  background-size: 22px 22px, auto; background-position: center; background-repeat: no-repeat;
+}

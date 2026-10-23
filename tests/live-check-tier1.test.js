@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer } from "node:http";
 import { passiveReport } from "../api/_lib/tier1.mjs";
-import { parsePage, mixedContentCheck, redact } from "../api/_lib/page.mjs";
+import { parsePage, mixedContentCheck, redact, optedOut } from "../api/_lib/page.mjs";
 import { dnsChecks, mailDomain } from "../api/_lib/dns.mjs";
 import { grade } from "../api/_lib/grade.mjs";
 
@@ -49,6 +49,11 @@ beforeAll(async () => {
       if (req.url === "/js/jquery-1.12.4.min.js") return send("text/javascript", "/*! jQuery v1.12.4 | (c) jQuery Foundation | jquery.org/license */\n!function(){}();");
       if (req.url === "/css/site.css") return send("text/css", "body{margin:0}");
       if (req.url === "/.well-known/security.txt") return send("text/plain", securityTxt);
+    }
+    if (host === "optout.example.org" && req.url === "/robots.txt") return send("text/plain", "User-agent: *\nAllow: /\n\nUser-agent: Googlebot\nUser-agent: Penthera-QuickCheck\nDisallow: /\n");
+    if (host === "star.example.org") {
+      if (req.url === "/robots.txt") return send("text/plain", "User-agent: *\nDisallow: /\n");
+      if (req.url === "/") return send("text/html", "<!doctype html><p>hello</p>");
     }
     if (host === "cdn.thirdparty.example.net" && req.url === "/lib/widget.js") return send("text/javascript", "window.widget=1;");
     if (host === "many.example.org") {
@@ -93,6 +98,7 @@ describe("passive report: what the page loads", () => {
       "site.example.org/css/site.css",
       "site.example.org/js/app.js",
       "site.example.org/js/jquery-1.12.4.min.js",
+      "site.example.org/robots.txt",
     ]);
     expect(requests.some((r) => /\.map$|admin|favicon|commented/.test(r))).toBe(false);
   });
@@ -115,13 +121,18 @@ describe("passive report: what the page loads", () => {
   it("finds the key in a same-site script with the CLI's rule, and never echoes it", () => {
     const s = byId.secrets;
     expect(s.passed).toBe(false);
-    expect(s.severity).toBe("high");
+    expect(s.severity).toBe("critical");
     expect(s.category).toBe("secrets");
     expect(s.evidence).toMatch(/OpenAI API key/);
     expect(s.evidence).toContain("/js/app.js");
     expect(JSON.stringify(report)).not.toContain(KEY);
     expect(JSON.stringify(report)).not.toContain(KEY.slice(8, 30));
     expect(redact(`"${KEY}"`)).toMatch(/^sk-pro… \(44 chars\)$/);
+  });
+
+  it("caps the score at 40 when a critical check fails", () => {
+    expect(report.score).toBeLessThanOrEqual(40);
+    expect(report.verdict).toBe("Unsafe defaults");
   });
 
   it("names jQuery 1.12.4 and its CVEs from the vendored Retire.js data", () => {
@@ -165,6 +176,48 @@ describe("passive report: what the page loads", () => {
 
   it("does not judge mixed content on an http page", () => {
     expect(byId["mixed-content"]).toBeUndefined();
+  });
+});
+
+describe("passive report: opt-out and score caps", () => {
+  it("stops before the page when robots.txt names Penthera-QuickCheck with Disallow: /", async () => {
+    requests.length = 0;
+    let err;
+    try { await passiveReport(new URL(`http://optout.example.org:${port}/`), opts({ typed: `http://optout.example.org:${port}/` })); } catch (e) { err = e; }
+    expect(err?.code).toBe("opted_out");
+    expect(err?.status).toBe(403);
+    expect(requests).toEqual(["optout.example.org/robots.txt"]);
+  });
+
+  it("ignores the * group: that one is for crawlers", async () => {
+    const r = await passiveReport(new URL(`http://star.example.org:${port}/`), opts({ typed: `http://star.example.org:${port}/` }));
+    expect(r.tier).toBe("passive");
+  });
+
+  it("reads robots.txt groups as RFC 9309 does", () => {
+    expect(optedOut("User-agent: penthera-quickcheck/1\nDisallow: /")).toBe(true);
+    expect(optedOut("User-agent: *\nDisallow: /")).toBe(false);
+    expect(optedOut("User-agent: Penthera-QuickCheck\nDisallow: /private")).toBe(false);
+    expect(optedOut("User-agent: Penthera-QuickCheck\nAllow: /x\nUser-agent: other\nDisallow: /")).toBe(false);
+    expect(optedOut("")).toBe(false);
+  });
+
+  it("caps the score at 69 when a high check fails, and the verdict follows", () => {
+    const good = {
+      url: "https://example.org/", status: 200, hops: [{ url: "https://example.org/", status: 200 }],
+      tls: { protocol: "TLSv1.3", validTo: "Dec 31 23:59:59 2030 GMT", issuer: "Let's Encrypt" },
+      headers: {
+        "strict-transport-security": "max-age=63072000; includeSubDomains",
+        "content-security-policy": "default-src 'self'; frame-ancestors 'none'",
+        "x-content-type-options": "nosniff", "referrer-policy": "no-referrer", "permissions-policy": "camera=()",
+      },
+    };
+    const leak = (severity) => ({ id: "secrets", category: "secrets", weight: 14, passed: false, severity, title: "t", evidence: "", fix: "f", verify: "curl" });
+    const high = grade(good, { now: NOW, extra: [leak("high")] });
+    expect(high.score).toBe(69);
+    expect(high.verdict).toBe("Important gaps remain");
+    expect(grade(good, { now: NOW, extra: [leak("critical")] }).score).toBe(40);
+    expect(grade(good, { now: NOW, extra: [leak("medium")] }).score).toBeGreaterThan(80);
   });
 });
 

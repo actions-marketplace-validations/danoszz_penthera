@@ -390,6 +390,24 @@ describe("site story", () => {
     expect(about.indexOf('class="about-text"')).toBeLessThan(about.indexOf('class="by"'));
   });
 
+  it("asks for consent before every first check of a site, and sends it with the request", () => {
+    const js = readFileSync(join(out, "check.js"), "utf8");
+    expect(js).toContain("slide to scan");
+    expect(js).toContain("Only check a site you own, or one you have written permission to test.");
+    expect(js).toMatch(/consent:\s*!0|consent:\s*true/);
+    // No deeper scan from penthera.org: the report points to the CLI instead.
+    expect(js).toContain("Go deeper on your own machine");
+    expect(js).not.toMatch(/action:\s*[`"']deep|action:\s*[`"']token/);
+  });
+
+  it("publishes the live check's terms from docs/live-check-terms.md at /terms", () => {
+    const terms = readFileSync(join(out, "terms.html"), "utf8");
+    for (const h of ["Acceptable use: zero abuse", "No guarantee", "Responsibility", "Privacy", "For site owners"]) expect(terms, h).toContain(`>${h}</h2>`);
+    expect(terms).toContain("User-agent: Penthera-QuickCheck");
+    expect(terms).not.toMatch(/<script(?![^>]*\bsrc=)/);
+    expect(html()).toContain('<a href="/terms">Terms</a>');
+  });
+
   it("puts the live check first: a field, a button, a report region and a no-JavaScript route", () => {
     const hero = html().slice(html().indexOf('class="hero"'), html().indexOf('id="answer"'));
     expect(hero).toMatch(/<form class="scan" id="scan" data-scan novalidate>/);
@@ -442,6 +460,9 @@ describe("site story", () => {
   });
 });
 
+// A built path exists as a file, or as <path>.html, which cleanUrls serves without the extension.
+const served = (out, f) => existsSync(join(out, f)) || existsSync(join(out, `${f}.html`));
+
 describe("site files for agents", () => {
   const read = (f) => readFileSync(join(out, f), "utf8");
   const ORIGIN = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).homepage;
@@ -452,7 +473,7 @@ describe("site files for agents", () => {
     expect(llms).toMatch(/^# Penthera\n\n> .+\n/);
     for (const m of llms.matchAll(/\]\((https:\/\/penthera\.org\/[^)]+)\)/g)) {
       const f = m[1].slice(ORIGIN.length + 1).split("#")[0];
-      expect(existsSync(join(out, f)), m[1]).toBe(true);
+      expect(served(out, f), m[1]).toBe(true);
     }
     expect(llms).toContain(`${ORIGIN}/llms-full.txt`);
     expect(llms).toContain("one runtime dependency");
@@ -482,7 +503,7 @@ describe("site files for agents", () => {
       for (const m of md.matchAll(/\]\(([^)\s]+)\)/g)) expect(m[1], `${p}: ${m[1]}`).toMatch(/^(https?:|mailto:|#)/);
       for (const m of md.matchAll(/<(?:img|a|source|video)\b[^>]*?\b(?:src|href|poster)="([^"]+)"/g)) expect(m[1], `${p}: ${m[1]}`).toMatch(/^(https?:|#)/);
       // Links to other mirrored pages stay on the site.
-      for (const m of md.matchAll(/\]\((https:\/\/penthera\.org\/[^)#]+)/g)) expect(existsSync(join(out, m[1].slice(ORIGIN.length + 1))), m[1]).toBe(true);
+      for (const m of md.matchAll(/\]\((https:\/\/penthera\.org\/[^)#]+)/g)) expect(served(out, m[1].slice(ORIGIN.length + 1)), m[1]).toBe(true);
     }
     expect(absoluteLinks("[a](commands/mcp.md#x) [b](../bench/RESULTS.md) [c](../assets/demo.gif) [d](commands/)", "docs/index.md", { root: ROOT, origin: ORIGIN, mirrored: new Set(["docs/commands/mcp.md"]) }))
       .toBe(`[a](${ORIGIN}/docs/commands/mcp.md#x) [b](https://github.com/danoszz/penthera/blob/main/bench/RESULTS.md) [c](https://github.com/danoszz/penthera/raw/main/assets/demo.gif) [d](https://github.com/danoszz/penthera/tree/main/docs/commands)`);
@@ -502,7 +523,7 @@ describe("site files for agents", () => {
     const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
     expect(locs[0]).toBe(`${ORIGIN}/`);
     expect(locs).toEqual(expect.arrayContaining([`${ORIGIN}/llms.txt`, `${ORIGIN}/llms-full.txt`, ...pages.map((p) => `${ORIGIN}/${p}`)]));
-    for (const l of locs.slice(1)) expect(existsSync(join(out, l.slice(ORIGIN.length + 1))), l).toBe(true);
+    for (const l of locs.slice(1)) expect(served(out, l.slice(ORIGIN.length + 1)), l).toBe(true);
   });
 
   it("robots.txt allows everyone and points to the sitemap", () => {

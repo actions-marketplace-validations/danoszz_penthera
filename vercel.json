@@ -7,7 +7,6 @@
   "ignoreCommand": "git diff --quiet HEAD^ HEAD -- site api lib src/ui/static assets README.md docs CHANGELOG.md AGENTS.md bench/RESULTS.md tests/fixtures/agents/malicious package.json package-lock.json vercel.json server.json",
   "cleanUrls": true,
   "trailingSlash": false,
-  "proxy": {"entrypoint": "site/proxy.js", "matcher": "/"},
   "rewrites": [
     {"source": "/(.*)", "has": [{"type": "header", "key": "accept", "value": "(.*)text/markdown(.*)"}], "destination": "/api/not-found"}
   ],
@@ -28,7 +27,6 @@
     {
       "source": "/",
       "headers": [
-        { "key": "Vary", "value": "Accept" },
         { "key": "Link", "value": "</index.md>; rel=\"alternate\"; type=\"text/markdown\", </llms.txt>; rel=\"describedby\"; type=\"text/plain\"" }
       ]
     },

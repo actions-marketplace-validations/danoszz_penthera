@@ -2,8 +2,7 @@
  * The parts of penthera.org that exist for agents rather than people, built
  * from the same values as the page so they cannot drift from it:
  *
- *   /index.md       the homepage as Markdown; GET / with Accept: text/markdown
- *                   answers with it (site/proxy.js on Vercel, site/serve.mjs locally)
+ *   /index.md       the homepage as Markdown, linked from "/" (Link: rel=alternate)
  *   /openapi.json   OpenAPI 3.1 for POST /api/check; error codes read from api/
  *   JSONLD          a SoftwareApplication block for the page's <head>
  *   llms.txt        a "When to use Penthera" section, added by agents.mjs
@@ -62,18 +61,16 @@ export function jsonLd(o) {
 const ERROR_HINTS = {
   invalid_url: "The url is empty, too long, not http(s), has credentials or a non-standard port.",
   not_public: "The host is localhost, a private or reserved address, or a name that is not public.",
-  invalid_action: "action is not passive, token or deep.",
   invalid_json: "The body is not JSON.",
-  off_target: "The verified scan tried to reach a host other than the verified one.",
-  not_verified: "The ownership token was not found in DNS or at /.well-known/penthera.txt.",
+  consent_required: "consent is missing or not true. Send \"consent\": true only if you own the site or are authorized to test it, and accept the terms.",
+  opted_out: "The site's robots.txt opts out of Penthera-QuickCheck, so it is not checked.",
   method_not_allowed: "Only POST is allowed.",
   too_large: "The request body is over 4 KB.",
   not_found: "The domain does not resolve.",
   too_many_redirects: "The site redirected more than four times.",
   tls_invalid: "The site's certificate is not valid.",
-  rate_limited: "More than 8 checks from one address in a minute.",
+  rate_limited: "Too many checks in a minute, from one address or of one site.",
   internal: "The check failed on penthera.org's side.",
-  not_available: "The verified scan is not set up on this server.",
   unreachable: "penthera.org could not connect to the site.",
   timeout: "The site did not answer in time.",
   budget: "The check used up its request or time budget for this site.",
@@ -126,12 +123,14 @@ export function openApi({ version, origin, root }) {
     info: {
       title: "Penthera live check",
       version,
-      summary: "Check a public website's passive security posture: HTTPS, TLS, security headers, cookies and what it discloses.",
+      summary: "Check a public website's passive security basics: HTTPS, TLS, headers, cookies, scripts, security.txt and DNS.",
       description: [
-        "One endpoint, POST /api/check, with a JSON body. The default action, passive, sends one GET request to the site, as a browser would, and grades the response. Nothing is stored or logged.",
+        "One endpoint, POST /api/check, with a JSON body. It loads only what a browser would (the page, up to 14 of its scripts and stylesheets, /.well-known/security.txt) plus public DNS records, at most 20 requests, and grades what came back. No other paths, no payloads. Nothing is stored or logged. A site whose robots.txt disallows the user agent Penthera-QuickCheck is not checked.",
         "Only public http(s) sites on ports 80 and 443. For localhost, internal hosts or a full scan, run `npx penthera@" + version + " <url>` on your own machine.",
-        "Rate limit: 8 checks per minute per client address. Only check sites you own or are authorized to test.",
+        `Every request must carry "consent": true, which states that you own the site or are authorized to test it and that you accept the terms: ${origin}/terms.`,
+        "Rate limits: per client address and per target site, per minute.",
       ].join("\n\n"),
+      termsOfService: `${origin}/terms`,
       license: { name: "MIT", identifier: "MIT" },
       contact: { name: "Penthera on GitHub", url: `${REPO}/issues` },
     },
@@ -143,11 +142,8 @@ export function openApi({ version, origin, root }) {
           operationId: "checkWebsiteSecurity",
           summary: "Check a public website's security basics",
           description: [
-            "Grades a public website's HTTPS, TLS, security headers, cookies and disclosure from one passive GET request. Use it to answer \"is this site's basic security set up?\" for a URL.",
-            "The action field picks what happens:",
-            "- passive (default): the report for any public site.",
-            "- token: the proof-of-ownership token for the host, to place in a DNS TXT record or at /.well-known/penthera.txt.",
-            "- deep: once the token is in place, the owner-verified, payload-free scan; returns the same report shape with tier \"deep\".",
+            "Grades a public website's HTTPS, TLS, security headers, cookies, scripts (Subresource Integrity, mixed content, exposed secrets, outdated libraries), security.txt and DNS records (SPF, DMARC, CAA), from what a browser loads. Use it to answer \"is this site's basic security set up?\" for a URL the user owns or is authorized to test.",
+            "Send {\"url\": \"example.com\", \"consent\": true}. consent: true means the user owns the site or is authorized to test it, and accepts the terms; without it the answer is 400 consent_required.",
             "Errors are JSON: {\"error\": {\"code\", \"message\", \"hint\"}}. Read hint for what to do next.",
           ].join("\n"),
           requestBody: {
@@ -156,17 +152,15 @@ export function openApi({ version, origin, root }) {
               "application/json": {
                 schema: { $ref: "#/components/schemas/CheckRequest" },
                 examples: {
-                  passive: { summary: "Passive check", value: { url: "example.com" } },
-                  token: { summary: "Get the ownership token", value: { url: "example.com", action: "token" } },
-                  deep: { summary: "Verified scan, after placing the token", value: { url: "example.com", action: "deep" } },
+                  passive: { summary: "Check a site you own", value: { url: "example.com", consent: true } },
                 },
               },
             },
           },
           responses: {
             200: {
-              description: "A report (actions passive and deep) or the ownership token (action token).",
-              content: { "application/json": { schema: { oneOf: [{ $ref: "#/components/schemas/Report" }, { $ref: "#/components/schemas/OwnershipToken" }] } } },
+              description: "The passive report.",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/Report" } } },
             },
             ...errorResponses,
           },
@@ -177,11 +171,11 @@ export function openApi({ version, origin, root }) {
       schemas: {
         CheckRequest: {
           type: "object",
-          required: ["url"],
+          required: ["url", "consent"],
           additionalProperties: false,
           properties: {
             url: { type: "string", minLength: 1, maxLength: 2048, description: "The site: a domain (example.com means https://example.com/) or an http(s) URL on port 80 or 443.", examples: ["example.com", "https://example.com/login"] },
-            action: { type: "string", enum: ["passive", "token", "deep"], default: "passive", description: "passive: grade one GET request. token: get the ownership token. deep: the verified scan, after the token is in place." },
+            consent: { const: true, description: `true states that you own the site or are authorized to test it, and that you accept the terms at ${origin}/terms. Ask the user before you send it.` },
           },
         },
         Report: {
@@ -190,7 +184,7 @@ export function openApi({ version, origin, root }) {
           properties: {
             url: { type: "string", description: "The final URL, after redirects." },
             status: { type: "integer", description: "The HTTP status of the final response." },
-            tier: { type: "string", enum: ["passive", "deep"] },
+            tier: { const: "passive" },
             score: { type: "integer", minimum: 0, maximum: 100, description: "The share of check weight that passed, as a percentage." },
             verdict: { type: "string", description: "The score in words, such as \"Solid basics\" (90 or more) or \"Unsafe defaults\" (under 45)." },
             redirects: { type: "array", items: str, description: "Each URL that redirected, in order." },
@@ -217,17 +211,6 @@ export function openApi({ version, origin, root }) {
             fix: { type: "string", description: "What to change." },
             verify: { type: "string", description: "A command that shows whether the fix worked, such as a curl." },
             weight: { type: "integer", minimum: 0, description: "This check's share of the score." },
-          },
-        },
-        OwnershipToken: {
-          type: "object",
-          required: ["host", "token", "dns", "file"],
-          properties: {
-            host: str,
-            token: { type: "string", description: "penthera-verify= and 32 base64url characters." },
-            dns: { type: "object", required: ["name", "value"], properties: { name: { type: "string", examples: ["_penthera.example.com"] }, type: { const: "TXT" }, value: str } },
-            file: { type: "object", required: ["url", "contents"], properties: { url: { type: "string", examples: ["https://example.com/.well-known/penthera.txt"] }, contents: str } },
-            expiresNote: str,
           },
         },
         Error: {
@@ -262,10 +245,12 @@ Reach for it when the user wants one of these, on something they own or are auth
 - Check their dependencies: what each package can do (shell, network, install scripts), typosquats, known-malicious versions. Run \`npx penthera@${version} deps\`.
 - Check AI coding tool config: MCP servers, hooks, permissions, skills and instruction files. Run \`npx penthera@${version} agents\` (add \`--home\` for the user-level config).
 - Check a running app they may test, such as a staging URL or localhost: headers, TLS, cookies, exposed files. Run \`npx penthera@${version} https://staging.example.com\`.
-- Check a public site's basic security from here, without installing anything: \`POST ${origin}/api/check\` with \`{"url": "example.com"}\`. One passive GET, nothing stored, 8 checks a minute. It returns a score and each check with evidence, a fix and a curl to verify it. Spec: [${origin}/openapi.json](${origin}/openapi.json).
+- Check the basic security of a public site the user owns or may test, without installing anything: \`POST ${origin}/api/check\` with \`{"url": "example.com", "consent": true}\`. It loads only what a browser would, plus public DNS, and stores nothing. It returns a score and each check with evidence, a fix and a curl to verify it. Spec: [${origin}/openapi.json](${origin}/openapi.json).
+
+  \`"consent": true\` states that the user owns the site or is authorized to test it, and accepts the terms at [${origin}/terms](${origin}/terms). Ask the user before you send it; without it the API answers 400 \`consent_required\`. Sites whose robots.txt opts out of Penthera-QuickCheck are not checked.
 
   \`\`\`
-  curl -s ${origin}/api/check -H 'content-type: application/json' -d '{"url":"example.com"}'
+  curl -s ${origin}/api/check -H 'content-type: application/json' -d '{"url":"example.com","consent":true}'
   \`\`\`
 
 - Call it as tools from an agent: the MCP server, \`npx -y penthera@${version} mcp\`. Its tools are read-only and run no shell.
@@ -324,13 +309,14 @@ ${v.RULES_ALL} readable rules in this release, citing ${v.REFS} sources.
 
 ## Live check API
 
-Checks a public site's HTTPS, TLS, security headers, cookies and disclosure from one passive GET request. Nothing is stored. 8 checks a minute per address.
+Checks a public site's HTTPS, TLS, security headers, cookies, scripts, security.txt and DNS from what a browser loads. Passive only: no other paths, no payloads, nothing stored. Only for sites you own or are authorized to test.
 
 \`\`\`
-curl -s ${origin}/api/check -H 'content-type: application/json' -d '{"url":"example.com"}'
+curl -s ${origin}/api/check -H 'content-type: application/json' -d '{"url":"example.com","consent":true}'
 \`\`\`
 
-- \`action\`: \`passive\` (default), \`token\` (ownership token for the verified scan) or \`deep\` (the verified scan).
+- \`consent\`: required, \`true\`. It states that you own the site or are authorized to test it, and accept the terms: ${origin}/terms
+- A site whose robots.txt opts out of Penthera-QuickCheck is not checked (403 \`opted_out\`). Checks are rate-limited per address and per site.
 - Errors: \`{"error": {"code", "message", "hint"}}\`.
 - OpenAPI 3.1: ${origin}/openapi.json
 
@@ -354,6 +340,7 @@ Details: ${origin}/docs/METHODOLOGY.md
 - ${origin}/llms-full.txt: README.md and the documentation as one file
 - ${origin}/docs/index.md: the documentation index
 - ${origin}/openapi.json: the live check API
+- ${origin}/terms: the live check's terms
 - ${REPO}: source
 - ${NPM}: package
 - ${origin}/sitemap.xml

@@ -108,12 +108,16 @@ behind toggles, like the MCP configs and the comparison table.
   penthera.org, nothing else. The page sends only the address you type, to
   penthera.org's own function.
 - The live check (decided with the maintainer, 2026-10-23): one function,
-  `api/check.mjs`, described in `/openapi.json`. Anyone can run the passive
-  report on any public site: only what a browser loads (the page, the files
-  it references, `/.well-known/security.txt`, public DNS). The owner-verified
-  scan (a DNS TXT record or a file, HMAC token, no storage) adds the CLI's
-  payload-free fixed paths, on the verified host only. Never payloads, never
-  `--deep` online. Every request goes through the guard in `api/_lib/guard.mjs`:
-  public addresses only, pinned, redirects re-checked. Nothing is stored or
-  logged; a count of scans may come later, never the results.
+  `api/check.mjs`, described in `/openapi.json`, under the terms at `/terms`
+  (`docs/live-check-terms.md`). Passive only: what one browser visit loads
+  (robots.txt, the page, up to 14 files it references, `security.txt`,
+  public DNS). No deeper scan online, not even for verified owners: probing
+  paths on a site from penthera.org would make us the ones probing. Deeper
+  testing runs with `npx penthera` on the visitor's own machine.
+- Zero abuse: a consent modal with slide to scan before every first check of
+  a site, `"consent": true` required by the API, limits per visitor and per
+  site, the target's robots.txt opt-out for `Penthera-QuickCheck`, and a
+  User-Agent that links to the terms. Every request goes through the guard in
+  `api/_lib/guard.mjs`. Nothing is stored or logged; a count of scans may
+  come later, never the results.
 - The rule code is the CLI's (`lib/`), so the site and `npx penthera` agree.

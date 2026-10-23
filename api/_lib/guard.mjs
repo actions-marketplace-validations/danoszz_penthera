@@ -96,7 +96,7 @@ export async function resolvePublic(host, { lookup = dnsLookup, allowPrivate = f
   return answers[0];
 }
 
-const UA = "Penthera-QuickCheck/1 (+https://penthera.org/#scan; one passive request)";
+const UA = "Penthera-QuickCheck/1 (+https://penthera.org/terms; passive check run by a visitor; opt out: robots.txt)";
 
 /**
  * GET the page once, as a browser would, and keep only what came before the
@@ -215,60 +215,4 @@ function tlsInfo(socket) {
   } catch {
     return null;
   }
-}
-
-export const VERIFIED_UA = "Penthera-VerifiedScan/1 (+https://penthera.org/#scan; owner-verified, no payloads)";
-
-/**
- * The verified scan's request: one GET to a host whose address already passed
- * resolvePublic, pinned to that address. Redirects are not followed (a 3xx is
- * returned as is), the body is cut at maxBytes, and a URL for any other host
- * is refused before a byte leaves.
- * @param {URL} url
- * @param {{host: string, address: string, family: number}} pin  from resolvePublic, plus the host it vetted
- * @returns {Promise<{status: number, headers: object, body: string, truncated: boolean}>}
- */
-export function fetchPinned(url, pin, { timeout = 5000, maxBytes = 32_768, anyPort = false } = {}) {
-  const host = url.hostname.replace(/^\[|\]$/g, "").replace(/\.$/, "").toLowerCase();
-  if (host !== pin.host || !/^https?:$/.test(url.protocol) || url.username || url.password
-    || (url.port && !anyPort && !["80", "443"].includes(url.port))) {
-    return Promise.reject(new CheckError("off_target", "The verified scan only requests the verified host.", 400, "Scan one host at a time."));
-  }
-  const secure = url.protocol === "https:";
-  const lib = secure ? https : http;
-  const { address, family } = pin;
-  return new Promise((resolve, reject) => {
-    const req = lib.request(url, {
-      method: "GET",
-      headers: { "User-Agent": VERIFIED_UA, Accept: "*/*" },
-      lookup: (_h, opts, cb) => (opts?.all ? cb(null, [{ address, family }]) : cb(null, address, family)),
-      servername: secure && !isIP(host) ? host : undefined,
-      timeout,
-      agent: false,
-    }, (res) => {
-      const chunks = [];
-      let size = 0;
-      let truncated = false;
-      const done = () => resolve({ status: res.statusCode, headers: res.headers, body: Buffer.concat(chunks).toString("utf8"), truncated });
-      res.on("data", (c) => {
-        const room = maxBytes - size;
-        if (c.length >= room) {
-          chunks.push(c.subarray(0, room));
-          size = maxBytes;
-          truncated = true;
-          res.removeAllListeners("data");
-          res.destroy();
-          done();
-          return;
-        }
-        chunks.push(c);
-        size += c.length;
-      });
-      res.on("end", done);
-      res.on("error", () => done());
-    });
-    req.on("timeout", () => req.destroy(new CheckError("timeout", `${host} did not answer within ${timeout / 1000} seconds.`, 504, "Try again later.")));
-    req.on("error", (e) => reject(e instanceof CheckError ? e : new CheckError("unreachable", `Could not connect to ${host}.`, 502, "Check that the site is up.")));
-    req.end();
-  });
 }

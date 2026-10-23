@@ -37,12 +37,6 @@ export function rewriteRules(config = JSON.parse(readFileSync(join(SITE, "..", "
   ]);
 }
 
-/** The vercel.json proxy (Routing Middleware) and the exact paths it runs on. */
-function proxyRule(config = JSON.parse(readFileSync(join(SITE, "..", "vercel.json"), "utf8"))) {
-  if (!config.proxy) return null;
-  return { entry: join(SITE, "..", config.proxy.entrypoint), paths: [].concat(config.proxy.matcher || []) };
-}
-
 export function headersFor(pathname, rules = headerRules()) {
   const out = {};
   for (const [re, hs] of rules) if (re.test(pathname)) for (const h of hs) out[h.key] = h.value;
@@ -66,26 +60,17 @@ export function serve({ dir = join(SITE, "dist"), port = 4173, host = "127.0.0.1
   const root = resolve(dir);
   const rules = headerRules();
   const rewrites = rewriteRules();
-  const proxy = proxyRule();
   // Vercel Functions (api/*.mjs) run in process here.
   const fn = async (name, req, res) => (await import(pathToFileURL(join(SITE, "..", "api", `${name}.mjs`)).href)).default(req, res);
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, "http://localhost");
-    // Routing Middleware runs first, as on Vercel; returning nothing continues.
-    if (proxy?.paths.includes(url.pathname)) {
-      const handler = (await import(pathToFileURL(proxy.entry).href)).default;
-      const out = await handler(new Request(`http://${req.headers.host}${req.url}`, { method: req.method, headers: req.headers }));
-      if (out) {
-        res.writeHead(out.status, { ...local(headersFor(url.pathname, rules)), ...Object.fromEntries(out.headers) });
-        res.end(req.method === "HEAD" ? undefined : Buffer.from(await out.arrayBuffer()));
-        return;
-      }
-    }
     const api = /^\/api\/([a-z-]+)$/.exec(url.pathname);
     if (api && existsSync(join(SITE, "..", "api", `${api[1]}.mjs`))) return fn(api[1], req, res);
     let path = normalize(join(root, decodeURIComponent(url.pathname)));
     if (path !== root && !path.startsWith(root + sep)) { res.writeHead(403).end(); return; }
     let st;
+    // cleanUrls: /terms is terms.html, as on Vercel.
+    if (!existsSync(path) && existsSync(`${path}.html`)) path = `${path}.html`;
     try { st = statSync(path); if (st.isDirectory()) { path = join(path, "index.html"); st = statSync(path); } } catch {
       // No file: vercel.json rewrites apply now, as on Vercel (filesystem first).
       for (const [re, has, dest] of rewrites) {

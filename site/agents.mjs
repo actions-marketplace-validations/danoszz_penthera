@@ -98,7 +98,9 @@ export function agentFiles({ root, site, version, origin, values, now = new Date
     .replace(/^## Machine-readable\n\n/m, (m) => `${m}- [OpenAPI for the live check](${origin}/openapi.json): POST /api/check, a public site's passive security report\n`);
   Object.assign(out, agentReadyFiles({ root, version, origin, values }));
 
-  const urls = ["", "index.md", "llms.txt", "llms-full.txt", "openapi.json", ...pages];
+  // /terms, the live check's terms: build.mjs renders it from this file.
+  const terms = existsSync(join(root, "docs", "live-check-terms.md")) ? ["terms"] : [];
+  const urls = ["", "index.md", ...terms, "llms.txt", "llms-full.txt", "openapi.json", ...pages];
   out["sitemap.xml"] = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${origin}/${u}</loc></url>`).join("\n")}\n</urlset>\n`;
 
   out["robots.txt"] = [

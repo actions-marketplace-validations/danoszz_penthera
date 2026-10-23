@@ -1,16 +1,15 @@
 /**
- * penthera.org for agents: the homepage as Markdown (content negotiation on
+ * penthera.org for agents: the homepage as Markdown (/index.md, linked from
  * "/"), Markdown 404s, JSON-LD, the live check's OpenAPI spec and the "When to
- * use" section of llms.txt. The preview server (site/serve.mjs) runs the same
- * middleware and rewrites as vercel.json, so the negotiation is tested here.
+ * use" section of llms.txt. The preview server (site/serve.mjs) applies the
+ * same rewrites as vercel.json, so the 404s are tested here.
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { mkdtempSync, rmSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { buildSite } from "../site/build.mjs";
 import { apiErrorCodes, undescribedCodes, jsonLd } from "../site/agent-ready.mjs";
-import { wantsMarkdown } from "../site/proxy.js";
 import { serve } from "../site/serve.mjs";
 
 const ROOT = join(import.meta.dirname, "..");
@@ -72,46 +71,28 @@ describe("homepage as Markdown", () => {
     for (const n of [values.N_URL, values.N_SECRETS, values.N_AGENTS, values.RULES_ALL]) expect(md).toContain(n);
     expect(md).toContain("## Limits");
     expect(md).toContain(`${ORIGIN}/api/check`);
+    expect(md).toContain(`"consent":true`);
+    expect(md).toContain(`${ORIGIN}/terms`);
+    expect(md).not.toMatch(/\baction\b|token|deep/);
     for (const link of ["/llms.txt", "/docs/index.md", "/openapi.json"]) expect(md).toContain(`${ORIGIN}${link}`);
     expect(md).toContain("https://github.com/danoszz/penthera");
     expect(md).toContain("https://www.npmjs.com/package/penthera");
   });
 
-  it("negotiates on Accept, as Markdown or HTML, with Vary: Accept", async () => {
-    const md = await fetch(`${base}/`, { headers: { accept: "text/markdown" } });
+  it("is served as Markdown and linked from / with rel=alternate", async () => {
+    const md = await fetch(`${base}/index.md`);
     expect(md.status).toBe(200);
     expect(md.headers.get("content-type")).toBe("text/markdown; charset=utf-8");
-    expect(md.headers.get("vary")).toMatch(/\bAccept\b/i);
-    const body = await md.text();
-    expect(body).toBe(read("index.md"));
-
-    const html = await fetch(`${base}/`, { headers: { accept: "text/html" } });
+    expect(await md.text()).toBe(read("index.md"));
+    const html = await fetch(`${base}/`);
     expect(html.status).toBe(200);
     expect(html.headers.get("content-type")).toMatch(/^text\/html/);
-    expect(html.headers.get("vary")).toMatch(/\bAccept\b/i);
     expect(html.headers.get("link")).toContain('</index.md>; rel="alternate"; type="text/markdown"');
-    expect(await html.text()).toMatch(/^<!doctype html>/i);
-
-    // A browser's Accept header (no text/markdown) gets the page.
-    const browser = await fetch(`${base}/`, { headers: { accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" } });
-    expect(browser.headers.get("content-type")).toMatch(/^text\/html/);
-    await browser.text();
+    await html.text();
   });
 
-  it("prefers Markdown only when it is asked for at least as much as HTML", () => {
-    expect(wantsMarkdown("text/markdown")).toBe(true);
-    expect(wantsMarkdown("text/markdown, text/html;q=0.9, */*;q=0.8")).toBe(true);
-    expect(wantsMarkdown("text/html, text/markdown")).toBe(true);
-    expect(wantsMarkdown("text/html, text/markdown;q=0.5")).toBe(false);
-    expect(wantsMarkdown("text/markdown;q=0")).toBe(false);
-    expect(wantsMarkdown("*/*")).toBe(false);
-    expect(wantsMarkdown("")).toBe(false);
-    expect(wantsMarkdown(null)).toBe(false);
-  });
-
-  it("vercel.json runs the middleware on / only, and the entrypoint exists", () => {
-    expect(vercel.proxy).toEqual({ entrypoint: "site/proxy.js", matcher: "/" });
-    expect(statSync(join(ROOT, vercel.proxy.entrypoint)).isFile()).toBe(true);
+  it("vercel.json has no Routing Middleware", () => {
+    expect(vercel.proxy).toBeUndefined();
   });
 });
 
@@ -183,6 +164,7 @@ describe("OpenAPI for the live check", () => {
     expect(spec.openapi).toBe("3.1.0");
     expect(spec.info.version).toBe(pkg.version);
     expect(spec.servers[0].url).toBe(ORIGIN);
+    expect(spec.info.termsOfService).toBe(`${ORIGIN}/terms`);
     expect(Object.keys(spec.paths)).toEqual(["/api/check"]);
     const ops = Object.values(spec.paths).flatMap((p) => Object.values(p));
     const ids = ops.map((o) => o.operationId);
@@ -191,12 +173,17 @@ describe("OpenAPI for the live check", () => {
     const op = spec.paths["/api/check"].post;
     const req = spec.components.schemas.CheckRequest;
     expect(op.requestBody.content["application/json"].schema.$ref).toBe("#/components/schemas/CheckRequest");
-    expect(req.required).toEqual(["url"]);
-    expect(req.properties.action.enum).toEqual(["passive", "token", "deep"]);
+    expect(req.required).toEqual(["url", "consent"]);
+    expect(req.properties.consent.const).toBe(true);
+    expect(req.properties.action).toBeUndefined();
+    expect(spec.components.schemas.Report.properties.tier.const).toBe("passive");
+    expect(spec.components.schemas.OwnershipToken).toBeUndefined();
+    expect(JSON.stringify(spec)).not.toMatch(/"deep"|ownership token/i);
   });
 
   it("describes the report fields api/check.mjs documents", () => {
-    const contract = readFileSync(join(ROOT, "api", "check.mjs"), "utf8").match(/\{ url, tier[\s\S]*?\] \}/)[0];
+    // The contract in api/check.mjs's header comment.
+    const contract = readFileSync(join(ROOT, "api", "check.mjs"), "utf8").match(/^\/\*\*[\s\S]*?\*\//)[0];
     const report = spec.components.schemas.Report;
     for (const f of ["url", "tier", "score", "verdict", "redirects", "scope", "categories", "checks"]) {
       expect(contract, f).toMatch(new RegExp(`\\b${f}\\b`));
@@ -204,7 +191,6 @@ describe("OpenAPI for the live check", () => {
     }
     for (const f of ["id", "label", "passed", "total"]) expect(spec.components.schemas.Category.properties).toHaveProperty(f);
     for (const f of ["id", "category", "passed", "severity", "title", "evidence", "fix", "verify", "weight"]) expect(spec.components.schemas.Check.properties).toHaveProperty(f);
-    expect(spec.components.schemas.OwnershipToken.required).toEqual(["host", "token", "dns", "file"]);
   });
 
   it("lists exactly the error codes api/ throws, each under its status and described", () => {
@@ -226,6 +212,8 @@ describe("OpenAPI for the live check", () => {
     await res.json();
     expect(read("llms.txt")).toContain(`(${ORIGIN}/openapi.json)`);
     for (const u of ["openapi.json", "index.md"]) expect(read("sitemap.xml")).toContain(`<loc>${ORIGIN}/${u}</loc>`);
+    const termsPage = existsSync(join(ROOT, "docs", "live-check-terms.md"));
+    expect(read("sitemap.xml").includes(`<loc>${ORIGIN}/terms</loc>`)).toBe(termsPage);
   });
 });
 
@@ -237,7 +225,9 @@ describe("llms.txt", () => {
     expect(section.length).toBeGreaterThan(200);
     for (const cmd of ["--repo .", " deps", " agents", " mcp"]) expect(section).toContain(cmd);
     expect(section).toContain(`POST ${ORIGIN}/api/check`);
-    expect(section).toContain('{"url": "example.com"}');
+    expect(section).toContain('{"url": "example.com", "consent": true}');
+    expect(section).toContain(`${ORIGIN}/terms`);
+    expect(section).not.toMatch(/"action"|token|deep/);
     expect(section).not.toContain("—");
     const pins = [...llms.matchAll(/penthera@(\d[\w.-]*)/g)].map((m) => m[1]);
     expect(new Set(pins)).toEqual(new Set([pkg.version]));

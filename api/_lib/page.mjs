@@ -188,7 +188,7 @@ export function secretChecks(html, files, pageUrl) {
   const scripts = sources.length - 1;
   const checks = [{
     id: "secrets", category: "secrets", weight: 14, passed: real.length === 0,
-    severity: strong.length ? "high" : real.length ? "medium" : "info",
+    severity: strong.some((h) => h.severity === "critical") ? "critical" : strong.length ? "high" : real.length ? "medium" : "info",
     title: strong.length ? `${strong.length === 1 ? "A secret key is" : `${strong.length} secret keys are`} in what the page sends`
       : real.length ? "Possible secret in what the page sends" : "No secrets found in the page or its scripts",
     evidence: real.length ? show(real) : `Checked the page and ${scripts} same-site script${scripts === 1 ? "" : "s"} with Penthera's secret rules.`,
@@ -399,4 +399,54 @@ export async function securityTxtCheck(pageUrl, budget, opts = {}, now = Date.no
     fix: ok ? "" : "Set Expires: to a date under a year ahead, and put a reminder in your calendar to renew it. " + fix.split("such as:")[1].trim(),
     verify,
   }];
+}
+
+// ── Opt-out ──────────────────────────────────────────────────────────────
+
+export const TOKEN = "penthera-quickcheck";
+
+/**
+ * True when robots.txt has a group naming our token with Disallow: /.
+ * Only a group that names Penthera-QuickCheck counts, never the * group:
+ * "*" speaks to crawlers, which walk a site, while this check fetches what
+ * one browser visit to one page fetches. Blocking it takes one line from the
+ * owner, aimed at us. Groups follow RFC 9309: consecutive User-agent lines
+ * share the rules that follow them.
+ */
+export function optedOut(robots) {
+  let agents = [];
+  let inRules = false;
+  for (const raw of String(robots).split(/\r?\n/)) {
+    const line = raw.replace(/#.*/, "").trim();
+    const m = /^([a-z-]+)\s*:\s*(.*)$/i.exec(line);
+    if (!m) continue;
+    const key = m[1].toLowerCase();
+    const value = m[2].trim();
+    if (key === "user-agent") {
+      if (inRules) { agents = []; inRules = false; }
+      agents.push(value.split("/")[0].trim().toLowerCase());
+    } else if (key === "disallow" || key === "allow") {
+      inRules = true;
+      if (key === "disallow" && (value === "/" || value === "/*") && agents.includes(TOKEN)) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * GET /robots.txt through the guard (4 s, 64 KB, in the request budget) and
+ * refuse when the owner opted out. No file, or any fetch error, means go on.
+ */
+export async function checkOptOut(origin, budget, opts = {}) {
+  let res;
+  try {
+    const timeout = Math.min(4000, budget.left() - 200);
+    if (timeout < 500) return;
+    res = await fetchBody(parseTarget(`${origin}/robots.txt`, opts), { ...opts, timeout, maxBytes: 65_536, maxRedirects: 2, accept: "text/plain", onHop: () => budget.hop() });
+  } catch {
+    return;
+  }
+  if (res.status === 200 && optedOut(res.body)) {
+    throw new CheckError("opted_out", "This site's owner opted out of Penthera's online check.", 403, "Ask the owner, or, if it's your site, run npx penthera on your own machine.");
+  }
 }

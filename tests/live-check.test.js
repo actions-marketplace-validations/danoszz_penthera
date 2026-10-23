@@ -127,20 +127,27 @@ describe("live check grade", () => {
 describe("live check endpoint", () => {
   let server, base;
   beforeAll(async () => {
-    server = createServer(createHandler());
+    // The stub resolver fails fast, so nothing here reaches the network.
+    const lookup = async () => { throw Object.assign(new Error("ENOTFOUND"), { code: "ENOTFOUND" }); };
+    server = createServer(createHandler({ lookup }));
     await new Promise((r) => server.listen(0, "127.0.0.1", r));
     base = `http://127.0.0.1:${server.address().port}`;
   });
   afterAll(() => new Promise((r) => server.close(r)));
 
-  const post = (body) => fetch(base, { method: "POST", headers: { "Content-Type": "application/json" }, body });
+  const post = (body, ip) => fetch(base, {
+    method: "POST", body: typeof body === "string" ? body : JSON.stringify(body),
+    headers: { "Content-Type": "application/json", ...(ip ? { "X-Forwarded-For": ip } : {}) },
+  });
 
   it("answers errors as JSON with a code, a message and a hint", async () => {
     for (const [res, status, code] of [
       [await fetch(base), 405, "method_not_allowed"],
       [await post("not json"), 400, "invalid_json"],
-      [await post(JSON.stringify({ url: "http://169.254.169.254/" })), 400, "not_public"],
-      [await post(JSON.stringify({ url: "localhost:3000" })), 400, "invalid_url"],
+      [await post({ url: "example.org" }), 400, "consent_required"],
+      [await post({ url: "example.org", consent: "yes" }), 400, "consent_required"],
+      [await post({ url: "http://169.254.169.254/", consent: true }), 400, "not_public"],
+      [await post({ url: "localhost:3000", consent: true }), 400, "invalid_url"],
     ]) {
       expect(res.status, code).toBe(status);
       expect(res.headers.get("content-type")).toMatch(/^application\/json/);
@@ -150,6 +157,19 @@ describe("live check endpoint", () => {
       expect(error.message.length).toBeGreaterThan(5);
       expect(error.hint.length).toBeGreaterThan(5);
     }
+  });
+
+  it("limits checks of one site to 30 an hour, from any number of visitors", async () => {
+    const codes = [];
+    for (let i = 0; i < 31; i++) {
+      const res = await post({ url: "www.limited.example.org", consent: true }, `203.0.113.${i + 1}`);
+      codes.push((await res.json()).error.code);
+    }
+    expect(codes.slice(0, 30).every((c) => c === "not_found")).toBe(true);
+    expect(codes[30]).toBe("rate_limited");
+    // www. is stripped: the bare name shares the same limit.
+    const res = await post({ url: "limited.example.org", consent: true }, "203.0.113.200");
+    expect(res.status).toBe(429);
   });
 
   it("CheckError carries an HTTP status", () => {

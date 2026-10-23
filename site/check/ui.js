@@ -72,7 +72,7 @@ const SEV = { high: 0, medium: 1, low: 2, info: 3 };
 const API = "/api/check";
 
 async function callCheck(body) {
-  const res = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const res = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, consent: true }) });
   let data;
   try { data = await res.json(); } catch { data = null; }
   if (!res.ok || !data) throw (data?.error || { message: "The check could not run.", hint: "Try again, or run npx penthera on your own machine." });
@@ -106,7 +106,7 @@ function promptFor(report, picked) {
   const lines = [
     `Improve the security of ${report.url}.`,
     "",
-    `Current Penthera ${report.tier === "deep" ? "verified" : "quick"} check: ${report.score}/100 (${report.scope})`,
+    `Current Penthera quick check: ${report.score}/100 (${report.scope})`,
     "",
     "Fix these in priority order:",
     "",
@@ -187,7 +187,7 @@ function renderReport(box, report, rescan) {
   box.replaceChildren();
   const head = el("div", "report-head");
   const id = el("div", "report-id");
-  id.append(el("p", "report-host", new URL(report.url).host + (report.tier === "deep" ? " · verified" : "")), el("h2", "report-verdict", report.verdict));
+  id.append(el("p", "report-host", new URL(report.url).host), el("h2", "report-verdict", report.verdict));
   const score = el("div", "report-score");
   const n = el("p", "score-n", String(report.score));
   n.append(el("span", null, "/100"));
@@ -229,42 +229,102 @@ function renderReport(box, report, rescan) {
   if (failed.length) box.append(list);
   if (passed.length) box.append(fold);
   box.append(scope);
-  if (report.tier !== "deep") box.append(deepOffer(report));
+  box.append(deeperOnYourMachine(report));
   box.hidden = false;
 }
 
-function deepOffer(report) {
+// The deeper scan runs only on the visitor's own machine: penthera.org
+// never sends more than a browser visit would.
+function deeperOnYourMachine(report) {
   const wrap = el("div", "report-deep");
-  wrap.append(el("h3", null, "Is this your site? Run the full scan."));
-  wrap.append(el("p", null, "Prove you own it and Penthera also checks for exposed files, debug pages and API specs: the same payload-free scan as npx penthera, one place in DNS or one file."));
-  const go = el("button", "btn", "Show me how");
-  go.type = "button";
-  const steps = el("div", "deep-steps");
-  go.addEventListener("click", async () => {
-    go.disabled = true;
-    try {
-      const t = await callCheck({ url: report.url, action: "token" });
-      steps.replaceChildren(
-        el("p", null, `Add this TXT record at ${t.dns.name}:`), el("pre", null, t.dns.value),
-        el("p", null, `Or serve this file at ${t.file.url}:`), el("pre", null, t.file.contents),
-      );
-      const run = el("button", "btn", "Verify and scan");
-      run.type = "button";
-      run.dataset.variant = "default";
-      run.addEventListener("click", async () => {
-        run.disabled = true;
-        run.textContent = "Scanning…";
-        try { renderReport(wrap.closest("[data-report]"), await callCheck({ url: report.url, action: "deep" }), () => run.click()); }
-        catch (e) { steps.append(el("p", "report-error", `${e.message} ${e.hint || ""}`)); run.disabled = false; run.textContent = "Verify and scan"; }
-      });
-      steps.append(run);
-    } catch (e) {
-      steps.replaceChildren(el("p", "report-error", `${e.message} ${e.hint || ""}`));
-      go.disabled = false;
-    }
+  wrap.append(el("h3", null, "Go deeper on your own machine"));
+  wrap.append(el("p", null, "Exposed files, debug pages, API specs and your code: the full scan runs where you are responsible for it, never from penthera.org."));
+  const cmd = `npx penthera ${report.url}`;
+  const b = el("button", "cmd", "");
+  b.type = "button";
+  b.dataset.copy = cmd;
+  b.append(el("span", "cmd-prompt", "$"), el("code", null, cmd), el("span", "cmd-act", "Copy"));
+  b.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(cmd); b.lastChild.textContent = "Copied"; } catch { getSelection().selectAllChildren(b.querySelector("code")); }
   });
-  wrap.append(go, steps);
+  wrap.append(b);
   return wrap;
+}
+
+// ── Consent before every first check of a site ─────────────────────────────
+
+// A heavy-blur modal with the terms in plain words, then slide to scan. The
+// slider is a real range input, so it works with a keyboard and a screen
+// reader; it only counts when it reaches the end.
+const consented = new Set();
+
+function askConsent(host) {
+  if (consented.has(host)) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const dlg = el("dialog", "consent");
+    const form = el("form");
+    form.method = "dialog";
+    form.append(el("p", "consent-eyebrow", "Before you check"), el("h3", null, host));
+    const ul = el("ul", "consent-list");
+    for (const t of [
+      "Only check a site you own, or one you have written permission to test.",
+      "This check is passive: it loads what one browser visit loads. It sends no attacks and guesses no paths.",
+      "It is research-backed and educational. A good score is not a guarantee and not a penetration test.",
+      "Zero abuse: checks of sites that aren't yours are not welcome here, and patterns of abuse are blocked.",
+      "Nothing about you or the site is stored. Deeper testing runs only on your own machine, under your responsibility.",
+    ]) ul.append(el("li", null, t));
+    const terms = el("p", "consent-terms");
+    terms.append(document.createTextNode("By sliding you confirm this is your site or you are authorized to test it, and you accept the "));
+    const a = el("a", null, "terms");
+    a.href = "/terms";
+    a.target = "_blank";
+    terms.append(a, document.createTextNode("."));
+    const slide = el("div", "slide");
+    const range = el("input");
+    range.type = "range";
+    range.min = "0";
+    range.max = "100";
+    range.value = "0";
+    range.setAttribute("aria-label", `Slide to scan ${host}`);
+    const label = el("span", "slide-label", "slide to scan");
+    label.setAttribute("aria-hidden", "true");
+    slide.append(label, range);
+    const cancel = el("button", "btn consent-cancel", "Not my site");
+    cancel.value = "cancel";
+    form.append(ul, terms, slide, cancel);
+    dlg.append(form);
+    let done = false;
+    const finish = (ok) => {
+      if (done) return;
+      done = true;
+      if (ok) consented.add(host);
+      dlg.close();
+      dlg.remove();
+      resolve(ok);
+    };
+    const paint = () => slide.style.setProperty("--p", `${range.value}%`);
+    range.addEventListener("input", paint);
+    const release = () => {
+      if (Number(range.value) >= 97) { range.value = "100"; paint(); setTimeout(() => finish(true), 160); return; }
+      slide.classList.add("back");
+      range.value = "0";
+      paint();
+      setTimeout(() => slide.classList.remove("back"), 260);
+    };
+    // A pointer that lets go short of the end slides back; the keyboard
+    // (arrows, End) moves it in steps and counts once it reaches the end.
+    let dragging = false;
+    range.addEventListener("pointerdown", () => { dragging = true; });
+    range.addEventListener("change", () => {
+      if (dragging) { dragging = false; release(); return; }
+      if (Number(range.value) >= 100) finish(true);
+    });
+    dlg.addEventListener("cancel", () => finish(false));
+    form.addEventListener("submit", () => finish(false));
+    document.body.append(dlg);
+    dlg.showModal();
+    range.focus();
+  });
 }
 
 function setupScan() {
@@ -276,6 +336,9 @@ function setupScan() {
   const run = async () => {
     const url = input.value.trim();
     if (!url) { input.focus(); return; }
+    let host;
+    try { host = new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`).host; } catch { host = url; }
+    if (!(await askConsent(host))) { input.focus(); return; }
     button.disabled = true;
     button.textContent = "Checking…";
     box.hidden = false;

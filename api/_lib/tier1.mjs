@@ -10,6 +10,9 @@
  *   3. GET /.well-known/security.txt, a file meant to be fetched.
  *   4. Public DNS: SPF, DMARC and CAA (dns.mjs).
  *
+ * Before anything else, GET /robots.txt: a group naming Penthera-QuickCheck
+ * with Disallow: / stops the check (opted_out, see page.mjs optedOut).
+ *
  * At most 20 requests and about 8 seconds in all, every one through the guard
  * and pinned to the vetted address. No other paths, no payloads, no query
  * strings of our own. Nothing is stored or logged.
@@ -19,10 +22,10 @@ import { grade } from "./grade.mjs";
 import { dnsChecks } from "./dns.mjs";
 import {
   LIMITS, makeBudget, parsePage, loadAssets, secretChecks, libraryChecks,
-  generatorCheck, sriCheck, mixedContentCheck, sourceMapCheck, securityTxtCheck,
+  generatorCheck, sriCheck, mixedContentCheck, sourceMapCheck, securityTxtCheck, checkOptOut,
 } from "./page.mjs";
 
-export const SCOPE = "Only what a browser loads: the page, up to 14 of the scripts and stylesheets it references, /.well-known/security.txt and public DNS records. No other paths probed, no payloads sent, nothing stored. For a full scan, run npx penthera on your own machine.";
+export const SCOPE = "Only what a browser loads: /robots.txt first (a site can opt out there), then the page, up to 14 of the scripts and stylesheets it references, /.well-known/security.txt and public DNS records. No other paths probed, no payloads sent, nothing stored. For a full scan, run npx penthera on your own machine.";
 
 /**
  * @param {URL} target
@@ -37,12 +40,15 @@ export async function passiveReport(target, opts = {}) {
 
   let result;
   try {
+    await checkOptOut(target.origin, budget, guard);
     result = await fetchBody(target, pageOpts);
   } catch (e) {
     // "example.com" with no https at all: look at what http serves instead.
     const bare = !/^https?:\/\//i.test(String(opts.typed ?? "").trim());
     if (!bare || !(e instanceof CheckError) || !["unreachable", "tls_invalid"].includes(e.code)) throw e;
-    result = await fetchBody(parseTarget(`http://${target.host}${target.pathname}`, guard), pageOpts);
+    const plain = parseTarget(`http://${target.host}${target.pathname}`, guard);
+    await checkOptOut(plain.origin, budget, guard);
+    result = await fetchBody(plain, pageOpts);
   }
 
   const pageUrl = result.url;

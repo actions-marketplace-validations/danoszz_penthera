@@ -10,9 +10,13 @@ The security review you never had time for. Offline, rule-based, and you can ver
 
 **[penthera.org](https://penthera.org)**: check your live site in a few seconds. Passive, nothing stored.
 
+**132** readable rules · **6** read-only MCP tools · **1** runtime dependency · **0** requests past loopback in the benchmark · **MIT**, no telemetry
+
 <br/>
 
 [![npm](https://img.shields.io/npm/v/penthera?color=0000ed)](https://www.npmjs.com/package/penthera)
+[![npm downloads](https://img.shields.io/npm/dm/penthera?color=0000ed&label=downloads)](https://www.npmjs.com/package/penthera)
+[![GitHub stars](https://img.shields.io/github/stars/danoszz/penthera?color=0000ed)](https://github.com/danoszz/penthera/stargazers)
 ![node](https://img.shields.io/badge/node-%E2%89%A522-0000ed)
 ![license](https://img.shields.io/badge/license-MIT-0000ed)
 [![CI](https://github.com/danoszz/penthera/actions/workflows/ci.yml/badge.svg)](https://github.com/danoszz/penthera/actions/workflows/ci.yml)
@@ -49,6 +53,25 @@ the results, good or bad, so you can see how far to trust it.
 It finds known classes of problems, not novel ones. It does not replace a human
 pentester.
 
+### One real fix
+
+On 23 October 2026 the live check on [penthera.org](https://penthera.org) gave
+penthera.org itself 95 out of 100. Every header, TLS and page check passed; two
+email-spoofing records were missing. Two DNS records later, it scored 100.
+
+```
+penthera.org    95/100   FIX  No SPF record for penthera.org
+                         FIX  No DMARC record for penthera.org
+
++ TXT  @        v=spf1 -all
++ TXT  _dmarc   v=DMARC1; p=reject; adkim=s; aspf=s
+
+penthera.org   100/100   Solid basics
+```
+
+The same report, with a prompt for your coding agent to make the fixes, is one
+click away for your own site.
+
 ## Start in 30 seconds
 
 You need Node.js 22 or later. No install, no account.
@@ -76,6 +99,19 @@ Cursor, Codex, VS Code and Windsurf, new in 1.9.0. Pin the version:
 
 ```bash
 claude mcp add penthera -- npx -y penthera@1.9.0 mcp
+```
+
+**In Claude Code, as a plugin.** From Claude Code's prompt:
+
+```
+/plugin marketplace add danoszz/penthera
+/plugin install penthera@penthera
+```
+
+**In Gemini CLI, as an extension.** With the same pinned MCP server:
+
+```bash
+gemini extensions install https://github.com/danoszz/penthera
 ```
 
 Other clients: [docs/commands/mcp.md](docs/commands/mcp.md). Other skill install
@@ -266,6 +302,8 @@ What changed, what we are measuring, and what comes next, in one place.
 | **Latest release** | 1.9.0 (2026-10-23) on npm `latest`: `penthera mcp`, opt-in AI mode, new detection rules, no attack payloads in default scans, a refreshed dashboard | [CHANGELOG](CHANGELOG.md), [roadmap](ROADMAP.md#now-190) |
 | **Research** | E10 pilot published: precision 0.88, recall 0.07 to 0.71 on two known-vulnerable apps after fixes (one labeller, not independent; a re-run is pending because default scans no longer send login checks). E1 on real code is pre-registered; E8 (agent guardrails) is a draft | [E10 results](bench/known-vuln/RESULTS.md), [E1 pre-registration](docs/research/prereg/E1-real-world-accuracy.md), [agents safely](docs/agents-safely.md) |
 | **Next** | Real-world precision and recall with intervals (E1), published whatever the result | [Roadmap: next](ROADMAP.md#next), [research plan](docs/vision-2.0.md) |
+
+[![Star history](https://api.star-history.com/svg?repos=danoszz/penthera&type=Date)](https://star-history.com/#danoszz/penthera&Date)
 
 Releases are deliberately slow: a feature freeze, an independent review, the
 release checks, and a release candidate before any new minor version. Watch the

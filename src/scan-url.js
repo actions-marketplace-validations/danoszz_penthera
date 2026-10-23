@@ -64,6 +64,24 @@ import { RECON_HOSTS } from "../lib/recon.js";
 import { dedupeFindings } from "./cli/merge-results.js";
 
 const SENSITIVE_RE = /private_key|SECRET|PASSWORD|API_KEY|FIREBASE_|STRIPE_|DATABASE_URL|client_email|\[core\]|\[remote/i;
+// A single-page app answers every path with its index.html, whose scripts often
+// say "API_KEY". That page is not a leaked file, so HTML never trips SENSITIVE_RE.
+// Leading comments are skipped with indexOf, not a regex: a repeated
+// (<!--...-->)* group backtracks exponentially on "<!---->" runs.
+function isHtmlPage(body) {
+  let i = 0;
+  for (;;) {
+    while (i < body.length && /\s/.test(body[i])) i++;
+    if (!body.startsWith("<!--", i)) break;
+    const end = body.indexOf("-->", i + 4);
+    if (end === -1) return false;
+    i = end + 3;
+  }
+  return /^<(?:!doctype html|html)/i.test(body.slice(i, i + 15));
+}
+// phpinfo() and mod_status are HTML pages, so they are known by their own text.
+const PHPINFO_RE = /<title>[^<]{0,80}phpinfo\(\)[^<]{0,80}<\/title>/i;
+const SERVER_STATUS_RE = /Apache Server Status for|Server uptime:|Total accesses:/i;
 
 /**
  * Run a full black-box scan against a URL.
@@ -271,8 +289,8 @@ async function scanUrlInContext(target, opts) {
     { path: "/storage.rules", severity: "medium", desc: "Firebase Storage rules" },
     { path: "/.htaccess", severity: "medium", desc: "Apache configuration" },
     { path: "/web.config", severity: "medium", desc: "IIS configuration" },
-    { path: "/phpinfo.php", severity: "high", desc: "PHP info page" },
-    { path: "/server-status", severity: "medium", desc: "Apache server status" },
+    { path: "/phpinfo.php", severity: "high", desc: "PHP info page", page: PHPINFO_RE },
+    { path: "/server-status", severity: "medium", desc: "Apache server status", page: SERVER_STATUS_RE },
     { path: "/actuator", severity: "high", desc: "Spring Boot actuator" },
     { path: "/actuator/env", severity: "critical", desc: "Spring Boot environment" },
     { path: "/wp-login.php", severity: "info", desc: "WordPress login page" },
@@ -302,7 +320,8 @@ async function scanUrlInContext(target, opts) {
         return;
       }
 
-      if (SENSITIVE_RE.test(text)) {
+      const exposed = file.page ? file.page.test(text) : !isHtmlPage(text) && SENSITIVE_RE.test(text);
+      if (exposed) {
         result.findings.push({
           severity: file.severity,
           title: `${file.path} contains sensitive data`,

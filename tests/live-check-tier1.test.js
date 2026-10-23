@@ -302,3 +302,22 @@ describe("passive report: limits and edge cases", () => {
     expect(r.score).toBe(100);
   });
 });
+
+describe("live check: server software against the runtime advisories", () => {
+  it("flags a PHP version the response names, as may-be-affected and at most high", async () => {
+    const { runtimeCheck } = await import("../api/_lib/tier1.mjs");
+    const [c] = runtimeCheck({ "x-powered-by": "PHP/8.3.12", "set-cookie": ["PHPSESSID=1; path=/"] }, "https://example.org/");
+    expect(c.id).toBe("runtime");
+    expect(c.passed).toBe(false);
+    expect(c.severity).toBe("high");
+    expect(c.title).toMatch(/may be affected/);
+    expect(c.evidence).toMatch(/PHP\/8\.3\.12/);
+    expect(c.evidence).toMatch(/backported/);
+    expect(c.fix).toMatch(/Upgrade PHP/);
+  });
+
+  it("says nothing when the response names no version", async () => {
+    const { runtimeCheck } = await import("../api/_lib/tier1.mjs");
+    expect(runtimeCheck({ server: "Vercel" }, "https://example.org/")).toEqual([]);
+  });
+});

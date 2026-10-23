@@ -20,6 +20,7 @@
 import { parseTarget, fetchBody, CheckError } from "./guard.mjs";
 import { grade } from "./grade.mjs";
 import { dnsChecks } from "./dns.mjs";
+import { runtimeAdvisoriesForResponse } from "../../lib/advisories/index.js";
 import {
   LIMITS, makeBudget, parsePage, loadAssets, secretChecks, libraryChecks,
   generatorCheck, sriCheck, mixedContentCheck, sourceMapCheck, securityTxtCheck, checkOptOut,
@@ -77,7 +78,37 @@ export async function passiveReport(target, opts = {}) {
       if (s) s.evidence += ` ${assets.skipped} of ${assets.wanted} referenced files were not read (limit of 14 files, 20 requests, 8 seconds).`;
     }
   }
-  extra.push(...dns, ...securityTxt);
+  extra.push(...runtimeCheck(result.headers, pageUrl), ...dns, ...securityTxt);
 
   return { tier: "passive", ...grade(result, { now: opts.now, extra, scope: SCOPE }) };
+}
+
+/**
+ * Software versions the response names (X-Powered-By, Server), against the
+ * CLI's signed runtime advisories (lib/advisories): PHP, nginx, Apache, Node
+ * and others. A version string alone cannot show a distribution's backported
+ * fix, so a match is "may be affected", at most high, never critical.
+ */
+export function runtimeCheck(headers, pageUrl) {
+  const h = Object.fromEntries(Object.entries(headers || {}).map(([k, v]) => [k.toLowerCase(), v]));
+  const cookieNames = [].concat(h["set-cookie"] || []).map((c) => String(c).split("=")[0].trim()).filter(Boolean);
+  let found;
+  try {
+    found = runtimeAdvisoriesForResponse({ headers: h, cookieNames }, { url: pageUrl });
+  } catch {
+    return [];
+  }
+  const named = [h["x-powered-by"], h.server].filter((v) => v && /\d+\.\d+/.test(String(v)));
+  if (!named.length && !found.length) return [];
+  const rank = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+  const worst = found.map((f) => f.severity).sort((a, b) => rank[a] - rank[b])[0];
+  const titles = [...new Set(found.map((f) => f.title))];
+  return [{
+    id: "runtime", category: "software", weight: 10, passed: found.length === 0,
+    severity: worst === "critical" || worst === "high" ? "high" : worst || "info",
+    title: found.length ? `Server software may be affected by ${titles.length} known advisor${titles.length === 1 ? "y" : "ies"}` : "No known advisories for the versions it names",
+    evidence: found.length ? `${named.join("; ")}: ${titles.slice(0, 3).join("; ")}${titles.length > 3 ? "; …" : ""}. From the version alone; a distribution may have backported the fix.` : `Named: ${named.join("; ")}`,
+    fix: found[0]?.remediation || "Keep the server software on a supported, patched release.",
+    verify: `curl -sI ${pageUrl} | grep -i -e x-powered-by -e ^server`,
+  }];
 }

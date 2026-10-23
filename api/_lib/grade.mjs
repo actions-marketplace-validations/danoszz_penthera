@@ -25,6 +25,7 @@ export const CATEGORIES = {
   headers: "Browser protections",
   cookies: "Cookies",
   disclosure: "What it gives away",
+  software: "Server software",
   page: "What the page loads",
   secrets: "Secrets in the page",
   email: "Email and DNS",

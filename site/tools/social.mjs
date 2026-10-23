@@ -115,6 +115,8 @@ body { position: relative; font-family: "Helvetica Neue", Helvetica, Arial, sans
 .logo { display: block; width: ${l.logoW}px; height: auto; }
 h1 { font-weight: 500; font-size: ${l.h1}px; line-height: 1.42; letter-spacing: -0.035em; }
 h1 span { background: #000; padding: 0 ${l.h1 * 0.18}px 4px; margin-left: -${l.h1 * 0.18}px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.sub { margin-top: ${l.h1 * 0.12}px; font-size: ${l.h1 * 0.36}px; font-weight: 500; letter-spacing: -0.015em; line-height: 1.45; }
+.sub span { background: #000; padding: 2px 8px 3px; margin-left: -8px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 .scan { display: grid; grid-template-columns: 1fr auto; margin-top: ${l.scanGap}px; max-width: ${l.scanW}px; }
 .scan .in { height: ${l.scanH}px; display: flex; align-items: center; padding: 0 ${l.scanH * 0.3}px; font-size: ${l.mono}px; color: rgba(255,255,255,0.55); background: #000; border: 1px solid #fff; }
 .scan .go { height: ${l.scanH}px; display: flex; align-items: center; padding: 0 ${l.scanH * 0.5}px; font-size: ${l.mono}px; color: #fff; background: linear-gradient(180deg, #5a5aff, #0000ed 55%, #0000b8); box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 10px 28px -10px rgba(0,0,237,0.9); }
@@ -143,9 +145,10 @@ h1 span { background: #000; padding: 0 ${l.h1 * 0.18}px 4px; margin-left: -${l.h
   <div class="left">
     ${logo}
     <div>
-      <h1><span>Is your site safe?</span></h1>
+      <h1><span>Is your site/app safe?</span></h1>
+      <p class="sub"><span>Check it with a free cyber security quick scan.</span></p>
       <div class="scan mono"><div class="in">your-site.com</div><div class="go">Check</div></div>
-      <p class="note mono"><b>Free</b> · passive · nothing stored · <b>penthera.org</b></p>
+      <p class="note mono">passive · nothing stored · <b>penthera.org</b></p>
     </div>
   </div>
   <div class="plate">
@@ -167,7 +170,7 @@ export const CARDS = [
   { file: "og.png", w: 1200, h: 630, layout: {
     split: true, pad: 64, plateW: 400, colGap: 56, rowGap: 0,
     field: "top: 0; right: 0; width: 70%; height: 100%", mask: "linear-gradient(to right, transparent, #000 45%)",
-    logoW: 200, h1: 74, scanGap: 28, scanW: 560, scanH: 64, mono: 21, noteGap: 18, small: 17,
+    logoW: 200, h1: 58, scanGap: 28, scanW: 560, scanH: 64, mono: 21, noteGap: 18, small: 17,
     platePad: 30, verdict: 32, score: 72, cell: 9, rowPad: 10, rowFont: 18, markW: 44,
   } },
   { file: "square.png", w: 1080, h: 1080, layout: {

@@ -1131,6 +1131,8 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 @media (min-width: 860px) { .tour-shots { grid-template-columns: 1fr 1fr; } }
 .tour-shots figure { margin: 0; }
 .tour-shots img { display: block; width: 100%; height: auto; border: 1px solid var(--frame); }
+.about-text + .about-text { margin-top: 20px; }
+.about { padding-bottom: clamp(96px, 12vw, 160px); }
 .about-text { margin-top: 28px; max-width: 60ch; font-family: var(--display); font-size: clamp(21px, 2.3vw, 28px); line-height: 1.35; letter-spacing: -0.01em; color: var(--text-1); }
 .about-contact { margin-top: 20px; max-width: 64ch; }
 .about .by { margin-top: 48px; }

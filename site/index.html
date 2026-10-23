@@ -4,20 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Penthera</title>
-  <meta name="description" content="Offline security checks for your app, its dependencies and your AI coding tools. Open source, rule-based, and you can verify every finding.">
+  <meta name="description" content="Is your site/app safe? Check it with a free cyber security quick scan, then fix it with your coding agent. Open source, passive, nothing stored.">
   <meta name="color-scheme" content="dark light">
   <meta name="theme-color" content="#000000">
   <link rel="canonical" href="{{SITE_URL}}/">
   {{JSONLD}}
   <meta property="og:site_name" content="Penthera">
   <meta property="og:title" content="Penthera: your open-source security agent">
-  <meta property="og:description" content="Offline security checks for your app, its dependencies and your AI coding tools. Open source, rule-based, and you can verify every finding.">
+  <meta property="og:description" content="Is your site/app safe? Check it with a free cyber security quick scan, then fix it with your coding agent. Open source, passive, nothing stored.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="{{SITE_URL}}/">
   <meta property="og:image" content="{{SITE_URL}}/media/social/og.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="Penthera. Free. Your open-source cyber security agent. npx penthera, open source, MIT, offline.">
+  <meta property="og:image:alt" content="Is your site/app safe? A Penthera quick scan of penthera.org: 95 out of 100, with Prompt to fix.">
   <!-- A muted reel for link previews that play video (iMessage and others);
        og:image stays the poster and the fallback. Rendered by
        site/tools/reel.mjs. X keeps the image card: twitter:player needs an
@@ -29,9 +29,9 @@
   <meta property="og:video:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Penthera: your open-source security agent">
-  <meta name="twitter:description" content="Offline security checks for your app, its dependencies and your AI coding tools. Open source, rule-based, and you can verify every finding.">
+  <meta name="twitter:description" content="Is your site/app safe? Check it with a free cyber security quick scan, then fix it with your coding agent. Open source, passive, nothing stored.">
   <meta name="twitter:image" content="{{SITE_URL}}/media/social/og.png">
-  <meta name="twitter:image:alt" content="Penthera. Free. Your open-source cyber security agent. npx penthera, open source, MIT, offline.">
+  <meta name="twitter:image:alt" content="Is your site/app safe? A Penthera quick scan of penthera.org: 95 out of 100, with Prompt to fix.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt: Penthera for language models">
   <link rel="preload" href="/fonts/DepartureMono-Regular.woff2" as="font" type="font/woff2" crossorigin>
@@ -73,7 +73,7 @@
       <div class="hero-text">
         <p class="problem"><span>AI coding tools ship faster than anyone can check.</span></p>
         <form class="scan" id="scan" data-scan novalidate>
-          <label class="scan-label" for="scan-url">Is your site safe? Check it in a few seconds.</label>
+          <label class="scan-label" for="scan-url">Is your site/app safe? Check it with a free cyber security quick scan.</label>
           <div class="scan-row">
             <input id="scan-url" name="url" type="text" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="your-site.com" required>
             <button class="btn scan-go" data-variant="default" type="submit">Check</button>
@@ -487,7 +487,8 @@
     <section class="about" id="about" aria-labelledby="about-title">
       <p class="eyebrow">08 · About</p>
       <h2 id="about-title">Why Penthera exists.</h2>
-      <p class="about-text">I'm Daan van der Zwaag. I build Penthera in the open, part-time, alongside a PhD. AI coding tools let anyone ship an app, but checking it for security still takes a specialist. Penthera is my attempt to close that gap with a tool anyone can run and verify: readable rules, no account, nothing sent anywhere. It stays free and MIT-licensed, and the research behind it is published as it happens, including what doesn't work.</p>
+      <p class="about-text">I build Penthera in the open, at night, alongside my PhD in AI and architecture. In 15 years I designed and built more than 100 apps for startups and governments, some used by millions of people. Security was always expected of me, so I collected the tricks and scripts I run before anything ships. Penthera is that sanity check, for everyone.</p>
+      <p class="about-text">AI coding tools let far more people build. The security basics have to keep up, or apps leak data and run up credit-card bills. I believe technology does more good than harm when it is designed for people. Penthera uses research-backed methods and what I learned building agents: readable rules, free and MIT-licensed, to help builders ship safe apps.</p>
       <p class="about-contact">Questions or ideas: <a href="https://github.com/danoszz/penthera/discussions">GitHub Discussions</a>. Bugs and false positives: <a href="https://github.com/danoszz/penthera/issues">issues</a>. A vulnerability in Penthera itself: <a href="/.well-known/security.txt">security.txt</a>.</p>
       <a class="by" href="https://daanvanderzwaag.com"><span class="by-word">Made by</span><span class="dvdz" aria-hidden="true"></span><span class="sr">Daan van der Zwaag</span></a>
     </section>

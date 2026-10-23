@@ -385,7 +385,7 @@ describe("site story", () => {
 
   it("ends with who builds it and why, how to reach him, and the signature", () => {
     const about = html().slice(html().indexOf('id="about"'));
-    expect(about).toContain("I'm Daan van der Zwaag. I build Penthera in the open, part-time, alongside a PhD.");
+    expect(about).toContain("I build Penthera in the open, at night, alongside my PhD in AI and architecture.");
     for (const href of ["github.com/danoszz/penthera/discussions", "github.com/danoszz/penthera/issues", "/.well-known/security.txt", "https://daanvanderzwaag.com"]) expect(about, href).toContain(href);
     expect(about.indexOf('class="about-text"')).toBeLessThan(about.indexOf('class="by"'));
   });

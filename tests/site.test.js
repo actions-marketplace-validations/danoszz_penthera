@@ -114,7 +114,8 @@ describe("site build", () => {
       expect(d.length, tag).toBeLessThanOrEqual(155);
     }
     const img = html.match(/property="og:image" content="([^"]+)"/)[1];
-    expect(img).toMatch(/\/media\/social\/og\.png$/);
+    // Content-hashed, so a changed card gets a new URL and previews refresh.
+    expect(img).toMatch(/\/media\/social\/og\.png\?v=[0-9a-f]{10}$/);
     for (const f of ["media/social/og.png", "media/social/square.png"]) expect(existsSync(join(out, f)), f).toBe(true);
   });
 
@@ -122,12 +123,12 @@ describe("site build", () => {
     const html = readFileSync(join(out, "index.html"), "utf8");
     const meta = (p) => html.match(new RegExp(`property="${p}" content="([^"]*)"`))?.[1];
     const site = meta("og:url").replace(/\/$/, "");
-    expect(meta("og:video")).toBe(`${site}/media/social/reel.mp4`);
+    expect(meta("og:video")).toMatch(new RegExp(`^${site}/media/social/reel\\.mp4\\?v=[0-9a-f]{10}$`));
     expect(meta("og:video:secure_url")).toBe(meta("og:video"));
     expect(meta("og:video:type")).toBe("video/mp4");
     expect([meta("og:video:width"), meta("og:video:height")]).toEqual(["1200", "630"]);
     // The poster stays: og:image is the fallback where video does not play.
-    expect(meta("og:image")).toBe(`${site}/media/social/og.png`);
+    expect(meta("og:image")).toMatch(new RegExp(`^${site}/media/social/og\\.png\\?v=[0-9a-f]{10}$`));
     expect(html).not.toMatch(/name="twitter:player/);
     const reel = join(out, "media/social/reel.mp4");
     expect(existsSync(reel)).toBe(true);
@@ -146,8 +147,8 @@ describe("site build", () => {
     try {
       await buildSite({ out: dir });
       const html = readFileSync(join(dir, "index.html"), "utf8");
-      expect(html).toContain('<meta property="og:video" content="https://penthera.org/media/social/reel.mp4">');
-      expect(html).toContain('<meta property="og:video:secure_url" content="https://penthera.org/media/social/reel.mp4">');
+      expect(html).toMatch(/<meta property="og:video" content="https:\/\/penthera\.org\/media\/social\/reel\.mp4\?v=[0-9a-f]{10}">/);
+      expect(html).toMatch(/<meta property="og:video:secure_url" content="https:\/\/penthera\.org\/media\/social\/reel\.mp4\?v=[0-9a-f]{10}">/);
     } finally {
       if (prev === undefined) delete process.env.SITE_URL;
       else process.env.SITE_URL = prev;

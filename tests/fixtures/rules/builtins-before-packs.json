@@ -295,8 +295,9 @@
             {
               "type": "regex",
               "regex": [
-                "(?m)^[A-Z][A-Z0-9_]{2,}="
-              ]
+                "^[A-Z][A-Z0-9_]{2,127}="
+              ],
+              "flags": "m"
             },
             {
               "type": "negative-word",

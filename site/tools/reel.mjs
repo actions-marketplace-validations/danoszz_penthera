@@ -14,7 +14,7 @@
  *   3. the Simple-mode verdict       ┘ follow assets/walkthrough.vtt
  *   4. the PHP advisory of 21 Oct 2026, caught in a pinned Dockerfile
  *      (scripts/media/tapes/advisory.tape, recorded with vhs)
- *   5. the share card itself (site/tools/social.mjs), with penthera.org
+ *   5. the share card itself, og.png (site/tools/social.mjs scanCard)
  *
  * Each beat crossfades into the next, and the card crossfades back into the
  * first beat, so the loop has no seam. A one-line label in the card's mono
@@ -30,7 +30,7 @@ import { mkdtempSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { LINE, SHOTS, page, shoot } from "./social.mjs";
+import { CARDS, scanCard, shoot } from "./social.mjs";
 
 const SITE = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const ROOT = resolve(SITE, "..");
@@ -51,8 +51,8 @@ const MAX_BYTES = 3 * 1024 * 1024;
  */
 const BEATS = [
   { label: "$ npx penthera", at: "top", from: "walkthrough", ss: 2.6, t: 2.6, crop: [0, 16, 1040] },
-  { label: "Scans offline. Real findings.", at: "bottom", from: "walkthrough", ss: 23.0, t: 2.8, crop: [0, 0, 900] },
-  { label: "One sentence: can you ship?", at: "top", from: "walkthrough", ss: 36.4, t: 2.6, crop: [280, 130, 800] },
+  { label: "Scans offline. Real findings.", at: "bottom", from: "walkthrough", ss: 22.5, t: 2.8, crop: [0, 0, 900] },
+  { label: "One sentence: can you ship?", at: "top", from: "walkthrough", ss: 36.05, t: 2.6, crop: [250, 70, 740] },
   { label: "21 Oct 2026: PHP's critical flaws, caught the day they shipped", at: "bottom", from: "advisory", ss: 2.4, t: 3.6 },
   { label: null, from: "card", t: 3.6 },
 ];
@@ -80,11 +80,12 @@ function run(cmd, args, opts = {}) {
 const tmp = mkdtempSync(join(tmpdir(), "penthera-reel-"));
 const scratch = [tmp];
 try {
-  // The end card: the share card, with the address in place of the badges.
-  const og = SHOTS.find((s) => s.file === "og.png");
+  // The end card: the share card itself (og.png), so the loop ends on the
+  // poster that link previews show before it plays.
+  const og = CARDS.find((c) => c.file === "og.png");
   const card = join(tmp, "card.png");
-  shoot(page(og.w, og.h, { ...og.layout, chips: '<span class="cmd">$ npx penthera</span><span class="pill">penthera.org</span>' }), W, H, card);
-  console.log(`end card: ${LINE.replace("‑", "-")}`);
+  shoot(scanCard(og.w, og.h, og.layout), W, H, card);
+  console.log("end card: the og.png share card");
 
   const labels = join(tmp, "labels.png");
   shoot(labelsPage(BEATS), W, H * BEATS.length, labels, { transparent: true });

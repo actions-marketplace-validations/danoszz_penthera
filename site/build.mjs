@@ -481,6 +481,10 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
     // Structured data for search engines and agents: <script type="application/ld+json"> in <head>.
     JSONLD: jsonLd({ version, origin: ORIGIN }),
   };
+  // Content-hashed share URLs: link previews cache by URL (X for days), so a
+  // changed card or reel gets a new one.
+  values.OG_IMAGE = `${values.SITE_URL}/media/social/og.png?v=${hash(readFileSync(join(SITE, "media", "social", "og.png")))}`;
+  values.OG_VIDEO = `${values.SITE_URL}/media/social/reel.mp4?v=${hash(readFileSync(join(SITE, "media", "social", "reel.mp4")))}`;
   values.STARS_LABEL = values.STARS ? `, ${values.STARS} stars` : "";
   const cmp = readCompare();
   values.COMPARE = compareTable(cmp, values);

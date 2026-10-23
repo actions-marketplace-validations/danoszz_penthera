@@ -153,7 +153,7 @@ async function main() {
     await b.scheme("dark");
     await b.prefs({ "penthera-ui-mode": "simple", "penthera-ui-theme": "dark", "penthera-ui-panels": '{"left":true,"right":true}' });
     await b.reload();
-    await b.js(`${H} document.querySelector(".verdict .btn.primary").click(); await sleep(600);`);
+    await b.js(`${H} document.querySelector(".verdict .btn.first").click(); await sleep(600);`);
     await b.shot("ui-dark.jpg", desktop);
 
     // ui-light: Advanced mode, one project, a triage cell picked, a finding open.
@@ -188,7 +188,7 @@ async function main() {
     await b.scheme("light");
     await b.prefs({ "penthera-ui-mode": "simple", "penthera-ui-theme": "light" });
     await b.go(base);
-    await b.js(`${H} document.querySelector(".verdict .btn.primary").click(); await sleep(600);`);
+    await b.js(`${H} document.querySelector(".verdict .btn.first").click(); await sleep(600);`);
     await b.shot("narrow-light.jpg", { ...phone, scale: 1 });
 
     // ui-start: a fresh install with no reports, setup closed.

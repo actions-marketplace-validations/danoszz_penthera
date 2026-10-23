@@ -63,6 +63,8 @@ node bin/penthera.js --version   # from a Penthera checkout
 
 All examples below use `penthera`; substitute `npx -y penthera` or `node bin/penthera.js` when needed.
 
+To try a release candidate in someone's project, run it with `npx penthera@next ...` rather than `npm install penthera@next`. An install pins the exact rc in the lockfile, so it never moves to the final release, and it adds a dependency the project did not ask for. If the user does want it installed, use `-D` and point out the pin.
+
 ## Decision tree
 
 | User intent | Command pattern |

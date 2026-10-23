@@ -182,6 +182,12 @@ session secret, since anyone with the repository can then sign session
 cookies. A secret read only from the environment or from a config object is
 not reported.
 
+In a git work tree the scan follows `.gitignore`. Ignored folders are skipped,
+like `node_modules` and Python virtualenvs. A key in a single ignored file,
+usually a local `.env`, is still reported, but at `low` and marked
+`localOnly`, because it is never committed. A committed key keeps its rule's
+severity.
+
 Code-execution sinks are looked for in every server code file, not only in
 recognized route handlers: `eval` and `new Function` with a non-constant
 argument, `node:vm` calls, and `child_process` `exec`/`execSync`. A taint-lite

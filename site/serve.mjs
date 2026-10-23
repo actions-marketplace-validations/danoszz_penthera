@@ -16,6 +16,7 @@ const TYPES = {
   ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
   ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg",
   ".mp4": "video/mp4", ".vtt": "text/vtt; charset=utf-8", ".woff2": "font/woff2", ".txt": "text/plain; charset=utf-8",
+  ".md": "text/markdown; charset=utf-8", ".xml": "application/xml; charset=utf-8",
 };
 
 /** vercel.json header rules as [RegExp, headers]. Sources here are plain regex groups. */
@@ -38,7 +39,8 @@ export function serve({ dir = join(SITE, "dist"), port = 4173, host = "127.0.0.1
     if (path !== root && !path.startsWith(root + sep)) { res.writeHead(403).end(); return; }
     let st;
     try { st = statSync(path); if (st.isDirectory()) { path = join(path, "index.html"); st = statSync(path); } } catch { res.writeHead(404, headersFor(url.pathname, rules)).end("Not found"); return; }
-    const headers = { ...headersFor(url.pathname, rules), "Content-Type": TYPES[extname(path)] || "application/octet-stream", "Accept-Ranges": "bytes" };
+    // A Content-Type from vercel.json wins, as it does on Vercel.
+    const headers = { "Content-Type": TYPES[extname(path)] || "application/octet-stream", ...headersFor(url.pathname, rules), "Accept-Ranges": "bytes" };
     const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || "");
     if (range) {
       const start = range[1] ? Number(range[1]) : st.size - Number(range[2]);

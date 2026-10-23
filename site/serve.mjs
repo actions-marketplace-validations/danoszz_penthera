@@ -30,6 +30,18 @@ export function headersFor(pathname, rules = headerRules()) {
   return out;
 }
 
+/**
+ * The production headers, minus the two that only make sense over HTTPS.
+ * Safari applies upgrade-insecure-requests to localhost too, so over plain
+ * HTTP it would ask for https://localhost/styles.css and get nothing.
+ */
+function local(headers) {
+  const out = { ...headers };
+  delete out["Strict-Transport-Security"];
+  if (out["Content-Security-Policy"]) out["Content-Security-Policy"] = out["Content-Security-Policy"].replace(/;\s*upgrade-insecure-requests/, "");
+  return out;
+}
+
 export function serve({ dir = join(SITE, "dist"), port = 4173, host = "127.0.0.1" } = {}) {
   const root = resolve(dir);
   const rules = headerRules();
@@ -40,7 +52,7 @@ export function serve({ dir = join(SITE, "dist"), port = 4173, host = "127.0.0.1
     let st;
     try { st = statSync(path); if (st.isDirectory()) { path = join(path, "index.html"); st = statSync(path); } } catch { res.writeHead(404, headersFor(url.pathname, rules)).end("Not found"); return; }
     // A Content-Type from vercel.json wins, as it does on Vercel.
-    const headers = { "Content-Type": TYPES[extname(path)] || "application/octet-stream", ...headersFor(url.pathname, rules), "Accept-Ranges": "bytes" };
+    const headers = { "Content-Type": TYPES[extname(path)] || "application/octet-stream", ...local(headersFor(url.pathname, rules)), "Accept-Ranges": "bytes" };
     const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || "");
     if (range) {
       const start = range[1] ? Number(range[1]) : st.size - Number(range[2]);

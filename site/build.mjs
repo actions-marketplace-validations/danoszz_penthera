@@ -28,6 +28,7 @@ import { verifyWithSigners } from "../lib/rules/sshsig.js";
 import { COUNTS } from "../scripts/docs-numbers.mjs";
 import { agentFiles, docPages, fill, REPO } from "./agents.mjs";
 import { jsonLd } from "./agent-ready.mjs";
+import { landingPages, landingHtml, landingMarkdown } from "./landing.mjs";
 import { termsPage } from "./terms.mjs";
 
 const SITE = dirname(fileURLToPath(import.meta.url));
@@ -441,6 +442,8 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
 
   // Static files, as they are.
   for (const f of ["styles.css", "theme.js"]) cpSync(join(SITE, f), join(OUT, f));
+  // The IndexNow key file, served at /<key>.txt (scripts/indexnow.mjs).
+  for (const f of readdirSync(SITE).filter((n) => /^[0-9a-f]{32}\.txt$/.test(n))) cpSync(join(SITE, f), join(OUT, f));
   cpSync(join(SITE, "media"), join(OUT, "media"), { recursive: true });
   // The dashboard's own font and marks, so the site and penthera ui match.
   const UI = join(ROOT, "src", "ui", "static");
@@ -486,7 +489,13 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
   html = html.replace(/(href|src)="\/(styles\.css|theme\.js|check\.js)"/g, (m, attr, f) => `${attr}="/${f}?v=${hash(readFileSync(join(OUT, f)))}"`);
   writeFileSync(join(OUT, "index.html"), html);
   // /terms: the live check's terms, rendered from docs/live-check-terms.md.
-  writeFileSync(join(OUT, "terms.html"), termsPage(ROOT, { styles: `/styles.css?v=${hash(readFileSync(join(OUT, "styles.css")))}` }));
+  const styles = `/styles.css?v=${hash(readFileSync(join(OUT, "styles.css")))}`;
+  writeFileSync(join(OUT, "terms.html"), termsPage(ROOT, { styles }));
+  // Landing pages, one search question each (site/pages/, site/landing.mjs).
+  for (const p of landingPages(SITE)) {
+    writeFileSync(join(OUT, `${p.slug}.html`), landingHtml(p, { origin: ORIGIN, values, styles }));
+    writeFileSync(join(OUT, `${p.slug}.md`), landingMarkdown(p, { origin: ORIGIN, values }));
+  }
   // For agents and crawlers: llms.txt (the same placeholders, so its pins
   // match the page), the docs as Markdown, the sitemap, robots.txt and
   // security.txt. All from the repo, at the package's homepage.

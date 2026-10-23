@@ -84,7 +84,15 @@
     "nis2",
     "sbom",
     "offline",
-    "devsecops"
+    "devsecops",
+    "mcp-server",
+    "model-context-protocol",
+    "agent-skill",
+    "security-scanner",
+    "vibe-coding",
+    "secrets",
+    "website-security",
+    "security-headers"
   ],
   "license": "MIT",
   "devDependencies": {

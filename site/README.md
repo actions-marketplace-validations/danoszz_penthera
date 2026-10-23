@@ -22,6 +22,8 @@ node site/serve.mjs     # http://127.0.0.1:4173/ with the production headers
 | `check/shims/` | The Node built-ins `lib/` uses, for the browser: an in-memory `fs`, POSIX `path`, a synchronous SHA-256, and `gunzipSync` fed by DecompressionStream. |
 | `build.mjs` | Bundles `check/` with `lib/` (rolldown), embeds the rule packs and the popular-package list, verifies each pack's signature, and copies the media. Every version on the page and in `llms.txt` is `{{VERSION}}`, from `package.json`; while it is a release candidate, the MCP sections say so. |
 | `agents.mjs` | The files for agents and crawlers, written by the build: `llms.txt` (from `llms.txt` here), `llms-full.txt` (README.md and the user docs as one file), each of those pages as Markdown under `/docs/` with absolute links and npm pins set to the package version, `sitemap.xml`, `robots.txt` and `/.well-known/security.txt` (RFC 9116, expiring 300 days after the build). They use the `homepage` in `package.json` as the origin. |
+| `pages/`, `landing.mjs` | Landing pages, one search question each: `/website-security-check` and `/lovable-bolt-app-security`. Each is a Markdown file with a `title` and `description` for search in its front matter; `{{CTA}}` is the button to the live check. The build renders them in the `/terms` frame, writes their Markdown next to them, and adds both to the sitemap and `llms.txt`. A new file in `pages/` is a new page. |
+| `<32 hex>.txt` | The IndexNow key, served at the site root. See [After a deploy](#after-a-deploy). |
 | `serve.mjs` | A local preview that sends the headers from `vercel.json`. |
 | `../vercel.json` | At the repo root, so Vercel needs no settings: install, build (`node site/build.mjs`), output (`site/dist`) and the security headers: CSP with `connect-src` limited to Vercel's two counters, HSTS, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer`, plus a text `Content-Type` for the Markdown and text files. Its `ignoreCommand` lists every path the build reads, docs included. |
 | `stars.json` | The last GitHub star count the build read, used when the API is rate-limited or offline. Set `GITHUB_TOKEN` in Vercel to avoid the anonymous limit. |
@@ -101,3 +103,20 @@ repository root and the framework preset on "Other". Everything else comes
 from `vercel.json` at the root: it runs `npm ci` there (the build reads
 `lib/` and uses `rolldown` from the root `package.json`), builds with
 `node site/build.mjs` and serves `site/dist`.
+
+## After a deploy
+
+Tell the IndexNow engines (Bing, Yandex, Seznam, Naver and others) that the
+site changed. Run it by hand once the deploy is live; it is not part of the
+build and CI does not run it:
+
+```bash
+node scripts/indexnow.mjs --dry-run   # print the URLs it would send
+node scripts/indexnow.mjs             # check /<key>.txt is live, then submit
+```
+
+It reads `https://penthera.org/sitemap.xml`, checks that the key file answers
+with the key, and sends one POST to `api.indexnow.org`. Google does not use
+IndexNow: it finds the sitemap through `robots.txt`. To check either engine's
+view, add the site in Google Search Console and Bing Webmaster Tools and
+submit `https://penthera.org/sitemap.xml` there once.

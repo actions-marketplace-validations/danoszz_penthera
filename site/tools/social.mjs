@@ -5,6 +5,7 @@
  *   og.png       1200 × 630   the share card (Open Graph, X, LinkedIn, Facebook):
  *                             the live check, with penthera.org's own report
  *   square.png   1080 × 1080  Instagram and other square feeds
+ *   story.png    1080 × 1920  TikTok, Reels and Stories (9:16)
  *
  *   CHROME=/path/to/chrome node site/tools/social.mjs
  *
@@ -110,7 +111,7 @@ html, body { width: ${w}px; height: ${h}px; background: #000; color: #fff; overf
 body { position: relative; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
 .mono { font-family: "Departure Mono", monospace; letter-spacing: 0.02em; }
 .field { position: absolute; ${l.field}; object-fit: cover; object-position: 50% 0; image-rendering: pixelated; -webkit-mask-image: ${l.mask}; }
-.wrap { position: absolute; inset: 0; padding: ${l.pad}px; display: grid; ${l.split ? `grid-template-columns: 1fr ${l.plateW}px; column-gap: ${l.colGap}px;` : ""} align-content: ${l.split ? "stretch" : "space-between"}; row-gap: ${l.rowGap}px; }
+.wrap { position: absolute; inset: 0; padding: ${l.padTop ?? l.pad}px ${l.pad}px ${l.padBottom ?? l.pad}px; display: grid; ${l.split ? `grid-template-columns: 1fr ${l.plateW}px; column-gap: ${l.colGap}px;` : ""} align-content: ${l.split ? "stretch" : "space-between"}; row-gap: ${l.rowGap}px; }
 .left { display: flex; flex-direction: column; justify-content: space-between; min-width: 0; ${l.split ? "" : "gap: " + l.rowGap + "px;"} }
 .logo { display: block; width: ${l.logoW}px; height: auto; }
 h1 { font-weight: 500; font-size: ${l.h1}px; line-height: 1.42; letter-spacing: -0.035em; }
@@ -165,7 +166,7 @@ h1 span { background: #000; padding: 0 ${l.h1 * 0.18}px 4px; margin-left: -${l.h
 </div>
 </body></html>`;
 
-/** The cards the site ships: og.png for link previews, square.png for square feeds. */
+/** The cards the site ships: og.png for link previews, square.png for square feeds, story.png for 9:16. */
 export const CARDS = [
   { file: "og.png", w: 1200, h: 630, layout: {
     split: true, pad: 64, plateW: 400, colGap: 56, rowGap: 0,
@@ -178,6 +179,15 @@ export const CARDS = [
     field: "top: 150px; left: 0; width: 100%; height: 36%", mask: "linear-gradient(transparent, #000 18%, #000 40%, transparent)",
     logoW: 240, h1: 84, scanGap: 24, scanW: 936, scanH: 68, mono: 22, noteGap: 16, small: 19,
     platePad: 30, verdict: 34, score: 78, cell: 10, rowPad: 10, rowFont: 21, markW: 50,
+  } },
+  // 1080 × 1920, 9:16 for TikTok, Reels and Stories: the square's stack, taller.
+  // The top 220 px and bottom 360 px stay clear of the apps' own buttons and
+  // captions, so the message and the plate sit in the middle band.
+  { file: "story.png", w: 1080, h: 1920, layout: {
+    split: false, pad: 80, padTop: 220, padBottom: 360, plateW: 920, colGap: 0, rowGap: 40,
+    field: "top: 260px; left: 0; width: 100%; height: 34%", mask: "linear-gradient(transparent, #000 18%, #000 45%, transparent)",
+    logoW: 240, h1: 100, scanGap: 28, scanW: 920, scanH: 80, mono: 27, noteGap: 18, small: 23,
+    platePad: 34, verdict: 40, score: 92, cell: 11, rowPad: 12, rowFont: 26, markW: 60,
   } },
 ];
 

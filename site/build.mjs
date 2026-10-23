@@ -27,6 +27,8 @@ import { bundledPackDirs, activePacks, loadSigners, NAMESPACE } from "../lib/rul
 import { verifyWithSigners } from "../lib/rules/sshsig.js";
 import { COUNTS } from "../scripts/docs-numbers.mjs";
 import { agentFiles, docPages, fill, REPO } from "./agents.mjs";
+import { jsonLd } from "./agent-ready.mjs";
+import { termsPage } from "./terms.mjs";
 
 const SITE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(SITE, "..");
@@ -473,6 +475,8 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
     ORIGIN,
     DOC_PAGES: String(docPages(ROOT).length - 1),
     ...agentsMd(),
+    // Structured data for search engines and agents: <script type="application/ld+json"> in <head>.
+    JSONLD: jsonLd({ version, origin: ORIGIN }),
   };
   values.STARS_LABEL = values.STARS ? `, ${values.STARS} stars` : "";
   const cmp = readCompare();
@@ -481,6 +485,8 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
   let html = fill(readFileSync(join(SITE, "index.html"), "utf8"), values, "index.html");
   html = html.replace(/(href|src)="\/(styles\.css|theme\.js|check\.js)"/g, (m, attr, f) => `${attr}="/${f}?v=${hash(readFileSync(join(OUT, f)))}"`);
   writeFileSync(join(OUT, "index.html"), html);
+  // /terms: the live check's terms, rendered from docs/live-check-terms.md.
+  writeFileSync(join(OUT, "terms.html"), termsPage(ROOT, { styles: `/styles.css?v=${hash(readFileSync(join(OUT, "styles.css")))}` }));
   // For agents and crawlers: llms.txt (the same placeholders, so its pins
   // match the page), the docs as Markdown, the sitemap, robots.txt and
   // security.txt. All from the repo, at the package's homepage.

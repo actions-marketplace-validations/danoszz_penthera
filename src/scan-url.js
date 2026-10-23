@@ -75,12 +75,13 @@ const SENSITIVE_RE = /private_key|SECRET|PASSWORD|API_KEY|FIREBASE_|STRIPE_|DATA
 export async function scanUrl(rawTarget, opts = {}) {
   const target = normalizeBaseUrl(rawTarget);
   // Every request in this scan goes through one egress context: it enforces
-  // --offline, sets the User-Agent, and records hosts contacted and probe errors.
+  // --offline, sets the User-Agent, applies --rate, and records hosts contacted and probe errors.
   const ctx = createEgressContext({
     target,
     offline: opts.offline,
     userAgent: opts.userAgent,
     allowHosts: opts.allowHosts,
+    rateLimit: opts.rateLimit,
   });
   const result = await runWithEgress(ctx, () => scanUrlInContext(target, opts));
   result.egress = egressSummary(ctx);

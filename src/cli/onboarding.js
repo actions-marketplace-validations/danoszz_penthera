@@ -17,6 +17,7 @@ import { parseArgs } from "node:util";
 import { initPrompt, closePrompt, ask, choose, confirm, checklist, normalizeUrlInput } from "./prompt.js";
 import { banner, logo, box, bold, dim, cyan, green, yellow, red, hr, brand } from "./ansi.js";
 import { executeScan, writeScanReports } from "./run-scan.js";
+import { confirmActiveScan } from "./active-gate.js";
 import { detectProject, portsFromEnv } from "./detect.js";
 import { mdInline } from "../report/md-escape.js";
 import { mergeResults } from "./merge-results.js";
@@ -75,6 +76,14 @@ async function runSimpleScan(config) {
     { verbose: false, quiet: true, writeSarif: true },
   );
   return { ...result, paths };
+}
+
+/** The CLI's active-scan gate, asked through the wizard's prompt. */
+function confirmWizardActive(url, modes) {
+  return confirmActiveScan({
+    url, modes, interactive: true, ask,
+    write: (t) => process.stdout.write(t),
+  });
 }
 
 function printScanFailure(url, err) {
@@ -180,15 +189,15 @@ export async function runScanWizard() {
 
   if (next === "deeper") {
     process.stdout.write(`\n  ${yellow("Deep scan")} sends SQLi, XSS, and fuzz payloads.\n`);
-    const ok = await confirm(`  ${cyan(">")} I have permission to run destructive tests`, false);
+    const consent = await confirmWizardActive(url, ["deep", "fuzz"]);
     closePrompt();
-    if (!ok) {
+    if (!consent.ok) {
       process.stdout.write(`\n  ${dim("Skipped deep scan.")}\n\n`);
       process.exit(hasSevere ? 1 : 0);
     }
 
     try {
-      const deep = await runSimpleScan({ url, repo, profile: "deep" });
+      const deep = await runSimpleScan({ url, repo, profile: "deep", activeConfirmed: true });
       process.stdout.write(`\n  ${green("Deep scan complete.")}  ${summarize(deep.merged.findings)}\n`);
       process.stdout.write(`  ${cyan(deep.paths.markdown)}\n\n`);
       process.exit(deep.hasSevere ? 1 : 0);
@@ -214,13 +223,25 @@ export async function runScanWizard() {
   const cookie = await ask(`  Session cookie ${dim("(optional)")}: `);
 
   const customUrl = await ask(`  URL ${dim(`[${url}]`)}: `);
+  const target = normalizeUrlInput(customUrl) || url;
+  let activeConfirmed = false;
+  if (profile === "deep") {
+    const consent = await confirmWizardActive(target, ["deep", "fuzz"]);
+    if (!consent.ok) {
+      closePrompt();
+      process.stdout.write(`\n  ${dim("Skipped deep scan.")}\n\n`);
+      process.exit(0);
+    }
+    activeConfirmed = true;
+  }
   closePrompt();
 
   try {
     const custom = await runSimpleScan({
-      url: customUrl || url,
+      url: target,
       repo: customRepo,
       profile,
+      activeConfirmed,
       authBearer: bearer || null,
       authCookie: cookie || null,
     });
@@ -229,7 +250,7 @@ export async function runScanWizard() {
     process.stdout.write(`  ${dim("Expert mode:")} penthera --help\n\n`);
     process.exit(custom.hasSevere ? 1 : 0);
   } catch (e) {
-    printScanFailure(customUrl || url, e);
+    printScanFailure(target, e);
     process.exit(2);
   }
 }

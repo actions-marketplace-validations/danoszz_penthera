@@ -502,7 +502,7 @@ async function gateOffline() {
   const dir = scratch("offline");
   const out = join(dir, "offline.json");
   try {
-    const r = await penthera([mock.url, "--all", "--adaptive", "--offline", "-o", out, "-q"], { timeout: 900_000 });
+    const r = await penthera([mock.url, "--all", "--adaptive", "--offline", "--confirm-target", new URL(mock.url).hostname, "--rate", "0", "-o", out, "-q"], { timeout: 900_000 });
     if (r.code > 1 || !existsSync(out)) return { status: "fail", metrics: { exitCode: r.code }, notes: ["The offline scan failed; see audit/logs."] };
     const e = readJson(out).egress;
     if (!e) return { status: "fail", metrics: {}, notes: ["The report has no `egress` field."] };

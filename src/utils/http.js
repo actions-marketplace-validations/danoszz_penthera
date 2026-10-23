@@ -1,10 +1,11 @@
 /**
  * The one HTTP client every Penthera probe uses.
  *
- * It owns three things so no module has to:
+ * It owns four things so no module has to:
  *   - timeouts (one AbortController per request),
  *   - the User-Agent (`penthera/<version> (+repo url)`, overridable),
- *   - egress policy: which hosts a scan may talk to.
+ *   - egress policy: which hosts a scan may talk to,
+ *   - the request rate: at most `rateLimit` requests per second per scan.
  *
  * A scan runs inside an egress context (see `runWithEgress`). The context
  * names the scan target and records every host contacted, every request it
@@ -29,6 +30,8 @@ export const DEFAULT_MAX_BODY = 5 * 1024 * 1024;
 // Set on every Response `request` returns: when its timeout expires, and how
 // to stop that timer once the body has been read.
 const BODY_DEADLINE = Symbol("penthera.bodyDeadline");
+// Set on every Response `request` returns: when the request left the rate-limit queue.
+const SENT_AT = Symbol("penthera.sentAt");
 // Request headers that carry credentials; never forwarded to another origin.
 const CREDENTIAL_HEADERS = ["authorization", "cookie", "proxy-authorization"];
 const REPO_URL = "https://github.com/danoszz/penthera";
@@ -57,6 +60,7 @@ export class EgressBlockedError extends Error {
  * @param {boolean} [opts.offline] - refuse every host except the target
  * @param {string} [opts.userAgent] - override the default User-Agent
  * @param {string[]} [opts.allowHosts] - extra hosts to allow under offline
+ * @param {number} [opts.rateLimit] - requests per second for the whole scan; 0 or unset for no limit
  */
 export function createEgressContext(opts = {}) {
   const target = opts.target ? new URL(opts.target) : null;
@@ -68,6 +72,8 @@ export function createEgressContext(opts = {}) {
     offline: opts.offline === true,
     userAgent: opts.userAgent || DEFAULT_USER_AGENT,
     allowHosts: new Set((opts.allowHosts || []).map((h) => h.toLowerCase())),
+    rateLimit: opts.rateLimit > 0 ? opts.rateLimit : 0,
+    nextSlot: 0,          // epoch ms of the next free request slot
     contacted: new Map(), // host -> request count
     blocked: new Map(),   // host -> refused request count
     errors: new Map(),    // `${probe}\0${message}` -> { probe, url, message, count }
@@ -143,6 +149,24 @@ function isIpLike(host) {
   return /^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":") || host.startsWith("[");
 }
 
+/**
+ * Wait for the next request slot under the context's rate limit. Slots are
+ * handed out in call order, 1000 / rateLimit ms apart, so concurrent probes
+ * share one budget. Every hop of a redirect takes its own slot.
+ */
+export async function acquireSlot(ctx = currentEgress(), signal) {
+  if (!ctx || !ctx.rateLimit) return;
+  const now = Date.now();
+  const slot = Math.max(now, ctx.nextSlot);
+  ctx.nextSlot = slot + 1000 / ctx.rateLimit;
+  const wait = slot - now;
+  if (wait <= 0) return;
+  await new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, wait);
+    signal?.addEventListener("abort", () => { clearTimeout(timer); reject(signal.reason); }, { once: true });
+  });
+}
+
 function bump(map, key) {
   map.set(key, (map.get(key) || 0) + 1);
 }
@@ -183,6 +207,11 @@ export async function request(url, opts = {}) {
   const { timeout = DEFAULT_TIMEOUT, probe = "http", redirect = "manual", signal, ...fetchOpts } = opts;
   const userAgent = ctx?.userAgent || DEFAULT_USER_AGENT;
 
+  // Wait for a rate-limit slot before the timeout starts, so time spent in
+  // the queue never counts against the request or its measured duration.
+  await acquireSlot(ctx, signal);
+  const sentAt = Date.now();
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
   const deadline = Date.now() + timeout;
@@ -203,6 +232,7 @@ export async function request(url, opts = {}) {
         throw new EgressBlockedError(current, verdict.reason);
       }
 
+      if (hop > 0) await acquireSlot(ctx, combined);
       const res = await globalThis.fetch(current, { ...init, signal: combined, redirect: "manual" });
       if (ctx) bump(ctx.contacted, new URL(current).hostname.toLowerCase());
 
@@ -217,6 +247,7 @@ export async function request(url, opts = {}) {
         handedOff = true;
         timer.unref?.();
         res[BODY_DEADLINE] = { at: deadline, release: () => clearTimeout(timer) };
+        res[SENT_AT] = sentAt;
         return res;
       }
       if (hop >= MAX_REDIRECTS) throw new Error(`too many redirects (${MAX_REDIRECTS})`);
@@ -241,6 +272,14 @@ export async function request(url, opts = {}) {
   } finally {
     if (!handedOff) clearTimeout(timer);
   }
+}
+
+/**
+ * When `res` was actually sent (epoch ms), after any rate-limit wait.
+ * Timing probes measure from here, so a queue never looks like a slow server.
+ */
+export function sentAt(res, fallback = Date.now()) {
+  return res?.[SENT_AT] ?? fallback;
 }
 
 /** Thrown by readBody when a body is too large or too slow. */
@@ -386,7 +425,7 @@ export async function fetchText(url, opts = {}) {
       body,
       size: body.length,
       headers: Object.fromEntries(res.headers.entries()),
-      elapsed: Date.now() - start,
+      elapsed: Date.now() - sentAt(res, start),
       ok: true,
     };
   } catch (err) {
@@ -413,6 +452,7 @@ export function egressSummary(ctx = currentEgress()) {
   const contacted = sortHosts(ctx.contacted);
   return {
     offline: ctx.offline,
+    rateLimit: ctx.rateLimit || null,
     userAgent: ctx.userAgent,
     target: ctx.targetHost,
     hosts: contacted,

@@ -463,12 +463,21 @@ fool a naive scanner. Writing it exposed one real flaw in the decoy itself: a
 ## Non-destructive by default
 
 The `quick` and `standard` profiles send only requests a normal browser or API
-client would send: `GET`, `OPTIONS`, and invalid login attempts. They do not
-send attack payloads, create or modify data, or exploit anything they find.
+client would send: `GET` and `OPTIONS`, plus, in `standard`, one `POST
+/api/login` with invalid credentials and no payload (`quick` sends no login
+request). They do not send attack payloads, create or modify data, or exploit
+anything they find.
 
-Payload-based testing (`--deep`, `--fuzz`, `--adaptive`, or `--profile deep`)
-is opt-in and gated behind a confirmation prompt. Even then, each probe sends a
-benign marker (a random string, an arithmetic expression, a short sleep, `id`)
+Payload-based testing (`--deep`, `--fuzz`, `--adaptive`, `--all`, or
+`--profile deep`) is opt-in, and it does not start without a confirmation
+bound to the target's hostname. In a terminal, Penthera asks: a target on this
+machine needs a yes, and any other target needs its hostname typed back, the
+same rule as the dashboard. A non-interactive run (CI, Docker, piped, `--json`)
+must pass `--confirm-target <host>`, and the run stops with exit code 2 when it
+is missing or names another host. Active scans are also capped at 10 requests
+per second unless `--rate` says otherwise (`src/cli/active-gate.js`). The
+login rate-limit burst and the SQL error check on `/api/login` run only under
+`--deep`, behind the same gate. Even then, each probe sends a benign marker (a random string, an arithmetic expression, a short sleep, `id`)
 rather than a working exploit, and stops at the first confirmation per
 endpoint. The adaptive engine may send unexpected HTTP methods, including
 `DELETE`, to routes with placeholder IDs, so it is never part of a default run.

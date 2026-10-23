@@ -301,8 +301,7 @@ quality from depending on anyone's free evenings.
   go into that release; features wait for the next one.
 - **No version bump or tag without the maintainer's go.**
 
-**Now: 1.9 is in release candidate.** 1.9.0-rc.1 is on `next` since
-2026-10-22; `latest` is 1.8.1. See the [roadmap](ROADMAP.md#now-190-release-candidate)
+**Now:** 1.9.0 is on `latest` since 2026-10-23. See the [roadmap](ROADMAP.md#now-190)
 for what is in it.
 
 Between releases:

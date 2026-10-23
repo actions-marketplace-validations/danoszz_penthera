@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/penthera-social.jpg" alt="Penthera: your open-source cyber security agent" width="840">
+<img src="site/media/social/og.png" alt="Penthera. Is your site/app safe? Check it with a free cyber security quick scan: the scan field and a report of penthera.org, 95 out of 100, with Prompt to fix" width="840">
 
 <br/><br/>
 
@@ -68,7 +68,7 @@ Cursor, Codex, VS Code and Windsurf. The MCP server is new in 1.9 and is on
 npm's `next` tag until 1.9.0 ships, so pin the release candidate:
 
 ```bash
-claude mcp add penthera -- npx -y penthera@1.9.0-rc.1 mcp
+claude mcp add penthera -- npx -y penthera@1.9.0 mcp
 ```
 
 Other clients: [docs/commands/mcp.md](docs/commands/mcp.md). Other skill install
@@ -149,10 +149,9 @@ What changed, what we are measuring, and what comes next, in one place.
 
 | | Where it stands | Read more |
 |---|---|---|
-| **Latest release** | 1.8.1 (2026-10-22) on npm `latest`: more careful runtime advisories, on top of 1.8.0's advisories, security-review fixes and redesigned dashboard | [CHANGELOG](CHANGELOG.md) |
-| **Release candidate** | 1.9.0-rc.1 on npm `next`: `penthera mcp`, opt-in AI mode, new detection rules, no attack payloads in default scans | [Roadmap](ROADMAP.md#now-190-release-candidate) |
+| **Latest release** | 1.9.0 (2026-10-23) on npm `latest`: `penthera mcp`, opt-in AI mode, new detection rules, no attack payloads in default scans, a refreshed dashboard | [CHANGELOG](CHANGELOG.md), [roadmap](ROADMAP.md#now-190) |
 | **Research** | E10 pilot published: precision 0.88, recall 0.07 to 0.71 on two known-vulnerable apps after fixes (one labeller, not independent; a re-run is pending because default scans no longer send login checks). E1 on real code is pre-registered; E8 (agent guardrails) is a draft | [E10 results](bench/known-vuln/RESULTS.md), [E1 pre-registration](docs/research/prereg/E1-real-world-accuracy.md), [agents safely](docs/agents-safely.md) |
-| **Next** | 1.9.0 once the release candidate holds up, then real-world precision and recall with intervals, published whatever the result | [Roadmap: next](ROADMAP.md#next), [research plan](docs/vision-2.0.md) |
+| **Next** | Real-world precision and recall with intervals (E1), published whatever the result | [Roadmap: next](ROADMAP.md#next), [research plan](docs/vision-2.0.md) |
 
 Releases are deliberately slow: a feature freeze, an independent review, the
 release checks, and a release candidate before any new minor version. Watch the

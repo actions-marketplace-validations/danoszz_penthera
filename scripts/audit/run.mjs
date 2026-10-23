@@ -48,7 +48,10 @@ const BENCH_MAX_DROP = 0.02;
 // Raised again for `penthera mcp` (src/mcp/ and src/cli/mcp.js: ~45 KB unpacked,
 // ~15 KB packed, 6 files, no dependencies): was 800_000 packed. Main was at
 // ~786 KB packed before it, so the headroom stays about 35 KB.
-const PACK_BUDGET = { packedBytes: 835_000, unpackedBytes: 2_300_000, files: 260 };
+// Raised for 1.9.0 with the maintainer's OK (2026-10-23): the 1.9.0 changelog,
+// the dashboard refresh and the refreshed typosquat list put it at ~820 KB
+// packed; was 835_000. About 10 KB of headroom.
+const PACK_BUDGET = { packedBytes: 850_000, unpackedBytes: 2_300_000, files: 260 };
 
 /** Paths the npm package may contain. Anything else fails the packaging gate. */
 const PACK_ALLOW = [

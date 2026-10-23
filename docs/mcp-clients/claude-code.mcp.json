@@ -2,7 +2,7 @@
   "mcpServers": {
     "penthera": {
       "command": "npx",
-      "args": ["-y", "penthera@1.9.0-rc.1", "mcp"]
+      "args": ["-y", "penthera@1.9.0", "mcp"]
     }
   }
 }

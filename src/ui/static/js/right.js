@@ -5,7 +5,7 @@ import { api } from "./api.js";
 import { state, set, simple, countsInView, currentProject } from "./state.js";
 import { halftone, riskLevel } from "./charts.js";
 import { SEVERITIES, shortProject } from "./format.js";
-import { EMPTY, KEYS, SEV_WORD, AI } from "./copy.js";
+import { EMPTY, KEYS, SEV_WORD, AI, VERIFY } from "./copy.js";
 
 let seq = 0;
 
@@ -65,10 +65,11 @@ async function findingView(el, ctx, my) {
       h("div", { class: "pane-body detail" },
         h("div", {}, h("span", { class: `sev sev-${d.severity}` }, SEV_WORD[d.severity] || d.severity)),
         h("h2", { tabindex: "-1" }, d.title),
-        h("div", { class: "plain", "aria-label": "In plain words" },
+        h("div", { class: "plain plate", "aria-label": "In plain words" },
           d.description ? h("p", {}, h("b", {}, "What is wrong :: "), d.description) : null,
           h("p", {}, h("b", {}, "How sure :: "), sure),
-          x.fixText || d.remediation ? h("p", {}, h("b", {}, "What to do :: "), x.fixText || d.remediation) : null),
+          x.fixText || d.remediation ? h("p", {}, h("b", {}, "What to do :: "), x.fixText || d.remediation) : null,
+          h("p", {}, h("b", {}, "Check the fix :: "), VERIFY)),
         canFix
           ? h("div", { class: "actions start" }, h("button", { type: "button", class: "btn primary", onclick: () => ctx.newScan("loop", f.project) }, "Fix it for me…"),
             h("p", { class: "muted prose" }, "You will see the change and approve it first."))
@@ -93,10 +94,11 @@ async function findingView(el, ctx, my) {
         h("dt", {}, "where"), h("dd", {}, d.location || "-"),
         h("dt", {}, "project"), h("dd", {}, f.project),
         h("dt", {}, "id"), h("dd", { class: "muted" }, d.id)),
-      h("div", { class: "plain", "aria-label": "In plain words" },
+      h("div", { class: "plain plate", "aria-label": "In plain words" },
         h("p", {}, h("b", {}, "In plain words :: "), (x.plainSeverity || d.severity) === "note" ? "a note, not a problem." : `a ${x.plainSeverity || d.severity} problem${d.category ? ` with ${d.category.replace(/-/g, " ")}` : ""}.`),
         x.confidenceMeaning ? h("p", {}, h("b", {}, `How sure (${x.confidence}) :: `), x.confidenceMeaning) : null,
         x.fixText ? h("p", {}, h("b", {}, "What to do :: "), x.fixText) : null,
+        h("p", {}, h("b", {}, "Check the fix :: "), VERIFY),
         x.owasp?.length ? h("p", { class: "muted" }, `Maps to ${x.owasp.join(" · ")}`) : null),
       d.description ? section("What we saw", h("p", {}, d.description)) : null,
       d.evidence ? section("Evidence", h("pre", { class: "block" }, d.evidence)) : null,

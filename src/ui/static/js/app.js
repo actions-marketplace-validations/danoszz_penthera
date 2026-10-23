@@ -1,10 +1,10 @@
 // penthera ui: a menu bar over three tiled windows. Projects on the left, the
 // selected project (five tabs) or run in the centre, the inspector on the
 // right. Runs start from the New scan dialog; every action is also in a menu.
-import { h, clear, announce } from "./dom.js";
+import { h, clear, announce, metalLight } from "./dom.js";
 import { api, signIn } from "./api.js";
 import { patternDefs, riskLevel } from "./charts.js";
-import { state, set, on, TABS, countsInView } from "./state.js";
+import { state, set, on, TABS, countsInView, currentProject } from "./state.js";
 import { renderMenubar, closeMenus } from "./menubar.js";
 import { renderLeft } from "./left.js";
 import { renderCenter, refreshList, moveFinding, answerPending } from "./center.js";
@@ -75,6 +75,11 @@ const ctx = {
   },
   /** Setup closed: keep what was chosen, Simple if nothing was. */
   finishSetup(ux) { ctx.setUx(ux || "simple"); },
+  /** Leave check and fix: back to the run's project, or to all projects. */
+  back() {
+    const key = currentProject();
+    set({ sel: key ? { kind: "project", key } : { kind: "all", key: null } });
+  },
   openTab(tab, project) {
     const patch = { tab };
     if (project) patch.sel = { kind: "project", key: project };
@@ -103,6 +108,8 @@ on((patch) => {
   if (keys.some((k) => ["overview", "runs", "sel", "meta", "right", "tab", "pending", "ux"].includes(k))) renderMenubar(menubar, ctx);
   if (keys.some((k) => ["overview", "runs", "sel", "meta"].includes(k))) renderLeft(left, ctx);
   if (keys.some((k) => ["overview", "sel"].includes(k))) app.dataset.risk = String(riskLevel(countsInView()));
+  // Check and fix: a run takes the whole desktop, with Back at its top left.
+  if (keys.includes("sel")) app.toggleAttribute("data-fix", state.sel.kind === "run" || state.sel.kind === "past");
   if (keys.some((k) => ["overview", "findings", "sel", "tab", "filter", "ux"].includes(k))) {
     // A live transcript is rebuilt only when the selection changes, never on a data refresh.
     if (!(state.sel.kind === "run" && !keys.includes("sel"))) renderCenter(center, ctx);
@@ -128,6 +135,7 @@ document.addEventListener("keydown", (e) => {
     const q = document.getElementById("q");
     if (document.activeElement === q && q.value) { q.value = ""; set({ query: "" }); return; }
     if (state.right !== "none") { set({ right: "none", finding: null }); return; }
+    if (app.hasAttribute("data-fix")) { ctx.back(); return; }
     if ((narrowRight() && panels.right) || (narrowLeft() && panels.left)) scrim.click();
     return;
   }
@@ -157,6 +165,7 @@ state.ux = savedUx === "advanced" ? "advanced" : "simple";
 
 (async function boot() {
   document.body.append(patternDefs());
+  metalLight();
   try {
     await signIn();
     state.meta = await api.get("/api/meta");

@@ -70,6 +70,31 @@ export function announce(text) {
 
 export const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+/**
+ * One light above the metal plates, as on penthera.org. With a mouse the
+ * pointer carries it: every .plate gets the pointer in its own coordinates,
+ * so they all catch the same light. Off with reduced motion and on touch.
+ */
+export function metalLight() {
+  if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches || prefersReducedMotion()) return;
+  let x = 0, y = 0, queued = false;
+  const paint = () => {
+    queued = false;
+    for (const el of document.querySelectorAll(".plate")) {
+      const r = el.getBoundingClientRect();
+      el.style.setProperty("--lx", `${Math.round(x - r.left)}px`);
+      el.style.setProperty("--ly", `${Math.round(y - r.top)}px`);
+    }
+  };
+  const queue = () => { if (!queued) { queued = true; requestAnimationFrame(paint); } };
+  addEventListener("pointermove", (e) => { x = e.clientX; y = e.clientY; queue(); }, { passive: true });
+  // Scrolling a window moves its plates under a still pointer.
+  addEventListener("scroll", queue, { passive: true, capture: true });
+  document.documentElement.addEventListener("pointerleave", () => {
+    for (const el of document.querySelectorAll(".plate")) { el.style.removeProperty("--lx"); el.style.removeProperty("--ly"); }
+  });
+}
+
 /** Colour a unified diff line by line (still plain text nodes). */
 export function diffBlock(diff) {
   const pre = h("pre", { class: "block diff", tabindex: "0", "aria-label": "Diff preview" });

@@ -528,7 +528,7 @@ describe("site landing pages", () => {
 
   it("names one host in the sitemap, robots.txt and /terms", () => {
     // The homepage's canonical follows Vercel's production domain (SITE_URL);
-    // docs/distribution/README.md has the domain setting that makes it match.
+    // The Vercel primary domain (penthera.org) is what makes it match.
     expect(read("terms.html")).toContain(`<link rel="canonical" href="${ORIGIN}/terms">`);
     expect(read("robots.txt")).toContain(`Sitemap: ${ORIGIN}/sitemap.xml`);
     for (const l of [...read("sitemap.xml").matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])) expect(l.startsWith(`${ORIGIN}/`), l).toBe(true);

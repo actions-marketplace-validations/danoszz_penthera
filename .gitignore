@@ -37,3 +37,4 @@ coverage/
 
 # Internal audit command logs (uploaded as a CI artifact, never committed)
 audit/logs/
+/docs/distribution/

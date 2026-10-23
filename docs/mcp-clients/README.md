@@ -2,8 +2,7 @@
 
 > **Starter.** For "what do I paste into my agent's MCP config?"
 
-Ready-to-copy configs, each pinned to an exact version: 1.9.0-rc.1, the release
-candidate on npm's `next` tag, until 1.9.0 ships. The test suite checks
+Ready-to-copy configs, each pinned to an exact version: 1.9.0. The test suite checks
 every one with Penthera's own MCP rules (`mcp-unpinned`, `mcp-exec`,
 `mcp-inline-secret`, `mcp-plain-http`).
 

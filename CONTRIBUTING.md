@@ -301,8 +301,7 @@ quality from depending on anyone's free evenings.
   go into that release; features wait for the next one.
 - **No version bump or tag without the maintainer's go.**
 
-**Now: 1.9 is in release candidate.** 1.9.0-rc.1 is on `next` since
-2026-10-22; `latest` is 1.8.1. See the [roadmap](ROADMAP.md#now-190-release-candidate)
+**Now:** 1.9.0 is on `latest` since 2026-10-23. See the [roadmap](ROADMAP.md#now-190)
 for what is in it.
 
 Between releases:
@@ -333,6 +332,8 @@ live once a maintainer approves it with 2FA. **Do not run `npm publish` locally.
    - `docs/METHODOLOGY.md` (the "How to cite" block)
    - `server.json` (`version` and `packages[0].version`) and the pins in
      `docs/mcp-clients/`; a test keeps them equal
+   - `.mcp.json` and `gemini-extension.json` at the root (`version` and the
+     `penthera@<version>` pins); the internal audit checks them
 2. Fold the fragments in `changelog.d/` and the `[Unreleased]` notes into the
    new version, which also deletes the fragment files:
 

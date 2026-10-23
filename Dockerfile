@@ -2,7 +2,7 @@
 FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402
 
 LABEL org.opencontainers.image.source="https://github.com/danoszz/penthera"
-LABEL org.opencontainers.image.description="Penthera — security scanner for web apps"
+LABEL org.opencontainers.image.description="Offline, rule-based security checks for your repo, dependencies, AI agent config and local app."
 
 WORKDIR /penthera
 

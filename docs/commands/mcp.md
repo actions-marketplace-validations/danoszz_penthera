@@ -8,10 +8,7 @@
 server. Your agent (Claude Code, Cursor, Codex, VS Code, Windsurf) starts it
 and calls its tools. It needs Node.js 22 or later.
 
-The MCP server is new in 1.9. Until 1.9.0 ships it is in the release
-candidate, 1.9.0-rc.1, on npm's `next` tag, so the commands below pin that
-version. `npx penthera` without a version runs 1.8.1, which has no `mcp`
-command.
+The MCP server is new in 1.9.0, so the commands below pin that version.
 
 Always pin the version. An unpinned `npx penthera` runs whatever version is
 newest on npm each time your agent starts, which is the risk that
@@ -20,7 +17,7 @@ newest on npm each time your agent starts, which is the risk that
 **Claude Code**
 
 ```bash
-claude mcp add penthera -- npx -y penthera@1.9.0-rc.1 mcp
+claude mcp add penthera -- npx -y penthera@1.9.0 mcp
 ```
 
 Add `--scope project` to write it to `.mcp.json` for the whole team.
@@ -28,7 +25,7 @@ Add `--scope project` to write it to `.mcp.json` for the whole team.
 **Codex**
 
 ```bash
-codex mcp add penthera -- npx -y penthera@1.9.0-rc.1 mcp
+codex mcp add penthera -- npx -y penthera@1.9.0 mcp
 ```
 
 Or add it to `~/.codex/config.toml`:
@@ -36,7 +33,7 @@ Or add it to `~/.codex/config.toml`:
 ```toml
 [mcp_servers.penthera]
 command = "npx"
-args = ["-y", "penthera@1.9.0-rc.1", "mcp"]
+args = ["-y", "penthera@1.9.0", "mcp"]
 ```
 
 **Cursor** (`.cursor/mcp.json`) and **Windsurf** (`~/.codeium/windsurf/mcp_config.json`):
@@ -46,7 +43,7 @@ args = ["-y", "penthera@1.9.0-rc.1", "mcp"]
   "mcpServers": {
     "penthera": {
       "command": "npx",
-      "args": ["-y", "penthera@1.9.0-rc.1", "mcp"]
+      "args": ["-y", "penthera@1.9.0", "mcp"]
     }
   }
 }
@@ -60,10 +57,17 @@ args = ["-y", "penthera@1.9.0-rc.1", "mcp"]
     "penthera": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "penthera@1.9.0-rc.1", "mcp"]
+      "args": ["-y", "penthera@1.9.0", "mcp"]
     }
   }
 }
+```
+
+**Gemini CLI**, as an extension (it reads `gemini-extension.json` at the root of
+this repository, with the same pinned server):
+
+```bash
+gemini extensions install https://github.com/danoszz/penthera
 ```
 
 The same files are in [docs/mcp-clients/](../mcp-clients/). The test suite
@@ -104,7 +108,7 @@ most severe findings; ask for up to 200 with `max_findings`.
   you write, not the model:
 
 ```bash
-npx -y penthera@1.9.0-rc.1 mcp --allow-host staging.example.com
+npx -y penthera@1.9.0 mcp --allow-host staging.example.com
 ```
 
   Only list hosts you are authorized to test.
@@ -119,8 +123,8 @@ npx -y penthera@1.9.0-rc.1 mcp --allow-host staging.example.com
 ## Options
 
 ```bash
-npx -y penthera@1.9.0-rc.1 mcp --offline
-npx -y penthera@1.9.0-rc.1 mcp --help
+npx -y penthera@1.9.0 mcp --offline
+npx -y penthera@1.9.0 mcp --help
 ```
 
 | Flag | Meaning |
@@ -128,6 +132,23 @@ npx -y penthera@1.9.0-rc.1 mcp --help
 | `--root <dir>` | A folder tools may read (repeatable). Default: the folder the agent starts the server in. Roots your agent sends take precedence. |
 | `--allow-host <host>` | A host `scan_url` may contact besides loopback (repeatable, exact name, no wildcards) |
 | `--offline` | `scan_url` contacts only the target |
+
+## In a container
+
+The repo's `Dockerfile` builds an image whose entry point is `penthera`. Mount
+your project at `/src` and point `--root` at it:
+
+```bash
+docker build -t penthera-mcp .
+docker run -i --rm --network none -v "$PWD:/src:ro" penthera-mcp mcp --root /src
+```
+
+Your agent sends its roots as host paths, which do not exist inside the
+container. The server drops roots it cannot find. When none is left, it uses
+`--root` and logs "client sent no usable roots; using the server's roots" to
+stderr. If `--root` does not exist either, it does not start and names the
+folder. With `--network none`, `scan_url` has nothing to reach; the other
+tools need no network.
 
 ## Limits
 

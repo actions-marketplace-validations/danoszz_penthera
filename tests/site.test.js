@@ -10,6 +10,8 @@ import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 import { buildSite, readNews, readCompare, e10Numbers, prerelease, mcpNote, firstRelease } from "../site/build.mjs";
 import { docPages, absoluteLinks, pinTo } from "../site/agents.mjs";
+import { landingPages } from "../site/landing.mjs";
+import { readKey } from "../scripts/indexnow.mjs";
 import { scanExample } from "../site/tools/example.mjs";
 import { COUNTS } from "../scripts/docs-numbers.mjs";
 import { activePacks } from "../lib/rules/index.js";
@@ -464,6 +466,80 @@ describe("site story", () => {
 // A built path exists as a file, or as <path>.html, which cleanUrls serves without the extension.
 const served = (out, f) => existsSync(join(out, f)) || existsSync(join(out, `${f}.html`));
 
+describe("site landing pages", () => {
+  const ORIGIN = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).homepage;
+  const read = (f) => readFileSync(join(out, f), "utf8");
+  const pages = landingPages(join(ROOT, "site"));
+
+  it("has the two search questions, each with a title and a description for search", () => {
+    expect(pages.map((p) => p.slug)).toEqual(expect.arrayContaining(["lovable-bolt-app-security", "website-security-check"]));
+    for (const p of pages) {
+      const h = read(`${p.slug}.html`);
+      expect(h, p.slug).toContain(`<title>${p.title} · Penthera</title>`);
+      expect(p.description.length, p.slug).toBeLessThanOrEqual(160);
+      expect(h, p.slug).toContain(`<meta name="description" content="${p.description}">`);
+      expect(h, p.slug).toContain(`<link rel="canonical" href="${ORIGIN}/${p.slug}">`);
+      expect(h.match(/<h1[ >]/g), p.slug).toHaveLength(1);
+    }
+  });
+
+  it("answers once, with the live check as the call to action and the CLI for the code", () => {
+    for (const p of pages) {
+      const h = read(`${p.slug}.html`);
+      expect(h, p.slug).toContain('<a class="btn" data-variant="default" href="/#scan">Check your site</a>');
+      expect(h, p.slug).toContain("<code>npx penthera");
+      expect(h, p.slug).toContain('<a href="/terms">');
+      expect(h, p.slug).not.toMatch(/\{\{|\u0000/);
+      expect(h, p.slug).not.toMatch(/<script(?![^>]*\bsrc=)/);
+      expect(h, p.slug).not.toMatch(/ style=/);
+    }
+  });
+
+  it("follows the voice guide: no em dashes, no hype, and the limits on the same page", () => {
+    for (const p of pages) {
+      const md = readFileSync(join(ROOT, "site", "pages", `${p.slug}.md`), "utf8");
+      expect(md, p.slug).not.toContain("\u2014");
+      expect(md, p.slug).not.toMatch(/\b(the best|perfect|seamless|robust|powerful|cutting-edge|game-changing|comprehensive|bulletproof|100% secure)\b/i);
+      expect(md, p.slug).toContain("## What it cannot see");
+      expect(md, p.slug).toMatch(/not a guarantee/);
+    }
+  });
+
+  it("states the live check's own limits: the request budget and file counts in api/_lib/page.mjs", async () => {
+    const { LIMITS } = await import("../api/_lib/page.mjs");
+    const md = readFileSync(join(ROOT, "site", "pages", "website-security-check.md"), "utf8");
+    expect(md).toContain(`at most ${LIMITS.requests} requests`);
+    expect(md).toContain(`up to ${LIMITS.sameSiteFiles + LIMITS.thirdPartyFiles} scripts and stylesheets`);
+    expect(md).toContain(`${LIMITS.sameSiteFiles} from your site, ${LIMITS.thirdPartyFiles} from elsewhere`);
+    expect(md).toContain(`about ${LIMITS.budgetMs / 1000} seconds`);
+    for (const p of pages) expect(read(`${p.slug}.html`), p.slug).toContain(`${COUNTS.secretPatterns} secret patterns`);
+  });
+
+  it("lists each page in the sitemap and llms.txt, serves its Markdown, and links it from the homepage", () => {
+    const locs = [...read("sitemap.xml").matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+    for (const p of pages) {
+      expect(locs, p.slug).toContain(`${ORIGIN}/${p.slug}`);
+      expect(read("llms.txt"), p.slug).toContain(`(${ORIGIN}/${p.slug}.md)`);
+      expect(read(`${p.slug}.md`), p.slug).toContain(`(${ORIGIN}/#scan)`);
+      expect(read(`${p.slug}.md`), p.slug).not.toMatch(/\]\(\/(?!\/)/);
+      expect(read("index.html"), p.slug).toContain(`<a href="/${p.slug}">`);
+    }
+  });
+
+  it("names one host in the sitemap, robots.txt and /terms", () => {
+    // The homepage's canonical follows Vercel's production domain (SITE_URL);
+    // The Vercel primary domain (penthera.org) is what makes it match.
+    expect(read("terms.html")).toContain(`<link rel="canonical" href="${ORIGIN}/terms">`);
+    expect(read("robots.txt")).toContain(`Sitemap: ${ORIGIN}/sitemap.xml`);
+    for (const l of [...read("sitemap.xml").matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])) expect(l.startsWith(`${ORIGIN}/`), l).toBe(true);
+  });
+
+  it("serves the IndexNow key at /<key>.txt", () => {
+    const key = readKey(join(ROOT, "site"));
+    expect(read(`${key}.txt`).trim()).toBe(key);
+  });
+});
+
 describe("site files for agents", () => {
   const read = (f) => readFileSync(join(out, f), "utf8");
   const ORIGIN = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).homepage;
@@ -554,6 +630,8 @@ describe("site headers", () => {
     // Vercel rejects the whole deployment when it's longer.
     const { ignoreCommand } = JSON.parse(readFileSync(join(ROOT, "vercel.json"), "utf8"));
     expect(ignoreCommand.length).toBeLessThanOrEqual(256);
+    // Only production builds: previews are skipped, and run locally with node site/serve.mjs.
+    expect(ignoreCommand.startsWith('[ "$VERCEL_ENV" != production ] || ')).toBe(true);
   });
 
   it("vercel.json allows only Vercel's two counters, and forbids framing and plain HTTP", () => {

@@ -1,6 +1,6 @@
 {
   "name": "penthera",
-  "version": "1.9.0-rc.1",
+  "version": "1.9.0",
   "type": "module",
   "description": "Offline cyber security agent for your apps and AI coding tools. Open R&D: measured in public, improved every release.",
   "repository": {
@@ -84,7 +84,15 @@
     "nis2",
     "sbom",
     "offline",
-    "devsecops"
+    "devsecops",
+    "mcp-server",
+    "model-context-protocol",
+    "agent-skill",
+    "security-scanner",
+    "vibe-coding",
+    "secrets",
+    "website-security",
+    "security-headers"
   ],
   "license": "MIT",
   "devDependencies": {

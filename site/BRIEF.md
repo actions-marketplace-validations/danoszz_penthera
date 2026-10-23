@@ -79,21 +79,45 @@ for a grey band of their own (a 2 px checker, so still a dither, not a flat
 grey), with a roadmap line per limit; the comparison shows its summary and
 folds the table; the hero pills are blue highlighter marks.
 
+Decided with the maintainer, 2026-10-23, later: tighter and more varied.
+The style is "futuristic yet brutalist and typographic". Square corners and
+hard type stay; a few surfaces now catch light: brushed-metal plates in
+the old Apple manner, lit by one light from above that follows the pointer
+on a mouse (mixed from each palette's ground and ink) for the trust
+principles, benchmark counts, roadmap lines, ways in and prompts; polished
+gradient type for the price and the counts; light falling on the blue band;
+soft blue gradients on the primary buttons. This replaces "greys are dither
+patterns, never flat" for those plates. The bottom blur stays as it is.
+Secondary detail folds away: the benchmark chart and the agent prompts sit
+behind toggles, like the MCP configs and the comparison table.
+
 ## Anti-references
 
 - Security-vendor pages: dark gradients, shields, padlocks, "threat
   landscape" copy, a "Book a demo" button.
 - AI-startup pages: glowing orbs, logos-of-trust walls, testimonials.
-- Anything that implies a hosted scanner. Nothing is scanned on a server.
+- A scanner that keeps what it finds. The live check stores nothing and
+  publishes no per-site pages.
 
 ## Constraints
 
 - No third-party scripts, trackers or cookies; only Vercel's cookieless Web
   Analytics and Speed Insights, served from the same origin. All assets are
   served from the same origin.
-- CSP `connect-src` lists only `/_vercel/insights/` and `/_vercel/speed-insights/`
-  on penthera.org: the check cannot send anything anywhere else, which is what
-  "nothing you paste leaves your browser" rests on.
-- The check bundles `lib/` at build time (`site/build.mjs`). The site and the
-  CLI run the same rule code.
-- No URL scans and no server functions.
+- CSP `connect-src` lists the two Vercel counters and `/api/check` on
+  penthera.org, nothing else. The page sends only the address you type, to
+  penthera.org's own function.
+- The live check (decided with the maintainer, 2026-10-23): one function,
+  `api/check.mjs`, described in `/openapi.json`, under the terms at `/terms`
+  (`docs/live-check-terms.md`). Passive only: what one browser visit loads
+  (robots.txt, the page, up to 14 files it references, `security.txt`,
+  public DNS). No deeper scan online, not even for verified owners: probing
+  paths on a site from penthera.org would make us the ones probing. Deeper
+  testing runs with `npx penthera` on the visitor's own machine.
+- Zero abuse: a consent modal with slide to scan before every first check of
+  a site, `"consent": true` required by the API, limits per visitor and per
+  site, the target's robots.txt opt-out for `Penthera-QuickCheck`, and a
+  User-Agent that links to the terms. Every request goes through the guard in
+  `api/_lib/guard.mjs`. Nothing is stored or logged; a count of scans may
+  come later, never the results.
+- The rule code is the CLI's (`lib/`), so the site and `npx penthera` agree.

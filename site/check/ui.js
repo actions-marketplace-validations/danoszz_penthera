@@ -158,13 +158,13 @@ function promptDialog(report) {
     copy.disabled = n === 0;
   };
   for (const [label, pick] of [["Recommended", (c) => c.severity === "high" || c.severity === "medium"], ["All", () => true], ["None", () => false]]) {
-    const b = el("button", "btn btn-sm", label);
+    const b = el("button", "btn btn-sm btn-white", label);
     b.type = "button";
     b.addEventListener("click", () => { for (const [box, c] of boxes) box.checked = pick(c); sync(); });
     presets.append(b);
   }
   list.addEventListener("change", sync);
-  const cancel = el("button", "btn", "Cancel");
+  const cancel = el("button", "btn btn-white", "Cancel");
   cancel.value = "cancel";
   copy.addEventListener("click", async () => {
     const text = promptFor(report, boxes.filter(([b]) => b.checked).map(([, c]) => c));
@@ -184,30 +184,35 @@ const CATEGORY = {};
 
 function renderReport(box, report, rescan) {
   for (const c of report.categories) CATEGORY[c.id] = c.label;
-  box.replaceChildren();
+  box.replaceChildren(backBar());
+  // Left: what was checked and the verdict. Right: the score, and the one
+  // blue button on the screen, Prompt to fix. Everything else is white.
   const head = el("div", "report-head");
   const id = el("div", "report-id");
   id.append(el("p", "report-host", new URL(report.url).host), el("h2", "report-verdict", report.verdict));
+  const side = el("div", "report-side");
   const score = el("div", "report-score");
   const n = el("p", "score-n", String(report.score));
   n.append(el("span", null, "/100"));
   score.append(pixels(report.score), n);
-  const actions = el("div", "report-actions");
+  side.append(score);
   const failed = report.checks.filter((c) => !c.passed);
   if (failed.length) {
-    const open = el("button", "btn report-prompt", "Prompt to fix");
+    const open = el("button", "btn report-prompt", `Prompt to fix (${failed.length})`);
     open.type = "button";
     open.dataset.variant = "default";
     open.addEventListener("click", () => { const d = promptDialog(report); document.body.append(d); d.showModal(); });
-    actions.append(open);
+    side.append(open);
+  } else {
+    side.append(el("p", "report-clean", "Nothing to fix from the outside. The full scan goes further."));
   }
-  const meta = el("p", "report-meta", `Checked ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · `);
-  const again = el("button", "linkish", "Check again");
+  const meta = el("p", "report-meta", `Checked ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
+  const again = el("button", "btn btn-white btn-sm", "Check again");
   again.type = "button";
   again.addEventListener("click", rescan);
   meta.append(again);
-  actions.append(meta);
-  head.append(id, score, actions);
+  side.append(meta);
+  head.append(id, side);
 
   const cats = el("ul", "report-cats");
   for (const c of report.categories) {
@@ -240,7 +245,7 @@ function deeperOnYourMachine(report) {
   wrap.append(el("h3", null, "Go deeper on your own machine"));
   wrap.append(el("p", null, "Exposed files, debug pages, API specs and your code: the full scan runs where you are responsible for it, never from penthera.org."));
   const cmd = `npx penthera ${report.url}`;
-  const b = el("button", "cmd", "");
+  const b = el("button", "cmd cmd-white", "");
   b.type = "button";
   b.dataset.copy = cmd;
   b.append(el("span", "cmd-prompt", "$"), el("code", null, cmd), el("span", "cmd-act", "Copy"));
@@ -327,12 +332,46 @@ function askConsent(host) {
   });
 }
 
+// ── Fix mode ────────────────────────────────────────────────────────────────
+
+// Once a check starts, the hero steps aside: the report takes the top of the
+// screen, with a way back at the top left. Entering adds a history entry, so
+// the browser's back button leaves fix mode too.
+let leaveFixMode = () => {};
+
+function backBar() {
+  const bar = el("div", "report-top");
+  const back = el("button", "report-back", "Back");
+  back.type = "button";
+  back.setAttribute("aria-label", "Back to the start");
+  back.addEventListener("click", () => leaveFixMode());
+  bar.append(back, el("span", "report-mode", "Check and fix"));
+  return bar;
+}
+
 function setupScan() {
   const form = $("[data-scan]");
   const box = $("[data-report]");
-  if (!form || !box) return;
+  const hero = $(".hero");
+  if (!form || !box || !hero) return;
   const input = form.querySelector("input");
   const button = form.querySelector("button[type=submit]");
+
+  const enter = () => {
+    if (hero.dataset.mode !== "fix") history.pushState({ penthera: "fix" }, "", "#check");
+    hero.dataset.mode = "fix";
+    scrollTo({ top: 0, behavior: "instant" });
+  };
+  const exit = () => {
+    delete hero.dataset.mode;
+    box.hidden = true;
+    box.replaceChildren();
+    scrollTo({ top: 0, behavior: "instant" });
+    input.focus({ preventScroll: true });
+  };
+  leaveFixMode = () => (history.state?.penthera === "fix" ? history.back() : exit());
+  addEventListener("popstate", () => { if (hero.dataset.mode === "fix") exit(); });
+
   const run = async () => {
     const url = input.value.trim();
     if (!url) { input.focus(); return; }
@@ -340,16 +379,15 @@ function setupScan() {
     try { host = new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`).host; } catch { host = url; }
     if (!(await askConsent(host))) { input.focus(); return; }
     button.disabled = true;
-    button.textContent = "Checking…";
+    enter();
     box.hidden = false;
-    box.replaceChildren(el("p", "report-busy", `Checking ${url}: the page, its headers, its scripts and DNS…`));
+    box.replaceChildren(backBar(), el("p", "report-busy", `Checking ${host}: the page, its headers, its scripts and DNS…`));
     try {
       renderReport(box, await callCheck({ url }), run);
     } catch (e) {
-      box.replaceChildren(el("p", "report-error", `${e.message} ${e.hint || ""}`));
+      box.replaceChildren(backBar(), el("p", "report-error", `${e.message} ${e.hint || ""}`));
     } finally {
       button.disabled = false;
-      button.textContent = "Check";
     }
   };
   form.addEventListener("submit", (e) => { e.preventDefault(); run(); });

@@ -1057,8 +1057,8 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .report-busy::after { content: "▌"; margin-left: 4px; animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .report-busy::after { animation: none; } }
-.report-head { display: grid; gap: 20px 32px; align-items: center; }
-@media (min-width: 760px) { .report-head { grid-template-columns: 1fr auto; } .report-actions { grid-column: 1 / -1; } }
+.report-head { display: grid; gap: 24px 40px; align-items: start; }
+@media (min-width: 760px) { .report-head { grid-template-columns: 1fr minmax(260px, 340px); } }
 .report-host { font-family: var(--px); font-size: 14px; color: var(--text-3); }
 .report-verdict { margin-top: 6px; font-size: clamp(26px, 3.4vw, 40px); line-height: 1.05; letter-spacing: -0.03em; }
 .report-score { display: flex; align-items: center; gap: 20px; }
@@ -1068,8 +1068,8 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .score-n { font-family: var(--display); font-size: clamp(56px, 7vw, 88px); line-height: 0.9; letter-spacing: -0.05em; color: var(--text-1); }
 .score-n span { font-family: var(--px); font-size: 15px; letter-spacing: 0; color: var(--text-3); margin-left: 6px; }
 .report-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
-.report-prompt { min-height: 48px; padding: 0 24px; font-size: 15px; }
-.report-meta { font-family: var(--px); font-size: 13px; color: var(--text-3); }
+.report-prompt { width: 100%; min-height: 56px; padding: 0 24px; font-size: 16px; }
+.report-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
 .linkish { padding: 0; border: 0; background: none; font: inherit; color: var(--text-1); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .report-cats { list-style: none; margin: 28px 0 0; padding: 0; display: grid; gap: 0 32px; border-top: 1px solid var(--frame); }
 @media (min-width: 760px) { .report-cats { grid-template-columns: 1fr 1fr; } }
@@ -1199,3 +1199,30 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
   background-image: url("/media/slide-arrow.svg"), linear-gradient(180deg, #ffffff, #c9c9c6 55%, #a9a9a6);
   background-size: 22px 22px, auto; background-position: center; background-repeat: no-repeat;
 }
+
+/* Fix mode (ui.js): once a check starts, the hero steps aside and the report
+ * takes the top of the screen. One blue button, Prompt to fix, on the right;
+ * every other control is white (the ink colour, so black in the light
+ * theme), so the eye lands on blue. */
+.hero[data-mode="fix"] .hero-text { min-height: 0; justify-content: flex-start; padding-top: calc(var(--ticker-h) + 96px); }
+.hero[data-mode="fix"] .hero-text::before { top: 0; background: rgba(var(--ground-rgb), 0.82); }
+.hero[data-mode="fix"] :is(.problem, .scan, .pills, h1, .lede, .hero-actions, .note),
+.hero[data-mode="fix"] .loop { display: none; }
+.hero[data-mode="fix"] .report { margin-top: 0; max-width: none; width: 100%; }
+.report-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -4px 0 20px; }
+.report-back {
+  display: inline-flex; align-items: center; gap: 10px; min-height: var(--target); padding: 0 14px 0 10px;
+  font: 14px / 1 var(--px); color: var(--text-1); background: none; border: 1px solid var(--hair); cursor: pointer;
+}
+.report-back::before { content: ""; width: 10px; height: 10px; border-left: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); margin-left: 4px; }
+.report-back:hover { border-color: var(--frame); }
+.report-mode { font-family: var(--px); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-3); }
+.report-side { display: grid; gap: 14px; }
+.report-score { justify-content: flex-end; }
+@media (max-width: 759px) { .report-score { justify-content: flex-start; } }
+.report-clean { color: var(--text-1); }
+.btn-white { --btn-bg: var(--frame); --btn-fg: var(--ground); --btn-bd: var(--frame); }
+.btn-white:hover { --btn-bg: rgba(var(--ink-rgb), 0.82); --btn-fg: var(--ground); --btn-bd: transparent; }
+.cmd-white { --cmd-bd: var(--frame); --cmd-act-fg: var(--ground); --cmd-act-bg: var(--frame); --cmd-act-bd: var(--frame); background: var(--frame); color: var(--ground); }
+.cmd-white code, .cmd-white .cmd-prompt { color: var(--ground); }
+.report-deep .cmd { max-width: 100%; }

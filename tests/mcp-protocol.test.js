@@ -13,6 +13,7 @@ import { startServer, startLegacy, MODERN_META, structured } from "./helpers/mcp
 import { MAX_LINE_BYTES, SUPPORTED_VERSIONS } from "../src/mcp/server.js";
 import { listTools } from "../src/mcp/tools.js";
 import { validate } from "../src/mcp/validate.js";
+import { parseMcpArgs } from "../src/cli/mcp.js";
 
 const SPEC = join(import.meta.dirname, "fixtures", "mcp-spec");
 const spec = (f) => JSON.parse(readFileSync(join(SPEC, f), "utf8"));
@@ -147,6 +148,29 @@ describe("legacy era (initialize)", () => {
     } finally {
       rmSync(base, { recursive: true, force: true });
     }
+  });
+
+  it("falls back to --root when every client root is missing (host paths in a container)", async () => {
+    const base = realpathSync(mkdtempSync(join(tmpdir(), "penthera-mcp-container-")));
+    const src = join(base, "src");
+    mkdirSync(src);
+    try {
+      client = await startLegacy({
+        roots: [src],
+        onClientRequest: () => ({ roots: [{ uri: pathToFileURL(join(base, "Users", "me", "project")).href, name: "host" }] }),
+      }, "2025-11-25", { roots: {} });
+      const res = await client.request("tools/call", { name: "audit_ai_tooling", arguments: {} });
+      expect(res.result.isError).toBeUndefined();
+      const outside = await client.request("tools/call", { name: "audit_ai_tooling", arguments: { path: base } });
+      expect(outside.result.content[0].text).toMatch(new RegExp(`outside the workspace this server may read \\(${src}\\)`));
+    } finally {
+      rmSync(base, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses to start when no --root exists, and names it", () => {
+    const missing = join(tmpdir(), "penthera-mcp-no-such-root", "src");
+    expect(() => parseMcpArgs(["--root", missing])).toThrow(`No usable --root: ${missing} (each must be an existing folder)`);
   });
 
   it("keeps the server's roots when the client declares no roots capability", async () => {

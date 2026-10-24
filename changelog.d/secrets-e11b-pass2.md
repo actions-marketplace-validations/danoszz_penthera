@@ -18,6 +18,12 @@ section: Detection
   (`POSTGRES_PASSWORD: …`, `spring.datasource.password=…`). References
   (`${DB_PASSWORD}`, `{{ … }}`, `ENC(…)`, `env(…)`), YAML tags and aliases,
   paths, URLs and numbers do not.
+- **The generic API key rule reads key names by their words too.** It finds
+  API keys, API tokens, client secrets, auth tokens and AWS secret access
+  keys under quoted, prefixed and suffixed keys (`"apiKey":`,
+  `STRIPE_API_KEY`, `client_secret`), and bare values in config files. Names
+  and stand-ins (`my_api_key`, `sk_test_…`), plain words, digits only and
+  public or publishable keys no longer count.
 - **More private-key shapes.** DSA keys, encrypted PKCS#8 keys
   (`ENCRYPTED PRIVATE KEY`) and PGP private key blocks are found, and so are
   keys built by string concatenation (`"-----BEGIN …\n" +`) or written on one

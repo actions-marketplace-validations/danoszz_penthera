@@ -171,6 +171,38 @@ describe("private-key variants (A3)", () => {
   });
 });
 
+describe("generic API keys (A5)", () => {
+  const api = (text, path) => findSecretsInText(text, { path }).filter((h) => h.name === "Generic API key assignment").length;
+  // Made-up values in the shapes real providers issue: hex, base64, dotted,
+  // prefixed with key-, UUID-like.
+  const real = [j("4f9c2e7b1d", "8a6035e2c4b7f19d0a3e5c88"), j("Zq8vT2mR", "x5LpW9nK3sJ7dF4hY6gB"), j("SG.k3Jd9", "Lx2QwErTyUi.pA8sDf7GhJkL0zXcVbNm1Qw2Er3Ty4Ui5Op6As"), j("key-3ax6xn", "jp29jd6fds4gc373sgvjxteol0"), j("b1e4f0c2-", "9a7d-4e3b-8c6f-2d5a1e9b7c40")];
+
+  it("finds API keys, tokens and client secrets under quoted and prefixed keys", () => {
+    for (const v of real) {
+      expect(api(`{"apiKey": "${v}"}`), v).toBe(1);
+      expect(api(`STRIPE_API_KEY = "${v}"`), v).toBe(1);
+      expect(api(`client_secret: '${v}'`), v).toBe(1);
+      expect(api(`config.auth_token = "${v}"`), v).toBe(1);
+      expect(api(`aws_secret_access_key = "${v}"`), v).toBe(1);
+    }
+  });
+
+  it("finds a bare value in a config file, not in code", () => {
+    expect(api(`MAILGUN_API_KEY=${real[3]}\n`, ".env")).toBe(1);
+    expect(api(`x-api-token: ${real[1]}\n`, "app.yml")).toBe(1);
+    expect(api(`apiKey: ${real[1]}`, "src/app.js")).toBe(0);
+  });
+
+  it("skips names, stand-ins, plain words, public keys and other key names", () => {
+    for (const v of ["my_api_key", "secret_key_base", "oauthClientSecret", j("sk_te", "st_4f9c2e7b1d8a"), "whatever", "PROTECTED", "123456790", "1234567890abcdefghijklmnopqrstuvwxyz", "${API_KEY}", "{api_key}", "<TESLA_CLIENT_SECRET>"]) {
+      expect(api(`api_key = "${v}"`), v).toBe(0);
+    }
+    expect(api(`publicApiKey: "${real[0]}"`)).toBe(0);
+    expect(api(`api_key_id = "${real[0]}"`)).toBe(0);
+    expect(api(`token = "${real[0]}"`)).toBe(0);
+  });
+});
+
 describe("the new rules stay fast on hostile input", () => {
   it("password and key rules are linear-ish", () => {
     for (const text of [`${PW}`.repeat(50_000), "a_".repeat(100_000) + `${PW}:`, "-----BEGIN DSA PRIVATE KEY-----" + "\n \"".repeat(50_000), ` ${PW} = ` + "'".repeat(100_000), "x.".repeat(100_000) + PW]) {

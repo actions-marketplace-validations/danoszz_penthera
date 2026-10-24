@@ -162,4 +162,15 @@ L.push("", `Paid tools (${PAID.join(", ")}) publish no results on these benchmar
 const outDir = sample ? RESULTS : join(ROOT, "bench", "public");
 writeFileSync(join(outDir, sample ? "published.sample.json" : "published.json"), JSON.stringify(published, null, 2) + "\n");
 writeFileSync(join(outDir, sample ? "PUBLISHED.sample.md" : "PUBLISHED.md"), L.join("\n") + "\n");
+// --readme <file>: write the tables between the README's markers. A sample
+// only goes into a copy (--readme pointing outside the repo), never README.md.
+const readme = opt("--readme");
+if (readme) {
+  if (sample && readme === join(ROOT, "README.md")) throw new Error("refusing to write sample numbers into README.md");
+  const START = "<!-- public-benchmarks:start -->", END = "<!-- public-benchmarks:end -->";
+  const text = readFileSync(readme, "utf-8");
+  const a = text.indexOf(START), b = text.indexOf(END);
+  if (a < 0 || b < a) throw new Error(`${readme}: no ${START} ... ${END} markers`);
+  writeFileSync(readme, text.slice(0, a + START.length) + "\n" + L.join("\n").replace(/^### /gm, "#### ") + "\n" + text.slice(b));
+}
 console.log(L.join("\n"));

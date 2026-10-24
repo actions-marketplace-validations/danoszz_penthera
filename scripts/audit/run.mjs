@@ -53,9 +53,11 @@ const BENCH_MAX_DROP = 0.02;
 // packed; was 835_000. About 10 KB of headroom.
 // Raised for library mode (lib/whitebox/library.js and js-lex.js, the larger
 // code-sinks.js: ~47 KB unpacked, ~14 KB packed, 2 files, no dependencies),
-// pending the maintainer's agreement (E11b § 6): was 850_000 packed /
-// 2_300_000 unpacked. Main was at ~846 KB packed before it.
-const PACK_BUDGET = { packedBytes: 875_000, unpackedBytes: 2_350_000, files: 260 };
+// agreed by the maintainer (E11b § 6): was 850_000 packed / 2_300_000 unpacked.
+// Raised for E11b round 2 with the maintainer's OK (2026-10-24): library mode's
+// helper hop, the secret provider and token rules and the PyPI malware passes
+// put it at ~853 KB packed / ~2,304 KB unpacked; was 875_000 / 2_350_000.
+const PACK_BUDGET = { packedBytes: 900_000, unpackedBytes: 2_400_000, files: 260 };
 
 /** Paths the npm package may contain. Anything else fails the packaging gate. */
 const PACK_ALLOW = [

@@ -6,7 +6,7 @@
 
 | | |
 |---|---|
-| Status | Proposed, for the maintainer's approval (Daan van der Zwaag) |
+| Status | Accepted by the maintainer (Daan van der Zwaag), 2026-10-24, including the speed cost |
 | Date | 2026-10-24 |
 | Context | E11b improvement study (`docs/research/prereg/E11b-improvement-study.md`, in PR #155), pass 1. PRs #159 (coverage) and the stacked A6 PR (reporting) |
 | Authors | Daan van der Zwaag decides. Drafted with Claude (AI-assisted) |
@@ -76,6 +76,9 @@ That is why it found 0 of 49 command injections in SecBench.js's dev split.
 **Decision.** Penthera audits libraries too (maintainer, 2026-10-24).
 
 - Library findings are reported at `potential` confidence, below app findings.
+- A function whose whole job is to run its argument as a command is reported
+  too, at `potential`, with the note that callers must not pass untrusted
+  input (maintainer, 2026-10-24).
 - The mode turns on with a flag, or automatically when `package.json`
   declares no app framework. The exact trigger is decided after the dev-split
   analysis of SecBench.js (workstream D) and recorded here.

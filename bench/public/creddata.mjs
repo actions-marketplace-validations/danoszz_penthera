@@ -95,7 +95,10 @@ function lineIndex(text) {
 async function rulesFor() {
   const m = await import("../../lib/whitebox/secrets.js");
   if (m.secretRulesFor) return (inRepo, abs) => m.secretRulesFor(inRepo, head(abs));
-  return (inRepo) => (m.isSecretScanTarget(inRepo) ? "all" : null);
+  if (m.isSecretScanTarget) return (inRepo) => (m.isSecretScanTarget(inRepo) ? "all" : null);
+  // Releases before 1.5 export no file policy: replay every rule on every
+  // file. Only their CLI run ("as reported", the published number) is exact.
+  return () => "all";
 }
 function head(abs) {
   try { return readFileSync(abs, "utf-8").slice(0, 256); } catch { return ""; }

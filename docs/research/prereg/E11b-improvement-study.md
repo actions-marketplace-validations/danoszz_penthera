@@ -109,6 +109,21 @@ A change that breaks a guard is rejected, whatever it gains.
 | DataDog PyPI | Benign false alarms ≤ 0.03, with malicious PyPI ≥ 0.78 |
 | SecBench.js | Command-injection strict recall ≥ 0.50 in a library mode, only if the maintainer decides to build one (D0 in the plan) |
 
+Registered 2026-10-24, after the dev-split analysis and before the test half
+was scored (maintainer's decisions):
+
+- **npm malware, two rows.** The main npm score counts packages that carry a
+  payload. Packages with none (registry spam that republishes itself, empty
+  `npm init` packages, harmless proofs of concept, security holding
+  placeholders) are reported as their own row with their own rate, never
+  dropped. The kind of each test sample is assigned by the same written
+  criteria as on dev (`b1` taxonomy), before Penthera's result on it is seen.
+  The ≥ 0.70 target applies to the payload row; E11's all-packages rate is
+  reported next to it.
+- **SecBench.js, library mode.** Built (D0 decided yes). A function whose whole
+  job is to run its argument is reported at `potential` and counted as found.
+  The command-injection rate without those cases is reported next to it.
+
 ## 8. Human-in-the-loop protocol
 
 Each pass handles one rule or one gap:
@@ -148,3 +163,11 @@ with before and after on the same test half and the decision log.
 
 As in E11 § 11. Looking at the test half before the final run, or changing a
 manifest, voids the "after" claim, and is reported as such.
+
+Logged so far:
+
+- 2026-10-24: the SecBench.js analysis ran a prototype library rule on 10
+  cached repositories (`~/.cache/penthera-bench/repos/`) to count false alarms
+  in apps. E1 has not drawn its sample yet, so these may later fall in E1's
+  frame. They are listed here so E1 can exclude them. The independent check in
+  § 10 uses mcp-vulnbench, not E1.

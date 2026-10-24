@@ -18,6 +18,10 @@ section: Detection
   (`POSTGRES_PASSWORD: …`, `spring.datasource.password=…`). References
   (`${DB_PASSWORD}`, `{{ … }}`, `ENC(…)`, `env(…)`), YAML tags and aliases,
   paths, URLs and numbers do not.
+- **More private-key shapes.** DSA keys, encrypted PKCS#8 keys
+  (`ENCRYPTED PRIVATE KEY`) and PGP private key blocks are found, and so are
+  keys built by string concatenation (`"-----BEGIN …\n" +`) or written on one
+  line inside a JSON string. A key still needs its base64 body.
 - **A file with many secrets lists them all, up to 200.** The scan stopped
   looking after 50 hits of one rule in a file, while a finding lists up to 200
   lines. It now looks for as many as it can list.

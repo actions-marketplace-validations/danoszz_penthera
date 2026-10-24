@@ -7,6 +7,7 @@ import { describe, it, expect } from "vitest";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { cpuMs } from "./fixtures/cpu-time.js";
 import { findSecretsInText, isPasswordKey, keyWords, isSequential, isCredentialName, scanSecrets } from "../lib/whitebox/secrets.js";
 
 const j = (...p) => p.join("");
@@ -142,6 +143,38 @@ describe("bare values in config files (A4b)", () => {
   it("skips placeholders, references, paths, URLs, numbers and YAML tags", () => {
     for (const v of ["${DB_PASSWORD}", "${DB_PASSWORD:-x}", "{{ db_password }}", "<password>", "[password]", "%(db_pw)s", "changeme", "true", "123456789", "/run/secrets/db", "./secrets/pw", "https://vault.example.com/pw", "!vault", "*db_pw", "|", "ENC(G6N718UuyPE5bHyWKyuLQSm02auQPUtm)", "env(DB_PASSWORD)", "admin"]) {
       expect(cfg(`${PW}: ${v}\n`, "app.yml"), v).toBe(0);
+    }
+  });
+});
+
+describe("private-key variants (A3)", () => {
+  const BODY = "MIIBuwIBAAKBgQDfakeTestKeyBodyForPentheraUnitTestsOnly0123456789";
+  const pem = (kind) => j("-----BEGIN ", kind, "-----\n", BODY, "\nAbCdEfGhIjKlMnOpQrStUvWxYz0123456789+/AbCd\n-----END ", kind, "-----\n");
+  const keys = (text) => names(text).filter((n) => n === "Private key block").length;
+
+  it("finds DSA, encrypted PKCS#8 and PGP private keys", () => {
+    expect(keys(pem("DSA PRIVATE KEY"))).toBe(1);
+    expect(keys(pem("ENCRYPTED PRIVATE KEY"))).toBe(1);
+    expect(keys(j("-----BEGIN PGP ", "PRIVATE KEY BLOCK-----\nVersion: GnuPG v2\n\n", BODY, "\n"))).toBe(1);
+  });
+
+  it("finds a key built by string concatenation, or in one JSON string", () => {
+    const lines = pem("RSA PRIVATE KEY").trim().split("\n");
+    expect(keys(lines.map((l) => `  "${l}\\n" +`).join("\n"))).toBe(1);
+    expect(keys(lines.map((l) => `\t\t+ '${l}  \\n'`).join("\n"))).toBe(1);
+    expect(keys(`{"key": "${lines[0]}\\n${"A1b2C3d4".repeat(80)}\\n${lines.at(-1)}"}`)).toBe(1);
+  });
+
+  it("still needs a body: a public key or a bare header is not a private key", () => {
+    expect(keys(j("-----BEGIN PGP ", "PUBLIC KEY BLOCK-----\n\n", BODY, "\n"))).toBe(0);
+    expect(keys(j("-----BEGIN DSA ", "PRIVATE KEY-----\n...\n"))).toBe(0);
+  });
+});
+
+describe("the new rules stay fast on hostile input", () => {
+  it("password and key rules are linear-ish", () => {
+    for (const text of [`${PW}`.repeat(50_000), "a_".repeat(100_000) + `${PW}:`, "-----BEGIN DSA PRIVATE KEY-----" + "\n \"".repeat(50_000), ` ${PW} = ` + "'".repeat(100_000), "x.".repeat(100_000) + PW]) {
+      expect(cpuMs(() => findSecretsInText(text, { path: "a.yml" }))).toBeLessThan(1500);
     }
   });
 });

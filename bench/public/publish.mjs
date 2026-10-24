@@ -126,7 +126,7 @@ function library(now, before, tools) {
   if (now) rows.push(row("Penthera", now.env?.penthera?.slice(0, 7) || "now", "penthera", now.per));
   if (before) rows.push(row("Penthera 1.9.0", "1.9.0", "penthera-before", before.per, { excluded: true }));
   // A variant (another output mode of the same tool) is shown, not ranked.
-  for (const [name, t] of Object.entries(tools?.tools || {})) if (!t.error && t.per) rows.push(row(name, t.version, "tool", t.per, t.variantOf ? { excluded: true, caveat: `another setting of ${t.variantOf}, not ranked` } : {}));
+  for (const [name, t] of Object.entries(tools?.tools || {})) if (!t.error && t.per) rows.push(row(name, t.version, "tool", t.per, t.variantOf ? { excluded: true, caveat: `another setting of ${t.variantOf}, not ranked` } : name === "codeql" ? { caveat: "used under the GitHub CodeQL terms, for research on open-source code" } : {}));
   const out = rank(rows, { r: 1 });
   return { title: "Injection bugs in JavaScript libraries (SecBench.js)", measure: "share of command and code injection bugs found in the right file", ...out };
 }

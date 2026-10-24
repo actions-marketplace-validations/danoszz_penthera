@@ -171,3 +171,9 @@ Logged so far:
   in apps. E1 has not drawn its sample yet, so these may later fall in E1's
   frame. They are listed here so E1 can exclude them. The independent check in
   § 10 uses mcp-vulnbench, not E1.
+- 2026-10-24: after pass 1 the maintainer delegated the per-pass review (§ 8)
+  to one review at the end: "continue with fixing the gaps one by one and
+  report back to me once all is done". Each later pass still keeps its review
+  sheet (the random sample of new hits, new false alarms and misses), its
+  general justification (§ 9) and its guard results, so the maintainer can
+  accept or roll back each pass on its own before the test half is run.

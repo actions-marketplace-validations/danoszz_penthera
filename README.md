@@ -214,8 +214,8 @@ Each feature goes through the same path: **method → evidence → tool.**
 
 | Measure | Result | Sample |
 |---|---|---|
-| Precision, bundled benchmark | 0.88, 95% CI 0.69 to 0.96 | 21 true and 3 false positives |
-| Recall, bundled benchmark | 0.91, 95% CI 0.73 to 0.98 | 2 misses, [each explained](bench/RESULTS.md) |
+| Precision, bundled benchmark | 0.92, 95% CI 0.74 to 0.98 | 22 true and 2 false positives |
+| Recall, bundled benchmark | 0.96, 95% CI 0.79 to 0.99 | 1 miss, [explained](bench/RESULTS.md) |
 | Requests past loopback during the benchmark | 0 | Enforced by a network guard |
 | E10 pilot, known-vulnerable apps | Precision 0.88, 95% CI 0.78 to 0.93. Recall 0.07 before fixes, 0.71 (CI 0.45 to 0.88) after | 14 root causes in Juice Shop and DVNA ([results](bench/known-vuln/RESULTS-after-fixes.md)) |
 | Detection rules, all readable | 132 in this release: 16 URL scan templates, 21 secret and AI-key patterns, 15 dependency capabilities, 39 AI-tooling rules, 5 fix recipes, and the signed rule packs | [Rule packs](docs/rule-packs.md) |

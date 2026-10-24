@@ -30,6 +30,7 @@ import { agentFiles, docPages, fill, REPO } from "./agents.mjs";
 import { jsonLd } from "./agent-ready.mjs";
 import { landingPages, landingHtml, landingMarkdown } from "./landing.mjs";
 import { termsPage } from "./terms.mjs";
+import { publicBenchHtml } from "./public-bench.mjs";
 
 const SITE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(SITE, "..");
@@ -486,6 +487,10 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
   values.OG_IMAGE = `${values.SITE_URL}/media/social/og.png?v=${hash(readFileSync(join(SITE, "media", "social", "og.png")))}`;
   values.OG_VIDEO = `${values.SITE_URL}/media/social/reel.mp4?v=${hash(readFileSync(join(SITE, "media", "social", "reel.mp4")))}`;
   values.STARS_LABEL = values.STARS ? `, ${values.STARS} stars` : "";
+  // The public-benchmark ranking (E11b), from bench/public/published.json.
+  // PENTHERA_PUBLISHED points a local preview at a sample file instead.
+  const pubFile = process.env.PENTHERA_PUBLISHED || join(ROOT, "bench", "public", "published.json");
+  values.PUBLIC_BENCH = existsSync(pubFile) ? publicBenchHtml(JSON.parse(readFileSync(pubFile, "utf8"))) : "";
   const cmp = readCompare();
   values.COMPARE = compareTable(cmp, values);
   values.COMPARE_SUMMARY = compareSummary(cmp, values);

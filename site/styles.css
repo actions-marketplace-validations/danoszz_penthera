@@ -1234,3 +1234,34 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .cmd-white { --cmd-bd: var(--frame); --cmd-act-fg: var(--ground); --cmd-act-bg: var(--frame); --cmd-act-bd: var(--frame); background: var(--frame); color: var(--ground); }
 .cmd-white code, .cmd-white .cmd-prompt { color: var(--ground); }
 .report-deep .cmd { max-width: 100%; }
+
+/* ── Public benchmarks: ranked against the free tools (section 02) ─────── */
+.pb { margin-top: clamp(80px, 10vw, 140px); }
+.pb-sample { display: inline-block; margin-bottom: 24px; padding: 6px 10px; font-family: var(--px); font-size: 13px; background: var(--accent-ink); color: rgb(var(--ground-rgb)); }
+.pb-cards { list-style: none; margin: 40px 0 0; padding: 0; display: grid; gap: 16px; }
+@media (min-width: 760px) { .pb-cards { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1200px) { .pb-cards { grid-template-columns: repeat(4, 1fr); } }
+.pb-card {
+  --plate: color-mix(in srgb, rgb(var(--ink-rgb)) 9%, var(--ground));
+  padding: 24px; display: grid; align-content: start; gap: 10px;
+  background: linear-gradient(160deg, color-mix(in srgb, rgb(var(--ink-rgb)) 14%, var(--ground)), var(--plate) 45%, color-mix(in srgb, rgb(var(--ink-rgb)) 4%, var(--ground)));
+  border: 1px solid rgba(var(--ink-rgb), 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+}
+.pb-k { font-family: var(--display); font-size: 17px; font-weight: 500; color: var(--text-1); }
+.pb-k span { display: block; margin-top: 4px; font-family: var(--px); font-size: 12px; font-weight: 400; color: var(--text-3); }
+.pb-rank { margin-top: 8px; font-family: var(--display); line-height: 1; color: var(--text-1); }
+.pb-place { font-size: clamp(56px, 6vw, 80px); font-weight: 500; letter-spacing: -0.04em; }
+.pb-card:has(.is-us:first-child) .pb-place { color: var(--accent-ink); }
+.pb-of { font-family: var(--px); font-size: 15px; color: var(--text-2); }
+.pb-lines { font-family: var(--px); font-size: 14px; color: var(--text-1); }
+.pb-was { font-family: var(--px); font-size: 13px; color: var(--text-3); }
+.pb-chart { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.pb-row { display: grid; grid-template-columns: 13ch 1fr 4ch; gap: 8px; align-items: center; font-family: var(--px); font-size: 12px; color: var(--text-2); }
+.pb-tool { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pb-bar { height: 8px; width: var(--w); border: 1px solid rgba(var(--ink-rgb), 0.45); }
+.pb-val { text-align: right; font-variant-numeric: tabular-nums; }
+.pb-row.is-us { color: var(--text-1); }
+.pb-row.is-us .pb-bar { background: linear-gradient(90deg, var(--accent-ink), color-mix(in srgb, var(--accent-ink) 55%, rgb(var(--ink-rgb)))); border-color: var(--accent-ink); }
+.pb-score, .pb-note { font-family: var(--px); font-size: 12px; color: var(--text-3); }
+.bench-also { margin-top: 64px; }

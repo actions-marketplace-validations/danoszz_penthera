@@ -4,7 +4,10 @@
  * self-scan does not report this file.
  */
 import { describe, it, expect } from "vitest";
-import { findSecretsInText, isPasswordKey, keyWords, isSequential, isCredentialName } from "../lib/whitebox/secrets.js";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { findSecretsInText, isPasswordKey, keyWords, isSequential, isCredentialName, scanSecrets } from "../lib/whitebox/secrets.js";
 
 const j = (...p) => p.join("");
 const PW = j("pass", "word");
@@ -112,6 +115,20 @@ describe("realistic passwords still match", () => {
     for (const v of real) {
       expect(pw(`db_${PW} = "${v}"`), v).toBe(1);
       expect(pw(`{"${PW}": "${v}"}`), v).toBe(1);
+    }
+  });
+});
+
+describe("a file with many hits", () => {
+  it("lists up to 200 lines per rule, not 50", () => {
+    const dir = mkdtempSync(join(tmpdir(), "penthera-many-"));
+    try {
+      const lines = Array.from({ length: 120 }, (_, i) => `user${i}_${PW} = "${V}${i}"`);
+      writeFileSync(join(dir, "users.py"), lines.join("\n") + "\n");
+      const [f] = scanSecrets(dir);
+      expect(f.lines).toHaveLength(120);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
     }
   });
 });

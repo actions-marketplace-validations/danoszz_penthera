@@ -33,7 +33,7 @@ describe("secret scan reads Terraform and HCL", () => {
   });
 
   it("finds a private key inline in a Terraform resource", () => {
-    const key = j("-----BEGIN RSA ", "PRIVATE KEY-----\\nMIICXAIBAAKBgQDN\\n-----END RSA ", "PRIVATE KEY-----");
+    const key = j("-----BEGIN RSA ", "PRIVATE KEY-----\\nMIICXAIBAAKBgQDNfakeTestKeyBodyNotARealKeyAtAll0123456789\\n-----END RSA ", "PRIVATE KEY-----");
     const tf = `resource "tls_cert_request" "web" {\n  private_key_pem = "${key}"\n}\n`;
     const findings = scanOne("networking.tf", tf);
     expect(findings.map((f) => f.title)).toContain("Private key block in source");

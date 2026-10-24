@@ -6,7 +6,7 @@
       "source": "AKIA[0-9A-Z]{16}",
       "flags": "",
       "severity": "critical",
-      "skipIf": false
+      "skipIf": true
     },
     {
       "name": "GitHub token",
@@ -122,14 +122,14 @@
     },
     {
       "name": "GCP/Firebase service account",
-      "source": "\"private_key\"\\s*:\\s*\"-----BEGIN",
+      "source": "\"private_key\"\\s*:\\s*\"-----BEGIN [A-Z ]*PRIVATE KEY-----(?:(?:\\\\r)?(?:\\\\n|\\r?\\n)[ \\t\"'#*]*[A-Za-z-]+:[^\\r\\n\\\\]*)*(?:(?:\\\\r)?(?:\\\\n|\\r?\\n)[ \\t\"'#*]*)+[A-Za-z0-9+/]{40}",
       "flags": "",
       "severity": "critical",
       "skipIf": false
     },
     {
       "name": "Private key block",
-      "source": "-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----",
+      "source": "-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----(?:(?:\\\\r)?(?:\\\\n|\\r?\\n)[ \\t\"'#*]*[A-Za-z-]+:[^\\r\\n\\\\]*)*(?:(?:\\\\r)?(?:\\\\n|\\r?\\n)[ \\t\"'#*]*)+[A-Za-z0-9+/]{40}",
       "flags": "",
       "severity": "critical",
       "skipIf": false

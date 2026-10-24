@@ -27,21 +27,29 @@ function card(key, b) {
   const us = ranked.find((r) => r.kind === "penthera");
   const was = b.rows.find((r) => r.kind === "penthera-before");
   if (!us) return "";
-  const wasRank = wouldRank(was, ranked);
-  const max = Math.max(...ranked.map((r) => r.score), 0.01);
-  const bars = ranked.map((r) => `<li class="pb-row${r.kind === "penthera" ? " is-us" : ""}"><span class="pb-tool">${esc(r.tool)}</span><span class="pb-bar" style="--w:${Math.max(2, Math.round((r.score / max) * 100))}%"></span><span class="pb-val">${n2(r.score)}</span></li>`).join("");
-  const notes = b.rows.filter((r) => r.caveat).map((r) => `${esc(r.tool)}: ${esc(r.caveat)}.`).join(" ");
-  return `<li class="pb-card">
+  const wasRank = b.ranked ? wouldRank(was, ranked) : null;
+  // Bars are SVG (the site's CSP blocks inline styles). Ranked: relative to the best score, every tool. A small field: a
+  // fixed 0-100% meter per tool, so one or two rows still read as a scale.
+  const max = b.ranked ? Math.max(...ranked.map((r) => r.score), 0.01) : 1;
+  const w = (x) => Math.max(2, Math.round((Math.max(0, x) / max) * 100));
+  const bars = ranked.map((r) => `<li class="pb-row${r.kind === "penthera" ? " is-us" : ""}"><span class="pb-tool">${esc(r.tool)}</span><svg class="pb-track" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect class="pb-bg" width="100" height="10"/>${b.ranked ? "" : '<path class="pb-ticks" d="M25 0V10M50 0V10M75 0V10"/>'}<rect class="pb-bar" width="${w(r.score)}" height="10"/></svg><span class="pb-val">${b.ranked ? n2(r.score) : `${Math.round(r.score * 100)}%`}</span></li>`).join("");
+  const medKey = key === "secrets" ? "f1" : key === "library" ? "r" : "j";
+  const median = b.others?.[medKey]?.median;
+  const notes = b.rows.filter((r) => r.caveat).map((r) => `<li>${esc(r.tool)}: ${esc(r.caveat)}.</li>`).join("");
+  const more = [
+    `<li>Scored by ${esc(c.score.toLowerCase())}${median != null ? `; median of the free tools ${n2(median)}` : ""}.</li>`,
+    was ? `<li>Penthera 1.9.0: ${c.lines(was).map(esc).join(", ")}${wasRank ? `; it would rank ${ord(wasRank)}` : ""}.</li>` : "",
+    b.ranked ? "" : `<li>No rank: ${b.field} other free tool${b.field === 1 ? "" : "s"} measured, and a rank needs at least five.</li>`,
+    notes,
+  ].join("");
+  return `<li class="pb-card${b.ranked ? "" : " is-small"}">
           <p class="pb-k">${esc(c.label)} <span>${esc(c.data)}</span></p>
           ${b.ranked
             ? `<p class="pb-rank"><span class="pb-place">${ord(us.rank)}</span> <span class="pb-of">of ${ranked.length}</span></p>`
             : `<p class="pb-rank"><span class="pb-place">${Math.round(us.score * 100)}%</span> <span class="pb-of">${esc(c.short)}</span></p>`}
           <p class="pb-lines">${c.lines(us).map(esc).join(" · ")}</p>
-          ${was ? `<p class="pb-was">1.9.0: ${c.lines(was).map(esc).join(" · ")}${wasRank ? `, would rank ${ord(wasRank)}` : ""}</p>` : ""}
           <ol class="pb-chart" aria-label="${esc(c.score)}, every tool">${bars}</ol>
-          <p class="pb-score">${esc(c.score)}${b.others?.[key === "secrets" ? "f1" : key === "library" ? "r" : "j"]?.median != null ? `. Median of the free tools: ${n2(b.others[key === "secrets" ? "f1" : key === "library" ? "r" : "j"].median)}` : ""}.</p>
-          ${b.ranked ? "" : `<p class="pb-note">Not ranked: ${b.field} other free tool${b.field === 1 ? "" : "s"} measured, fewer than five.</p>`}
-          ${notes ? `<p class="pb-note">${notes}</p>` : ""}
+          <details class="pb-more"><summary>How it is scored</summary><ul>${more}</ul></details>
         </li>`;
 }
 

@@ -94,7 +94,8 @@ lists no app framework (Express, Koa, Fastify, Next.js and similar) in
 its argument is severity medium. In library mode the scan reads `dist/` or
 `build/` when `package.json` points there and skips tooling, example and docs
 folders. Flows are followed inside the exported function, and one call
-further into a named function in the same file (round 2, proposed).
+further into a named function in the same file, and through fields a
+constructor or setter keeps on `this` (round 2, proposed).
 
 **Consequences.** New findings for library authors and for anyone auditing a
 dependency. It ships in 1.10 with a release candidate first, not in a patch.

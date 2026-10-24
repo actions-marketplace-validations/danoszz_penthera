@@ -131,7 +131,9 @@ How it works. Penthera finds the functions a caller can reach
 constructor, objects returned by an exported factory, ESM `export`). It
 follows each parameter through assignments, closures and callbacks inside that
 function, and one call further: when the function passes the value to a named
-function in the same file, that function's parameter is followed too. A shell command built from one is reported as `command-injection`
+function in the same file, that function's parameter is followed too. A value
+a constructor or setter keeps on `this` (`this.path = path`) is followed into
+the other methods of the same class or prototype. A shell command built from one is reported as `command-injection`
 at `potential` confidence and severity high. A function whose whole job is to
 run its argument (`exec(cmd)`) is reported at severity medium, with the note
 that callers must not pass untrusted input. In library mode the scan also
@@ -145,8 +147,7 @@ flagged no command injection in 150 npm packages of the benign baseline (dev hal
 16 app repositories. The sealed test half is not scored yet.
 
 Limits. Only one helper call is followed, and only to a function the file
-calls by name. A value stored on `this` and read in another method is not
-followed. Sanitizers are not recognized, so a
+calls by name. A field set from another field is not followed. Sanitizers are not recognized, so a
 correctly escaped command can still be reported; that is what `potential`
 means.
 

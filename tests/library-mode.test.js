@@ -119,7 +119,7 @@ describe("library mode: exported parameters as sources", () => {
       "constant command": `const c = require('${CP}')\nmodule.exports = function (cb) { c.${EXEC}('uname -a', cb) }\n`,
       "IIFE parameters are not a caller's": `const c = require('${CP}')\nmodule.exports = (function (root) { return { info() { c.${EXEC}('ls ' + root) } } })(__dirname)\n`,
       "spawn with an argument array": `const { spawn } = require('${CP}')\nmodule.exports = (file) => spawn('convert', [file, 'out.png'])\n`,
-      "stored on this, read in another method (not followed)": `const c = require('${CP}')\nclass T { constructor(p) { this.p = p } info() { c.${EXEC}('tool ' + this.p) } }\nmodule.exports = T\n`,
+      "a field set from a constant": `const c = require('${CP}')\nclass T { constructor(p) { this.p = p; this.bin = 'tool' } info() { c.${EXEC}(this.bin + ' --version') } }\nmodule.exports = T\n`,
       "parameter name inside a string": `const c = require('${CP}')\nmodule.exports = function (name) { c.${EXEC}('echo name') }\n`,
     };
     for (const [name, src] of Object.entries(quiet)) expect(lib(src), name).toEqual([]);
@@ -184,6 +184,39 @@ describe("library mode: one helper call", () => {
   it("lists the functions a file calls by name", () => {
     const { code } = lexJs("function a(x) {}\nconst b = (y) => y\nvar n = 1, c = function (z) {}\nconst o = { d(w) {} }\nlet e = async (v) => v\n");
     expect([...namedFunctions(code).keys()].sort()).toEqual(["a", "b", "c", "e"]);
+  });
+});
+
+describe("library mode: values kept on this", () => {
+  const found = {
+    "class field set in the constructor": `const c = require('${CP}')\nclass Disk { constructor(dev) { this.dev = dev } usage() { return c.${EXEC}Sync('df ' + this.dev) } }\nmodule.exports = Disk\n`,
+    "prototype method and constructor function": `var c = require('${CP}')\nfunction Img(file, opts) { this.file = file; this.opts = opts || {} }\nImg.prototype.info = function () { c.${EXEC}('identify "' + this.file + '"') }\nmodule.exports = Img\n`,
+    "prototype object and a method that builds the command": `var c = require('${CP}')\nfunction Doc(path) { this.path = path }\nDoc.prototype = {\n  command: function () { return 'pdfinfo "' + this.path + '"' },\n  pages: function (cb) { var cmd = this.command(); c.${EXEC}(cmd, cb) },\n}\nmodule.exports = Doc\n`,
+    "a setter and self = this": `const c = require('${CP}')\nclass Job { setTarget(t) { this.target = t } run() { const self = this; setTimeout(function () { c.${EXEC}('ping ' + self.target) }) } }\nexport default Job\n`,
+    "an options field": `const c = require('${CP}')\nexport class Tool { constructor(options) { this.options = options } version() { return c.${EXEC}Sync(\`\${this.options.bin} --version\`) } }\n`,
+    "an instance returned by an exported factory": `var c = require('${CP}')\nvar Stat = function (dir) { this.dir = dir }\nStat.prototype.size = function () { return c.${EXEC}Sync('du -s ' + this.dir) }\nmodule.exports = function (dir) { return new Stat(dir) }\n`,
+  };
+  for (const [name, src] of Object.entries(found)) {
+    it(`follows ${name}`, () => {
+      const hits = lib(src);
+      expect(hits.length, src).toBe(1);
+      expect(hits[0]).toMatchObject({ confidence: "potential", tainted: false, library: { kind: "parameter" } });
+      expect(app(src)).toEqual([]);
+    });
+  }
+
+  it("keeps fields to their own class", () => {
+    const quiet = {
+      "another class": `const c = require('${CP}')\nclass A { constructor(p) { this.p = p } }\nclass B { constructor() { this.p = 'x' } run() { c.${EXEC}('tool ' + this.p) } }\nmodule.exports = { A, B }\n`,
+      "a class that is not exported": `const c = require('${CP}')\nclass T { constructor(p) { this.p = p } run() { c.${EXEC}('tool ' + this.p) } }\nmodule.exports = () => 1\n`,
+      "a field set from another field": `const c = require('${CP}')\nclass T { constructor(p) { this.p = p; this.q = 'x' } a() { this.r = this.q } b() { c.${EXEC}('tool ' + this.r) } }\nmodule.exports = T\n`,
+    };
+    for (const [name, src] of Object.entries(quiet)) expect(lib(src), name).toEqual([]);
+  });
+
+  it("finds the class of each exported function", () => {
+    const { code } = lexJs("function K(a) { this.a = a }\nK.prototype.m = function () {}\nconst P = K.prototype\nP.n = function () {}\nclass C { x() {} }\nmodule.exports = { K, C }\n");
+    expect(Object.fromEntries(exportedFunctions(code).map((f) => [f.name, f.cls]))).toEqual({ K: "K", "K.prototype.m": "K", "P.n": "K", x: "C" });
   });
 });
 

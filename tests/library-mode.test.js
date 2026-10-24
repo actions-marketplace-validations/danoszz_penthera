@@ -10,7 +10,7 @@ import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { lexJs, maskStrings, stripComments } from "../lib/whitebox/js-lex.js";
 import { findSinks, scanCodeSinks } from "../lib/whitebox/code-sinks.js";
-import { detectLibrary, exportedFunctions, paramNames, parameterTaint } from "../lib/whitebox/library.js";
+import { detectLibrary, exportedFunctions, namedFunctions, paramNames, parameterTaint } from "../lib/whitebox/library.js";
 import { scanRepo } from "../src/scan-repo.js";
 
 // Split so Penthera's own scans do not read the fixtures as real sinks.
@@ -138,6 +138,52 @@ describe("library mode: exported parameters as sources", () => {
   it("lists what a file exports", () => {
     const { code } = lexJs("function a(x) {}\nfunction b(y) {}\nconst c = (z) => z\nmodule.exports = { a, c }\n");
     expect(exportedFunctions(code).map((f) => f.name).sort()).toEqual(["a", "c"]);
+  });
+});
+
+describe("library mode: one helper call", () => {
+  const found = {
+    "function declaration": `const { ${EXEC}Sync } = require('${CP}')\nfunction probe(tool) { return ${EXEC}Sync('which ' + tool) }\nmodule.exports = function has(name) { return probe(name) }\n`,
+    "arrow bound to a const": `const { ${EXEC} } = require('${CP}')\nconst list = (url) => new Promise((ok) => ${EXEC}(\`tool ls \${url}\`, ok))\nconst get = (url) => list(url).then(String)\nmodule.exports = { get }\n`,
+    "function expression in a var list": `var c = require('${CP}'), n = 1, run = function (opts, cb) { c.${EXEC}('tool ' + opts.flag, cb) }\nmodule.exports = { go: function (o, cb) { run({ flag: o.flag }, cb) } }\n`,
+    "second argument": `const c = require('${CP}')\nfunction tag(dir, name) { c.${EXEC}Sync('git tag ' + name, { cwd: dir }) }\nexports.tag = (name) => tag(process.cwd(), name)\n`,
+    "spread into a rest parameter": `const c = require('${CP}')\nfunction sh(...parts) { return c.${EXEC}Sync(parts.join(' ')) }\nexports.git = (...args) => sh('git', ...args)\n`,
+    "a value derived from the parameter": `const c = require('${CP}')\nfunction kill(pid) { c.${EXEC}('kill -9 ' + pid) }\nexports.stop = function (port) { const pid = lookup(port); kill(pid) }\n`,
+  };
+  for (const [name, src] of Object.entries(found)) {
+    it(`follows ${name}`, () => {
+      const hits = lib(src);
+      expect(hits.length, src).toBe(1);
+      expect(hits[0]).toMatchObject({ confidence: "potential", tainted: false, library: { kind: "parameter" } });
+      expect(hits[0].library.via).toBeTruthy();
+      expect(app(src)).toEqual([]);
+    });
+  }
+
+  it("marks a helper that runs the exported parameter unchanged", () => {
+    const hits = lib(`const c = require('${CP}')\nfunction sh(cmd) { return c.${EXEC}Sync(cmd) }\nexports.run = function (command) { return sh(command) }\n`);
+    expect(hits).toMatchObject([{ library: { kind: "runs-argument", function: "exports.run", via: "sh" } }]);
+  });
+
+  it("stops after one hop and at untainted arguments", () => {
+    const quiet = {
+      "two hops": `const c = require('${CP}')\nfunction inner(x) { c.${EXEC}('tool ' + x) }\nfunction mid(y) { inner(y) }\nmodule.exports = function (z) { mid(z) }\n`,
+      "tainted value at another position": `const c = require('${CP}')\nfunction run(cmd, cb) { c.${EXEC}('tool ' + cmd, cb) }\nmodule.exports = function (done) { run('--version', done) }\n`,
+      "a name bound twice": `const c = require('${CP}')\nfunction run(x) { c.${EXEC}('tool ' + x) }\nfunction run(x) { return x }\nmodule.exports = (v) => run(v)\n`,
+      "a method of another object": `const c = require('${CP}')\nconst h = { run(x) { c.${EXEC}('tool ' + x) } }\nmodule.exports = (v) => other.run(v)\n`,
+      "a helper called from a function that is not exported": `const c = require('${CP}')\nfunction run(x) { c.${EXEC}('tool ' + x) }\nfunction local(v) { run(v) }\nmodule.exports = () => local('a')\n`,
+    };
+    for (const [name, src] of Object.entries(quiet)) expect(lib(src), name).toEqual([]);
+  });
+
+  it("names the helper in the finding", () => {
+    const [f] = findSinks(`const c = require('${CP}')\nfunction probe(t) { c.${EXEC}Sync('which ' + t) }\nexports.has = (n) => probe(n)\n`, { library: true });
+    expect(f.library).toEqual({ function: "exports.has", kind: "parameter", via: "probe" });
+  });
+
+  it("lists the functions a file calls by name", () => {
+    const { code } = lexJs("function a(x) {}\nconst b = (y) => y\nvar n = 1, c = function (z) {}\nconst o = { d(w) {} }\nlet e = async (v) => v\n");
+    expect([...namedFunctions(code).keys()].sort()).toEqual(["a", "b", "c", "e"]);
   });
 });
 

@@ -31,17 +31,22 @@ const f1 = (p, r) => (p && r ? (2 * p * r) / (p + r) : 0);
 const median = (xs) => { const s = [...xs].sort((a, b) => a - b); const m = s.length >> 1; return s.length ? (s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2) : null; };
 const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
+// A rank means something only against a field: with fewer than this many
+// other tools measured, the tables show scores and no rank (E11b § 7).
+export const MIN_FIELD = 5;
+
 /** Rank rows by `score` (higher is better) and summarise the other tools. */
 function rank(rows, score) {
   const ranked = rows.filter((r) => r.score != null && !r.excluded).sort((a, b) => b.score - a.score);
-  ranked.forEach((r, i) => { r.rank = i + 1; });
   const others = ranked.filter((r) => r.kind === "tool");
+  const ranks = others.length >= MIN_FIELD;
+  if (ranks) ranked.forEach((r, i) => { r.rank = i + 1; });
   const summary = {};
   for (const k of Object.keys(score)) {
     const xs = others.map((r) => r[k]).filter((x) => x != null);
     summary[k] = { mean: mean(xs), median: median(xs) };
   }
-  return { rows, of: ranked.length, others: summary };
+  return { rows, of: ranked.length, ranked: ranks, field: others.length, others: summary };
 }
 
 // ── Secrets (CredData) ────────────────────────────────────────────────────
@@ -122,6 +127,15 @@ const now = Object.fromEntries(["creddata", "malware", "secbench"].map((b) => [b
 const was = Object.fromEntries(["creddata", "malware", "secbench"].map((b) => [b, beforeDir ? read(beforeDir, `${b}.${split}.json`) : null]));
 const comp = Object.fromEntries(["creddata", "malware", "secbench"].map((b) => [b, read(RESULTS, `competitors-${b}.${split}.json`)]));
 
+// Results published elsewhere: other datasets, other versions, so context
+// only, never a row in our tables.
+const CONTEXT = {
+  secrets: [{ title: "A comparative study of software secrets reporting by secret detection tools (2023): nine tools on SecretBench, ggshield included", url: "https://arxiv.org/abs/2307.00714" }],
+  npm: [{ title: "How effective are npm malicious package detectors? (2026): eleven detectors on their own benchmark", url: "https://arxiv.org/abs/2603.27549" }],
+  pypi: [{ title: "Cutting the Gordian knot: detecting malicious PyPI packages (USENIX Security 2026): GuardDog, Bandit4Mal and OSSGadget on PyPI", url: "https://arxiv.org/abs/2601.16463" }],
+  library: [{ title: "Study of JavaScript static analysis tools for vulnerability detection in Node.js packages (2023): nine tools incl. CodeQL, NodeJsScan, ODGen", url: "https://www.researchgate.net/publication/367088656" }],
+};
+
 const published = {
   split, sample, date: new Date().toISOString().slice(0, 10),
   note: sample ? "SAMPLE: practice (dev) half, for layout only. Not a result." : "Sealed test half, scored once (E11b § 10).",
@@ -133,6 +147,7 @@ const published = {
     library: library(now.secbench, was.secbench, comp.secbench),
   },
 };
+for (const [k, b] of Object.entries(published.benchmarks)) b.context = CONTEXT[k] || [];
 
 // ── Markdown (README source) ─────────────────────────────────────────────
 
@@ -144,18 +159,21 @@ const L = [];
 if (sample) L.push("> **SAMPLE.** Practice (dev) half, for layout only. Not a result.", "");
 const S = published.benchmarks.secrets;
 L.push(`### ${S.title}`, "", "| Rank | Tool | Precision | Recall | F1 |", "|---:|---|---|---|---|");
-for (const r of [...S.rows].sort((a, b) => (a.rank || 99) - (b.rank || 99))) L.push(`| ${r.rank ?? "–"} | ${name(r)}${r.caveat ? " ¹" : ""} | ${pct(r.p)}${civ(r.precisionCI)} | ${pct(r.r)}${civ(r.recallCI)} | ${pct(r.f1)} |`);
+for (const r of [...S.rows].sort((a, b) => (b.score ?? -1) - (a.score ?? -1))) L.push(`| ${r.rank ?? "–"} | ${name(r)}${r.caveat ? " ¹" : ""} | ${pct(r.p)}${civ(r.precisionCI)} | ${pct(r.r)}${civ(r.recallCI)} | ${pct(r.f1)} |`);
 L.push(`| | Free tools, mean / median | ${pct(S.others.p.mean)} / ${pct(S.others.p.median)} | ${pct(S.others.r.mean)} / ${pct(S.others.r.median)} | ${pct(S.others.f1.mean)} / ${pct(S.others.f1.median)} |`, "");
 for (const key of ["npm", "pypi"]) {
   const M = published.benchmarks[key];
   L.push(`### ${M.title}`, "", "| Rank | Tool | Caught | False alarms on benign packages | Caught minus false alarms |", "|---:|---|---|---|---|");
-  for (const r of [...M.rows].sort((a, b) => (a.rank || 99) - (b.rank || 99))) L.push(`| ${r.rank ?? "–"} | ${name(r)}${r.caveat ? " ²" : ""} | ${pct(r.r)}${civ(r.detectCI)} (${kn(r.detect)}) | ${pct(r.fa)}${civ(r.benignCI)} (${kn(r.benign)}) | ${pct(r.j)} |`);
+  for (const r of [...M.rows].sort((a, b) => (b.score ?? -1) - (a.score ?? -1))) L.push(`| ${r.rank ?? "–"} | ${name(r)}${r.caveat ? " ²" : ""} | ${pct(r.r)}${civ(r.detectCI)} (${kn(r.detect)}) | ${pct(r.fa)}${civ(r.benignCI)} (${kn(r.benign)}) | ${pct(r.j)} |`);
   L.push("");
 }
 const B = published.benchmarks.library;
 L.push(`### ${B.title}`, "", "| Rank | Tool | Command injection | Code injection | Both |", "|---:|---|---|---|---|");
-for (const r of [...B.rows].sort((a, b) => (a.rank || 99) - (b.rank || 99))) L.push(`| ${r.rank ?? "–"} | ${name(r)} | ${kn(r.command)} | ${kn(r.code)} | ${pct(r.r)}${civ(r.pooledCI)} |`);
-L.push("", `Paid tools (${PAID.join(", ")}) publish no results on these benchmarks, so they are not in the tables.`, "",
+for (const r of [...B.rows].sort((a, b) => (b.score ?? -1) - (a.score ?? -1))) L.push(`| ${r.rank ?? "–"} | ${name(r)} | ${kn(r.command)} | ${kn(r.code)} | ${pct(r.r)}${civ(r.pooledCI)} |`);
+L.push("", `A rank is shown only where at least ${MIN_FIELD} other free tools were measured; otherwise "–".`,
+  "", `Paid tools (${PAID.join(", ")}) publish no results on these benchmarks, so they are not in the tables.`, "",
+  "Published elsewhere, on other datasets (context, not comparable):", "",
+  ...Object.values(published.benchmarks).flatMap((b) => b.context.map((c) => `- [${c.title}](${c.url})`)), "",
   "¹ Not ranked: trained on this dataset by its authors. ² Found most samples in this dataset, so its rate is inflated by construction.");
 
 // Only the test split's numbers go in the repo; a sample stays in the cache.

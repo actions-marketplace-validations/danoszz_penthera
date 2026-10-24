@@ -131,7 +131,9 @@ and in-scope recall; malware by Youden's J, the share of malicious packages
 caught minus the share of benign packages flagged (npm on the payload row);
 SecBench.js by strict recall, command and code injection pooled. A tool
 trained on the dataset (CredSweeper) is shown, not ranked. Paid tools are
-listed as having no public results on these benchmarks.
+listed as having no public results on these benchmarks. A rank is shown only when at
+least five other free tools were measured on that benchmark; with fewer, the
+tables give the scores and no rank.
 
 ## 8. Human-in-the-loop protocol
 

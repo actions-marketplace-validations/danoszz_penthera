@@ -915,7 +915,9 @@ export async function run() {
   const hasSevere = merged.findings.some(
     (f) => f.severity === "critical" || f.severity === "high",
   );
-  process.exit(hasSevere ? 1 : 0);
+  // Exit only once stdout has drained: on a pipe the write is asynchronous, and
+  // exiting at once cut `--json` output off at the pipe buffer (64 KiB).
+  process.stdout.write("", () => process.exit(hasSevere ? 1 : 0));
 }
 
 export { mergeResults };

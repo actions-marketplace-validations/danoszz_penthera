@@ -143,9 +143,11 @@ examples and docs folders.
 
 How we know. On the dev half of SecBench.js (49 command injections in npm
 packages, the half we tuned on), strict recall went from 0.00 to 0.82, 95% CI
-0.69 to 0.90 (40 of 49); 33 of 49 without the "runs its argument" cases. It
-flagged no command injection in 150 npm packages of the benign baseline (dev half), and nothing new in
-16 app repositories. The sealed test half is not scored yet.
+0.69 to 0.90 (40 of 49), in the first version. The helper step and fields on
+`this` took it to 0.94, 95% CI 0.83 to 0.98 (46 of 49); 39 of 49 without the
+"runs its argument" cases. It flagged no command injection in 150 npm packages
+of the benign baseline (dev half), and nothing new in 16 app repositories. The
+sealed test half is not scored yet.
 
 Limits. Only one helper call is followed, and only to a function the file
 calls by name. A field set from another field is not followed. Sanitizers are not recognized, so a

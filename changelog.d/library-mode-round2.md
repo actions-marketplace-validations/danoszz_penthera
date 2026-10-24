@@ -10,3 +10,8 @@ section: Detection
   api)` count as exported. On the SecBench.js dev half, command-injection
   recall went from 40 to 46 of 49 (0.94, 95% CI 0.83 to 0.98), with no new finding in 150 benign npm packages or 16 app
   repositories ([scan.md](../docs/commands/scan.md#library-mode-scanning-a-package)).
+- **One long line no longer hides a file from the code-sink check.** A file is
+  skipped as minified only when lines over 5,000 characters hold more than half
+  of it, so a generated parser with one long table line is read. On the
+  SecBench.js dev half, code-injection recall went from 10 to 11 of 16 (0.69,
+  95% CI 0.44 to 0.86).

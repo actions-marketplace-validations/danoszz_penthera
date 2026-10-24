@@ -82,6 +82,18 @@ describe("sink shapes (both modes)", () => {
   });
 });
 
+describe("long lines", () => {
+  const ordinary = Array.from({ length: 300 }, (_, i) => `const v${i} = load(${i});`).join("\n");
+  it("reads a file with one long generated line among ordinary code", () => {
+    const src = `const table = [${"1,".repeat(3000)}1];\n${ordinary}\nconst out = ${EVAL}("[" + text + "]");\n`;
+    expect(findSinks(src)).toMatchObject([{ pattern: "eval", line: 302 }]);
+  });
+  it("still skips a file that is mostly long lines (minified)", () => {
+    const src = `${"var a=b(c);".repeat(2000)}${EVAL}(x);\n${"var d=e(f);".repeat(2000)}\n`;
+    expect(findSinks(src)).toEqual([]);
+  });
+});
+
 describe("library mode: exported parameters as sources", () => {
   const shapes = {
     "module.exports = function": `const { ${EXEC} } = require('${CP}')\nmodule.exports = function (name, cb) { ${EXEC}('pkill ' + name, cb) }\n`,

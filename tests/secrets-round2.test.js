@@ -45,3 +45,54 @@ describe("round 2, R1: provider token formats", () => {
     expect(names(doc, { shapesOnly: true, path: "docs/setup.rst" })).toEqual(["AWS access key"]);
   });
 });
+
+describe("round 2, R2: tokens and secrets under broader key names", () => {
+  const api = (text, path) => findSecretsInText(text, { path }).filter((h) => h.name === "Generic API key assignment").length;
+  // Made-up values in shapes real services issue: hex (GitHub OAuth app
+  // secret), base64 (a cookie key), base64url (an OAuth access token), a JWT,
+  // a UUID-style token, a dotted OAuth 1 token.
+  const real = [
+    j("9e1c4b7f2a", "d8350c6e9f14b2a7d03c5e8f6b19"),
+    j("q2Xv9LmR4t", "Kp7wZ3sN8bYc6Hd5Jf0G="),
+    j("ya29.a0Af", "H6SMBx7Kq2Lp9Rv4Tn8Wz3Ys"),
+    j("eyJhbGciOiJIUzI1NiJ9", ".eyJzdWIiOiI0MiJ9", ".Xq3vTn8Lp2Rw9Kz4Ys7Mb1Hd6Jf0Gc5"),
+    j("7c2e9a41-", "5bd3-4f86-a0e7-3d9c1b6f2e58"),
+    j("1849276035-", "Rk7Lp2Xq9Vt4Wn8Zs3Yb6Hd1Jf5Gc0Mp"),
+  ];
+
+  it("finds tokens and secrets whose key names the credential itself", () => {
+    for (const v of real) {
+      for (const k of ["access_token", "refreshToken", '"id_token"', "BEARER_TOKEN", "oauth_token_secret", "consumer_secret", "appSecret", "WEBHOOK_SECRET", "cookieSecret", "client_token", "token", '"secret"', "SECRET"]) {
+        expect(api(`${k} = "${v}"`), `${k} ${v}`).toBe(1);
+      }
+    }
+    expect(api(`access_token: ${real[0]}\n`, "config/app.yml")).toBe(1);
+  });
+
+  it("asks a generated-looking value of these broader names", () => {
+    // Words, short values, one character class, typed runs, emails,
+    // references and elided examples are not credentials.
+    for (const v of ["mysecretvalue", "tokenvalue123", "abc-def-ghi-jkl-mno", "ugkdpswvxmtqnfrb", "UGKDPSWVXMTQNFRB", j("Kq7vR2", "mLz9"), j("00112233", "abcdef9988776655"), "john.smith@example.org", "${GITHUB_TOKEN}@github.com", j("eyJhbGciOiJIUzI1NiIs", "InR5cCI6IkpXVCJ9..."), "{{ .Values.token }}"]) {
+      expect(api(`token = "${v}"`), v).toBe(0);
+      expect(api(`access_token = "${v}"`), v).toBe(0);
+    }
+  });
+
+  it("does not read identifiers, pagination cursors or names as secrets", () => {
+    for (const k of ["next_token", "page_token", "continuation_token", "token_type", "token_url", "secret_name", "secretRef", "client_id", "consumer_key", "csrf_token_name", "tokenizer", "publicToken", "TOKEN_LABEL"]) {
+      expect(api(`${k} = "${real[0]}"`), k).toBe(0);
+    }
+  });
+
+  it("skips padded and redacted values under any API key name", () => {
+    for (const v of [j("a1b2c3d4-e5f6-a1b2-", "c3d4-TOKEN1111111"), j("4f9c2e7b", "bbbbbbbbbb1d8a")]) {
+      expect(api(`clientToken = "${v}"`), v).toBe(0);
+      expect(api(`api_key = "${v}"`), v).toBe(0);
+    }
+  });
+
+  it("keeps the old names as they were", () => {
+    // An API key under its own name needs no generated-looking value.
+    expect(api(`api_key = "${j("Zq8vT2mR", "x5LpW9nK")}"`)).toBe(1);
+  });
+});

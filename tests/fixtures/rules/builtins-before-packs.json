@@ -1,5 +1,5 @@
 {
-  "_note": "Built-in rules as they were in lib/ before rule packs (main @ afafb24). tests/rule-packs.test.js checks the engines still expose exactly these, in this order, now that part of them lives in lib/rules/core.",
+  "_note": "Built-in rules as they were in lib/ before rule packs (main @ afafb24). tests/rule-packs.test.js checks the engines still expose exactly these, in this order, now that part of them lives in lib/rules/core. Changed on purpose since: E11b pass 2 (Hardcoded password reads key names by their words).",
   "secrets": [
     {
       "name": "AWS access key",
@@ -115,7 +115,7 @@
     },
     {
       "name": "Hardcoded password",
-      "source": "(?:password|passwd|pwd)\\s*[:=]\\s*['\"][^'\"\\s]{4,}['\"]",
+      "source": "(?<word>pass|pwd)(?<=(?<![\\w$@.])(?<kq>\\\\?[\"'\\x60])?[$@:]?(?<pre>[\\w.-]*)(?:pass|pwd))(?<post>[\\w.-]*)(?<kq2>\\\\?[\"'\\x60])?\\]?[ \\t]*(?::=|=>|[:=])[ \\t]*\\\\?(?<vq>[\"'\\x60])(?<v>[^\"'\\x60\\s\\\\]{4,200})\\\\?\\k<vq>",
       "flags": "i",
       "severity": "high",
       "skipIf": true

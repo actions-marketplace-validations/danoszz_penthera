@@ -96,6 +96,8 @@ describe("library mode: exported parameters as sources", () => {
     "ESM export const": `import { ${EXEC}Sync } from 'node:${CP}'\nexport const df = (path) => ${EXEC}Sync(\`df -k \${path}\`)\n`,
     "callback inside": `const c = require('${CP}')\nmodule.exports = function (files) { files.forEach((f) => c.${EXEC}('rm ' + f)) }\n`,
     "iteration helper": `const c = require('${CP}')\nexports.all = function (files, done) { each(files, function (file, next) { const cmd = 'gzip ' +\n  file.path\n  c.${EXEC}(cmd, next) }, done) }\n`,
+    "members copied onto exports in a loop": `const c = require('${CP}')\nvar api = { add: function (pkg) { c.${EXEC}Sync('npm i ' + pkg) } }\nfor (var k in api) {\n  exports[k] = api[k]\n}\n`,
+    "Object.assign of a named object": `const c = require('${CP}')\nconst api = { rm(dir) { c.${EXEC}('rm -r ' + dir) } }\nObject.assign(module.exports, api)\n`,
     "pushed into an argument list": `const c = require('${CP}')\nmodule.exports = function (msg) { const args = ['say']; args.push(JSON.stringify(msg)); c.${EXEC}(args.join(' ')) }\n`,
   };
   for (const [name, src] of Object.entries(shapes)) {

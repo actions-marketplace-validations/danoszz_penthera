@@ -128,7 +128,8 @@ Express, Koa, Fastify or Next.js. The report says when it is on, and why.
 
 How it works. Penthera finds the functions a caller can reach
 (`module.exports`, `exports.x`, prototype and class methods of an exported
-constructor, objects returned by an exported factory, ESM `export`). It
+constructor, objects and instances returned by an exported factory, members
+copied onto `exports` in a loop, ESM `export`). It
 follows each parameter through assignments, closures and callbacks inside that
 function, and one call further: when the function passes the value to a named
 function in the same file, that function's parameter is followed too. A value

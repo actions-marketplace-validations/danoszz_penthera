@@ -5,7 +5,8 @@ section: Detection
   that function's parameter is followed too, one call deep, and the finding
   names the helper. A parameter a constructor or setter stores on `this` is
   followed into the other methods of the same class or prototype, and so is an
-  instance an exported factory returns (`return new Stat(dir)`). On the SecBench.js
-  dev half, command-injection recall went from 40 to 45 of 49 (0.92, 95% CI
-  0.81 to 0.97), with no new finding in 150 benign npm packages or 16 app
+  instance an exported factory returns (`return new Stat(dir)`). Members copied
+  onto `exports` in a `for...in` loop or with `Object.assign(module.exports,
+  api)` count as exported. On the SecBench.js dev half, command-injection
+  recall went from 40 to 46 of 49 (0.94, 95% CI 0.83 to 0.98), with no new finding in 150 benign npm packages or 16 app
   repositories ([scan.md](../docs/commands/scan.md#library-mode-scanning-a-package)).

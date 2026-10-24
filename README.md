@@ -53,25 +53,6 @@ the results, good or bad, so you can see how far to trust it.
 It finds known classes of problems, not novel ones. It does not replace a human
 pentester.
 
-### One real fix
-
-On 23 October 2026 the live check on [penthera.org](https://penthera.org) gave
-penthera.org itself 95 out of 100. Every header, TLS and page check passed; two
-email-spoofing records were missing. Two DNS records later, it scored 100.
-
-```
-penthera.org    95/100   FIX  No SPF record for penthera.org
-                         FIX  No DMARC record for penthera.org
-
-+ TXT  @        v=spf1 -all
-+ TXT  _dmarc   v=DMARC1; p=reject; adkim=s; aspf=s
-
-penthera.org   100/100   Solid basics
-```
-
-The same report, with a prompt for your coding agent to make the fixes, is one
-click away for your own site.
-
 ## Start in 30 seconds
 
 You need Node.js 22 or later. No install, no account.

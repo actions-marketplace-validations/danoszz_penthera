@@ -78,6 +78,6 @@ install` or `pip install` in that folder would matter.
 | `common.mjs` | Paths, seeded sampling, downloads, the offline child |
 | `creddata.mjs` | Rule families, CSV reader, line matching, precision and recall |
 | `secbench.mjs` | Package resolution, sink matching, capability check |
-| `malware.mjs` | Sampling, extraction, root detection, flag rules |
+| `malware.mjs` | Sampling, extraction, root detection, flag rules, and the E11b payload kind of each npm sample (from its files alone, never from Penthera's result) |
 | `split.mjs`, `split/` | E11b: the seeded, stratified dev/test split and its manifests |
 | `competitors.mjs` | E11b: pinned reference tools, run offline, scored the same way |

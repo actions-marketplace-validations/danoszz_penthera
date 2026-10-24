@@ -324,6 +324,21 @@ hold many keys, and in file types the scan does not read (`.txt`, `.key`,
 | Benign npm | 150 | 0.00 [0.00, 0.02] (0) |
 | Benign PyPI | 150 | 0.07 [0.04, 0.13] (11) |
 
+The npm rows by payload (E11b § 7, registered after this baseline was
+first scored; the kind comes from each sample's files, by the written
+criteria in `payloadKind()` in `malware.mjs`, never from Penthera's result):
+
+| Group | n | Flagged |
+|---|---:|---|
+| Malicious npm, `malicious_intent`, payload | 105 | 0.66 [0.56, 0.74] (69) |
+| Malicious npm, `malicious_intent`, no payload | 45 | 0.00 [0.00, 0.08] (0) |
+| Malicious npm, `compromised_lib`, payload | 25 | 0.88 [0.70, 0.96] (22) |
+
+No payload, by kind: self-publishing spam 28, empty package 13, harmless
+proof of concept 3, security placeholder 1. Two packages the B1 taxonomy
+counts as spam fit no written criterion and count as payload, against
+Penthera.
+
 One dev PyPI sample had no package root and is excluded. 10 of the 11
 benign PyPI flags are risky `setup.py` install scripts; the other is an
 agent tool that writes AI config.

@@ -448,13 +448,20 @@ async function creddata(bin, only) {
 
 // ── Malware (GuardDog) ────────────────────────────────────────────────────
 
-async function malware(bin) {
+async function malware(bin, only) {
   const M = await import("./malware.mjs");
+  // The other free tools (competitors-malware-tools.mjs) see the same packages.
+  const MT = await import("./competitors-malware-tools.mjs");
+  const others = MT.session(only);
+  const items = [];
   const { untar, unpackTgz } = await import("../../lib/deps/source.js");
   const { unzip } = await import("../../lib/deps/python/source.js");
   const { gunzipSync } = await import("node:zlib");
   const results = [];
+  // --tools without guarddog reruns only the other tools; GuardDog's table is kept.
+  const runGd = !only || only.includes("guarddog");
   const guard = (eco, dir) => {
+    if (!runGd) return { error: "not run" };
     const r = spawnSync(bin.guarddog, [eco, "scan", dir, "--output-format", "json"], {
       encoding: "utf-8", maxBuffer: 1 << 30, timeout: 600_000,
       env: { PATH: process.env.PATH, HOME: TOOLS_DIR, SEMGREP_SEND_METRICS: "off" },
@@ -471,13 +478,16 @@ async function malware(bin) {
     for (const s of sample.filter((x) => keepM(x.path))) {
       const dir = join(MALWARE_DIR, "x", s.id);
       const root = existsSync(dir) ? M.findRoot(dir, s.eco) : null;
-      if (!root) { results.push({ group: `malicious ${s.eco} ${s.cat}`, id: s.path, excluded: true }); continue; }
+      if (!root) { results.push({ group: `malicious ${s.eco} ${s.cat}`, id: s.path, excluded: true }); items.push({ groups: [`malicious ${s.eco} ${s.cat}`], eco: s.eco, excluded: true }); continue; }
       // Same payload rows as Penthera's (E11b § 7), kind decided from the files alone.
       const kind = s.eco === "npm" ? M.payloadKind(root) : null;
       const r = { id: s.path, ...guard(s.eco, root) };
       results.push({ group: `malicious ${s.eco} ${s.cat}`, ...r });
       if (kind) results.push({ group: `malicious ${s.eco} ${s.cat}, ${kind.payload ? "payload" : "no payload"}`, ...r });
+      const version = s.path.split("/")[3];
+      items.push({ groups: [`malicious ${s.eco} ${s.cat}`, ...(kind ? [`malicious ${s.eco} ${s.cat}, ${kind.payload ? "payload" : "no payload"}`] : [])], root, eco: s.eco, hint: { name: s.name, version: version?.endsWith(".zip") ? undefined : version } });
     }
+    await others.run(items.splice(0), MALWARE_DIR);
   } finally {
     rmSync(MALWARE_DIR, { recursive: true, force: true });
   }
@@ -491,7 +501,7 @@ async function malware(bin) {
         let files;
         try {
           files = eco === "npm" ? unpackTgz(buf) : buf.readUInt32LE(0) === 0x04034b50 ? unzip(buf) : untar(gunzipSync(buf));
-        } catch { results.push({ group: `benign ${eco}`, id: b.name, excluded: true }); continue; }
+        } catch { results.push({ group: `benign ${eco}`, id: b.name, excluded: true }); items.push({ groups: [`benign ${eco}`], eco, excluded: true }); continue; }
         const dir = join(tmp, eco, encodeURIComponent(b.name));
         for (const [rel, data] of files) {
           const p = join(dir, rel);
@@ -500,8 +510,10 @@ async function malware(bin) {
           writeFileSync(p, data);
         }
         results.push({ group: `benign ${eco}`, id: `${b.name}@${b.version}`, ...guard(eco, dir) });
+        items.push({ groups: [`benign ${eco}`], root: dir, eco, hint: { name: b.name, version: b.version } });
       }
     }
+    await others.run(items.splice(0), tmp);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -516,7 +528,7 @@ async function malware(bin) {
     t.labels[r.risk || "none"] = (t.labels[r.risk || "none"] || 0) + 1;
     for (const k of r.rules) t.rules[k] = (t.rules[k] || 0) + 1;
   }
-  return { guarddog: table, failures: results.filter((r) => r.error).slice(0, 5).map((r) => r.error) };
+  return { ...(runGd ? { guarddog: table, failures: results.filter((r) => r.error).slice(0, 5).map((r) => r.error) } : {}), ...others.result() };
 }
 
 // ── SecBench.js (njsscan, CodeQL, Semgrep) ────────────────────────────────
@@ -880,19 +892,47 @@ export async function runCompetitors(which, tools = null) {
   const split = currentSplit();
   ensureDir(RESULTS);
   for (const name of which) {
-    const res = name === "creddata" ? await creddata(bin, tools) : name === "malware" ? await malware(bin) : name === "secbench" ? await secbench(bin, tools) : null;
+    const res = name === "creddata" ? await creddata(bin, tools) : name === "malware" ? await malware(bin, tools) : name === "secbench" ? await secbench(bin, tools) : null;
     if (!res) continue;
     const file = join(RESULTS, `competitors-${name}.${split}.json`);
     // A --tools run replaces only the tools it ran and keeps the rest.
-    if ((name === "creddata" || name === "secbench") && tools && existsSync(file)) {
+    if ((name === "creddata" || name === "secbench" || name === "malware") && tools && existsSync(file)) {
       const prev = JSON.parse(readFileSync(file, "utf-8"));
       res.tools = { ...prev.tools, ...res.tools };
+      if (name === "malware" && !res.guarddog) Object.assign(res, { guarddog: prev.guarddog, failures: prev.failures });
     }
     writeFileSync(file, JSON.stringify({ split, date: new Date().toISOString(), pins: TOOLS, ...res }, null, 2));
     const md = markdown(name, res);
     writeFileSync(file.replace(/\.json$/, ".md"), md + "\n");
     console.log(md);
   }
+}
+
+/** The other free tools on the malware set: per group, then caught minus false alarms (E11b § 7 rows). */
+function malwareToolsMarkdown(res) {
+  const L = [`Other free tools (competitors-malware-tools.mjs), each package scanned under \`sandbox-exec\` with network denied (a curl under the profile exits ${res.sandboxCheck?.curlExit}). Symlinks removed from packages before scanning: ${res.symlinksRemoved ?? 0}. A package a tool failed on is left out of its denominators and counted under tool errors.`, ""];
+  const ok = Object.entries(res.tools).filter(([, t]) => !t.error);
+  const rate = (r) => (r && r.n ? r.flagged / r.n : null);
+  L.push("| Tool | Ecosystem | Caught | False alarms, benign | Caught minus false alarms | Seconds | Caveat |", "|---|---|---|---|---:|---:|---|");
+  for (const [tool, t] of ok) {
+    for (const eco of t.eco) {
+      const d = t.groups[eco === "npm" ? "malicious npm malicious_intent, payload" : "malicious pypi malicious_intent"], b = t.groups[`benign ${eco}`];
+      const j = rate(d) != null && rate(b) != null ? (rate(d) - rate(b)).toFixed(2) : "n/a";
+      L.push(`| ${tool} ${t.version} | ${eco === "npm" ? "npm (payload row)" : "PyPI (malicious_intent)"} | ${d ? fmt(d.flagged, d.n) : "n/a"} | ${b ? fmt(b.flagged, b.n) : "n/a"} | ${j} | ${t.seconds ?? ""} | ${t.caveat || ""} |`);
+    }
+  }
+  L.push("", "| Tool | Group | Flagged | Excluded | Tool errors | Top rules |", "|---|---|---|---:|---:|---|");
+  for (const [tool, t] of ok) for (const [g, r] of Object.entries(t.groups)) L.push(`| ${tool} | ${g} | ${fmt(r.flagged, r.n)} | ${r.excluded} | ${r.toolErrors} | ${Object.entries(r.rules).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, n]) => `${k} ${n}`).join(", ")} |`);
+  L.push("", "Flagged means, per tool (each tool's own default, not tuned on this data):", "");
+  for (const [tool, t] of ok) L.push(`- ${tool} ${t.version}: ${t.threshold}. \`${t.command}\`${t.snapshot ? `; snapshot ${JSON.stringify(t.snapshot)}` : ""}`);
+  const failed = Object.entries(res.tools).filter(([, t]) => t.error);
+  const skipped = Object.entries(res.skipped || {});
+  if (failed.length || skipped.length) {
+    L.push("", "Not measured:", "");
+    for (const [tool, t] of failed) L.push(`- ${tool} ${t.version ?? ""}: ${t.error}`);
+    for (const [tool, why] of skipped) L.push(`- ${tool}: ${why}`);
+  }
+  return L;
 }
 
 function markdown(name, res) {
@@ -941,6 +981,7 @@ function markdown(name, res) {
   } else {
     L.push("| Group | GuardDog: any issue | GuardDog: risk label above none | Excluded | Tool errors | Risk labels | Top rules |", "|---|---|---|---:|---:|---|---|");
     for (const [g, t] of Object.entries(res.guarddog)) L.push(`| ${g} | ${fmt(t.flagged, t.n)} | ${fmt(t.risky, t.n)} | ${t.excluded} | ${t.toolErrors} | ${Object.entries(t.labels).map(([k, n]) => `${k} ${n}`).join(", ")} | ${Object.entries(t.rules).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, n]) => `${k} ${n}`).join(", ")} |`);
+    if (res.tools) L.push("", ...malwareToolsMarkdown(res));
   }
   return L.join("\n");
 }

@@ -101,6 +101,15 @@ function malware(now, before, tools, eco) {
     const b = gdRate(g[groups.benign]);
     rows.push({ tool: "GuardDog", version: tools.pins?.guarddog?.version, kind: "tool", detect: d, detectCI: d && ci(d), all: gdRate(g[groups.all]), benign: b, benignCI: b && ci(b), ...youden(d, b), caveat: "found most samples in this dataset, so its detection rate is inflated by construction" });
   }
+  // The other free tools (competitors-malware-tools.mjs), same rows. A lookup
+  // of already-reported packages (OSV-Scanner) is shown, not ranked.
+  const kn = (row) => (row ? [row.flagged, row.n] : null);
+  for (const [name, t] of Object.entries(tools?.tools || {})) {
+    if (t.error || !t.eco?.includes(eco)) continue;
+    const d = kn(t.groups[groups.detect]), b = kn(t.groups[groups.benign]);
+    const lookup = /^lookup/.test(t.caveat || "");
+    rows.push({ tool: name, version: t.version, kind: lookup ? "lookup" : "tool", detect: d, detectCI: d && ci(d), all: kn(t.groups[groups.all]), benign: b, benignCI: b && ci(b), ...youden(d, b), ...(t.caveat ? { caveat: t.caveat, excluded: lookup } : {}) });
+  }
   const out = rank(rows, { r: 1, fa: 1, j: 1 });
   return { title: `Malicious ${eco === "npm" ? "npm" : "PyPI"} packages (DataDog)`, measure: eco === "npm" ? "caught (packages with a payload) minus false alarms (benign packages): Youden's J" : "caught minus false alarms on benign packages: Youden's J", ...out };
 }
@@ -164,7 +173,7 @@ L.push(`| | Free tools, mean / median | ${pct(S.others.p.mean)} / ${pct(S.others
 for (const key of ["npm", "pypi"]) {
   const M = published.benchmarks[key];
   L.push(`### ${M.title}`, "", "| Rank | Tool | Caught | False alarms on benign packages | Caught minus false alarms |", "|---:|---|---|---|---|");
-  for (const r of [...M.rows].sort((a, b) => (!!a.excluded - !!b.excluded) || ((b.score ?? -1) - (a.score ?? -1)))) L.push(`| ${r.rank ?? "–"} | ${name(r)}${r.caveat ? " ²" : ""} | ${pct(r.r)}${civ(r.detectCI)} (${kn(r.detect)}) | ${pct(r.fa)}${civ(r.benignCI)} (${kn(r.benign)}) | ${pct(r.j)} |`);
+  for (const r of [...M.rows].sort((a, b) => (!!a.excluded - !!b.excluded) || ((b.score ?? -1) - (a.score ?? -1)))) L.push(`| ${r.rank ?? "–"} | ${name(r)}${r.caveat ? (r.kind === "lookup" ? " ³" : " ²") : ""} | ${pct(r.r)}${civ(r.detectCI)} (${kn(r.detect)}) | ${pct(r.fa)}${civ(r.benignCI)} (${kn(r.benign)}) | ${pct(r.j)} |`);
   L.push("");
 }
 const B = published.benchmarks.library;
@@ -174,7 +183,7 @@ L.push("", `A rank is shown only where at least ${MIN_FIELD} other free tools we
   "", `Paid tools (${PAID.join(", ")}) publish no results on these benchmarks, so they are not in the tables.`, "",
   "Published elsewhere, on other datasets (context, not comparable):", "",
   ...Object.values(published.benchmarks).flatMap((b) => b.context.map((c) => `- [${c.title}](${c.url})`)), "",
-  "¹ Not ranked: trained on this dataset by its authors. ² Found most samples in this dataset, so its rate is inflated by construction.");
+  "¹ Not ranked: trained on this dataset by its authors. ² Found most samples in this dataset, so its rate is inflated by construction. ³ Not ranked: a lookup of already-reported packages, not detection.");
 
 // Only the test split's numbers go in the repo; a sample stays in the cache.
 const outDir = sample ? RESULTS : join(ROOT, "bench", "public");

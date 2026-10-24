@@ -27,3 +27,11 @@ section: Docs
   and CredSweeper run pinned, offline and scored the same way as gitleaks and
   detect-secrets. The table and its limits are in `bench/public/RESULTS.md`.
   CredSweeper was trained on CredData, so its row is not comparable.
+- **E11b: seven more free tools on the DataDog malware set (dev).** ClamAV,
+  YARA with YARA-Forge core, OSSGadget detect-backdoor, malcontent,
+  Bandit4Mal and Aura run pinned, offline and static only, next to GuardDog,
+  each flagging at its own default level
+  (`bench/public/competitors-malware-tools.mjs`). OSV-Scanner with an offline
+  OpenSSF malicious-packages snapshot is shown but not ranked: it looks up
+  packages already reported, it does not detect. Packj was skipped: it needs
+  the registry at scan time.

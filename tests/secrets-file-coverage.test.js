@@ -107,3 +107,34 @@ describe("placeholders", () => {
     expect(names(j("aws_access_key_id = AKIA", "Z3MXQ7HPLR2VKW4N"))).toEqual(["AWS access key"]);
   });
 });
+
+describe("every hit is listed", () => {
+  it("one finding per rule and file, with every hit's line", async () => {
+    const { formatSarif } = await import("../src/reporter.js");
+    const dir = mkdtempSync(join(tmpdir(), "penthera-lines-"));
+    try {
+      const line = `db_${PW} = "Wq7-kz9pL-Hq2v"\n`;
+      writeFileSync(join(dir, "settings.py"), `${line}x = 1\n${line}${line}`);
+      const findings = scanSecrets(dir);
+      expect(findings).toHaveLength(1);
+      expect(findings[0]).toMatchObject({ line: 1, lines: [1, 3, 4] });
+      expect(findings[0].description).toMatch(/Also on lines 3, 4\.$/);
+      const [result] = formatSarif({ target: dir, mode: "repo", findings }).runs[0].results;
+      expect(result.locations[0].physicalLocation.region.startLine).toBe(1);
+      expect(result.relatedLocations.map((l) => l.physicalLocation.region.startLine)).toEqual([3, 4]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("a single hit has no lines list", () => {
+    const dir = mkdtempSync(join(tmpdir(), "penthera-lines-"));
+    try {
+      writeFileSync(join(dir, "settings.py"), `db_${PW} = "Wq7-kz9pL-Hq2v"\n`);
+      const [f] = scanSecrets(dir);
+      expect(f.lines).toBeUndefined();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});

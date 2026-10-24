@@ -71,9 +71,18 @@ Capabilities and evidence are the same as for npm (`subprocess`/`os.system`,
 `eval`/`exec`/`compile`, computed `__import__`, native `.so`/`.pyd`, AI-agent
 indicators), plus what is specific to Python: `setup.py` custom commands
 (install-time code; risky when it downloads and runs: a shell next to network
-code, a download or send command, a recon command like `whoami`, or decoded
-code. Running git, a compiler or a build tool, or `exec` of a local version
-file, is not risky), `.pth` files with `import` lines and a shipped
+code, a download or send command, a recon command like `whoami`, `pip install`
+of more packages, or decoded code, in `setup.py` or in the helper modules it
+imports, three levels deep, including packages under `src/`. Running git, a
+compiler or a build tool, or `exec` of a local version file, is not risky),
+code that runs on import (module-level code, or a local function it calls,
+that makes a network call or runs a download or send command: medium; tests,
+scripts, examples and files outside a package do not count), a chat bot token
+or a webhook URL with its key in a file with network code (high), a file that
+downloads a program and starts it or makes it executable within 15 lines, or
+runs a response with `exec` (high, "runs code it downloads"), statements
+hidden after 150 or more spaces, and `exec` of an encoded literal through a
+renamed decoder, `.pth` files with `import` lines and a shipped
 `sitecustomize.py` or `usercustomize.py` (they run on every interpreter start,
 so installing the package is enough to run them: medium, high when the code
 they load is risky), including ones a wheel places at the site-packages root

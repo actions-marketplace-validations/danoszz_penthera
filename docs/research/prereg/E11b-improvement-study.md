@@ -197,3 +197,17 @@ Logged so far:
   every readable copy deleted. Round 2 tunes on dev only, as before. At the
   end, the archive is opened and published next to the round-2 test run, so
   both test runs are reported and none is chosen after the fact.
+- 2026-10-25: an independent leakage audit (a reviewer who did not write the
+  rules) found no dataset identifiers, values or package names in any rule or
+  test added since 1.9.0, and no IOC added. It found two split-level leaks,
+  reported with sensitivity checks on Penthera 2.0's test results:
+  - CredData is split by file, so 318 of 329 test repositories also have
+    files on the dev side (§ 2). An "unseen repositories" score is not
+    measurable (5 true rows). Removing the one repository the audit flagged
+    (`8ba59c91`, translation files) moves F1 from 0.742 to 0.738.
+  - SecBench.js has four packages on both sides (hot-formula-parser,
+    local-devices, open, pdf-image). Without them, command injection is
+    33/43 (0.77) instead of 35/47 (0.74); code injection is unchanged.
+  - The secrets tool step was stopped after the CredData tools and restarted
+    as two parallel lanes for speed; nothing was read before it finished.
+  A clean measure needs new data: post-freeze malware samples and E1.

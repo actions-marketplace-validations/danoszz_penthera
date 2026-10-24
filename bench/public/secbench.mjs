@@ -7,6 +7,7 @@ import { readFileSync, readdirSync, existsSync, writeFileSync, rmSync } from "no
 import { join, dirname } from "node:path";
 import { CACHE, cloneAt, fetchJson, fetchBuf, ensureDir, pentheraRepo, fmt } from "./common.mjs";
 import { verifyIntegrity, unpackTgz, MapSource } from "../../lib/deps/source.js";
+import { inSplit } from "./split.mjs";
 
 export const PIN = "5d362353550a8baa42bba34edd26e5fb86d41b60";
 const DIR = join(CACHE, "secbench");
@@ -78,7 +79,8 @@ export async function scan() {
   const { scanPackage } = await import("../../lib/deps/capabilities.js");
   const status = JSON.parse(readFileSync(join(CACHE, "secbench-status.json"), "utf-8"));
   const results = [];
-  for (const e of entries().filter((x) => CLASSES[x.cls])) {
+  const keep = inSplit("secbench");
+  for (const e of entries().filter((x) => CLASSES[x.cls] && keep(`${x.cls}/${x.folder}`))) {
     const key = `${e.cls}/${e.folder}`;
     if (status[key] !== "ok") { results.push({ ...e, status: status[key] || "not fetched" }); continue; }
     const files = unpackTgz(readFileSync(join(PKGS, `${key}.tgz`)));

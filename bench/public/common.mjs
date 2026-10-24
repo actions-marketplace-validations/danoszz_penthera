@@ -88,6 +88,7 @@ export function runOffline(bench) {
         PATH: process.env.PATH, HOME: home, NO_COLOR: "1",
         // The child has an empty HOME, so pass the cache base resolved here.
         PENTHERA_BENCH_CACHE: dirname(CACHE),
+        PENTHERA_E11_SPLIT: process.env.PENTHERA_E11_SPLIT || "all",
         NODE_OPTIONS: `--require ${GUARD}`, PENTHERA_NET_GUARD_LOG: log,
       },
     });

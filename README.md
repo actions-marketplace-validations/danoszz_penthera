@@ -185,6 +185,17 @@ rules, and anything unconfirmed is labelled "model-proposed, unverified" and
 never fails CI. Whether it finds more than the rules alone is not measured yet
 ([AI mode](docs/ai-mode.md)).
 
+### How far each part has been taken
+
+| Part | Status |
+|---|---|
+| Scans: URL, repo, dependencies, AI tooling, installs, pre-commit hook | **Stable**: in every release since 1.x, covered by the tests and the release gate |
+| Fix loop and local dashboard (`penthera ui`) | **Stable**; the dashboard was redesigned in 1.9.0 |
+| MCP server, Agent Skill, Claude Code plugin, Gemini CLI extension | **Stable**, new in 1.9.0 (the Gemini extension after 1.9.0) |
+| Evidence bundles, NIS2 and CRA drafts | **Stable** as readiness tooling, not a certification |
+| AI mode (`--ai`) | **Experimental**: whether it finds more than the rules alone is not measured yet ([AI mode](docs/ai-mode.md)) |
+| Live check on [penthera.org](https://penthera.org) | **Beta**: passive only, [terms](docs/live-check-terms.md) |
+
 ## How it is measured
 
 Each feature goes through the same path: **method → evidence → tool.**
@@ -242,6 +253,18 @@ with `npm run docs:numbers` and `npm run bench`.
   OpenSSF Scorecard. Every release passes an
   [internal audit](docs/internal-audit.md) of eight gates
   ([latest report](audit/REPORT.md)).
+
+**Verify it yourself.** In an empty folder:
+
+```bash
+npm install penthera@1.9.0 && npm audit signatures
+npx penthera@1.9.0 rules list
+```
+
+The first checks npm's registry signature and the build provenance of the
+package you got. The second lists every bundled rule pack and the key that
+signed it; a pack whose signature does not verify is refused unless you pass
+`--allow-unsigned-rules`.
 
 Penthera finds known classes of problems, not novel ones, and it does not
 replace a human pentester or incident response. The decisions behind it, its

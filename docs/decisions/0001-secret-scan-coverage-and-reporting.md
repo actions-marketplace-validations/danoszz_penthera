@@ -85,6 +85,16 @@ That is why it found 0 of 49 command injections in SecBench.js's dev split.
 - App scans must not gain false alarms from it. The benign baselines and E10
   are the guard.
 
+**Trigger and design, as built (2026-10-24, proposed in the library-mode
+pull request, for the maintainer to accept).** `--library` turns it on and
+`--no-library` off. Without a flag it is on when `package.json` has `main`,
+`exports` or `bin` (or an `index.js` beside it), is not `"private": true`, and
+lists no app framework (Express, Koa, Fastify, Next.js and similar) in
+`dependencies`. Library findings are severity high; a function that only runs
+its argument is severity medium. In library mode the scan reads `dist/` or
+`build/` when `package.json` points there and skips tooling, example and docs
+folders. Flows are followed inside the exported function only.
+
 **Consequences.** New findings for library authors and for anyone auditing a
 dependency. It ships in 1.10 with a release candidate first, not in a patch.
 

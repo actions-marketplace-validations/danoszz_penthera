@@ -122,8 +122,8 @@ export async function scan() {
       const lineOf = lineIndex(text);
       // rulesOnly replays every rule on every file; the primary run keeps the
       // hits the scan itself would report (read, and the rule allowed there).
-      const shapes = new Set(scope === "shapes" ? findSecretsInText(text, { shapesOnly: true }).map((h) => h.index) : []);
-      for (const h of findSecretsInText(text)) hits.push({ file: rel, line: lineOf(h.index), rule: h.name, read: scope === "all" || (scope === "shapes" && shapes.has(h.index)) });
+      const shapes = new Set(scope === "shapes" ? findSecretsInText(text, { shapesOnly: true, path: inRepo }).map((h) => h.index) : []);
+      for (const h of findSecretsInText(text, { path: inRepo })) hits.push({ file: rel, line: lineOf(h.index), rule: h.name, read: scope === "all" || (scope === "shapes" && shapes.has(h.index)) });
     }
   }
   const cli = [];

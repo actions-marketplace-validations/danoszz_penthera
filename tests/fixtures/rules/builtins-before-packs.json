@@ -1,5 +1,5 @@
 {
-  "_note": "Built-in rules as they were in lib/ before rule packs (main @ afafb24). tests/rule-packs.test.js checks the engines still expose exactly these, in this order, now that part of them lives in lib/rules/core.",
+  "_note": "Built-in rules as they were in lib/ before rule packs (main @ afafb24). tests/rule-packs.test.js checks the engines still expose exactly these, in this order, now that part of them lives in lib/rules/core. Changed on purpose since: E11b pass 2 (Hardcoded password reads key names by their words).",
   "secrets": [
     {
       "name": "AWS access key",
@@ -108,28 +108,28 @@
     },
     {
       "name": "Generic API key assignment",
-      "source": "(?:api[_-]?key|apikey|secret[_-]?key)\\s*[:=]\\s*['\"][^'\"\\s]{8,}['\"]",
+      "source": "(?<word>api|secret|token)(?<=(?<![\\w$@.])(?<kq>\\\\?[\"'\\x60])?[$@:]?(?<pre>[\\w.-]*)(?:api|secret|token))(?<post>[\\w.-]*)(?<kq2>\\\\?[\"'\\x60])?\\]?[ \\t]*(?::=|=>|[:=])[ \\t]*(?:\\\\?(?<vq>[\"'\\x60])(?<v>[^\"'\\x60\\s\\\\]{8,200})\\\\?\\k<vq>|(?<u>[^\\s\"'\\x60#;,&]{8,200})(?![^\\s\"'\\x60#;,&]))",
       "flags": "i",
       "severity": "high",
       "skipIf": true
     },
     {
       "name": "Hardcoded password",
-      "source": "(?:password|passwd|pwd)\\s*[:=]\\s*['\"][^'\"\\s]{4,}['\"]",
+      "source": "(?<word>pass|pwd)(?<=(?<![\\w$@.])(?<kq>\\\\?[\"'\\x60])?[$@:]?(?<pre>[\\w.-]*)(?:pass|pwd))(?<post>[\\w.-]*)(?<kq2>\\\\?[\"'\\x60])?\\]?[ \\t]*(?::=|=>|[:=])[ \\t]*(?:\\\\?(?<vq>[\"'\\x60])(?<v>[^\"'\\x60\\s\\\\]{4,200})\\\\?\\k<vq>|(?<u>[^\\s\"'\\x60#;,&]{4,200})(?![^\\s\"'\\x60#;,&]))",
       "flags": "i",
       "severity": "high",
       "skipIf": true
     },
     {
       "name": "GCP/Firebase service account",
-      "source": "\"private_key\"\\s*:\\s*\"-----BEGIN [A-Z ]*PRIVATE KEY-----(?:(?:\\\\r)?(?:\\\\n|\\r?\\n)[ \\t\"'#*]*[A-Za-z-]+:[^\\r\\n\\\\]*)*(?:(?:\\\\r)?(?:\\\\n|\\r?\\n)[ \\t\"'#*]*)+[A-Za-z0-9+/]{40}",
+      "source": "\"private_key\"\\s*:\\s*\"-----BEGIN [A-Z ]*PRIVATE KEY-----(?:(?:\\\\r)?(?:\\\\n|\\r?\\n)(?:[\"'\\x60][ \\t+.]*\\r?\\n)?[ \\t\"'#*+]*[A-Za-z-]+:[^\\r\\n\\\\]*)*(?:(?:\\\\r)?(?:\\\\n|\\r?\\n)(?:[\"'\\x60][ \\t+.]*\\r?\\n)?[ \\t\"'#*+]*)+[A-Za-z0-9+/]{40}",
       "flags": "",
       "severity": "critical",
       "skipIf": false
     },
     {
       "name": "Private key block",
-      "source": "-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----(?:(?:\\\\r)?(?:\\\\n|\\r?\\n)[ \\t\"'#*]*[A-Za-z-]+:[^\\r\\n\\\\]*)*(?:(?:\\\\r)?(?:\\\\n|\\r?\\n)[ \\t\"'#*]*)+[A-Za-z0-9+/]{40}",
+      "source": "-----BEGIN (?:(?:RSA |EC |DSA |OPENSSH |ENCRYPTED )?PRIVATE KEY|PGP PRIVATE KEY BLOCK)-----[ \\t]*(?:(?:\\\\r)?(?:\\\\n|\\r?\\n)(?:[\"'\\x60][ \\t+.]*\\r?\\n)?[ \\t\"'#*+]*[A-Za-z-]+:[^\\r\\n\\\\]*)*(?:(?:\\\\r)?(?:\\\\n|\\r?\\n)(?:[\"'\\x60][ \\t+.]*\\r?\\n)?[ \\t\"'#*+]*)+[A-Za-z0-9+/]{40}",
       "flags": "",
       "severity": "critical",
       "skipIf": false

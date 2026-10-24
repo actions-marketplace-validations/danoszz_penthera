@@ -13,6 +13,11 @@ section: Detection
   values (`test123`) no longer count as a hardcoded password. Files in a
   translation folder (`locales/`, `i18n/`) get the fixed-shape rules only, as
   docs do.
+- **Passwords in config files without quotes.** In YAML, `.properties`,
+  `.env`, `.ini`, `.conf`, TOML and `.cfg` files a bare value counts too
+  (`POSTGRES_PASSWORD: …`, `spring.datasource.password=…`). References
+  (`${DB_PASSWORD}`, `{{ … }}`, `ENC(…)`, `env(…)`), YAML tags and aliases,
+  paths, URLs and numbers do not.
 - **A file with many secrets lists them all, up to 200.** The scan stopped
   looking after 50 hits of one rule in a file, while a finding lists up to 200
   lines. It now looks for as many as it can list.

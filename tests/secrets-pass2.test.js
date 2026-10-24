@@ -119,6 +119,33 @@ describe("realistic passwords still match", () => {
   });
 });
 
+describe("bare values in config files (A4b)", () => {
+  const cfg = (text, path) => findSecretsInText(text, { path }).filter((h) => h.name === "Hardcoded password").length;
+
+  it("finds unquoted passwords in YAML, .properties, .env, .ini, .conf and TOML", () => {
+    expect(cfg(`db:\n  ${PW}: ${V}\n`, "config/app.yml")).toBe(1);
+    expect(cfg(`services:\n  db:\n    environment:\n      POSTGRES_PASSWORD: ${V}\n      - MYSQL_PASSWORD=${V}x\n`, "docker-compose.yaml")).toBe(2);
+    expect(cfg(`spring.datasource.${PW}=${V}\n`, "src/main/resources/application.properties")).toBe(1);
+    expect(cfg(`DB_PASS=${V}\n`, ".env")).toBe(1);
+    expect(cfg(`SMTP_PASSWORD=${V}\n`, ".env.production")).toBe(1);
+    expect(cfg(`[db]\n${PW} = ${V}\n`, "settings.ini")).toBe(1);
+    expect(cfg(`${PW} = ${V} # prod\n`, "server.conf")).toBe(1);
+    expect(cfg(`admin_${PW} = ${V}\n`, "Cargo.toml")).toBe(1);
+  });
+
+  it("does not read a bare value as a password in code", () => {
+    expect(cfg(`connect({ ${PW}: dbPassword })`, "src/db.js")).toBe(0);
+    expect(cfg(`${PW} = get_secret()`, "app.py")).toBe(0);
+    expect(cfg(`${PW}: ${V}`)).toBe(0);
+  });
+
+  it("skips placeholders, references, paths, URLs, numbers and YAML tags", () => {
+    for (const v of ["${DB_PASSWORD}", "${DB_PASSWORD:-x}", "{{ db_password }}", "<password>", "[password]", "%(db_pw)s", "changeme", "true", "123456789", "/run/secrets/db", "./secrets/pw", "https://vault.example.com/pw", "!vault", "*db_pw", "|", "ENC(G6N718UuyPE5bHyWKyuLQSm02auQPUtm)", "env(DB_PASSWORD)", "admin"]) {
+      expect(cfg(`${PW}: ${v}\n`, "app.yml"), v).toBe(0);
+    }
+  });
+});
+
 describe("a file with many hits", () => {
   it("lists up to 200 lines per rule, not 50", () => {
     const dir = mkdtempSync(join(tmpdir(), "penthera-many-"));

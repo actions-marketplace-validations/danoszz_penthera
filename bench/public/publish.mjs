@@ -179,7 +179,7 @@ for (const key of ["npm", "pypi"]) {
 }
 const B = published.benchmarks.library;
 L.push(`### ${B.title}`, "", "| Rank | Tool | Command injection | Code injection | Both |", "|---:|---|---|---|---|");
-for (const r of [...B.rows].sort((a, b) => (!!a.excluded - !!b.excluded) || ((b.score ?? -1) - (a.score ?? -1)))) L.push(`| ${r.rank ?? "–"} | ${name(r)} | ${kn(r.command)} | ${kn(r.code)} | ${pct(r.r)}${civ(r.pooledCI)} |`);
+for (const r of [...B.rows].sort((a, b) => (!!a.excluded - !!b.excluded) || ((b.score ?? -1) - (a.score ?? -1)))) L.push(`| ${r.rank ?? "–"} | ${name(r)}${r.caveat ? ` (${r.caveat})` : ""} | ${kn(r.command)} | ${kn(r.code)} | ${pct(r.r)}${civ(r.pooledCI)} |`);
 L.push("", `A rank is shown only where at least ${MIN_FIELD} other free tools were measured; otherwise "–".`,
   "", `Paid tools (${PAID.join(", ")}) publish no results on these benchmarks, so they are not in the tables.`, "",
   "Published elsewhere, on other datasets (context, not comparable):", "",

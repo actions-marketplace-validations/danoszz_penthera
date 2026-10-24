@@ -21,7 +21,7 @@ export const PENTHERA = join(ROOT, "bin", "penthera.js");
 export const GUARD = join(ROOT, "scripts", "ci", "net-guard.cjs");
 
 export const sh = (cmd, args, opts = {}) =>
-  execFileSync(cmd, args, { encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 1 << 30, ...opts }).trim();
+  (execFileSync(cmd, args, { encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 1 << 30, ...opts }) ?? "").trim();
 
 /** Fisher–Yates shuffle of a sorted copy, seeded (protocol § 5.3). */
 export function shuffled(items, seed = SEED) {

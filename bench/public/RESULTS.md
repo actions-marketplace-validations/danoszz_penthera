@@ -271,3 +271,108 @@ here (frozen scanner, protocol § 5).
 11. **Compromised PyPI libraries.** 15 of 16 were missed. Diffing against the
     previous clean release (`penthera deps --diff`) is the method that fits
     these; E11 did not test it.
+
+## E11b dev baseline (dev half only; the test half is sealed)
+
+Amendment: [E11b-improvement-study.md](../../docs/research/prereg/E11b-improvement-study.md)
+(draft, for the maintainer's approval). The split was committed in `72d3149`
+before either half was scored; only the dev half was scored. The scanner is
+unchanged from E11. `npm run bench:public -- --split dev`, 2026-10-24, 0
+blocked connections.
+
+### CredData, dev (5,515 labelled files; 9,108 `T`, 24,032 `F`, 2,043 `X` rows)
+
+| Run | Precision, labelled hit lines | Recall, row (one credential) | Recall, line | Recall, file (hit on a T row) | Recall, file (any hit) | File precision |
+|---|---|---|---|---|---|---|
+| Primary: files the scan reads | 0.58 [0.55, 0.61] (613/1,053) | 0.27 [0.25, 0.29] (610/2,239) | 0.08 [0.07, 0.08] (610/7,884) | 0.32 [0.29, 0.35] (268/848) | 0.32 [0.29, 0.35] (271/848) | 0.69 [0.65, 0.74] (297/428) |
+| Rules on every file | 0.64 [0.62, 0.67] (1,064/1,651) | 0.47 [0.45, 0.50] (1,062/2,239) | 0.13 [0.13, 0.14] | 0.56 [0.53, 0.60] (477/848) | 0.58 [0.55, 0.61] | 0.72 [0.68, 0.75] |
+| As the CLI reports it | 0.61 [0.56, 0.65] (265/436) | 0.12 [0.10, 0.13] (258/2,239) | 0.03 [0.03, 0.04] | 0.29 [0.26, 0.32] (245/848) | 0.32 [0.29, 0.35] (271/848) | 0.69 [0.65, 0.74] |
+
+By family (primary run; last column the CLI view):
+
+| Family | Row | Line | File, hit on a T row | File, any hit (CLI) |
+|---|---|---|---|---|
+| provider | 0.43 [0.35, 0.51] (60/140) | 0.36 [0.29, 0.43] (60/168) | 0.47 [0.31, 0.63] (16/34) | 0.47 [0.31, 0.63] (16/34) |
+| private-key | 0.12 [0.09, 0.15] (65/557) | 0.01 [0.01, 0.01] (65/6,174) | 0.24 [0.18, 0.31] (42/173) | 0.24 [0.18, 0.31] (42/173) |
+| password | 0.33 [0.31, 0.35] (469/1,424) | 0.33 (same: one-line rows) | 0.34 [0.31, 0.38] (205/596) | 0.36 [0.32, 0.39] (212/596) |
+| api-key | 0.14 [0.09, 0.21] (16/118) | 0.14 (same) | 0.16 [0.09, 0.27] (10/62) | 0.16 [0.09, 0.27] (10/62) |
+
+**Private keys were not a counting effect at the row level.** CredData
+already labels each PEM block as one row with a line range (1,154 of 1,193
+true private-key rows span several lines), and E11 counted a row found when
+any hit fell in its range. Counting lines instead would drop recall to 0.01.
+Per file, recall doubles to 0.24: misses concentrate in a few files that
+hold many keys, and in file types the scan does not read (`.txt`, `.key`,
+`.pem`). The gap is coverage, not counting.
+
+### SecBench.js, dev (71 vulnerabilities)
+
+| Class | Scanned | Strict recall (sink file) | Lenient recall | Capability at sink file |
+|---|---:|---|---|---|
+| Command injection | 49 of 51 | 0.00 [0.00, 0.07] (0/49) | 0.00 [0.00, 0.07] | 0.92 [0.81, 0.97] (45/49) |
+| Code injection | 20 of 20 | 0.44 [0.23, 0.67] (7/16) | 0.50 [0.30, 0.70] (10/20) | 0.56 [0.33, 0.77] (9/16) |
+| **Pooled** | 69 | 0.11 [0.05, 0.21] (7/65) | 0.14 [0.08, 0.25] (10/69) | 0.83 [0.72, 0.90] (54/65) |
+
+### DataDog and benign, dev (`code-medium`, the primary rule)
+
+| Group | n | Flagged |
+|---|---:|---|
+| Malicious npm, `malicious_intent` | 150 | 0.46 [0.38, 0.54] (69) |
+| Malicious npm, `compromised_lib` | 25 | 0.88 [0.70, 0.96] (22) |
+| Malicious PyPI, `malicious_intent` | 149 | 0.76 [0.68, 0.82] (113) |
+| Malicious PyPI, `compromised_lib` | 9 | 0.11 [0.02, 0.43] (1) |
+| Benign npm | 150 | 0.00 [0.00, 0.02] (0) |
+| Benign PyPI | 150 | 0.07 [0.04, 0.13] (11) |
+
+One dev PyPI sample had no package root and is excluded. 10 of the 11
+benign PyPI flags are risky `setup.py` install scripts; the other is an
+agent tool that writes AI config.
+
+### Reference tools on dev (not part of E11's hypotheses)
+
+Pinned, run locally with the network denied (E11b § 5), scored with the same
+code. They have other scopes: gitleaks and detect-secrets have rules for
+many categories Penthera leaves out of scope.
+
+| Tool | Hit lines | Precision, labelled | Recall, in scope (row) | Recall, all `T` rows | Recall, file (hit on a T row) |
+|---|---:|---|---|---|---|
+| Penthera (primary) | 1,085 | 0.58 [0.55, 0.61] | 0.27 [0.25, 0.29] | n/a (scope) | 0.32 [0.29, 0.35] |
+| gitleaks 8.30.1 | 5,687 | 0.85 [0.84, 0.86] (4,708/5,526) | 0.33 [0.31, 0.35] (747/2,239) | 0.52 [0.51, 0.53] (4,777/9,108) | 0.31 [0.28, 0.34] (265/848) |
+| detect-secrets 1.5.0 | 7,965 | 0.53 [0.51, 0.54] (2,167/4,121) | 0.56 [0.53, 0.58] (1,243/2,239) | 0.23 [0.23, 0.24] (2,133/9,108) | 0.75 [0.71, 0.77] (632/848) |
+
+| Tool | provider | private-key | password | api-key |
+|---|---|---|---|---|
+| Penthera | 0.43 (60/140) | 0.12 (65/557) | 0.33 (469/1,424) | 0.14 (16/118) |
+| gitleaks | 0.56 [0.48, 0.64] (79/140) | 1.00 [0.99, 1.00] (557/557) | 0.05 [0.04, 0.07] (78/1,424) | 0.28 [0.21, 0.37] (33/118) |
+| detect-secrets | 0.74 [0.66, 0.80] (103/140) | 0.33 [0.29, 0.37] (182/557) | 0.65 [0.62, 0.67] (919/1,424) | 0.33 [0.25, 0.42] (39/118) |
+
+A caution on these: CredData's labelled lines came from running several
+open-source scanners and reviewing their output (CredData README), so a tool
+whose hits were part of that frame has more of its hits labelled. That
+favours older, widely used tools in the "labelled" precision; strict
+precision is the fairer column (gitleaks 0.83, detect-secrets 0.27,
+Penthera 0.56).
+
+GuardDog 3.2.0 on the same dev packages (static, its own kernel sandbox
+with the network blocked, samples deleted afterwards). GuardDog reports
+every rule match as an issue and also gives a risk label; three ways to
+call a package flagged:
+
+| Group | n | Penthera `code-medium` | GuardDog: any issue | GuardDog: label `suspicious` or `high_risk` | GuardDog: any label above none |
+|---|---:|---|---|---|---|
+| Malicious npm, `malicious_intent` | 150 | 0.46 [0.38, 0.54] | 0.78 [0.71, 0.84] (117) | 0.59 [0.51, 0.66] (88) | 0.66 [0.58, 0.73] (99) |
+| Malicious npm, `compromised_lib` | 25 | 0.88 [0.70, 0.96] | 1.00 [0.87, 1.00] (25) | 0.84 [0.65, 0.94] (21) | 0.96 [0.80, 0.99] (24) |
+| Malicious PyPI, `malicious_intent` | 149 | 0.76 [0.68, 0.82] | 0.97 [0.92, 0.99] (144) | 0.89 [0.82, 0.93] (132) | 0.89 [0.82, 0.93] (132) |
+| Malicious PyPI, `compromised_lib` | 9 | 0.11 [0.02, 0.43] | 1.00 [0.70, 1.00] (9) | 0.67 [0.35, 0.88] (6) | 0.78 [0.45, 0.94] (7) |
+| Benign npm | 150 | 0.00 [0.00, 0.02] | 0.52 [0.44, 0.60] (78) | 0.01 [0.00, 0.04] (1) | 0.09 [0.05, 0.14] (13) |
+| Benign PyPI | 150 | 0.07 [0.04, 0.13] | 0.74 [0.66, 0.80] (111) | 0.09 [0.06, 0.15] (14) | 0.22 [0.16, 0.29] (33) |
+
+GuardDog found most of this dataset in the first place (E11 § 9), so its
+detection rates here are inflated by construction. At its
+`suspicious`-or-`high_risk` cut, it flags more malicious npm packages than
+Penthera (0.59 against 0.46) at about the same benign npm rate (0.01
+against 0.00), and slightly more benign PyPI packages (0.09 against 0.07).
+Its most frequent rules on malicious npm packages are process spawn,
+outbound network and download capabilities (61, 56 and 46 of 150), which
+points the same way as follow-up 9 (code that runs on load). Its "any issue"
+count is not usable as a verdict: it marks half the benign npm packages.

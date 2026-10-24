@@ -15,3 +15,10 @@ section: Docs
   0 of 300 popular npm packages. Malware
   samples are only read as text, under `/private/tmp`, and deleted after the
   run. No rule changed.
+- **E11b: a sealed dev/test split for improving on E11.** A draft amendment
+  (`docs/research/prereg/E11b-improvement-study.md`) fixes the split, its
+  SHA-256 hashes, the scoring units, the guards and the targets before any
+  rule is tuned. `npm run bench:public -- --split dev` scores only the dev
+  half; the test half runs once, at the end. The dev baseline and reference
+  runs of gitleaks, detect-secrets and GuardDog are in
+  `bench/public/RESULTS.md`.

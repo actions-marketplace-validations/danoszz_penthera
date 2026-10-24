@@ -99,9 +99,9 @@ export async function scan() {
   let files = 0;
   for (const repo of repos) {
     for (const p of walk(join(data, repo))) {
-      files++;
       const rel = relative(DIR, p).split(sep).join("/");
       if (!keep(rel)) continue;
+      files++;
       const inRepo = relative(join(data, repo), p).split(sep).join("/");
       const read = isSecretScanTarget(inRepo);
       let text;

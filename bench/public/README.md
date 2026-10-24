@@ -20,7 +20,15 @@ export GH_TOKEN=$(gh auth token)                 # the malware sample is drawn t
 npm run bench:public                             # all three
 npm run bench:public -- --only secbench          # one: creddata, secbench or malware
 npm run bench:public -- --only creddata --skip-fetch   # reuse the cache
+npm run bench:public -- --split dev              # E11b: score the dev half only
+npm run bench:public -- --competitors --split dev        # E11b: gitleaks, detect-secrets, GuardDog on dev
 ```
+
+E11b splits each benchmark into a dev half and a sealed test half
+([split/](split/), ids and hashes only; protocol in
+[E11b-improvement-study.md](../../docs/research/prereg/E11b-improvement-study.md)).
+The default, `--split all`, reproduces E11 as registered. `--split test`
+is refused without `--final`: the test half runs once, at the end.
 
 Needs Node.js 22 or later, git, `unzip`, Python 3.10 or later (for CredData's
 own `download_data.py`), network access for the fetch steps, and about 3 GB
@@ -71,3 +79,5 @@ install` or `pip install` in that folder would matter.
 | `creddata.mjs` | Rule families, CSV reader, line matching, precision and recall |
 | `secbench.mjs` | Package resolution, sink matching, capability check |
 | `malware.mjs` | Sampling, extraction, root detection, flag rules |
+| `split.mjs`, `split/` | E11b: the seeded, stratified dev/test split and its manifests |
+| `competitors.mjs` | E11b: pinned reference tools, run offline, scored the same way |

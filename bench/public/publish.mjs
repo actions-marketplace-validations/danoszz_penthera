@@ -159,17 +159,17 @@ const L = [];
 if (sample) L.push("> **SAMPLE.** Practice (dev) half, for layout only. Not a result.", "");
 const S = published.benchmarks.secrets;
 L.push(`### ${S.title}`, "", "| Rank | Tool | Precision | Recall | F1 |", "|---:|---|---|---|---|");
-for (const r of [...S.rows].sort((a, b) => (a.excluded - b.excluded) || ((b.score ?? -1) - (a.score ?? -1)))) L.push(`| ${r.rank ?? "–"} | ${name(r)}${r.caveat ? " ¹" : ""} | ${pct(r.p)}${civ(r.precisionCI)} | ${pct(r.r)}${civ(r.recallCI)} | ${pct(r.f1)} |`);
+for (const r of [...S.rows].sort((a, b) => (!!a.excluded - !!b.excluded) || ((b.score ?? -1) - (a.score ?? -1)))) L.push(`| ${r.rank ?? "–"} | ${name(r)}${r.caveat ? " ¹" : ""} | ${pct(r.p)}${civ(r.precisionCI)} | ${pct(r.r)}${civ(r.recallCI)} | ${pct(r.f1)} |`);
 L.push(`| | Free tools, mean / median | ${pct(S.others.p.mean)} / ${pct(S.others.p.median)} | ${pct(S.others.r.mean)} / ${pct(S.others.r.median)} | ${pct(S.others.f1.mean)} / ${pct(S.others.f1.median)} |`, "");
 for (const key of ["npm", "pypi"]) {
   const M = published.benchmarks[key];
   L.push(`### ${M.title}`, "", "| Rank | Tool | Caught | False alarms on benign packages | Caught minus false alarms |", "|---:|---|---|---|---|");
-  for (const r of [...M.rows].sort((a, b) => (a.excluded - b.excluded) || ((b.score ?? -1) - (a.score ?? -1)))) L.push(`| ${r.rank ?? "–"} | ${name(r)}${r.caveat ? " ²" : ""} | ${pct(r.r)}${civ(r.detectCI)} (${kn(r.detect)}) | ${pct(r.fa)}${civ(r.benignCI)} (${kn(r.benign)}) | ${pct(r.j)} |`);
+  for (const r of [...M.rows].sort((a, b) => (!!a.excluded - !!b.excluded) || ((b.score ?? -1) - (a.score ?? -1)))) L.push(`| ${r.rank ?? "–"} | ${name(r)}${r.caveat ? " ²" : ""} | ${pct(r.r)}${civ(r.detectCI)} (${kn(r.detect)}) | ${pct(r.fa)}${civ(r.benignCI)} (${kn(r.benign)}) | ${pct(r.j)} |`);
   L.push("");
 }
 const B = published.benchmarks.library;
 L.push(`### ${B.title}`, "", "| Rank | Tool | Command injection | Code injection | Both |", "|---:|---|---|---|---|");
-for (const r of [...B.rows].sort((a, b) => (a.excluded - b.excluded) || ((b.score ?? -1) - (a.score ?? -1)))) L.push(`| ${r.rank ?? "–"} | ${name(r)} | ${kn(r.command)} | ${kn(r.code)} | ${pct(r.r)}${civ(r.pooledCI)} |`);
+for (const r of [...B.rows].sort((a, b) => (!!a.excluded - !!b.excluded) || ((b.score ?? -1) - (a.score ?? -1)))) L.push(`| ${r.rank ?? "–"} | ${name(r)} | ${kn(r.command)} | ${kn(r.code)} | ${pct(r.r)}${civ(r.pooledCI)} |`);
 L.push("", `A rank is shown only where at least ${MIN_FIELD} other free tools were measured; otherwise "–".`,
   "", `Paid tools (${PAID.join(", ")}) publish no results on these benchmarks, so they are not in the tables.`, "",
   "Published elsewhere, on other datasets (context, not comparable):", "",

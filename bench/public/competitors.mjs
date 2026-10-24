@@ -35,6 +35,8 @@ export const TOOLS = {
   credsweeper: { version: "1.19.4", pip: "credsweeper==1.19.4", venv: "venv-credsweeper", bin: "credsweeper", caveat: "trained on this dataset, not comparable: made by the CredData authors, its ML model was trained with CredData" },
   whispers: { version: "2.4.0", pip: "whispers==2.4.0", venv: "venv-whispers", bin: "whispers" },
   deepsecrets: { version: "2.2.0", pip: "deepsecrets==2.2.0", venv: "venv-deepsecrets", bin: "deepsecrets" },
+  // njsscan 1.x runs its bundled rules on the Semgrep engine it pins (1.172.0), found on PATH.
+  njsscan: { version: "1.0.1", pip: "njsscan==1.0.1", venv: "venv-njsscan", bin: "njsscan" },
   secretlint: { version: "13.0.7", npm: ["secretlint@13.0.7", "@secretlint/secretlint-rule-preset-recommend@13.0.7"] },
 };
 // Not run: Semgrep's public p/secrets ruleset is fetched from the registry at
@@ -117,7 +119,7 @@ function installPip(t) {
   if (existsSync(exe)) return exe;
   rmSync(venv, { recursive: true, force: true });
   sh(process.env.PYTHON || "python3.12", ["-m", "venv", venv]);
-  sh(join(venv, "bin", "pip"), ["install", "-q", t.pip], { stdio: ["ignore", "inherit", "inherit"], timeout: 900_000 });
+  sh(join(venv, "bin", "pip"), ["install", "-q", ...t.pip.split(" ")], { stdio: ["ignore", "inherit", "inherit"], timeout: 900_000 });
   return exe;
 }
 
@@ -358,7 +360,11 @@ async function malware(bin) {
       const dir = join(MALWARE_DIR, "x", s.id);
       const root = existsSync(dir) ? M.findRoot(dir, s.eco) : null;
       if (!root) { results.push({ group: `malicious ${s.eco} ${s.cat}`, id: s.path, excluded: true }); continue; }
-      results.push({ group: `malicious ${s.eco} ${s.cat}`, id: s.path, ...guard(s.eco, root) });
+      // Same payload rows as Penthera's (E11b § 7), kind decided from the files alone.
+      const kind = s.eco === "npm" ? M.payloadKind(root) : null;
+      const r = { id: s.path, ...guard(s.eco, root) };
+      results.push({ group: `malicious ${s.eco} ${s.cat}`, ...r });
+      if (kind) results.push({ group: `malicious ${s.eco} ${s.cat}, ${kind.payload ? "payload" : "no payload"}`, ...r });
     }
   } finally {
     rmSync(MALWARE_DIR, { recursive: true, force: true });
@@ -401,12 +407,80 @@ async function malware(bin) {
   return { guarddog: table, failures: results.filter((r) => r.error).slice(0, 5).map((r) => r.error) };
 }
 
+// ── SecBench.js (njsscan) ─────────────────────────────────────────────────
+
+// njsscan reports rules with a CWE; a finding counts for a class when its CWE
+// is that class's: OS command injection (CWE-78) or code injection (CWE-94/95).
+const CWE_CLASS = { 78: "command-injection", 94: "code-injection", 95: "code-injection" };
+
+/** Every njsscan finding as { file, line, cls }, from its JSON report. */
+export function njsscanHits(report, root) {
+  const hits = [];
+  for (const group of Object.values(report || {})) {
+    if (!group || typeof group !== "object") continue;
+    for (const rule of Object.values(group)) {
+      const cwe = Number(/CWE-(\d+)/.exec(String(rule?.metadata?.cwe || ""))?.[1]);
+      const cls = CWE_CLASS[cwe];
+      if (!cls) continue;
+      for (const f of rule.files || []) {
+        const file = String(f.file_path || "").startsWith(root) ? f.file_path.slice(root.length + 1) : f.file_path;
+        hits.push({ file, line: f.match_lines?.[0] ?? null, cls });
+      }
+    }
+  }
+  return hits;
+}
+
+async function secbench(bin) {
+  const S = await import("./secbench.mjs");
+  const { unpackTgz } = await import("../../lib/deps/source.js");
+  const exe = bin.njsscan;
+  if (!exe || exe.error) return { tools: { njsscan: { version: TOOLS.njsscan.version, error: exe?.error || "not installed" } } };
+  const status = JSON.parse(readFileSync(join(CACHE, "secbench-status.json"), "utf-8"));
+  const keep = inSplit("secbench");
+  const per = {};
+  const tmp = mkdtempSync(join(CACHE, "secbench-njsscan-"));
+  const t0 = Date.now();
+  try {
+    for (const e of S.entries().filter((x) => S.CLASSES[x.cls] && keep(`${x.cls}/${x.folder}`))) {
+      const key = `${e.cls}/${e.folder}`;
+      const p = (per[e.cls] ||= { strict: [0, 0], lenient: [0, 0], found: [] });
+      if (status[key] !== "ok") continue;
+      const dir = join(tmp, key);
+      for (const [rel, buf] of unpackTgz(readFileSync(join(CACHE, "secbench-pkgs", `${key}.tgz`)))) {
+        const f = join(dir, rel);
+        if (!f.startsWith(dir + sep)) continue;
+        ensureDir(dirname(f));
+        writeFileSync(f, buf);
+      }
+      const out = join(tmp, `${e.folder}.json`);
+      const r = offline(exe, ["--json", "-o", out, dir], { profile: OFFLINE_UNIX, timeout: 600_000, env: { PATH: `${dirname(exe)}:${process.env.PATH}` } });
+      let hits = [];
+      try {
+        const rep = JSON.parse(readFileSync(out, "utf-8"));
+        if (rep.errors?.length) throw new Error(String(rep.errors[0]));
+        hits = njsscanHits(rep, dir);
+      } catch { p.errors = (p.errors || 0) + 1; p.lastError = (r.stderr || "").slice(-300); continue; }
+      const mine = hits.filter((h) => h.cls === e.cls);
+      p.lenient[1]++;
+      if (mine.length) p.lenient[0]++;
+      if (e.sinkFile) {
+        p.strict[1]++;
+        if (mine.some((h) => h.file === e.sinkFile)) { p.strict[0]++; p.found.push(e.folder); }
+      }
+    }
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+  return { tools: { njsscan: { version: TOOLS.njsscan.version, command: "njsscan --json -o <out> <package>", sandbox: "network denied except Unix-domain sockets", seconds: Math.round((Date.now() - t0) / 1000), per } } };
+}
+
 export async function runCompetitors(which, tools = null) {
   const bin = await install();
   const split = currentSplit();
   ensureDir(RESULTS);
   for (const name of which) {
-    const res = name === "creddata" ? await creddata(bin, tools) : name === "malware" ? await malware(bin) : null;
+    const res = name === "creddata" ? await creddata(bin, tools) : name === "malware" ? await malware(bin) : name === "secbench" ? await secbench(bin) : null;
     if (!res) continue;
     const file = join(RESULTS, `competitors-${name}.${split}.json`);
     // A --tools run replaces only the tools it ran and keeps the rest.
@@ -441,6 +515,14 @@ function markdown(name, res) {
       L.push("", "Not measured:", "");
       for (const [tool, s] of failed) L.push(`- ${tool} ${s.version ?? ""}: ${s.error}`);
       for (const [tool, why] of skipped) L.push(`- ${tool}: ${why}`);
+    }
+  } else if (name === "secbench") {
+    const t = res.tools.njsscan;
+    if (t.error) L.push(`njsscan ${t.version}: ${t.error}`);
+    else {
+      L.push(`njsscan ${t.version}, \`${t.command}\` (${t.sandbox}), ${t.seconds} s. A finding counts for a class by its CWE (78 command injection, 94/95 code injection).`, "");
+      L.push("| Class | Strict recall (sink file) | Lenient recall (anywhere) | Errors |", "|---|---|---|---:|");
+      for (const [cls, v] of Object.entries(t.per)) L.push(`| ${cls} | ${fmt(...v.strict)} | ${fmt(...v.lenient)} | ${v.errors || 0} |`);
     }
   } else {
     L.push("| Group | GuardDog: any issue | GuardDog: risk label above none | Excluded | Tool errors | Risk labels | Top rules |", "|---|---|---|---:|---:|---|---|");

@@ -42,6 +42,8 @@ if (argv.includes("--make-split")) {
   console.log(JSON.stringify(await makeSplit(), null, 2));
   process.exit(0);
 }
+// The sealed half is sealed for the reference tools too.
+if (split === "test" && !argv.includes("--final")) throw new Error("the test split is sealed: it runs once, at the end of E11b, with --final");
 if (argv.includes("--competitors")) {
   const { runCompetitors } = await import("./competitors.mjs");
   await runCompetitors(opt("--only") ? opt("--only").split(",") : ["creddata", "malware"], opt("--tools") ? opt("--tools").split(",") : null);

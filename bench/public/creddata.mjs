@@ -134,7 +134,8 @@ export async function scan() {
       for (const f of r.findings || []) {
         if (f.category !== "secrets" || f.severity === "info" || !f.line) continue;
         const file = `data/${repo}/${f.url}`;
-        if (keep(file)) cli.push({ file, line: f.line, rule: f.title.replace(/ in source$/, "") });
+        // Since E11b pass 1 (A6) a finding lists every line its rule hit in the file.
+        if (keep(file)) for (const line of f.lines || [f.line]) cli.push({ file, line, rule: f.title.replace(/ in source$/, "") });
       }
     } catch (e) {
       cliErrors.push(`${repo}: ${e.message}`);

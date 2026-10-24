@@ -124,6 +124,15 @@ was scored (maintainer's decisions):
   job is to run its argument is reported at `potential` and counted as found.
   The command-injection rate without those cases is reported next to it.
 
+**Ranking (registered 2026-10-24, before the test half is read).** Each
+benchmark ranks Penthera against the free tools measured on the same half,
+with the mean and median of those tools: secrets by the F1 of strict precision
+and in-scope recall; malware by Youden's J, the share of malicious packages
+caught minus the share of benign packages flagged (npm on the payload row);
+SecBench.js by strict recall, command and code injection pooled. A tool
+trained on the dataset (CredSweeper) is shown, not ranked. Paid tools are
+listed as having no public results on these benchmarks.
+
 ## 8. Human-in-the-loop protocol
 
 Each pass handles one rule or one gap:

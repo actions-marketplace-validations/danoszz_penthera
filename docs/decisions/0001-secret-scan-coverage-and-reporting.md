@@ -28,7 +28,8 @@ for GitHub at large: keys leak through notes and docs too.
   extension when it starts with a private-key header.
 - In `.txt` and `.md`, only rules that match a fixed shape run: provider key
   prefixes and private keys. The assignment guesses (`password = "..."`) do
-  not, because docs are full of example passwords.
+  not, because docs are full of example passwords. E11b round 2 treats
+  `.markdown`, `.rst`, `.adoc` and `.asciidoc` the same way.
 - One function, `secretRulesFor()`, decides this for the repo scan, the
   commit hook and the benchmark replay, so the benchmark measures what users
   run.
@@ -93,7 +94,9 @@ lists no app framework (Express, Koa, Fastify, Next.js and similar) in
 `dependencies`. Library findings are severity high; a function that only runs
 its argument is severity medium. In library mode the scan reads `dist/` or
 `build/` when `package.json` points there and skips tooling, example and docs
-folders. Flows are followed inside the exported function only.
+folders. Flows are followed inside the exported function, and one call
+further into a named function in the same file, and through fields a
+constructor or setter keeps on `this` (round 2, proposed).
 
 **Consequences.** New findings for library authors and for anyone auditing a
 dependency. It ships in 1.10 with a release candidate first, not in a patch.

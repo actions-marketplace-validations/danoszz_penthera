@@ -177,3 +177,12 @@ Logged so far:
   sheet (the random sample of new hits, new false alarms and misses), its
   general justification (§ 9) and its guard results, so the maintainer can
   accept or roll back each pass on its own before the test half is run.
+- 2026-10-24: the final run (§ 10) was started on main `2db5a71` and 1.9.0,
+  then stopped when the maintainer asked for one more improvement round
+  before publishing. Penthera's before and after runs on the test half had
+  finished; the reference tools had just started. Nobody read any of it. The
+  outputs were packed into one archive, unopened, its SHA-256 recorded
+  (`7fc4125987e9dbc462940f3fd736d5d76ca9fd98f3a34f714a2a15619f30a21f`), and
+  every readable copy deleted. Round 2 tunes on dev only, as before. At the
+  end, the archive is opened and published next to the round-2 test run, so
+  both test runs are reported and none is chosen after the fact.

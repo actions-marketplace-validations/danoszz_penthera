@@ -21,7 +21,7 @@ npm run bench:public                             # all three
 npm run bench:public -- --only secbench          # one: creddata, secbench or malware
 npm run bench:public -- --only creddata --skip-fetch   # reuse the cache
 npm run bench:public -- --split dev              # E11b: score the dev half only
-npm run bench:public -- --competitors --split dev        # E11b: gitleaks, detect-secrets, GuardDog on dev
+npm run bench:public -- --competitors --split dev        # E11b: reference secret scanners and GuardDog on dev
 ```
 
 E11b splits each benchmark into a dev half and a sealed test half

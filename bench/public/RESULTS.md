@@ -353,6 +353,55 @@ favours older, widely used tools in the "labelled" precision; strict
 precision is the fairer column (gitleaks 0.83, detect-secrets 0.27,
 Penthera 0.56).
 
+#### More secret scanners on CredData dev
+
+Eight more free, open-source scanners, run the same way on 2026-10-24
+(`competitors.mjs`): each pinned to its newest release at least four days
+old, installed only under the bench cache, run from the split's file tree
+with the network denied by `sandbox-exec`, default rules, and only network
+verification and update checks turned off. Scored with the same
+`scoreHits`. "Variant" rows are another output mode of the same scan: they
+list every location of a secret the default output groups or dedups.
+
+| Tool | Hits | Strict precision | Recall, in scope (row) | Recall, file (hit on a T row) | Seconds |
+|---|---:|---|---|---|---:|
+| gitleaks 8.30.1 | 5,704 | 0.83 [0.82, 0.84] (4,708/5,687) | 0.33 [0.31, 0.35] (747/2,239) | 0.31 [0.28, 0.34] (265/848) | 13 |
+| detect-secrets 1.5.0 | 8,383 | 0.27 [0.26, 0.28] (2,167/7,965) | 0.56 [0.53, 0.58] (1,243/2,239) | 0.75 [0.71, 0.77] (632/848) | 266 |
+| deepsecrets 2.2.0 | 3,291 | 0.80 [0.78, 0.81] (2,547/3,199) | 0.75 [0.73, 0.77] (1,685/2,239) | 0.76 [0.73, 0.79] (646/848) | 29 |
+| noseyparker 0.24.0 | 2,504 | 0.75 [0.73, 0.77] (1,874/2,499) | 0.58 [0.56, 0.60] (1,309/2,239) | 0.61 [0.57, 0.64] (514/848) | 2 |
+| noseyparker, every match (variant) | 2,856 | 0.66 [0.64, 0.68] (1,881/2,851) | 0.59 [0.57, 0.61] (1,314/2,239) | 0.61 [0.57, 0.64] (514/848) | |
+| ripsecrets 0.1.11 | 6,455 | 0.71 [0.70, 0.72] (4,580/6,455) | 0.31 [0.29, 0.33] (700/2,239) | 0.28 [0.25, 0.31] (237/848) | 21 |
+| kingfisher 2.14.0 | 771 | 0.96 [0.94, 0.97] (735/767) | 0.26 [0.24, 0.28] (579/2,239) | 0.22 [0.20, 0.25] (189/848) | 4 |
+| kingfisher, every occurrence (variant) | 797 | 0.94 [0.92, 0.96] (748/793) | 0.26 [0.25, 0.28] (592/2,239) | 0.23 [0.20, 0.26] (192/848) | |
+| secretlint 13.0.7, preset-recommend | 386 | 0.86 [0.82, 0.89] (331/386) | 0.12 [0.11, 0.14] (276/2,239) | 0.18 [0.16, 0.21] (155/848) | 8 |
+| whispers 2.4.0 | 884 | 0.48 [0.45, 0.52] (329/680) | 0.08 [0.07, 0.09] (176/2,239) | 0.12 [0.10, 0.14] (99/848) | 82 |
+| trufflehog 3.99.3 | 397 | 0.45 [0.40, 0.50] (157/351) | 0.03 [0.03, 0.04] (77/2,239) | 0.03 [0.02, 0.05] (28/848) | 99 |
+| trufflehog, all results (variant) | 518 | 0.35 [0.30, 0.39] (159/459) | 0.03 [0.03, 0.04] (78/2,239) | 0.03 [0.02, 0.05] (29/848) | |
+| credsweeper 1.19.4 (not comparable) | 15,938 | 1.00 [0.99, 1.00] (14,359/14,427) | 0.99 [0.98, 0.99] (2,215/2,239) | 0.99 [0.98, 0.99] (839/848) | 290 |
+
+Limits on reading this table:
+
+- CredSweeper is made by the CredData authors, and its ML model was trained
+  with CredData. Its row measures fit to its own training data. Leave it out
+  of any ranking.
+- CredData replaces each real secret with random characters of the same
+  shape. A tool that checks structure (a parsable private key, a token
+  checksum) can drop those values, as TruffleHog and Kingfisher do in part.
+  That likely explains some of their low recall here; we did not measure how
+  much.
+- Whispers reads structured files (YAML, JSON, config) and reports line 0
+  for some file-level findings, which never match a labelled line.
+- secretlint ran on the glob `data/**/*`, which skips dotfiles. Its `json`
+  output failed on the whole tree, so the runner reads its `unix` output.
+- CredSweeper and deepsecrets need Unix-domain sockets for Python
+  multiprocessing. Their sandbox allows those sockets and still denies every
+  IP connection.
+- Semgrep with the public `p/secrets` ruleset was not run: it downloads its
+  rules at scan time.
+
+Exact command lines, per-family recall and labelled precision are in
+`competitors-creddata.dev.md` in the results directory.
+
 GuardDog 3.2.0 on the same dev packages (static, its own kernel sandbox
 with the network blocked, samples deleted afterwards). GuardDog reports
 every rule match as an issue and also gives a risk label; three ways to

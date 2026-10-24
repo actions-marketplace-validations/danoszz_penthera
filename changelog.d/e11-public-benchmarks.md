@@ -22,3 +22,8 @@ section: Docs
   half; the test half runs once, at the end. The dev baseline and reference
   runs of gitleaks, detect-secrets and GuardDog are in
   `bench/public/RESULTS.md`.
+- **E11b: eight more secret scanners on CredData dev.** TruffleHog,
+  Nosey Parker, Kingfisher, ripsecrets, secretlint, Whispers, deepsecrets
+  and CredSweeper run pinned, offline and scored the same way as gitleaks and
+  detect-secrets. The table and its limits are in `bench/public/RESULTS.md`.
+  CredSweeper was trained on CredData, so its row is not comparable.

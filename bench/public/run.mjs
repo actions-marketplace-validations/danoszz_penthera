@@ -9,6 +9,7 @@
  *   npm run bench:public -- --split dev          # E11b: the dev half only (default all = E11 as registered)
  *   npm run bench:public -- --make-split         # E11b: write the sealed split manifests once
  *   npm run bench:public -- --competitors        # E11b: reference tools on the current split (competitors.mjs)
+ *   npm run bench:public -- --competitors --split dev --only creddata --tools trufflehog,kingfisher  # a subset, merged into the results
  *
  * Each benchmark has a fetch step (network: datasets, tarballs, samples) in
  * this process, then a scan step in a child process with the network guard
@@ -43,7 +44,7 @@ if (argv.includes("--make-split")) {
 }
 if (argv.includes("--competitors")) {
   const { runCompetitors } = await import("./competitors.mjs");
-  await runCompetitors(opt("--only") ? opt("--only").split(",") : ["creddata", "malware"]);
+  await runCompetitors(opt("--only") ? opt("--only").split(",") : ["creddata", "malware"], opt("--tools") ? opt("--tools").split(",") : null);
   process.exit(0);
 }
 if (split === "test" && !argv.includes("--final")) throw new Error("the test split is sealed: it runs once, at the end of E11b, with --final");

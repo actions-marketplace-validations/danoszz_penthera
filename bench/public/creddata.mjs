@@ -89,9 +89,22 @@ function lineIndex(text) {
   };
 }
 
+// Which rules the repo scan runs on a file, from the engine itself when it
+// says (E11b pass 1 onward: "all", "shapes" or null); older engines read a
+// file by its path only and run every rule on it.
+async function rulesFor() {
+  const m = await import("../../lib/whitebox/secrets.js");
+  if (m.secretRulesFor) return (inRepo, abs) => m.secretRulesFor(inRepo, head(abs));
+  return (inRepo) => (m.isSecretScanTarget(inRepo) ? "all" : null);
+}
+function head(abs) {
+  try { return readFileSync(abs, "utf-8").slice(0, 256); } catch { return ""; }
+}
+
 /** Offline step: rule hits on every file, and the CLI's reported findings per repo. */
 export async function scan() {
-  const { findSecretsInText, isSecretScanTarget } = await import("../../lib/whitebox/secrets.js");
+  const { findSecretsInText } = await import("../../lib/whitebox/secrets.js");
+  const scopeOf = await rulesFor();
   const data = join(DIR, "data");
   const hits = [];
   const keep = inSplit("creddata");
@@ -103,11 +116,14 @@ export async function scan() {
       if (!keep(rel)) continue;
       files++;
       const inRepo = relative(join(data, repo), p).split(sep).join("/");
-      const read = isSecretScanTarget(inRepo);
+      const scope = scopeOf(inRepo, p);
       let text;
       try { text = readFileSync(p, "utf-8"); } catch { continue; }
       const lineOf = lineIndex(text);
-      for (const h of findSecretsInText(text)) hits.push({ file: rel, line: lineOf(h.index), rule: h.name, read });
+      // rulesOnly replays every rule on every file; the primary run keeps the
+      // hits the scan itself would report (read, and the rule allowed there).
+      const shapes = new Set(scope === "shapes" ? findSecretsInText(text, { shapesOnly: true }).map((h) => h.index) : []);
+      for (const h of findSecretsInText(text)) hits.push({ file: rel, line: lineOf(h.index), rule: h.name, read: scope === "all" || (scope === "shapes" && shapes.has(h.index)) });
     }
   }
   const cli = [];
@@ -207,11 +223,11 @@ export function scoreHits(rows, hits) {
 }
 
 export async function score(raw) {
-  const { isSecretScanTarget } = await import("../../lib/whitebox/secrets.js");
+  const scopeOf = await rulesFor();
   const rows = loadMeta().map((r) => {
     const inRepo = r.file.split("/").slice(2).join("/");
     const base = inRepo.split("/").pop();
-    return { ...r, read: isSecretScanTarget(inRepo), ext: base.includes(".") ? base.slice(base.lastIndexOf(".")) : "(none)" };
+    return { ...r, read: !!scopeOf(inRepo, join(DIR, r.file)), ext: base.includes(".") ? base.slice(base.lastIndexOf(".")) : "(none)" };
   });
   const keep = inSplit("creddata");
   const rowsIn = rows.filter((r) => keep(r.file));

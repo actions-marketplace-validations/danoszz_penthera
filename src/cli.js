@@ -124,6 +124,9 @@ const HELP = `
   ${dim("Options")}
     -r, --repo <path>       Path to repo for source analysis
         --api-root <path>   API routes directory (default: auto-detect)
+        --library           Scan the repo as a library: parameters of exported functions
+                            are untrusted (default: on for a publishable package.json)
+        --no-library        Scan the repo as an app, even if package.json is publishable
     -o, --output <file>     Write JSON report (+ companion .md if .json)
         --markdown <file>   Write Markdown report (human-readable)
         --sarif <file>      Write SARIF report (GitHub Security tab)
@@ -270,7 +273,9 @@ export async function run() {
       options: {
         repo:        { type: "string",  short: "r" },
         "api-root":  { type: "string" },
-        output:      { type: "string",  short: "o" },
+        library:     { type: "boolean", default: false },
+        "no-library": { type: "boolean", default: false },
+        output:     { type: "string",  short: "o" },
         markdown:    { type: "string" },
         sarif:       { type: "string" },
         "audit-seeds": { type: "string" },
@@ -614,6 +619,7 @@ export async function run() {
       const repoResult = await scanRepo(resolve(repo), {
         ...scanOpts,
         apiRoot: opts["api-root"] ? resolve(opts["api-root"]) : null,
+        library: opts.library ? true : opts["no-library"] ? false : undefined,
       });
       results.push(repoResult);
     }

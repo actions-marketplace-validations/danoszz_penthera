@@ -110,6 +110,44 @@ is unchecked, not clean. Dependency behaviour and agent config have their own
 commands (`penthera deps`, `penthera agents`) and are listed as not part of a
 repo scan.
 
+### Library mode: scanning a package
+
+In an app, untrusted data arrives in a request. In a library it arrives as an
+argument: whoever calls an exported function decides what its parameters
+hold. In library mode the repo scan treats those parameters as untrusted too.
+
+```bash
+penthera --repo ./my-package --library      # always scan as a library
+penthera --repo ./my-package --no-library   # always scan as an app
+```
+
+Without either flag, library mode turns on by itself when `package.json` looks
+publishable: it has `main`, `exports` or `bin` (or an `index.js` next to it),
+is not `"private": true`, and does not depend on an app framework such as
+Express, Koa, Fastify or Next.js. The report says when it is on, and why.
+
+How it works. Penthera finds the functions a caller can reach
+(`module.exports`, `exports.x`, prototype and class methods of an exported
+constructor, objects returned by an exported factory, ESM `export`). It
+follows each parameter through assignments, closures and callbacks inside that
+function. A shell command built from one is reported as `command-injection`
+at `potential` confidence and severity high. A function whose whole job is to
+run its argument (`exec(cmd)`) is reported at severity medium, with the note
+that callers must not pass untrusted input. In library mode the scan also
+reads `dist/` or `build/` when `package.json` points there, and skips tooling,
+examples and docs folders.
+
+How we know. On the dev half of SecBench.js (49 command injections in npm
+packages, the half we tuned on), strict recall went from 0.00 to 0.82, 95% CI
+0.69 to 0.90 (40 of 49); 33 of 49 without the "runs its argument" cases. It
+flagged no command injection in 150 npm packages of the benign baseline (dev half), and nothing new in
+16 app repositories. The sealed test half is not scored yet.
+
+Limits. A value passed on to a helper function, or stored on `this` and read
+in another method, is not followed. Sanitizers are not recognized, so a
+correctly escaped command can still be reported; that is what `potential`
+means.
+
 ## CI integration
 
 ```yaml

@@ -13,6 +13,7 @@ import { discoverAttackSurface, groupByTrustBoundary, findRiskyRoutes } from "..
 import { scanSecrets } from "../lib/whitebox/secrets.js";
 import { gitIgnored } from "../lib/git.js";
 import { scanCodeSinks } from "../lib/whitebox/code-sinks.js";
+import { detectLibrary } from "../lib/whitebox/library.js";
 import { discoverFrameworkRoutes } from "../lib/whitebox/frameworks.js";
 import { runtimeAdvisoriesForRepo } from "../lib/advisories/index.js";
 import { buildCoverage } from "../lib/coverage.js";
@@ -42,7 +43,8 @@ function findApiRoot(repoPath) {
  * Run a white-box scan against a local repository.
  *
  * @param {string} repoPath - Path to the repository root
- * @param {object} opts - { apiRoot, onPhase }
+ * @param {object} opts - { apiRoot, onPhase, library }; library: true (--library),
+ *   false (--no-library), or undefined to decide from package.json
  * @returns {object} Scan result with findings
  */
 export async function scanRepo(repoPath, opts = {}) {
@@ -83,8 +85,21 @@ export async function scanRepo(repoPath, opts = {}) {
 
   // ── Phase 1c: Code-execution sinks (all server code, not just routes) ──
   progress("Looking for eval, vm and exec sinks...");
-  result.findings.push(...scanCodeSinks(repoPath));
+  // Library mode: a publishable package's exported parameters are sources too.
+  const library = detectLibrary(repoPath, opts.library);
+  result.library = { enabled: library.enabled, reason: library.reason };
+  result.findings.push(...scanCodeSinks(repoPath, { library }));
   result.executedProbes.push("code-sinks");
+  if (library.enabled) {
+    result.executedProbes.push("library-mode");
+    result.findings.push({
+      severity: "info",
+      title: "Library mode: exported functions' parameters count as untrusted",
+      description: `Scanned as a library (${library.reason}). A shell command built from a parameter of an exported function is reported at potential confidence, since the caller decides what it holds.${library.reason === "--library" ? "" : " Use --no-library to scan it as an app."}`,
+      category: "config",
+      source: "repo-scan",
+    });
+  }
 
   // ── Phase 2: Locate API root ───────────────────────────────────────────
   progress("Locating API routes directory...");

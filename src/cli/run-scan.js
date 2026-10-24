@@ -86,6 +86,7 @@ export async function executeScan(config) {
     const repoResult = await scanRepo(resolve(repo), {
       ...scanOpts,
       apiRoot: apiRoot ? resolve(apiRoot) : null,
+      library: typeof config.library === "boolean" ? config.library : undefined,
     });
     results.push(repoResult);
   }

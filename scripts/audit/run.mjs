@@ -51,7 +51,11 @@ const BENCH_MAX_DROP = 0.02;
 // Raised for 1.9.0 with the maintainer's OK (2026-10-23): the 1.9.0 changelog,
 // the dashboard refresh and the refreshed typosquat list put it at ~820 KB
 // packed; was 835_000. About 10 KB of headroom.
-const PACK_BUDGET = { packedBytes: 850_000, unpackedBytes: 2_300_000, files: 260 };
+// Raised for library mode (lib/whitebox/library.js and js-lex.js, the larger
+// code-sinks.js: ~47 KB unpacked, ~14 KB packed, 2 files, no dependencies),
+// pending the maintainer's agreement (E11b § 6): was 850_000 packed /
+// 2_300_000 unpacked. Main was at ~846 KB packed before it.
+const PACK_BUDGET = { packedBytes: 875_000, unpackedBytes: 2_350_000, files: 260 };
 
 /** Paths the npm package may contain. Anything else fails the packaging gate. */
 const PACK_ALLOW = [

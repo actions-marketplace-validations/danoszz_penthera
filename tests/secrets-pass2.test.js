@@ -207,7 +207,7 @@ describe("generic API keys (A5)", () => {
 describe("the new rules stay fast on hostile input", () => {
   it("password and key rules are linear-ish", () => {
     for (const text of [`${PW}`.repeat(50_000), "a_".repeat(100_000) + `${PW}:`, "-----BEGIN DSA PRIVATE KEY-----" + "\n \"".repeat(50_000), ` ${PW} = ` + "'".repeat(100_000), "x.".repeat(100_000) + PW]) {
-      expect(cpuMs(() => findSecretsInText(text, { path: "a.yml" }))).toBeLessThan(1500);
+      expect(cpuMs(() => findSecretsInText(text, { path: "a.yml" }), { runs: 3 })).toBeLessThan(1500);
     }
   });
 });

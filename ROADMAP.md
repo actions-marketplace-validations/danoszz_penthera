@@ -65,6 +65,38 @@ are applying to NLnet to fund.
 | Harness audit: a checklist, planned `harness-*`, `sandbox-*` and `scorer-*` rules, experiments E7 and E8 | "Am I running my AI agents properly?" | Specs in review: [checklist](docs/agents-safely.md), [rule spec](docs/research/spec-harness-rules.md), [E8 draft](docs/research/prereg/E8-harness-guardrails.md). No rule code before approval |
 | Real-world precision and recall, with intervals | "Can I trust a clean report?" | After E1 runs; published whatever the result |
 
+### One first pass, with the best free tools
+
+A common setup is a list of separate scanners, each with its own install, output
+and false alarms. The goal: one `penthera` run covers the whole first pass. Where
+Penthera is measured best, its own rules do the work. Where another free tool is
+better or covers what Penthera doesn't, Penthera runs that tool, if you have it
+installed, and folds its findings into the same report and SARIF. Every finding
+names the tool and rule that raised it, duplicates are merged, and the decision
+to report stays deterministic.
+
+| Area | Penthera today | Combined with | State |
+|---|---|---|---|
+| Secrets | F1 0.74 on CredData, ahead of gitleaks (0.52) and trufflehog (0.10) | gitleaks, trufflehog (verifies keys only with your opt-in, since it contacts the provider) | Planned |
+| Code | JS/TS injection: 0.70 on SecBench.js, ahead of CodeQL (0.64) and Semgrep (0.38) | Semgrep with local rules, for other languages; CodeQL only where its terms allow (open-source code, or your own licence) | Planned |
+| Dependencies | Capabilities, malware (1st on npm and PyPI), licences, typosquats | osv-scanner, pip-audit, for known CVEs in your lockfiles | Planned |
+| Infrastructure | Runtime versions pinned in Dockerfiles and version files | trivy (container images, IaC), checkov (Terraform, Kubernetes, CI config) | Planned |
+| Live app | Passive checks, Nuclei-compatible templates, `--deep` injection probes | nuclei, the ZAP baseline scan | Planned |
+| E14: the combination against each tool alone | "Is the combined report better, or only longer?" | Same protocol as E11b on the same public benchmarks. Combined precision may not drop by more than 0.02 | Pre-registered ([E14](docs/research/prereg/E14-giants-combination.md)); [spec](docs/research/spec-giants.md) approved. Next: the build, then the dev-half rerun |
+
+How it works, and what it won't do:
+
+- **Your tools, not ours.** Penthera finds tools that are already installed.
+  It never downloads them or their rules at run time; `penthera init` can show
+  the install command. Without a tool, its area is reported as not covered, not
+  as clean.
+- **Offline stays the default.** A tool that needs the network (a registry
+  rule download, key verification) runs only with your opt-in.
+- **Licences are respected.** Each tool runs as its own program under its own
+  licence. Penthera bundles none of them.
+- **Burp stays separate.** Manual, proxy-driven testing by a person is a
+  different job, and Penthera is no replacement for a pentest.
+
 ### Before you deploy
 
 | Item | Question it answers |
@@ -120,6 +152,8 @@ are applying to NLnet to fund.
   it cannot confirm that a person typed the target host.
 - **A hosted service.** If a hosted version ever exists, it will not remove
   anything from the local tool.
+- **Bundling or auto-installing other scanners.** Penthera runs the ones you
+  have installed and reports what is not covered. It ships none of them.
 
 ## Principles
 

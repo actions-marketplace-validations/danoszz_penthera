@@ -20,7 +20,7 @@ describe("Claude Code plugin manifest", () => {
     const market = JSON.parse(readFileSync(".claude-plugin/marketplace.json", "utf-8"));
     const entry = market.plugins.find((p) => p.name === "penthera");
     const declares = ["skills", "commands", "agents", "hooks", "mcpServers"].some((k) => entry[k] != null);
-    if (existsSync(".claude-plugin/plugin.json") && declares) expect(entry.strict).toBe(true);
+    if (existsSync(join(entry.source ?? ".", ".claude-plugin/plugin.json")) && declares) expect(entry.strict).toBe(true);
   });
 });
 

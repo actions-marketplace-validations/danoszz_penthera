@@ -50,9 +50,11 @@ function page(w, h, cardsHtml, cols) {
     repeating-linear-gradient(180deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 3px),
     radial-gradient(70% 60% at 85% 0%, rgba(0,0,237,0.35), transparent 70%),
     radial-gradient(90% 80% at 0% 100%, rgba(0,0,0,0.85), transparent 70%); }
-  .shot-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
+  .shot-head { display: grid; justify-items: start; gap: ${h < 700 ? 10 : 18}px; }
   .shot-logo { display: block; flex: none; height: ${h < 700 ? 36 : 46}px; width: auto; filter: invert(1); } /* logo.svg is black ink */
-  .shot-right { text-align: right; }
+  .shot-right { text-align: left; }
+  .shot-t { max-width: none; white-space: nowrap; }
+  .shot-right .shot-k { margin: 0; }
   body { display: grid; grid-template-rows: auto 1fr auto; gap: ${h < 700 ? 18 : 28}px; padding: ${h < 700 ? "36px 48px" : "56px 64px"}; box-sizing: border-box; }
   .shot-k { font-family: var(--px); font-size: 18px; color: var(--text-2); }
   .shot-t { margin: 10px 0 0; font-family: var(--display); font-size: ${h < 700 ? 40 : 64}px; line-height: 1; letter-spacing: -0.035em; font-weight: 500; color: var(--text-1); }

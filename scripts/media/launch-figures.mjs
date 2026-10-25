@@ -166,12 +166,12 @@ const FIG_CSS = `
   .tick { font-size: 14px; fill: ${INK}; } .axl { font-size: 16px; fill: ${INK}; } .ptitle { font-size: 17px; fill: ${INK}; font-weight: 500; }
   .lab { font-size: 14px; fill: #333; } .lab-us { font-size: 15px; fill: ${BLUE}; font-weight: 600; }
   .note { font-size: 13px; fill: ${GREY}; font-style: italic; font-family: ${SERIF}; }`;
-function figure(file, num, plotSvg, caption) {
+function figure(file, num, plotSvg, caption, { w = 1600, h = 900, css = "" } = {}) {
   const body = `<div class="run"><span>Penthera 2.0 — E11b, public benchmarks against free tools</span><span>Sealed test half, scored once · ${pub.date}</span></div>
   <div class="plot">${plotSvg}</div>
   <p class="cap"><b>${num}.</b> ${caption}</p>
   <div class="foot"><img src="logo.svg" alt="Penthera"><span>Data, method and reproduction: penthera.org/#public-benchmarks</span></div>`;
-  return htmlPage(file, 1600, 900, body, FIG_CSS);
+  return htmlPage(file, w, h, body, FIG_CSS + css);
 }
 
 /** Matplotlib-like axes: a closed box, inward ticks, a faint dotted grid. */
@@ -213,7 +213,7 @@ function points(ax, pts, { right = Infinity } = {}) {
   }
   // Labels: two columns (left, right of their point), each spread apart.
   for (const p of pts) p.ax = ax;
-  const labs = pts.map((p) => {
+  const labs = pts.filter((p) => p.label).map((p) => {
     const cx = ax.X(p.x), cy = ax.Y(p.y), lw = p.label.length * (p.us ? 8.6 : 7.6);
     const side = p.side || (cx + 16 + lw > right ? "l" : "r");
     return { p, cx, cy, side, ly: cy + 5 + (p.dy || 0) };
@@ -481,6 +481,95 @@ function figAllScale() {
   return figure("fig-all-scale", "Figure 8", svg, `Every benchmark on one scale: each score is placed between the weakest (0) and the strongest (1) ranked tool on that benchmark. Penthera 2.0 is at the top on three benchmarks and second on secrets. Averaged over all four, it sits at ${f2(mu)} of the way from the weakest free tool to the strongest, up from ${f2(mb)} for 1.9.`);
 }
 
+/** Figure 1 with the results table beside it. */
+function figSecretsTable() {
+  const ax = axes({ x: 90, y: 40, w: 560, h: 540, xLabel: "Recall (share of real secrets found)", yLabel: "Precision (share of warnings that are real)", title: "(a) Leaked secrets, Samsung CredData" });
+  const svg = `<svg width="700" height="660" viewBox="0 0 700 660" xmlns="http://www.w3.org/2000/svg">${secretsPanel(ax, 650)}</svg>`;
+  const rows = [["secrets", "Leaked secrets", "F1"], ["npm", "npm malware", "J"], ["pypi", "PyPI malware", "J"], ["library", "JS injection bugs", "recall"]].map(([k, what, unit]) => {
+    const b = B[k], u = us(b), o = before(b), best = others(b).sort((a, c) => c.score - a.score)[0];
+    return `<tr><td>${what}<div class="sub">${unit}</div></td><td class="r">${f2(o.score)}</td><td class="r us">${f2(u.score)}</td><td>${esc(name(best))}<div class="sub">${f2(best.score)}</div></td><td class="r us">${u.rank}${k === "library" ? "<sup>a</sup>" : ""} / ${b.of}</td></tr>`;
+  }).join("");
+  const table = `<div class="tbl"><p class="tt">(b) All four benchmarks</p><table><thead>
+    <tr><th></th><th class="grp" colspan="2"><span>Penthera</span></th><th></th><th></th></tr>
+    <tr><th>Benchmark</th><th class="r">1.9.0</th><th class="r">2.0.0</th><th>Best other free tool</th><th class="r">Rank</th></tr></thead><tbody>${rows}</tbody></table>
+    <p class="tn"><sup>a</sup> Tied within the margin with ODGen: the 95% intervals overlap.</p></div>`;
+  const css = `
+  .plot { gap: 36px; align-items: center; }
+  .tbl { width: 700px; } .tt { margin: 0 0 14px; font-family: ${SANS}; font-size: 17px; font-weight: 500; }
+  table { border-collapse: collapse; font-family: ${SERIF}; font-size: 20px; width: 100%; font-variant-numeric: tabular-nums lining-nums; }
+  th, td { padding: 11px 10px; text-align: left; vertical-align: top; }
+  thead tr:first-child th { border-top: 2px solid ${INK}; } thead tr:last-child th { border-bottom: 1px solid ${INK}; font-weight: 600; }
+  tbody tr:last-child td { border-bottom: 2px solid ${INK}; }
+  th.grp { text-align: center; font-weight: 600; padding-bottom: 2px; } th.grp span { display: block; border-bottom: 1px solid ${INK}; padding-bottom: 6px; }
+  .r { text-align: right; } .us { color: ${BLUE}; font-weight: 700; } .sub { font-size: 15px; color: ${GREY}; font-style: italic; }
+  .tn { font-family: ${SERIF}; font-size: 15px; color: ${GREY}; margin: 10px 0 0; }`;
+  return figure("fig-secrets-table", "Figure 9", svg + table, `(a) Precision against recall for secret detection; dashed curves have equal F1, the ranking score, and error bars are 95% Wilson intervals. The blue arrow is one release of work, from Penthera 1.9 to 2.0. (b) The ranking score on all four benchmarks, scored once on the sealed half. Ranks need at least five other free tools.`, { css });
+}
+
+// The Figure 1 method on every benchmark: two parts of the score on the axes,
+// dashed lines of equal ranking score, Wilson error bars, and Penthera's move
+// from 1.9 to 2.0 as a blue arrow. Tools shown but not ranked are left out.
+function wilson(k, n, z = 1.96) {
+  const p = k / n, d = 1 + (z * z) / n, c = p + (z * z) / (2 * n), m = z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n));
+  return [(c - m) / d, (c + m) / d];
+}
+const PANELS = {
+  secrets: {
+    title: "Leaked secrets", sub: "Samsung CredData · F1", xLabel: "Recall", yLabel: "Precision",
+    pt: (r) => ({ x: r.r, y: r.p, xci: r.recallCI, yci: r.precisionCI }),
+    iso: (ax) => [0.2, 0.4, 0.6, 0.8].map((f) => {
+      const ps = [];
+      for (let r = f / 2 + 0.002; r <= 1.0001; r += 0.004) { const p = (f * r) / (2 * r - f); if (p <= 1) ps.push(`${ax.X(r).toFixed(1)},${ax.Y(p).toFixed(1)}`); }
+      return { d: `M${ps.join("L")}`, label: `F1 ${f.toFixed(1)}`, lx: ax.X(0.98), ly: ax.Y((f * 0.98) / (2 * 0.98 - f)) - 5 };
+    }),
+  },
+  npm: { title: "npm malware", sub: "Datadog · Youden's J", xLabel: "False alarms", yLabel: "Caught", malware: true },
+  pypi: { title: "PyPI malware", sub: "Datadog · Youden's J", xLabel: "False alarms", yLabel: "Caught", malware: true },
+  library: {
+    title: "JS injection bugs", sub: "SecBench.js · recall", xLabel: "Code injection found", yLabel: "Command injection found",
+    pt: (r) => ({ x: r.code[0] / r.code[1], y: r.command[0] / r.command[1], xci: wilson(...r.code), yci: wilson(...r.command) }),
+    // Pooled recall R = (47·cmd + 17·code) / 64, so cmd = (64R − 17·code) / 47.
+    iso: (ax) => [0.2, 0.4, 0.6, 0.8].map((R) => {
+      const y = (x) => (64 * R - 17 * x) / 47, x0 = Math.max(0, (64 * R - 47) / 17), x1 = Math.min(1, (64 * R) / 17);
+      return { d: `M${ax.X(x0)},${ax.Y(y(x0))}L${ax.X(x1)},${ax.Y(Math.max(0, y(x1)))}`, label: `recall ${R.toFixed(1)}`, lx: ax.X(x0) + 4, ly: ax.Y(y(x0)) + 14, start: true };
+    }),
+  },
+};
+for (const k of ["npm", "pypi"]) Object.assign(PANELS[k], {
+  pt: (r) => ({ x: r.fa, y: r.r, xci: r.benignCI, yci: r.detectCI }),
+  // J = caught − false alarms: lines parallel to the chance diagonal.
+  iso: (ax) => [0, 0.2, 0.4, 0.6, 0.8].map((J) => ({ d: `M${ax.X(0)},${ax.Y(J)}L${ax.X(1 - J)},${ax.Y(1)}`, label: J ? `J ${J.toFixed(1)}` : "chance", lx: ax.X((1 - J) / 2) + 6, ly: ax.Y(J + (1 - J) / 2) + 14, start: true })),
+});
+
+function benchPanel(k, x, y, size, { labelAll }) {
+  const P = PANELS[k], b = B[k];
+  const ax = axes({ x, y, w: size, h: size, xLabel: P.xLabel, yLabel: P.yLabel, title: `${P.title} · ${us(b).rank === 1 ? "1st" : "2nd"} of ${b.of}${k === "library" ? ", tied" : ""}` });
+  const iso = P.iso(ax).map((c) => `<path d="${c.d}" fill="none" stroke="#9a9a9a" stroke-dasharray="5 4"/><text x="${c.lx}" y="${c.ly}" class="note" text-anchor="${c.start ? "start" : "end"}" style="font-size:12px">${c.label}</text>`).join("");
+  const best = others(b).sort((a, c) => c.score - a.score)[0];
+  const rows = b.rows.filter((r) => r.rank || r.kind === "penthera-before");
+  const pts = rows.map((r) => ({ ...P.pt(r), us: r.kind === "penthera", ghost: r.kind === "penthera-before",
+    label: r.kind === "penthera" ? "Penthera 2.0" : r.kind === "penthera-before" ? "1.9" : labelAll || r === best ? name(r) : "" }));
+  const u = P.pt(us(b)), o = P.pt(before(b));
+  const id = `ah-${k}-${x}-${y}`;
+  const dx = ax.X(u.x) - ax.X(o.x), dy = ax.Y(u.y) - ax.Y(o.y), len = Math.hypot(dx, dy) || 1;
+  const arrow = len > 24 ? `<defs><marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0L10,5L0,10z" fill="${BLUE}"/></marker></defs><line x1="${ax.X(o.x) + (dx / len) * 10}" y1="${ax.Y(o.y) + (dy / len) * 10}" x2="${ax.X(u.x) - (dx / len) * 13}" y2="${ax.Y(u.y) - (dy / len) * 13}" stroke="${BLUE}" stroke-width="2" marker-end="url(#${id})"/>` : "";
+  return `${ax.svg}${iso}<text x="${x}" y="${y - 34}" class="note" style="font-size:13px">${P.sub}</text>${arrow}${points(ax, pts, { right: x + size - 10 })}`;
+}
+
+function figGrid(layout) {
+  const keys = ["secrets", "npm", "pypi", "library"];
+  const wide = layout === "wide";
+  const size = wide ? 285 : 470, gx = wide ? 365 : 600, gy = 600;
+  const cells = keys.map((k, i) => benchPanel(k, (wide ? i : i % 2) * gx + 80, (wide ? 0 : Math.floor(i / 2)) * gy + 90, size, { labelAll: !wide }));
+  const W = wide ? 80 + 3 * gx + size + 15 : 2 * gx + 20, H = wide ? size + 160 : 2 * gy + 40;
+  const legend = `<g transform="translate(80 20)"><circle cx="8" cy="0" r="8" fill="${BLUE}"/><text x="22" y="5" class="lab">Penthera 2.0</text><circle cx="138" cy="0" r="7" fill="#fff" stroke="${BLUE}" stroke-width="2"/><text x="152" y="5" class="lab">Penthera 1.9</text><path d="M250,0h30" stroke="${BLUE}" stroke-width="2"/><text x="290" y="5" class="lab">one release</text><circle cx="400" cy="0" r="6" fill="#444"/><text x="414" y="5" class="lab">another free tool</text><path d="M548,0h26" stroke="#9a9a9a" stroke-dasharray="5 4"/><text x="584" y="5" class="lab">equal ranking score</text></g>`;
+  const svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${legend}${cells.join("")}</svg>`;
+  const cap = `The method of Figure 1 on all four benchmarks. Each panel plots the two parts of that benchmark's score, with dashed lines where the ranking score is equal: F1 for secrets, Youden's J (caught minus false alarms) for malware, overall recall for SecBench.js. Up and to the ${wide ? "right" : "right"} is better for secrets and SecBench.js; up and to the left for malware. Error bars are 95% Wilson intervals. ${wide ? "Only the best other tool is named." : ""} Tools shown but not ranked are left out.`;
+  return wide
+    ? figure("fig-grid-wide", "Figure 10", svg, cap)
+    : figure("fig-grid-square", "Figure 10", svg, cap, { w: 1400, h: 1750, css: `.cap { max-width: 1280px; }` });
+}
+
 // ── 3. The product, light theme: the real CLI, dashboard and site ──
 function ansiToHtml(s) {
   const map = { 1: "font-weight:700", 2: "opacity:.55", 31: `color:#c4161c`, 33: "color:#946200", 36: `color:${BLUE}`, 37: "color:#fff", 41: "background:#c4161c" };
@@ -564,6 +653,9 @@ try {
   await br.shot(figAllRadar(), join(out, "figures", "figure-6-all-radar.png"), { w: 1600, h: 900 });
   await br.shot(figAllMargin(), join(out, "figures", "figure-7-all-margin.png"), { w: 1600, h: 900 });
   await br.shot(figAllScale(), join(out, "figures", "figure-8-all-scale.png"), { w: 1600, h: 900 });
+  await br.shot(figSecretsTable(), join(out, "figures", "figure-9-secrets-with-table.png"), { w: 1600, h: 900 });
+  await br.shot(figGrid("wide"), join(out, "figures", "figure-10-four-benchmarks-wide.png"), { w: 1600, h: 900 });
+  await br.shot(figGrid("square"), join(out, "figures", "figure-10-four-benchmarks-portrait.png"), { w: 1400, h: 1750 });
   await br.shot(terminalShot(), join(out, "product", "cli-scan.png"), { w: 1600, h: 900 });
 
   const site = await siteServer();

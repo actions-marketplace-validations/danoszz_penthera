@@ -28,6 +28,9 @@ function card(key, b) {
   const was = b.rows.find((r) => r.kind === "penthera-before");
   if (!us) return "";
   const wasRank = b.ranked ? wouldRank(was, ranked) : null;
+  // A lead of under 0.05 sits inside the 95% intervals here: say it is close.
+  const next = ranked.find((r) => r !== us);
+  const close = b.ranked && us.rank === 1 && next && us.score - next.score < 0.05 ? `Within the margin of error of ${next.tool}.` : "";
   // Bars are SVG (the site's CSP blocks inline styles). Ranked: relative to the best score, every tool. A small field: a
   // fixed 0-100% meter per tool, so one or two rows still read as a scale.
   const max = b.ranked ? Math.max(...ranked.map((r) => r.score), 0.01) : 1;
@@ -48,6 +51,7 @@ function card(key, b) {
             ? `<p class="pb-rank"><span class="pb-place">${ord(us.rank)}</span> <span class="pb-of">of ${ranked.length}</span></p>`
             : `<p class="pb-rank"><span class="pb-place">${Math.round(us.score * 100)}%</span> <span class="pb-of">${esc(c.short)}</span></p>`}
           <p class="pb-lines">${c.lines(us).map(esc).join(" · ")}</p>
+          ${close ? `<p class="pb-note">${esc(close)}</p>` : ""}
           <ol class="pb-chart" aria-label="${esc(c.score)}, every tool">${bars}</ol>
           <details class="pb-more"><summary>How it is scored</summary><ul>${more}</ul></details>
         </li>`;

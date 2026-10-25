@@ -1294,3 +1294,4 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .pb-more summary:hover { text-decoration: underline; text-underline-offset: 4px; }
 .pb-more ul { margin: 10px 0 0; padding: 0 0 0 14px; display: grid; gap: 6px; }
 .bench-also { margin-top: 64px; }
+.pb-note { font-family: var(--px); font-size: 12px; color: var(--text-2); }

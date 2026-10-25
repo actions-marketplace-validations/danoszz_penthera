@@ -478,7 +478,7 @@ function metalLight() {
   const fine = matchMedia("(hover: hover) and (pointer: fine)");
   const still = matchMedia("(prefers-reduced-motion: reduce)");
   if (!fine.matches || still.matches) return;
-  const plates = [...document.querySelectorAll(".pillars li, .bench-stats li, .road li, .ways > li, .prompt-card, .btn-prompt")];
+  const plates = [...document.querySelectorAll(".pillars li, .bench-stats li, .road li, .ways > li, .prompt-card, .btn-prompt, .pb-card")];
   let x = 0, y = 0, queued = false;
   const paint = () => {
     queued = false;

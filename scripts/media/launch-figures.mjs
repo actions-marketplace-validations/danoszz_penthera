@@ -481,29 +481,43 @@ function figAllScale() {
   return figure("fig-all-scale", "Figure 8", svg, `Every benchmark on one scale: each score is placed between the weakest (0) and the strongest (1) ranked tool on that benchmark. Penthera 2.0 is at the top on three benchmarks and second on secrets. Averaged over all four, it sits at ${f2(mu)} of the way from the weakest free tool to the strongest, up from ${f2(mb)} for 1.9.`);
 }
 
-/** Figure 1 with the results table beside it. */
+/** Figure 1 with the results table and a 1.9 → 2.0 strip beside it. */
 function figSecretsTable() {
-  const ax = axes({ x: 90, y: 40, w: 560, h: 540, xLabel: "Recall (share of real secrets found)", yLabel: "Precision (share of warnings that are real)", title: "(a) Leaked secrets, Samsung CredData" });
-  const svg = `<svg width="700" height="660" viewBox="0 0 700 660" xmlns="http://www.w3.org/2000/svg">${secretsPanel(ax, 650)}</svg>`;
-  const rows = [["secrets", "Leaked secrets", "F1"], ["npm", "npm malware", "J"], ["pypi", "PyPI malware", "J"], ["library", "JS injection bugs", "recall"]].map(([k, what, unit]) => {
+  const ax = axes({ x: 86, y: 40, w: 690, h: 560, xLabel: "Recall (share of real secrets found)", yLabel: "Precision (share of warnings that are real)", title: "(a) Leaked secrets, Samsung CredData" });
+  const svg = `<svg width="800" height="660" viewBox="0 0 800 660" xmlns="http://www.w3.org/2000/svg">${secretsPanel(ax, 776)}</svg>`;
+  const list = [["secrets", "Leaked secrets", "F1"], ["npm", "npm malware", "J"], ["pypi", "PyPI malware", "J"], ["library", "JS injection bugs", "recall"]];
+  const rows = list.map(([k, what, unit]) => {
     const b = B[k], u = us(b), o = before(b), best = others(b).sort((a, c) => c.score - a.score)[0];
     return `<tr><td>${what}<div class="sub">${unit}</div></td><td class="r">${f2(o.score)}</td><td class="r us">${f2(u.score)}</td><td>${esc(name(best))}<div class="sub">${f2(best.score)}</div></td><td class="r us">${u.rank}${k === "library" ? "<sup>a</sup>" : ""} / ${b.of}</td></tr>`;
   }).join("");
-  const table = `<div class="tbl"><p class="tt">(b) All four benchmarks</p><table><thead>
+  // (c) one row per benchmark: other ranked tools as ticks, Penthera 1.9 → 2.0 as an arrow.
+  const x0 = 150, w = 450, d = [-0.3, 1], rh = 38, top = 14;
+  const X = (v) => x0 + ((v - d[0]) / (d[1] - d[0])) * w;
+  const g = [`<defs><marker id="ah9" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0L10,5L0,10z" fill="${BLUE}"/></marker></defs>`];
+  for (const v of [0, 0.5, 1]) g.push(`<line x1="${X(v)}" x2="${X(v)}" y1="${top - 6}" y2="${top + list.length * rh}" stroke="${v ? "#e3e3e3" : "#9a9a9a"}"/><text x="${X(v)}" y="${top + list.length * rh + 18}" class="tick" text-anchor="middle" style="font-size:13px">${f2(v)}</text>`);
+  list.forEach(([k, what], i) => {
+    const y = top + i * rh + rh / 2, u = us(B[k]), o = before(B[k]);
+    g.push(`<text x="0" y="${y + 5}" class="lab">${what}</text>`);
+    for (const r of others(B[k])) g.push(`<line x1="${X(r.score)}" x2="${X(r.score)}" y1="${y - 10}" y2="${y + 10}" stroke="#555" stroke-width="2"/>`);
+    g.push(`<line x1="${X(o.score) + 8}" x2="${X(u.score) - 11}" y1="${y}" y2="${y}" stroke="${BLUE}" stroke-width="2" marker-end="url(#ah9)"/><circle cx="${X(o.score)}" cy="${y}" r="6" fill="#fff" stroke="${BLUE}" stroke-width="2"/><circle cx="${X(u.score)}" cy="${y}" r="8" fill="${BLUE}" stroke="#fff" stroke-width="1.5"/>`);
+  });
+  const strip = `<svg width="620" height="${top + list.length * rh + 26}" viewBox="0 0 620 ${top + list.length * rh + 26}" xmlns="http://www.w3.org/2000/svg">${g.join("")}</svg>`;
+  const right = `<div class="col"><div><p class="tt">(b) All four benchmarks</p><table><thead>
     <tr><th></th><th class="grp" colspan="2"><span>Penthera</span></th><th></th><th></th></tr>
     <tr><th>Benchmark</th><th class="r">1.9.0</th><th class="r">2.0.0</th><th>Best other free tool</th><th class="r">Rank</th></tr></thead><tbody>${rows}</tbody></table>
-    <p class="tn"><sup>a</sup> Tied within the margin with ODGen: the 95% intervals overlap.</p></div>`;
+    <p class="tn"><sup>a</sup> Tied within the margin with ODGen: the 95% intervals overlap.</p></div>
+    <div><p class="tt">(c) One release: 1.9 → 2.0, other free tools as ticks</p>${strip}</div></div>`;
   const css = `
-  .plot { gap: 36px; align-items: center; }
-  .tbl { width: 700px; } .tt { margin: 0 0 14px; font-family: ${SANS}; font-size: 17px; font-weight: 500; }
-  table { border-collapse: collapse; font-family: ${SERIF}; font-size: 20px; width: 100%; font-variant-numeric: tabular-nums lining-nums; }
-  th, td { padding: 11px 10px; text-align: left; vertical-align: top; }
+  .plot { gap: 28px; align-items: center; }
+  .col { width: 620px; display: grid; gap: 22px; } .tt { margin: 0 0 8px; font-family: ${SANS}; font-size: 16px; font-weight: 500; }
+  table { border-collapse: collapse; font-family: ${SERIF}; font-size: 18px; width: 100%; font-variant-numeric: tabular-nums lining-nums; }
+  th, td { padding: 9px 8px; text-align: left; vertical-align: top; }
   thead tr:first-child th { border-top: 2px solid ${INK}; } thead tr:last-child th { border-bottom: 1px solid ${INK}; font-weight: 600; }
   tbody tr:last-child td { border-bottom: 2px solid ${INK}; }
-  th.grp { text-align: center; font-weight: 600; padding-bottom: 2px; } th.grp span { display: block; border-bottom: 1px solid ${INK}; padding-bottom: 6px; }
-  .r { text-align: right; } .us { color: ${BLUE}; font-weight: 700; } .sub { font-size: 15px; color: ${GREY}; font-style: italic; }
-  .tn { font-family: ${SERIF}; font-size: 15px; color: ${GREY}; margin: 10px 0 0; }`;
-  return figure("fig-secrets-table", "Figure 9", svg + table, `(a) Precision against recall for secret detection; dashed curves have equal F1, the ranking score, and error bars are 95% Wilson intervals. The blue arrow is one release of work, from Penthera 1.9 to 2.0. (b) The ranking score on all four benchmarks, scored once on the sealed half. Ranks need at least five other free tools.`, { css });
+  th.grp { text-align: center; font-weight: 600; padding-bottom: 2px; } th.grp span { display: block; border-bottom: 1px solid ${INK}; padding-bottom: 5px; }
+  .r { text-align: right; } .us { color: ${BLUE}; font-weight: 700; } .sub { font-size: 14px; color: ${GREY}; font-style: italic; }
+  .tn { font-family: ${SERIF}; font-size: 14px; color: ${GREY}; margin: 6px 0 0; }`;
+  return figure("fig-secrets-table", "Figure 9", svg + right, `(a) Precision against recall for secret detection; dashed curves have equal F1, error bars are 95% Wilson intervals, and the blue arrow is one release, Penthera 1.9 → 2.0. (b) The ranking score on all four benchmarks, sealed half, scored once; ranks need at least five other free tools. (c) The same scores on one axis.`, { css });
 }
 
 // The Figure 1 method on every benchmark: two parts of the score on the axes,
@@ -631,6 +645,39 @@ ${ansiToHtml(text)}</pre></div>
   return htmlPage("terminal", 1600, 900, body, css);
 }
 
+/** A Dockerfile pinned to an old PHP, scanned for the October 2026 PHP advisories. White, grey windows. */
+function phpShot() {
+  const app = join(tmp, "php-app");
+  mkdirSync(app, { recursive: true });
+  const docker = "FROM php:8.3.30-apache\nCOPY public/ /var/www/html/\n";
+  writeFileSync(join(app, "Dockerfile"), docker);
+  const r = spawnSync(process.execPath, [join(ROOT, "bin", "penthera.js"), "--repo", ".", "--offline"], { cwd: app, encoding: "utf-8", env: { ...process.env, FORCE_COLOR: "1", NO_UPDATE_NOTIFIER: "1" } });
+  let text = (r.stdout + r.stderr).split("\n").filter((l) => !l.includes("▸")).join("\n").replace(/^\n+/, "").trimEnd();
+  text = text.replace(/(Target\s+(?:\x1b\[[\d;]*m)?)[^\s\x1b]+/, "$1~/php-site");
+  text = text.split(/\n(?=\s*(?:\x1b\[[\d;]*m)*─)/).filter((b) => !b.includes("Coverage")).join("\n");
+  const lines = docker.trimEnd().split("\n").map((l, i) => `<div class="ln ${i === 0 ? "crit" : ""}"><i>${i + 1}</i>${esc(l)}</div>`).join("");
+  const css = `
+  body { padding: 48px 56px; display: grid; grid-template-columns: 0.62fr 1.38fr; grid-template-rows: auto 1fr auto; align-items: center; gap: 22px 26px; background: #ffffff; }
+  .head { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; }
+  .head img { height: 34px; } .head span { font-family: ${MONO}; font-size: 17px; color: ${GREY}; }
+  .win { background: #f3f3f1; border: 1px solid #dcdcd6; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+  .bar { height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-bottom: 1px solid #e2e2dc; background: #ebebe8; font-family: ${SANS}; font-size: 13px; color: ${GREY}; }
+  .bar b { width: 12px; height: 12px; border-radius: 50%; background: #d2d2cc; display: inline-block; } .bar em { margin-left: 10px; font-style: normal; }
+  pre, .code { margin: 0; padding: 18px 20px; font-family: Menlo, ui-monospace, monospace; font-size: 16px; line-height: 1.6; white-space: pre-wrap; color: ${INK}; overflow: hidden; }
+  .ln { display: block; padding: 0 6px; border-radius: 3px; } .ln i { display: inline-block; width: 22px; color: #aaa; font-style: normal; }
+  .ln.crit { background: rgba(196,22,28,0.10); box-shadow: inset 3px 0 0 #c4161c; }
+  .note { margin: 0 20px 20px; padding-top: 16px; border-top: 1px solid #e2e2dc; font-family: ${SANS}; font-size: 17px; line-height: 1.5; color: #555; }
+  .prompt { color: ${BLUE}; } .foot { grid-column: 1 / -1; font-family: ${MONO}; font-size: 16px; color: ${GREY}; display: flex; justify-content: space-between; }`;
+  const body = `<div class="head"><img src="logo.svg" alt="Penthera"><span>Real output of penthera 2.0.0 (excerpt)</span></div>
+  <div class="win"><div class="bar"><b></b><b></b><b></b><em>Dockerfile</em></div><div class="code">${lines}</div>
+  <p class="note">PHP fixed two remote code execution flaws in October 2026 (CVE-2026-109618 and CVE-2026-109619, CVSS 9.2). Fixed in 8.2.35, 8.3.36, 8.4.27 and 8.5.12.</p></div>
+  <div class="win"><div class="bar"><b></b><b></b><b></b><em>~/php-site — zsh</em></div><pre><span class="prompt">$</span> npx penthera@2.0.0 --repo . --offline
+
+${ansiToHtml(text)}</pre></div>
+  <div class="foot"><span>Offline · nothing uploaded · every finding names its rule</span><span>penthera.org</span></div>`;
+  return htmlPage("php", 1600, 900, body, css);
+}
+
 async function siteServer() {
   const port = await freePort();
   const proc = spawn(process.execPath, [join(ROOT, "site", "serve.mjs"), "--port", String(port)], { stdio: "ignore" });
@@ -656,6 +703,7 @@ try {
   await br.shot(figSecretsTable(), join(out, "figures", "figure-9-secrets-with-table.png"), { w: 1600, h: 900 });
   await br.shot(figGrid("wide"), join(out, "figures", "figure-10-four-benchmarks-wide.png"), { w: 1600, h: 900 });
   await br.shot(figGrid("square"), join(out, "figures", "figure-10-four-benchmarks-portrait.png"), { w: 1400, h: 1750 });
+  await br.shot(phpShot(), join(out, "product", "cli-php-advisory.png"), { w: 1600, h: 900 });
   await br.shot(terminalShot(), join(out, "product", "cli-scan.png"), { w: 1600, h: 900 });
 
   const site = await siteServer();

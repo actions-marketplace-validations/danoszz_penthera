@@ -1234,3 +1234,63 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .cmd-white { --cmd-bd: var(--frame); --cmd-act-fg: var(--ground); --cmd-act-bg: var(--frame); --cmd-act-bd: var(--frame); background: var(--frame); color: var(--ground); }
 .cmd-white code, .cmd-white .cmd-prompt { color: var(--ground); }
 .report-deep .cmd { max-width: 100%; }
+
+/* ── Public benchmarks: ranked against the free tools (section 02) ─────── */
+.pb { margin-top: clamp(80px, 10vw, 140px); }
+.pb-sample { display: inline-block; margin-bottom: 24px; padding: 6px 10px; font-family: var(--px); font-size: 13px; background: var(--accent-ink); color: rgb(var(--ground-rgb)); }
+.pb-cards { list-style: none; margin: 40px 0 0; padding: 0; display: grid; gap: 16px; align-items: start; }
+@media (min-width: 760px) { .pb-cards { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1200px) { .pb-cards { grid-template-columns: repeat(4, 1fr); } }
+/* The cards are metal plates like the pillars: same pointer light, a firmer
+   edge, and on hover the site's hard offset shadow. */
+.pb-card {
+  --plate: color-mix(in srgb, rgb(var(--ink-rgb)) 9%, var(--ground));
+  --metal:
+    radial-gradient(400px circle at var(--lx, 50%) var(--ly, -220px), rgba(255, 255, 255, var(--sheen)), transparent 72%),
+    linear-gradient(180deg, rgba(255, 255, 255, var(--lit)), transparent 48%, rgba(0, 0, 0, var(--shade))),
+    var(--plate);
+  position: relative; isolation: isolate;
+  padding: 24px; display: grid; align-content: start; gap: 12px;
+  background: var(--metal);
+  border: 1px solid rgba(var(--ink-rgb), 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, calc(var(--lit) * 4)), inset 0 -1px 0 rgba(0, 0, 0, calc(var(--shade) * 0.8));
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+.pb-card::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: repeating-linear-gradient(180deg, rgba(var(--ink-rgb), 0.045) 0 1px, transparent 1px 3px);
+}
+@media (hover: hover) {
+  .pb-card:hover { transform: translate(-3px, -3px); border-color: var(--frame); box-shadow: 6px 6px 0 var(--frame), inset 0 1px 0 rgba(255, 255, 255, calc(var(--lit) * 4)); }
+}
+@media (prefers-reduced-motion: reduce) { .pb-card { transition: none; } .pb-card:hover { transform: none; } }
+.pb-k { font-family: var(--display); font-size: 17px; font-weight: 500; color: var(--text-1); }
+.pb-k span { display: block; margin-top: 4px; font-family: var(--px); font-size: 12px; font-weight: 400; color: var(--text-2); }
+.pb-rank { margin-top: 4px; font-family: var(--display); line-height: 1; color: var(--text-1); }
+.pb-place {
+  font-size: clamp(56px, 6vw, 84px); font-weight: 500; letter-spacing: -0.04em;
+  background: linear-gradient(180deg, rgb(var(--ink-rgb)) 35%, color-mix(in srgb, rgb(var(--ink-rgb)) 55%, var(--ground)) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.pb-card:not(.is-small):has(.pb-row.is-us:first-child) .pb-place { background: none; color: var(--accent-ink); }
+.pb-of { margin-left: 4px; font-family: var(--px); font-size: 14px; color: var(--text-1); }
+.pb-lines { font-family: var(--px); font-size: 14px; color: var(--text-1); }
+.pb-chart { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 6px; }
+.pb-row { display: grid; grid-template-columns: 13ch 1fr 4ch; gap: 8px; align-items: center; font-family: var(--px); font-size: 12px; color: var(--text-1); }
+.pb-tool { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pb-track { display: block; width: 100%; height: 10px; overflow: visible; }
+.pb-bg { fill: rgba(var(--ink-rgb), 0.1); }
+.pb-bar { fill: rgba(var(--ink-rgb), 0.72); }
+.pb-val { text-align: right; font-variant-numeric: tabular-nums; }
+.pb-row.is-us { font-weight: 700; }
+.pb-row.is-us .pb-bar { fill: var(--accent-ink); }
+/* A small field: fewer rows, so taller meters on a visible 0-100% scale. */
+.pb-card.is-small .pb-row { grid-template-columns: 13ch 1fr 5ch; font-size: 13px; }
+.pb-card.is-small .pb-track { height: 18px; outline: 1px solid rgba(var(--ink-rgb), 0.3); }
+.pb-ticks { stroke: rgba(var(--ink-rgb), 0.35); stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.pb-card.is-small .pb-of { display: block; margin: 8px 0 0; }
+.pb-more { margin-top: 4px; font-family: var(--px); font-size: 12px; color: var(--text-2); }
+.pb-more summary { cursor: pointer; width: max-content; }
+.pb-more summary:hover { text-decoration: underline; text-underline-offset: 4px; }
+.pb-more ul { margin: 10px 0 0; padding: 0 0 0 14px; display: grid; gap: 6px; }
+.bench-also { margin-top: 64px; }

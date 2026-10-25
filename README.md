@@ -32,10 +32,6 @@ The security review you never had time for. Offline, rule-based, and you can ver
 |---|---|
 | ![The dashboard in Simple mode, dark: the verdict, problems in plain words and one problem open](assets/dashboard/ui-dark.jpg) | ![The dashboard in Advanced mode, light: a project's tabs, the triage matrix and a finding open](assets/dashboard/ui-light.jpg) |
 
-<a href="assets/walkthrough.mp4"><img src="assets/walkthrough-poster.jpg" alt="Walkthrough video: setup, a scan, the dashboard in Simple and Advanced mode, one fix approved, the report" width="760"></a>
-
-[Watch the 80-second walkthrough](assets/walkthrough.mp4): setup, a scan, the dashboard, a fix approved, the report. Demo data, no sound, captions in the video.
-
 </div>
 
 ---
@@ -52,6 +48,26 @@ the results, good or bad, so you can see how far to trust it.
 
 It finds known classes of problems, not novel ones. It does not replace a human
 pentester.
+
+## Public benchmarks
+
+We test Penthera on public datasets that other people built, next to the free
+open-source tools that do the same job, scored the same way. Each dataset was
+split in half before we looked: we improved Penthera on one half and scored it
+once on the other, sealed half. The rules for scoring and ranking were written
+down before that run ([protocol](docs/research/prereg/E11b-improvement-study.md)).
+
+<!-- public-benchmarks:start -->
+_Results are published after the sealed run._
+<!-- public-benchmarks:end -->
+
+What these numbers do not show: a benchmark is not your code. CredData replaces
+real secrets with look-alikes, which favors pattern rules like ours over tools
+that verify keys; the free tools ran on their defaults while Penthera was tuned
+on the other half; GuardDog helped build the malware dataset. Accuracy on real
+projects is experiment E1. Reproduce every table with
+`npm run bench:public -- --split test --final` and
+`npm run bench:public -- --competitors --split test --final`.
 
 ## Start in 30 seconds
 
@@ -308,6 +324,10 @@ What changed, what we are measuring, and what comes next, in one place.
 | **Next** | Real-world precision and recall with intervals (E1), published whatever the result | [Roadmap: next](ROADMAP.md#next), [research plan](docs/vision-2.0.md) |
 
 [![Star history](https://api.star-history.com/svg?repos=danoszz/penthera&type=Date)](https://star-history.com/#danoszz/penthera&Date)
+
+<a href="assets/walkthrough.mp4"><img src="assets/walkthrough-poster.jpg" alt="Walkthrough video: setup, a scan, the dashboard in Simple and Advanced mode, one fix approved, the report" width="760"></a>
+
+[Watch the 80-second walkthrough](assets/walkthrough.mp4): setup, a scan, the dashboard, a fix approved, the report. Demo data, no sound, captions in the video.
 
 Releases are deliberately slow: a feature freeze, an independent review, the
 release checks, and a release candidate before any new minor version. Watch the

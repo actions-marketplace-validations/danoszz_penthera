@@ -1,0 +1,1229 @@
+{
+  "split": "test",
+  "sample": false,
+  "date": "2026-10-25",
+  "note": "Sealed test half, scored once (E11b § 10).",
+  "paidTools": {
+    "names": [
+      "GitGuardian",
+      "Socket",
+      "Snyk",
+      "Phylum",
+      "Semgrep Pro"
+    ],
+    "note": "None publishes results on these benchmarks; we cannot measure them (cost and licence terms)."
+  },
+  "benchmarks": {
+    "secrets": {
+      "title": "Leaked secrets (Samsung CredData)",
+      "measure": "F1 of strict precision and in-scope recall, as the CLI reports",
+      "n": 2220,
+      "rows": [
+        {
+          "tool": "Penthera",
+          "version": "2.0.0",
+          "kind": "penthera",
+          "precision": [
+            1640,
+            1849
+          ],
+          "precisionCI": [
+            0.8717239278173595,
+            0.9006033499109819
+          ],
+          "recall": [
+            1415,
+            2220
+          ],
+          "recallCI": [
+            0.6171675565066923,
+            0.6571325729219859
+          ],
+          "f1": 0.7417452236526781,
+          "p": 0.8869659275283938,
+          "r": 0.6373873873873874,
+          "score": 0.7417452236526781,
+          "rank": 2
+        },
+        {
+          "tool": "Penthera",
+          "version": "1.9.0",
+          "kind": "penthera-before",
+          "precision": [
+            237,
+            425
+          ],
+          "precisionCI": [
+            0.5101206885315196,
+            0.6041406520763232
+          ],
+          "recall": [
+            233,
+            2220
+          ],
+          "recallCI": [
+            0.0928805369000783,
+            0.1183941729066405
+          ],
+          "f1": 0.1766605616117345,
+          "p": 0.5576470588235294,
+          "r": 0.10495495495495495,
+          "score": 0.1766605616117345,
+          "excluded": true
+        },
+        {
+          "tool": "gitleaks",
+          "version": "8.30.1",
+          "kind": "tool",
+          "precision": [
+            2242,
+            2635
+          ],
+          "precisionCI": [
+            0.8367418106600815,
+            0.863944467318839
+          ],
+          "recall": [
+            831,
+            2220
+          ],
+          "recallCI": [
+            0.3544264115280732,
+            0.39465642089618524
+          ],
+          "f1": 0.5199167006770686,
+          "p": 0.850853889943074,
+          "r": 0.37432432432432433,
+          "score": 0.5199167006770686,
+          "rank": 4
+        },
+        {
+          "tool": "detect-secrets",
+          "version": "1.5.0",
+          "kind": "tool",
+          "precision": [
+            2237,
+            7444
+          ],
+          "precisionCI": [
+            0.2902004039987367,
+            0.3110263384880577
+          ],
+          "recall": [
+            1187,
+            2220
+          ],
+          "recallCI": [
+            0.5138937565406709,
+            0.5553557843314871
+          ],
+          "f1": 0.38476839290754894,
+          "p": 0.3005104782375067,
+          "r": 0.5346846846846847,
+          "score": 0.38476839290754894,
+          "rank": 7
+        },
+        {
+          "tool": "trufflehog",
+          "version": "3.99.3",
+          "kind": "tool",
+          "precision": [
+            152,
+            383
+          ],
+          "precisionCI": [
+            0.34912619150087687,
+            0.4466557801924893
+          ],
+          "recall": [
+            122,
+            2220
+          ],
+          "recallCI": [
+            0.04622092238848437,
+            0.06522652719992861
+          ],
+          "f1": 0.09654159920451054,
+          "p": 0.3968668407310705,
+          "r": 0.054954954954954956,
+          "score": 0.09654159920451054,
+          "rank": 10
+        },
+        {
+          "tool": "noseyparker",
+          "version": "0.24.0",
+          "kind": "tool",
+          "precision": [
+            1898,
+            2501
+          ],
+          "precisionCI": [
+            0.7417432921269719,
+            0.7752554965222581
+          ],
+          "recall": [
+            1387,
+            2220
+          ],
+          "recallCI": [
+            0.6044345653215477,
+            0.644683912880891
+          ],
+          "f1": 0.6853352844477807,
+          "p": 0.7588964414234306,
+          "r": 0.6247747747747747,
+          "score": 0.6853352844477807,
+          "rank": 3
+        },
+        {
+          "tool": "kingfisher",
+          "version": "2.14.0",
+          "kind": "tool",
+          "precision": [
+            797,
+            834
+          ],
+          "precisionCI": [
+            0.9394485907646989,
+            0.9676442630727903
+          ],
+          "recall": [
+            653,
+            2220
+          ],
+          "recallCI": [
+            0.27555839284386385,
+            0.31344108535644466
+          ],
+          "f1": 0.44983063534003875,
+          "p": 0.9556354916067147,
+          "r": 0.29414414414414414,
+          "score": 0.44983063534003875,
+          "rank": 6
+        },
+        {
+          "tool": "ripsecrets",
+          "version": "0.1.11",
+          "kind": "tool",
+          "precision": [
+            1883,
+            2877
+          ],
+          "precisionCI": [
+            0.6369292899153403,
+            0.6716611037904006
+          ],
+          "recall": [
+            766,
+            2220
+          ],
+          "recallCI": [
+            0.32555304572786853,
+            0.36507238206404863
+          ],
+          "f1": 0.4518698341896873,
+          "p": 0.6545012165450121,
+          "r": 0.345045045045045,
+          "score": 0.4518698341896873,
+          "rank": 5
+        },
+        {
+          "tool": "credsweeper",
+          "version": "1.19.4",
+          "kind": "tool",
+          "precision": [
+            12259,
+            12305
+          ],
+          "precisionCI": [
+            0.9950176233187256,
+            0.9971959851511321
+          ],
+          "recall": [
+            2183,
+            2220
+          ],
+          "recallCI": [
+            0.9771125907635909,
+            0.9878842580133653
+          ],
+          "f1": 0.9897552915256904,
+          "p": 0.9962616822429906,
+          "r": 0.9833333333333333,
+          "score": 0.9897552915256904,
+          "caveat": "trained on this dataset, not comparable: made by the CredData authors, its ML model was trained with CredData",
+          "excluded": true
+        },
+        {
+          "tool": "whispers",
+          "version": "2.4.0",
+          "kind": "tool",
+          "precision": [
+            281,
+            605
+          ],
+          "precisionCI": [
+            0.42507079229415357,
+            0.5043032682716142
+          ],
+          "recall": [
+            193,
+            2220
+          ],
+          "recallCI": [
+            0.07591896230396916,
+            0.0993819600366935
+          ],
+          "f1": 0.1464598931925437,
+          "p": 0.4644628099173554,
+          "r": 0.08693693693693694,
+          "score": 0.1464598931925437,
+          "rank": 9
+        },
+        {
+          "tool": "deepsecrets",
+          "version": "2.2.0",
+          "kind": "tool",
+          "precision": [
+            2752,
+            3427
+          ],
+          "precisionCI": [
+            0.7893831889858701,
+            0.8160076531421873
+          ],
+          "recall": [
+            1704,
+            2220
+          ],
+          "recallCI": [
+            0.7495442068825372,
+            0.7846665369883968
+          ],
+          "f1": 0.784900688322618,
+          "p": 0.803034724248614,
+          "r": 0.7675675675675676,
+          "score": 0.784900688322618,
+          "rank": 1
+        },
+        {
+          "tool": "secretlint",
+          "version": "13.0.7",
+          "kind": "tool",
+          "precision": [
+            459,
+            499
+          ],
+          "precisionCI": [
+            0.892682714955419,
+            0.9405819107024903
+          ],
+          "recall": [
+            424,
+            2220
+          ],
+          "recallCI": [
+            0.17517879167568504,
+            0.2078707532814519
+          ],
+          "f1": 0.31630579997984654,
+          "p": 0.9198396793587175,
+          "r": 0.19099099099099098,
+          "score": 0.31630579997984654,
+          "rank": 8
+        }
+      ],
+      "of": 10,
+      "ranked": true,
+      "field": 9,
+      "others": {
+        "p": {
+          "mean": 0.6782890635568327,
+          "median": 0.7588964414234306
+        },
+        "r": {
+          "mean": 0.36371371371371364,
+          "median": 0.345045045045045
+        },
+        "f1": {
+          "mean": 0.4262143142512937,
+          "median": 0.44983063534003875
+        }
+      },
+      "skipped": {
+        "semgrep p/secrets": "downloads its rules from the Semgrep registry at scan time; cannot run offline"
+      },
+      "context": [
+        {
+          "title": "A comparative study of software secrets reporting by secret detection tools (2023): nine tools on SecretBench, ggshield included",
+          "url": "https://arxiv.org/abs/2307.00714"
+        }
+      ]
+    },
+    "npm": {
+      "title": "Malicious npm packages (DataDog)",
+      "measure": "caught (packages with a payload) minus false alarms (benign packages): Youden's J",
+      "rows": [
+        {
+          "tool": "Penthera",
+          "version": "2.0.0",
+          "kind": "penthera",
+          "detect": [
+            79,
+            112
+          ],
+          "detectCI": [
+            0.6152510872949548,
+            0.7818433592376697
+          ],
+          "all": [
+            79,
+            150
+          ],
+          "benign": [
+            0,
+            150
+          ],
+          "benignCI": [
+            1.734723475976807e-18,
+            0.024970244752164417
+          ],
+          "r": 0.7053571428571429,
+          "fa": 0,
+          "j": 0.7053571428571429,
+          "score": 0.7053571428571429,
+          "rank": 1
+        },
+        {
+          "tool": "Penthera",
+          "version": "1.9.0",
+          "kind": "penthera-before",
+          "detect": [
+            64,
+            112
+          ],
+          "detectCI": [
+            0.47891137668561834,
+            0.65920843080399
+          ],
+          "all": [
+            64,
+            150
+          ],
+          "benign": [
+            0,
+            150
+          ],
+          "benignCI": [
+            1.734723475976807e-18,
+            0.024970244752164417
+          ],
+          "r": 0.5714285714285714,
+          "fa": 0,
+          "j": 0.5714285714285714,
+          "score": 0.5714285714285714,
+          "excluded": true
+        },
+        {
+          "tool": "GuardDog",
+          "version": "3.2.0",
+          "kind": "tool",
+          "detect": [
+            69,
+            112
+          ],
+          "detectCI": [
+            0.5235748193368341,
+            0.7008698678337797
+          ],
+          "all": [
+            103,
+            150
+          ],
+          "benign": [
+            4,
+            150
+          ],
+          "benignCI": [
+            0.010417940750623522,
+            0.06655389094809212
+          ],
+          "r": 0.6160714285714286,
+          "fa": 0.02666666666666667,
+          "j": 0.589404761904762,
+          "score": 0.589404761904762,
+          "caveat": "found most samples in this dataset, so its detection rate is inflated by construction",
+          "rank": 3
+        },
+        {
+          "tool": "clamav",
+          "version": "1.5.4",
+          "kind": "tool",
+          "detect": [
+            1,
+            112
+          ],
+          "detectCI": [
+            0.001577854685857534,
+            0.04884846882308416
+          ],
+          "all": [
+            1,
+            150
+          ],
+          "benign": [
+            0,
+            150
+          ],
+          "benignCI": [
+            1.734723475976807e-18,
+            0.024970244752164417
+          ],
+          "r": 0.008928571428571428,
+          "fa": 0,
+          "j": 0.008928571428571428,
+          "score": 0.008928571428571428,
+          "rank": 5
+        },
+        {
+          "tool": "yara",
+          "version": "yara-python 4.5.4 (YARA 4.5), YARA-Forge core 20261004",
+          "kind": "tool",
+          "detect": [
+            0,
+            112
+          ],
+          "detectCI": [
+            0,
+            0.03316134757274064
+          ],
+          "all": [
+            0,
+            150
+          ],
+          "benign": [
+            0,
+            150
+          ],
+          "benignCI": [
+            1.734723475976807e-18,
+            0.024970244752164417
+          ],
+          "r": 0,
+          "fa": 0,
+          "j": 0,
+          "score": 0,
+          "rank": 6
+        },
+        {
+          "tool": "ossgadget",
+          "version": "0.2.20 (414b6a59)",
+          "kind": "tool",
+          "detect": [
+            105,
+            112
+          ],
+          "detectCI": [
+            0.8765857430438903,
+            0.9693980778299617
+          ],
+          "all": [
+            137,
+            150
+          ],
+          "benign": [
+            133,
+            150
+          ],
+          "benignCI": [
+            0.8259972496074807,
+            0.9280257611175121
+          ],
+          "r": 0.9375,
+          "fa": 0.8866666666666667,
+          "j": 0.050833333333333286,
+          "score": 0.050833333333333286,
+          "rank": 4
+        },
+        {
+          "tool": "malcontent",
+          "version": "1.27.1 (bf280ad6), yara-x 1.21.0",
+          "kind": "tool",
+          "detect": [
+            76,
+            112
+          ],
+          "detectCI": [
+            0.5873974155282032,
+            0.7579021031958181
+          ],
+          "all": [
+            76,
+            150
+          ],
+          "benign": [
+            8,
+            150
+          ],
+          "benignCI": [
+            0.02726953977981239,
+            0.10170387886545448
+          ],
+          "r": 0.6785714285714286,
+          "fa": 0.05333333333333334,
+          "j": 0.6252380952380953,
+          "score": 0.6252380952380953,
+          "rank": 2
+        },
+        {
+          "tool": "osv-scanner",
+          "version": "2.6.0",
+          "kind": "lookup",
+          "detect": [
+            101,
+            112
+          ],
+          "detectCI": [
+            0.8326536737826364,
+            0.9442702433464112
+          ],
+          "all": [
+            137,
+            150
+          ],
+          "benign": [
+            1,
+            150
+          ],
+          "benignCI": [
+            0.0011778013220055707,
+            0.03679284016679665
+          ],
+          "r": 0.9017857142857143,
+          "fa": 0.006666666666666667,
+          "j": 0.8951190476190476,
+          "score": 0.8951190476190476,
+          "caveat": "lookup of already-reported packages, not detection",
+          "excluded": true
+        }
+      ],
+      "of": 6,
+      "ranked": true,
+      "field": 5,
+      "others": {
+        "r": {
+          "mean": 0.4482142857142858,
+          "median": 0.6160714285714286
+        },
+        "fa": {
+          "mean": 0.19333333333333333,
+          "median": 0.02666666666666667
+        },
+        "j": {
+          "mean": 0.2548809523809524,
+          "median": 0.050833333333333286
+        }
+      },
+      "context": [
+        {
+          "title": "How effective are npm malicious package detectors? (2026): eleven detectors on their own benchmark",
+          "url": "https://arxiv.org/abs/2603.27549"
+        }
+      ]
+    },
+    "pypi": {
+      "title": "Malicious PyPI packages (DataDog)",
+      "measure": "caught minus false alarms on benign packages: Youden's J",
+      "rows": [
+        {
+          "tool": "Penthera",
+          "version": "2.0.0",
+          "kind": "penthera",
+          "detect": [
+            131,
+            150
+          ],
+          "detectCI": [
+            0.8106335118514264,
+            0.9173887054002906
+          ],
+          "all": [
+            131,
+            150
+          ],
+          "benign": [
+            8,
+            150
+          ],
+          "benignCI": [
+            0.02726953977981239,
+            0.10170387886545448
+          ],
+          "r": 0.8733333333333333,
+          "fa": 0.05333333333333334,
+          "j": 0.82,
+          "score": 0.82,
+          "rank": 1
+        },
+        {
+          "tool": "Penthera",
+          "version": "1.9.0",
+          "kind": "penthera-before",
+          "detect": [
+            125,
+            150
+          ],
+          "detectCI": [
+            0.7655341352365811,
+            0.8844857015953093
+          ],
+          "all": [
+            125,
+            150
+          ],
+          "benign": [
+            14,
+            150
+          ],
+          "benignCI": [
+            0.05641186725437854,
+            0.1505639318107152
+          ],
+          "r": 0.8333333333333334,
+          "fa": 0.09333333333333334,
+          "j": 0.74,
+          "score": 0.74,
+          "excluded": true
+        },
+        {
+          "tool": "GuardDog",
+          "version": "3.2.0",
+          "kind": "tool",
+          "detect": [
+            128,
+            150
+          ],
+          "detectCI": [
+            0.7879153988575498,
+            0.901105628184254
+          ],
+          "all": [
+            128,
+            150
+          ],
+          "benign": [
+            16,
+            147
+          ],
+          "benignCI": [
+            0.0681155027449678,
+            0.16949462876072965
+          ],
+          "r": 0.8533333333333334,
+          "fa": 0.10884353741496598,
+          "j": 0.7444897959183674,
+          "score": 0.7444897959183674,
+          "caveat": "found most samples in this dataset, so its detection rate is inflated by construction",
+          "rank": 2
+        },
+        {
+          "tool": "clamav",
+          "version": "1.5.4",
+          "kind": "tool",
+          "detect": [
+            0,
+            150
+          ],
+          "detectCI": [
+            1.734723475976807e-18,
+            0.024970244752164417
+          ],
+          "all": [
+            0,
+            150
+          ],
+          "benign": [
+            0,
+            147
+          ],
+          "benignCI": [
+            0,
+            0.025466863750761112
+          ],
+          "r": 0,
+          "fa": 0,
+          "j": 0,
+          "score": 0,
+          "rank": 5
+        },
+        {
+          "tool": "yara",
+          "version": "yara-python 4.5.4 (YARA 4.5), YARA-Forge core 20261004",
+          "kind": "tool",
+          "detect": [
+            37,
+            150
+          ],
+          "detectCI": [
+            0.1845816291195474,
+            0.3214032948882159
+          ],
+          "all": [
+            37,
+            150
+          ],
+          "benign": [
+            0,
+            147
+          ],
+          "benignCI": [
+            0,
+            0.025466863750761112
+          ],
+          "r": 0.24666666666666667,
+          "fa": 0,
+          "j": 0.24666666666666667,
+          "score": 0.24666666666666667,
+          "rank": 4
+        },
+        {
+          "tool": "ossgadget",
+          "version": "0.2.20 (414b6a59)",
+          "kind": "tool",
+          "detect": [
+            116,
+            150
+          ],
+          "detectCI": [
+            0.6999980600587085,
+            0.8330182061434416
+          ],
+          "all": [
+            116,
+            150
+          ],
+          "benign": [
+            143,
+            147
+          ],
+          "benignCI": [
+            0.9321288766687208,
+            0.9893684426417839
+          ],
+          "r": 0.7733333333333333,
+          "fa": 0.9727891156462585,
+          "j": -0.19945578231292516,
+          "score": -0.19945578231292516,
+          "rank": 6
+        },
+        {
+          "tool": "malcontent",
+          "version": "1.27.1 (bf280ad6), yara-x 1.21.0",
+          "kind": "tool",
+          "detect": [
+            139,
+            150
+          ],
+          "detectCI": [
+            0.8734642061213284,
+            0.9585611850234913
+          ],
+          "all": [
+            139,
+            150
+          ],
+          "benign": [
+            32,
+            147
+          ],
+          "benignCI": [
+            0.15862956660413496,
+            0.2911238326564989
+          ],
+          "r": 0.9266666666666666,
+          "fa": 0.21768707482993196,
+          "j": 0.7089795918367346,
+          "score": 0.7089795918367346,
+          "rank": 3
+        },
+        {
+          "tool": "osv-scanner",
+          "version": "2.6.0",
+          "kind": "lookup",
+          "detect": [
+            110,
+            149
+          ],
+          "detectCI": [
+            0.662320115578912,
+            0.8022135294129356
+          ],
+          "all": [
+            110,
+            149
+          ],
+          "benign": [
+            0,
+            147
+          ],
+          "benignCI": [
+            0,
+            0.025466863750761112
+          ],
+          "r": 0.738255033557047,
+          "fa": 0,
+          "j": 0.738255033557047,
+          "score": 0.738255033557047,
+          "caveat": "lookup of already-reported packages, not detection",
+          "excluded": true
+        },
+        {
+          "tool": "bandit4mal",
+          "version": "lyvd/bandit4mal 03ba95f3 (bandit 1.6.3 fork)",
+          "kind": "tool",
+          "detect": [
+            89,
+            150
+          ],
+          "detectCI": [
+            0.5133466498796883,
+            0.668658904433241
+          ],
+          "all": [
+            89,
+            150
+          ],
+          "benign": [
+            124,
+            147
+          ],
+          "benignCI": [
+            0.7761566014002416,
+            0.8934205874512763
+          ],
+          "r": 0.5933333333333334,
+          "fa": 0.8435374149659864,
+          "j": -0.25020408163265306,
+          "score": -0.25020408163265306,
+          "rank": 8
+        },
+        {
+          "tool": "aura",
+          "version": "2.1 (SourceCode-AI/aura b40e6dd2)",
+          "kind": "tool",
+          "detect": [
+            88,
+            149
+          ],
+          "detectCI": [
+            0.5103379352958405,
+            0.6663157043489466
+          ],
+          "all": [
+            88,
+            149
+          ],
+          "benign": [
+            100,
+            121
+          ],
+          "benignCI": [
+            0.7492117939732791,
+            0.8835908078860616
+          ],
+          "r": 0.5906040268456376,
+          "fa": 0.8264462809917356,
+          "j": -0.23584225414609794,
+          "score": -0.23584225414609794,
+          "rank": 7
+        }
+      ],
+      "of": 8,
+      "ranked": true,
+      "field": 7,
+      "others": {
+        "r": {
+          "mean": 0.5691339085969959,
+          "median": 0.5933333333333334
+        },
+        "fa": {
+          "mean": 0.4241862034069826,
+          "median": 0.21768707482993196
+        },
+        "j": {
+          "mean": 0.1449477051900132,
+          "median": 0
+        }
+      },
+      "context": [
+        {
+          "title": "Cutting the Gordian knot: detecting malicious PyPI packages (USENIX Security 2026): GuardDog, Bandit4Mal and OSSGadget on PyPI",
+          "url": "https://arxiv.org/abs/2601.16463"
+        }
+      ]
+    },
+    "library": {
+      "title": "Injection bugs in JavaScript libraries (SecBench.js)",
+      "measure": "share of command and code injection bugs found in the right file",
+      "rows": [
+        {
+          "tool": "Penthera",
+          "version": "2.0.0",
+          "kind": "penthera",
+          "command": [
+            35,
+            47
+          ],
+          "code": [
+            10,
+            17
+          ],
+          "pooled": [
+            45,
+            64
+          ],
+          "pooledCI": [
+            0.5822979879708777,
+            0.8009484873959462
+          ],
+          "score": 0.703125,
+          "r": 0.703125,
+          "rank": 1
+        },
+        {
+          "tool": "Penthera",
+          "version": "1.9.0",
+          "kind": "penthera-before",
+          "command": [
+            0,
+            47
+          ],
+          "code": [
+            10,
+            17
+          ],
+          "pooled": [
+            10,
+            64
+          ],
+          "pooledCI": [
+            0.08714842298087311,
+            0.26428061870604036
+          ],
+          "score": 0.15625,
+          "r": 0.15625,
+          "excluded": true
+        },
+        {
+          "tool": "njsscan",
+          "version": "1.0.1",
+          "kind": "tool",
+          "command": [
+            2,
+            45
+          ],
+          "code": [
+            1,
+            15
+          ],
+          "pooled": [
+            3,
+            60
+          ],
+          "pooledCI": [
+            0.01714950203090107,
+            0.1370051656999034
+          ],
+          "score": 0.05,
+          "r": 0.05,
+          "rank": 8
+        },
+        {
+          "tool": "codeql",
+          "version": "2.27.2",
+          "kind": "tool",
+          "command": [
+            37,
+            47
+          ],
+          "code": [
+            4,
+            17
+          ],
+          "pooled": [
+            41,
+            64
+          ],
+          "pooledCI": [
+            0.5182085051234868,
+            0.7471159778227758
+          ],
+          "score": 0.640625,
+          "r": 0.640625,
+          "caveat": "used under the GitHub CodeQL terms, for research on open-source code",
+          "rank": 3
+        },
+        {
+          "tool": "semgrep",
+          "version": "1.180.0",
+          "kind": "tool",
+          "command": [
+            15,
+            47
+          ],
+          "code": [
+            9,
+            17
+          ],
+          "pooled": [
+            24,
+            64
+          ],
+          "pooledCI": [
+            0.2666598010315012,
+            0.4974962141273763
+          ],
+          "score": 0.375,
+          "r": 0.375,
+          "rank": 5
+        },
+        {
+          "tool": "semgrep, every file",
+          "version": "1.180.0",
+          "kind": "tool",
+          "command": [
+            16,
+            47
+          ],
+          "code": [
+            9,
+            17
+          ],
+          "pooled": [
+            25,
+            64
+          ],
+          "pooledCI": [
+            0.2805556911069803,
+            0.5130808221570375
+          ],
+          "score": 0.390625,
+          "r": 0.390625,
+          "excluded": true,
+          "caveat": "another setting of semgrep, not ranked"
+        },
+        {
+          "tool": "eslint-plugin-security",
+          "version": "4.2.0",
+          "kind": "tool",
+          "command": [
+            32,
+            47
+          ],
+          "code": [
+            9,
+            17
+          ],
+          "pooled": [
+            41,
+            64
+          ],
+          "pooledCI": [
+            0.5182085051234868,
+            0.7471159778227758
+          ],
+          "score": 0.640625,
+          "r": 0.640625,
+          "rank": 4
+        },
+        {
+          "tool": "bearer",
+          "version": "2.1.1",
+          "kind": "tool",
+          "command": [
+            14,
+            47
+          ],
+          "code": [
+            0,
+            17
+          ],
+          "pooled": [
+            14,
+            64
+          ],
+          "pooledCI": [
+            0.13502319354373135,
+            0.3343278405637433
+          ],
+          "score": 0.21875,
+          "r": 0.21875,
+          "rank": 7
+        },
+        {
+          "tool": "graudit",
+          "version": "849d7c7",
+          "kind": "tool",
+          "command": [
+            12,
+            47
+          ],
+          "code": [
+            10,
+            17
+          ],
+          "pooled": [
+            22,
+            64
+          ],
+          "pooledCI": [
+            0.23923142006738501,
+            0.4659635988812119
+          ],
+          "score": 0.34375,
+          "r": 0.34375,
+          "rank": 6
+        },
+        {
+          "tool": "odgen",
+          "version": "c5157ee",
+          "kind": "tool",
+          "command": [
+            36,
+            46
+          ],
+          "code": [
+            6,
+            16
+          ],
+          "pooled": [
+            42,
+            62
+          ],
+          "pooledCI": [
+            0.5536808799254878,
+            0.7804550941826083
+          ],
+          "score": 0.6774193548387096,
+          "r": 0.6774193548387096,
+          "rank": 2
+        }
+      ],
+      "of": 8,
+      "ranked": true,
+      "field": 7,
+      "others": {
+        "r": {
+          "mean": 0.4208813364055299,
+          "median": 0.375
+        }
+      },
+      "context": [
+        {
+          "title": "Study of JavaScript static analysis tools for vulnerability detection in Node.js packages (2023): nine tools incl. CodeQL, NodeJsScan, ODGen",
+          "url": "https://www.researchgate.net/publication/367088656"
+        }
+      ]
+    }
+  }
+}

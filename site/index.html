@@ -174,6 +174,9 @@
         <li><h3>Offline, on your machine.</h3><p>No account, no telemetry. With <code>--offline</code> it contacts only the target you named. In the benchmark: {{BENCH_EGRESS}} requests beyond loopback. <a href="https://github.com/danoszz/penthera/blob/main/docs/privacy.md">Network use</a></p></li>
         <li><h3>Measured in public.</h3><p>Every release runs a benchmark and fails if precision or recall drops by more than 0.02. Experiments are pre-registered and published, good or bad. <a href="https://github.com/danoszz/penthera/blob/main/docs/vision-2.0.md">Research plan</a></p></li>
       </ul>
+      {{PUBLIC_BENCH}}
+      <details class="cmp-more bench-also">
+        <summary>Also tested: apps built to be broken (E10 pilot)</summary>
       <div class="bench" id="benchmark">
         <h3 id="bench-title" class="bench-title">Tested on apps built to be broken</h3>
         <p class="bench-lede">OWASP Juice Shop and DVNA, scored against their documented flaws: {{E10_P_B_OF}} found at first, {{E10_P_A_OF}} after we fixed the gaps. A pilot, so read the caveats.</p>
@@ -209,6 +212,7 @@
         <a href="https://github.com/danoszz/penthera/blob/main/docs/research/prereg/E1-real-world-accuracy.md">E1 protocol</a>
       </p>
       </div>
+      </details>
 
       <div class="limits" id="limits">
         <h3 class="road-title" id="limits-title">What it does not do</h3>

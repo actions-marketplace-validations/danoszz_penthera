@@ -75,7 +75,7 @@ For "how do you know it works?"
 | Your question | Read |
 |---|---|
 | "How does it decide, and what can't it see?" | [Methodology](METHODOLOGY.md), [known limitations](METHODOLOGY.md#known-limitations) |
-| "How accurate is it?" | [Benchmark](../bench/README.md) and [latest results](../bench/RESULTS.md), the [E10 pilot](../bench/known-vuln/RESULTS.md) on known-vulnerable apps |
+| "How accurate is it?" | [Public benchmarks](../bench/public/RESULTS.md) against the free tools (E11b), our own [benchmark](../bench/README.md) and [latest results](../bench/RESULTS.md), the [E10 pilot](../bench/known-vuln/RESULTS.md) on known-vulnerable apps |
 | "What will you measure next?" | [Research plan](vision-2.0.md), [pre-registrations](research/prereg/E1-real-world-accuracy.md), [research notes](research/) |
 | "How do I know a release is sound?" | [Internal audit](internal-audit.md) |
 | "What research is it based on?" | [References](references.md) ([BibTeX](references.bib)), [how to cite](METHODOLOGY.md#how-to-cite) |

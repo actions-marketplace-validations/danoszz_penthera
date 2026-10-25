@@ -8,7 +8,7 @@
 server. Your agent (Claude Code, Cursor, Codex, VS Code, Windsurf) starts it
 and calls its tools. It needs Node.js 22 or later.
 
-The MCP server is new in 1.9.0, so the commands below pin that version.
+The MCP server is new in 1.9.0; the commands below pin 2.0.0, so an update never reaches you unless you change the pin.
 
 Always pin the version. An unpinned `npx penthera` runs whatever version is
 newest on npm each time your agent starts, which is the risk that
@@ -17,7 +17,7 @@ newest on npm each time your agent starts, which is the risk that
 **Claude Code**
 
 ```bash
-claude mcp add penthera -- npx -y penthera@1.9.0 mcp
+claude mcp add penthera -- npx -y penthera@2.0.0 mcp
 ```
 
 Add `--scope project` to write it to `.mcp.json` for the whole team.
@@ -25,7 +25,7 @@ Add `--scope project` to write it to `.mcp.json` for the whole team.
 **Codex**
 
 ```bash
-codex mcp add penthera -- npx -y penthera@1.9.0 mcp
+codex mcp add penthera -- npx -y penthera@2.0.0 mcp
 ```
 
 Or add it to `~/.codex/config.toml`:
@@ -33,7 +33,7 @@ Or add it to `~/.codex/config.toml`:
 ```toml
 [mcp_servers.penthera]
 command = "npx"
-args = ["-y", "penthera@1.9.0", "mcp"]
+args = ["-y", "penthera@2.0.0", "mcp"]
 ```
 
 **Cursor** (`.cursor/mcp.json`) and **Windsurf** (`~/.codeium/windsurf/mcp_config.json`):
@@ -43,7 +43,7 @@ args = ["-y", "penthera@1.9.0", "mcp"]
   "mcpServers": {
     "penthera": {
       "command": "npx",
-      "args": ["-y", "penthera@1.9.0", "mcp"]
+      "args": ["-y", "penthera@2.0.0", "mcp"]
     }
   }
 }
@@ -57,7 +57,7 @@ args = ["-y", "penthera@1.9.0", "mcp"]
     "penthera": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "penthera@1.9.0", "mcp"]
+      "args": ["-y", "penthera@2.0.0", "mcp"]
     }
   }
 }
@@ -108,7 +108,7 @@ most severe findings; ask for up to 200 with `max_findings`.
   you write, not the model:
 
 ```bash
-npx -y penthera@1.9.0 mcp --allow-host staging.example.com
+npx -y penthera@2.0.0 mcp --allow-host staging.example.com
 ```
 
   Only list hosts you are authorized to test.
@@ -123,8 +123,8 @@ npx -y penthera@1.9.0 mcp --allow-host staging.example.com
 ## Options
 
 ```bash
-npx -y penthera@1.9.0 mcp --offline
-npx -y penthera@1.9.0 mcp --help
+npx -y penthera@2.0.0 mcp --offline
+npx -y penthera@2.0.0 mcp --help
 ```
 
 | Flag | Meaning |

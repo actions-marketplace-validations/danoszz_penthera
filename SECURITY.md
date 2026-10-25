@@ -9,9 +9,8 @@ Security fixes land on the latest minor release only. Upgrade to get them.
 
 | Version | Supported |
 | ------- | --------- |
-| 1.8.x   | Yes (`latest`) |
-| 1.9.0-rc.N | Release candidate on `next`: fixes land in the next candidate or in 1.9.0 |
-| < 1.8   | No        |
+| 2.0.x   | Yes (`latest`) |
+| < 2.0   | No        |
 
 ## Reporting a vulnerability
 

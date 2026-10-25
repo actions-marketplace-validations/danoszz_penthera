@@ -4,6 +4,34 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-25
+
+Everything in [2.0.0-rc.1](#200-rc1---2026-10-25) below, plus:
+
+### Fixed
+
+- **No more password alarms in translation files.** A translation's
+  `"password": "Passwort"` is the word in another language, not a secret.
+  Files under an `intl/` folder, and files named for a language and region
+  (`de-DE.json`, `pt_BR.yml`), now get only the fixed-shape rules, as `locales/`
+  and `i18n/` already did. Found by running the release candidate on ten real
+  open-source apps: one of them went from 24 high findings to 7.
+
+### Site
+
+- **Copied commands always install.** While main carries a release candidate,
+  the site and its mirrors pin the latest stable release instead of a version
+  npm doesn't have yet.
+
+### Docs
+
+- **Penthera in your coding tool:** one page with the setup for Claude Code,
+  Cursor, VS Code, Codex, Gemini CLI, Antigravity, Windsurf, Cline, Zed,
+  JetBrains, Kiro and Continue, and the two routes for browser app builders
+  (Lovable, Bolt, Base44, Replit, v0): the live check on the published URL, and
+  GitHub sync plus the CLI or the Action. The site's Get started section has a
+  new fold for app builders.
+
 ## [2.0.0-rc.1] - 2026-10-25
 
 ### Upgrading from 1.9

@@ -53,25 +53,6 @@ the results, good or bad, so you can see how far to trust it.
 It finds known classes of problems, not novel ones. It does not replace a human
 pentester.
 
-### One real fix
-
-On 23 October 2026 the live check on [penthera.org](https://penthera.org) gave
-penthera.org itself 95 out of 100. Every header, TLS and page check passed; two
-email-spoofing records were missing. Two DNS records later, it scored 100.
-
-```
-penthera.org    95/100   FIX  No SPF record for penthera.org
-                         FIX  No DMARC record for penthera.org
-
-+ TXT  @        v=spf1 -all
-+ TXT  _dmarc   v=DMARC1; p=reject; adkim=s; aspf=s
-
-penthera.org   100/100   Solid basics
-```
-
-The same report, with a prompt for your coding agent to make the fixes, is one
-click away for your own site.
-
 ## Start in 30 seconds
 
 You need Node.js 22 or later. No install, no account.
@@ -185,6 +166,17 @@ rules, and anything unconfirmed is labelled "model-proposed, unverified" and
 never fails CI. Whether it finds more than the rules alone is not measured yet
 ([AI mode](docs/ai-mode.md)).
 
+### How far each part has been taken
+
+| Part | Status |
+|---|---|
+| Scans: URL, repo, dependencies, AI tooling, installs, pre-commit hook | **Stable**: in every release since 1.x, covered by the tests and the release gate |
+| Fix loop and local dashboard (`penthera ui`) | **Stable**; the dashboard was redesigned in 1.9.0 |
+| MCP server, Agent Skill, Claude Code plugin, Gemini CLI extension | **Stable**, new in 1.9.0 (the Gemini extension after 1.9.0) |
+| Evidence bundles, NIS2 and CRA drafts | **Stable** as readiness tooling, not a certification |
+| AI mode (`--ai`) | **Experimental**: whether it finds more than the rules alone is not measured yet ([AI mode](docs/ai-mode.md)) |
+| Live check on [penthera.org](https://penthera.org) | **Beta**: passive only, [terms](docs/live-check-terms.md) |
+
 ## How it is measured
 
 Each feature goes through the same path: **method → evidence → tool.**
@@ -203,8 +195,8 @@ Each feature goes through the same path: **method → evidence → tool.**
 
 | Measure | Result | Sample |
 |---|---|---|
-| Precision, bundled benchmark | 0.88, 95% CI 0.69 to 0.96 | 21 true and 3 false positives |
-| Recall, bundled benchmark | 0.91, 95% CI 0.73 to 0.98 | 2 misses, [each explained](bench/RESULTS.md) |
+| Precision, bundled benchmark | 0.92, 95% CI 0.74 to 0.98 | 22 true and 2 false positives |
+| Recall, bundled benchmark | 0.96, 95% CI 0.79 to 0.99 | 1 miss, [explained](bench/RESULTS.md) |
 | Requests past loopback during the benchmark | 0 | Enforced by a network guard |
 | E10 pilot, known-vulnerable apps | Precision 0.88, 95% CI 0.78 to 0.93. Recall 0.07 before fixes, 0.71 (CI 0.45 to 0.88) after | 14 root causes in Juice Shop and DVNA ([results](bench/known-vuln/RESULTS-after-fixes.md)) |
 | Detection rules, all readable | 132 in this release: 16 URL scan templates, 21 secret and AI-key patterns, 15 dependency capabilities, 39 AI-tooling rules, 5 fix recipes, and the signed rule packs | [Rule packs](docs/rule-packs.md) |
@@ -242,6 +234,18 @@ with `npm run docs:numbers` and `npm run bench`.
   OpenSSF Scorecard. Every release passes an
   [internal audit](docs/internal-audit.md) of eight gates
   ([latest report](audit/REPORT.md)).
+
+**Verify it yourself.** In an empty folder:
+
+```bash
+npm install penthera@1.9.0 && npm audit signatures
+npx penthera@1.9.0 rules list
+```
+
+The first checks npm's registry signature and the build provenance of the
+package you got. The second lists every bundled rule pack and the key that
+signed it; a pack whose signature does not verify is refused unless you pass
+`--allow-unsigned-rules`.
 
 Penthera finds known classes of problems, not novel ones, and it does not
 replace a human pentester or incident response. The decisions behind it, its

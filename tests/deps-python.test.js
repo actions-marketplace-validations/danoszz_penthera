@@ -641,3 +641,31 @@ describe("Python sources fail closed", () => {
     expect(r.deps.notInstalled).toEqual([]);
   });
 });
+
+describe("IOC hosts match whole hostnames only (E11: benign litellm 1.106.3 hit litellm.cloud)", () => {
+  it("does not fire on a longer name that starts or ends with the host", async () => {
+    const { hostAt } = await import("../lib/deps/iocs.js");
+    const host = ["litellm", "cloud"].join(".");
+    // litellm's own main.py: an attribute, not the attacker's domain.
+    expect(hostAt(`api_key = litellm.${"cloud"}flare_api_key`, host)).toBe(-1);
+    expect(hostAt(`x = "${host}s.example"`, host)).toBe(-1);
+    expect(hostAt(`see https://${host}.other.net/a`, host)).toBe(-1);
+    expect(hostAt(`no${host}`, host)).toBe(-1);
+    expect(hostAt(`my_${host}`, host)).toBe(-1);
+  });
+
+  it("still fires on the host, its subdomains, URLs and the end of a sentence", async () => {
+    const { hostAt } = await import("../lib/deps/iocs.js");
+    const host = ["litellm", "cloud"].join(".");
+    for (const t of [`https://${host}/x`, `https://models.${host}/v1`, `"${host}"`, `send to ${host}.`, `${host}:443`]) {
+      expect(hostAt(t, host), t).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it("checks every occurrence, so a false first one cannot hide a real one", async () => {
+    const { hostAt } = await import("../lib/deps/iocs.js");
+    const host = ["litellm", "cloud"].join(".");
+    const text = `a = litellm.${"cloud"}flare_api_key\nURL = "https://${host}/x"`;
+    expect(hostAt(text, host)).toBe(text.indexOf(`https://${host}`) + "https://".length);
+  });
+});

@@ -33,7 +33,7 @@ describe("secret scan reads Terraform and HCL", () => {
   });
 
   it("finds a private key inline in a Terraform resource", () => {
-    const key = j("-----BEGIN RSA ", "PRIVATE KEY-----\\nMIICXAIBAAKBgQDN\\n-----END RSA ", "PRIVATE KEY-----");
+    const key = j("-----BEGIN RSA ", "PRIVATE KEY-----\\nMIICXAIBAAKBgQDNfakeTestKeyBodyNotARealKeyAtAll0123456789\\n-----END RSA ", "PRIVATE KEY-----");
     const tf = `resource "tls_cert_request" "web" {\n  private_key_pem = "${key}"\n}\n`;
     const findings = scanOne("networking.tf", tf);
     expect(findings.map((f) => f.title)).toContain("Private key block in source");
@@ -69,7 +69,8 @@ describe("hardcoded express-session secret", () => {
   it("does not flag placeholders or a `secret` key outside a session call", () => {
     expect(sessionHits(`app.use(${SESSION}({ secret: 'changeme' }))`)).toHaveLength(0);
     expect(sessionHits(`app.use(${SESSION}({ secret: 'your-secret-here' }))`)).toHaveLength(0);
-    expect(sessionHits("verifySync({ secret: 'JBSWY3DPEHPK3PXP', token })")).toHaveLength(0);
+    // Split so the self-scan's generic rule (a bare `secret` since E11b round 2) does not report this fixture.
+    expect(sessionHits("verifySync({ secret: 'JBSWY3DP" + "EHPK3PXP', token })")).toHaveLength(0);
     expect(sessionHits(`const opts = { secret: 'abcdabcd' }; app.use(${SESSION}(opts))`)).toHaveLength(0);
   });
 });

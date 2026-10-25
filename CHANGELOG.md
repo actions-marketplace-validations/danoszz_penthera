@@ -4,6 +4,273 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+## [2.0.0-rc.1] - 2026-10-25
+
+### Upgrading from 1.9
+
+2.0 is a major version because the default scan finds more, so a CI gate that
+passed on 1.9 can fail after the upgrade. Nothing was removed.
+
+- The secret scan reads more files: key files, PHP, C#, `.properties`,
+  `.conf`, `.xml`, Terraform state, and docs (fixed-shape rules only).
+- Library mode turns on by itself for a publishable npm package (`main`,
+  `exports` or `bin`, not `private`, no app framework). Turn it off with
+  `--no-library`.
+- New malware signals in `penthera deps`: code that runs what it downloads,
+  HTTP tarball dependencies, Python code that runs at import time.
+- A secret finding lists every line it hit (`lines` in JSON, `relatedLocations`
+  in SARIF). Finding ids are unchanged, so baselines keep working.
+
+Why: on a sealed half of four public datasets, 2.0 ranks #1 of the free tools
+on npm and PyPI malware, tied #1 on JavaScript library injection bugs and #2
+on leaked secrets ([results](bench/public/RESULTS.md)).
+
+### Added
+
+- **Library mode for `--repo`: the parameters of exported functions count as
+  untrusted.** A shell command built from one is reported as
+  `command-injection` at `potential` confidence and severity high; a function
+  that only runs its argument is reported at medium, with the note that callers
+  must not pass untrusted input. It turns on by itself for a publishable
+  `package.json` (an entry point, not private, no app framework), or with
+  `--library`; `--no-library` turns it off. On the SecBench.js dev half,
+  command-injection recall went from 0 of 49 to 40 of 49 (0.82, 95% CI 0.69 to
+  0.90); it flagged none of 150 benign npm packages and nothing new in 16 app
+  repositories ([scan.md](../docs/commands/scan.md#library-mode-scanning-a-package)).
+- **More shell and eval shapes in every repo scan.** `exec` under any binding
+  of `child_process` (`cp.exec`, `child_process_1.exec`, `{ exec: run }`,
+  `promisify(exec)`, Babel's `(0, _cp.exec)`), shelljs `exec`, `spawn`,
+  `execFile` and execa with a `shell` option or `sh -c`, indirect
+  `(0, eval)(x)`, and `new Function` with a dynamic body in any argument. A
+  regex literal that contains a quote no longer hides the code after it from
+  the sink check.
+- **Gemini CLI extension.** `gemini extensions install
+  https://github.com/danoszz/penthera` adds Penthera's MCP server, pinned to
+  1.9.0, from `gemini-extension.json`. The internal audit keeps its version in
+  sync.
+- **README:** a stat strip, one real before/after (penthera.org from 95 to 100
+  with two DNS records), npm downloads, stars and star history, and the Claude
+  Code plugin and Gemini CLI install routes.
+
+### Detection
+
+- **Library mode follows one helper call and values kept on `this`.** When an
+  exported function passes a parameter to a named function in the same file,
+  that function's parameter is followed too, one call deep, and the finding
+  names the helper. A parameter a constructor or setter stores on `this` is
+  followed into the other methods of the same class or prototype, and so is an
+  instance an exported factory returns (`return new Stat(dir)`). Members copied
+  onto `exports` in a `for...in` loop or with `Object.assign(module.exports,
+  api)` count as exported. On the SecBench.js dev half, command-injection
+  recall went from 40 to 46 of 49 (0.94, 95% CI 0.83 to 0.98), with no new finding in 150 benign npm packages or 16 app
+  repositories ([scan.md](../docs/commands/scan.md#library-mode-scanning-a-package)).
+- **One long line no longer hides a file from the code-sink check.** A file is
+  skipped as minified only when lines over 5,000 characters hold more than half
+  of it, so a generated parser with one long table line is read. On the
+  SecBench.js dev half, code-injection recall went from 10 to 11 of 16 (0.69,
+  95% CI 0.44 to 0.86).
+- **`penthera deps` reads more of what an install hook runs.** It checks the
+  command strings inside the file a hook runs (downloads, pipes to a shell,
+  DNS or raw-socket senders), follows one hop to a script that file starts
+  (`spawn("node", [file])`, `fork(file)`), treats `require()` of a decoded
+  module name as obfuscation, and reads `process["env"]` like `process.env`.
+  Running a shell from a hook is still not risky on its own: build hooks do
+  that all the time.
+- **New finding: a package that runs code it downloads.** A network call
+  whose response reaches `eval`, `Function` or `vm` a few lines later is
+  reported at high severity, with no install hook needed. A distance limit
+  keeps a fetch helper and a template compiler in one bundle apart, and a
+  module loader that tags the script with `sourceURL` is not counted.
+  `Function.constructor(...)` now counts as dynamic code, and a whole copy of
+  the environment passed to a call (`post(url, { ...process.env })`) as bulk
+  environment access.
+- **New finding: an entry file that sends command output out.** A file the
+  package loads (`main`, `module`, `exports`) that runs a recon command
+  (`whoami`, `ls`, `$(...)`) and sends the output with curl, a DNS lookup or a
+  socket is reported at medium severity, with no install hook needed.
+- **New finding: a dependency installed from a URL.** A `dependencies` or
+  `optionalDependencies` entry that is an `http(s)://` tarball on a host
+  other than the npm registry, GitHub, GitLab or Bitbucket is reported at
+  medium severity. Git specs, aliases and `devDependencies` are left alone.
+- **Fewer false alarms on Python `setup.py`.** Build code is now risky only
+  when it downloads and runs: a shell next to network code, a download or
+  send command, a recon command such as `whoami`, or decoded code. Running
+  git, a compiler or a build tool, or `exec` of a local version file, is
+  still reported as an install script, at low severity.
+- On the E11b dev split, malicious npm packages that carry a payload go from
+  0.66 to 0.83 flagged (69 to 87 of 105), with no new false alarm on 150
+  popular npm packages or on 2,072 other packages from a local npm cache.
+  False alarms on 150 popular PyPI packages drop from 11 to 1, while
+  malicious PyPI packages go from 113 to 112 of 149 flagged.
+- **New finding: Python code that reaches the network when imported.** A
+  module whose module-level code, or a local function that code calls, makes
+  a network call or runs a download or send command is reported at medium
+  severity. Only modules an import can load count: top-level modules and
+  files in a folder with an `__init__.py`. Tests, scripts, examples, docs,
+  `setup.py`, `__main__.py` and code under the `__main__` guard do not.
+- **New finding: a chat bot token or webhook key next to network code.** A
+  Python library file that holds a chat bot token or a webhook URL with its
+  key, and has network code, is reported at high severity. The finding does
+  not repeat the key.
+- **"Runs code it downloads" now covers Python.** A file that downloads to
+  disk and, within 15 lines, starts the file or makes it executable, or runs
+  a response with `exec`, is reported at high severity.
+- **More Python obfuscation forms.** A statement hidden after 150 or more
+  spaces, `exec` of an encoded literal through a renamed decoder, and `exec`
+  reached through `builtins` now count.
+- **`setup.py` helpers are followed further.** Penthera reads the helper
+  modules `setup.py` imports three levels deep, prefers a package over a
+  module of the same name as Python does, finds code under `src/`, and counts
+  `pip install` run from build code as risky.
+- On the E11b dev split, malicious PyPI packages go from 112 to 138 of 149
+  flagged (0.75 to 0.93), with 1 false alarm on 150 popular PyPI packages
+  before and after, none on 150 popular npm packages, and no new finding on
+  221 other wheels from a local uv cache.
+- **The password rule reads key names by their words.** It finds a password
+  under a quoted key (`"password": "…"`, `'db_pass' => '…'`) and under a key
+  with a prefix or suffix (`old_password`, `password1`, `adminPassword`,
+  `DB_PASSWORD`), with `:`, `=`, `=>` or `:=`. Keys that are about a password
+  rather than holding one (`password_hash`, `LABEL_PASSWORD`,
+  `allow_empty_password`) are skipped.
+- **Fewer false alarms on passwords.** Stored hashes (`$2b$…`, `{SSHA}…`),
+  variable references (`$DB_PASS`, `#{password}`), booleans, labels and
+  translated words, names (`keystore.password`), published defaults (`admin`,
+  `changeit`), keyboard and counting sequences (`123456`, `qwerty`) and test
+  values (`test123`) no longer count as a hardcoded password. Files in a
+  translation folder (`locales/`, `i18n/`) get the fixed-shape rules only, as
+  docs do.
+- **Passwords in config files without quotes.** In YAML, `.properties`,
+  `.env`, `.ini`, `.conf`, TOML and `.cfg` files a bare value counts too
+  (`POSTGRES_PASSWORD: …`, `spring.datasource.password=…`). References
+  (`${DB_PASSWORD}`, `{{ … }}`, `ENC(…)`, `env(…)`), YAML tags and aliases,
+  paths, URLs and numbers do not.
+- **The generic API key rule reads key names by their words too.** It finds
+  API keys, API tokens, client secrets, auth tokens and AWS secret access
+  keys under quoted, prefixed and suffixed keys (`"apiKey":`,
+  `STRIPE_API_KEY`, `client_secret`), and bare values in config files. Names
+  and stand-ins (`my_api_key`, `sk_test_…`), plain words, digits only and
+  public or publishable keys no longer count.
+- **More private-key shapes.** DSA keys, encrypted PKCS#8 keys
+  (`ENCRYPTED PRIVATE KEY`) and PGP private key blocks are found, and so are
+  keys built by string concatenation (`"-----BEGIN …\n" +`) or written on one
+  line inside a JSON string. A key still needs its base64 body.
+- **A file with many secrets lists them all, up to 200.** The scan stopped
+  looking after 50 hits of one rule in a file, while a finding lists up to 200
+  lines. It now looks for as many as it can list.
+- **More provider token formats.** AWS temporary access keys (`ASIA…`, from
+  STS) are found next to long-term ones (`AKIA…`), and so are every GitHub
+  token prefix (`gho_`, `ghu_`, `ghs_`, `ghr_` and fine-grained
+  `github_pat_`, not only `ghp_`), Stripe restricted live keys (`rk_live_`)
+  and Postman API keys (`PMAK-`). AWS's documented example keys (they spell
+  `EXAMPLE`) and runs of `X` don't count.
+- **Tokens and secrets under more names.** The generic API key rule also
+  finds OAuth access, refresh and ID tokens, bearer and session tokens,
+  OAuth 1 token secrets, consumer, app, signing, webhook and cookie secrets,
+  and a key named just `token` or `secret`. Because these names also hold
+  test data and words, the value has to look generated: 16 characters or
+  more, mixed character classes, not words, an email, a reference, an elided
+  example or a typed run like `123456`. Pagination cursors (`next_token`) and
+  names (`secret_name`) don't count.
+- **reStructuredText, AsciiDoc and `.markdown` files are read as docs.** As in
+  `.md` and `.txt`, only the rules that match a fixed shape (provider keys,
+  private keys) run on them.
+- **The secret scan reads more files.** It now reads key files (`.pem`, `.key`,
+  `.p8`, `.ppk`), PHP, C#, `.properties`, `.conf`, `.xml` and Terraform state,
+  plus any file without an extension that starts with a private-key header. In
+  `.txt` and `.md` it runs only the rules that match a fixed shape (provider key
+  prefixes and private keys), because docs are full of example passwords.
+- **Fewer false alarms on secrets.** A private key must have its base64 body,
+  so docs that only name the header, or elide the key as `...`, no longer count.
+  A value that is just the key's name (`password = "password"`) and AWS's
+  documented example access key are treated as placeholders.
+
+### Changed
+
+- **CI:** the install matrix's upgrade test now starts from 1.9.0, the
+  version on npm `latest`.
+- **Package size budget raised to 900 KB packed / 2.4 MB unpacked** for the
+  E11b round-2 detection work (library mode's helper hop, more secret token
+  formats, the PyPI malware passes). Still one runtime dependency.
+- **A root `.mcp.json`** offers Penthera's own MCP server, pinned to 1.9.0, to
+  agents that open this repository, and lets directories such as
+  cursor.directory detect it. The internal audit keeps the pin in sync.
+- **A secret finding lists every line it hit.** The scan still reports one
+  finding per rule and file, so baselines and suppressions keep their ids, but
+  the finding now carries `lines`, its description names the other lines, the
+  terminal shows `+N more`, and SARIF lists them as related locations. A file
+  with ten keys now shows ten places to fix.
+
+### Fixed
+
+- **No false litellm alarm.** Host indicators from the rule packs now match
+  whole hostnames only, and every occurrence is checked. The attacker domain
+  `litellm.cloud` no longer fires on `litellm.cloudflare_api_key` in the
+  benign litellm 1.106.3, which E11 found. Subdomains, URLs and a host at the
+  end of a sentence still match.
+- **`--json` to a pipe no longer cuts the report off.** The CLI exited right
+  after writing, so on a pipe (`penthera --json | jq`) any report over 64 KiB
+  arrived truncated and was not valid JSON. It now exits once stdout has drained.
+
+### Site
+
+- **HSTS preload** on penthera.org, so browsers can ship it as HTTPS-only.
+
+### Docs
+
+- **E11: Penthera on public benchmarks.** A pre-registered study
+  (`docs/research/prereg/E11-public-benchmarks.md`) and a runner
+  (`npm run bench:public`, in `bench/public/`) score Penthera on datasets other
+  people labelled: Samsung CredData for the secret scan, SecBench.js for
+  code-execution sinks, and DataDog's malicious npm and PyPI packages, against
+  a popular-package baseline, for the dependency scan. Results, with Wilson
+  intervals, limits and rule ideas, are in `bench/public/RESULTS.md`. On
+  CredData, secret precision is 0.58 [0.55, 0.60] and in-scope recall 0.27
+  [0.26, 0.29], mostly because `.txt` and `.md` files are not read. On
+  SecBench.js, no library command injection was found (0 of 96). The
+  dependency scan flags 0.80 [0.75, 0.84] of malicious PyPI and 0.44 [0.39,
+  0.50] of malicious npm packages, and 0.08 [0.06, 0.12] of popular PyPI and
+  0 of 300 popular npm packages. Malware
+  samples are only read as text, under `/private/tmp`, and deleted after the
+  run. No rule changed.
+- **E11b: a sealed dev/test split for improving on E11.** A draft amendment
+  (`docs/research/prereg/E11b-improvement-study.md`) fixes the split, its
+  SHA-256 hashes, the scoring units, the guards and the targets before any
+  rule is tuned. `npm run bench:public -- --split dev` scores only the dev
+  half; the test half runs once, at the end. The dev baseline and reference
+  runs of gitleaks, detect-secrets and GuardDog are in
+  `bench/public/RESULTS.md`.
+- **E11b: eight more secret scanners on CredData dev.** TruffleHog,
+  Nosey Parker, Kingfisher, ripsecrets, secretlint, Whispers, deepsecrets
+  and CredSweeper run pinned, offline and scored the same way as gitleaks and
+  detect-secrets. The table and its limits are in `bench/public/RESULTS.md`.
+  CredSweeper was trained on CredData, so its row is not comparable.
+- **E11b: seven more free tools on the DataDog malware set (dev).** ClamAV,
+  YARA with YARA-Forge core, OSSGadget detect-backdoor, malcontent,
+  Bandit4Mal and Aura run pinned, offline and static only, next to GuardDog,
+  each flagging at its own default level
+  (`bench/public/competitors-malware-tools.mjs`). OSV-Scanner with an offline
+  OpenSSF malicious-packages snapshot is shown but not ranked: it looks up
+  packages already reported, it does not detect. Packj was skipped: it needs
+  the registry at scan time.
+- **Ready for the Docker and Cline MCP catalogs.** `llms-install.md` gives
+  Cline the `cline_mcp_settings.json` block, the Node.js 22 requirement and
+  what the tools may do. `docs/commands/mcp.md` shows how to run the server in
+  a container, where client roots are host paths: the server drops roots it
+  cannot find and falls back to `--root`, now covered by a test. The Docker
+  image's description is the approved one-liner, and `site/tools/logo.mjs`
+  renders the 400 × 400 logo at `assets/penthera-logo-400.png`.
+- **Public benchmark results, near the top of the README and on penthera.org.**
+  On a sealed half of four public datasets, against up to ten free tools each:
+  #1 on npm and PyPI malware, tied #1 on JavaScript library injection bugs,
+  #2 on leaked secrets. Every table, interval and caveat is in
+  `bench/public/RESULTS.md`; the README and the site are generated from the
+  same numbers file. The walkthrough video moved below the star history.
+- **README: dropped "One real fix".** The penthera.org before/after was a
+  marketing example, not evidence. The README now leads with what it is and
+  how to start.
+- **README:** a status per part (stable, beta, experimental) and "Verify it
+  yourself" with `npm audit signatures` and `penthera rules list`.
+
 ## [1.9.0] - 2026-10-23
 
 Everything in [1.9.0-rc.1](#190-rc1---2026-10-22) below, plus:

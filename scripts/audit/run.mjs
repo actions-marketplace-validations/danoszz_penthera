@@ -675,6 +675,10 @@ async function gateVersionsDocs() {
     'package-lock.json packages[""]': lock.packages?.[""]?.version,
     ".claude-plugin/plugin.json": readJson(join(ROOT, ".claude-plugin/plugin.json")).version,
     ".claude-plugin/marketplace.json": readJson(join(ROOT, ".claude-plugin/marketplace.json")).metadata?.version,
+    // The plugin folder Anthropic's directory reads, and its copy of the skill.
+    "plugin/.claude-plugin/plugin.json": readJson(join(ROOT, "plugin/.claude-plugin/plugin.json")).version,
+    "plugin/skills/penthera/SKILL.md": readFileSync(join(ROOT, "plugin/skills/penthera/SKILL.md"), "utf-8").match(/^ {2}version:\s*"?([^"\s]+)"?/m)?.[1],
+    "plugin/.mcp.json (pin)": readJson(join(ROOT, "plugin/.mcp.json")).mcpServers?.penthera?.args?.find((x) => x.startsWith("penthera@"))?.slice("penthera@".length),
     "skills/penthera/SKILL.md": skill,
     "CITATION.cff": citation,
     "docs/METHODOLOGY.md (How to cite)": howToCite,

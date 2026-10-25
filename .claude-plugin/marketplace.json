@@ -12,7 +12,7 @@
     {
       "name": "penthera",
       "description": "Offline cyber security agent for your apps and AI coding tools. Open R&D: measured in public, improved every release.",
-      "source": "./",
+      "source": "./plugin",
       "strict": true,
       "skills": [
         "./skills/penthera"

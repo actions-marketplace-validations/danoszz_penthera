@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Amends | [E11](E11-public-benchmarks.md). E11's registered result (`bench/public/RESULTS.md`, baseline as run on all data) stays as it is |
-| Status | **Approved by Daan van der Zwaag, 2026-10-24, as drafted (commit `262745c`).** Pass 1 started after approval |
+| Status | **Completed 2026-10-25.** Approved by Daan van der Zwaag on 2026-10-24 as drafted (commit `262745c`); final run on main `219b73a`; results in [RESULTS.md](../../../bench/public/RESULTS.md#e11b-final-the-sealed-test-half-scored-once-2026-10-25) |
 | Date written | 2026-10-24 |
 | Authors | Daan van der Zwaag (PI, decides every rule change). Drafted with Claude (AI-assisted) |
 | Seen before this amendment | E11's aggregate results on all data and the handful of named cases in its `RESULTS.md`. No per-item error lists. After the split was sealed (commit `72d3149`), the dev half was scored for the baseline in § 4 and the reference tools in § 5. The test half has not been scored |

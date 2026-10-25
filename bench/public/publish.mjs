@@ -19,6 +19,8 @@ const argv = process.argv.slice(2);
 const opt = (k) => (argv.includes(k) ? argv[argv.indexOf(k) + 1] : null);
 const split = opt("--split") || "dev";
 const beforeDir = opt("--before");
+// --label: the release name for Penthera's row (default: the commit it ran on).
+const label = opt("--label");
 const sample = split !== "test";
 const read = (dir, name) => { const p = join(dir, name); return existsSync(p) ? JSON.parse(readFileSync(p, "utf-8")) : null; };
 
@@ -59,8 +61,8 @@ function secretsRow(name, version, kind, prec, rec, extra = {}) {
 
 function secrets(now, before, tools) {
   const rows = [];
-  if (now) rows.push(secretsRow("Penthera", now.env?.penthera?.slice(0, 7) || "now", "penthera", now.runs.asReported.prec.all, now.runs.asReported.rec.primary));
-  if (before) rows.push(secretsRow("Penthera 1.9.0", "1.9.0", "penthera-before", before.runs.asReported.prec.all, before.runs.asReported.rec.primary, { excluded: true }));
+  if (now) rows.push(secretsRow("Penthera", label || now.env?.penthera?.slice(0, 7) || "now", "penthera", now.runs.asReported.prec.all, now.runs.asReported.rec.primary));
+  if (before) rows.push(secretsRow("Penthera", "1.9.0", "penthera-before", before.runs.asReported.prec.all, before.runs.asReported.rec.primary, { excluded: true }));
   for (const [name, t] of Object.entries(tools?.tools || {})) {
     if (t.error || t.variantOf || !t.prec) continue;
     rows.push(secretsRow(name, t.version, "tool", t.prec.all, t.rec.primary, t.caveat ? { caveat: t.caveat, excluded: /trained on this dataset/.test(t.caveat) } : {}));
@@ -93,8 +95,8 @@ function malware(now, before, tools, eco) {
     return { tool: name, version, kind, detect: d, detectCI: d && ci(d), all: a, benign: b, benignCI: b && ci(b), ...youden(d, b), ...extra };
   };
   const rows = [];
-  if (now) rows.push(pen(now, "Penthera", now.env?.penthera?.slice(0, 7) || "now", "penthera"));
-  if (before) rows.push(pen(before, "Penthera 1.9.0", "1.9.0", "penthera-before", { excluded: true }));
+  if (now) rows.push(pen(now, "Penthera", label || now.env?.penthera?.slice(0, 7) || "now", "penthera"));
+  if (before) rows.push(pen(before, "Penthera", "1.9.0", "penthera-before", { excluded: true }));
   const g = tools?.guarddog;
   if (g) {
     const d = gdRate(g[groups.detect]) || (eco === "npm" ? null : gdRate(g[groups.all]));
@@ -123,8 +125,8 @@ function library(now, before, tools) {
     return { tool: name, version, kind, command: c, code: e, pooled, pooledCI: ci(pooled), score: rate(pooled), r: rate(pooled), ...extra };
   };
   const rows = [];
-  if (now) rows.push(row("Penthera", now.env?.penthera?.slice(0, 7) || "now", "penthera", now.per));
-  if (before) rows.push(row("Penthera 1.9.0", "1.9.0", "penthera-before", before.per, { excluded: true }));
+  if (now) rows.push(row("Penthera", label || now.env?.penthera?.slice(0, 7) || "now", "penthera", now.per));
+  if (before) rows.push(row("Penthera", "1.9.0", "penthera-before", before.per, { excluded: true }));
   // A variant (another output mode of the same tool) is shown, not ranked.
   for (const [name, t] of Object.entries(tools?.tools || {})) if (!t.error && t.per) rows.push(row(name, t.version, "tool", t.per, t.variantOf ? { excluded: true, caveat: `another setting of ${t.variantOf}, not ranked` } : name === "codeql" ? { caveat: "used under the GitHub CodeQL terms, for research on open-source code" } : {}));
   const out = rank(rows, { r: 1 });

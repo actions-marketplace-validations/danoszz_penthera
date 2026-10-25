@@ -4,7 +4,7 @@
 
 <br/><br/>
 
-**Penthera: your open-source cyber security agent**
+# Penthera: your open-source cyber security agent
 
 The security review you never had time for. Offline, rule-based, and you can verify every finding yourself.
 

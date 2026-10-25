@@ -348,6 +348,17 @@ function agentsMd() {
 /** True for a semver pre-release such as 1.9.0-rc.1. */
 export const prerelease = (v) => /^\d+\.\d+\.\d+-/.test(v);
 
+/**
+ * The version the site tells people to install. While main carries a
+ * pre-release (between the release PR and the tag reaching npm), the pins stay
+ * on the latest stable release in CHANGELOG.md, so every copied command works.
+ */
+export function siteVersion(version, file = join(ROOT, "CHANGELOG.md")) {
+  if (!prerelease(version)) return version;
+  const stable = /^## \[(\d+\.\d+\.\d+)\]/m.exec(readFileSync(file, "utf8"))?.[1];
+  return stable || version;
+}
+
 /** The oldest release in CHANGELOG.md whose notes mention `text`, or null. */
 export function firstRelease(text, file = join(ROOT, "CHANGELOG.md")) {
   let first = null;
@@ -463,7 +474,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
   const checkBytes = statSync(join(OUT, "check.js")).size;
   const popular = JSON.parse((await import("node:zlib")).gunzipSync(readFileSync(join(ROOT, "lib", "deps", "popular-packages.json.gz"))).toString("utf8"));
   const values = {
-    VERSION: version,
+    VERSION: siteVersion(version),
     RULES: String(packs.reduce((n, p) => n + p.count, 0)),
     PACKS: packs.map((p) => `${p.name}@${p.version}`).join(", "),
     POPULAR: popular.names.length.toLocaleString("en-US"),
@@ -475,7 +486,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
     STARS: await starCount(),
     TICKER: tickerHtml(readNews()),
     SITE_URL: siteUrl(),
-    ...mcpNote(version),
+    ...mcpNote(siteVersion(version)),
     ORIGIN,
     DOC_PAGES: String(docPages(ROOT).length - 1),
     ...agentsMd(),
@@ -508,7 +519,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
   // For agents and crawlers: llms.txt (the same placeholders, so its pins
   // match the page), the docs as Markdown, the sitemap, robots.txt and
   // security.txt. All from the repo, at the package's homepage.
-  for (const [f, text] of Object.entries(agentFiles({ root: ROOT, site: SITE, version, origin: ORIGIN, values }))) {
+  for (const [f, text] of Object.entries(agentFiles({ root: ROOT, site: SITE, version: siteVersion(version), origin: ORIGIN, values }))) {
     mkdirSync(dirname(join(OUT, f)), { recursive: true });
     writeFileSync(join(OUT, f), text);
   }

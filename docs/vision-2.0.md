@@ -201,7 +201,7 @@ checked.
 ## Milestones toward 2.0
 
 Research milestones are not tied to version numbers: a result ships in the
-next minor release after it holds up. 1.9.0 is on npm `latest` (see the
+next minor release after it holds up. 2.0.0 is on npm `latest` (see the
 [roadmap](../ROADMAP.md#where-it-stands)), so the work below lands in 1.10 and
 later.
 

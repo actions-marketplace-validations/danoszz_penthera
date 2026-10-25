@@ -15,7 +15,7 @@ authors:
 repository-code: "https://github.com/danoszz/penthera"
 url: "https://github.com/danoszz/penthera"
 license: MIT
-version: 2.0.0-rc.1
+version: 2.0.0
 date-released: 2026-10-22
 keywords:
   - security

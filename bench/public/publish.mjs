@@ -198,9 +198,21 @@ const readme = opt("--readme");
 if (readme) {
   if (sample && readme === join(ROOT, "README.md")) throw new Error("refusing to write sample numbers into README.md");
   const START = "<!-- public-benchmarks:start -->", END = "<!-- public-benchmarks:end -->";
+  // One row per benchmark on top; every table folded below it.
+  const SUM = [["Leaked secrets (Samsung CredData)", "secrets", "F1"], ["Malicious npm packages (DataDog)", "npm", "caught minus false alarms"], ["Malicious PyPI packages (DataDog)", "pypi", "caught minus false alarms"], ["Injection bugs in JS libraries (SecBench.js)", "library", "found in the right file"]];
+  const ordn = (n) => `${n}${["th", "st", "nd", "rd"][n % 10 > 3 || [11, 12, 13].includes(n % 100) ? 0 : n % 10]}`;
+  const sum = [`| Benchmark | Score | Penthera 1.9.0 | **Penthera ${label || "now"}** | Rank among free tools | Best other free tool |`, "|---|---|---|---|---|---|"];
+  for (const [title, k, measure] of SUM) {
+    const b = published.benchmarks[k];
+    const us = b.rows.find((r) => r.kind === "penthera"), was = b.rows.find((r) => r.kind === "penthera-before");
+    const best = b.rows.filter((r) => r.kind === "tool" && !r.excluded && r.score != null).sort((x, y) => y.score - x.score)[0];
+    const tie = best && us && b.ranked && us.rank === 1 && us.score - best.score < 0.05 ? ", within the margin" : "";
+    sum.push(`| ${title} | ${measure} | ${pct(was?.score)} | **${pct(us?.score)}** | ${b.ranked && us?.rank ? `**${ordn(us.rank)} of ${b.of}**${tie}` : `${b.field} other tools, not ranked`} | ${best ? `${best.tool} ${pct(best.score)}` : "n/a"} |`);
+  }
+  const body = [...sum, "", "<details><summary>Every tool, every number (95% intervals)</summary>", "", L.join("\n").replace(/^### /gm, "#### "), "", "</details>"].join("\n");
   const text = readFileSync(readme, "utf-8");
   const a = text.indexOf(START), b = text.indexOf(END);
   if (a < 0 || b < a) throw new Error(`${readme}: no ${START} ... ${END} markers`);
-  writeFileSync(readme, text.slice(0, a + START.length) + "\n" + L.join("\n").replace(/^### /gm, "#### ") + "\n" + text.slice(b));
+  writeFileSync(readme, text.slice(0, a + START.length) + "\n" + body + "\n" + text.slice(b));
 }
 console.log(L.join("\n"));

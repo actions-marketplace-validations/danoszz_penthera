@@ -82,8 +82,16 @@ async function openBrowser() {
       await wait(settle);
       let c = clip;
       if (typeof clip === "string") {
-        const r = await send("Runtime.evaluate", { expression: `(() => { const b = document.querySelector(${JSON.stringify(clip)}).getBoundingClientRect(); return JSON.stringify({ x: b.x + scrollX - ${pad}, y: b.y + scrollY - ${pad}, width: b.width + ${2 * pad}, height: b.height + ${2 * pad} }); })()`, returnByValue: true });
-        c = JSON.parse(r.result.value);
+        // The selector goes in as an argument to a fixed function, never into code.
+        const doc = await send("Runtime.evaluate", { expression: "document" });
+        const r = await send("Runtime.callFunctionOn", {
+          objectId: doc.result.objectId,
+          functionDeclaration: "function (sel) { const b = this.querySelector(sel).getBoundingClientRect(); return { x: b.x + scrollX, y: b.y + scrollY, width: b.width, height: b.height }; }",
+          arguments: [{ value: clip }],
+          returnByValue: true,
+        });
+        const b = r.result.value;
+        c = { x: b.x - pad, y: b.y - pad, width: b.width + 2 * pad, height: b.height + 2 * pad };
       }
       const r = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: !!c, ...(c ? { clip: { ...c, scale: 1 } } : {}) });
       writeFileSync(file, Buffer.from(r.data, "base64"));

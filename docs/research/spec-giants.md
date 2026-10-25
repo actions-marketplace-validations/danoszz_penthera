@@ -6,7 +6,7 @@
 
 | | |
 |---|---|
-| Status | **Draft for review. No code until the maintainer approves this spec and the [E14 pre-registration](prereg/E14-giants-combination.md).** |
+| Status | **Approved by Daan van der Zwaag on 2026-10-25**, with the [decisions](#decisions) below. Measured by the [E14 pre-registration](prereg/E14-giants-combination.md) |
 | Date written | 2026-10-25 |
 | Authors | Daan van der Zwaag (maintainer, decides). Drafted with Claude (AI-assisted) |
 | Source | [ROADMAP.md](../../ROADMAP.md), "One first pass, with the best free tools"; a widely shared post listing gitleaks, trufflehog, semgrep, codeql, osv-scanner, pip-audit, trivy, checkov, nuclei, zap and burp as the stack to run |
@@ -237,30 +237,34 @@ commits, each with tests, `npm test` and `npm run audit:internal`:
 4. Adapters for the offline repo tools: gitleaks, trufflehog, Semgrep,
    osv-scanner, trivy, checkov.
 5. `--giants-online` and pip-audit; trufflehog verification.
-6. Live adapters: nuclei, ZAP baseline, behind the existing authorization gate.
+6. Live adapters: nuclei, ZAP baseline, behind the existing authorization gate,
+   with refusal tests for hosts outside the allowed set (decision 5: in the
+   first rc).
 7. SARIF runs per tool, Markdown and JSON, the dashboard filter, the evidence
    bundle, the `giants` policy key.
 8. Docs: `docs/commands/giants.md`, the README section, `--help`.
 
-## Decisions for the maintainer
+## Decisions
 
-Each has a recommendation first.
+Taken by the maintainer on 2026-10-25:
 
-1. **Flag name.** (a) `--giants` plus `--with` and `--without` *(recommended:
-   memorable, and `--all` already means "all modes")*; (b) `--tools <list>` only;
-   (c) `--all-tools`.
-2. **Do other tools' findings fail CI?** (a) Yes, like Penthera's own, with
-   `giants.failOn: never` in the policy file to opt out *(recommended)*;
-   (b) never by default; (c) only when Penthera agrees on the same location.
-3. **Default merge.** (a) Whatever E14 shows is best; Penthera-first until it
-   reports *(recommended)*; (b) always union; (c) always Penthera-first.
-4. **CodeQL.** (a) Only with `--with codeql`, after a licence notice
-   *(recommended)*; (b) not supported at all.
-5. **Live tools in the first rc.** (a) Repo tools first; nuclei and ZAP in a
-   later rc *(recommended: the authorization gate deserves its own review)*;
-   (b) everything in the first rc.
-6. **Verify other tools' code findings with Penthera's own oracles** (AI mode's
-   rung 2, where it exists)? (a) Not in this spec; consider after E14
-   *(recommended)*; (b) yes, from the start.
-7. **Version support.** (a) A minimum version per tool, newer accepted with a
-   warning until a fixture exists *(recommended)*; (b) exact pins only.
+1. **Flag name:** `--giants`, plus `--with <list>` and `--without <list>`.
+2. **CI gate:** other tools' findings count toward `--fail-on` like
+   Penthera's own. A team opts out with `giants.failOn: never` in the policy
+   file.
+3. **Default merge:** decided by E14's rule (§ 5 of the pre-registration).
+   Until E14 reports, Penthera-first.
+4. **CodeQL:** only with `--with codeql`, after a one-line licence notice.
+   Never in plain `--giants`.
+5. **Live tools:** nuclei and the ZAP baseline are in the **first rc**, with
+   the repo tools. Their authorization gate (the target you typed, loopback, or
+   `--allow-host`; intrusive templates only with `--deep`; ZAP passive only) is
+   reviewed in the same PR, with tests that a host outside the allowed set is
+   refused before either tool starts.
+6. **Oracle checks of other tools' findings:** not in this spec. Considered
+   after E14.
+7. **Versions:** a minimum version per tool; newer versions run with a warning
+   until a recorded fixture exists for them.
+
+No open questions remain for this spec. Code may start, in the build order
+above.

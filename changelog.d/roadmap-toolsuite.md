@@ -6,5 +6,5 @@ section: Docs
   and fold their findings into one report. Experiment E14 tests whether the
   combination beats each tool alone. Bundling or auto-installing other
   scanners is listed as not planned.
-  The draft spec (`docs/research/spec-giants.md`) and the E14
-  pre-registration are up for review; no code before they are approved.
+  The spec (`docs/research/spec-giants.md`) is approved and E14 is
+  pre-registered, before any code or combined count.

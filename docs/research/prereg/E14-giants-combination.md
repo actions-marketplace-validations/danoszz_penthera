@@ -7,7 +7,7 @@
 |---|---|
 | Builds on | [E11b](E11b-improvement-study.md): its split, scoring code, tool versions and sealed test half |
 | Feature it decides | [`--giants`](../spec-giants.md): which merge ships as the default |
-| Status | **Draft for review.** The commit that merges this file, after the maintainer approves it, is the registration timestamp |
+| Status | **Registered.** Approved by Daan van der Zwaag on 2026-10-25 as drafted. The commit that merges this file to `main` is the registration timestamp |
 | Date written | 2026-10-25 |
 | Authors | Daan van der Zwaag (PI, decides). Drafted with Claude (AI-assisted) |
 | Seen before this registration | Each tool's **aggregate** scores on the E11b test half, as published in `bench/public/RESULTS.md`. E11b stored only those aggregates for the other tools (`competitors-*.test.json`), not their per-item hits, so **no combination has been computed or could have been**. Penthera's own per-item test output exists (`creddata.test.raw.json`), and E11b's leakage audit read parts of it. Per-item outputs on the dev half were looked at during E11b |

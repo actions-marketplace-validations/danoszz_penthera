@@ -82,7 +82,7 @@ to report stays deterministic.
 | Dependencies | Capabilities, malware (1st on npm and PyPI), licences, typosquats | osv-scanner, pip-audit, for known CVEs in your lockfiles | Planned |
 | Infrastructure | Runtime versions pinned in Dockerfiles and version files | trivy (container images, IaC), checkov (Terraform, Kubernetes, CI config) | Planned |
 | Live app | Passive checks, Nuclei-compatible templates, `--deep` injection probes | nuclei, the ZAP baseline scan | Planned |
-| E14: the combination against each tool alone | "Is the combined report better, or only longer?" | Same protocol as E11b on the same public benchmarks. Combined precision may not drop by more than 0.02 | Planned; pre-registered before any run |
+| E14: the combination against each tool alone | "Is the combined report better, or only longer?" | Same protocol as E11b on the same public benchmarks. Combined precision may not drop by more than 0.02 | Pre-registration drafted ([E14](docs/research/prereg/E14-giants-combination.md)); [spec](docs/research/spec-giants.md) in review. No code before approval |
 
 How it works, and what it won't do:
 

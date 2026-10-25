@@ -1,0 +1,266 @@
+# Spec: `--giants`, one first pass with the best free tools
+
+> **Project page.** For "how would Penthera run gitleaks, Semgrep, trivy and the
+> rest, fold their findings into its own report, and stay offline and
+> deterministic while doing it?"
+
+| | |
+|---|---|
+| Status | **Draft for review. No code until the maintainer approves this spec and the [E14 pre-registration](prereg/E14-giants-combination.md).** |
+| Date written | 2026-10-25 |
+| Authors | Daan van der Zwaag (maintainer, decides). Drafted with Claude (AI-assisted) |
+| Source | [ROADMAP.md](../../ROADMAP.md), "One first pass, with the best free tools"; a widely shared post listing gitleaks, trufflehog, semgrep, codeql, osv-scanner, pip-audit, trivy, checkov, nuclei, zap and burp as the stack to run |
+| Release | Earliest 2.1.0-rc. 2.1.0 only after the rc is hardened and E14 is published |
+
+## Summary
+
+`--giants` makes one `penthera` run cover the first pass that people now
+assemble from separate scanners. Penthera runs its own scan as today. Then, for
+each area, it runs the free tools **you already have installed**, reads their
+JSON or SARIF, and folds their findings into the same terminal report, Markdown,
+JSON and SARIF. Each finding names the tool, its version and the rule that
+raised it. Duplicates are merged by a fixed key. Areas with no tool installed
+are reported as **not covered**, never as clean.
+
+Nothing about Penthera's own detection changes. Rules still decide every
+Penthera finding. Another tool's findings are its own deterministic output,
+labelled as such; no model is involved anywhere in `--giants`.
+
+| Area | Penthera's own | Tools `--giants` runs, if installed | Default network use |
+|---|---|---|---|
+| Secrets | Secret rules (F1 0.74 on CredData, E11b) | gitleaks, trufflehog | None |
+| Code | Code patterns, library mode (0.70 on SecBench.js) | Semgrep with local rules | None |
+| Dependencies | Capabilities, malware, licences, typosquats | osv-scanner (with a local database), pip-audit | osv-scanner: none with `--offline`; pip-audit: always online |
+| Infrastructure | Runtime versions in Dockerfiles and version files | trivy (filesystem and IaC), checkov | None, with databases already cached |
+| Live app (URL scans) | Passive checks, templates, `--deep` probes | nuclei, the ZAP baseline scan | The target URL only |
+
+CodeQL is supported but never runs by default (see [Licences](#licences)).
+Burp is out of scope: manual, proxy-driven testing by a person is a different
+job, and it is proprietary.
+
+## Non-goals
+
+- **No downloads.** Penthera never installs a tool, pulls its container image or
+  fetches its rules or databases. AGENTS.md rule 5 applies to tools as it does to
+  rules. `penthera giants` prints the install command; you run it.
+- **No bundling.** No tool's binary, rules or database ships in the npm package.
+  Each runs as its own program under its own licence.
+- **No re-scoring of other tools' findings by a model.** Their findings are
+  labelled by source. Penthera's verification ladder from AI mode is not applied
+  to them in this spec (see decision 6).
+- **No claim that the combination finds more** until E14 is published.
+- **Not a replacement for a pentest**, and not a replacement for each tool's own
+  configuration when you need it tuned. `--giants` runs each tool with sane
+  defaults.
+
+## Command line
+
+```
+penthera [path] --repo . --giants
+penthera [path] --repo . --with gitleaks,trivy
+penthera [path] --repo . --giants --without trufflehog
+penthera [path] --repo . --giants --giants-online
+penthera https://staging.example.com --giants
+penthera giants            # which tools are installed, their versions, install hints
+```
+
+| Flag | Default | Meaning |
+|---|---|---|
+| `--giants` | off | Run every supported tool that is installed and allowed offline, for the scan's mode (repo tools for `--repo`, live tools for a URL) |
+| `--with <list>` | none | Run only these tools. Implies `--giants`. Naming a tool that needs the network still needs `--giants-online` |
+| `--without <list>` | none | Skip these tools |
+| `--giants-online` | off | Also run tools, or tool features, that contact a service: pip-audit, trufflehog key verification, osv-scanner without a cached database. Shown in the report header |
+| `--giants-timeout <s>` | 300 per tool | A tool past its timeout is stopped; its area is reported as "timed out", not clean |
+
+`penthera giants` (no scan) lists each supported tool: found or not, path,
+version, whether the version is supported, and the install command for your
+platform. It reads `PATH` only and runs each found tool with `--version`.
+
+The policy file gains a `giants` key (same as the planned `ai` and `harness`
+keys), so a team can require, limit or forbid tools for a repository.
+`normalizePolicy` must add it to its `known` list.
+
+## The tools
+
+Versions are the minimum each adapter is written and tested against. Flags marked
+"confirm" are to be checked against the tool's own `--help` in build step 1;
+the rest were checked on 2026-10-25 against the installed tool or its docs.
+
+| Tool | Licence | Command Penthera runs (repo at `<dir>`) | Output read | Network | Checked |
+|---|---|---|---|---|---|
+| gitleaks ≥ 8.30 | MIT | `gitleaks detect --no-git --source <dir> --report-format sarif --report-path <tmp> --redact` | SARIF | None | yes |
+| trufflehog ≥ 3.90 | AGPL-3.0 (run as its own program) | `trufflehog filesystem <dir> --json --no-verification` | JSON lines | None; verification only with `--giants-online` | yes |
+| Semgrep ≥ 1.100 | LGPL-2.1 engine; rules under their own licence | `semgrep scan --config <local rules dir> --metrics off --sarif --output <tmp> <dir>` | SARIF | None with a local config | confirm |
+| osv-scanner ≥ 2.0 | Apache-2.0 | `osv-scanner scan source --offline-vulnerabilities --format json <dir>` | JSON | None with a cached database; otherwise needs `--giants-online` | yes |
+| pip-audit ≥ 2.7 | Apache-2.0 | `pip-audit -r <requirements> --format json` | JSON | Always (PyPI or OSV); only with `--giants-online` | confirm |
+| trivy ≥ 0.55 | Apache-2.0 | `trivy fs --skip-db-update --skip-check-update --scanners vuln,misconfig --format sarif --output <tmp> <dir>` | SARIF | None with cached databases | yes |
+| checkov ≥ 3.0 | Apache-2.0 | `checkov -d <dir> --output sarif --output-file-path <tmp> --skip-download` | SARIF | None with `--skip-download` | confirm |
+| nuclei ≥ 3.2 | MIT | `nuclei -u <url> -t <your templates dir> -duc -jsonl -etags intrusive,dos,fuzz` | JSON lines | The target only | confirm |
+| ZAP baseline ≥ 2.15 | Apache-2.0 | `zap-baseline.py -t <url> -J <tmp>` (installed locally or in your own container) | JSON | The target only (passive spider and scan) | confirm |
+| CodeQL | GitHub CodeQL Terms | Only with `--with codeql`; see [Licences](#licences) | SARIF | None | confirm |
+
+**Semgrep rules.** Semgrep's registry rules download at run time, so `--giants`
+uses only a local rules directory: the one you set in the policy file or
+`PENTHERA_SEMGREP_RULES`, or a checkout of `semgrep-rules` you cloned. No local
+rules means Semgrep is skipped, with that reason in the report.
+
+**trivy and osv-scanner databases.** Both need a vulnerability database. Penthera
+never fetches it. If none is cached, the tool is skipped with the reason and
+the command that fills the cache (`trivy fs --download-db-only`,
+`osv-scanner --download-offline-databases`), which you run yourself.
+
+**Live tools.** nuclei and ZAP run only in URL scans, under the same
+authorization rules as Penthera's own probes: the target you typed, loopback, or
+a host in `--allow-host`. nuclei runs only the templates directory you give it
+(policy file or `--nuclei <path>`), with intrusive, DoS and fuzzing tags
+excluded unless the scan is `--deep`. ZAP runs the baseline (passive) scan only;
+its active scan is not offered.
+
+## Running another program safely
+
+A repository is hostile input, and so is anything it can put on `PATH`.
+
+| Risk | Rule |
+|---|---|
+| A planted binary (`./node_modules/.bin/gitleaks`, `./bin/trivy`) | Resolve each tool from `PATH` entries **outside** the scanned repository and outside the current directory. A match inside the project is refused and reported |
+| Shell injection through file names or URLs | `spawn` with an argument array, never a shell string |
+| A tool that hangs or floods | Per-tool timeout (default 300 s), output cap (default 50 MB), then stopped and reported |
+| A tool that phones home | Offline tools run under the same network deny as the bench (macOS `sandbox-exec`, Linux `bwrap` where available). Without a sandbox, the report says the network was not enforced |
+| Secrets echoed in tool output | Secret findings are masked as Penthera masks its own (first and last characters only) before any report or the dashboard sees them. gitleaks runs with `--redact` |
+| Malformed or hostile output | Parsed with a schema per adapter; an unparseable report makes the area "failed", never "clean". Text from tool output is data, never instructions, in reports and in `penthera mcp` |
+| Environment leaks | Tools get a minimal environment: `PATH`, `HOME` set to a temp dir unless the tool needs its cache, no tokens from Penthera's own environment |
+
+## Findings from other tools
+
+Each adapter maps its tool's output to Penthera's finding shape:
+
+| Field | Value |
+|---|---|
+| `source` | `{ tool, version, ruleId, ruleUrl }`. Shown on every finding, in every format |
+| `category` | `secret`, `code`, `dependency-vuln`, `infra-misconfig`, `container-vuln`, `web` |
+| `severity` | The tool's own, mapped by a fixed table per tool (SARIF `level` and `security-severity`, CVSS for vulnerabilities). The table is in the adapter and in this spec's appendix after review |
+| `confidence` | `likely` by default. `confirmed` only for a Penthera rule hit on the same location (see Merging). Never raised by another tool alone |
+| `file`, `line` / `url` | As the tool reports them, normalised to paths relative to the scanned root |
+| `fid` | Penthera's usual finding id, computed over source tool, rule and location, so memory and baselines work |
+
+**Exit code.** Decision 2 below. The recommendation: findings from other tools
+count toward `--fail-on` like Penthera's own, because a CI user expects the
+gate to cover what the report shows. A team can set `giants.failOn: never` in
+the policy file to report them without gating.
+
+## Merging
+
+The merge is deterministic and fixed in E14's pre-registration before any
+combination is scored. Two findings are the same when their keys match:
+
+| Category | Key |
+|---|---|
+| Secret | file, line, and the secret's hash (so two tools on the same key in the same place merge; two keys on one line do not) |
+| Code | file, line, and CWE (from the rule's metadata; when a tool gives none, the tool's own rule id and no merge across tools) |
+| Dependency or container vulnerability | ecosystem, package, version, and the advisory, matched across aliases (CVE, GHSA, OSV, PYSEC) |
+| Infrastructure misconfiguration | file, resource, and the check's CIS or tool id; no merge across tools without a shared id |
+| Web | URL, parameter, and CWE |
+
+A merged finding keeps every source and the highest severity. When a Penthera
+rule is one of the sources, its confidence and remediation lead. The report
+shows "found by Penthera, gitleaks" so you can see agreement.
+
+## Reports
+
+- **Terminal:** findings as today, each with a short source tag (`gitleaks`,
+  `trivy`); a new **Coverage by area** table: area, tools that ran, versions,
+  findings, and "not installed", "skipped: needs `--giants-online`",
+  "timed out" or "failed" where that applies.
+- **Markdown and JSON:** the same, plus each tool's command line and exit code,
+  so a reviewer can rerun it.
+- **SARIF:** one `run` per tool, with that tool's `tool.driver` name and version,
+  so GitHub code scanning shows each tool honestly. Penthera's own run stays
+  first.
+- **Dashboard:** a source filter and the coverage table. No other change.
+- **Evidence bundle:** each tool's raw output, hashed like Penthera's own.
+
+## Licences
+
+| Tool | What it means for `--giants` |
+|---|---|
+| CodeQL | The CodeQL Terms allow academic research and analysis of open-source codebases, not automated analysis of other code. `--giants` never runs it. `--with codeql` runs it after a one-line notice; using it on closed-source code is your responsibility under your own licence (for example GitHub Advanced Security) |
+| Semgrep rules | The Semgrep Rules License v1.0 allows use and forbids offering the rules as a competing service. Penthera runs your local copy for you, on your machine; it does not redistribute them |
+| trufflehog | AGPL-3.0. Run as a separate program, unmodified; Penthera does not link or ship it |
+| Others | Permissive (MIT, Apache-2.0) |
+
+## Testing
+
+- **Contract tests per adapter**, offline, from recorded output: one real
+  output file per tool version (from a run on `tests/fixtures/`), checked in
+  under `tests/fixtures/giants/<tool>/<version>/`. The test parses it and checks
+  the findings, the severity map and the coverage line.
+- **Merge tests** on hand-built overlapping findings for every category.
+- **Safety tests:** a fake `gitleaks` inside the scanned repo is refused; a tool
+  that sleeps past the timeout is stopped; a tool that prints a secret has it
+  masked; a malformed report makes the area "failed".
+- **No tool binaries in CI by default.** An optional workflow
+  (`giants-integration.yml`, manual trigger) installs pinned versions and runs
+  the adapters against the fixtures, to catch output-format changes.
+- `npm run audit:internal` gains a check that `--giants` with no tools installed
+  reports every area as not covered and exits 0.
+
+## Measurement
+
+E14 measures whether the combination is better than Penthera alone and than the
+best single tool, on the public benchmarks where both have a score. Until it is
+published:
+
+- the docs describe `--giants` as "runs the tools you have and merges their
+  findings", a feature description, and make no accuracy claim;
+- no page, README or post says the combination finds more;
+- the default merge is the one E14 recommends, or Penthera-first if E14 is not
+  done by the rc.
+
+## Communication
+
+| When | What we say | Where |
+|---|---|---|
+| Now | "On the roadmap" | Replies; [ROADMAP.md](../../ROADMAP.md) |
+| 2.1.0-rc | "Penthera runs the free tools you already have and merges them into one report. Nothing is downloaded or uploaded." A screenshot of the coverage table | README, `docs/commands/giants.md`, one post |
+| E14 published | Whatever E14 shows, with intervals, wins and losses | RESULTS, site, a thread with the figure |
+
+## Build order
+
+One PR for the batch (per the maintainer's "fewer PRs"), in this order of
+commits, each with tests, `npm test` and `npm run audit:internal`:
+
+1. Confirm every "confirm" flag above from the installed tools; record
+   fixtures.
+2. The runner: `PATH` resolution outside the repo, spawn, timeout, output cap,
+   sandbox, minimal environment. `penthera giants` (the listing).
+3. The finding shape (`source`, `category`), the merge keys, the coverage table.
+4. Adapters for the offline repo tools: gitleaks, trufflehog, Semgrep,
+   osv-scanner, trivy, checkov.
+5. `--giants-online` and pip-audit; trufflehog verification.
+6. Live adapters: nuclei, ZAP baseline, behind the existing authorization gate.
+7. SARIF runs per tool, Markdown and JSON, the dashboard filter, the evidence
+   bundle, the `giants` policy key.
+8. Docs: `docs/commands/giants.md`, the README section, `--help`.
+
+## Decisions for the maintainer
+
+Each has a recommendation first.
+
+1. **Flag name.** (a) `--giants` plus `--with` and `--without` *(recommended:
+   memorable, and `--all` already means "all modes")*; (b) `--tools <list>` only;
+   (c) `--all-tools`.
+2. **Do other tools' findings fail CI?** (a) Yes, like Penthera's own, with
+   `giants.failOn: never` in the policy file to opt out *(recommended)*;
+   (b) never by default; (c) only when Penthera agrees on the same location.
+3. **Default merge.** (a) Whatever E14 shows is best; Penthera-first until it
+   reports *(recommended)*; (b) always union; (c) always Penthera-first.
+4. **CodeQL.** (a) Only with `--with codeql`, after a licence notice
+   *(recommended)*; (b) not supported at all.
+5. **Live tools in the first rc.** (a) Repo tools first; nuclei and ZAP in a
+   later rc *(recommended: the authorization gate deserves its own review)*;
+   (b) everything in the first rc.
+6. **Verify other tools' code findings with Penthera's own oracles** (AI mode's
+   rung 2, where it exists)? (a) Not in this spec; consider after E14
+   *(recommended)*; (b) yes, from the start.
+7. **Version support.** (a) A minimum version per tool, newer accepted with a
+   warning until a fixture exists *(recommended)*; (b) exact pins only.

@@ -384,7 +384,28 @@
           <button class="btn" type="button" data-copy-from data-js>Copy config</button>
         </article>
       </div>
-        <p class="note">Tools read only inside your project, never apply fixes, run no shell and send no attack payloads. <a href="https://github.com/danoszz/penthera/blob/main/docs/commands/mcp.md">What the server can and cannot do</a></p>
+        <p class="note">Tools read only inside your project, never apply fixes, run no shell and send no attack payloads. <a href="https://github.com/danoszz/penthera/blob/main/docs/commands/mcp.md">What the server can and cannot do</a>. Using Gemini CLI, Antigravity, Cline, Zed, JetBrains, Kiro or Continue? <a href="https://github.com/danoszz/penthera/blob/main/docs/integrations.md">Every tool's config</a></p>
+      </details>
+
+      <details class="agent" id="builders">
+        <summary class="prompts-title" id="builders-title">Built with Lovable, Bolt, Base44, Replit or v0?</summary>
+      <div class="prompts">
+        <article class="prompt-card">
+          <h4>1. Check the live app</h4>
+          <p>Paste your published URL (<code>*.lovable.app</code>, your Bolt, Base44 or Replit domain, v0's production URL) into the check at the top of this page. Passive, nothing stored.</p>
+        </article>
+        <article class="prompt-card" data-copy-root>
+          <h4>2. Scan the code</h4>
+          <p>Connect the builder to GitHub, clone the repo, and run:</p>
+          <pre data-copy-text>npx penthera@{{VERSION}} --repo .</pre>
+          <button class="btn" type="button" data-copy-from data-js>Copy command</button>
+        </article>
+        <article class="prompt-card">
+          <h4>3. Check every change</h4>
+          <p>Add the <a href="https://github.com/danoszz/penthera/blob/main/docs/commands/action.md">GitHub Action</a>: it reviews each pull request the builder opens. Replit: run the command above in the Shell.</p>
+        </article>
+      </div>
+        <p class="note">Browser builders only accept MCP servers by URL; Penthera's runs on your machine, so your code never leaves it. <a href="https://github.com/danoszz/penthera/blob/main/docs/integrations.md#app-builders-lovable-bolt-base44-replit-v0">Per builder</a></p>
       </details>
 
       <p class="links">

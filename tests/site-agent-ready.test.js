@@ -8,12 +8,14 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { mkdtempSync, rmSync, readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { buildSite } from "../site/build.mjs";
+import { buildSite, siteVersion } from "../site/build.mjs";
 import { apiErrorCodes, undescribedCodes, jsonLd } from "../site/agent-ready.mjs";
 import { serve } from "../site/serve.mjs";
 
 const ROOT = join(import.meta.dirname, "..");
 const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+// The version the site tells people to install (the latest stable while main is a release candidate).
+const SITE_V = siteVersion(pkg.version);
 const ORIGIN = pkg.homepage.replace(/\/+$/, "");
 const vercel = JSON.parse(readFileSync(join(ROOT, "vercel.json"), "utf8"));
 
@@ -65,9 +67,9 @@ describe("homepage as Markdown", () => {
     const md = read("index.md");
     expect(md).toMatch(/^# Penthera: your open-source cyber security agent\n/);
     expect(md).not.toMatch(/\{\{|undefined|—/);
-    for (const cmd of [`npx penthera@${pkg.version}`, "npx skills add danoszz/penthera", `claude mcp add penthera -- npx -y penthera@${pkg.version} mcp`]) expect(md).toContain(cmd);
+    for (const cmd of [`npx penthera@${SITE_V}`, "npx skills add danoszz/penthera", `claude mcp add penthera -- npx -y penthera@${SITE_V} mcp`]) expect(md).toContain(cmd);
     const pins = [...md.matchAll(/penthera@(\d[\w.-]*)/g)].map((m) => m[1]);
-    expect(new Set(pins)).toEqual(new Set([pkg.version]));
+    expect(new Set(pins)).toEqual(new Set([SITE_V]));
     for (const n of [values.N_URL, values.N_SECRETS, values.N_AGENTS, values.RULES_ALL]) expect(md).toContain(n);
     expect(md).toContain("## Limits");
     expect(md).toContain(`${ORIGIN}/api/check`);
@@ -162,7 +164,7 @@ describe("OpenAPI for the live check", () => {
 
   it("is OpenAPI 3.1 for POST /api/check, with a unique operationId", () => {
     expect(spec.openapi).toBe("3.1.0");
-    expect(spec.info.version).toBe(pkg.version);
+    expect(spec.info.version).toBe(SITE_V);
     expect(spec.servers[0].url).toBe(ORIGIN);
     expect(spec.info.termsOfService).toBe(`${ORIGIN}/terms`);
     expect(Object.keys(spec.paths)).toEqual(["/api/check"]);
@@ -233,6 +235,6 @@ describe("llms.txt", () => {
     expect(section).not.toMatch(/"action"|token|deep/);
     expect(section).not.toContain("—");
     const pins = [...llms.matchAll(/penthera@(\d[\w.-]*)/g)].map((m) => m[1]);
-    expect(new Set(pins)).toEqual(new Set([pkg.version]));
+    expect(new Set(pins)).toEqual(new Set([SITE_V]));
   });
 });

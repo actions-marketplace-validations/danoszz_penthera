@@ -156,6 +156,11 @@ projects is experiment E1. Reproduce every table with
 
 You need Node.js 22 or later. No install, no account.
 
+Building with Cursor, Claude Code, Codex, VS Code, Windsurf, Gemini CLI, Zed,
+JetBrains or Kiro, or an app builder such as Lovable, Bolt, Base44, Replit or
+v0? [Penthera in your coding tool](docs/integrations.md) has the setup for
+each.
+
 **In your terminal.** Run this in your project folder:
 
 ```bash

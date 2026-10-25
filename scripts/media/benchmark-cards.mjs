@@ -34,33 +34,35 @@ cpSync(join(ROOT, "site", "media", "field.png"), join(tmp, "field.png"));
 const css = readFileSync(join(tmp, "styles.css"), "utf-8").replaceAll('url("/fonts/', 'url("fonts/');
 writeFileSync(join(tmp, "styles.css"), css);
 
-function page(w, h, cardsHtml, cols) {
+function page(w, h, cardsHtml, cols, forceCompact = false) {
+  // Compact type for the short formats: LinkedIn and X, and the Instagram square.
+  const compact = forceCompact || h < 700 || (w <= 1100 && h <= 1100);
   return `<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><link rel="stylesheet" href="styles.css"><style>
   html, body { margin: 0; width: ${w}px; height: ${h}px; overflow: hidden; color: var(--text-1); }
   html { background: var(--ground); }
   body { position: relative; z-index: 0; background: transparent; }
   .pb > h3, .pb .bench-lede, .pb .links { display: none; }
-  .pb-card { padding: ${h < 700 ? 16 : 22}px; gap: ${h < 700 ? 6 : 10}px; }
-  .pb-place { font-size: ${h < 700 ? 48 : 72}px; }
-  .pb-row { font-size: ${h < 700 ? 10 : 13}px; } .pb-chart { gap: ${h < 700 ? 2 : 5}px; }
-  .pb-track { height: ${h < 700 ? 7 : 10}px; }
+  .pb-card { padding: ${compact ? 16 : 22}px; gap: ${compact ? 6 : 10}px; }
+  .pb-place { font-size: ${compact ? 48 : 72}px; }
+  .pb-row { font-size: ${compact ? 10 : 13}px; } .pb-chart { gap: ${compact ? 2 : 5}px; }
+  .pb-track { height: ${compact ? 7 : 10}px; }
   /* Retro: the site's 1-bit dither field tiled faintly, scanlines, one blue glow. */
   body::before { content: ""; position: fixed; inset: 0; z-index: -2; background: url("field.png") 0 0 / 180px auto repeat; opacity: 0.16; image-rendering: pixelated; }
   body::after { content: ""; position: fixed; inset: 0; z-index: -1; background:
     repeating-linear-gradient(180deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 3px),
     radial-gradient(70% 60% at 85% 0%, rgba(0,0,237,0.35), transparent 70%),
     radial-gradient(90% 80% at 0% 100%, rgba(0,0,0,0.85), transparent 70%); }
-  .shot-head { display: grid; justify-items: start; gap: ${h < 700 ? 10 : 18}px; }
-  .shot-logo { display: block; flex: none; height: ${h < 700 ? 36 : 46}px; width: auto; filter: invert(1); } /* logo.svg is black ink */
+  .shot-head { display: grid; justify-items: start; gap: ${compact ? 10 : 18}px; }
+  .shot-logo { display: block; flex: none; height: ${compact ? 36 : 46}px; width: auto; filter: invert(1); } /* logo.svg is black ink */
   .shot-right { text-align: left; }
   .shot-t { max-width: none; white-space: nowrap; }
   .shot-right .shot-k { margin: 0; }
-  body { display: grid; grid-template-rows: auto 1fr auto; gap: ${h < 700 ? 18 : 28}px; padding: ${h < 700 ? "36px 48px" : "56px 64px"}; box-sizing: border-box; }
+  body { display: grid; grid-template-rows: auto 1fr auto; gap: ${compact ? 18 : 28}px; padding: ${compact ? "36px 48px" : "56px 64px"}; box-sizing: border-box; }
   .shot-k { font-family: var(--px); font-size: 18px; color: var(--text-2); }
-  .shot-t { margin: 10px 0 0; font-family: var(--display); font-size: ${h < 700 ? 40 : 64}px; line-height: 1; letter-spacing: -0.035em; font-weight: 500; color: var(--text-1); }
+  .shot-t { margin: 10px 0 0; font-family: var(--display); font-size: ${compact ? 40 : 64}px; line-height: 1; letter-spacing: -0.035em; font-weight: 500; color: var(--text-1); }
   .pb { margin: 0; } .pb-cards { margin: 0; grid-template-columns: repeat(${cols}, 1fr) !important; }
   .pb-more, .pb-sample { display: none; }
-  .shot-f { display: flex; justify-content: space-between; font-family: var(--px); font-size: 16px; color: var(--text-2); }
+  .shot-f { display: flex; flex-direction: ${w < 1200 ? "column" : "row"}; gap: 6px; justify-content: space-between; font-family: var(--px); font-size: 16px; color: var(--text-2); }
   .stamp { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); padding: 6px 10px; font-family: var(--px); font-size: 16px; background: var(--accent-ink); color: #fff; }
   </style></head><body>
   <div class="shot-head"><img class="shot-logo" src="logo.svg" alt="Penthera"><div class="shot-right"><p class="shot-k">Public benchmarks · sealed test half</p><h1 class="shot-t">Ranked against the free tools</h1></div></div>
@@ -84,6 +86,9 @@ function shot(name, html, w, h) {
 const all = publicBenchHtml(pub);
 shot("linkedin", page(1200, 627, all, 4), 1200, 627);
 shot("x", page(1600, 900, all, 4), 1600, 900);
+// Instagram: a square post (2 x 2 cards) and a story (cards stacked).
+shot("instagram-square", page(1080, 1080, all, 2), 1080, 1080);
+shot("instagram-story", page(1080, 1920, all, 1, true), 1080, 1920);
 for (const key of Object.keys(pub.benchmarks)) {
   const one = publicBenchHtml({ ...pub, benchmarks: { [key]: pub.benchmarks[key] } });
   shot(`x-${key}`, page(1600, 900, one, 1).replace(".pb-cards { margin: 0;", ".pb-cards { margin: 0 auto; max-width: 560px;"), 1600, 900);

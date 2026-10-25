@@ -358,7 +358,7 @@ export function printReport(result, opts = {}) {
       const tag = needsReview ? c.dim(` [${f.confidence}]`) : "";
       const ai = f.alsoProposedBy?.length ? c.dim(" [also proposed by AI]") : "";
       w(`  ${colorFn(label)}  ${f.title}${tag}${ai}${f.fid ? c.dim(`  ${f.fid}`) : ""}`);
-      if (f.url)  w(`  ${" ".repeat(6)} ${c.dim(f.url + (f.line ? `:${f.line}` : ""))}${f.status ? c.dim(` \u2192 ${f.status}`) : ""}`);
+      if (f.url)  w(`  ${" ".repeat(6)} ${c.dim(f.url + (f.line ? `:${f.line}` : "") + (f.lines?.length > 1 ? ` (+${f.lines.length - 1} more)` : ""))}${f.status ? c.dim(` \u2192 ${f.status}`) : ""}`);
       if (f.description && opts.verbose) w(`  ${" ".repeat(6)} ${c.dim(f.description)}`);
     }
     w("");
@@ -617,6 +617,13 @@ export function formatSarif(result) {
           ...(f.url && Number.isInteger(f.line) && f.line > 0 ? { region: { startLine: f.line } } : {}),
         },
       }],
+      // Every other place the same rule hit in this file (secret scan `lines`).
+      ...(f.url && Array.isArray(f.lines) && f.lines.length > 1 ? {
+        relatedLocations: f.lines.filter((l) => Number.isInteger(l) && l > 0 && l !== f.line).slice(0, 50).map((l, id) => ({
+          id,
+          physicalLocation: { artifactLocation: { uri: toSarifUri(f.url) }, region: { startLine: l } },
+        })),
+      } : {}),
       properties: {
         severity: f.severity,
         // Provenance travels with the finding into GitHub code scanning, so a

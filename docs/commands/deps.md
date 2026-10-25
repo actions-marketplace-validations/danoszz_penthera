@@ -25,9 +25,12 @@ penthera deps --pr-comment deps.md     # short Markdown diff for a PR comment
 
 | Capability | Detected from |
 |---|---|
-| Install scripts | `preinstall` / `install` / `postinstall`, and `binding.gyp` (npm runs `node-gyp` implicitly). Flagged as risky when the hook pipes a download to a shell or runs a file with network or decoding code |
+| Install scripts | `preinstall` / `install` / `postinstall`, and `binding.gyp` (npm runs `node-gyp` implicitly). Flagged as risky when the hook pipes a download to a shell, runs a file with network or decoding code, runs a file whose command strings download or send data out (`curl`, a DNS lookup of a computed name, `/dev/tcp`), or runs a file that starts such a file (`spawn("node", [file])`, `fork(file)`; one hop). Starting a shell on its own does not count: build hooks do that |
+| Code it downloads | A network call whose response reaches `eval`, `Function` or `vm` a few lines later (high, no install hook needed). A module loader that tags the fetched script with `sourceURL` is not counted |
+| Entry file that sends data | A file the package loads (`main`, `module`, `exports`) that runs a recon command (`whoami`, `ls`, `$(...)`) and sends the output (medium) |
+| Dependencies from a URL | A `dependencies` or `optionalDependencies` entry that is an `http(s)://` tarball on a host other than the npm registry, GitHub, GitLab or Bitbucket (medium) |
 | Shell, network, dynamic code | `child_process`; `http`/`https`/`net`/`dgram`/`tls`/`http2`, `fetch`, `WebSocket`; `eval`, `new Function`, `vm` |
-| Environment | `process.env` reads, and bulk access (`JSON.stringify(process.env)`, enumeration). Serializing the environment next to network code is reported as likely exfiltration |
+| Environment | `process.env` (or `process["env"]`) reads, and bulk access (`JSON.stringify(process.env)`, enumeration, `{ ...process.env }` passed to a call). Serializing the environment next to network code is reported as likely exfiltration |
 | Files, modules, native | Writes near home-directory or system paths; computed `require()`/`import()`; `.node` addons and `binding.gyp` |
 | Obfuscation | Obfuscator identifiers (`_0x…`), `\x`-escape density, encoded blobs that are decoded and run (embedded WebAssembly and ANSI color codes are recognized and ignored) |
 | Attack indicators | Writes to `~/.claude`, `~/.cursor`, `.mcp.json` or the Claude Desktop config; running the `claude`, `gemini` or `q` CLIs (the s1ngularity pattern); GitHub token harvesting |
@@ -67,7 +70,19 @@ Capabilities and evidence are the same as for npm (`subprocess`/`os.system`,
 `socket`/`requests`/`httpx`/`aiohttp`, `os.environ` bulk access,
 `eval`/`exec`/`compile`, computed `__import__`, native `.so`/`.pyd`, AI-agent
 indicators), plus what is specific to Python: `setup.py` custom commands
-(install-time code), `.pth` files with `import` lines and a shipped
+(install-time code; risky when it downloads and runs: a shell next to network
+code, a download or send command, a recon command like `whoami`, `pip install`
+of more packages, or decoded code, in `setup.py` or in the helper modules it
+imports, three levels deep, including packages under `src/`. Running git, a
+compiler or a build tool, or `exec` of a local version file, is not risky),
+code that runs on import (module-level code, or a local function it calls,
+that makes a network call or runs a download or send command: medium; tests,
+scripts, examples and files outside a package do not count), a chat bot token
+or a webhook URL with its key in a file with network code (high), a file that
+downloads a program and starts it or makes it executable within 15 lines, or
+runs a response with `exec` (high, "runs code it downloads"), statements
+hidden after 150 or more spaces, and `exec` of an encoded literal through a
+renamed decoder, `.pth` files with `import` lines and a shipped
 `sitecustomize.py` or `usercustomize.py` (they run on every interpreter start,
 so installing the package is enough to run them: medium, high when the code
 they load is risky), including ones a wheel places at the site-packages root

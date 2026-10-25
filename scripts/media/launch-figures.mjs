@@ -112,37 +112,44 @@ function hero(w, h) {
   const square = w / h < 1.4;
   const px = (v) => `${Math.round(v * s)}px`;
   const tiles = [
-    ["1st", "of 6", "Malicious npm packages", `${pct(us(B.npm).r)} caught, ${us(B.npm).benign[0]} false alarms in ${us(B.npm).benign[1]}`],
-    ["1st", "of 8", "Malicious PyPI packages", `${pct(us(B.pypi).r)} caught, ${pct(us(B.pypi).fa)} false alarms`],
-    ["1st", "of 8, tied", "Injection bugs in JS libraries", `${us(B.library).command[0]} of ${us(B.library).command[1]} command injections found`],
-    ["2nd", "of 10", "Leaked secrets", `${pct(us(B.secrets).p)} of warnings real, ${pct(us(B.secrets).r)} found`],
+    ["npm", "1st", "of 6", "Malicious npm packages", `${pct(us(B.npm).r)} caught, ${us(B.npm).benign[0]} false alarms in ${us(B.npm).benign[1]}`],
+    ["pypi", "1st", "of 8", "Malicious PyPI packages", `${pct(us(B.pypi).r)} caught, ${pct(us(B.pypi).fa)} false alarms`],
+    ["library", "1st", "of 8, tied", "Injection bugs in JS libraries", `${us(B.library).command[0]} of ${us(B.library).command[1]} command injections found`],
+    ["secrets", "2nd", "of 10", "Leaked secrets", `${pct(us(B.secrets).p)} of warnings real, ${pct(us(B.secrets).r)} found`],
   ];
+  // Every ranked tool on that benchmark, best first; bars start at 0 (a negative J draws none).
+  const bars = (k) => B[k].rows.filter((r) => r.rank).sort((a, c) => c.score - a.score).map((r) => {
+    const isUs = r.kind === "penthera";
+    return `<div class="bar${isUs ? " us" : ""}"><span>${esc(isUs ? "Penthera" : name(r))}</span><i><b style="width:${Math.max(0, r.score) * 100}%"></b></i><span>${f2(r.score)}</span></div>`;
+  }).join("");
   const css = `
-  body { position: relative; z-index: 0; padding: ${px(square ? 72 : 64)} ${px(72)}; display: grid; grid-template-rows: auto 1fr auto auto; gap: ${px(28)}; }
-  .fade { position: absolute; inset: ${square ? "0 0 38% 0" : "0 0 0 30%"}; z-index: -1; -webkit-mask-image: ${square ? "linear-gradient(180deg, transparent 12%, #000 30%, #000 60%, transparent 100%)" : "linear-gradient(90deg, transparent 0%, #000 55%)"}; }
+  body { position: relative; z-index: 0; padding: ${px(square ? 72 : 60)} ${px(72)} ${px(square ? 110 : 96)}; display: grid; grid-template-rows: auto 1fr auto auto; gap: ${px(26)}; }
+  .fade { position: absolute; inset: ${square ? "0 0 62% 0" : "0 0 64% 34%"}; z-index: -1; -webkit-mask-image: ${square ? "linear-gradient(180deg, transparent 15%, #000 45%, transparent 100%)" : "linear-gradient(90deg, transparent 0%, #000 50%), linear-gradient(180deg, #000 55%, transparent 100%)"}; -webkit-mask-composite: source-in; }
   .field { position: absolute; inset: 0; background: ${BLUE}; -webkit-mask: url("${FIELD}") center / cover no-repeat; image-rendering: pixelated; opacity: 0.9; }
   .glow { position: absolute; inset: 0; z-index: -2; background: radial-gradient(60% 70% at 100% 0%, rgba(0,0,237,0.10), transparent 70%); }
   .top { display: flex; justify-content: space-between; align-items: flex-start; }
   .logo { height: ${px(64)}; width: auto; display: block; }
   .ver { font-family: ${MONO}; font-size: ${px(20)}; color: #fff; background: ${BLUE}; padding: ${px(8)} ${px(14)}; letter-spacing: 0.02em; }
-  .head { align-self: end; }
-  .k { margin: 0 0 ${px(14)}; font-family: ${MONO}; font-size: ${px(20)}; color: ${BLUE}; text-transform: uppercase; letter-spacing: 0.04em; }
-  h1 { margin: 0; font-size: ${px(square ? 104 : 112)}; line-height: 0.92; letter-spacing: -0.045em; font-weight: 500; max-width: ${square ? "100%" : "62%"}; }
+  h1 { align-self: end; margin: 0; font-size: ${px(square ? 104 : 96)}; line-height: 0.92; letter-spacing: -0.045em; font-weight: 500; ${square ? "" : "white-space: nowrap;"} }
   h1 em { font-style: normal; color: ${BLUE}; }
-  .tiles { display: grid; grid-template-columns: repeat(${square ? 2 : 4}, 1fr); gap: ${px(14)}; }
+  .tiles { display: grid; grid-template-columns: repeat(${square ? 2 : 4}, 1fr); gap: ${px(14)}; align-items: start; }
   .tile { padding: ${px(18)} ${px(20)} ${px(20)}; border: 1px solid ${INK}; background: linear-gradient(160deg, #ffffff 0%, #f1f1ec 100%); box-shadow: 0 1px 0 #fff inset, 0 ${px(10)} ${px(30)} rgba(0,0,40,0.08); display: grid; gap: ${px(6)}; }
   .rank { display: flex; align-items: baseline; gap: ${px(10)}; }
   .rank b { font-size: ${px(72)}; line-height: 0.9; letter-spacing: -0.05em; font-weight: 500; color: ${BLUE}; }
   .rank span, .metric { font-family: ${MONO}; font-size: ${px(15)}; color: ${GREY}; }
   .what { font-size: ${px(21)}; font-weight: 500; letter-spacing: -0.01em; }
+  .bars { display: grid; gap: ${px(4)}; margin-top: ${px(10)}; padding-top: ${px(12)}; border-top: 1px solid #d6d6cf; }
+  .bar { display: grid; grid-template-columns: ${px(square ? 150 : 132)} 1fr ${px(44)}; gap: ${px(8)}; align-items: center; font-family: ${MONO}; font-size: ${px(13)}; color: #444; }
+  .bar span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .bar span:last-child { text-align: right; }
+  .bar i { display: block; height: ${px(8)}; background: #e4e4dd; } .bar b { display: block; height: 100%; background: #3a3a3a; }
+  .bar.us { color: ${BLUE}; font-weight: 700; } .bar.us b { background: ${BLUE}; }
   .foot { display: flex; justify-content: space-between; font-family: ${MONO}; font-size: ${px(17)}; color: ${INK}; }
   .foot span:last-child { color: ${BLUE}; }`;
   const body = `<div class="glow"></div><div class="fade"><div class="field"></div></div>
-  <div class="top"><img class="logo" src="logo.svg" alt="Penthera"><span class="ver">v2.0.0 · MIT</span></div>
-  <div class="head"><p class="k">Public benchmarks · 25 free tools · sealed test half</p>
-  <h1>Ranked against the <em>free tools.</em></h1></div>
-  <div class="tiles">${tiles.map(([r, of, what, m]) => `<div class="tile"><div class="rank"><b>${r}</b><span>${of}</span></div><div class="what">${what}</div><div class="metric">${m}</div></div>`).join("")}</div>
-  <div class="foot"><span>Offline · rules decide every finding · scored once</span><span>penthera.org</span></div>`;
+  <div class="top"><img class="logo" src="logo.svg" alt="Penthera"><span class="ver">v2.0.0  MIT</span></div>
+  <h1>Ranked against the <em>free tools</em></h1>
+  <div class="tiles">${tiles.map(([k, r, of, what, m]) => `<div class="tile"><div class="rank"><b>${r}</b><span>${of}</span></div><div class="what">${what}</div><div class="metric">${m}</div><div class="bars">${bars(k)}</div></div>`).join("")}</div>
+  <div class="foot"><span>Offline, rule-based, scored once on a sealed half</span><span>penthera.org</span></div>`;
   return htmlPage(`hero-${w}x${h}`, w, h, body, css);
 }
 
@@ -229,9 +236,9 @@ function points(ax, pts, { right = Infinity } = {}) {
   return g.join("");
 }
 
-function figSecrets() {
+/** The precision-recall scatter for secrets, on the given axes. */
+function secretsPanel(ax, right) {
   const b = B.secrets;
-  const ax = axes({ x: 170, y: 30, w: 860, h: 560, xLabel: "Recall (share of real secrets found)", yLabel: "Precision (share of warnings that are real)" });
   const iso = [0.2, 0.4, 0.6, 0.8].map((f) => {
     const ps = [];
     for (let r = f / 2 + 0.002; r <= 1.0001; r += 0.004) { const p = (f * r) / (2 * r - f); if (p <= 1) ps.push(`${ax.X(r).toFixed(1)},${ax.Y(p).toFixed(1)}`); }
@@ -245,6 +252,12 @@ function figSecrets() {
   const u = us(b), o = before(b);
   const arrow = `<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="${BLUE}"/></marker></defs>
     <path d="M${ax.X(o.r) + 10},${ax.Y(o.p) - 8} Q${ax.X(0.3)},${ax.Y(0.86)} ${ax.X(u.r) - 14},${ax.Y(u.p) + 2}" fill="none" stroke="${BLUE}" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#ah)" opacity="0.7"/>`;
+  return ax.svg + iso + arrow + points(ax, pts, { right });
+}
+
+function figSecrets() {
+  const b = B.secrets, u = us(b), o = before(b);
+  const ax = axes({ x: 170, y: 30, w: 860, h: 560, xLabel: "Recall (share of real secrets found)", yLabel: "Precision (share of warnings that are real)" });
   const legend = `<g transform="translate(1080 60)">
     <circle cx="8" cy="0" r="8" fill="${BLUE}"/><text x="26" y="5" class="lab">Penthera 2.0 (rank ${u.rank} of ${b.of})</text>
     <circle cx="8" cy="30" r="7" fill="#fff" stroke="${BLUE}" stroke-width="2"/><text x="26" y="35" class="lab">Penthera 1.9, one release earlier</text>
@@ -254,7 +267,7 @@ function figSecrets() {
     <path d="M0,150h16" stroke="#9a9a9a" stroke-dasharray="5 4"/><text x="26" y="155" class="lab">Equal F1 (the ranking score)</text>
     <text x="0" y="200" class="note">n = ${b.n.toLocaleString("en")} labelled secrets in the</text><text x="0" y="218" class="note">sealed half of Samsung CredData.</text>
     <text x="0" y="250" class="note">† CredSweeper is made by the CredData</text><text x="0" y="268" class="note">authors and trained on this dataset.</text></g>`;
-  const svg = `<svg width="1480" height="660" viewBox="0 0 1480 660" xmlns="http://www.w3.org/2000/svg">${ax.svg}${iso}${arrow}${points(ax, pts, { right: 1030 })}${legend}</svg>`;
+  const svg = `<svg width="1480" height="660" viewBox="0 0 1480 660" xmlns="http://www.w3.org/2000/svg">${secretsPanel(ax, 1030)}${legend}</svg>`;
   return figure("fig-secrets", "Figure 1", svg, `Precision against recall for secret detection on Samsung CredData. Each point is one free tool run with its default settings on the same files and scored the same way. Penthera 2.0 has F1 = ${f2(u.f1)} (precision ${f2(u.p)}, recall ${f2(u.r)}), second to deepsecrets (F1 = ${f2(b.rows.find((r) => r.tool === "deepsecrets").f1)}); 1.9 scored F1 = ${f2(o.f1)}.`);
 }
 
@@ -358,6 +371,116 @@ function tableResults() {
   return htmlPage("table-results", 1600, 900, bodyHtml, css);
 }
 
+/** Figure 1 and Figure 3 side by side: the two code benchmarks. */
+function figCodePair() {
+  const ax = axes({ x: 110, y: 50, w: 540, h: 500, xLabel: "Recall (share of real secrets found)", yLabel: "Precision (share of warnings that are real)", title: "(a) Leaked secrets, Samsung CredData" });
+  const b = B.library, rows = [...b.rows].sort((a, c) => c.score - a.score);
+  const x0 = 1010, w = 430, top = 70, rh = 48;
+  const X = (v) => x0 + v * w;
+  const g = [`<text x="790" y="36" class="ptitle">(b) JS library injection bugs, SecBench.js</text>`];
+  for (let i = 0; i <= 4; i++) { const v = i / 4; g.push(`<line x1="${X(v)}" x2="${X(v)}" y1="${top - 10}" y2="${top + rows.length * rh}" stroke="#e0e0e0" stroke-dasharray="2 3"/><text x="${X(v)}" y="${top + rows.length * rh + 22}" class="tick" text-anchor="middle">${f2(v)}</text>`); }
+  g.push(`<rect x="${x0}" y="${top - 10}" width="${w}" height="${rows.length * rh + 10}" fill="none" stroke="${INK}"/>`);
+  rows.forEach((r, i) => {
+    const y = top + i * rh + rh / 2, isUs = r.kind === "penthera", ghost = r.kind === "penthera-before", c = isUs || ghost ? BLUE : "#444";
+    g.push(`<text x="${x0 - 14}" y="${y + 5}" class="${isUs ? "lab-us" : "lab"}" text-anchor="end">${esc(name(r))}${r.excluded && !ghost ? " *" : ""}</text>`);
+    g.push(`<path d="M${X(r.pooledCI[0])},${y}H${X(r.pooledCI[1])}M${X(r.pooledCI[0])},${y - 5}v10M${X(r.pooledCI[1])},${y - 5}v10" stroke="${c}" stroke-width="${isUs ? 2 : 1.2}"/>`);
+    g.push(ghost || r.excluded ? `<rect x="${X(r.score) - 6}" y="${y - 6}" width="12" height="12" fill="#fff" stroke="${c}" stroke-width="2"/>` : `<rect x="${X(r.score) - 7}" y="${y - 7}" width="14" height="14" fill="${c}"/>`);
+  });
+  g.push(`<text x="${x0 + w / 2}" y="${top + rows.length * rh + 50}" class="axl" text-anchor="middle">Share of the ${us(b).pooled[1]} bugs found in the right file</text>`);
+  const svg = `<svg width="1480" height="640" viewBox="0 0 1480 640" xmlns="http://www.w3.org/2000/svg">${secretsPanel(ax, 650)}${g.join("")}</svg>`;
+  return figure("fig-code-pair", "Figure 5", svg, `The two code benchmarks. (a) Precision against recall for secret detection; dashed curves have equal F1, the ranking score. Penthera 2.0 is second (F1 ${f2(us(B.secrets).f1)}) to deepsecrets (${f2(B.secrets.rows.find((r) => r.tool === "deepsecrets").f1)}). (b) Share of injection bugs found, sorted; Penthera 2.0 (${f2(us(b).score)}) ties ODGen within the margin. Hollow marks: Penthera 1.9 and settings that are shown but not ranked (*). Error bars are 95% Wilson intervals.`);
+}
+
+// All four benchmarks at once. Each has its own score, so the versions below
+// either put the raw scores side by side or measure Penthera against the field
+// of that benchmark. Only Penthera ran on all four, so "all-round" is Penthera's alone.
+const ALL = [["secrets", "Leaked secrets", "F1"], ["npm", "npm malware", "J"], ["pypi", "PyPI malware", "J"], ["library", "JS injection bugs", "recall"]];
+const fieldStats = (k) => { const sc = others(B[k]).map((r) => r.score).sort((a, c) => a - c); const m = sc.length; return { best: sc[m - 1], worst: sc[0], median: m % 2 ? sc[(m - 1) / 2] : (sc[m / 2 - 1] + sc[m / 2]) / 2 }; };
+const mean = (xs) => xs.reduce((a, c) => a + c, 0) / xs.length;
+
+function figAllRadar() {
+  const cx = 470, cy = 330, R = 250;
+  const ang = (i) => -Math.PI / 2 + (i * 2 * Math.PI) / ALL.length;
+  const pt = (i, v) => [cx + Math.cos(ang(i)) * R * Math.max(0, v), cy + Math.sin(ang(i)) * R * Math.max(0, v)];
+  const poly = (vals) => vals.map((v, i) => pt(i, v).map((n) => n.toFixed(1)).join(",")).join(" ");
+  const g = [];
+  for (const r of [0.25, 0.5, 0.75, 1]) g.push(`<polygon points="${poly(ALL.map(() => r))}" fill="none" stroke="${r === 1 ? INK : "#dcdcdc"}" stroke-width="${r === 1 ? 1 : 1}" ${r === 1 ? "" : 'stroke-dasharray="2 3"'}/><text x="${cx + 6}" y="${cy - R * r + 14}" class="tick" style="font-size:12px">${f2(r)}</text>`);
+  ALL.forEach(([k, label, unit], i) => {
+    const [x, y] = pt(i, 1.0);
+    g.push(`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#cfcfcf"/>`);
+    const [lx, ly] = pt(i, 1.13);
+    const anchor = Math.abs(Math.cos(ang(i))) < 0.1 ? "middle" : Math.cos(ang(i)) > 0 ? "start" : "end";
+    g.push(`<text x="${lx}" y="${ly + (i === 2 ? 16 : 0)}" class="ptitle" text-anchor="${anchor}">${label}</text><text x="${lx}" y="${ly + (i === 2 ? 36 : 20)}" class="note" text-anchor="${anchor}">${unit} · Penthera ${f2(us(B[k]).score)}, rank ${us(B[k]).rank} of ${B[k].of}</text>`);
+  });
+  const st = ALL.map(([k]) => fieldStats(k));
+  g.push(`<polygon points="${poly(st.map((x) => x.median))}" fill="rgba(80,80,80,0.12)" stroke="#777" stroke-width="1.5"/>`);
+  g.push(`<polygon points="${poly(st.map((x) => x.best))}" fill="none" stroke="#333" stroke-width="1.5" stroke-dasharray="6 4"/>`);
+  g.push(`<polygon points="${poly(ALL.map(([k]) => before(B[k]).score))}" fill="none" stroke="${BLUE}" stroke-width="2" stroke-dasharray="3 3"/>`);
+  g.push(`<polygon points="${poly(ALL.map(([k]) => us(B[k]).score))}" fill="rgba(0,0,237,0.14)" stroke="${BLUE}" stroke-width="2.5"/>`);
+  ALL.forEach(([k], i) => { const [x, y] = pt(i, us(B[k]).score); g.push(`<circle cx="${x}" cy="${y}" r="6" fill="${BLUE}" stroke="#fff" stroke-width="1.5"/>`); });
+  const legend = `<g transform="translate(940 170)">
+    <rect x="0" y="-9" width="26" height="16" fill="rgba(0,0,237,0.14)" stroke="${BLUE}" stroke-width="2.5"/><text x="38" y="5" class="lab">Penthera 2.0</text>
+    <path d="M0,34h26" stroke="${BLUE}" stroke-width="2" stroke-dasharray="3 3"/><text x="38" y="39" class="lab">Penthera 1.9</text>
+    <path d="M0,68h26" stroke="#333" stroke-width="1.5" stroke-dasharray="6 4"/><text x="38" y="73" class="lab">Best other free tool on each benchmark</text><text x="38" y="91" class="note">(a different tool on each axis)</text>
+    <rect x="0" y="113" width="26" height="16" fill="rgba(80,80,80,0.12)" stroke="#777" stroke-width="1.5"/><text x="38" y="126" class="lab">Median of the other free tools</text>
+    <text x="0" y="180" class="note">Raw ranking scores, 0 at the centre.</text><text x="0" y="198" class="note">Youden's J below 0 is drawn at 0.</text></g>`;
+  const svg = `<svg width="1440" height="660" viewBox="0 0 1440 660" xmlns="http://www.w3.org/2000/svg">${g.join("")}${legend}</svg>`;
+  return figure("fig-all-radar", "Figure 6", svg, `All four benchmarks on one chart. Each axis is one benchmark's ranking score on its sealed half. The blue shape is Penthera 2.0; it lies outside the median of the other free tools everywhere and outside the best other tool on three of the four axes, though on JS injection bugs only within the margin of ODGen. The exception is secrets, where deepsecrets scores ${f2(fieldStats("secrets").best)} against ${f2(us(B.secrets).score)}.`);
+}
+
+function figAllMargin() {
+  const rows = ALL.map(([k, label, unit]) => { const f = fieldStats(k), u = us(B[k]).score; return { label, unit, k, med: u - f.median, best: u - f.best }; });
+  rows.push({ label: "All four, averaged", unit: "", all: true, med: mean(rows.map((r) => r.med)), best: mean(rows.map((r) => r.best)) });
+  const x0 = 430, w = 920, d = [-0.2, 0.9], top = 50, rh = 100;
+  const X = (v) => x0 + ((v - d[0]) / (d[1] - d[0])) * w;
+  const g = [];
+  for (let v = -0.2; v <= 0.9001; v += 0.1) g.push(`<line x1="${X(v)}" x2="${X(v)}" y1="${top - 10}" y2="${top + rows.length * rh}" stroke="${Math.abs(v) < 1e-9 ? INK : "#e3e3e3"}" ${Math.abs(v) < 1e-9 ? "" : 'stroke-dasharray="2 3"'}/><text x="${X(v)}" y="${top + rows.length * rh + 22}" class="tick" text-anchor="middle">${v > 1e-9 ? "+" : ""}${f2(v)}</text>`);
+  rows.forEach((r, i) => {
+    const y = top + i * rh;
+    if (r.all) g.push(`<line x1="40" x2="${x0 + w}" y1="${y - 6}" y2="${y - 6}" stroke="${INK}" stroke-width="1.5"/>`);
+    g.push(`<text x="40" y="${y + 40}" class="ptitle">${r.label}</text>${r.unit ? `<text x="40" y="${y + 62}" class="note" style="font-size:15px">${r.unit} · rank ${us(B[r.k]).rank} of ${B[r.k].of}</text>` : `<text x="40" y="${y + 62}" class="note" style="font-size:15px">mean of the four margins</text>`}`);
+    const bar = (v, yy, fill, lab) => { const a = X(Math.min(0, v)), b = X(Math.max(0, v)); return `<rect x="${a}" y="${yy}" width="${Math.max(1, b - a)}" height="26" fill="${fill}"/><text x="${v >= 0 ? b + 8 : a - 8}" y="${yy + 19}" class="${r.all ? "lab-us" : "lab"}" text-anchor="${v >= 0 ? "start" : "end"}">${v >= 0 ? "+" : "−"}${f2(Math.abs(v))} ${lab}</text>`; };
+    g.push(bar(r.med, y + 14, "rgba(0,0,237,0.35)", "over the median"));
+    g.push(bar(r.best, y + 46, r.best >= 0 ? BLUE : "#b0b0b0", r.best >= 0 ? "over the best other tool" : "behind the best other tool"));
+  });
+  g.push(`<text x="${x0 + w / 2}" y="${top + rows.length * rh + 50}" class="axl" text-anchor="middle">Penthera 2.0's score minus the other free tools' score, on each benchmark's own scale</text>`);
+  const svg = `<svg width="1440" height="${top + rows.length * rh + 64}" viewBox="0 0 1440 ${top + rows.length * rh + 64}" xmlns="http://www.w3.org/2000/svg">${g.join("")}</svg>`;
+  const all = rows[rows.length - 1];
+  return figure("fig-all-margin", "Figure 7", svg, `How far ahead, per benchmark and overall. Light bars: Penthera 2.0 minus the median of the other free tools. Dark bars: minus the best other tool. Averaged over the four benchmarks, Penthera is ${f2(all.med)} above the median and ${f2(all.best)} above the best, a small lead: it is behind deepsecrets on secrets, and its SecBench.js lead over ODGen is within the margin.`);
+}
+
+function figAllScale() {
+  // 0 = the weakest ranked tool on that benchmark, 1 = the strongest (Penthera included).
+  const norm = (k, v) => { const sc = B[k].rows.filter((r) => r.rank).map((r) => r.score); const lo = Math.min(...sc), hi = Math.max(...sc); return Math.min(1, Math.max(0, (v - lo) / (hi - lo))); };
+  const x0 = 430, w = 900, top = 50, rh = 92;
+  const X = (v) => x0 + v * w;
+  const rows = ALL.map(([k, label, unit]) => ({ k, label, unit }));
+  const g = [];
+  for (let i = 0; i <= 4; i++) { const v = i / 4; g.push(`<line x1="${X(v)}" x2="${X(v)}" y1="${top - 10}" y2="${top + (rows.length + 1) * rh}" stroke="#e3e3e3" stroke-dasharray="2 3"/><text x="${X(v)}" y="${top + (rows.length + 1) * rh + 22}" class="tick" text-anchor="middle">${f2(v)}</text>`); }
+  const nu = [], nb = [];
+  rows.forEach((r, i) => {
+    const y = top + i * rh + rh / 2;
+    g.push(`<text x="40" y="${y - 2}" class="ptitle">${r.label}</text><text x="40" y="${y + 20}" class="note" style="font-size:15px">${r.unit} · rank ${us(B[r.k]).rank} of ${B[r.k].of}</text>`);
+    g.push(`<line x1="${X(0)}" x2="${X(1)}" y1="${y}" y2="${y}" stroke="#d6d6d6"/>`);
+    for (const o of others(B[r.k])) g.push(`<circle cx="${X(norm(r.k, o.score))}" cy="${y}" r="6" fill="#555" opacity="0.75"/>`);
+    const vb = norm(r.k, before(B[r.k]).score), vu = norm(r.k, us(B[r.k]).score);
+    nb.push(vb); nu.push(vu);
+    g.push(`<line x1="${X(vb) + 8}" x2="${X(vu) - 12}" y1="${y}" y2="${y}" stroke="${BLUE}" stroke-width="1.5" stroke-dasharray="4 3"/><circle cx="${X(vb)}" cy="${y}" r="7" fill="#fff" stroke="${BLUE}" stroke-width="2"/><circle cx="${X(vu)}" cy="${y}" r="10" fill="${BLUE}" stroke="#fff" stroke-width="1.5"/>`);
+  });
+  const ya = top + rows.length * rh + rh / 2;
+  g.push(`<line x1="40" x2="${X(1)}" y1="${ya - rh / 2 + 4}" y2="${ya - rh / 2 + 4}" stroke="${INK}" stroke-width="1.5"/>`);
+  g.push(`<text x="40" y="${ya - 2}" class="ptitle">All four, averaged</text><text x="40" y="${ya + 20}" class="note" style="font-size:15px">Penthera only: no other tool ran on all four</text>`);
+  g.push(`<line x1="${X(0)}" x2="${X(1)}" y1="${ya}" y2="${ya}" stroke="#d6d6d6"/>`);
+  const mu = mean(nu), mb = mean(nb);
+  g.push(`<line x1="${X(mb) + 9}" x2="${X(mu) - 14}" y1="${ya}" y2="${ya}" stroke="${BLUE}" stroke-width="2"/><circle cx="${X(mb)}" cy="${ya}" r="8" fill="#fff" stroke="${BLUE}" stroke-width="2"/><circle cx="${X(mu)}" cy="${ya}" r="12" fill="${BLUE}" stroke="#fff" stroke-width="1.5"/>`);
+  g.push(`<text x="${X(mb)}" y="${ya + 32}" class="lab" text-anchor="middle" fill="${BLUE}">1.9: ${f2(mb)}</text><text x="${X(mu)}" y="${ya + 34}" class="lab-us" text-anchor="middle">2.0: ${f2(mu)}</text>`);
+  g.push(`<text x="${X(0)}" y="${top + (rows.length + 1) * rh + 48}" class="note">weakest ranked free tool</text><text x="${X(1)}" y="${top + (rows.length + 1) * rh + 48}" class="note" text-anchor="end">strongest</text>`);
+  g.push(`<g transform="translate(${X(0)} 22)"><circle cx="6" cy="0" r="6" fill="#555" opacity="0.75"/><text x="18" y="5" class="lab">another free tool</text><circle cx="168" cy="0" r="7" fill="#fff" stroke="${BLUE}" stroke-width="2"/><text x="182" y="5" class="lab">Penthera 1.9</text><circle cx="300" cy="0" r="9" fill="${BLUE}"/><text x="316" y="5" class="lab">Penthera 2.0</text></g>`);
+  const H = top + (rows.length + 1) * rh + 60;
+  const svg = `<svg width="1400" height="${H}" viewBox="0 0 1400 ${H}" xmlns="http://www.w3.org/2000/svg">${g.join("")}</svg>`;
+  return figure("fig-all-scale", "Figure 8", svg, `Every benchmark on one scale: each score is placed between the weakest (0) and the strongest (1) ranked tool on that benchmark. Penthera 2.0 is at the top on three benchmarks and second on secrets. Averaged over all four, it sits at ${f2(mu)} of the way from the weakest free tool to the strongest, up from ${f2(mb)} for 1.9.`);
+}
+
 // ── 3. The product, light theme: the real CLI, dashboard and site ──
 function ansiToHtml(s) {
   const map = { 1: "font-weight:700", 2: "opacity:.55", 31: `color:#c4161c`, 33: "color:#946200", 36: `color:${BLUE}`, 37: "color:#fff", 41: "background:#c4161c" };
@@ -437,6 +560,10 @@ try {
   await br.shot(figMalware(), join(out, "figures", "figure-2-malware.png"), { w: 1600, h: 900 });
   await br.shot(figLibrary(), join(out, "figures", "figure-3-js-injection.png"), { w: 1600, h: 900 });
   await br.shot(figBeforeAfter(), join(out, "figures", "figure-4-before-after.png"), { w: 1600, h: 900 });
+  await br.shot(figCodePair(), join(out, "figures", "figure-5-secrets-and-js-injection.png"), { w: 1600, h: 900 });
+  await br.shot(figAllRadar(), join(out, "figures", "figure-6-all-radar.png"), { w: 1600, h: 900 });
+  await br.shot(figAllMargin(), join(out, "figures", "figure-7-all-margin.png"), { w: 1600, h: 900 });
+  await br.shot(figAllScale(), join(out, "figures", "figure-8-all-scale.png"), { w: 1600, h: 900 });
   await br.shot(terminalShot(), join(out, "product", "cli-scan.png"), { w: 1600, h: 900 });
 
   const site = await siteServer();

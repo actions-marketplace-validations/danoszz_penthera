@@ -12,6 +12,7 @@ import { formatDepsMarkdown } from "../../lib/deps/report.js";
 import { REASONS } from "../../lib/coverage.js";
 import { mdInline } from "./md-escape.js";
 import { footerLines } from "./footer.js";
+import { giantsMarkdown, foundByText } from "./giants.js";
 
 const SEV_ORDER = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 const SEV_TAG = {
@@ -154,7 +155,7 @@ export function formatMarkdownReport(result, opts = {}) {
       lines.push("|---------|-----|-----------|--------|");
 
       for (const f of group) {
-        lines.push(`| **${mdEscape(f.title)}**${f.alsoProposedBy?.length ? " (also proposed by AI)" : ""} | ${f.url ? `[link](${f.url})` : "-"} | ${f.confidence || "-"} | ${mdEscape(f.source || "-")} |`);
+        lines.push(`| **${mdEscape(f.title)}**${f.alsoProposedBy?.length ? " (also proposed by AI)" : ""} | ${f.url ? `[link](${f.url})` : "-"} | ${f.confidence || "-"} | ${mdEscape(f.source || "-")}${foundByText(f) ? ` (${mdEscape(foundByText(f))})` : ""} |`);
       }
       lines.push("");
 
@@ -202,6 +203,7 @@ export function formatMarkdownReport(result, opts = {}) {
   }
 
   if (result.coverage) lines.push(...coverageMarkdown(result.coverage));
+  if (result.giants) lines.push(...giantsMarkdown(result.giants));
   if (result.ai) lines.push(...aiMarkdown(result.ai));
 
   if (result.egress) {

@@ -59,7 +59,7 @@ const BENCH_MAX_DROP = 0.02;
 // put it at ~853 KB packed / ~2,304 KB unpacked; was 875_000 / 2_350_000.
 // Raised for --giants (lib/giants/, src/cli/giants.js, src/report/giants.js:
 // ~124 KB unpacked, ~36 KB packed, 17 files, no dependencies; no tool or
-// fixture ships), needs the maintainer's OK: it put the package at ~898 KB
+// fixture ships), with the maintainer's OK (2026-10-26): it put the package at ~898 KB
 // packed / ~2,435 KB unpacked / 253 files; was 900_000 / 2_400_000 / 260.
 const PACK_BUDGET = { packedBytes: 950_000, unpackedBytes: 2_550_000, files: 280 };
 

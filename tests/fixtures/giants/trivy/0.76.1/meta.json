@@ -1,0 +1,11 @@
+{
+  "tool": "trivy",
+  "version": "0.76.1",
+  "command": "trivy fs --skip-db-update --skip-check-update --skip-version-check --disable-telemetry --scanners vuln,misconfig --format json --output <tmp>/trivy.json --quiet <root>",
+  "exitCode": 0,
+  "network": "denied (sandbox-exec)",
+  "root": "/private/tmp/penthera-giants-target",
+  "url": null,
+  "findings": 32,
+  "recordedOn": "2026-10-26"
+}

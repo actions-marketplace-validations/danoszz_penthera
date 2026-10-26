@@ -1,0 +1,11 @@
+{
+  "tool": "trufflehog",
+  "version": "3.99.3",
+  "command": "trufflehog filesystem <root> --json --no-update --no-verification",
+  "exitCode": 0,
+  "network": "denied (sandbox-exec)",
+  "root": "/private/tmp/penthera-giants-target",
+  "url": null,
+  "findings": 1,
+  "recordedOn": "2026-10-26"
+}

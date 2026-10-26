@@ -1,0 +1,11 @@
+{
+  "tool": "osv-scanner",
+  "version": "2.6.0",
+  "command": "osv-scanner scan source --format json --recursive --offline <root>",
+  "exitCode": 1,
+  "network": "denied (sandbox-exec)",
+  "root": "/private/tmp/penthera-giants-target",
+  "url": null,
+  "findings": 17,
+  "recordedOn": "2026-10-26"
+}

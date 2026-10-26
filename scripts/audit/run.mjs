@@ -19,7 +19,7 @@ import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, relative, resolve } from "node:path";
+import { delimiter, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 import { startMockServer } from "../../tests/fixtures/mock-server.js";
@@ -367,7 +367,7 @@ async function gateSmoke() {
   const cases = [];
   // expect: { codes, test?, input?, cwd? }
   const check = async (label, cmd, args, expect) => {
-    const opts = { env, input: expect.input ?? null, cwd: expect.cwd ?? ROOT };
+    const opts = { env: expect.env ?? env, input: expect.input ?? null, cwd: expect.cwd ?? ROOT };
     const r = await (cmd === "penthera" ? penthera(args, opts) : run(cmd, args, opts));
     let ok = expect.codes.includes(r.code);
     let why = ok ? "" : `exit ${r.code}, expected ${expect.codes.join("/")}`;
@@ -388,7 +388,7 @@ async function gateSmoke() {
     // --help and --version
     await check("penthera --version", "penthera", ["--version"], { codes: [0], test: (r) => r.stdout.includes(PKG.version) || "wrong version" });
     await check("penthera --help", "penthera", ["--help"], { codes: [0] });
-    const subcommands = ["init", "agents", "deps", "install", "memory", "fix", "evidence", "agent"];
+    const subcommands = ["init", "agents", "deps", "install", "memory", "fix", "evidence", "agent", "giants"];
     if (hookPresent()) subcommands.push("hook");
     for (const sub of subcommands) await check(`penthera ${sub} --help`, "penthera", [sub, "--help"], { codes: [0] });
     await check("penthera-scan --help", process.execPath, [join(ROOT, "bin/scan.js"), "--help"], { codes: [0] });
@@ -457,6 +457,20 @@ async function gateSmoke() {
     // init: the setup wizard's plan on the throwaway repo, writing nothing
     await check("penthera init --yes --dry-run", "penthera", ["init", "--yes", "--dry-run"],
       { codes: [0], cwd: loopRepo, test: (r) => (r.stdout.includes("Would run") && !existsSync(join(loopRepo, "reports"))) || "no plan, or reports were written" });
+
+    // --giants with no other tool on PATH: every area is "not covered", never
+    // clean, and the scan still exits 0 (spec-giants.md, "Testing").
+    const quiet = join(dir, "giants-none");
+    mkdirSync(quiet);
+    writeFileSync(join(quiet, "README.md"), "# nothing to find\n");
+    const bare = [dirname(process.execPath), "/usr/bin", "/bin"].join(delimiter);
+    await check("penthera --repo <empty> --giants (no tools installed)", "penthera", ["--repo", quiet, "--giants", "--json"],
+      { codes: [0], env: { ...env, PATH: bare }, test: (r) => {
+        const g = json(r).giants;
+        if (!g?.areas?.length) return "no giants section";
+        const covered = g.areas.filter((a) => a.status !== "not covered").map((a) => a.id);
+        return covered.length === 0 || `areas reported as covered: ${covered.join(", ")}`;
+      } });
 
     // memory: the loop above wrote to the scratch store
     await check("penthera memory show", "penthera", ["memory", "show", "--repo", loopRepo, "--json"], { codes: [0] });

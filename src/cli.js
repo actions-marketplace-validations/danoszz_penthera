@@ -813,6 +813,7 @@ export async function run() {
     process.stdout.write(custom);
   } else if (opts.quiet) {
     printFindings(merged.findings);
+    printFindings((merged.giants?.findings || []).map((f) => ({ ...f, title: `${f.title} [${f.foundBy.join(", ")}]` })));
   } else {
     printReport(merged, { verbose: opts.verbose });
   }

@@ -46,6 +46,8 @@ describe("recorded output parses into Penthera's finding shape", () => {
       const { findings, meta, version } = parse(tool.id);
       expect(findings.length).toBe(meta.findings);
       expect(findings.length).toBeGreaterThan(0);
+      // Every finding has its own id (memory, baselines and the dashboard key on it).
+      expect(new Set(findings.map((f) => f.fid)).size).toBe(findings.length);
       for (const f of findings) {
         expect(CATEGORIES).toContain(f.category);
         expect(SEVERITIES).toContain(f.severity);
@@ -76,7 +78,7 @@ describe("what each tool found on the fixture target", () => {
   it("trufflehog: unverified AWS key is high; nothing of the secret is in the finding", () => {
     const { findings } = parse("trufflehog", { unmask: true });
     expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatchObject({ file: "config.js", line: 6, severity: "high", title: "AWS secret in config.js" });
+    expect(findings[0]).toMatchObject({ file: "config.js", line: 6, severity: "high", title: "AWS secret in config.js:6" });
     const text = JSON.stringify({ ...findings[0], key: null });
     for (const s of Object.values(TARGET_SECRETS)) expect(text).not.toContain(s);
   });

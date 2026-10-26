@@ -48,11 +48,11 @@ are applying to NLnet to fund.
 
 | Item | Question it answers | State |
 |---|---|---|
-| E13: the benchmark list and its inclusion rules, written before any run | "Did you only test where you win?" | Planned. In scope: secrets, malicious packages, JS/TS and Python code, passive site checks, MCP and agent config. Java and C benchmarks (OWASP Benchmark, Juliet) are listed as "not supported" |
+| E13: the benchmark list and its inclusion rules, written before any run | "Did you only test where you win?" | Planned. In scope: secrets, malicious packages, JS/TS and Python code, passive site checks, MCP and agent config. Java and C benchmarks (OWASP Benchmark, Juliet) are listed as "not supported". The field includes every free tool in scope that runs offline, newer ones too (for example StingWard), whatever their result |
 | New benchmarks: SecretBench, Backstabber's Knife Collection, the OpenSSF CVE Benchmark, mcp-vulnbench, MCPTox | "How does it do on data other people chose?" | Planned, same protocol as E11b: sealed half, split by repository, one locked run, leakage audit |
 | Fresh holdouts: malware samples published after each freeze date | "Does it catch threats nobody tuned on?" | Planned |
 | E12: detection rules learned from large datasets, shipped as readable signed rules | "Does it keep getting better on new threats?" | Planned; tested on a time split (learn from the past, measure on the future) |
-| Python code rules | "Does it find bugs in my Python app?" | Planned |
+| Python code rules | "Does it find bugs in my Python app?" | Planned, moved up: parse Python with its syntax tree rather than patterns, measured on a public Python benchmark in E13 |
 
 ### Measure on real code (research track)
 
@@ -107,6 +107,7 @@ How it works, and what it won't do:
 | Framework presets | "Why is my first scan empty?" Routes, auth flows and headers for Next.js, SvelteKit, Remix, Nuxt and Astro |
 | Authenticated preview scans | "Can it test pages behind a login?" With test accounts from your own seed data, never real credentials |
 | AI app builder integrations | "I built this in Base44, Lovable or Bolt. Is it safe?" Today: the [setup per builder](docs/integrations.md#app-builders-lovable-bolt-base44-replit-v0) (live check plus GitHub sync). Next: checks for what these tools build |
+| Supabase tables without row-level security | "Can anyone read my users' data?" Tables created in migrations or SQL without `enable row level security`, and policies that allow everyone, found in the repo; the public anon key in the frontend is expected, an open table is not |
 
 ### After you ship
 
@@ -114,6 +115,7 @@ How it works, and what it won't do:
 |---|---|
 | `penthera watch` | "Did anything change in production?" Scheduled, non-destructive checks for certificate expiry, header and CSP regressions, new endpoints, keys in bundles |
 | New-CVE alerts for your SBOM | "Is something I shipped now known to be vulnerable?" As a reviewed rule-pack update or an opt-in advisory lookup |
+| Known vulnerabilities ranked by real-world exploitation | "Which of these do I fix first?" CISA's Known Exploited Vulnerabilities list and FIRST's EPSS scores, shipped as data in the signed rule packs so ranking stays offline. Applies to Penthera's runtime advisories and to osv-scanner and trivy findings under `--giants` |
 | Alerts where you already look | A GitHub issue, the job summary or a local notification. Nothing leaves your infrastructure |
 | Dashboard history | Posture over time in `penthera ui`, fed by `watch` runs |
 

@@ -55,3 +55,13 @@ describe("dashboard data", () => {
     expect(row.foundBy).toEqual(["trivy"]);
   });
 });
+
+describe("Markdown report", () => {
+  it("a backslash in a tool's command line cannot unescape the table's pipe", async () => {
+    const { giantsMarkdown } = await import("../src/report/giants.js");
+    const g = { online: false, merge: "penthera-first", sandbox: null, areas: [], findings: [], tools: [{ id: "x", status: "ran", findings: 0, command: "a \\| b | c" }] };
+    const row = giantsMarkdown(g).find((l) => l.startsWith("| x"));
+    expect(row).toContain("`a \\\\\\| b \\| c`");
+    expect(row.split(/(?<!\\)\|/).length).toBe(9);
+  });
+});

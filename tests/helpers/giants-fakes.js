@@ -29,9 +29,11 @@ export function fixture(tool, version = null) {
 export function replay(text, meta, root, { unmask = false } = {}) {
   let out = String(text);
   if (meta.root) {
-    out = out.split(meta.root).join(root);
+    // One pass, longest form first: on Linux the new root (/tmp/penthera-giants-target-…)
+    // starts with the recorded root's bare form, so a second pass would rewrite it again.
     const bare = meta.root.replace(/^\/private\//, "/");
-    out = out.split(bare).join(root);
+    const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    out = out.replace(new RegExp(`${esc(meta.root)}|${esc(bare)}`, "g"), root);
   }
   if (unmask) for (const s of Object.values(TARGET_SECRETS)) out = out.split(maskMatch(s)).join(s);
   return out;

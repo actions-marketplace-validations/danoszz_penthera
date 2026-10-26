@@ -63,8 +63,11 @@ export function giantsTerminalLines(g, c, { pad = (s, n) => (s + " ".repeat(n)).
   return L;
 }
 
-/** A code span in a table cell: no backticks, pipes escaped, one line. */
-const codeCell = (s) => `\`${String(s).replace(/[\u0000-\u001f\u007f]/g, " ").replace(/`/g, "'").replace(/\|/g, "\\|")}\``;
+/**
+ * A code span in a table cell: one line, no backticks, and backslashes then
+ * pipes escaped (as mdCell does), so text from a tool cannot end the cell.
+ */
+const codeCell = (s) => `\`${String(s).replace(/[\u0000-\u001f\u007f]/g, " ").replace(/`/g, "'").replace(/\\/g, "\\\\").replace(/\|/g, "\\|")}\``;
 
 const strip = (s) => String(s ?? "").replace(/[\u0000-\u001f\u007f-\u009f]/g, " ");
 

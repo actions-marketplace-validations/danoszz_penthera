@@ -1,0 +1,11 @@
+{
+  "tool": "nuclei",
+  "version": "3.11.1",
+  "command": "nuclei -u http://127.0.0.1:64469 -t /private/tmp/penthera-giants-nuclei-templates -duc -ni -jsonl -silent -nc -or -ot -o <tmp>/nuclei.jsonl -etags intrusive,dos,fuzz",
+  "exitCode": 0,
+  "network": "this machine only (sandbox-exec)",
+  "root": null,
+  "url": "http://127.0.0.1:64469",
+  "findings": 2,
+  "recordedOn": "2026-10-26"
+}

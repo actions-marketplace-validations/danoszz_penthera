@@ -1,0 +1,11 @@
+{
+  "tool": "checkov",
+  "version": "3.3.30",
+  "command": "checkov -d <root> --output json --output-file-path <tmp>/checkov --skip-download --quiet",
+  "exitCode": 1,
+  "network": "denied (sandbox-exec)",
+  "root": "/private/tmp/penthera-giants-target",
+  "url": null,
+  "findings": 13,
+  "recordedOn": "2026-10-26"
+}

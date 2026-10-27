@@ -1,0 +1,19 @@
+id: penthera-fixture-missing-nosniff
+
+info:
+  name: X-Content-Type-Options header missing
+  author: penthera
+  severity: info
+  description: The response does not set X-Content-Type-Options nosniff.
+  classification:
+    cwe-id: CWE-693
+  tags: headers,fixture
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/"
+    matchers:
+      - type: dsl
+        dsl:
+          - "status_code == 200 && !contains(tolower(header), 'x-content-type-options')"

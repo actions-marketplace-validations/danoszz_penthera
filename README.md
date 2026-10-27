@@ -373,6 +373,25 @@ the other tool goes further and how to run the two together.
 
 All comparisons, including Cloudflare's security-audit skill: [docs/compare/](docs/compare/README.md).
 
+### Run the free tools you already have: `--giants`
+
+`--giants` (2.1 release candidate) runs the free scanners installed on your
+machine after Penthera's own scan: gitleaks, TruffleHog, Semgrep with your
+local rules, osv-scanner, Trivy and Checkov for a repository, nuclei and the
+ZAP baseline for a URL. Their findings go into the same report and SARIF, each
+labelled with the tool, its version and its rule. Nothing is downloaded or
+uploaded, and an area with no tool installed is reported as "not covered".
+
+```bash
+penthera giants              # which tools you have
+penthera --repo . --giants   # Penthera, then each installed tool
+```
+
+This runs the tools you have and merges their findings. Whether the
+combination finds more is measured by experiment E14 and is not claimed until
+it is published. Details, safety rules and the policy key:
+[docs/commands/giants.md](docs/commands/giants.md).
+
 ## Start here
 
 | You want to know | Read |

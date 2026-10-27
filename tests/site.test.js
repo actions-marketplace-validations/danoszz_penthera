@@ -447,8 +447,21 @@ describe("site story", () => {
     const get = html().slice(html().indexOf('id="get"'), html().indexOf('id="faq"'));
     const version = siteVersion(JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).version);
     for (const c of ["npx penthera", "npx skills add danoszz/penthera", `claude mcp add penthera -- npx -y penthera@${version} mcp`]) {
-      expect(get).toContain(`<button class="cmd" type="button" data-copy="${c}">`);
+      expect(get).toContain(`<button class="cmd" type="button" data-copy="${c}"`);
     }
+  });
+
+  it("counts checks and installs without the URL, host or score", () => {
+    // docs/privacy.md: an event is a name and one fixed label, nothing typed.
+    const ui = readFileSync(join(ROOT, "site", "check", "ui.js"), "utf8");
+    const calls = [...ui.matchAll(/\bcount\(([^;]*)\);/g)].map((m) => m[1]);
+    expect(calls.length).toBeGreaterThan(3);
+    for (const c of calls) {
+      expect(c, c).not.toMatch(/\b(url|host|report|score|text|cmd|input|value)\b(?!["`])/);
+    }
+    const labels = [...html().matchAll(/data-track="([^"]+)"/g)].map((m) => m[1]);
+    expect(labels.length).toBeGreaterThanOrEqual(8);
+    for (const l of labels) expect(l).toMatch(/^[a-z-]+$/);
   });
 
   it("links every entry point for agents, and each one exists", () => {

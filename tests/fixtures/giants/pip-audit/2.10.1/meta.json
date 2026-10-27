@@ -1,0 +1,11 @@
+{
+  "tool": "pip-audit",
+  "version": "2.10.1",
+  "command": "pip-audit -r <root>/requirements.txt --format json --progress-spinner off --no-deps --disable-pip --desc on --aliases on",
+  "exitCode": 1,
+  "network": "online",
+  "root": "/private/tmp/penthera-giants-target",
+  "url": null,
+  "findings": 9,
+  "recordedOn": "2026-10-26"
+}

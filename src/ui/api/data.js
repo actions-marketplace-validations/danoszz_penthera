@@ -19,7 +19,7 @@ import { createGit } from "../../agent/git.js";
 import { formatAudienceReport, AUDIENCES } from "../../report/audience.js";
 import {
   classify, buildOverview, buildFindings, locateFinding, findingDetail, buildDeps, buildAi, memoryStats, loopSummary,
-  explainFinding, buildScanHistory, latestScan, slug,
+  explainFinding, buildScanHistory, latestScan, slug, buildGiantsCoverage,
 } from "./summarize.js";
 
 const MAX_REPORT_BYTES = 25 * 1024 * 1024;
@@ -220,6 +220,10 @@ export function createDataSource({ projects, reportsDir, home, memoryRoot, setti
 
     findings() {
       return buildFindings(scan().scans);
+    },
+
+    giants() {
+      return buildGiantsCoverage(scan().scans);
     },
 
     async finding(id, project) {

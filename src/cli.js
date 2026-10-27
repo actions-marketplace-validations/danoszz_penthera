@@ -73,6 +73,7 @@ const HELP = `
     $ penthera agent --loop          Scan, fix, verify, learn; local commits only (--help)
     $ penthera ui [--open] [--demo]  Local dashboard on 127.0.0.1 (penthera ui --help)
     $ penthera mcp                   MCP server on stdio for your agent (penthera mcp --help)
+    $ penthera giants                Which free scanners --giants can run here (penthera giants --help)
 
   ${dim("Scan modes")}
         --profile <name>        quick | standard | deep (default: standard)
@@ -83,7 +84,8 @@ const HELP = `
         --deep                  + Injection probes (SQLi, SSTI, SSRF, XSS, CMDi); asks first
                                + login rate-limit burst and SQL error check on /api/login
         --fuzz                  + Property-based API fuzzing
-        --nuclei <path>         + Community Nuclei YAML templates (alias for --templates)
+        --nuclei <path>         + Community Nuclei YAML templates (alias for --templates;
+                               with --giants, also the folder the nuclei tool runs)
         --templates <paths>     Comma-separated dirs of Nuclei-compatible YAML templates
         --rules <dir>           + Signed rule pack (repeatable; scans, agents, deps)
         --rules-signers <file>  Also trust packs signed by these keys (allowed_signers)
@@ -94,6 +96,15 @@ const HELP = `
         --offline               Contact only the scan target: no recon sources, no
                                Retire.js download (uses the vendored snapshot),
                                no DNS lookups for SPF/DMARC
+
+  ${dim("Other tools")}  ${dim("(--giants; runs the free scanners you have installed; docs/commands/giants.md)")}
+        --giants                Also run gitleaks, TruffleHog, Semgrep, osv-scanner, Trivy, Checkov
+                               (repo) or nuclei and the ZAP baseline (URL), if installed
+        --with <list>           Run only these tools, e.g. --with gitleaks,trivy (implies --giants)
+        --without <list>        Skip these tools
+        --giants-online         Also run tools or features that contact a service (pip-audit,
+                               TruffleHog key verification, osv-scanner via its API)
+        --giants-timeout <s>    Seconds per tool (default 300)
 
   ${dim("AI mode")}  ${dim("(with --repo; opt-in, asks every run; docs/ai-mode.md)")}
         --ai                    A model reads your code for what rules can't see; Penthera checks its findings
@@ -184,11 +195,13 @@ const HELP = `
     $ penthera agents --pin
     $ penthera deps --base origin/main
     $ penthera deps --diff ../base-checkout --pr-comment deps.md
+    $ penthera --repo . --giants
+    $ penthera --repo . --with gitleaks,trivy
 
   ${dim("Exit codes")}
     0  No critical or high findings
-    1  Critical or high findings detected
-    2  Scan failed (unreachable target, bad config)
+    1  Critical or high findings detected (other tools' too, with --giants)
+    2  Scan failed (unreachable target, bad config, a tool the policy requires did not run)
 `;
 
 function bold(s) { return `\x1b[1m${s}\x1b[0m`; }
@@ -258,6 +271,12 @@ export async function run() {
   if (process.argv[2] === "mcp") {
     const { runMcp } = await import("./cli/mcp.js");
     process.exitCode = await runMcp(process.argv.slice(3), { version: pkg.version });
+    return;
+  }
+
+  if (process.argv[2] === "giants") {
+    const { runGiantsCommand } = await import("./cli/giants.js");
+    process.exitCode = await runGiantsCommand(process.argv.slice(3));
     return;
   }
 
@@ -336,6 +355,11 @@ export async function run() {
         concurrency: { type: "string",  default: "15" },
         rate:        { type: "string" },
         "confirm-target": { type: "string" },
+        giants:      { type: "boolean", default: false },
+        with:        { type: "string" },
+        without:     { type: "string" },
+        "giants-online": { type: "boolean", default: false },
+        "giants-timeout": { type: "string" },
         verbose:     { type: "boolean", short: "v", default: false },
         quiet:       { type: "boolean", short: "q", default: false },
         help:        { type: "boolean", short: "h", default: false },
@@ -531,6 +555,15 @@ export async function run() {
     process.exit(2);
   }
 
+  let giantsOpts = null;
+  try {
+    const { giantsOptions } = await import("./cli/giants.js");
+    giantsOpts = giantsOptions(opts, { url, repo });
+  } catch (e) {
+    printError(e.message);
+    process.exit(2);
+  }
+
   let reportCtx;
   try {
     reportCtx = prepareReportOptions(opts);
@@ -685,6 +718,18 @@ export async function run() {
   }
   merged.profile = profileOpts.profile;
 
+  // --giants: the free tools installed here, after Penthera's own scan.
+  let giantsRaw = [];
+  if (giantsOpts) {
+    const { runGiantsForScan } = await import("./cli/giants.js");
+    try {
+      giantsRaw = await runGiantsForScan(merged, giantsOpts, { opts, url, repo, deep, rateLimit, onPhase: scanOpts.onPhase });
+    } catch (e) {
+      printError(`--giants: ${e.message}`);
+      process.exit(2);
+    }
+  }
+
   // Local learning store (opt-in): suppress + rank from ~/.penthera/memory, then record this scan.
   if (opts.memory && (url || repo)) {
     const { applyMemoryToScan } = await import("../lib/memory/index.js");
@@ -768,6 +813,7 @@ export async function run() {
     process.stdout.write(custom);
   } else if (opts.quiet) {
     printFindings(merged.findings);
+    printFindings((merged.giants?.findings || []).map((f) => ({ ...f, title: `${f.title} [${f.foundBy.join(", ")}]` })));
   } else {
     printReport(merged, { verbose: opts.verbose });
   }
@@ -895,7 +941,7 @@ export async function run() {
 
   if (opts.evidence) {
     try {
-      const bundle = writeEvidence(merged, opts, { version: pkg.version, template: reportCtx.template, mdOpts, sbom, argv: process.argv.slice(2) });
+      const bundle = writeEvidence(merged, opts, { version: pkg.version, template: reportCtx.template, mdOpts, sbom, argv: process.argv.slice(2), giantsRaw });
       if (!opts.quiet && !opts.json) {
         process.stderr.write(`  Evidence bundle ${bundle.manifest.artifacts.length} files${bundle.signed ? ", signed" : ""} → ${opts.evidence}/ (penthera evidence verify ${opts.evidence})\n`);
       }
@@ -917,13 +963,17 @@ export async function run() {
     process.stderr.write("\n");
   }
 
-  // Exit code: 1 if critical or high findings
+  // Exit code: 1 if critical or high findings, other tools' included unless
+  // the policy says giants.failOn: never; 2 if a tool the policy requires did not run.
+  const { giantsGate } = await import("../lib/giants/index.js");
   const hasSevere = merged.findings.some(
     (f) => f.severity === "critical" || f.severity === "high",
-  );
+  ) || giantsGate(merged);
+  if (merged.giants?.requiredNotRun?.length) printError(`The policy file requires ${merged.giants.requiredNotRun.join(", ")}, which did not run (see Coverage by area).`);
+  const code = merged.giants?.requiredNotRun?.length ? 2 : hasSevere ? 1 : 0;
   // Exit only once stdout has drained: on a pipe the write is asynchronous, and
   // exiting at once cut `--json` output off at the pipe buffer (64 KiB).
-  process.stdout.write("", () => process.exit(hasSevere ? 1 : 0));
+  process.stdout.write("", () => process.exit(code));
 }
 
 export { mergeResults };

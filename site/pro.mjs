@@ -4,7 +4,10 @@
  * left (/pro.js pins it and maps the page's vertical scroll to it). With no
  * script the panels stack vertically and everything still works.
  *
- *   hero → across the stack → three cards → price → calculator → waitlist
+ *   hero → across the stack → three cards → ranks → price → calculator → waitlist
+ *
+ * The ranks come from bench/public/published.json at build time, the same file
+ * as /benchmarks, so the page cannot drift from the published results.
  *
  * It proposes; it does not sell. The header is a canvas sketch (/pro.js): a
  * dithered ASCII swirl in brushed steel and Penthera blue that follows the
@@ -42,6 +45,82 @@ const SLIDERS = [
   { name: "rate", label: "What an hour of that time costs", min: 40, max: 200, step: 10, value: 90, unit: "$", hint: "Salary and overhead, per hour." },
 ];
 
+
+// One drawing per card, decoration only (aria-hidden), in steel and blue. They
+// illustrate; they carry no numbers, so they claim nothing.
+const STEEL_DEFS = (id) => `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="0.45" stop-color="#d3d9e0"/><stop offset="0.55" stop-color="#8f98a6"/><stop offset="1" stop-color="#e3e8ee"/></linearGradient><linearGradient id="${id}-b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a5aff"/><stop offset="0.55" stop-color="#0000ed"/><stop offset="1" stop-color="#0000b8"/></linearGradient></defs>`;
+
+const VISUALS = {
+  // 01 The agent is free: the terminal it runs in.
+  "01": `<svg class="pro-visual" viewBox="0 0 320 180" aria-hidden="true" focusable="false">${STEEL_DEFS("pv1")}
+    <rect x="0.5" y="0.5" width="319" height="179" class="pv-frame"/>
+    <rect x="0.5" y="0.5" width="319" height="24" fill="url(#pv1)" stroke="rgba(0,0,0,0.25)"/>
+    <circle cx="14" cy="12.5" r="4" fill="#fff" stroke="rgba(0,0,0,0.35)"/><circle cx="28" cy="12.5" r="4" fill="#fff" stroke="rgba(0,0,0,0.35)"/><circle cx="42" cy="12.5" r="4" fill="url(#pv1-b)"/>
+    <text x="16" y="56" class="pv-mono">$ npx penthera init --yes</text>
+    <text x="16" y="84" class="pv-mono pv-dim">checks set up in your CI</text>
+    <text x="16" y="108" class="pv-mono pv-dim">runs on your machine</text>
+    <text x="16" y="132" class="pv-mono pv-dim">nothing uploaded</text>
+    <rect x="16" y="148" width="9" height="16" fill="url(#pv1-b)" class="pv-cursor"/>
+  </svg>`,
+  // 02 Pro adds a person: weekly checks, and a few calls between them.
+  "02": `<svg class="pro-visual" viewBox="0 0 320 180" aria-hidden="true" focusable="false">${STEEL_DEFS("pv2")}
+    <line x1="8" y1="120" x2="312" y2="120" class="pv-line"/>
+    ${Array.from({ length: 12 }, (_, i) => `<rect x="${12 + i * 25}" y="108" width="18" height="24" fill="url(#pv2)" stroke="rgba(0,0,0,0.3)"/><path d="M${16 + i * 25} 120 l4 4 l7 -8" class="pv-tick"/>`).join("")}
+    ${[2, 6, 10].map((i) => `<line x1="${21 + i * 25}" y1="100" x2="${21 + i * 25}" y2="62" class="pv-line pv-dash"/><rect x="${9 + i * 25}" y="38" width="24" height="24" transform="rotate(45 ${21 + i * 25} 50)" fill="url(#pv2-b)"/>`).join("")}
+    <text x="8" y="160" class="pv-mono pv-dim">every week: checks</text>
+    <text x="8" y="22" class="pv-mono pv-dim">a few times a year: a call</text>
+  </svg>`,
+  // 03 Assessments: a closer look at one release.
+  "03": `<svg class="pro-visual" viewBox="0 0 320 180" aria-hidden="true" focusable="false">${STEEL_DEFS("pv3")}
+    <line x1="8" y1="150" x2="312" y2="150" class="pv-line"/>
+    ${[96, 82, 104, 64, 50, 38].map((h, i) => `<rect x="${20 + i * 48}" y="${150 - h}" width="30" height="${h}" fill="${i === 3 ? "url(#pv3-b)" : "url(#pv3)"}" stroke="rgba(0,0,0,0.3)"/>`).join("")}
+    <circle cx="179" cy="70" r="26" class="pv-lens"/><line x1="198" y1="89" x2="222" y2="113" class="pv-lens-h"/>
+    <text x="8" y="174" class="pv-mono pv-dim">releases</text>
+  </svg>`,
+};
+
+const ORD = (n) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
+const PROOF = [
+  ["npm", "npm malware"],
+  ["pypi", "PyPI malware"],
+  ["library", "JS injection bugs"],
+  ["secrets", "Leaked secrets"],
+];
+
+/** The ranks from bench/public/published.json: Penthera against the best other free tool. */
+function proof(pub) {
+  if (!pub?.benchmarks) return "";
+  const rows = PROOF.map(([key, label]) => {
+    const b = pub.benchmarks[key];
+    if (!b) return "";
+    const tools = b.rows.filter((r) => !r.excluded);
+    const us = tools.find((r) => r.kind === "penthera");
+    const best = tools.filter((r) => r.kind !== "penthera").sort((a, c) => c.score - a.score)[0];
+    if (!us || !best) return "";
+    // A lead under 0.03 is within the noise of these samples: call it a tie, as the results do.
+    const tie = us.rank === 1 && us.score - best.score < 0.03;
+    const pct = (v) => Math.max(2, Math.round(Math.max(0, v) * 100));
+    return `<li class="pro-proof-row">
+              <p class="pro-proof-k">${esc(label)}</p>
+              <p class="pro-proof-rank"><span>${tie ? "tied " : ""}${ORD(us.rank)}</span> of ${tools.length}</p>
+              <svg class="pro-proof-bars" viewBox="0 0 100 14" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                <rect x="0" y="0" width="${pct(us.score)}" height="6" fill="url(#pro-bar-b)"/>
+                <rect x="0" y="8" width="${pct(best.score)}" height="6" fill="url(#pro-bar-s)"/>
+              </svg>
+              <p class="pro-proof-v"><span>Penthera ${us.score.toFixed(2)}</span> <span>${esc(best.tool)} ${best.score.toFixed(2)}</span></p>
+            </li>`;
+  }).join("\n            ");
+  return `<section class="pro-panel band pro-proof" aria-labelledby="pro-proof-title">
+          <p class="label">Measured in public</p>
+          <h2 id="pro-proof-title">Ranked against the free tools.</h2>
+          <svg class="pro-defs" aria-hidden="true" focusable="false"><defs><linearGradient id="pro-bar-b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a5aff"/><stop offset="0.55" stop-color="#0000ed"/><stop offset="1" stop-color="#0000b8"/></linearGradient><linearGradient id="pro-bar-s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="0.45" stop-color="#d3d9e0"/><stop offset="0.55" stop-color="#8f98a6"/><stop offset="1" stop-color="#e3e8ee"/></linearGradient></defs></svg>
+          <ol class="pro-proof-list">
+            ${rows}
+          </ol>
+          <p class="pro-proof-note">Four public datasets other people built, on a half we sealed before we started. Penthera against the best other free tool on each; a lead under 0.03 counts as a tie. <a href="/benchmarks">Every tool, intervals and limits</a></p>
+        </section>`;
+}
+
 const MARK = `<svg class="pro-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><defs><linearGradient id="pro-steel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="0.35" stop-color="#c9cfd8"/><stop offset="0.55" stop-color="#6b7380"/><stop offset="0.8" stop-color="#e3e8ee"/><stop offset="1" stop-color="#9aa3b0"/></linearGradient><linearGradient id="pro-core" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b6bff"/><stop offset="0.55" stop-color="#0000ed"/><stop offset="1" stop-color="#0000a8"/></linearGradient></defs><path d="M16.00 0.40 L16.99 13.60 L21.94 10.06 L18.40 15.01 L31.60 16.00 L18.40 16.99 L21.94 21.94 L16.99 18.40 L16.00 31.60 L15.01 18.40 L10.06 21.94 L13.60 16.99 L0.40 16.00 L13.60 15.01 L10.06 10.06 L15.01 13.60Z" fill="url(#pro-steel)" stroke="rgba(255,255,255,0.55)" stroke-width="0.4" stroke-linejoin="miter"/><path d="M16.00 11.80 L20.20 16.00 L16.00 20.20 L11.80 16.00Z" fill="url(#pro-core)"/></svg>`;
 
 const slider = ({ name, label, min, max, step, value, unit, hint }) => `
@@ -52,7 +131,7 @@ const slider = ({ name, label, min, max, step, value, unit, hint }) => `
           </div>`;
 
 /** The page's <main> content. `version` pins the install line. */
-export function proMain({ version }) {
+export function proMain({ version, pub = null }) {
   const mail = esc(waitlistHref());
   return `
   <div class="pro-h" data-h>
@@ -77,8 +156,11 @@ export function proMain({ version }) {
         ${CARDS.map(([n, h, p]) => `<section class="pro-panel band band-invert pro-card-panel" aria-label="${esc(h)}">
           <span class="pro-num">${n}</span>
           <h2>${esc(h)}</h2>
+          <div class="pro-visual-wrap">${VISUALS[n]}</div>
           <p class="pro-big">${esc(p)}</p>
         </section>`).join("\n        ")}
+
+        ${proof(pub)}
 
         <section class="pro-panel band band-blue pro-price-panel" aria-labelledby="pro-price-title">
           <p class="label">Price, while we test</p>

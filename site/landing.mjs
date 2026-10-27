@@ -61,7 +61,7 @@ export function landingMarkdown(p, { origin, values }) {
 }
 
 /** One page as HTML, in the site's own frame (the frame /terms uses). */
-export function landingHtml(p, { origin, values, styles = "/styles.css", theme = "/theme.js", blog = false }) {
+export function landingHtml(p, { origin, values, styles = "/styles.css", theme = "/theme.js", blog = false, pub = null }) {
   const md = fill(p.body.replace(/^# .+\n/m, "").replaceAll("{{CTA}}", "\u0000CTA\u0000"), values, `site/pages/${p.slug}.md`);
   const body = renderMarkdown(md).replace(/<p>\u0000CTA\u0000<\/p>/g, ctaHtml(p));
   const url = `${origin}/${p.slug}`;
@@ -98,8 +98,7 @@ export function landingHtml(p, { origin, values, styles = "/styles.css", theme =
   ${ld}
 </head>
 <body>
-${p.layout === "pro" ? `  <main class="pro" id="main">${proMain({ version: values.VERSION })}
-    <div class="pro-wrap">${siteFoot({ blog })}</div>
+${p.layout === "pro" ? `  <main class="pro" id="main">${proMain({ version: values.VERSION, pub })}
   </main>` : `  <main class="terms land" id="main">
     <p class="eyebrow"><a href="/">Penthera</a> · ${esc(p.eyebrow || "Live check")}</p>
     <h1>${esc(p.h1)}</h1>

@@ -525,7 +525,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   writeFileSync(join(OUT, "terms.html"), termsPage(ROOT, { styles }));
   // Landing pages, one search question each (site/pages/, site/landing.mjs).
   for (const p of landingPages(SITE)) {
-    writeFileSync(join(OUT, `${p.slug}.html`), landingHtml(p, { origin: ORIGIN, values, styles, blog }));
+    writeFileSync(join(OUT, `${p.slug}.html`), landingHtml(p, { origin: ORIGIN, values, styles, blog, pub }));
     writeFileSync(join(OUT, `${p.slug}.md`), landingMarkdown(p, { origin: ORIGIN, values }));
   }
   // The benchmark pages, from the same published.json: /benchmarks and one

@@ -1,0 +1,11 @@
+{
+  "tool": "gitleaks",
+  "version": "8.30.1",
+  "command": "gitleaks dir <root> --report-format sarif --report-path <tmp>/gitleaks.sarif --redact --exit-code 0 --no-banner --log-level error",
+  "exitCode": 0,
+  "network": "denied (sandbox-exec)",
+  "root": "/private/tmp/penthera-giants-target",
+  "url": null,
+  "findings": 4,
+  "recordedOn": "2026-10-26"
+}

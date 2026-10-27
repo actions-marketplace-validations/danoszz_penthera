@@ -1,0 +1,11 @@
+{
+  "tool": "codeql",
+  "version": "2.27.2",
+  "command": "codeql database create <tmp>/codeql-db --db-cluster --language=javascript --source-root <root> --build-mode=none --overwrite --quiet && codeql database analyze <tmp>/codeql-db/javascript --format sarif-latest --output <tmp>/codeql-javascript.sarif --no-download --quiet",
+  "exitCode": 0,
+  "network": "denied (sandbox-exec)",
+  "root": "/private/tmp/penthera-giants-target",
+  "url": null,
+  "findings": 3,
+  "recordedOn": "2026-10-26"
+}

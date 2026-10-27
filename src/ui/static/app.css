@@ -546,6 +546,12 @@ svg.chart { display: block; width: 100%; height: auto; }
 .mini li .grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .mini li.stacked { display: grid; gap: 3px; }
 .chips { display: flex; flex-wrap: wrap; gap: 3px; }
+.source-filter { align-items: baseline; gap: 4px 10px; margin: 0 0 6px; }
+.source-filter .b { color: var(--text-1); text-decoration: underline; }
+.giants-cov { width: 100%; border-collapse: collapse; margin: 0 0 8px; font-size: 12px; }
+.giants-cov caption { text-align: left; color: var(--text-3); font: 11px / 1.6 var(--px); }
+.giants-cov th { text-align: left; font-weight: 500; padding: 2px 12px 2px 0; white-space: nowrap; }
+.giants-cov td { padding: 2px 12px 2px 0; vertical-align: top; overflow-wrap: anywhere; }
 .muted { color: var(--text-3); }
 .t1 { color: var(--text-1); }
 .ok { color: var(--text-1); }

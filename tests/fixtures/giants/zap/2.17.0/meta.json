@@ -1,0 +1,11 @@
+{
+  "tool": "zap",
+  "version": "2.17.0",
+  "command": "zap-baseline.py -t http://127.0.0.1:64440 -J penthera-zap.json -I -z -silent",
+  "exitCode": 0,
+  "network": "this machine only (sandbox-exec)",
+  "root": null,
+  "url": "http://127.0.0.1:64440",
+  "findings": 6,
+  "recordedOn": "2026-10-26"
+}

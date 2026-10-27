@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "penthera": {
+      "command": "npx",
+      "args": ["-y", "penthera@2.0.0", "mcp"]
+    }
+  }
+}

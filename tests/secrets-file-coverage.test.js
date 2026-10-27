@@ -138,3 +138,19 @@ describe("every hit is listed", () => {
     }
   });
 });
+
+describe("translation files", () => {
+  it("runs only the fixed-shape rules in translations, wherever they live", () => {
+    for (const f of ["public/intl/messages/de-DE.json", "src/locales/fr.json", "app/i18n/nl.yml", "web/lang/pt_BR.yml", "messages/es-ES.json"]) {
+      expect(isShapesOnlyFile(f), f).toBe(true);
+    }
+    for (const f of ["config/db.json", "src/settings.json", "deploy/prod.yml", "app/en.json.bak"]) expect(isShapesOnlyFile(f), f).toBe(false);
+  });
+
+  it("does not report the word for password in a translation as a password", () => {
+    const de = j('{ "label": { "', PW, '": "Passwort", "new-', PW, '": "Neues Passwort" } }\n');
+    expect(scanFiles({ "public/intl/messages/de-DE.json": de })).toEqual([]);
+    // The same line in a real config is still checked.
+    expect(scanFiles({ "config/app.json": j('{ "', PW, '": "Wq7-kz9pL-Hq2v-Rm8x" }\n') })).toEqual(["config/app.json: Hardcoded password in source"]);
+  });
+});

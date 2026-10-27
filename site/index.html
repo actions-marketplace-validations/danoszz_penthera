@@ -58,7 +58,7 @@
     <button class="theme glass" type="button" role="switch" aria-checked="true" aria-label="Dark theme" data-theme-toggle hidden>
       <span class="theme-track" aria-hidden="true"><span class="theme-knob"></span></span>
     </button>
-    <a class="star glass" href="https://github.com/danoszz/penthera" aria-label="Star Penthera on GitHub{{STARS_LABEL}}">
+    <a class="star glass" href="https://github.com/danoszz/penthera" data-track="github-star-top" aria-label="Star Penthera on GitHub{{STARS_LABEL}}">
       <svg class="star-glyph" viewBox="0 0 9 9" aria-hidden="true"><path d="M4 0h1v2h1v1h3v1H8v1H7v1h1v3H7V8H6V7H3v1H2v1H1V6h1V5H1V4H0V3h3V2h1z"/></svg>
       <span class="star-word">Star</span><span class="star-count">{{STARS}}</span>
     </a>
@@ -90,13 +90,13 @@
 
 
         <div class="hero-actions">
-        <button class="cmd" type="button" data-copy="npx penthera">
+        <button class="cmd" type="button" data-copy="npx penthera" data-track="install-hero">
           <span class="cmd-prompt" aria-hidden="true">$</span>
           <code>npx penthera</code>
           <span class="cmd-act" aria-hidden="true" data-js><span class="cmd-copy">Copy</span><span class="cmd-done">Copied</span></span>
           <span class="sr" aria-live="polite" data-copy-status>, copy to clipboard</span>
         </button>
-        <button class="btn btn-prompt" type="button" data-js data-copy="Set up Penthera in this repo. Run `npx penthera init --dry-run` and show me what it would do. Then run `npx penthera agents` and `npx penthera deps`, and list the findings by severity, with the file for each. Do not change, commit or push anything without asking me."><svg class="tool-icon" viewBox="0 0 9 9" aria-hidden="true"><path d="M0 0h1v1h-1zM4 0h1v1h-1zM8 0h1v1h-1zM1 1h1v1h-1zM4 1h1v1h-1zM7 1h1v1h-1zM2 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM3 3h3v1h-3zM0 4h9v1h-9zM3 5h3v1h-3zM2 6h1v1h-1zM4 6h1v1h-1zM6 6h1v1h-1zM1 7h1v1h-1zM4 7h1v1h-1zM7 7h1v1h-1zM0 8h1v1h-1zM4 8h1v1h-1zM8 8h1v1h-1z"/></svg><span data-copy-label>Copy prompt for your AI coding agent</span></button>
+        <button class="btn btn-prompt" type="button" data-js data-track="agent-prompt" data-copy="Set up Penthera in this repo. Run `npx penthera init --dry-run` and show me what it would do. Then run `npx penthera agents` and `npx penthera deps`, and list the findings by severity, with the file for each. Do not change, commit or push anything without asking me."><svg class="tool-icon" viewBox="0 0 9 9" aria-hidden="true"><path d="M0 0h1v1h-1zM4 0h1v1h-1zM8 0h1v1h-1zM1 1h1v1h-1zM4 1h1v1h-1zM7 1h1v1h-1zM2 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM3 3h3v1h-3zM0 4h9v1h-9zM3 5h3v1h-3zM2 6h1v1h-1zM4 6h1v1h-1zM6 6h1v1h-1zM1 7h1v1h-1zM4 7h1v1h-1zM7 7h1v1h-1zM0 8h1v1h-1zM4 8h1v1h-1zM8 8h1v1h-1z"/></svg><span data-copy-label>Copy prompt for your AI coding agent</span></button>
         </div>
         <p class="note">Or scan your code, dependencies and AI tooling on your machine. No install, no account, Node 22 or later.</p>
       </div>
@@ -281,7 +281,7 @@
         <li>
           <p class="step-n"><span>A</span> In a terminal</p>
           <h3>The CLI</h3>
-          <button class="cmd" type="button" data-copy="npx penthera">
+          <button class="cmd" type="button" data-copy="npx penthera" data-track="install">
             <span class="cmd-prompt" aria-hidden="true">$</span>
             <code>npx penthera</code>
             <span class="cmd-act" aria-hidden="true" data-js><span class="cmd-copy">Copy</span><span class="cmd-done">Copied</span></span>
@@ -292,7 +292,7 @@
         <li>
           <p class="step-n"><span>B</span> In your coding agent</p>
           <h3>The Agent Skill</h3>
-          <button class="cmd" type="button" data-copy="npx skills add danoszz/penthera">
+          <button class="cmd" type="button" data-copy="npx skills add danoszz/penthera" data-track="skill">
             <span class="cmd-prompt" aria-hidden="true">$</span>
             <code>npx skills add danoszz/penthera</code>
             <span class="cmd-act" aria-hidden="true" data-js><span class="cmd-copy">Copy</span><span class="cmd-done">Copied</span></span>
@@ -303,7 +303,7 @@
         <li>
           <p class="step-n"><span>C</span> As a tool your agent calls</p>
           <h3>The MCP server</h3>
-          <button class="cmd" type="button" data-copy="claude mcp add penthera -- npx -y penthera@{{VERSION}} mcp">
+          <button class="cmd" type="button" data-copy="claude mcp add penthera -- npx -y penthera@{{VERSION}} mcp" data-track="mcp">
             <span class="cmd-prompt" aria-hidden="true">$</span>
             <code>claude mcp add penthera -- npx -y <span class="nowrap">penthera@{{VERSION}}</span> mcp</code>
             <span class="cmd-act" aria-hidden="true" data-js><span class="cmd-copy">Copy</span><span class="cmd-done">Copied</span></span>
@@ -384,12 +384,33 @@
           <button class="btn" type="button" data-copy-from data-js>Copy config</button>
         </article>
       </div>
-        <p class="note">Tools read only inside your project, never apply fixes, run no shell and send no attack payloads. <a href="https://github.com/danoszz/penthera/blob/main/docs/commands/mcp.md">What the server can and cannot do</a></p>
+        <p class="note">Tools read only inside your project, never apply fixes, run no shell and send no attack payloads. <a href="https://github.com/danoszz/penthera/blob/main/docs/commands/mcp.md">What the server can and cannot do</a>. Using Gemini CLI, Antigravity, Cline, Zed, JetBrains, Kiro or Continue? <a href="https://github.com/danoszz/penthera/blob/main/docs/integrations.md">Every tool's config</a></p>
+      </details>
+
+      <details class="agent" id="builders">
+        <summary class="prompts-title" id="builders-title">Built with Lovable, Bolt, Base44, Replit or v0?</summary>
+      <div class="prompts">
+        <article class="prompt-card">
+          <h4>1. Check the live app</h4>
+          <p>Paste your published URL (<code>*.lovable.app</code>, your Bolt, Base44 or Replit domain, v0's production URL) into the check at the top of this page. Passive, nothing stored.</p>
+        </article>
+        <article class="prompt-card" data-copy-root>
+          <h4>2. Scan the code</h4>
+          <p>Connect the builder to GitHub, clone the repo, and run:</p>
+          <pre data-copy-text>npx penthera@{{VERSION}} --repo .</pre>
+          <button class="btn" type="button" data-copy-from data-js>Copy command</button>
+        </article>
+        <article class="prompt-card">
+          <h4>3. Check every change</h4>
+          <p>Add the <a href="https://github.com/danoszz/penthera/blob/main/docs/commands/action.md">GitHub Action</a>: it reviews each pull request the builder opens. Replit: run the command above in the Shell.</p>
+        </article>
+      </div>
+        <p class="note">Browser builders only accept MCP servers by URL; Penthera's runs on your machine, so your code never leaves it. <a href="https://github.com/danoszz/penthera/blob/main/docs/integrations.md#app-builders-lovable-bolt-base44-replit-v0">Per builder</a></p>
       </details>
 
       <p class="links">
-        <a href="https://github.com/danoszz/penthera">Source on GitHub</a>
-        <a href="https://www.npmjs.com/package/penthera">Package on npm</a>
+        <a href="https://github.com/danoszz/penthera" data-track="github-source">Source on GitHub</a>
+        <a href="https://www.npmjs.com/package/penthera" data-track="npm">Package on npm</a>
       </p>
     </section>
 
@@ -481,7 +502,7 @@
 {{AGENTS_MD_LI}}        <li><a href="/sitemap.xml"><code>/sitemap.xml</code></a><span>Every URL above. <code>/robots.txt</code> welcomes crawlers and points to it.</span></li>
         <li><a href="/.well-known/security.txt"><code>/.well-known/security.txt</code></a><span>How to report a vulnerability in Penthera itself.</span></li>
       </ul>
-      <button class="cmd" type="button" data-copy="Read {{ORIGIN}}/llms.txt, then add the Penthera MCP server to this project, pinned to the version it names. Do not change anything else without asking me.">
+      <button class="cmd" type="button" data-track="agent-setup" data-copy="Read {{ORIGIN}}/llms.txt, then add the Penthera MCP server to this project, pinned to the version it names. Do not change anything else without asking me.">
         <span class="cmd-prompt" aria-hidden="true">&gt;</span>
         <code>Read {{ORIGIN}}/llms.txt, then add the Penthera MCP server.</code>
         <span class="cmd-act" aria-hidden="true" data-js><span class="cmd-copy">Copy</span><span class="cmd-done">Copied</span></span>
@@ -506,7 +527,7 @@
       <button class="theme glass" type="button" role="switch" aria-checked="true" aria-label="Dark theme" data-theme-toggle hidden>
         <span class="theme-track" aria-hidden="true"><span class="theme-knob"></span></span>
       </button>
-      <a class="star glass" href="https://github.com/danoszz/penthera" aria-label="Star Penthera on GitHub{{STARS_LABEL}}">
+      <a class="star glass" href="https://github.com/danoszz/penthera" data-track="github-star-bottom" aria-label="Star Penthera on GitHub{{STARS_LABEL}}">
         <svg class="star-glyph" viewBox="0 0 9 9" aria-hidden="true"><path d="M4 0h1v2h1v1h3v1H8v1H7v1h1v3H7V8H6V7H3v1H2v1H1V6h1V5H1V4H0V3h3V2h1z"/></svg>
         <span class="star-word">Star</span><span class="star-count">{{STARS}}</span>
       </a>

@@ -16,30 +16,43 @@ here.
 
 | npm tag | Version | Install |
 |---|---|---|
-| `latest` | 1.9.0 (2026-10-23) | `npx penthera` |
+| `latest` | 2.0.0 (2026-10-25) | `npx penthera` |
 
-## Now: 1.9.0
+## Now: 2.0.0
 
-1.9.0 is on npm's `latest` tag since 2026-10-23.
+2.0.0 is on npm's `latest` tag since 2026-10-25. It's a major version because
+the default scan finds more, so a CI gate that passed on 1.9 can fail after the
+upgrade ([upgrading](CHANGELOG.md)).
 
-| In 1.9.0 | What it means for you |
+| In 2.0.0 | What it means for you |
 |---|---|
-| `penthera mcp` | An MCP server, so Claude Code, Cursor, Codex and other agents can call Penthera. Local and read-only ([docs](docs/commands/mcp.md)) |
-| AI mode (opt-in) | A local model proposes findings where rules can't look. Penthera's rules check them, and anything unconfirmed is labelled so ([docs](docs/ai-mode.md)) |
-| `penthera verify` | Checks findings from an AI security audit against Penthera's rules ([docs](docs/commands/verify.md)) |
-| New detection | Python start-up code in packages, known-malicious PyPI versions, Node.js and MongoDB advisories, weak certificate keys, `X-Powered-By`, `/metrics`, directory listings, stack traces, Terraform secrets, hard-coded session secrets, code-execution sinks |
-| Default scans send no attack payloads | The login burst and SQL check moved behind `--deep` |
-| Signed rule packs | All four bundled packs are signed and verified on load ([docs](docs/rule-packs.md)) |
-| E10 benchmark | Penthera measured on known-vulnerable apps, published as a pilot ([results](bench/known-vuln/RESULTS.md)) |
-| Refreshed dashboard | `penthera ui` in the website's style: a check-and-fix mode, one primary action per screen, failures first |
+| Public benchmarks | On a sealed half of four public datasets: #1 of the free tools on npm and PyPI malware, tied #1 on JS library injection bugs, #2 on leaked secrets ([results](bench/public/RESULTS.md)) |
+| Library mode | The parameters of an exported function count as untrusted, so command and code injection in npm libraries is found ([docs](docs/commands/scan.md)) |
+| More of your repo read for secrets | Key files, PHP, C#, configs, Terraform state; docs and translations with fixed-shape rules only; every line a rule hit is listed |
+| Malware detection | Code that runs what it downloads, HTTP tarball dependencies, Python code that runs at import time, `setup.py` payloads |
+| Setup per tool | [Penthera in your coding tool](docs/integrations.md): Claude Code, Cursor, VS Code, Codex and nine more, plus Lovable, Bolt, Base44, Replit and v0 |
 
-1.8.1 was a fixes-only patch on 1.8.0 (2026-10-21): runtime advisories, the
-redesigned dashboard and fixes from a second independent security review. The
-details are in the [CHANGELOG](CHANGELOG.md).
+What 1.9.0 added (the MCP server, opt-in AI mode, signed rule packs) is in the
+[CHANGELOG](CHANGELOG.md).
 
 ## Next
 
 Ordered, not dated. Each item names the user question it answers.
+
+### In the top 10 on every benchmark that fits (research track)
+
+The goal: Penthera benchmarked against the free tools on **every established
+public benchmark within its scope**, in the top 10 on each, and #1 where the
+data allows, with every result published, losses included. This is the work we
+are applying to NLnet to fund.
+
+| Item | Question it answers | State |
+|---|---|---|
+| E13: the benchmark list and its inclusion rules, written before any run | "Did you only test where you win?" | Planned. In scope: secrets, malicious packages, JS/TS and Python code, passive site checks, MCP and agent config. Java and C benchmarks (OWASP Benchmark, Juliet) are listed as "not supported". The field includes every free tool in scope that runs offline, newer ones too (for example StingWard), whatever their result |
+| New benchmarks: SecretBench, Backstabber's Knife Collection, the OpenSSF CVE Benchmark, mcp-vulnbench, MCPTox | "How does it do on data other people chose?" | Planned, same protocol as E11b: sealed half, split by repository, one locked run, leakage audit |
+| Fresh holdouts: malware samples published after each freeze date | "Does it catch threats nobody tuned on?" | Planned |
+| E12: detection rules learned from large datasets, shipped as readable signed rules | "Does it keep getting better on new threats?" | Planned; tested on a time split (learn from the past, measure on the future) |
+| Python code rules | "Does it find bugs in my Python app?" | Planned, moved up: parse Python with its syntax tree rather than patterns, measured on a public Python benchmark in E13 |
 
 ### Measure on real code (research track)
 
@@ -52,6 +65,38 @@ Ordered, not dated. Each item names the user question it answers.
 | Harness audit: a checklist, planned `harness-*`, `sandbox-*` and `scorer-*` rules, experiments E7 and E8 | "Am I running my AI agents properly?" | Specs in review: [checklist](docs/agents-safely.md), [rule spec](docs/research/spec-harness-rules.md), [E8 draft](docs/research/prereg/E8-harness-guardrails.md). No rule code before approval |
 | Real-world precision and recall, with intervals | "Can I trust a clean report?" | After E1 runs; published whatever the result |
 
+### One first pass, with the best free tools
+
+A common setup is a list of separate scanners, each with its own install, output
+and false alarms. The goal: one `penthera` run covers the whole first pass. Where
+Penthera is measured best, its own rules do the work. Where another free tool is
+better or covers what Penthera doesn't, Penthera runs that tool, if you have it
+installed, and folds its findings into the same report and SARIF. Every finding
+names the tool and rule that raised it, duplicates are merged, and the decision
+to report stays deterministic.
+
+| Area | Penthera today | Combined with | State |
+|---|---|---|---|
+| Secrets | F1 0.74 on CredData, ahead of gitleaks (0.52) and trufflehog (0.10) | gitleaks, trufflehog (verifies keys only with your opt-in, since it contacts the provider) | Planned |
+| Code | JS/TS injection: 0.70 on SecBench.js, ahead of CodeQL (0.64) and Semgrep (0.38) | Semgrep with local rules, for other languages; CodeQL only where its terms allow (open-source code, or your own licence) | Planned |
+| Dependencies | Capabilities, malware (1st on npm and PyPI), licences, typosquats | osv-scanner, pip-audit, for known CVEs in your lockfiles | Planned |
+| Infrastructure | Runtime versions pinned in Dockerfiles and version files | trivy (container images, IaC), checkov (Terraform, Kubernetes, CI config) | Planned |
+| Live app | Passive checks, Nuclei-compatible templates, `--deep` injection probes | nuclei, the ZAP baseline scan | Planned |
+| E14: the combination against each tool alone | "Is the combined report better, or only longer?" | Same protocol as E11b on the same public benchmarks. Combined precision may not drop by more than 0.02 | Pre-registered ([E14](docs/research/prereg/E14-giants-combination.md)); [spec](docs/research/spec-giants.md) approved. Next: the build, then the dev-half rerun |
+
+How it works, and what it won't do:
+
+- **Your tools, not ours.** Penthera finds tools that are already installed.
+  It never downloads them or their rules at run time; `penthera init` can show
+  the install command. Without a tool, its area is reported as not covered, not
+  as clean.
+- **Offline stays the default.** A tool that needs the network (a registry
+  rule download, key verification) runs only with your opt-in.
+- **Licences are respected.** Each tool runs as its own program under its own
+  licence. Penthera bundles none of them.
+- **Burp stays separate.** Manual, proxy-driven testing by a person is a
+  different job, and Penthera is no replacement for a pentest.
+
 ### Before you deploy
 
 | Item | Question it answers |
@@ -61,7 +106,8 @@ Ordered, not dated. Each item names the user question it answers.
 | Preview-deployment scanning | "Is this pull request safe?" A GitHub Action that waits for the Vercel, Netlify or Cloudflare Pages preview, scans it and comments the result |
 | Framework presets | "Why is my first scan empty?" Routes, auth flows and headers for Next.js, SvelteKit, Remix, Nuxt and Astro |
 | Authenticated preview scans | "Can it test pages behind a login?" With test accounts from your own seed data, never real credentials |
-| AI app builder integrations | "I built this in Base44, Lovable or Bolt. Is it safe?" Checks for what these tools build: the exported code and the published app |
+| AI app builder integrations | "I built this in Base44, Lovable or Bolt. Is it safe?" Today: the [setup per builder](docs/integrations.md#app-builders-lovable-bolt-base44-replit-v0) (live check plus GitHub sync). Next: checks for what these tools build |
+| Supabase tables without row-level security | "Can anyone read my users' data?" Tables created in migrations or SQL without `enable row level security`, and policies that allow everyone, found in the repo; the public anon key in the frontend is expected, an open table is not |
 
 ### After you ship
 
@@ -69,6 +115,7 @@ Ordered, not dated. Each item names the user question it answers.
 |---|---|
 | `penthera watch` | "Did anything change in production?" Scheduled, non-destructive checks for certificate expiry, header and CSP regressions, new endpoints, keys in bundles |
 | New-CVE alerts for your SBOM | "Is something I shipped now known to be vulnerable?" As a reviewed rule-pack update or an opt-in advisory lookup |
+| Known vulnerabilities ranked by real-world exploitation | "Which of these do I fix first?" CISA's Known Exploited Vulnerabilities list and FIRST's EPSS scores, shipped as data in the signed rule packs so ranking stays offline. Applies to Penthera's runtime advisories and to osv-scanner and trivy findings under `--giants` |
 | Alerts where you already look | A GitHub issue, the job summary or a local notification. Nothing leaves your infrastructure |
 | Dashboard history | Posture over time in `penthera ui`, fed by `watch` runs |
 
@@ -107,6 +154,8 @@ Ordered, not dated. Each item names the user question it answers.
   it cannot confirm that a person typed the target host.
 - **A hosted service.** If a hosted version ever exists, it will not remove
   anything from the local tool.
+- **Bundling or auto-installing other scanners.** Penthera runs the ones you
+  have installed and reports what is not covered. It ships none of them.
 
 ## Principles
 

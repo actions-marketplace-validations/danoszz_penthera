@@ -4,7 +4,7 @@
 
 <br/><br/>
 
-**Penthera: your open-source cyber security agent**
+# Penthera: your open-source cyber security agent
 
 The security review you never had time for. Offline, rule-based, and you can verify every finding yourself.
 
@@ -156,6 +156,11 @@ projects is experiment E1. Reproduce every table with
 
 You need Node.js 22 or later. No install, no account.
 
+Building with Cursor, Claude Code, Codex, VS Code, Windsurf, Gemini CLI, Zed,
+JetBrains or Kiro, or an app builder such as Lovable, Bolt, Base44, Replit or
+v0? [Penthera in your coding tool](docs/integrations.md) has the setup for
+each.
+
 **In your terminal.** Run this in your project folder:
 
 ```bash
@@ -178,7 +183,7 @@ npx skills add danoszz/penthera
 Cursor, Codex, VS Code and Windsurf, new in 1.9.0. Pin the version:
 
 ```bash
-claude mcp add penthera -- npx -y penthera@1.9.0 mcp
+claude mcp add penthera -- npx -y penthera@2.0.0 mcp
 ```
 
 **In Claude Code, as a plugin.** From Claude Code's prompt:
@@ -338,8 +343,8 @@ with `npm run docs:numbers` and `npm run bench`.
 **Verify it yourself.** In an empty folder:
 
 ```bash
-npm install penthera@1.9.0 && npm audit signatures
-npx penthera@1.9.0 rules list
+npm install penthera@2.0.0 && npm audit signatures
+npx penthera@2.0.0 rules list
 ```
 
 The first checks npm's registry signature and the build provenance of the
@@ -403,7 +408,7 @@ What changed, what we are measuring, and what comes next, in one place.
 
 | | Where it stands | Read more |
 |---|---|---|
-| **Latest release** | 1.9.0 (2026-10-23) on npm `latest`: `penthera mcp`, opt-in AI mode, new detection rules, no attack payloads in default scans, a refreshed dashboard | [CHANGELOG](CHANGELOG.md), [roadmap](ROADMAP.md#now-190) |
+| **Latest release** | 2.0.0 (2026-10-25) on npm `latest`: public benchmark results, library mode, wider secret and malware detection, every hit listed per finding. A major version because the default scan finds more ([upgrading](CHANGELOG.md)) | [CHANGELOG](CHANGELOG.md), [roadmap](ROADMAP.md#now-190) |
 | **Research** | Public benchmarks (E11b) published: on a sealed half of four public datasets, #1 of the free tools on npm and PyPI malware, tied #1 on JS library injection bugs, #2 on leaked secrets ([summary](#public-benchmarks)). E10 pilot published: precision 0.88, recall 0.07 to 0.71 on two known-vulnerable apps after fixes (one labeller, not independent; a re-run is pending because default scans no longer send login checks). E1 on real code is pre-registered; E8 (agent guardrails) is a draft | [E11b results](bench/public/RESULTS.md), [E10 results](bench/known-vuln/RESULTS.md), [E1 pre-registration](docs/research/prereg/E1-real-world-accuracy.md), [agents safely](docs/agents-safely.md) |
 | **Next** | Real-world precision and recall with intervals (E1), published whatever the result | [Roadmap: next](ROADMAP.md#next), [research plan](docs/vision-2.0.md) |
 

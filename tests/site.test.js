@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync, readFileSync, mkdirSync, writeFileSync, existsSync
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
-import { buildSite, readNews, readCompare, e10Numbers, prerelease, mcpNote, firstRelease } from "../site/build.mjs";
+import { buildSite, readNews, readCompare, e10Numbers, prerelease, mcpNote, firstRelease, siteVersion } from "../site/build.mjs";
 import { docPages, absoluteLinks, pinTo } from "../site/agents.mjs";
 import { landingPages } from "../site/landing.mjs";
 import { readKey } from "../scripts/indexnow.mjs";
@@ -60,8 +60,8 @@ function cliFolder(files) {
 const key = (f) => [f.severity, f.templateId || f.method || f.source, f.title, f.description].join(" | ");
 
 describe("site build", () => {
-  it("pins every command and MCP config to package.json's version, on the page and in llms.txt", () => {
-    const { version } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+  it("pins every command and MCP config to the installable version, on the page and in llms.txt", () => {
+    const version = siteVersion(JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).version);
     const html = readFileSync(join(out, "index.html"), "utf8");
     const llms = readFileSync(join(out, "llms.txt"), "utf8");
     expect(html).toContain('id="agent"');
@@ -85,6 +85,11 @@ describe("site build", () => {
       const text = readFileSync(join(ROOT, "site", f), "utf8");
       expect(text, f).not.toMatch(/penthera@\d/);
     }
+  });
+
+  it("pins the latest stable release while main carries a pre-release", () => {
+    expect(siteVersion("1.9.0")).toBe("1.9.0");
+    expect(prerelease(siteVersion("9.9.9-rc.1"))).toBe(false);
   });
 
   it("notes the MCP server's release candidate only while the version is one", () => {
@@ -440,10 +445,23 @@ describe("site story", () => {
 
   it("gets you started three ways, each with a copy button", () => {
     const get = html().slice(html().indexOf('id="get"'), html().indexOf('id="faq"'));
-    const { version } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+    const version = siteVersion(JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).version);
     for (const c of ["npx penthera", "npx skills add danoszz/penthera", `claude mcp add penthera -- npx -y penthera@${version} mcp`]) {
-      expect(get).toContain(`<button class="cmd" type="button" data-copy="${c}">`);
+      expect(get).toContain(`<button class="cmd" type="button" data-copy="${c}"`);
     }
+  });
+
+  it("counts checks and installs without the URL, host or score", () => {
+    // docs/privacy.md: an event is a name and one fixed label, nothing typed.
+    const ui = readFileSync(join(ROOT, "site", "check", "ui.js"), "utf8");
+    const calls = [...ui.matchAll(/\bcount\(([^;]*)\);/g)].map((m) => m[1]);
+    expect(calls.length).toBeGreaterThan(3);
+    for (const c of calls) {
+      expect(c, c).not.toMatch(/\b(url|host|report|score|text|cmd|input|value)\b(?!["`])/);
+    }
+    const labels = [...html().matchAll(/data-track="([^"]+)"/g)].map((m) => m[1]);
+    expect(labels.length).toBeGreaterThanOrEqual(8);
+    for (const l of labels) expect(l).toMatch(/^[a-z-]+$/);
   });
 
   it("links every entry point for agents, and each one exists", () => {
@@ -586,8 +604,8 @@ describe("site files for agents", () => {
       .toBe(`[a](${ORIGIN}/docs/commands/mcp.md#x) [b](https://github.com/danoszz/penthera/blob/main/bench/RESULTS.md) [c](https://github.com/danoszz/penthera/raw/main/assets/demo.gif) [d](https://github.com/danoszz/penthera/tree/main/docs/commands)`);
   });
 
-  it("pins every npm command in the mirrors to the package version", () => {
-    const { version } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+  it("pins every npm command in the mirrors to the installable version", () => {
+    const version = siteVersion(JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).version);
     for (const f of ["llms-full.txt", ...pages]) {
       for (const m of read(f).matchAll(/(?<![\w/-])penthera@(\d[\w.-]*)/g)) expect(m[1], f).toBe(version);
     }

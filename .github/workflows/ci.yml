@@ -39,11 +39,12 @@ jobs:
         run: |
           PKG=$(node -p "require('./package.json').version")
           PLUGIN=$(node -p "require('./.claude-plugin/plugin.json').version")
+          DIRPLUGIN=$(node -p "require('./plugin/.claude-plugin/plugin.json').version")
           MARKET=$(node -p "require('./.claude-plugin/marketplace.json').metadata.version")
           SKILL=$(sed -n 's/^  version: *//p' skills/penthera/SKILL.md | tr -d '"')
           LOCK=$(node -p "require('./package-lock.json').version")
-          echo "package=$PKG plugin=$PLUGIN marketplace=$MARKET skill=$SKILL lock=$LOCK"
-          for v in "$PLUGIN" "$MARKET" "$SKILL" "$LOCK"; do
+          echo "package=$PKG plugin=$PLUGIN plugin/=$DIRPLUGIN marketplace=$MARKET skill=$SKILL lock=$LOCK"
+          for v in "$PLUGIN" "$DIRPLUGIN" "$MARKET" "$SKILL" "$LOCK"; do
             [ "$v" = "$PKG" ] || { echo "Version drift: expected $PKG, found $v"; exit 1; }
           done
 

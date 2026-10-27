@@ -121,3 +121,16 @@ behind toggles, like the MCP configs and the comparison table.
   `api/_lib/guard.mjs`. Nothing is stored or logged; a count of scans may
   come later, never the results.
 - The rule code is the CLI's (`lib/`), so the site and `npx penthera` agree.
+- Penthera Pro at `/pro` (decided with the maintainer, 2026-10-28; `/upkeep`
+  redirects there). It proposes, it does not sell: a security partner for
+  software built with agents, priced like managed upkeep ($100–300 a month
+  per team while we test, assessments quoted separately), and one line on
+  agent-to-agent paid checks marked "In research". The page is a horizontal
+  poster: the page scrolls down as usual and a pinned row slides left
+  (`site/pro.js`); with no script the panels stack. The header is a canvas
+  sketch, dithered ASCII in brushed steel and Penthera blue, no rainbow; it
+  goes quiet behind the heading instead of putting boxes behind the type.
+  Steel controls with glossy blue selected states, iOS-style, square
+  corners. The calculator takes only the reader's own numbers (hours,
+  hourly cost, budget) and, like the waitlist, only fills in an email the
+  reader sends: nothing is stored.

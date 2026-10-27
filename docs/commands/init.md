@@ -18,6 +18,11 @@ runs those checks offline, shows one summary, and then offers to set up the
 hook, the CI workflow and the rest, one yes/no at a time. Press Enter to accept
 a default.
 
+Without a terminal (a coding agent, CI, a pipe), `npx penthera` with no
+arguments does not start the wizard. It prints three commands to run instead,
+`penthera init --yes --dry-run`, `penthera init --yes` and `penthera --repo .`,
+and exits 2.
+
 ## What it does
 
 **1. Detect.** Offline, read-only:
@@ -60,6 +65,12 @@ language, and the report folder:
     ✓ Dependencies  A  no issues  0.0s
     ✓ AI tooling    A  1 medium  0.0s
 ```
+
+An area with nothing to read gets no grade. On a fresh clone with no
+`node_modules`, Dependencies shows `–  not checked: 0 of 61 packages installed
+or cached`, with the fix: `npm ci --ignore-scripts` installs the packages
+without running their code, so the next run can read them. When only some are
+missing, the grade covers what was read and the line says how many were not.
 
 Every report lands in `reports/penthera-<date>/`: `code`, `deps`, `agents` and
 `app` as JSON and Markdown, plus `summary.md` and `summary.json`.
@@ -152,3 +163,10 @@ they exit 1 on high or critical findings.
 The pinned SHA is the last release tagged before this version
 (`ACTION_PIN` in `src/cli/onboarding.js`); Dependabot's `github-actions`
 updates keep it current in your repo.
+
+Known issue: in every release from 1.5.0 to 2.0.0, the action's `mode: deps`
+exits before it scans, and the job still reports success, with no comment and
+no SARIF. The v2.0.0 pin that this version writes has the same problem.
+2.1.0-rc.1 has the fix, so `mode: deps` works with a pin to 2.1.0-rc.1 or later,
+and `init` writes such a pin from the first release after 2.1.0-rc.1. Until
+then, move the pin in your workflow to the 2.1.0-rc.1 release commit.

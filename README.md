@@ -10,6 +10,8 @@ The security review you never had time for. Offline, rule-based, and you can ver
 
 **[penthera.org](https://penthera.org)**: check your live site in a few seconds. Passive, nothing stored.
 
+Want a person to keep an eye on it with you? [Penthera Pro](https://penthera.org/pro) is in validation: join the waitlist.
+
 **132** readable rules · **6** read-only MCP tools · **1** runtime dependency · **0** requests past loopback in the benchmark · **MIT**, no telemetry
 
 <br/>
@@ -60,10 +62,10 @@ down before that run ([protocol](docs/research/prereg/E11b-improvement-study.md)
 <!-- public-benchmarks:start -->
 | Benchmark | Score | Penthera 1.9.0 | **Penthera 2.0.0** | Rank among free tools | Best other free tool |
 |---|---|---|---|---|---|
-| Leaked secrets (Samsung CredData) | F1 | 0.18 | **0.74** | **2nd of 10** | deepsecrets 0.78 |
-| Malicious npm packages (DataDog) | caught minus false alarms | 0.57 | **0.71** | **1st of 6** | malcontent 0.63 |
-| Malicious PyPI packages (DataDog) | caught minus false alarms | 0.74 | **0.82** | **1st of 8** | GuardDog 0.74 |
-| Injection bugs in JS libraries (SecBench.js) | found in the right file | 0.16 | **0.70** | **1st of 8**, within the margin | odgen 0.68 |
+| [Leaked secrets (Samsung CredData)](https://penthera.org/benchmarks/secrets) | F1 | 0.18 | **0.74** | **2nd of 10** | deepsecrets 0.78 |
+| [Malicious npm packages (DataDog)](https://penthera.org/benchmarks/npm-malware) | caught minus false alarms | 0.57 | **0.71** | **1st of 6** | malcontent 0.63 |
+| [Malicious PyPI packages (DataDog)](https://penthera.org/benchmarks/pypi-malware) | caught minus false alarms | 0.74 | **0.82** | **1st of 8** | GuardDog 0.74 |
+| [Injection bugs in JS libraries (SecBench.js)](https://penthera.org/benchmarks/js-injection) | found in the right file | 0.16 | **0.70** | **1st of 8**, within the margin | odgen 0.68 |
 
 <details><summary>Every tool, every number (95% intervals)</summary>
 
@@ -380,7 +382,8 @@ machine after Penthera's own scan: gitleaks, TruffleHog, Semgrep with your
 local rules, osv-scanner, Trivy and Checkov for a repository, nuclei and the
 ZAP baseline for a URL. Their findings go into the same report and SARIF, each
 labelled with the tool, its version and its rule. Nothing is downloaded or
-uploaded, and an area with no tool installed is reported as "not covered".
+uploaded, and an area that neither Penthera's rules nor another tool reached
+is reported as "not covered".
 
 ```bash
 penthera giants              # which tools you have

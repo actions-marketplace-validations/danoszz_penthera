@@ -4,8 +4,9 @@
 
 `--giants` runs the free scanners you already have installed, after Penthera's
 own scan, and folds their findings into the same report, JSON and SARIF. Each
-finding names the tool, its version and the rule that raised it. An area with
-no tool installed is reported as "not covered", never as clean.
+finding names the tool, its version and the rule that raised it. An area is
+"covered" when Penthera's own rules read files there or another tool ran. An
+area neither reached is reported as "not covered", never as clean.
 
 Penthera never installs, downloads or bundles these tools, their rules or
 their databases. It runs the copies on your `PATH`, each as its own program
@@ -103,7 +104,7 @@ Two findings are the same when their keys match:
 
 | Category | Key |
 |---|---|
-| Secret | File, line, and the secret's value (hashed in memory, never written) |
+| Secret | File, line, and the secret's value (hashed in memory, never written). When a tool gives no value, as on a line inside a private key block, file and line alone |
 | Code | File, line, and a shared CWE |
 | Dependency or container vulnerability | Ecosystem, package, version, and a shared advisory id across aliases (CVE, GHSA, OSV, PYSEC) |
 | Infrastructure | File, resource, and a shared check id |
@@ -120,15 +121,20 @@ kept) and listed in its own section, "Also reported by other tools".
 The terminal report gets a **Coverage by area** table:
 
 ```
-  Coverage by area other tools offline; merge: penthera-first
+  Coverage by area Penthera's own checks, then the other tools you have installed
 
-  Secrets          covered     gitleaks 8.30.1 (4), trufflehog 3.99.3 (1)
-  Code             covered     semgrep 1.180.0 (3), codeql: skipped
-  Dependencies     covered     osv-scanner 2.6.0 (17), pip-audit: skipped, trivy 0.76.1 (17)
-  Infrastructure   covered     trivy 0.76.1 (15), checkov 3.3.30 (13)
+  Secrets          covered     Penthera (702 files), gitleaks 8.30.1 (4), trufflehog 3.99.3 (1)
+  Code             covered     Penthera (405 files), semgrep 1.180.0 (3), codeql: skipped
+  Dependencies     covered     Penthera: run penthera deps, osv-scanner 2.6.0 (17), pip-audit: skipped, trivy 0.76.1 (17)
+  Infrastructure   covered     Penthera (2 files), trivy 0.76.1 (15), checkov 3.3.30 (13)
   codeql: skipped, runs only with --with codeql
   pip-audit: skipped, needs --giants-online (it contacts a service)
 ```
+
+"Penthera (702 files)" is what Penthera's own scan read in that area. A tool
+that is not on your `PATH` is listed as `not installed`, with the install
+command, and is never started. In the JSON, an area's `status` is about the
+other tools only; `pentheraRead` holds what Penthera read there.
 
 - **JSON** (`-o`): a `giants` object with each tool's status, version,
   command line, exit code and network mode, the areas, and the other tools'

@@ -19,7 +19,7 @@ compatibility: Node.js 22+, network access to target, Penthera CLI (npm link or 
 allowed-tools: "Bash(penthera:*) Bash(npx -y penthera:*) Bash(npx --no-install penthera:*) Read"
 metadata:
   author: danoszz
-  version: 2.0.0
+  version: 2.1.0-rc.2
   category: security
 ---
 
@@ -90,7 +90,25 @@ To try a release candidate in someone's project, run it with `npx penthera@next 
 
 - Always use `--profile standard` unless the user explicitly requests deeper testing.
 - Write reports to `reports/` (gitignored), never inside `skills/penthera/`.
-- After scan, read the companion `.md` report and summarize findings by severity with fix recommendations.
+- After a scan, reply with the **agent brief** (see **Reply with the brief**), not your own summary of the `.md` report.
+
+## Reply with the brief
+
+A scan run from an agent prints the brief to stdout: a verdict, then Act on, Check first, Likely noise, Not checked and Next. Rules fill it. For a repo, deps and agent-config scan together, merge them into one brief:
+
+```bash
+penthera --repo . -o reports/repo.json
+penthera deps . -o reports/deps.json
+penthera agents . -o reports/agents.json
+penthera brief reports/repo.json reports/deps.json reports/agents.json
+```
+
+Then reply to the user:
+
+1. Pass the brief on in its order. Keep the verdict line and the section names.
+2. Do not move a finding between sections, change a severity or drop a group. The full list is in the `.md` reports.
+3. If you checked something yourself (opened the file, saw the "password" is a CSS class map), add it under a last section **My read** and say what you looked at. That section is your judgment, not Penthera's.
+4. End with the one change you would make first, and ask before changing files.
 
 ## Destructive mode gate
 

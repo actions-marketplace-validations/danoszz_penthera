@@ -75,7 +75,8 @@ describe("homepage as Markdown", () => {
     expect(md).toContain(`${ORIGIN}/api/check`);
     expect(md).toContain(`"consent":true`);
     expect(md).toContain(`${ORIGIN}/terms`);
-    expect(md).not.toMatch(/\baction\b|token|deep/);
+    // "deep" as a word or flag; the tool name deepsecrets (public benchmarks) is fine.
+    expect(md).not.toMatch(/\baction\b|token|\bdeep\b/);
     for (const link of ["/llms.txt", "/docs/index.md", "/openapi.json"]) expect(md).toContain(`${ORIGIN}${link}`);
     expect(md).toContain("https://github.com/danoszz/penthera");
     expect(md).toContain("https://www.npmjs.com/package/penthera");

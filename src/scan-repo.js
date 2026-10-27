@@ -88,7 +88,7 @@ export async function scanRepo(repoPath, opts = {}) {
   // Library mode: a publishable package's exported parameters are sources too.
   const library = detectLibrary(repoPath, opts.library);
   result.library = { enabled: library.enabled, reason: library.reason };
-  result.findings.push(...scanCodeSinks(repoPath, { library }));
+  result.findings.push(...scanCodeSinks(repoPath, { library, ignored }));
   result.executedProbes.push("code-sinks");
   if (library.enabled) {
     result.executedProbes.push("library-mode");

@@ -248,6 +248,13 @@ function renderReport(box, report, rescan) {
   if (passed.length) box.append(fold);
   box.append(scope);
   box.append(deeperOnYourMachine(report));
+  // One quiet line to the Pro waitlist (site/pages/pro.md).
+  const pro = el("p", "report-pro", "Want a person to keep an eye on this with you? ");
+  const link = el("a", null, "Penthera Pro");
+  link.href = "/pro";
+  link.addEventListener("click", () => count("link", { to: "pro-from-check" }));
+  pro.append(link);
+  box.append(pro);
   box.hidden = false;
 }
 

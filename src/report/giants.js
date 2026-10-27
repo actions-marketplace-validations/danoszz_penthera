@@ -21,9 +21,19 @@ export function toolPhrase(t) {
   return `${t.id}: ${STATUS_TEXT[t.status] || t.status}`;
 }
 
-/** The area's row text: what Penthera checks, then each tool. */
+/** Covered when Penthera's own rules read something here or another tool ran. */
+export const areaCovered = (a) => Boolean(a.pentheraRead?.read) || a.status === "covered";
+
+/** "Penthera (7 files)", "Penthera: 0 files", "Penthera: run penthera deps", "Penthera: not run". */
+export function pentheraPhrase(a) {
+  const p = a.pentheraRead;
+  return p ? (p.read ? `Penthera (${p.text})` : `Penthera: ${p.text}`) : "Penthera: not run";
+}
+
+/** The area's row text: what Penthera read, then each tool. */
 export function areaLine(a) {
-  return `${a.status === "covered" ? "covered" : "not covered by another tool"}; ${a.tools.length ? a.tools.map(toolPhrase).join(", ") : "no tool for this area"}`;
+  const tools = a.tools.length ? a.tools.map(toolPhrase).join(", ") : "no other tool for this area";
+  return `${areaCovered(a) ? "covered" : "not covered"}; ${pentheraPhrase(a)}, ${tools}`;
 }
 
 /** "found by Penthera, gitleaks" for a finding that more than one tool reported, else null. */
@@ -36,13 +46,13 @@ export function foundByText(f) {
 /** Terminal lines (without the section rule), given the colour helpers. */
 export function giantsTerminalLines(g, c, { pad = (s, n) => (s + " ".repeat(n)).slice(0, n), sevLabel = {}, sevColor = {} } = {}) {
   const L = [];
-  L.push(`  ${c.bold("Coverage by area")} ${c.dim(`other tools ${g.online ? "online (--giants-online)" : "offline"}; merge: ${g.merge}`)}`);
+  L.push(`  ${c.bold("Coverage by area")} ${c.dim(`Penthera's own checks, then the other tools you have installed${g.online ? " (online: --giants-online)" : ""}`)}`);
   L.push("");
   for (const a of g.areas) {
-    const tag = a.status === "covered" ? c.green("covered    ") : c.yellow("not covered");
-    L.push(`  ${pad(a.label, 16)} ${tag} ${c.dim(a.tools.length ? a.tools.map(toolPhrase).join(", ") : "no tool for this area")}`);
+    const tag = areaCovered(a) ? c.green("covered    ") : c.yellow("not covered");
+    L.push(`  ${pad(a.label, 16)} ${tag} ${c.dim(`${pentheraPhrase(a)}, ${a.tools.length ? a.tools.map(toolPhrase).join(", ") : "no other tool"}`)}`);
   }
-  const notes = g.tools.filter((t) => t.reason && t.status !== "ran" && t.status !== "not installed");
+  const notes = g.tools.filter((t) => t.reason && t.status !== "ran");
   for (const t of notes) L.push(`  ${c.dim(`${t.id}: ${t.status}, ${strip(t.reason)}`)}`);
   const warn = g.tools.filter((t) => t.status === "ran" && t.reason);
   for (const t of warn) L.push(`  ${c.yellow(`${t.id}: ${strip(t.reason)}`)}`);
@@ -80,7 +90,7 @@ export function giantsMarkdown(g) {
   L.push("| Area | Penthera's own | Other tools | Status |");
   L.push("|------|----------------|-------------|--------|");
   for (const a of g.areas) {
-    L.push(`| ${a.label} | ${mdInline(a.penthera)} | ${a.tools.length ? mdInline(a.tools.map(toolPhrase).join(", ")) : "none"} | ${a.status} |`);
+    L.push(`| ${a.label} | ${mdInline(a.penthera)} (${a.pentheraRead ? `${a.pentheraRead.read ? "read " : ""}${mdInline(a.pentheraRead.text)}` : "not run"}) | ${a.tools.length ? mdInline(a.tools.map(toolPhrase).join(", ")) : "none"} | ${areaCovered(a) ? "covered" : "not covered"} |`);
   }
   L.push("");
   if (g.requiredNotRun?.length) L.push(`**Required by the policy file but did not run:** ${g.requiredNotRun.join(", ")}`, "");

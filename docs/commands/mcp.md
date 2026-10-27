@@ -89,7 +89,11 @@ Every tool is read-only. None writes a file, applies a fix, or runs a shell.
 | `explain_finding` | What a finding's rule checks, why it matters, how to fix it, references and OWASP ids | none |
 | `scan_url` | A passive scan of a running app: TLS, headers, cookies, CORS, exposed files, OpenAPI and auth smoke checks | the target only (see below) |
 
-Each result has the findings as structured JSON and a short summary. Every
+Each result has the findings as structured JSON, and as text the
+[agent brief](brief.md): a verdict, what to act on, what to check first, what
+is likely noise, what was not checked, and what to run next. The text asks the
+assistant to pass the brief on as it is and to put its own view under "My
+read". Every
 finding has a `rule`, a severity, a confidence label (`confirmed`, `likely`,
 `potential`, `needs-human-review`), and evidence at `file:line` or a URL. Each
 result also lists what the tool did not check. By default a tool returns the 50

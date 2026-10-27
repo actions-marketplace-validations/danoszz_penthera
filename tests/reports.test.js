@@ -19,6 +19,17 @@ describe("audience reports", () => {
     });
   }
 
+  it("owner report says when serious findings sit in test or fixture files", () => {
+    const f = (file, severity = "high") => ({ title: "Hardcoded AWS key", severity, category: "secrets", url: file, line: 1 });
+    const one = formatAudienceReport({ target: ".", findings: [f("tests/fixtures/keys.js"), f("src/app.js")] }, "owner", { version: REPORT_VERSION });
+    expect(one).toContain("if they are real, an attacker could use them");
+    expect(one).toContain("1 of them is in test or fixture files");
+    const all = formatAudienceReport({ target: ".", findings: [f("tests/keys.js"), f("src/a.spec.ts", "critical")] }, "owner", { version: REPORT_VERSION });
+    expect(all).toContain("All of them are in test or fixture files");
+    const none = formatAudienceReport({ target: ".", findings: [f("src/app.js")] }, "owner", { version: REPORT_VERSION });
+    expect(none).not.toContain("test or fixture");
+  });
+
   it("rejects an unknown audience", () => {
     expect(() => formatAudienceReport(reportResult(), "ceo")).toThrow(/Unknown --audience/);
   });

@@ -46,6 +46,8 @@ const CATEGORY_TOP10 = {
   ssrf: "A10:2021",
 };
 
+// Test and fixture folders and files, where a "secret" is often a made-up sample.
+const TEST_PATH = /(^|\/)(tests?|__tests__|spec|e2e|fixtures|__fixtures__|__mocks__|testdata)\/|\.(test|spec)\.[a-z0-9]+$/i;
 const PLAIN = { critical: "serious", high: "serious", medium: "moderate", low: "minor", info: "note" };
 
 function isHttp(u) {
@@ -184,6 +186,7 @@ export function buildReportModel(result, { version = "0.0.0" } = {}) {
     summary: {
       ...counts,
       serious: counts.critical + counts.high,
+      seriousInTests: findings.filter((f) => (f.severity === "critical" || f.severity === "high") && TEST_PATH.test(f.file || "")).length,
       total: findings.length,
       suppressed: suppressed.length,
       inconclusive: new Set(inconclusive.map((x) => x.probe)).size,

@@ -97,8 +97,13 @@ describe("a repo scan with --giants", () => {
     const r = await cli(["--repo", repo, "--giants"]);
     expect(r.code).toBe(1);
     expect(r.stdout).toMatch(/Coverage by area/);
-    expect(r.stdout).toMatch(/Dependencies\s+covered\s+osv-scanner 2\.6\.0/);
-    expect(r.stdout).toMatch(/Secrets\s+not covered\s+gitleaks: not installed/);
+    expect(r.stdout).toMatch(/Dependencies\s+covered\s+Penthera: run penthera deps, osv-scanner 2\.6\.0/);
+    // Penthera's own secret rules ran, so the area is covered; a missing tool is
+    // "not installed" with its install hint, and never "Running".
+    expect(r.stdout).toMatch(/Secrets\s+covered\s+Penthera \(\d+ files?\), gitleaks: not installed/);
+    expect(r.stdout).toMatch(/gitleaks: not installed, install: /);
+    expect(r.stdout + r.stderr).not.toMatch(/Running gitleaks/);
+    expect(r.stdout + r.stderr).toMatch(/Running osv-scanner/);
     expect(r.stdout).toMatch(/Also reported by other tools/);
     expect(r.stdout).toMatch(/and from other tools: /);
   });
@@ -118,11 +123,14 @@ describe("a repo scan with --giants", () => {
     expect(r.stderr).toMatch(/requires gitleaks, which did not run/);
   });
 
-  it("with no tools installed, every area is not covered and the scan exits 0", async () => {
+  it("with no tools installed, no area is covered by another tool and the scan exits 0", async () => {
     const r = await cli(["--repo", quietRepo(), "--giants", "--json"]);
     expect(r.code).toBe(0);
     const out = JSON.parse(r.stdout);
     expect(out.giants.areas.every((a) => a.status === "not covered")).toBe(true);
+    // `status` is other tools only; what Penthera's own scan read is kept apart.
+    expect(out.giants.areas.find((a) => a.id === "secrets").pentheraRead).toMatchObject({ read: true });
+    expect(out.giants.areas.find((a) => a.id === "dependencies").pentheraRead).toEqual({ read: false, text: "run penthera deps" });
   });
 
   it("writes JSON, Markdown, one SARIF run per tool and the raw output in the evidence bundle, with no secret in any of them", async () => {
@@ -145,7 +153,7 @@ describe("a repo scan with --giants", () => {
     expect(sarif.runs[0].results.find((x) => x.properties.foundBy?.includes("trufflehog"))).toBeTruthy();
     const md = readFileSync(join(base, "r.md"), "utf-8");
     expect(md).toContain("## Other tools (--giants)");
-    expect(md).toMatch(/\| Secrets \| secret rules \| gitleaks 8\.30\.1/);
+    expect(md).toMatch(/\| Secrets \| secret rules \(read \d+ files?\) \| gitleaks 8\.30\.1/);
     expect(md).toContain("found by Penthera, gitleaks, trufflehog");
     const manifest = JSON.parse(readFileSync(join(ev, "manifest.json"), "utf-8"));
     expect(manifest.artifacts.filter((a) => a.path.startsWith("giants/")).map((a) => a.path).sort()).toEqual(["giants/checkov.txt", "giants/gitleaks.txt", "giants/osv-scanner.txt", "giants/trufflehog.txt"]);

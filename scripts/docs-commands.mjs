@@ -293,6 +293,9 @@ export function classify(argv, model, { file = "" } = {}) {
   if (sub === "verify" && positionals.length === 0) {
     return { kind: "placeholder", reason: "names `verify` without its findings file", problems, sub, action, flags, positionals };
   }
+  if (sub === "brief" && positionals.length === 0) {
+    return { kind: "placeholder", reason: "names `brief` without its report files", problems, sub, action, flags, positionals };
+  }
   const has = (n) => flags.some((f) => f.name === n);
   const url = positionals.find(isUrl);
   const res = (kind, reason) => ({ kind, reason, problems, sub, action, flags, positionals });
@@ -346,7 +349,7 @@ export function substitute(c, cwd) {
       || (f.name === "--license-policy" && !LICENSE_PRESETS.has(f.value));
     if (input && !existsSync(join(cwd, f.value))) missing.push(f.value);
   }
-  if (["agents", "deps"].includes(c.sub) || (c.sub === "evidence" || c.sub === "rules") && c.action === "verify") {
+  if (["agents", "deps", "brief"].includes(c.sub) || (c.sub === "evidence" || c.sub === "rules") && c.action === "verify") {
     for (const p of c.positionals) if (!existsSync(join(cwd, p))) missing.push(p);
   }
   return { argv, notes, missing };

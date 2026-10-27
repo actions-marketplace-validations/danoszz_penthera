@@ -88,6 +88,7 @@ export const TOOLS = [
       return buildResult({
         tool: "scan_repo", target: display, findings: merged.findings, limits: REPO_LIMITS, maxFindings: args.max_findings,
         extra: { routes: Array.isArray(raw.attackSurface) ? raw.attackSurface.length : 0, coverage: coverageOf(raw.coverage) },
+        scan: { mode: "repo", coverage: raw.coverage },
       });
     },
   },
@@ -119,7 +120,7 @@ export const TOOLS = [
       });
       if (!raw.reachable) throw new ToolInputError(`Target unreachable: ${url}. Is the app running?`);
       const merged = mergeResults([raw]);
-      return buildResult({ tool: "scan_url", target: url, findings: merged.findings, limits: URL_LIMITS, maxFindings: args.max_findings, extra: { profile: p.profile, offline: !!ctx.offline } });
+      return buildResult({ tool: "scan_url", target: url, findings: merged.findings, limits: URL_LIMITS, maxFindings: args.max_findings, extra: { profile: p.profile, offline: !!ctx.offline }, scan: { mode: "url" } });
     },
   },
   {
@@ -145,6 +146,7 @@ export const TOOLS = [
       return buildResult({
         tool: "check_dependencies", target: display, findings: stampProvenance(raw.findings, raw.timestamp), limits: DEPS_LIMITS, maxFindings: args.max_findings,
         extra: { ecosystem: d.ecosystem || null, lockfile: d.lockfile || null, packages: d.total ?? null, scanned: d.scanned ?? null, capabilities: d.capabilityCounts || {} },
+        scan: { mode: "deps" },
       });
     },
   },
@@ -162,6 +164,7 @@ export const TOOLS = [
       return buildResult({
         tool: "audit_ai_tooling", target: display, findings: stampProvenance(raw.findings, raw.timestamp), limits: AGENTS_LIMITS, maxFindings: args.max_findings,
         extra: { grade: a.grade ?? null, score: a.score ?? null, inventory: a.inventory ? { ...a.inventory, configFiles: (a.inventory.configFiles || []).slice(0, 50).map((f) => cleanText(f, 300)) } : null },
+        scan: { mode: "agents" },
       });
     },
   },

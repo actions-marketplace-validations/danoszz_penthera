@@ -18,6 +18,8 @@ import { createHash } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import { CACHE, RESULTS, MALWARE_DIR, fetchBuf, ensureDir, sh, fmt, cloneAt } from "./common.mjs";
 import { currentSplit, inSplit } from "./split.mjs";
+import { secretTokens } from "../../lib/giants/adapters/gitleaks.js";
+import { secretHash } from "../../lib/giants/finding.js";
 
 // Each tool pinned to the newest release that was at least four days old on
 // 2026-10-24. sha256 is checked on every download: against the release's own
@@ -80,14 +82,14 @@ export const TOOLS = {
 // scan time, which breaks the no-network rule (and AGENTS.md rule 5).
 export const SKIPPED = { "semgrep p/secrets": "downloads its rules from the Semgrep registry at scan time; cannot run offline" };
 const TOOLS_DIR = join(CACHE, "tools");
-const OFFLINE = "(version 1)(allow default)(deny network*)";
+export const OFFLINE = "(version 1)(allow default)(deny network*)";
 // Python multiprocessing (credsweeper's SyncManager, deepsecrets' forkserver)
 // talks over Unix-domain sockets. This profile allows those and nothing else:
 // every IP connection is still denied.
-const OFFLINE_UNIX = `${OFFLINE}(allow network* (local unix-socket))(allow network* (remote unix-socket))`;
+export const OFFLINE_UNIX = `${OFFLINE}(allow network* (local unix-socket))(allow network* (remote unix-socket))`;
 // Bearer's scan workers talk to the main process over TCP on 127.0.0.1. This
 // profile allows loopback only; every other IP connection is still denied.
-const OFFLINE_LOOPBACK = `${OFFLINE}(allow network* (local ip "localhost:*"))(allow network* (remote ip "localhost:*"))`;
+export const OFFLINE_LOOPBACK = `${OFFLINE}(allow network* (local ip "localhost:*"))(allow network* (remote ip "localhost:*"))`;
 const TIMEOUT = 1_800_000; // 30 minutes per tool run on dev
 
 /** Run a command with every network operation denied by the kernel sandbox. */
@@ -99,7 +101,7 @@ function offline(cmd, args, opts = {}) {
   });
 }
 
-async function install() {
+export async function install() {
   ensureDir(TOOLS_DIR);
   const gl = join(TOOLS_DIR, "gitleaks");
   if (!existsSync(gl)) {
@@ -246,7 +248,7 @@ function installNpm(name, t) {
 
 // ── CredData ──────────────────────────────────────────────────────────────
 
-function walk(dir, out = []) {
+export function walk(dir, out = []) {
   for (const e of readdirSync(dir).sort()) {
     const p = join(dir, e);
     const st = lstatSync(p);
@@ -271,19 +273,27 @@ function run(cmd, args, tree, opts = {}) {
   return r;
 }
 
+// The secret's value, hashed the way lib/giants keys it: tokens of gitleaks'
+// matched span (secretTokens), TruffleHog's raw parts split at ":". Only the
+// hashes are kept; E14 merges on them (spec-giants.md, "Merging").
+const valueHashes = (spans) => [...new Set(spans.flatMap((s) => secretTokens(s)).map(secretHash))];
+const trufflehogHashes = (o) => [...new Set([o.Raw, o.RawV2, ...(o.SecretParts && typeof o.SecretParts === "object" ? Object.values(o.SecretParts) : [])]
+  .filter((s) => typeof s === "string").flatMap((s) => s.split(":")).filter((s) => s.length >= 4).map(secretHash))];
+
 const jsonl = (text) => text.split("\n").filter((l) => l.startsWith("{")).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
 
 // One entry per tool: how it scans the split tree (cwd = tree, target "data"),
 // with the tool's default rules; only network verification and update checks
 // are turned off. Each returns the exact command line and {file, line, rule}
 // hits; `variants` are other output modes of the same scan.
-const CRED_RUNNERS = {
+export const CRED_RUNNERS = {
   gitleaks(exe, tree) {
     const out = join(TOOLS_DIR, "gitleaks.json");
     const args = ["dir", join(tree, "data"), "--report-format", "json", "--report-path", out, "--exit-code", "0", "--no-banner", "--log-level", "error"];
     const g = run(exe, args, tree);
     if (g.status !== 0) throw new Error(`gitleaks: ${g.stderr}`);
-    const hits = JSON.parse(readFileSync(out, "utf-8")).map((f) => ({ file: relPath(tree, f.File), line: f.StartLine, rule: f.RuleID }));
+    // hashes: the secret's value, hashed as --giants keys it (E14); scoreHits ignores the field.
+    const hits = JSON.parse(readFileSync(out, "utf-8")).map((f) => ({ file: relPath(tree, f.File), line: f.StartLine, rule: f.RuleID, hashes: valueHashes([f.Match]) }));
     return { command: `gitleaks ${args.join(" ").replaceAll(tree, "<tree>").replaceAll(TOOLS_DIR, "<tools>")}`, hits };
   },
   "detect-secrets"(exe, tree) {
@@ -302,7 +312,7 @@ const CRED_RUNNERS = {
     // --no-verification: verification calls each provider's API. The default
     // --results (verified,unverified,unknown) is the main row; the variant adds
     // filtered_unverified, the results TruffleHog itself filters out.
-    const parse = (r) => jsonl(r.stdout).filter((o) => o.SourceMetadata).map((o) => ({ file: relPath(tree, o.SourceMetadata.Data.Filesystem.file), line: o.SourceMetadata.Data.Filesystem.line, rule: o.DetectorName }));
+    const parse = (r) => jsonl(r.stdout).filter((o) => o.SourceMetadata).map((o) => ({ file: relPath(tree, o.SourceMetadata.Data.Filesystem.file), line: o.SourceMetadata.Data.Filesystem.line, rule: o.DetectorName, hashes: trufflehogHashes(o) }));
     const base = ["filesystem", "data", "--no-verification", "--json", "--no-update"];
     const r = run(exe, base, tree);
     if (r.status !== 0) throw new Error(`trufflehog: ${r.stderr.slice(-500)}`);
@@ -568,12 +578,15 @@ export function sarifHits(sarif, root = "") {
     for (const res of run.results || []) {
       const ref = res.rule || {};
       const rule = byId.get(res.ruleId ?? ref.id) || comps[ref.toolComponent?.index ?? 0]?.rules?.[ref.index ?? res.ruleIndex ?? -1] || {};
-      const cls = classesOf([...(rule.properties?.tags || []), ...(res.properties?.tags || [])]);
+      const tags = [...(rule.properties?.tags || []), ...(res.properties?.tags || [])];
+      const cls = classesOf(tags);
+      // Every CWE the rule names, for E14's merge key (file, line, CWE).
+      const cwe = [...new Set(tags.flatMap((t) => [...String(t).matchAll(/cwe[-/]0*(\d+)/gi)].map((m) => `CWE-${Number(m[1])}`)))].sort();
       const loc = res.locations?.[0]?.physicalLocation || {};
       let file = decodeURIComponent(String(loc.artifactLocation?.uri || "")).replace(/^file:\/\//, "");
       if (root && file.startsWith(root + "/")) file = file.slice(root.length + 1);
       file = file.replace(/^(\.\/)+/, "");
-      for (const c of cls.length ? cls : [null]) hits.push({ file, line: loc.region?.startLine ?? null, rule: res.ruleId ?? rule.id ?? null, cls: c });
+      for (const c of cls.length ? cls : [null]) hits.push({ file, line: loc.region?.startLine ?? null, rule: res.ruleId ?? rule.id ?? null, cls: c, cwe });
     }
   }
   return hits;
@@ -600,13 +613,13 @@ function offlineAsync(cmd, args, { profile = OFFLINE, cwd, env = {}, timeout = 6
   });
 }
 
-async function pool(items, n, fn) {
+export async function pool(items, n, fn) {
   let i = 0;
   await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length) { const k = i++; await fn(items[k], k); } }));
 }
 
 const PKG_TIMEOUT = { njsscan: 600_000, codeql: 900_000, semgrep: 600_000, "eslint-plugin-security": 600_000, bearer: 600_000, graudit: 600_000, odgen: 600_000 };
-const JOBS = { njsscan: 4, codeql: 3, semgrep: 3, "eslint-plugin-security": 4, bearer: 3, graudit: 6, odgen: 6 };
+export const JOBS = { njsscan: 4, codeql: 3, semgrep: 3, "eslint-plugin-security": 4, bearer: 3, graudit: 6, odgen: 6 };
 
 // Rules with no CWE in their output, classed by what the rule looks for.
 const ESLINT_CLASS = { "security/detect-child-process": "command-injection", "security/detect-eval-with-expression": "code-injection", "security/detect-non-literal-require": "code-injection" };
@@ -785,7 +798,7 @@ const SAST_META = {
 };
 
 /** Unpack an npm tarball into dir (paths without the "package/" prefix). */
-async function unpackTo(tgzPath, dir) {
+export async function unpackTo(tgzPath, dir) {
   const { unpackTgz } = await import("../../lib/deps/source.js");
   for (const [rel, buf] of unpackTgz(readFileSync(tgzPath))) {
     const f = join(dir, rel);
@@ -796,7 +809,7 @@ async function unpackTo(tgzPath, dir) {
 }
 
 /** Is every IP connection refused under this profile? A curl must fail. */
-function sandboxCheck(profile) {
+export function sandboxCheck(profile) {
   const r = spawnSync("sandbox-exec", ["-p", profile, "curl", "-sS", "-m", "10", "-o", "/dev/null", "https://registry.npmjs.org/"], { encoding: "utf-8", timeout: 30_000 });
   return { curlExit: r.status, blocked: r.status !== 0, stderr: (r.stderr || "").trim().slice(0, 200) };
 }

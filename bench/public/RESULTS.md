@@ -272,6 +272,112 @@ here (frozen scanner, protocol § 5).
     previous clean release (`penthera deps --diff`) is the method that fits
     these; E11 did not test it.
 
+## E14 step 1: the dev half (2026-10-27; not the registered test)
+
+Pre-registration: [E14-giants-combination.md](../../docs/research/prereg/E14-giants-combination.md)
+(registered at `1b7823a`). This is § 6 step 1 only: the dev half, to build
+the merge code and check that each rerun tool is the tool E11b measured. The
+test half was not touched, and no combined test-half count exists. Nothing
+was tuned to these numbers; the keys are the spec's, as `--giants` ships
+them in `lib/giants/merge.js`.
+
+`node bench/public/giants.mjs --split dev --collect`, 2026-10-27, from main
+`1f70835`, with a bench cache of its own (results only; the inputs are E11b's).
+Each tool ran through E11b's own runner in `competitors.mjs` (same pins,
+commands and `sandbox-exec` network deny; a curl under each profile failed
+to resolve). Per-item outputs: SHA-256 `e89fe650b77dde860bea36ae74ae0527a4a5ceaba029bb705753578314c5ddad`
+(local; CredData hits carry hashes of the values, never the values).
+
+| Member | Ran | Seconds |
+|---|---|---:|
+| Penthera 2.1.0-rc.1 (main `1f70835`; see the deviations) | yes, as the CLI reports | |
+| gitleaks 8.30.1 | yes | 13 |
+| trufflehog 3.99.3 | yes | 115 |
+| Semgrep 1.180.0, semgrep-rules `9bbf021` `javascript/` | yes, 69 packages, 0 errors | 430 |
+| CodeQL 2.27.2, javascript-security-extended | yes, 69 packages, 0 errors | 486 |
+
+Nothing in the registered arms was missing.
+
+**Same tools as E11b.** Each tool's dev numbers, scored with E11b's code,
+match E11b's stored dev results exactly: gitleaks 4,708/5,687 precise and
+747/2,239 rows found, trufflehog 157/351 and 77/2,239, Semgrep 15/49 command
+and 9/16 code injection, CodeQL 35/49 and 5/16. One difference: Semgrep
+reported more findings per package than in E11b's stored run (mean 9.5
+against 8.4, largest 152 against 109) with the same recall. The noise column
+below uses this run.
+
+### CredData, dev (2,239 in-scope `T` rows, 1,327 files)
+
+Strict precision over distinct merged hits (a hit is a file and line; across
+tools, hits merge on file, line and the value's hash), in-scope row recall, F1.
+
+| Arm | Hits | Precision | Recall (row) | F1 |
+|---|---:|---|---|---:|
+| P: Penthera alone | 1,944 | 0.94 [0.93, 0.95] (1,823/1,944) | 0.72 [0.70, 0.73] (1,601/2,239) | 0.81 |
+| gitleaks alone | 5,687 | 0.83 [0.82, 0.84] (4,708/5,687) | 0.33 [0.31, 0.35] (747/2,239) | 0.48 |
+| trufflehog alone | 351 | 0.45 [0.40, 0.50] (157/351) | 0.03 [0.03, 0.04] (77/2,239) | 0.06 |
+| P + gitleaks | 7,302 | 0.85 [0.84, 0.86] (6,203/7,302) | 0.74 [0.72, 0.76] (1,655/2,239) | 0.79 |
+| P + trufflehog | 2,280 | 0.86 [0.85, 0.88] (1,965/2,280) | 0.72 [0.70, 0.74] (1,606/2,239) | 0.78 |
+| U: union | 7,631 | 0.83 [0.82, 0.84] (6,338/7,631) | 0.74 [0.72, 0.76] (1,659/2,239) | 0.78 |
+| A: agreement | 1,951 | 0.94 [0.93, 0.95] (1,830/1,951) | 0.72 [0.70, 0.73] (1,601/2,239) | 0.81 |
+
+Paired differences, bootstrap over files (10,000 resamples, seed 20261025):
+
+| | Difference | Estimate | 95% interval | Would hold on dev |
+|---|---|---:|---|---|
+| H1 | recall(U) − recall(P) | +0.026 | [+0.017, +0.037] | yes |
+| H2 | precision(U) − precision(P), margin −0.02 | −0.107 | [−0.256, +0.004] | no |
+| H3 | F1(U) − F1(gitleaks, the better tool here) | +0.308 | [+0.214, +0.439] | yes |
+| | recall(A) − recall(P) | 0.000 | [0.000, 0.000] | no |
+| | precision(A) − precision(P) | +0.000 | [0.000, +0.001] | yes |
+
+The union finds 58 more rows (2.6 points) and pays about 11 points of
+precision: gitleaks adds 5,687 hits, 979 of them on no `T` row. The agreement
+arm adds 7 hits where gitleaks and trufflehog agree and Penthera did not
+report, none on a new row. deepsecrets (not a `--giants` tool, not rerun)
+had F1 0.77 on dev in E11b; the union's is 0.78.
+
+### SecBench.js, dev (65 vulnerabilities with a sink file)
+
+| Arm | Strict recall, pooled | Findings per package (median / mean / max) |
+|---|---|---|
+| P: Penthera alone | 0.88 [0.78, 0.94] (57/65) | 1 / 1.3 / 9 |
+| Semgrep alone | 0.37 [0.26, 0.49] (24/65) | 2 / 9.5 / 152 |
+| CodeQL alone | 0.62 [0.49, 0.72] (40/65) | 1 / 3.2 / 55 |
+| P + Semgrep | 0.89 [0.79, 0.95] (58/65) | 2 / 10.3 / 158 |
+| P + CodeQL | 0.89 [0.79, 0.95] (58/65) | 2 / 4.0 / 64 |
+| U: union | 0.91 [0.81, 0.96] (59/65) | 4 / 12.9 / 210 |
+| A: agreement | 0.88 [0.78, 0.94] (57/65) | 1 / 1.4 / 12 |
+
+H4, recall(U) − recall(P): +0.031, bootstrap interval [0.000, +0.077]; exact
+McNemar 0 against 2, p = 0.50 (Holm-adjusted 0.50). It would not hold on
+dev. The union finds two more vulnerabilities and triples the findings per
+package (median 1 to 4).
+
+### What the dev half says, and what it does not
+
+If § 5's rule were applied to these dev numbers, the default would stay
+**Penthera-first**: H1 holds but H2 fails, and the agreement arm finds
+nothing Penthera does not. This is the dev half: it informs no claim and
+does not decide the default. The test half runs once, in step 2.
+
+**Spot-check (§ 6 step 1).** 50 cross-tool merges per benchmark, drawn with
+the seed, read line by line (by Claude, for the maintainer to recheck; the
+sample is in the local results folder). CredData: 49 of 50 join one value
+hit by two or three tools; one line holds two values (an MD5 string and a
+password in a comment), so it cannot be told which each tool matched.
+SecBench.js: 50 of 50 join the same call on the same line.
+
+**A gap in the value key, found here, not fixed.** Of 911 lines that two or
+more CredData tools hit, 337 merged, 34 hold different values, and 540 did
+not merge because one tool's value was not known: Penthera's value is read
+back from the reported line, as `--giants` does, and a line inside a private
+key block holds no value on its own (535 of the 540). Those hits count
+twice in the union. Counting with E11b's unit instead (every hit on a line
+merges) gives the union a lower precision, 0.82 (5,732/7,004), so the gap
+does not flatter the union's loss. Whether to fix it before step 2 is the
+maintainer's decision; a fix is a logged deviation (§ 9).
+
 ## E11b final: the sealed test half, scored once (2026-10-25)
 
 Penthera 2.0.0 (main `219b73a`) and 1.9.0 against every free tool we could

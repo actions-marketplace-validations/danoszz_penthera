@@ -24,8 +24,7 @@ import { blankAssessment } from "../lib/compliance/self-assessment.js";
 import { buildPolicyPack, policyPackIndex } from "../lib/compliance/policy-pack.js";
 import { parseQuestionnaire, answerQuestionnaire, formatQuestionnaireMarkdown } from "../lib/compliance/questionnaire.js";
 import { buildIncidentReports, formatIncidentMarkdown, incidentTemplate } from "../lib/compliance/incident.js";
-import { buildSbom, buildAiBom } from "../lib/whitebox/sbom.js";
-import { aiBomSummary } from "../lib/whitebox/aibom.js";
+import { buildSbom } from "../lib/whitebox/sbom.js";
 import { buildCraReports, craTemplate, formatCraMarkdown, readCraInput } from "../lib/compliance/cra.js";
 import { emptyHistory, updateHistory, buildAuditLoop } from "../lib/audit-loop.js";
 import { rateSuppliers, parseSupplierList, formatSuppliersMarkdown } from "../lib/supply-chain.js";
@@ -49,6 +48,26 @@ function shouldRunOnboarding(positionals, opts) {
   if (positionals.length > 0) return false;
   if (opts.repo || opts.machine) return false;
   return process.stdin.isTTY && process.stdout.isTTY;
+}
+
+/**
+ * No target, and no terminal for the wizard (an agent, CI, a pipe). A few
+ * commands that work as they are, not the whole help. Exit 2, as before.
+ */
+function printNoTarget(noArgs) {
+  const p = process.env.npm_command === "exec" ? "npx penthera" : "penthera";
+  printError(noArgs
+    ? "No target. The setup wizard needs a terminal, so it did not start."
+    : "No target. Give a URL, --repo <path>, or a command.");
+  process.stderr.write([
+    "  Run one of these in your project folder:",
+    `    ${p} init --yes --dry-run   show what setup would check and write; changes nothing`,
+    `    ${p} init --yes             run the offline checks and set up with safe defaults`,
+    `    ${p} --repo .               scan this repo's code`,
+    "",
+    `  Every option: ${p} --help`,
+    "",
+  ].join("\n") + "\n");
 }
 
 const HELP = `
@@ -550,8 +569,7 @@ export async function run() {
   }
 
   if (!agentsMode && !url && !repo && !opts.machine && !opts.readiness && !opts["policy-pack"] && !opts.sbom && !opts.aibom && !opts.questionnaire) {
-    printError("No target specified. Provide a URL, --repo, --machine, --readiness, --policy-pack, --sbom, --aibom, --questionnaire, or combine them.");
-    console.log(HELP);
+    printNoTarget(process.argv.length <= 2);
     process.exit(2);
   }
 
@@ -888,6 +906,9 @@ export async function run() {
   }
 
   if (opts.aibom) {
+    // Loaded here: aibom.js needs the `yaml` dependency, which deps and URL
+    // scans must run without (the GitHub Action has no node_modules).
+    const { buildAiBom, aiBomSummary } = await import("../lib/whitebox/aibom.js");
     const aibom = buildAiBom(resolve(opts.repo || "."), {
       serialNumber: `urn:uuid:${randomUUID()}`,
       timestamp: new Date().toISOString(),

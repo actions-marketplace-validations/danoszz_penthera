@@ -380,7 +380,8 @@ machine after Penthera's own scan: gitleaks, TruffleHog, Semgrep with your
 local rules, osv-scanner, Trivy and Checkov for a repository, nuclei and the
 ZAP baseline for a URL. Their findings go into the same report and SARIF, each
 labelled with the tool, its version and its rule. Nothing is downloaded or
-uploaded, and an area with no tool installed is reported as "not covered".
+uploaded, and an area that neither Penthera's rules nor another tool reached
+is reported as "not covered".
 
 ```bash
 penthera giants              # which tools you have

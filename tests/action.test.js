@@ -4,7 +4,7 @@
  * Nothing here talks to GitHub.
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync, cpSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import YAML from "yaml";
@@ -66,6 +66,36 @@ describe("action.yml", () => {
       expect(s.shell, s.name).toBe("bash");
       // Inputs only reach the shell through env.
       expect(s.run, s.name).not.toMatch(/\$\{\{\s*(inputs|github)\./);
+    }
+  });
+
+  it("fails the job when Penthera wrote no report, since a crash also exits 1", () => {
+    const run = action.runs.steps.find((s) => s.id === "run").run;
+    expect(run).toMatch(/if \[ ! -f "\$out\/penthera\.json" \]; then[\s\S]*?exit 2/);
+  });
+
+  it("deps and scan modes run from a checkout without node_modules, as the action does", () => {
+    // Every release from 1.5.0 to 2.0.0 crashed here: a static `yaml` import.
+    const tmp = mkdtempSync(join(tmpdir(), "penthera-action-"));
+    try {
+      const copy = join(tmp, "penthera");
+      for (const d of ["bin", "src", "lib", "scripts", "package.json"]) cpSync(join(ROOT, d), join(copy, d), { recursive: true });
+      const app = join(tmp, "app");
+      cpSync(join(ROOT, "tests", "fixtures", "init", "app"), app, { recursive: true });
+      const home = join(tmp, "home");
+      const r = spawnSync(process.execPath, [join(copy, "bin", "penthera.js"), "deps", ".", "-o", join(tmp, "out.json")], {
+        cwd: app, encoding: "utf-8", env: { ...process.env, NO_COLOR: "1", HOME: home, PENTHERA_HOME: join(home, ".penthera") },
+      });
+      expect(r.stderr).not.toMatch(/ERR_MODULE_NOT_FOUND/);
+      expect(r.status).toBe(0);
+      expect(existsSync(join(tmp, "out.json"))).toBe(true);
+      // scan mode: an unreachable loopback port fails the scan (exit 2), but never on a missing module.
+      const u = spawnSync(process.execPath, [join(copy, "bin", "penthera.js"), "http://127.0.0.1:9", "--offline"], {
+        cwd: app, encoding: "utf-8", env: { ...process.env, NO_COLOR: "1", HOME: home, PENTHERA_HOME: join(home, ".penthera") },
+      });
+      expect(u.stderr + u.stdout).not.toMatch(/ERR_MODULE_NOT_FOUND|Cannot find package/);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
     }
   });
 

@@ -7,7 +7,7 @@ import { writeFileSync, readFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { resolveWstgTags } from "../lib/owasp-wstg.js";
 import { referencesFor } from "../lib/references.js";
-import { formatDepsTerminal } from "../lib/deps/report.js";
+import { formatDepsTerminal, uncheckedDeps } from "../lib/deps/report.js";
 import { describeCoverage } from "../lib/coverage.js";
 import { giantsTerminalLines, foundByText } from "./report/giants.js";
 import { toolById } from "../lib/giants/tools.js";
@@ -72,7 +72,7 @@ export function printReport(result, opts = {}) {
   else if (result.mode) w(`  Mode       ${result.mode}`);
   if (result.giants) {
     const ran = result.giants.tools.filter((t) => t.status === "ran").map((t) => t.id);
-    w(`  Giants     ${ran.length ? ran.join(", ") : "no other tool ran"}${c.dim(result.giants.online ? " (--giants-online: online features on)" : " (offline)")}`);
+    w(`  Others     ${ran.length ? ran.join(", ") : "no other tool ran"}${c.dim(result.giants.online ? " (--giants-online: online features on)" : " (offline)")}`);
   }
   w("");
 
@@ -371,7 +371,10 @@ export function printReport(result, opts = {}) {
     w("");
   } else if (result.findings) {
     w(`  ${c.dim(line())}`);
-    w(`  ${c.green("No findings")} \u2014 looking good.`);
+    const un = uncheckedDeps(result.deps);
+    if (un?.none) w(`  ${c.yellow("Not checked")}: no package code was read. See "Not read" above.`);
+    else if (un) w(`  ${c.green("No findings")} in the ${un.total - un.missing} packages read; ${c.yellow(`${un.missing} were not read`)} (see above).`);
+    else w(`  ${c.green("No findings")}.`);
     w("");
   }
 
@@ -511,8 +514,11 @@ function printSummaryLine(result, w) {
   if (counts.low)      parts.push(c.cyan(`${counts.low} low`));
   if (counts.info)     parts.push(c.dim(`${counts.info} info`));
 
-  if (parts.length === 0) {
-    w(`  ${c.green("\u2713")} Clean scan \u2014 no issues found`);
+  const un = uncheckedDeps(result.deps);
+  if (parts.length === 0 && un) {
+    w(`  ${c.yellow(un.none ? `Not checked: 0 of ${un.total} packages read` : `No issues in what was read; ${un.missing} of ${un.total} packages not read`)}`);
+  } else if (parts.length === 0) {
+    w(`  ${c.green("\u2713")} Clean scan, no issues found`);
   } else {
     w(`  ${parts.join(c.dim(" \u00b7 "))}`);
   }

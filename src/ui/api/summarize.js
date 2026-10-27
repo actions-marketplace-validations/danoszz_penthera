@@ -8,7 +8,7 @@
  * as text.
  */
 import { findingId } from "../../../lib/memory/views.js";
-import { gradeFindings } from "../../../lib/agents/index.js";
+import { gradeFindings } from "../../../lib/agents/grade.js";
 import { buildReportModel, CONFIDENCE_LABELS } from "../../report/model.js";
 
 export const SEVERITIES = ["critical", "high", "medium", "low", "info"];

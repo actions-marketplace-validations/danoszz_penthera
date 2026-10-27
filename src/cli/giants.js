@@ -128,6 +128,25 @@ export function giantsOptions(opts, { url, repo }) {
 }
 
 /**
+ * What Penthera's own scan read, per --giants area, so an area is never shown
+ * as unchecked when Penthera's rules ran there (and never as checked when they
+ * read nothing).
+ */
+export function pentheraRead(merged, url) {
+  const out = {};
+  const families = Object.fromEntries((merged.coverage?.families || []).map((f) => [f.id, f]));
+  const n = (k, w) => `${k} ${w}${k === 1 ? "" : "s"}`;
+  for (const [area, family] of [["secrets", "secrets"], ["code", "routes"], ["infrastructure", "runtime-pins"]]) {
+    const f = families[family];
+    if (f?.ran) out[area] = { read: f.examined > 0, text: n(f.examined, "file") };
+  }
+  if (merged.deps) out.dependencies = { read: merged.deps.scanned > 0, text: n(merged.deps.scanned, "package") };
+  else if (merged.coverage?.notRun?.some((x) => x.id === "deps")) out.dependencies = { read: false, text: "run penthera deps" };
+  if (url && merged.reachable !== false && merged.executedProbes?.length) out.live = { read: true, text: n(merged.executedProbes.length, "check") };
+  return out;
+}
+
+/**
  * Run the tools after Penthera's own scan and merge them into `merged`.
  * Returns the raw outputs (for the evidence bundle).
  */
@@ -150,6 +169,7 @@ export async function runGiantsForScan(merged, g, { opts, url, repo, deep, rateL
       nucleiTemplates: opts.nuclei ? resolve(opts.nuclei) : rel(gp.nucleiTemplates),
     },
     languages,
+    pentheraRead: pentheraRead(merged, url),
     onPhase,
   });
   attachGiants(merged, run, { root: repo ? realpathSync(resolve(repo)) : null });

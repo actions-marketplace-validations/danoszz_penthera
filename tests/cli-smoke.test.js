@@ -36,6 +36,26 @@ describe("CLI smoke (offline commands)", () => {
     }
   });
 
+  it("no arguments without a terminal: a short list of commands, not the whole help, exit 2 (B3)", () => {
+    const env = { ...process.env, NO_COLOR: "1", HOME: dir, PENTHERA_HOME: join(dir, ".penthera") };
+    delete env.npm_command;
+    for (const [args, first] of [[[], /setup wizard needs a terminal/], [["--offline"], /Give a URL, --repo <path>, or a command/]]) {
+      let err;
+      try {
+        execFileSync(process.execPath, [BIN, ...args], { cwd: dir, encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"], env });
+      } catch (e) {
+        err = e;
+      }
+      expect(err?.status).toBe(2);
+      const text = err.stderr + err.stdout;
+      expect(text).toMatch(first);
+      expect(text).toContain("penthera init --yes --dry-run");
+      expect(text).toContain("penthera --repo .");
+      expect(text).not.toContain("Exit codes");
+      expect(text.split("\n").length).toBeLessThan(15);
+    }
+  });
+
   it("an unknown word is a usage error, not a TypeError stack trace (e2e 2026-10-22)", () => {
     let err;
     try {

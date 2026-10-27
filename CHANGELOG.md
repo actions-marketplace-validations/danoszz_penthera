@@ -4,6 +4,78 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+## [2.1.0-rc.1] - 2026-10-27
+
+### Added
+
+- **`--giants`: run the free scanners you already have, in one report.** After
+  its own scan, Penthera runs the tools installed on your machine (gitleaks,
+  TruffleHog, Semgrep with your local rules, osv-scanner, Trivy and Checkov
+  for `--repo`; nuclei with your templates and the ZAP baseline for a URL)
+  and folds their findings into the terminal report, JSON, Markdown, SARIF
+  (one run per tool) and the evidence bundle, each labelled with the tool, its
+  version and its rule. `--with` and `--without` pick tools,
+  `--giants-online` adds pip-audit and TruffleHog key verification, and
+  `penthera giants` lists what you have. A new "Coverage by area" table says
+  which areas another tool covered; an area with no tool is "not covered",
+  never clean. Nothing is downloaded or installed: tools come from `PATH`
+  outside the scanned project, run without a shell, with a timeout, an output
+  cap, a minimal environment and, on macOS and Linux where available, the
+  network denied. CodeQL runs only with `--with codeql`, after a licence
+  notice. Other tools' critical and high findings count toward the exit code
+  unless the policy file says `giants.failOn: never`; the new `giants` policy
+  key can also require, limit or forbid tools. The default merge is
+  Penthera-first until experiment E14 reports, and no accuracy claim is made
+  for the combination before then. Docs: `docs/commands/giants.md`.
+
+### Changed
+
+- **The Claude Code plugin now installs from a small `plugin/` folder.** It holds
+  the Penthera skill, the pinned MCP server, a README, the licence and an icon,
+  and nothing else: no `package.json`, no `bin/`, no test fixtures. It is also
+  the folder Anthropic's plugin directory reviews. The skill now pre-approves only
+  Penthera's own commands (`penthera`, `npx -y penthera`, `npx --no-install
+  penthera`) and reading files; Claude asks before it edits a file or runs
+  anything else. A test keeps the folder's copy of the skill identical to
+  `skills/penthera`.
+
+### Site
+
+- **Share images of the public benchmarks.** `scripts/media/` now makes the
+  benchmark cards in Instagram square and story sizes, scatter charts of the
+  results, and a light set: a branded main image, paper-style figures with 95%
+  Wilson intervals, and screenshots of the CLI, the local dashboard and
+  penthera.org. Every number comes from `bench/public/published.json`.
+- **penthera.org counts checks and installs, without cookies.** Vercel Web
+  Analytics now records a few named events: a check ran (report or error), a
+  copy button was used (which one), a link to GitHub or npm was followed. An
+  event carries its name and one fixed label, never the URL or host checked,
+  the score, or anything typed. [Privacy](docs/privacy.md) says so, and a test
+  keeps it that way.
+
+### Docs
+
+- **Research plan: E15 as a candidate experiment.** It measures whether
+  Penthera's agent audit catches indirect prompt injections hidden in skills,
+  rule files and MCP tool descriptions, using the 95 attacks released with a
+  2026 public red-teaming competition, and how often it flags normal files.
+  The expected limit is stated in advance: hidden and obfuscated payloads are
+  caught; plain persuasive text is not.
+- **Roadmap: three new checks and a wider benchmark field.** Supabase tables
+  without row-level security; known vulnerabilities ranked by CISA's Known
+  Exploited Vulnerabilities list and EPSS, shipped as data in the signed rule
+  packs so ranking stays offline; Python code rules moved up, parsed with
+  Python's syntax tree. E13's field includes every free tool in scope that runs
+  offline, newer ones such as StingWard too, whatever their result.
+- **Roadmap: one first pass, with the best free tools.** Penthera will run the
+  free scanners you already have (gitleaks, trufflehog, Semgrep, osv-scanner,
+  pip-audit, trivy, checkov, nuclei, ZAP) where they are better or cover more,
+  and fold their findings into one report. Experiment E14 tests whether the
+  combination beats each tool alone. Bundling or auto-installing other
+  scanners is listed as not planned.
+  The spec (`docs/research/spec-giants.md`) is approved and E14 is
+  pre-registered, before any code or combined count.
+
 ## [2.0.0] - 2026-10-25
 
 Everything in [2.0.0-rc.1](#200-rc1---2026-10-25) below, plus:

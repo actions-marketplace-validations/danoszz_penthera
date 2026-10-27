@@ -88,7 +88,7 @@ export function createApi({ source, runs, version, settings, maxStreams = MAX_ST
   const routes = [
     ["GET", /^\/api\/meta$/, () => ({ version, demo: source.demo, ...source.meta(), settings: settings.get() })],
     ["GET", /^\/api\/overview$/, () => source.overview()],
-    ["GET", /^\/api\/findings$/, () => ({ findings: source.findings() })],
+    ["GET", /^\/api\/findings$/, () => ({ findings: source.findings(), giants: source.giants ? source.giants() : [] })],
     ["GET", /^\/api\/findings\/([0-9a-f]{16})$/, async (m, q) => {
       const f = await source.finding(m[1], q.get("project") || null);
       if (!f) throw new RunError("No finding with that id in the latest reports.", 404);

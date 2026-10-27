@@ -41,9 +41,10 @@ export function customReport(result, opts, { version, template }) {
 
 /**
  * Write the evidence bundle: JSON, Markdown, SARIF, the three audience reports,
- * the custom template report, readiness and SBOM when they were produced.
+ * the custom template report, readiness and SBOM when they were produced, and
+ * with --giants each other tool's raw output (secrets masked) under giants/.
  */
-export function writeEvidence(result, opts, { version, template, mdOpts, sbom, argv, now = new Date().toISOString() }) {
+export function writeEvidence(result, opts, { version, template, mdOpts, sbom, argv, giantsRaw = [], now = new Date().toISOString() }) {
   const footer = !opts["no-footer"];
   const artifacts = [
     { path: "README.md", kind: "readme", content: evidenceReadme(result, { version, footer }) },
@@ -55,6 +56,7 @@ export function writeEvidence(result, opts, { version, template, mdOpts, sbom, a
   if (template) artifacts.push({ path: "report-custom.md", kind: "template", content: renderTemplate(template, buildReportModel(result, { version })) });
   if (result.readiness) artifacts.push({ path: "nis2-readiness.md", kind: "readiness", content: formatReadinessMarkdown(result.readiness) });
   if (sbom) artifacts.push({ path: "sbom.cdx.json", kind: "sbom", content: JSON.stringify(sbom, null, 2) + "\n" });
+  for (const r of giantsRaw) artifacts.push({ path: `giants/${r.name}`, kind: `giants:${r.tool}`, content: r.content });
 
   return writeEvidenceBundle(opts.evidence, artifacts, {
     version,

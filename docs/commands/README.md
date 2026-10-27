@@ -15,6 +15,7 @@ has the full flag list.
 | `penthera install` | [install.md](install.md) | Check a new package before any install script runs |
 | `penthera fix`, `penthera agent --loop` | [fix.md](fix.md) | Deterministic fix recipes and the local scan, fix, verify loop |
 | `penthera --repo . --ai`, `penthera ai` | [ai-mode.md](../ai-mode.md) | Opt-in AI mode: a local model proposes, Penthera's rules check; asks every run |
+| `--giants`, `penthera giants` | [giants.md](giants.md) | Run the free scanners you have installed (gitleaks, Trivy, Semgrep, ...) and fold their findings into one report |
 | `penthera verify` | [verify.md](verify.md) | Check findings from an AI audit (Cloudflare's security-audit skill) against Penthera's rules |
 | `penthera hook` | [hook.md](hook.md) | Pre-commit hook for secrets, agent config and dependency changes |
 | `penthera rules list`, `penthera rules verify <dir>` | [rule-packs.md](../rule-packs.md) | Signed, versioned rule packs (IOCs, patterns); add your own with `--rules <dir>`, never fetched |

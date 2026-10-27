@@ -268,3 +268,63 @@ Taken by the maintainer on 2026-10-25:
 
 No open questions remain for this spec. Code may start, in the build order
 above.
+
+## Appendix: build notes (2026-10-26)
+
+Written during the build, for review. Nothing here changes a decision above.
+
+### Flags confirmed from each tool's `--help`
+
+| Tool (version checked) | Result |
+|---|---|
+| gitleaks 8.30.1 | `detect` is no longer listed; `gitleaks dir <path>` replaces `detect --no-git --source <path>`. `--redact`, `--report-format sarif`, `--report-path`, `--exit-code` as planned |
+| TruffleHog 3.99.3 | `filesystem`, `--json`, `--no-verification` as planned; `--no-update` added (no self-update check) |
+| Semgrep 1.180.0 | `--config`, `--metrics off`, `--sarif`, `--output` confirmed; `--disable-version-check` and `--quiet` added |
+| osv-scanner 2.6.0 | `--offline-vulnerabilities` alone still tries deps.dev for transitive Python resolution; `--offline` turns off every network feature and implies it, so `--offline` is used, with `--recursive` |
+| pip-audit 2.10.1 | `-r`, `--format json` confirmed. `--no-deps --disable-pip` added: pip-audit otherwise pip-installs the requirements into a temp venv, which runs their build scripts |
+| Trivy 0.76.1 | Flags as planned, plus `--skip-version-check`, `--disable-telemetry`, `--quiet` |
+| Checkov 3.3.30 | `-d`, `--output`, `--output-file-path` (a folder; the report is `results_<format>.<ext>` inside), `--skip-download` confirmed; `--quiet` added (failed checks only) |
+| nuclei 3.11.1 | `-u`, `-t`, `-duc`, `-jsonl`, `-etags` confirmed; `-ni` added (no interactsh, a third-party callback server), `-or -ot -silent -nc` for clean output. Code-protocol and headless templates need `-code` / `-headless`, which are never passed |
+| ZAP 2.17.0 (`zap-baseline.py`) | `-t`, `-J` confirmed; `-I` added (warnings do not fail the run); `-z -silent` added, because the script otherwise runs `-addonupdate` against the ZAP marketplace. No `--version`: the version is read from the JSON report |
+| CodeQL 2.27.2 | `database create --db-cluster --language --source-root --build-mode=none`, then `database analyze --format sarif-latest --output --no-download` |
+
+### Deviations from the text above
+
+- **`source` stays a string.** Every Penthera finding already has `source` as
+  a string (the check family), and baselines, memory and the audit loop key
+  on it. A tool finding's `source` is the tool's name; the object the spec
+  describes (`tool`, `version`, `ruleId`, `ruleUrl`) is in `sources`, a list,
+  because a merged finding keeps every tool. `foundBy` lists the tool names.
+- **Trivy and Checkov are read as JSON, not SARIF.** Trivy's SARIF puts the
+  package name and version in free text, and Checkov's SARIF has no resource
+  name; the merge keys need both as fields. SARIF output to GitHub is
+  unchanged: Penthera writes one run per tool either way.
+- **Penthera-first, concretely.** A tool finding that matches a Penthera
+  finding by the keys above is folded into it (`foundBy`, `alsoReportedBy`);
+  the rest are merged among the tools and listed under "Also reported by other
+  tools" (`giants.findings` in JSON). Penthera findings that can match today:
+  secrets (the value is read back from the file at the reported line and
+  hashed) and code patterns (Penthera's `eval` is CWE-95, command injection
+  CWE-78).
+- **SARIF.** A tool whose findings were all folded into Penthera's still gets
+  its own (empty) run, so code scanning shows that it ran.
+- **`--allow-host`.** The live-tool gate takes an allow-list, but the scan
+  command has no `--allow-host` flag today, so on the command line the allowed
+  set is the URL you typed and hosts on your machine.
+
+### Severity tables
+
+| Tool | Penthera severity from |
+|---|---|
+| gitleaks | No severity in its output: **high** for every rule |
+| TruffleHog | **critical** when the provider accepted the key (`--giants-online`), else **high** |
+| Semgrep | The rule's `security-severity` score when present, else SARIF level: error high, warning medium, note low |
+| CodeQL | `security-severity` score, else `problem.severity` / level as for Semgrep |
+| osv-scanner | The group's `max_severity` CVSS score, else the advisory's own word, else medium |
+| pip-audit | No severity in its output: **medium** |
+| Trivy | Trivy's own word (CRITICAL, HIGH, MEDIUM, LOW; UNKNOWN is info) |
+| Checkov | Its `severity` when set (only with a Prisma Cloud key), else **medium** |
+| nuclei | The template's `info.severity` |
+| ZAP | `riskcode`: 3 high, 2 medium, 1 low, 0 info |
+
+Scores: 9.0 and up critical, 7.0 high, 4.0 medium, above 0 low.

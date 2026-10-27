@@ -100,7 +100,7 @@ yet.
 | [Voice guide](voice.md) | How Penthera's docs and messages are written |
 | [CHANGELOG](../CHANGELOG.md) | Every release |
 | [SECURITY](../SECURITY.md) | Reporting a vulnerability in Penthera itself |
-| [Funding](funding/sponsor-tiers.md) | Sponsor tiers, the [partner brief](funding/partner-one-pager.md) and the [due diligence checklist](funding/due-diligence-checklist.md) |
+| [Funding](funding/sponsor-tiers.md) | How to sponsor Penthera, and what each tier includes |
 | [Marketing automation](marketing.md) | What runs on a schedule, and what a person still posts |
 | [MCP directory listings](mcp-listing.md) | What the maintainer pastes into MCP directories |
 

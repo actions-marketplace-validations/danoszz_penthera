@@ -5,7 +5,8 @@
  *   /llms.txt                    site/llms.txt with the build's placeholders filled in
  *   /llms-full.txt               README.md and the docs below, as one Markdown file
  *   /README.md, /docs/**.md      the same pages one by one, links made absolute
- *   /sitemap.xml                 the page, the landing pages and every file above
+ *   /sitemap.xml                 the page, the landing and benchmark pages and every
+ *                                file above, each with the date it last changed
  *   /robots.txt                  everyone allowed, pointing at the sitemap
  *   /.well-known/security.txt    RFC 9116, pointing at SECURITY.md
  *   /index.md, /openapi.json     the homepage as Markdown and the live check's spec
@@ -16,10 +17,12 @@
  * that is published under the build's version. Links between mirrored pages
  * point at their mirrors; every other link points at the file on GitHub.
  */
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, posix } from "node:path";
 import { agentReadyFiles, whenToUse } from "./agent-ready.mjs";
 import { landingPages } from "./landing.mjs";
+import { benchmarkViews, rankingList } from "./benchmarks.mjs";
 
 export const REPO = "https://github.com/danoszz/penthera";
 
@@ -70,11 +73,35 @@ export function absoluteLinks(md, from, { root, origin, mirrored }) {
 export const pinTo = (text, version) => text.replace(/(?<![\w/-])penthera@\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?/g, `penthera@${version}`);
 
 /**
+ * The date a file last changed in git (YYYY-MM-DD), for the sitemap's
+ * <lastmod>; null outside a git checkout or for a file git does not track.
+ */
+export function lastChanged(root, file) {
+  try {
+    return execFileSync("git", ["log", "-1", "--format=%cs", "--", file], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+/** The "Public benchmarks" block for llms.txt and llms-full.txt: one ranking per line. */
+export function benchmarkBlock(pub, origin) {
+  if (!pub?.benchmarks) return "";
+  return `## Public benchmarks
+
+Penthera against the free open-source tools on four public datasets, scored once on a sealed half of each (${pub.date}). Every tool, interval and limit: [${origin}/benchmarks](${origin}/benchmarks.md).
+
+${rankingList(pub, origin, ".md")}
+
+`;
+}
+
+/**
  * Every file for agents and crawlers.
- * @param {{ root: string, site: string, version: string, origin: string, values: Record<string,string>, now?: Date }} o
+ * @param {{ root: string, site: string, version: string, origin: string, values: Record<string,string>, pub?: object, now?: Date }} o
  * @returns {Record<string, string>} site path (no leading slash) to content
  */
-export function agentFiles({ root, site, version, origin, values, now = new Date() }) {
+export function agentFiles({ root, site, version, origin, values, pub = null, now = new Date() }) {
   const pages = docPages(root);
   const mirrored = new Set(pages);
   const out = {};
@@ -89,6 +116,8 @@ export function agentFiles({ root, site, version, origin, values, now = new Date
     "",
     `> Penthera ${version}. README.md and the user documentation from ${REPO}, as one Markdown file. Each page is also at its own URL, listed in ${origin}/llms.txt. Only scan targets you own or are authorized to test.`,
     "",
+    benchmarkBlock(pub, origin).trimEnd(),
+    "",
     ...pages.flatMap((p) => ["", "---", "", `<!-- Source: ${REPO}/blob/main/${p} · ${origin}/${p} -->`, "", mirror(p)]),
   ].join("\n").replace(/\n{3,}/g, "\n\n");
 
@@ -98,15 +127,27 @@ export function agentFiles({ root, site, version, origin, values, now = new Date
   const landing = landingPages(site);
   const questions = landing.length ? `## Questions the live check answers\n\n${landing.map((p) => `- [${p.h1}](${origin}/${p.slug}.md): ${p.description}`).join("\n")}\n\n` : "";
   out["llms.txt"] = fill(readFileSync(join(site, "llms.txt"), "utf8"), { ...values, ORIGIN: origin }, "llms.txt")
-    .replace(/^## Docs$/m, (m) => `${whenToUse({ version, origin })}\n${m}`)
+    .replace(/^## Docs$/m, (m) => `${benchmarkBlock(pub, origin)}${whenToUse({ version, origin })}\n${m}`)
     .replace(/^## Trust$/m, (m) => `${questions}${m}`)
     .replace(/^## Machine-readable\n\n/m, (m) => `${m}- [OpenAPI for the live check](${origin}/openapi.json): POST /api/check, a public site's passive security report\n`);
-  Object.assign(out, agentReadyFiles({ root, version, origin, values }));
+  Object.assign(out, agentReadyFiles({ root, version, origin, values, pub }));
 
   // /terms, the live check's terms: build.mjs renders it from this file.
   const terms = existsSync(join(root, "docs", "live-check-terms.md")) ? ["terms"] : [];
-  const urls = ["", "index.md", ...terms, ...landing.map((p) => p.slug), "llms.txt", "llms-full.txt", "openapi.json", ...pages];
-  out["sitemap.xml"] = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${origin}/${u}</loc></url>`).join("\n")}\n</urlset>\n`;
+  // Each URL with the file it is built from, for <lastmod>; the benchmark
+  // pages change when published.json does, on the date it records.
+  const bench = pub?.benchmarks ? benchmarkViews(pub).map((v) => [`benchmarks/${v.c.slug}`, pub.date]) : [];
+  const urls = [
+    ["", "site/index.html"], ["index.md", "site/agent-ready.mjs"], ...terms.map((t) => [t, "docs/live-check-terms.md"]),
+    ...(bench.length ? [["benchmarks", pub.date], ...bench] : []),
+    ...landing.map((p) => [p.slug, `site/pages/${p.slug}.md`]),
+    ["llms.txt", "site/llms.txt"], ["llms-full.txt", null], ["openapi.json", null], ...pages.map((p) => [p, p]),
+  ];
+  const lastmod = (src) => (src == null ? null : /^\d{4}-\d{2}-\d{2}$/.test(src) ? src : lastChanged(root, src));
+  out["sitemap.xml"] = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(([u, src]) => {
+    const d = lastmod(src);
+    return `  <url><loc>${origin}/${u}</loc>${d ? `<lastmod>${d}</lastmod>` : ""}</url>`;
+  }).join("\n")}\n</urlset>\n`;
 
   out["robots.txt"] = [
     "# penthera.org is a static page and the files listed in the sitemap. All of it is public;",

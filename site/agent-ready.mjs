@@ -11,6 +11,7 @@
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { rankingList } from "./benchmarks.mjs";
 
 const REPO = "https://github.com/danoszz/penthera";
 const NPM = "https://www.npmjs.com/package/penthera";
@@ -40,6 +41,8 @@ export function jsonLdData({ version, origin }) {
     downloadUrl: NPM,
     installUrl: NPM,
     sameAs: [REPO, NPM],
+    // The public benchmark's Dataset on /benchmarks.
+    subjectOf: { "@id": `${origin}/benchmarks#dataset` },
     author: { "@type": "Person", name: "Daan van der Zwaag", url: "https://daanvanderzwaag.com" },
   };
 }
@@ -262,7 +265,7 @@ Do not use it to find novel vulnerabilities, to test someone else's system, or i
 // ── The homepage as Markdown ────────────────────────────────────────────────
 
 /** /index.md: what the page says, for an agent that asked for Markdown. */
-export function homeMarkdown({ values: v, version, origin }) {
+export function homeMarkdown({ values: v, version, origin, pub = null }) {
   const pin = `penthera@${version}`;
   return `# Penthera: your open-source cyber security agent
 
@@ -321,8 +324,14 @@ curl -s ${origin}/api/check -H 'content-type: application/json' -d '{"url":"exam
 - OpenAPI 3.1: ${origin}/openapi.json
 
 ## How accurate it is
+${pub?.benchmarks ? `
+On public datasets other people built, against every free open-source tool we could run offline, scored once on a sealed half of each (${pub.date}):
 
-On the project's benchmark: precision ${v.BENCH_P} (95% CI ${v.BENCH_P_CI}) and recall ${v.BENCH_R} (95% CI ${v.BENCH_R_CI}), from ${v.BENCH_TP} true positives, ${v.BENCH_FP} false positives and ${v.BENCH_FN} misses in labs the project wrote. These numbers catch regressions; they do not measure real-world accuracy.
+${rankingList(pub, origin, ".md")}
+
+Every tool, interval and limit: ${origin}/benchmarks.md
+` : ""}
+Regression checks: on the project's bundled benchmark, precision ${v.BENCH_P} (95% CI ${v.BENCH_P_CI}) and recall ${v.BENCH_R} (95% CI ${v.BENCH_R_CI}), from ${v.BENCH_TP} true positives, ${v.BENCH_FP} false positives and ${v.BENCH_FN} misses in labs the project wrote. These numbers catch regressions; they do not measure real-world accuracy.
 
 ## Limits
 
@@ -330,7 +339,7 @@ On the project's benchmark: precision ${v.BENCH_P} (95% CI ${v.BENCH_P_CI}) and 
 - It does not find business-logic or authorization flaws yet. Authenticated preview scans are planned.
 - It will not find zero-days.
 - It does not replace a human penetration test. Use it before and between tests.
-- Accuracy on code the project did not write is still being measured (Penthera Bench v1 and experiment E1, pre-registered).
+- A public dataset is not your code. Accuracy on real projects is still being measured (experiment E1, pre-registered).
 
 Details: ${origin}/docs/METHODOLOGY.md
 
@@ -338,6 +347,7 @@ Details: ${origin}/docs/METHODOLOGY.md
 
 - ${origin}/llms.txt: for agents, what Penthera is and where each doc is
 - ${origin}/llms-full.txt: README.md and the documentation as one file
+- ${origin}/benchmarks: the public benchmarks, every tool and every number
 - ${origin}/docs/index.md: the documentation index
 - ${origin}/openapi.json: the live check API
 - ${origin}/terms: the live check's terms
@@ -348,9 +358,9 @@ Details: ${origin}/docs/METHODOLOGY.md
 }
 
 /** The files this module adds to site/dist. */
-export function agentReadyFiles({ root, version, origin, values }) {
+export function agentReadyFiles({ root, version, origin, values, pub = null }) {
   return {
-    "index.md": homeMarkdown({ values, version, origin }),
+    "index.md": homeMarkdown({ values, version, origin, pub }),
     "openapi.json": JSON.stringify(openApi({ version, origin, root }), null, 2) + "\n",
   };
 }

@@ -1151,6 +1151,27 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .land-cta span { font-family: var(--px); font-size: 13px; color: var(--text-3); }
 .land-foot { margin-top: 64px; padding-top: 16px; border-top: 1px solid var(--hair); font-family: var(--px); font-size: 13px; color: var(--text-3); }
 
+/* Benchmark pages (/benchmarks, site/benchmarks.mjs): the landing frame, wider for the tables. */
+.terms.bm { max-width: 1040px; }
+.bm .eyebrow a { color: inherit; }
+.bm-answer { margin-top: 20px; font-size: 19px; line-height: 1.5; max-width: 72ch; }
+.bm-limits { margin-top: 28px; padding: 4px 20px 18px; border: 1px solid var(--frame); }
+.bm-limits h2 { margin-top: 14px; font-size: 18px; }
+.bm-fig { margin: 20px 0 0; max-width: 720px; }
+.bm-fig .pb-row { grid-template-columns: 22ch 1fr 5ch; font-size: 13px; }
+.bm-fig figcaption { margin-top: 10px; font-family: var(--px); font-size: 12px; color: var(--text-3); }
+.bm-table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 14px; line-height: 1.45; font-variant-numeric: tabular-nums; }
+.bm-table th, .bm-table td { padding: 8px 10px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--hair); }
+.bm-table thead th { font-family: var(--px); font-size: 12px; font-weight: 400; color: var(--text-2); }
+.bm-table tbody th { font-weight: 500; }
+.bm-table tr.is-us th, .bm-table tr.is-us td { font-weight: 700; }
+.bm-kn, .bm-ver { font-family: var(--px); font-size: 12px; font-weight: 400; color: var(--text-3); white-space: nowrap; }
+.bm-notes { font-size: 14px; color: var(--text-2); }
+.bm-hub { list-style: none; padding: 0; display: grid; gap: 14px; }
+.bm-hub li { display: grid; gap: 4px; }
+.bm-hub span { color: var(--text-2); }
+.pb-link { font-family: var(--px); font-size: 12px; }
+
 /* Consent before a check: a heavy blur over the page, the terms in plain
  * words, and slide to scan, after the first iPhone's slide to unlock. The
  * track is a brushed plate; the thumb a square key; the label shimmers. */

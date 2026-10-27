@@ -31,6 +31,7 @@ import { jsonLd } from "./agent-ready.mjs";
 import { landingPages, landingHtml, landingMarkdown } from "./landing.mjs";
 import { termsPage } from "./terms.mjs";
 import { publicBenchHtml } from "./public-bench.mjs";
+import { benchmarkHtml, benchmarkMarkdown, benchmarkViews, cardFor, fieldTools, hubHtml, hubMarkdown } from "./benchmarks.mjs";
 
 const SITE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(SITE, "..");
@@ -501,7 +502,11 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
   // The public-benchmark ranking (E11b), from bench/public/published.json.
   // PENTHERA_PUBLISHED points a local preview at a sample file instead.
   const pubFile = process.env.PENTHERA_PUBLISHED || join(ROOT, "bench", "public", "published.json");
-  values.PUBLIC_BENCH = existsSync(pubFile) ? publicBenchHtml(JSON.parse(readFileSync(pubFile, "utf8"))) : "";
+  const pubText = existsSync(pubFile) ? readFileSync(pubFile, "utf8") : null;
+  const pub = pubText ? JSON.parse(pubText) : null;
+  values.PUBLIC_BENCH = pub ? publicBenchHtml(pub) : "";
+  // The free tools in the ranking, for the homepage's description.
+  values.BENCH_TOOLS = pub ? String(fieldTools(pub)) : "other";
   const cmp = readCompare();
   values.COMPARE = compareTable(cmp, values);
   values.COMPARE_SUMMARY = compareSummary(cmp, values);
@@ -516,10 +521,26 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
     writeFileSync(join(OUT, `${p.slug}.html`), landingHtml(p, { origin: ORIGIN, values, styles }));
     writeFileSync(join(OUT, `${p.slug}.md`), landingMarkdown(p, { origin: ORIGIN, values }));
   }
+  // The benchmark pages, from the same published.json: /benchmarks and one
+  // page per benchmark, each also as Markdown. The hub is written as
+  // benchmarks.html (cleanUrls) and as benchmarks/index.html, so /benchmarks
+  // resolves whichever a host tries first next to the benchmarks/ folder.
+  if (pub) {
+    const image = (slug) => { const f = cardFor(SITE, pubText, slug); return f ? `${ORIGIN}/${f}?v=${hash(readFileSync(join(SITE, f)))}` : undefined; };
+    mkdirSync(join(OUT, "benchmarks"), { recursive: true });
+    const hub = hubHtml(pub, { origin: ORIGIN, styles, image: image("hub") });
+    writeFileSync(join(OUT, "benchmarks.html"), hub);
+    writeFileSync(join(OUT, "benchmarks", "index.html"), hub);
+    writeFileSync(join(OUT, "benchmarks.md"), hubMarkdown(pub, { origin: ORIGIN }));
+    for (const v of benchmarkViews(pub)) {
+      writeFileSync(join(OUT, "benchmarks", `${v.c.slug}.html`), benchmarkHtml(v.key, pub, { origin: ORIGIN, styles, image: image(v.c.slug) }));
+      writeFileSync(join(OUT, "benchmarks", `${v.c.slug}.md`), benchmarkMarkdown(v.key, pub, { origin: ORIGIN }));
+    }
+  }
   // For agents and crawlers: llms.txt (the same placeholders, so its pins
   // match the page), the docs as Markdown, the sitemap, robots.txt and
   // security.txt. All from the repo, at the package's homepage.
-  for (const [f, text] of Object.entries(agentFiles({ root: ROOT, site: SITE, version: siteVersion(version), origin: ORIGIN, values }))) {
+  for (const [f, text] of Object.entries(agentFiles({ root: ROOT, site: SITE, version: siteVersion(version), origin: ORIGIN, values, pub }))) {
     mkdirSync(dirname(join(OUT, f)), { recursive: true });
     writeFileSync(join(OUT, f), text);
   }

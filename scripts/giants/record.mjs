@@ -43,10 +43,6 @@ let problems = 0;
 const only = values.only ? values.only.split(",") : null;
 
 for (const p of [TARGET_ROOT, RULES, TEMPLATES]) rmSync(p, { recursive: true, force: true });
-if (problems) {
-  process.stderr.write(`  ${problems} tool(s) did not run or could not be read\n`);
-  process.exitCode = 1;
-}
 writeTarget(TARGET_ROOT);
 const rulesFrom = values["semgrep-rules"] || process.env.PENTHERA_SEMGREP_RULES || null;
 for (const [from, to] of [[rulesFrom, RULES], [join(FIXTURES, "nuclei-templates"), TEMPLATES]]) {

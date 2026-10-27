@@ -23,7 +23,7 @@ export default [
       "no-empty": ["error", { allowEmptyCatch: true }],
     },
   },
-  { files: ["src/ui/static/**", "site/check/**", "site/theme.js"], languageOptions: { globals: { ...globals.browser } } },
-  { files: ["site/theme.js"], languageOptions: { sourceType: "script" } },
+  { files: ["src/ui/static/**", "site/check/**", "site/theme.js", "site/track.js"], languageOptions: { globals: { ...globals.browser } } },
+  { files: ["site/theme.js", "site/track.js"], languageOptions: { sourceType: "script" } },
   { files: ["**/*.cjs"], languageOptions: { sourceType: "commonjs" } },
 ];

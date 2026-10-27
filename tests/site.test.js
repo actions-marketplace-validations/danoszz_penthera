@@ -451,6 +451,16 @@ describe("site story", () => {
     }
   });
 
+  it("the Upkeep waitlist is an email, not a form, and stores nothing", () => {
+    const page = readFileSync(join(out, "upkeep.html"), "utf8");
+    expect(page).not.toMatch(/<form\b/);
+    expect(page).toMatch(/href="mailto:upkeep@penthera\.org\?subject=Upkeep%20waitlist/);
+    expect(page).toContain('data-track="upkeep-waitlist"');
+    expect(page).toContain("Nothing to buy yet.");
+    expect(page).toContain('<script defer src="/track.js"></script>');
+    expect(existsSync(join(out, "track.js"))).toBe(true);
+  });
+
   it("counts checks and installs without the URL, host or score", () => {
     // docs/privacy.md: an event is a name and one fixed label, nothing typed.
     const ui = readFileSync(join(ROOT, "site", "check", "ui.js"), "utf8");
@@ -488,6 +498,9 @@ describe("site landing pages", () => {
   const ORIGIN = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).homepage;
   const read = (f) => readFileSync(join(out, f), "utf8");
   const pages = landingPages(join(ROOT, "site"));
+  // Live-check pages answer a search question with the live check; the
+  // waitlist page (cta: waitlist, site/pages/upkeep.md) shares the frame only.
+  const checkPages = pages.filter((p) => p.cta !== "waitlist");
 
   it("has the two search questions, each with a title and a description for search", () => {
     expect(pages.map((p) => p.slug)).toEqual(expect.arrayContaining(["lovable-bolt-app-security", "website-security-check"]));
@@ -502,7 +515,7 @@ describe("site landing pages", () => {
   });
 
   it("answers once, with the live check as the call to action and the CLI for the code", () => {
-    for (const p of pages) {
+    for (const p of checkPages) {
       const h = read(`${p.slug}.html`);
       expect(h, p.slug).toContain('<a class="btn" data-variant="default" href="/#scan">Check your site</a>');
       expect(h, p.slug).toContain("<code>npx penthera");
@@ -518,6 +531,7 @@ describe("site landing pages", () => {
       const md = readFileSync(join(ROOT, "site", "pages", `${p.slug}.md`), "utf8");
       expect(md, p.slug).not.toContain("\u2014");
       expect(md, p.slug).not.toMatch(/\b(the best|perfect|seamless|robust|powerful|cutting-edge|game-changing|comprehensive|bulletproof|100% secure)\b/i);
+      if (p.cta === "waitlist") { expect(md, p.slug).toContain("## What it is not"); continue; }
       expect(md, p.slug).toContain("## What it cannot see");
       expect(md, p.slug).toMatch(/not a guarantee/);
     }
@@ -530,7 +544,7 @@ describe("site landing pages", () => {
     expect(md).toContain(`up to ${LIMITS.sameSiteFiles + LIMITS.thirdPartyFiles} scripts and stylesheets`);
     expect(md).toContain(`${LIMITS.sameSiteFiles} from your site, ${LIMITS.thirdPartyFiles} from elsewhere`);
     expect(md).toContain(`about ${LIMITS.budgetMs / 1000} seconds`);
-    for (const p of pages) expect(read(`${p.slug}.html`), p.slug).toContain(`${COUNTS.secretPatterns} secret patterns`);
+    for (const p of checkPages) expect(read(`${p.slug}.html`), p.slug).toContain(`${COUNTS.secretPatterns} secret patterns`);
   });
 
   it("lists each page in the sitemap and llms.txt, serves its Markdown, and links it from the homepage", () => {
@@ -538,8 +552,9 @@ describe("site landing pages", () => {
     for (const p of pages) {
       expect(locs, p.slug).toContain(`${ORIGIN}/${p.slug}`);
       expect(read("llms.txt"), p.slug).toContain(`(${ORIGIN}/${p.slug}.md)`);
-      expect(read(`${p.slug}.md`), p.slug).toContain(`(${ORIGIN}/#scan)`);
       expect(read(`${p.slug}.md`), p.slug).not.toMatch(/\]\(\/(?!\/)/);
+      if (p.cta === "waitlist") continue;
+      expect(read(`${p.slug}.md`), p.slug).toContain(`(${ORIGIN}/#scan)`);
       expect(read("index.html"), p.slug).toContain(`<a href="/${p.slug}">`);
     }
   });

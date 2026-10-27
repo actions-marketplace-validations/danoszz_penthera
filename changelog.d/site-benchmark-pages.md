@@ -13,3 +13,10 @@ section: Site
   rankings.** The bundled lab numbers are labelled as regression checks.
 - **`docs/compare/README.md` no longer says no page compares detection.** It
   points to the public benchmark and says which of the compared tools are in it.
+- **A blog, built from Markdown in `blog/`.** Posts publish only once Daan sets
+  `approved:` to a date; a draft is checked and never shipped. Published posts
+  get `/blog`, an Atom feed at `/blog/feed.xml`, BlogPosting markup, sitemap
+  and `llms.txt` entries, and a footer link. Numbers in a post come from
+  `published.json` as placeholders, or must appear in its listed sources. Two
+  drafts wait for review: how the benchmark was run, and the secret-scanner
+  results.

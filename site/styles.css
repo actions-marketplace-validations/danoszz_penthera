@@ -1172,6 +1172,10 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .bm-hub span { color: var(--text-2); }
 .pb-link { font-family: var(--px); font-size: 12px; }
 
+/* Blog (site/blog.mjs): the landing frame. */
+.blog-meta, .blog-src { margin-top: 16px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
+.blog-draft { display: inline-block; margin-bottom: 16px; padding: 6px 10px; font-family: var(--px); font-size: 13px; background: var(--accent); color: var(--on-accent); }
+
 /* Consent before a check: a heavy blur over the page, the terms in plain
  * words, and slide to scan, after the first iPhone's slide to unlock. The
  * track is a brushed plate; the thumb a square key; the label shimmers. */

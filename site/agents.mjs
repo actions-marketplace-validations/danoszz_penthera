@@ -96,12 +96,15 @@ ${rankingList(pub, origin, ".md")}
 `;
 }
 
+/** The blog's approved posts for llms.txt, as Markdown links. */
+const blogList = (posts, origin) => (posts.length ? `## Blog\n\n${posts.map((p) => `- [${p.title}](${origin}/blog/${p.slug}.md) (${p.date}): ${p.description}`).join("\n")}\n\nAtom feed: ${origin}/blog/feed.xml\n\n` : "");
+
 /**
  * Every file for agents and crawlers.
- * @param {{ root: string, site: string, version: string, origin: string, values: Record<string,string>, pub?: object, now?: Date }} o
+ * @param {{ root: string, site: string, version: string, origin: string, values: Record<string,string>, pub?: object, posts?: object[], now?: Date }} o
  * @returns {Record<string, string>} site path (no leading slash) to content
  */
-export function agentFiles({ root, site, version, origin, values, pub = null, now = new Date() }) {
+export function agentFiles({ root, site, version, origin, values, pub = null, posts = [], now = new Date() }) {
   const pages = docPages(root);
   const mirrored = new Set(pages);
   const out = {};
@@ -128,7 +131,7 @@ export function agentFiles({ root, site, version, origin, values, pub = null, no
   const questions = landing.length ? `## Questions the live check answers\n\n${landing.map((p) => `- [${p.h1}](${origin}/${p.slug}.md): ${p.description}`).join("\n")}\n\n` : "";
   out["llms.txt"] = fill(readFileSync(join(site, "llms.txt"), "utf8"), { ...values, ORIGIN: origin }, "llms.txt")
     .replace(/^## Docs$/m, (m) => `${benchmarkBlock(pub, origin)}${whenToUse({ version, origin })}\n${m}`)
-    .replace(/^## Trust$/m, (m) => `${questions}${m}`)
+    .replace(/^## Trust$/m, (m) => `${questions}${blogList(posts, origin)}${m}`)
     .replace(/^## Machine-readable\n\n/m, (m) => `${m}- [OpenAPI for the live check](${origin}/openapi.json): POST /api/check, a public site's passive security report\n`);
   Object.assign(out, agentReadyFiles({ root, version, origin, values, pub }));
 
@@ -141,6 +144,8 @@ export function agentFiles({ root, site, version, origin, values, pub = null, no
     ["", "site/index.html"], ["index.md", "site/agent-ready.mjs"], ...terms.map((t) => [t, "docs/live-check-terms.md"]),
     ...(bench.length ? [["benchmarks", pub.date], ...bench] : []),
     ...landing.map((p) => [p.slug, `site/pages/${p.slug}.md`]),
+    // Approved posts only: a draft is never built, so never listed.
+    ...(posts.length ? [["blog", posts[0].date], ...posts.map((p) => [`blog/${p.slug}`, p.date])] : []),
     ["llms.txt", "site/llms.txt"], ["llms-full.txt", null], ["openapi.json", null], ...pages.map((p) => [p, p]),
   ];
   const lastmod = (src) => (src == null ? null : /^\d{4}-\d{2}-\d{2}$/.test(src) ? src : lastChanged(root, src));

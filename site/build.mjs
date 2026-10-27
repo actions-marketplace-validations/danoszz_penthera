@@ -31,6 +31,7 @@ import { jsonLd } from "./agent-ready.mjs";
 import { landingPages, landingHtml, landingMarkdown } from "./landing.mjs";
 import { termsPage } from "./terms.mjs";
 import { publicBenchHtml } from "./public-bench.mjs";
+import { readPosts, blogFiles } from "./blog.mjs";
 import { benchmarkHtml, benchmarkMarkdown, benchmarkViews, cardFor, fieldTools, hubHtml, hubMarkdown } from "./benchmarks.mjs";
 
 const SITE = dirname(fileURLToPath(import.meta.url));
@@ -441,10 +442,12 @@ export async function bundle(input, file, { minify = true } = {}) {
 
 /**
  * Build the site.
- * @param {{ out?: string, engine?: string }} opts engine: also write the
- *   check's engine alone (no DOM code) to this file, for tests
+ * @param {{ out?: string, engine?: string, blogDir?: string, drafts?: boolean }} opts engine: also write the
+ *   check's engine alone (no DOM code) to this file, for tests; blogDir: the
+ *   posts (default blog/); drafts: also render unapproved posts, unlisted
+ *   (default: PENTHERA_BLOG_DRAFTS=1, for a local preview)
  */
-export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
+export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = join(ROOT, "blog"), drafts = process.env.PENTHERA_BLOG_DRAFTS === "1" } = {}) {
   const OUT = resolve(out);
   const t0 = Date.now();
   rmSync(OUT, { recursive: true, force: true });
@@ -507,6 +510,10 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
   values.PUBLIC_BENCH = pub ? publicBenchHtml(pub) : "";
   // The free tools in the ranking, for the homepage's description.
   values.BENCH_TOOLS = pub ? String(fieldTools(pub)) : "other";
+  // The blog (site/blog.mjs): approved posts only; no approved post, no /blog and no link to it.
+  const posts = readPosts(blogDir, pub);
+  const blog = posts.published.length > 0;
+  values.BLOG_FOOT = blog ? ' · <a href="/blog">Blog</a>' : "";
   const cmp = readCompare();
   values.COMPARE = compareTable(cmp, values);
   values.COMPARE_SUMMARY = compareSummary(cmp, values);
@@ -518,7 +525,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
   writeFileSync(join(OUT, "terms.html"), termsPage(ROOT, { styles }));
   // Landing pages, one search question each (site/pages/, site/landing.mjs).
   for (const p of landingPages(SITE)) {
-    writeFileSync(join(OUT, `${p.slug}.html`), landingHtml(p, { origin: ORIGIN, values, styles }));
+    writeFileSync(join(OUT, `${p.slug}.html`), landingHtml(p, { origin: ORIGIN, values, styles, blog }));
     writeFileSync(join(OUT, `${p.slug}.md`), landingMarkdown(p, { origin: ORIGIN, values }));
   }
   // The benchmark pages, from the same published.json: /benchmarks and one
@@ -528,19 +535,23 @@ export async function buildSite({ out = join(SITE, "dist"), engine } = {}) {
   if (pub) {
     const image = (slug) => { const f = cardFor(SITE, pubText, slug); return f ? `${ORIGIN}/${f}?v=${hash(readFileSync(join(SITE, f)))}` : undefined; };
     mkdirSync(join(OUT, "benchmarks"), { recursive: true });
-    const hub = hubHtml(pub, { origin: ORIGIN, styles, image: image("hub") });
+    const hub = hubHtml(pub, { origin: ORIGIN, styles, image: image("hub"), blog });
     writeFileSync(join(OUT, "benchmarks.html"), hub);
     writeFileSync(join(OUT, "benchmarks", "index.html"), hub);
     writeFileSync(join(OUT, "benchmarks.md"), hubMarkdown(pub, { origin: ORIGIN }));
     for (const v of benchmarkViews(pub)) {
-      writeFileSync(join(OUT, "benchmarks", `${v.c.slug}.html`), benchmarkHtml(v.key, pub, { origin: ORIGIN, styles, image: image(v.c.slug) }));
+      writeFileSync(join(OUT, "benchmarks", `${v.c.slug}.html`), benchmarkHtml(v.key, pub, { origin: ORIGIN, styles, image: image(v.c.slug), blog }));
       writeFileSync(join(OUT, "benchmarks", `${v.c.slug}.md`), benchmarkMarkdown(v.key, pub, { origin: ORIGIN }));
     }
+  }
+  for (const [f, text] of Object.entries(blogFiles(posts, { origin: ORIGIN, styles, drafts }))) {
+    mkdirSync(dirname(join(OUT, f)), { recursive: true });
+    writeFileSync(join(OUT, f), text);
   }
   // For agents and crawlers: llms.txt (the same placeholders, so its pins
   // match the page), the docs as Markdown, the sitemap, robots.txt and
   // security.txt. All from the repo, at the package's homepage.
-  for (const [f, text] of Object.entries(agentFiles({ root: ROOT, site: SITE, version: siteVersion(version), origin: ORIGIN, values, pub }))) {
+  for (const [f, text] of Object.entries(agentFiles({ root: ROOT, site: SITE, version: siteVersion(version), origin: ORIGIN, values, pub, posts: posts.published }))) {
     mkdirSync(dirname(join(OUT, f)), { recursive: true });
     writeFileSync(join(OUT, f), text);
   }

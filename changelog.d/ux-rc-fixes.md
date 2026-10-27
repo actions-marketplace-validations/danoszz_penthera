@@ -1,15 +1,19 @@
 section: Fixed
 
-- **The GitHub Action's `mode: deps` runs again.** From 1.5.0 to 2.0.0 the CLI
-  loaded the `yaml` package on every command. The action's checkout has no
-  `node_modules`, so deps mode stopped with `ERR_MODULE_NOT_FOUND`, exit 1. The
-  action read that as "findings", so the job passed with no comment and no
-  SARIF. Deps and URL scans no longer load `yaml`. The action now fails the job
-  when Penthera writes no report. A test runs both modes from a copy without
+- **The GitHub Action's `mode: deps` exited before scanning on every release
+  from 1.5.0 to 2.0.0, and the job reported success with no PR comment and no
+  SARIF.** No dependency was checked in those runs. If you use `mode: deps`,
+  move your pin to 2.1.0-rc.1 or later. The cause: the CLI loaded the `yaml`
+  package on every command, and the action's checkout has no `node_modules`.
+  The resulting `ERR_MODULE_NOT_FOUND` exits 1, which the action read as
+  "findings". Deps and URL scans no longer load `yaml`. The action now fails
+  the job when Penthera writes no report. Tests cover both: an action run that
+  writes no report fails, and deps and URL scans run from a copy without
   `node_modules`.
 - **`penthera init` pins the workflow to v2.0.0**, the newest stable release
-  before this one, not v1.6.1. A test fails when the pin falls behind
-  `CHANGELOG.md`.
+  before this one, not v1.6.1. v2.0.0 still has the `mode: deps` problem
+  above, so move that pin to 2.1.0-rc.1 or later. A test fails when the pin
+  falls behind `CHANGELOG.md`.
 - **Nothing unread is reported as clean.** When packages in the lockfile are not
   installed or cached, `penthera deps` says how many were not read and how to
   read them (`npm ci --ignore-scripts`). It prints "Not checked" instead of

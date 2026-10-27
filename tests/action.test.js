@@ -4,7 +4,7 @@
  * Nothing here talks to GitHub.
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync, cpSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, rmSync, existsSync, cpSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import YAML from "yaml";
@@ -69,9 +69,37 @@ describe("action.yml", () => {
     }
   });
 
-  it("fails the job when Penthera wrote no report, since a crash also exits 1", () => {
+  it("fails the job when Penthera exits 1 without writing a report (1.5.0 to 2.0.0 passed silently)", () => {
+    // Runs the action's own "Run Penthera" script against a stand-in CLI.
     const run = action.runs.steps.find((s) => s.id === "run").run;
-    expect(run).toMatch(/if \[ ! -f "\$out\/penthera\.json" \]; then[\s\S]*?exit 2/);
+    const tmp = mkdtempSync(join(tmpdir(), "penthera-action-run-"));
+    try {
+      const fake = join(tmp, "penthera");
+      mkdirSync(join(fake, "bin"), { recursive: true });
+      writeFileSync(join(fake, "package.json"), JSON.stringify({ version: "0.0.0-test" }));
+      const step = (cli) => {
+        writeFileSync(join(fake, "bin", "penthera.js"), cli);
+        const runner = mkdtempSync(join(tmp, "runner-"));
+        const output = join(runner, "output");
+        writeFileSync(output, "");
+        const r = spawnSync("bash", ["-c", run], {
+          cwd: tmp, encoding: "utf-8",
+          env: { PATH: process.env.PATH, PENTHERA_DIR: fake, INPUT_MODE: "deps", INPUT_PATH: ".", INPUT_BASE_REF: "", PR_BASE_SHA: "", INPUT_VERSION: "", INPUT_FOOTER: "true", RUNNER_TEMP: runner, GITHUB_OUTPUT: output },
+        });
+        return { ...r, output: readFileSync(output, "utf-8") };
+      };
+      // A crash: exit 1, nothing written.
+      const crash = step("process.stderr.write(\"Error [ERR_MODULE_NOT_FOUND]\\n\"); process.exit(1);\n");
+      expect(crash.status).toBe(2);
+      expect(crash.stdout + crash.stderr).toMatch(/::error::Penthera exited 1 without writing a report/);
+      expect(crash.output).not.toMatch(/report-file=/);
+      // Real findings: exit 1 with a report, which fail-on decides later.
+      const findings = step(`const fs = require("node:fs"); const a = process.argv; fs.writeFileSync(a[a.indexOf("-o") + 1], "{}"); process.exit(1);\n`);
+      expect(findings.status).toBe(0);
+      expect(findings.output).toMatch(/report-file=/);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
   });
 
   it("deps and scan modes run from a checkout without node_modules, as the action does", () => {

@@ -114,7 +114,8 @@ runs:
             else
               echo "::notice::No base ref (not a pull request and base-ref unset); scanning without a diff."
             fi
-            args=(deps "$INPUT_PATH" "${args[@]}" --pr-comment "$out/comment.md")
+            # ${args[@]+...}: an empty array under set -u, also on bash 3.2 (macOS).
+            args=(deps "$INPUT_PATH" ${args[@]+"${args[@]}"} --pr-comment "$out/comment.md")
             ;;
           agents)
             # agents parses YAML frontmatter, the one runtime dependency. Install it

@@ -164,7 +164,9 @@ The pinned SHA is the last release tagged before this version
 (`ACTION_PIN` in `src/cli/onboarding.js`); Dependabot's `github-actions`
 updates keep it current in your repo.
 
-Known issue: in releases 1.5.0 to 2.0.0, the action's `mode: deps` stops before
-it writes a report, and the job still passes. 2.1.0-rc.1 fixes it. Until 2.1.0
-is out, move the pin to the 2.1.0-rc.1 release commit, or check that the job
-log shows the dependency report.
+Known issue: in every release from 1.5.0 to 2.0.0, the action's `mode: deps`
+exits before it scans, and the job still reports success, with no comment and
+no SARIF. The v2.0.0 pin that this version writes has the same problem.
+2.1.0-rc.1 has the fix, so `mode: deps` works with a pin to 2.1.0-rc.1 or later,
+and `init` writes such a pin from the first release after 2.1.0-rc.1. Until
+then, move the pin in your workflow to the 2.1.0-rc.1 release commit.

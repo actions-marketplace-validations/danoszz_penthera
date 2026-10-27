@@ -4,7 +4,7 @@
  * recorded fixtures.
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { mkdtempSync, rmSync, realpathSync } from "node:fs";
+import { mkdtempSync, rmSync, realpathSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { makeFinding, secretHash } from "../lib/giants/finding.js";
@@ -33,10 +33,15 @@ describe("merge keys, one category at a time", () => {
     expect(m[0].sources.map((s) => s.tool)).toEqual(["gitleaks", "trufflehog"]);
   });
 
-  it("secret: no value known means no merge", () => {
-    const a = f("gitleaks", { category: "secret", file: "a.js", line: 3, key: { secretHashes: [] } });
+  it("secret: when either has no value, file and line decide, for any two tools (E14 § 9)", () => {
+    const a = f("gitleaks", { category: "secret", file: "a.js", line: 3, key: { secretHashes: [secretHash("k1")] } });
     const b = f("checkov", { category: "secret", file: "a.js", line: 3, key: { secretHashes: [] } });
-    expect(sameFinding(a, b)).toBe(false);
+    const c = f("trufflehog", { category: "secret", file: "a.js", line: 3, key: {} });
+    expect(sameFinding(a, b)).toBe(true);
+    expect(sameFinding(b, a)).toBe(true);
+    expect(sameFinding(b, c)).toBe(true);
+    expect(sameFinding(b, f("checkov", { category: "secret", file: "a.js", line: 4, key: { secretHashes: [] } }))).toBe(false);
+    expect(sameFinding(b, f("checkov", { category: "secret", file: "b.js", line: 3, key: { secretHashes: [] } }))).toBe(false);
   });
 
   it("code: file, line and a shared CWE; without a CWE only the same tool's same rule", () => {
@@ -134,6 +139,26 @@ describe("Penthera-first on the recorded fixtures", () => {
     const { also } = mergePentheraFirst([], toolFindings(["osv-scanner", "trivy"]), { root });
     const lodash = also.find((x) => x.key.pkg === "lodash" && x.key.advisories.includes("CVE-2021-23337"));
     expect(lodash.foundBy).toEqual(["osv-scanner", "trivy"]);
+  });
+
+  it("folds gitleaks' private key into Penthera's: the key block has no one-line value, so file and line decide", () => {
+    // A made-up RSA key, built from parts so this repository holds none.
+    const body = Array.from({ length: 6 }, (_, i) => `MIIEow${String(i).repeat(2)}IBAAKCAQEA${"x7Q2".repeat(12)}`.slice(0, 64));
+    const pem = [["-----BEGIN", "RSA PRIVATE", "KEY-----"].join(" "), ...body, ["-----END", "RSA PRIVATE", "KEY-----"].join(" ")].join("\n");
+    writeFileSync(join(root, "deploy_key.pem"), `# deploy key\n${pem}\n`);
+    try {
+      const penthera = scanSecrets(root).filter((x) => x.url === "deploy_key.pem");
+      expect(penthera.map((x) => x.title)).toEqual(["Private key block in source"]);
+      const keyed = pentheraKeyed(penthera[0], root);
+      expect(keyed.length).toBeGreaterThan(0);
+      expect(keyed.every((k) => k.key.secretHashes.length === 0)).toBe(true);
+      const gitleaks = f("gitleaks", { category: "secret", ruleId: "private-key", file: "deploy_key.pem", line: penthera[0].line, key: { secretHashes: [secretHash(body.join(""))] } });
+      const { findings, also } = mergePentheraFirst(penthera, [gitleaks], { root });
+      expect(findings[0].foundBy).toEqual(["penthera", "gitleaks"]);
+      expect(also).toEqual([]);
+    } finally {
+      rmSync(join(root, "deploy_key.pem"), { force: true });
+    }
   });
 
   it("knows which Penthera findings a tool can match", () => {

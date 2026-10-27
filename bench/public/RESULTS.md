@@ -281,6 +281,13 @@ test half was not touched, and no combined test-half count exists. Nothing
 was tuned to these numbers; the keys are the spec's, as `--giants` ships
 them in `lib/giants/merge.js`.
 
+**One fix, then rescored (2026-10-27).** The first scoring found that a
+secret with no readable value (a line inside a private key block) never
+merged across tools. The maintainer decided the fix: when either finding has
+no value, file and line decide, for every tool (§ 9 of the pre-registration).
+The tables below show both scorings from the same per-item hits; nothing
+else changed. **H2 fails either way.**
+
 `node bench/public/giants.mjs --split dev --collect`, 2026-10-27, from main
 `1f70835`, with a bench cache of its own (results only; the inputs are E11b's).
 Each tool ran through E11b's own runner in `competitors.mjs` (same pins,
@@ -309,30 +316,37 @@ below uses this run.
 ### CredData, dev (2,239 in-scope `T` rows, 1,327 files)
 
 Strict precision over distinct merged hits (a hit is a file and line; across
-tools, hits merge on file, line and the value's hash), in-scope row recall, F1.
+tools, hits merge on file, line and the value's hash, or on file and line when
+either has no value), in-scope row recall, F1. The single-tool rows do not
+change with the fix.
 
 | Arm | Hits | Precision | Recall (row) | F1 |
 |---|---:|---|---|---:|
 | P: Penthera alone | 1,944 | 0.94 [0.93, 0.95] (1,823/1,944) | 0.72 [0.70, 0.73] (1,601/2,239) | 0.81 |
 | gitleaks alone | 5,687 | 0.83 [0.82, 0.84] (4,708/5,687) | 0.33 [0.31, 0.35] (747/2,239) | 0.48 |
 | trufflehog alone | 351 | 0.45 [0.40, 0.50] (157/351) | 0.03 [0.03, 0.04] (77/2,239) | 0.06 |
-| P + gitleaks | 7,302 | 0.85 [0.84, 0.86] (6,203/7,302) | 0.74 [0.72, 0.76] (1,655/2,239) | 0.79 |
-| P + trufflehog | 2,280 | 0.86 [0.85, 0.88] (1,965/2,280) | 0.72 [0.70, 0.74] (1,606/2,239) | 0.78 |
-| U: union | 7,631 | 0.83 [0.82, 0.84] (6,338/7,631) | 0.74 [0.72, 0.76] (1,659/2,239) | 0.78 |
-| A: agreement | 1,951 | 0.94 [0.93, 0.95] (1,830/1,951) | 0.72 [0.70, 0.73] (1,601/2,239) | 0.81 |
+| P + gitleaks, after the fix | 6,762 | 0.84 [0.83, 0.85] (5,676/6,762) | 0.74 [0.72, 0.76] (1,655/2,239) | 0.79 |
+| P + gitleaks, before | 7,302 | 0.85 [0.84, 0.86] (6,203/7,302) | 0.74 [0.72, 0.76] (1,655/2,239) | 0.79 |
+| P + trufflehog, after the fix | 2,244 | 0.86 [0.85, 0.88] (1,935/2,244) | 0.72 [0.70, 0.74] (1,606/2,239) | 0.78 |
+| P + trufflehog, before | 2,280 | 0.86 [0.85, 0.88] (1,965/2,280) | 0.72 [0.70, 0.74] (1,606/2,239) | 0.78 |
+| **U: union, after the fix** | 7,055 | 0.82 [0.81, 0.83] (5,781/7,055) | 0.74 [0.72, 0.76] (1,659/2,239) | 0.78 |
+| U: union, before | 7,631 | 0.83 [0.82, 0.84] (6,338/7,631) | 0.74 [0.72, 0.76] (1,659/2,239) | 0.78 |
+| A: agreement (same before and after) | 1,951 | 0.94 [0.93, 0.95] (1,830/1,951) | 0.72 [0.70, 0.73] (1,601/2,239) | 0.81 |
 
 Paired differences, bootstrap over files (10,000 resamples, seed 20261025):
 
-| | Difference | Estimate | 95% interval | Would hold on dev |
-|---|---|---:|---|---|
-| H1 | recall(U) − recall(P) | +0.026 | [+0.017, +0.037] | yes |
-| H2 | precision(U) − precision(P), margin −0.02 | −0.107 | [−0.256, +0.004] | no |
-| H3 | F1(U) − F1(gitleaks, the better tool here) | +0.308 | [+0.214, +0.439] | yes |
-| | recall(A) − recall(P) | 0.000 | [0.000, 0.000] | no |
-| | precision(A) − precision(P) | +0.000 | [0.000, +0.001] | yes |
+| | Difference | After the fix | Before the fix | Would hold on dev |
+|---|---|---|---|---|
+| H1 | recall(U) − recall(P) | +0.026 [+0.017, +0.037] | +0.026 [+0.017, +0.037] | yes, both |
+| H2 | precision(U) − precision(P), margin −0.02 | −0.118 [−0.299, +0.004] | −0.107 [−0.256, +0.004] | **no, both** |
+| H3 | F1(U) − F1(gitleaks, the better tool here) | +0.303 [+0.195, +0.438] | +0.308 [+0.214, +0.439] | yes, both |
+| | recall(A) − recall(P) | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | no, both |
+| | precision(A) − precision(P) | +0.000 [0.000, +0.001] | +0.000 [0.000, +0.001] | yes, both |
 
-The union finds 58 more rows (2.6 points) and pays about 11 points of
-precision: gitleaks adds 5,687 hits, 979 of them on no `T` row. The agreement
+The union finds 58 more rows (2.6 points) and pays about 12 points of
+precision after the fix (11 before): gitleaks adds 5,687 hits, 979 of them
+on no `T` row. The fix merges private-key lines that both tools report, which
+removes duplicate correct hits, so the union's precision goes down, not up. The agreement
 arm adds 7 hits where gitleaks and trufflehog agree and Penthera did not
 report, none on a new row. deepsecrets (not a `--giants` tool, not rerun)
 had F1 0.77 on dev in E11b; the union's is 0.78.
@@ -357,26 +371,30 @@ package (median 1 to 4).
 ### What the dev half says, and what it does not
 
 If § 5's rule were applied to these dev numbers, the default would stay
-**Penthera-first**: H1 holds but H2 fails, and the agreement arm finds
-nothing Penthera does not. This is the dev half: it informs no claim and
+**Penthera-first**, before and after the fix: H1 holds but H2 fails, and the
+agreement arm finds nothing Penthera does not. This is the dev half: it informs no claim and
 does not decide the default. The test half runs once, in step 2.
 
 **Spot-check (§ 6 step 1).** 50 cross-tool merges per benchmark, drawn with
 the seed, read line by line (by Claude, for the maintainer to recheck; the
-sample is in the local results folder). CredData: 49 of 50 join one value
-hit by two or three tools; one line holds two values (an MD5 string and a
-password in a comment), so it cannot be told which each tool matched.
-SecBench.js: 50 of 50 join the same call on the same line.
+samples are in the local results folder). CredData before the fix: 49 of 50
+join one value hit by two or three tools; one line holds two values (an MD5
+string and a password in a comment), so it cannot be told which each tool
+matched. CredData after the fix (a new draw, since the merged set changed):
+49 of 50 join one secret, 26 of them private key blocks that both tools
+report at the same first line; one curl line holds a Slack token and an
+auth header, and gitleaks' two rules on it are one hit by E11b's line unit.
+SecBench.js: 50 of 50 join the same call on the same line (the fix does not
+touch code findings).
 
-**A gap in the value key, found here, not fixed.** Of 911 lines that two or
-more CredData tools hit, 337 merged, 34 hold different values, and 540 did
-not merge because one tool's value was not known: Penthera's value is read
-back from the reported line, as `--giants` does, and a line inside a private
-key block holds no value on its own (535 of the 540). Those hits count
-twice in the union. Counting with E11b's unit instead (every hit on a line
-merges) gives the union a lower precision, 0.82 (5,732/7,004), so the gap
-does not flatter the union's loss. Whether to fix it before step 2 is the
-maintainer's decision; a fix is a logged deviation (§ 9).
+**The gap the first scoring found, and its fix.** Of 911 lines that two or
+more CredData tools hit, the first scoring merged 337; 34 hold different
+values; 540 did not merge because one tool's value was not known (Penthera's
+value is read back from the reported line, and a line inside a private key
+block holds no value on its own: 535 of the 540). With the fix, 877 merge and
+the 34 lines with two different values stay apart. Counting with E11b's own
+unit (every hit on a line merges) gives the union 0.82 (5,732/7,004), the
+same as after the fix to two decimals.
 
 ## E11b final: the sealed test half, scored once (2026-10-25)
 

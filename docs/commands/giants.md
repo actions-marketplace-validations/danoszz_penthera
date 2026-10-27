@@ -104,7 +104,7 @@ Two findings are the same when their keys match:
 
 | Category | Key |
 |---|---|
-| Secret | File, line, and the secret's value (hashed in memory, never written) |
+| Secret | File, line, and the secret's value (hashed in memory, never written). When a tool gives no value, as on a line inside a private key block, file and line alone |
 | Code | File, line, and a shared CWE |
 | Dependency or container vulnerability | Ecosystem, package, version, and a shared advisory id across aliases (CVE, GHSA, OSV, PYSEC) |
 | Infrastructure | File, resource, and a shared check id |

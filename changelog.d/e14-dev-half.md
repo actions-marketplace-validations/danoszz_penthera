@@ -5,7 +5,8 @@ section: Docs
   through E11b's pinned runners, keeps their per-item hits, and builds the
   pre-registered arms with the merge code `--giants` ships. On the dev half
   every tool reproduces its E11b numbers. The union finds 2.6 points more
-  CredData rows at about 11 points less precision, and two more SecBench.js
+  CredData rows at about 12 points less precision (11 before the secret-merge
+  fix; the precision test fails either way), and two more SecBench.js
   vulnerabilities while the median findings per package goes from 1 to 4; the test half is
   untouched. Results and the logged deviations are in `bench/public/RESULTS.md`
   and the E14 pre-registration.

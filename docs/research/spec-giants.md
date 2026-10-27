@@ -155,7 +155,7 @@ combination is scored. Two findings are the same when their keys match:
 
 | Category | Key |
 |---|---|
-| Secret | file, line, and the secret's hash (so two tools on the same key in the same place merge; two keys on one line do not) |
+| Secret | file, line, and the secret's hash (so two tools on the same key in the same place merge; two keys on one line do not). When either finding has no value, file and line alone (amended 2026-10-27 by the maintainer; E14 pre-registration § 9, entry 7) |
 | Code | file, line, and CWE (from the rule's metadata; when a tool gives none, the tool's own rule id and no merge across tools) |
 | Dependency or container vulnerability | ecosystem, package, version, and the advisory, matched across aliases (CVE, GHSA, OSV, PYSEC) |
 | Infrastructure misconfiguration | file, resource, and the check's CIS or tool id; no merge across tools without a shared id |
@@ -306,6 +306,7 @@ Written during the build, for review. Nothing here changes a decision above.
   secrets (the value is read back from the file at the reported line and
   hashed) and code patterns (Penthera's `eval` is CWE-95, command injection
   CWE-78).
+- **A secret with no value merges on file and line** (2026-10-27, the maintainer's decision after E14's dev half). Penthera's value is read back from the reported line; a line inside a private key block has none, so those findings never merged with gitleaks'. Two different values on one line still do not merge.
 - **SARIF.** A tool whose findings were all folded into Penthera's still gets
   its own (empty) run, so code scanning shows that it ran.
 - **`--allow-host`.** The live-tool gate takes an allow-list, but the scan

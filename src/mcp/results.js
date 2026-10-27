@@ -9,6 +9,7 @@
 import { createHash } from "node:crypto";
 import { fingerprintFinding } from "../../lib/audit-loop.js";
 import { referenceKeysFor } from "../../lib/references.js";
+import { buildBrief, formatBrief } from "../report/brief.js";
 
 export const MAX_STRING = 2000;
 export const MAX_RESULT_BYTES = 256 * 1024;
@@ -43,6 +44,7 @@ export function cleanText(s, max = MAX_STRING) {
 }
 
 const SEVERITIES = ["critical", "high", "medium", "low", "info"];
+const NOT_RUN_TOOL = { deps: "check_dependencies tool", agents: "audit_ai_tooling tool" };
 const SEV_RANK = Object.fromEntries(SEVERITIES.map((s, i) => [s, i]));
 
 export function countBySeverity(findings) {
@@ -99,15 +101,18 @@ export function toMcpFinding(f) {
  * @param {string[]} p.limits    what this tool did not look at
  * @param {number} [p.maxFindings]
  * @param {object} [p.extra]     tool-specific fields (grade, packages, ...)
+ * @param {object} [p.scan]      { mode, coverage } for the brief
  */
-export function buildResult({ tool, target, findings, limits, maxFindings = DEFAULT_FINDINGS, extra = {} }) {
+export function buildResult({ tool, target, findings, limits, maxFindings = DEFAULT_FINDINGS, extra = {}, scan = {} }) {
   const sorted = [...findings].sort((a, b) => (SEV_RANK[a.severity] ?? 9) - (SEV_RANK[b.severity] ?? 9));
   const all = sorted.map(toMcpFinding);
   let shown = all.slice(0, maxFindings);
+  const brief = buildBrief({ target, mode: scan.mode, coverage: scan.coverage, findings }, { notRunCommand: (n) => NOT_RUN_TOOL[n.id] || n.command });
   const structured = {
     tool,
     target: cleanText(target, 500),
     summary: countBySeverity(all),
+    brief,
     findings: shown,
     shown: shown.length,
     truncated: shown.length < all.length,
@@ -126,15 +131,18 @@ export function buildResult({ tool, target, findings, limits, maxFindings = DEFA
   return { structured, text: summaryText(structured) };
 }
 
+/**
+ * The text part of a tool result: the agent brief, then how to read it. The
+ * brief comes from rules only; the reply contract keeps the assistant's own
+ * view in a section of its own.
+ */
 function summaryText(r) {
-  const s = r.summary;
-  const counts = SEVERITIES.filter((k) => s[k]).map((k) => `${s[k]} ${k}`).join(", ");
-  const head = `Penthera ${r.tool} on ${r.target}: ${s.total ? `${s.total} finding${s.total === 1 ? "" : "s"} (${counts})` : "no findings"}.`;
-  const top = r.findings.filter((f) => f.severity !== "info").slice(0, 5)
-    .map((f) => `- [${f.severity}, ${f.confidence}] ${f.title}${f.evidence ? ` (${f.evidence})` : ""}; explain with rule "${f.rule}"`);
-  const more = r.truncated ? [`Showing ${r.shown} of ${s.total}; raise max_findings (up to ${MAX_FINDINGS}) for more.`] : [];
-  return [head, ...top, ...more, ALWAYS_LIMITS[0], UNTRUSTED_NOTE].join("\n");
+  const more = r.truncated ? [`The JSON lists ${r.shown} of ${r.summary.total} findings; raise max_findings (up to ${MAX_FINDINGS}) for more.`] : [];
+  return [formatBrief(r.brief), ...more, REPLY_CONTRACT, UNTRUSTED_NOTE].join("\n");
 }
+
+export const REPLY_CONTRACT =
+  "Reply with this brief in its order and keep the verdict line and section names. Do not move a finding between sections, change a severity or drop a group. If you checked something yourself, add it under a last section \"My read\" and say what you looked at. Ask before changing files.";
 
 /** A tool error the model can read and act on. */
 export function errorResult(message) {

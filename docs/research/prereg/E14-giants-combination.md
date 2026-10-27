@@ -155,4 +155,42 @@ Any change after registration is logged here with its date and reason before
 the test-half run. A look at any combined test-half count before step 2 voids
 the confirmatory claim and is reported as such.
 
-None so far.
+**2026-10-27, step 1 (dev half), from main `1f70835`.** Results in
+[RESULTS.md](../../../bench/public/RESULTS.md#e14-step-1-the-dev-half-2026-10-27-not-the-registered-test).
+No test-half item was read or run.
+
+1. **Penthera's version on dev.** Arm P on the dev half is Penthera
+   2.1.0-rc.1 (main `1f70835`), not 2.0.0. Between the two, the only change to
+   the secret and code-sink rules is one file filter (translation files under
+   `intl/` or named like `de-DE.json` get shape rules only, `c93b270`). For
+   step 2, see entry 6.
+2. **Units within one tool.** Each tool's own hits are counted with E11b's
+   unit (a file and line for CredData; file, line and rule for code), and the
+   spec's key decides only across tools. This is how § 3's "E11b's code and
+   units, unchanged" was read; it reproduces every tool's E11b numbers.
+3. **The value key for multi-line secrets.** `--giants` reads Penthera's
+   secret value back from the reported line. For a line inside a private key
+   block that yields no value, so those hits never merged with gitleaks'
+   (535 of 911 shared lines on dev). Fixed by entry 7.
+4. **Who spot-checked.** The 50 + 50 merged pairs were read by Claude
+   (AI-assisted), not by the maintainer, and are kept for him to recheck.
+5. **Noise counts.** Penthera's SecBench.js findings other than code sinks
+   have no location in the raw output, so they are added to its findings per
+   package unmerged.
+
+**2026-10-27, the maintainer's decisions after step 1.** Both made before
+any test-half run.
+
+6. **P for step 2 is Penthera 2.1.0-rc.2**, not 2.0.0 as § 2 registers. It
+   includes the E1 password fix; the CredData dev numbers do not change with
+   it. Step 2 waits until 2.1.0-rc.2 is released.
+7. **The secret key, when a value is missing.** When either of two secret
+   findings has no value, they merge on file and line alone, for every tool;
+   two different values on one line still do not merge. This changes the
+   spec's key (§ 2 freezes it), so it is a deviation. It is in
+   `lib/giants/merge.js`, the code `--giants` ships, with a fixture test of a
+   private key block (`tests/giants-merge.test.js`). The dev half was
+   rescored with it from the same per-item hits: the union's precision goes
+   from 0.83 to 0.82 and H2 fails either way
+   ([RESULTS.md](../../../bench/public/RESULTS.md#e14-step-1-the-dev-half-2026-10-27-not-the-registered-test)
+   keeps both). Nothing else was changed.

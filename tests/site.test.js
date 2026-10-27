@@ -459,6 +459,13 @@ describe("site story", () => {
     expect(page).toContain("Nothing to buy yet.");
     expect(page).toContain('<script defer src="/track.js"></script>');
     expect(existsSync(join(out, "track.js"))).toBe(true);
+    // The poster layout (site/upkeep.mjs): behaviour in /upkeep.js, never inline (CSP).
+    expect(page).toContain('<script defer src="/upkeep.js"></script>');
+    expect(existsSync(join(out, "upkeep.js"))).toBe(true);
+    expect(page).not.toMatch(/<script>|<style>|\sstyle="/);
+    // Prices are a range while we test, and the free way is always offered next to them.
+    expect(page).toContain("$100–300");
+    expect(page).toContain("Free and MIT, forever.");
   });
 
   it("counts checks and installs without the URL, host or score", () => {

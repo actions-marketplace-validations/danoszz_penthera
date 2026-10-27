@@ -4,14 +4,17 @@
  *
  *   developer  findings with file:line, fix recipe or diff, how to fix, sources
  *   owner      plain-language summary, top three things to do, owner actions, trend
+ *   agent      the agent brief (src/report/brief.js): verdict, act on, check first,
+ *              likely noise, not checked, next
  *   auditor    scope and method, confidence and provenance, egress, inconclusive
  *              probes, suppressions (who and why), loop timeline, NIS2 and OWASP
  */
 import { buildReportModel, CONFIDENCE_LABELS } from "./model.js";
 import { mdInline } from "./md-escape.js";
 import { footerLines } from "./footer.js";
+import { buildBrief, formatBrief } from "./brief.js";
 
-export const AUDIENCES = ["developer", "owner", "auditor"];
+export const AUDIENCES = ["developer", "owner", "auditor", "agent"];
 
 const METHODOLOGY_URL = "https://github.com/danoszz/penthera/blob/main/docs/METHODOLOGY.md";
 const EVIDENCE_URL = "https://github.com/danoszz/penthera/blob/main/docs/evidence.md";
@@ -265,6 +268,7 @@ const FORMATTERS = { developer: formatDeveloperReport, owner: formatOwnerReport,
 
 /** Render the report for one audience. Throws on an unknown audience. */
 export function formatAudienceReport(result, audience, { version, footer = true } = {}) {
+  if (audience === "agent") return formatBrief(result.brief || buildBrief(result), { footer });
   const fmt = FORMATTERS[audience];
   if (!fmt) throw new Error(`Unknown --audience "${audience}". Use one of: ${AUDIENCES.join(", ")}.`);
   return fmt({ ...buildReportModel(result, { version }), footer });

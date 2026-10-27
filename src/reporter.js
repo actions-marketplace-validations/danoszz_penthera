@@ -410,7 +410,7 @@ export function printReport(result, opts = {}) {
     w("");
     for (const { family, text } of describeCoverage(cov)) w(`  ${pad(family, 32)} ${text}`);
     if (cov.blindSpots.count > 0) {
-      w(`  ${c.yellow(`${cov.blindSpots.count} of ${cov.sourceFiles}`)} source files not analysed for code patterns ${c.dim("(listed in the Markdown and JSON reports)")}`);
+      w(`  ${c.yellow(`${cov.blindSpots.count} of ${cov.sourceFiles}`)} source files not analysed by route analysis ${c.dim("(listed in the Markdown and JSON reports)")}`);
     }
     w(`  ${c.dim(`Not part of a repo scan: ${cov.notRun.map((n) => n.command).join(", ")}`)}`);
     w("");

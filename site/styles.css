@@ -1322,3 +1322,115 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .pb-more ul { margin: 10px 0 0; padding: 0 0 0 14px; display: grid; gap: 6px; }
 .bench-also { margin-top: 64px; }
 .pb-note { font-family: var(--px); font-size: 12px; color: var(--text-2); }
+
+/* ── Upkeep (/upkeep, site/upkeep.mjs) ─────────────────────────────────
+ * The waitlist as a poster: a hero with light falling on the field, a row of
+ * plates that scrolls sideways, a switch between the two ways to run it, the
+ * promise on blue, and chips that fill in the email. Behaviour: /upkeep.js. */
+.upk { --bleed: max(var(--gutter), calc((100vw - var(--measure)) / 2)); overflow-x: clip; }
+.upk > .band:first-child { margin-top: 0; }
+.upk .label { font-family: var(--px); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; min-height: 0; margin-bottom: 16px; }
+.upk-hero {
+  position: relative; isolation: isolate;
+  padding-top: clamp(56px, 9vw, 128px);
+  background:
+    radial-gradient(70% 60% at 88% 8%, rgba(0, 0, 237, 0.55), transparent 62%),
+    radial-gradient(50% 40% at 10% 100%, rgba(var(--ink-rgb), 0.06), transparent 70%),
+    var(--ground);
+}
+.upk-hero::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: var(--pt-sparse); opacity: 0.18;
+  -webkit-mask-image: linear-gradient(180deg, #000, transparent 75%); mask-image: linear-gradient(180deg, #000, transparent 75%);
+}
+.upk-hero h1 { margin-top: 8px; max-width: 12ch; font-size: clamp(42px, 7vw, 104px); }
+.upk-lede { margin: 28px 0 24px; max-width: 36ch; font-size: clamp(19px, 2.2vw, 26px); line-height: 1.35; color: var(--text-1); letter-spacing: -0.01em; }
+.upk-ghost { display: inline-flex; align-items: center; min-height: var(--target); font-family: var(--px); font-size: 14px; color: var(--text-1); }
+.upk-note { margin-top: 8px; font-family: var(--px); font-size: 13px; color: var(--text-3); max-width: 60ch; }
+
+/* The slider: native horizontal scroll with snap, so touch and trackpads
+ * work without the script; the buttons and counter are added by it. */
+.upk-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px 24px; }
+.upk-nav { display: flex; align-items: center; gap: 8px; font-family: var(--px); font-size: 13px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.upk-nav[hidden] { display: none; }
+.upk-count { min-width: 7ch; text-align: center; }
+.upk-track {
+  display: grid; grid-auto-flow: column; grid-auto-columns: min(78vw, 380px); gap: 12px;
+  margin: 40px calc(-1 * var(--bleed)) 0; padding: 4px var(--bleed) 16px; list-style: none;
+  overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: var(--bleed);
+  overscroll-behavior-x: contain; scrollbar-width: thin;
+}
+.upk-track:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.upk-card {
+  --plate: color-mix(in srgb, rgb(var(--ink-rgb)) 9%, var(--ground));
+  position: relative; isolation: isolate; scroll-snap-align: start;
+  display: flex; flex-direction: column; gap: 14px; min-height: 300px; padding: 24px;
+  border: 1px solid rgba(var(--ink-rgb), 0.22);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, var(--lit)), transparent 48%, rgba(0, 0, 0, var(--shade))),
+    var(--plate);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, calc(var(--lit) * 4)), inset 0 -1px 0 rgba(0, 0, 0, calc(var(--shade) * 0.8));
+}
+.upk-card::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: repeating-linear-gradient(180deg, rgba(var(--ink-rgb), 0.045) 0 1px, transparent 1px 3px); }
+.upk-num { font-family: var(--px); font-size: 13px; color: var(--accent-ink); font-variant-numeric: tabular-nums; }
+.upk-card h3 { font-size: clamp(24px, 2.4vw, 30px); line-height: 1.08; letter-spacing: -0.025em; color: var(--text-1); }
+.upk-card p { margin-top: auto; color: var(--text-2); }
+.upk-card b { font-family: var(--px); font-weight: 400; font-size: 13px; color: var(--text-1); }
+
+/* Two ways: a two-button switch over two panels; without the script both
+ * panels show side by side. */
+.upk-switch { display: inline-grid; grid-template-columns: 1fr 1fr; margin-top: 32px; border: 1px solid var(--frame); }
+.upk-switch[hidden] { display: none; }
+.upk-switch [role="tab"] {
+  min-height: var(--target); padding: 0 18px; border: 0; cursor: pointer;
+  font-family: var(--px); font-size: 14px; color: var(--text-1); background: transparent;
+  transition: background-color 160ms var(--out), color 160ms var(--out), transform var(--press) var(--out);
+}
+.upk-switch [role="tab"][aria-selected="true"] { background: var(--frame); color: var(--ground); }
+.upk-switch [role="tab"]:active { transform: scale(0.97); }
+.upk-switch [role="tab"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.upk-panels { display: grid; gap: 12px; margin-top: 24px; }
+@media (min-width: 900px) { .upk-panels { grid-template-columns: 1fr 1fr; } }
+.upk-way { padding: 28px 24px; border: 1px solid var(--frame); }
+.upk-way[hidden] { display: none; }
+.upk-way h3 { font-size: clamp(24px, 2.6vw, 32px); letter-spacing: -0.025em; color: var(--text-1); }
+.upk-way ul { margin: 18px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.upk-way li { position: relative; padding-left: 22px; color: var(--text-2); }
+.upk-way li::before { content: ""; position: absolute; left: 0; top: 0.55em; width: 10px; height: 10px; background: var(--pt-half); }
+.upk-way code { font-family: var(--px); font-size: 14px; color: var(--text-1); overflow-wrap: anywhere; }
+.upk-price { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--hair); color: var(--text-2); }
+.upk-price .spec-big { font-variant-numeric: tabular-nums lining-nums; }
+.upk-switch:not([hidden]) ~ .upk-panels { grid-template-columns: 1fr; max-width: 720px; }
+.upk-way { animation: upk-in 240ms var(--out); }
+@keyframes upk-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* The promise sits on the blue band; .pillars brings the plates. */
+.upk-promise h2 { color: var(--text-1); }
+.upk-promise .pillars { grid-template-columns: 1fr; }
+@media (min-width: 900px) { .upk-promise .pillars { grid-template-columns: repeat(3, 1fr); } }
+.upk-promise .pillars h3 { color: var(--text-1); }
+
+/* The picks: chips that toggle, then the email. */
+.upk-picks[hidden] { display: none; }
+.upk-q { margin-top: 28px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
+.upk-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.upk-chip {
+  min-height: var(--target); padding: 0 16px; cursor: pointer;
+  font-family: var(--px); font-size: 14px; color: var(--text-1);
+  background: transparent; border: 1px solid rgba(var(--ink-rgb), 0.4);
+  transition: background-color 160ms var(--out), color 160ms var(--out), border-color 160ms var(--out), transform var(--press) var(--out);
+}
+.upk-chip:hover { border-color: var(--frame); }
+.upk-chip:active { transform: scale(0.97); }
+.upk-chip[aria-pressed="true"] { background: #0000ed; border-color: #0000ed; color: #fff; }
+.upk-chip:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.upk-join-band .land-cta { margin-top: 32px; }
+.upk-join-band .btn { min-height: 52px; padding: 0 28px; font-size: 16px; }
+.upk .land-foot { margin-top: 0; }
+.upk > .upk-wrap { padding: 0 max(var(--gutter), calc((100% - var(--measure)) / 2)) 64px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .upk-way { animation: none; }
+  .upk-track { scroll-behavior: auto; }
+}
+@media (max-width: 480px) { .upk-switch [role="tab"] { padding: 0 10px; font-size: 13px; } .upk-card { min-height: 0; } }

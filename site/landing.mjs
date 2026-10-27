@@ -18,12 +18,13 @@ import { join } from "node:path";
 import { renderMarkdown } from "./terms.mjs";
 import { fill } from "./agents.mjs";
 import { ldScript, siteFoot } from "./frame.mjs";
+import { upkeepMain, waitlistHref } from "./upkeep.mjs";
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const CTA_HTML = '<p class="land-cta"><a class="btn" data-variant="default" href="/#scan">Check your site</a><span>Free, passive, nothing stored. Your own site only.</span></p>';
 // `cta: waitlist` in the front matter: a mailto, so nothing is stored on the site.
 const WAITLIST_MAIL = "daan@penthera.org";
-const WAITLIST_HREF = `mailto:${WAITLIST_MAIL}?subject=${encodeURIComponent("Upkeep waitlist")}&body=${encodeURIComponent("Company: \nTeam size: \nRole: \n")}`;
+const WAITLIST_HREF = waitlistHref();
 const WAITLIST_HTML = `<p class="land-cta"><a class="btn" data-variant="default" data-track="upkeep-waitlist" href="${WAITLIST_HREF.replace(/&/g, "&amp;")}">Join the waitlist</a><span>Opens an email to ${WAITLIST_MAIL}. Nothing is stored on penthera.org.</span></p>`;
 const ctaHtml = (p) => (p.cta === "waitlist" ? WAITLIST_HTML : CTA_HTML);
 
@@ -93,16 +94,18 @@ export function landingHtml(p, { origin, values, styles = "/styles.css", theme =
   <link rel="stylesheet" href="${styles}">
   <script src="${theme}"></script>
   <script defer src="/_vercel/insights/script.js"></script>
-  <script defer src="/track.js"></script>
+  <script defer src="/track.js"></script>${p.layout === "upkeep" ? '\n  <script defer src="/upkeep.js"></script>' : ""}
   ${ld}
 </head>
 <body>
-  <main class="terms land" id="main">
+${p.layout === "upkeep" ? `  <main class="upk" id="main">${upkeepMain({ version: values.VERSION })}
+    <div class="upk-wrap">${siteFoot({ blog })}</div>
+  </main>` : `  <main class="terms land" id="main">
     <p class="eyebrow"><a href="/">Penthera</a> · ${esc(p.eyebrow || "Live check")}</p>
     <h1>${esc(p.h1)}</h1>
 ${body}
     ${siteFoot({ blog })}
-  </main>
+  </main>`}
 </body>
 </html>
 `;

@@ -43,8 +43,7 @@ Ordered, not dated. Each item names the user question it answers.
 
 The goal: Penthera benchmarked against the free tools on **every established
 public benchmark within its scope**, in the top 10 on each, and #1 where the
-data allows, with every result published, losses included. This is the work we
-are applying to NLnet to fund.
+data allows, with every result published, losses included.
 
 | Item | Question it answers | State |
 |---|---|---|

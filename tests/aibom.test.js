@@ -8,7 +8,7 @@ import { readFileSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import Ajv from "ajv";
-import { buildAiBom } from "../lib/whitebox/sbom.js";
+import { buildAiBom } from "../lib/whitebox/aibom.js";
 import { aiBomSummary } from "../lib/whitebox/aibom.js";
 
 const schema = (f) => JSON.parse(readFileSync(new URL(`./fixtures/cyclonedx/${f}`, import.meta.url), "utf-8"));

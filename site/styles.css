@@ -1095,6 +1095,8 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .report-passed > summary::before { content: "+"; width: 24px; height: 24px; display: grid; place-items: center; border: 1px solid var(--frame); }
 .report-passed[open] > summary::before { content: "\2212"; }
 .report-scope { margin-top: 16px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
+.report-upkeep { margin-top: 12px; font-size: 14px; color: var(--text-2); }
+.report-upkeep a { color: var(--accent-ink); }
 .report-deep { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--frame); display: grid; gap: 10px; justify-items: start; }
 .report-deep h3 { font-size: clamp(21px, 2.2vw, 26px); letter-spacing: -0.02em; }
 .report-deep p { max-width: 62ch; }
@@ -1150,6 +1152,31 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .land-cta .btn { text-decoration: none; }
 .land-cta span { font-family: var(--px); font-size: 13px; color: var(--text-3); }
 .land-foot { margin-top: 64px; padding-top: 16px; border-top: 1px solid var(--hair); font-family: var(--px); font-size: 13px; color: var(--text-3); }
+
+/* Benchmark pages (/benchmarks, site/benchmarks.mjs): the landing frame, wider for the tables. */
+.terms.bm { max-width: 1040px; }
+.bm .eyebrow a { color: inherit; }
+.bm-answer { margin-top: 20px; font-size: 19px; line-height: 1.5; max-width: 72ch; }
+.bm-limits { margin-top: 28px; padding: 4px 20px 18px; border: 1px solid var(--frame); }
+.bm-limits h2 { margin-top: 14px; font-size: 18px; }
+.bm-fig { margin: 20px 0 0; max-width: 720px; }
+.bm-fig .pb-row { grid-template-columns: 22ch 1fr 5ch; font-size: 13px; }
+.bm-fig figcaption { margin-top: 10px; font-family: var(--px); font-size: 12px; color: var(--text-3); }
+.bm-table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 14px; line-height: 1.45; font-variant-numeric: tabular-nums; }
+.bm-table th, .bm-table td { padding: 8px 10px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--hair); }
+.bm-table thead th { font-family: var(--px); font-size: 12px; font-weight: 400; color: var(--text-2); }
+.bm-table tbody th { font-weight: 500; }
+.bm-table tr.is-us th, .bm-table tr.is-us td { font-weight: 700; }
+.bm-kn, .bm-ver { font-family: var(--px); font-size: 12px; font-weight: 400; color: var(--text-3); white-space: nowrap; }
+.bm-notes { font-size: 14px; color: var(--text-2); }
+.bm-hub { list-style: none; padding: 0; display: grid; gap: 14px; }
+.bm-hub li { display: grid; gap: 4px; }
+.bm-hub span { color: var(--text-2); }
+.pb-link { font-family: var(--px); font-size: 12px; }
+
+/* Blog (site/blog.mjs): the landing frame. */
+.blog-meta, .blog-src { margin-top: 16px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
+.blog-draft { display: inline-block; margin-bottom: 16px; padding: 6px 10px; font-family: var(--px); font-size: 13px; background: var(--accent); color: var(--on-accent); }
 
 /* Consent before a check: a heavy blur over the page, the terms in plain
  * words, and slide to scan, after the first iPhone's slide to unlock. The

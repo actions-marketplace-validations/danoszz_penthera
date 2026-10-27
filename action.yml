@@ -114,7 +114,8 @@ runs:
             else
               echo "::notice::No base ref (not a pull request and base-ref unset); scanning without a diff."
             fi
-            args=(deps "$INPUT_PATH" "${args[@]}" --pr-comment "$out/comment.md")
+            # ${args[@]+...}: an empty array under set -u, also on bash 3.2 (macOS).
+            args=(deps "$INPUT_PATH" ${args[@]+"${args[@]}"} --pr-comment "$out/comment.md")
             ;;
           agents)
             # agents parses YAML frontmatter, the one runtime dependency. Install it
@@ -146,6 +147,11 @@ runs:
         set -e
         # 0 = clean, 1 = findings (fail-on decides), anything else = the scan broke.
         if [ "$code" -gt 1 ]; then exit "$code"; fi
+        # A crash also exits 1. Without a report nothing was checked, so fail loudly.
+        if [ ! -f "$out/penthera.json" ]; then
+          echo "::error::Penthera exited $code without writing a report, so nothing was checked."
+          exit 2
+        fi
         echo "sarif-file=$out/penthera.sarif" >> "$GITHUB_OUTPUT"
         echo "report-file=$out/penthera.json" >> "$GITHUB_OUTPUT"
         if [ -f "$out/comment.md" ]; then echo "comment-file=$out/comment.md" >> "$GITHUB_OUTPUT"; fi

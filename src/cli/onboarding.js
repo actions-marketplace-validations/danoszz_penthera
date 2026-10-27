@@ -26,7 +26,8 @@ import { isPrivateHost } from "../utils/url.js";
 import { printError, writeJsonReport } from "../reporter.js";
 import { writeMarkdownReport } from "../report/markdown.js";
 import { buildActionPlan } from "../../lib/remediation/index.js";
-import { gradeFindings } from "../../lib/agents/index.js";
+import { gradeFindings } from "../../lib/agents/grade.js";
+import { uncheckedDeps } from "../../lib/deps/report.js";
 import { installHook } from "../../lib/hook/index.js";
 
 const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf-8"));
@@ -258,10 +259,11 @@ export async function runScanWizard() {
 // ── `penthera init`: the setup wizard ─────────────────────────────────────
 
 /**
- * The release the generated workflow pins, by commit SHA. Update after each
- * release is tagged: git rev-parse vX.Y.Z^{commit}
+ * The release the generated workflow pins, by commit SHA: the newest stable
+ * release before this version. Update after each release is tagged:
+ * git rev-parse vX.Y.Z^{commit}. tests/init.test.js fails when it falls behind.
  */
-export const ACTION_PIN = Object.freeze({ tag: "v1.6.1", sha: "525895575f4a9bebe911707a43804a934eac0c4a" });
+export const ACTION_PIN = Object.freeze({ tag: "v2.0.0", sha: "9b6bb2d10cf08601e68a8fdc27ba688c9d721570" });
 
 export const WORKFLOW_PATH = ".github/workflows/penthera.yml";
 const BIN = fileURLToPath(new URL("../../bin/penthera.js", import.meta.url));
@@ -318,10 +320,19 @@ export function inside(root, path, p = { resolve, relative, isAbsolute, sep }) {
   return full;
 }
 
-function countLine(findings) {
+function countLine(findings, un = null) {
+  if (un?.none) return `not checked: 0 of ${un.total} packages installed or cached`;
   const c = countFindings(findings);
   const parts = ["critical", "high", "medium", "low"].filter((s) => c[s]).map((s) => `${c[s]} ${s}`);
-  return parts.length ? parts.join(" · ") : "no issues";
+  const line = parts.length ? parts.join(" · ") : "no issues";
+  return un ? `${line} in what was read, ${un.missing} of ${un.total} packages not read` : line;
+}
+
+/** A grade for what was read; "–" when nothing was, so nothing unread reads as an A. */
+function gradeArea(r) {
+  Object.assign(r, gradeFindings(r.merged.findings));
+  r.unchecked = uncheckedDeps(r.merged.deps);
+  if (r.unchecked?.none) Object.assign(r, { grade: "–", score: null });
 }
 
 /** Word-wrap `text` to the terminal (max 80 columns), each line prefixed by `indent`. */
@@ -338,7 +349,7 @@ function wrap(text, indent) {
 }
 
 function gradeColor(g) {
-  return g === "A" ? green(g) : g === "B" || g === "C" ? yellow(g) : red(g);
+  return g === "A" ? green(g) : g === "B" || g === "C" || g === "–" ? yellow(g) : red(g);
 }
 
 /** The generated workflow: the PR dependency review example, pinned to ACTION_PIN. */
@@ -428,7 +439,7 @@ function summaryMarkdown(results, top, ctx) {
   for (const r of results) {
     L.push(r.error
       ? `| ${r.label} | n/a | could not run: ${mdInline(r.error)} | |`
-      : `| ${mdInline(r.label)} | ${r.grade} | ${countLine(r.merged.findings)} | [${r.id}.md](${r.id}.md) |`);
+      : `| ${mdInline(r.label)} | ${r.grade} | ${countLine(r.merged.findings, r.unchecked)} | [${r.id}.md](${r.id}.md) |`);
   }
   if (top.length) {
     L.push("", "## Fix first", "");
@@ -516,7 +527,7 @@ export async function runInit(argv, { version = pkg.version } = {}) {
       const t0 = Date.now();
       try {
         r.merged = await runCheck(id, ctx);
-        Object.assign(r, gradeFindings(r.merged.findings));
+        gradeArea(r);
         writeJsonReport(r.merged, join(dir, `${id}.json`));
         writeMarkdownReport(r.merged, join(dir, `${id}.md`), { version });
       } catch (e) {
@@ -526,7 +537,7 @@ export async function runInit(argv, { version = pkg.version } = {}) {
       if (process.stdout.isTTY) process.stdout.write("\r\x1b[2K");
       out(r.error
         ? `    ${yellow("!")} ${label.padEnd(13)} ${dim("could not run:")} ${r.error}`
-        : `    ${green("✓")} ${label.padEnd(13)} ${gradeColor(r.grade)}  ${countLine(r.merged.findings)}  ${secs}`);
+        : `    ${r.unchecked ? yellow("!") : green("✓")} ${label.padEnd(13)} ${gradeColor(r.grade)}  ${countLine(r.merged.findings, r.unchecked)}  ${secs}`);
       results.push(r);
     }
 
@@ -538,22 +549,23 @@ export async function runInit(argv, { version = pkg.version } = {}) {
       offline: ctx.offline,
       checks: results.map((r) => ({
         id: r.id, label: r.label, command: r.command,
-        ...(r.error ? { error: r.error } : { grade: r.grade, score: r.score, counts: countFindings(r.merged.findings), report: { json: `${r.id}.json`, markdown: `${r.id}.md` } }),
+        ...(r.error ? { error: r.error } : { grade: r.grade, score: r.score, counts: countFindings(r.merged.findings), ...(r.unchecked ? { notRead: { packages: r.unchecked.missing, of: r.unchecked.total } } : {}), report: { json: `${r.id}.json`, markdown: `${r.id}.md` } }),
       })),
       fixFirst: top,
     }, null, 2) + "\n");
 
     out(`\n  ${hr()}`);
     out(`  ${bold("Summary")}`);
-    for (const r of results) out(`    ${r.label.padEnd(13)} ${r.error ? dim("n/a") : `${gradeColor(r.grade)}  ${countLine(r.merged.findings)}`}`);
+    for (const r of results) out(`    ${r.label.padEnd(13)} ${r.error ? dim("n/a") : `${gradeColor(r.grade)}  ${countLine(r.merged.findings, r.unchecked)}`}`);
+    for (const r of results.filter((x) => x.unchecked)) out(`\n  ${yellow(r.label)}  ${r.unchecked.what}\n  ${dim(r.unchecked.fix)}`);
     if (top.length) {
       out(`\n  ${bold("Fix first")}`);
       top.forEach((a, i) => {
         out(`    ${i + 1}. ${a.action} ${dim(`(${a.area}, ${a.severity})`)}`);
         if (a.why) out(dim(wrap(a.why, "       ")));
       });
-    } else if (results.some((r) => !r.error)) {
-      out(`\n  ${green("Nothing to fix first.")}`);
+    } else if (results.some((r) => !r.error && !r.unchecked?.none)) {
+      out(`\n  ${green("Nothing to fix first")} ${dim("in what was checked.")}`);
     }
     out(`\n  ${bold("Report")}  ${cyan(join(relDir, "summary.md"))}  ${dim(`(+ JSON and Markdown per area in ${relDir}/)`)}`);
     out(`  ${hr()}\n`);

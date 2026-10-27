@@ -63,7 +63,9 @@ export function formatMarkdownReport(result, opts = {}) {
   // TODO(good-first-issue): a missing duration prints ", "; print "-" like the other empty cells and add a test.
   lines.push(`| **Duration** | ${result.duration ? `${(result.duration / 1000).toFixed(1)}s` : ", "} |`);
   lines.push(`| **Mode** | ${result.modes?.join(", ") || result.mode || "-"} |`);
-  lines.push(`| **Reachable** | ${result.reachable ? "Yes" : "No"} |`);
+  // Only a URL scan reaches anything; a repo, deps or agents scan has nothing to report here.
+  const modes = result.modes || [result.mode];
+  if (modes.includes("url")) lines.push(`| **Reachable** | ${result.reachable ? "Yes" : "No"} |`);
   if (result.profile) lines.push(`| **Profile** | ${result.profile} |`);
   if (result.agents) {
     lines.push(`| **Agent config grade** | **${result.agents.grade}** (${result.agents.score}/100) |`);
@@ -104,7 +106,9 @@ export function formatMarkdownReport(result, opts = {}) {
     lines.push("");
   }
 
-  lines.push(formatWstgMarkdown(buildWstgCoverage(result, result.profile || opts.profile || "standard")));
+  // No probe maps to a WSTG area in a deps or agents scan: leave the empty table out.
+  const wstg = buildWstgCoverage(result, result.profile || opts.profile || "standard");
+  if (wstg.wstgExercised.length) lines.push(formatWstgMarkdown(wstg));
 
   if (result.compliance) {
     lines.push(formatComplianceMarkdown(result.compliance));
@@ -262,19 +266,19 @@ export function coverageMarkdown(cov) {
   L.push("|---|---:|---|");
   for (const f of cov.families) {
     const skipped = Object.entries(f.skipped).map(([r, n]) => `${n} ${REASONS[r] || r}`).join("; ");
-    L.push(`| ${f.label} | ${f.ran ? f.examined : "did not run"} | ${f.ran ? mdEscape(skipped || "none") : mdEscape(REASONS["no-api-surface"])} |`);
+    L.push(`| ${f.label} | ${f.ran ? f.examined : "did not run"} | ${f.ran ? mdEscape(skipped || "none") : f.id === "routes" ? mdEscape(REASONS["no-api-surface"]) : "-"} |`);
   }
   for (const n of cov.notRun) L.push(`| ${n.label} | not part of a repo scan | run \`${n.command}\` |`);
   L.push("");
   if (cov.sourceFiles > 0) {
-    L.push(`**Source files analysed for code patterns:** ${cov.sourceFilesAnalysed} of ${cov.sourceFiles}.`);
+    L.push(`**Source files analysed by route analysis:** ${cov.sourceFilesAnalysed} of ${cov.sourceFiles}.`);
     const langs = cov.languages.map((l) => `${l.language} ${l.analysed}/${l.files}`).join(", ");
     L.push(`By language: ${langs}.`);
     L.push("");
   }
   if (cov.blindSpots.count > 0) {
     const why = Object.entries(cov.blindSpots.byReason).map(([r, n]) => `${n} ${REASONS[r] || r}`).join("; ");
-    L.push(`<details><summary>${cov.blindSpots.count} source file${cov.blindSpots.count === 1 ? "" : "s"} not analysed for code patterns (${mdEscape(why)})</summary>`);
+    L.push(`<details><summary>${cov.blindSpots.count} source file${cov.blindSpots.count === 1 ? "" : "s"} not analysed by route analysis (${mdEscape(why)})</summary>`);
     L.push("");
     for (const p of cov.blindSpots.paths) L.push(`- \`${mdEscape(p)}\``);
     if (cov.blindSpots.count > cov.blindSpots.listed) L.push(`- …and ${cov.blindSpots.count - cov.blindSpots.listed} more (see the JSON report's \`coverage\`)`);

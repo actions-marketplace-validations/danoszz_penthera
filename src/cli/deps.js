@@ -8,6 +8,8 @@ import { mergeResults } from "./merge-results.js";
 import { buildActionPlan } from "../../lib/remediation/index.js";
 import { printReport, printFindings, writeJsonReport, writeSarifReport, createProgress, printError } from "../reporter.js";
 import { writeMarkdownReport, markdownPathFromJson } from "../report/markdown.js";
+import { wantBrief, briefReports } from "./brief.js";
+import { buildBrief, formatBrief } from "../report/brief.js";
 import { prepareReportOptions, customReport, writeEvidence } from "./report-outputs.js";
 import { compareWithBaseline } from "./baseline.js";
 
@@ -108,10 +110,12 @@ export async function runDeps(args, opts, { version }) {
       process.stderr.write(`\n  Baseline: ${comparison.stats.newCount} new, ${comparison.stats.resolvedCount} resolved, ${comparison.stats.unchangedCount} unchanged\n\n`);
     }
   }
+  merged.brief = buildBrief(merged, { reports: briefReports(opts) });
   const custom = customReport(merged, opts, { version, template: reportCtx.template });
 
   if (opts.json) console.log(JSON.stringify(merged, null, 2));
   else if (custom && !opts.markdown) process.stdout.write(custom);
+  else if (wantBrief(opts)) process.stdout.write(formatBrief(merged.brief));
   else if (opts.quiet) printFindings(merged.findings);
   else printReport(merged, { verbose: opts.verbose });
 

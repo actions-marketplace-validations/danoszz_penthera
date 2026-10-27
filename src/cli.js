@@ -29,6 +29,8 @@ import { buildCraReports, craTemplate, formatCraMarkdown, readCraInput } from ".
 import { emptyHistory, updateHistory, buildAuditLoop } from "../lib/audit-loop.js";
 import { rateSuppliers, parseSupplierList, formatSuppliersMarkdown } from "../lib/supply-chain.js";
 import { yellow } from "./cli/ansi.js";
+import { wantBrief, briefReports } from "./cli/brief.js";
+import { buildBrief, formatBrief } from "./report/brief.js";
 
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8"));
 
@@ -93,6 +95,7 @@ const HELP = `
     $ penthera ui [--open] [--demo]  Local dashboard on 127.0.0.1 (penthera ui --help)
     $ penthera mcp                   MCP server on stdio for your agent (penthera mcp --help)
     $ penthera giants                Which free scanners --giants can run here (penthera giants --help)
+    $ penthera brief <report.json...>  One short brief from JSON reports, for your AI assistant
 
   ${dim("Scan modes")}
         --profile <name>        quick | standard | deep (default: standard)
@@ -161,7 +164,9 @@ const HELP = `
         --markdown <file>   Write Markdown report (human-readable)
         --sarif <file>      Write SARIF report (GitHub Security tab)
         --audit-seeds <file>  Write repo findings as seeds for an AI audit (security-audit-skill findings.json)
-        --audience <who>    developer | owner | auditor report (for --markdown or stdout)
+        --audience <who>    developer | owner | auditor | agent report (for --markdown or stdout)
+        --brief             Print the agent brief to stdout (the default when stdout is
+                            not a terminal and not CI; PENTHERA_BRIEF=0 turns that off)
         --report-template <file.md>  Your own Markdown template ({{summary.critical}}, {{#each findings}})
         --evidence <dir>    Evidence bundle: all reports + manifest.json with SHA-256s
         --no-footer         Leave the one-line "Checked by Penthera" footer off Markdown output
@@ -293,6 +298,11 @@ export async function run() {
     return;
   }
 
+  if (process.argv[2] === "brief") {
+    const { runBrief } = await import("./cli/brief.js");
+    process.exit(runBrief(process.argv.slice(3)));
+  }
+
   if (process.argv[2] === "giants") {
     const { runGiantsCommand } = await import("./cli/giants.js");
     process.exitCode = await runGiantsCommand(process.argv.slice(3));
@@ -318,6 +328,7 @@ export async function run() {
         sarif:       { type: "string" },
         "audit-seeds": { type: "string" },
         audience:    { type: "string" },
+        brief:       { type: "boolean", default: false },
         "no-footer": { type: "boolean", default: false },
         "report-template": { type: "string" },
         evidence:    { type: "string" },
@@ -822,6 +833,7 @@ export async function run() {
   }
 
   const mdOpts = { version: pkg.version, baseline: baselineStats, footer: !opts["no-footer"] };
+  merged.brief = buildBrief(merged, { reports: briefReports(opts) });
   const custom = customReport(merged, opts, { version: pkg.version, template: reportCtx.template });
 
   // Output
@@ -829,6 +841,8 @@ export async function run() {
     console.log(JSON.stringify(merged, null, 2));
   } else if (custom && !opts.markdown) {
     process.stdout.write(custom);
+  } else if (wantBrief(opts)) {
+    process.stdout.write(formatBrief(merged.brief));
   } else if (opts.quiet) {
     printFindings(merged.findings);
     printFindings((merged.giants?.findings || []).map((f) => ({ ...f, title: `${f.title} [${f.foundBy.join(", ")}]` })));

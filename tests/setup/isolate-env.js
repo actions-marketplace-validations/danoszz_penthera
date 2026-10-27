@@ -11,6 +11,9 @@
  * - npm gets a per-worker cache and no update check, so parallel files never
  *   contend on ~/.npm and the deps scanner never reads the real cache.
  * - Penthera's own ~/.penthera (memory, settings, reports) is per worker.
+ * - Spawned scans print the terminal report, not the agent brief they would
+ *   print to a pipe by default (PENTHERA_BRIEF=0). Tests of that default
+ *   delete the variable from the child's env.
  *
  * Tests that need a specific HOME or PENTHERA_HOME still pass their own.
  * See CONTRIBUTING.md, "Writing tests that stay reliable".
@@ -42,6 +45,7 @@ Object.assign(process.env, {
   npm_config_fund: "false",
   npm_config_audit: "false",
   NO_UPDATE_NOTIFIER: "1",
+  PENTHERA_BRIEF: "0",
 });
 
 afterAll(() => rmSync(home, { recursive: true, force: true }));

@@ -98,7 +98,7 @@ const ctx = {
 async function refresh() {
   const [overview, findings, runs] = await Promise.all([api.get("/api/overview"), api.get("/api/findings"), api.get("/api/runs")]);
   const live = runs.live.find((r) => r.status === "running" && r.pending);
-  set({ overview, findings: findings.findings, runs, ...(live && !state.pending ? { pending: { index: live.pending.index, total: live.pending.total } } : {}) });
+  set({ overview, findings: findings.findings, giants: findings.giants || [], runs, ...(live && !state.pending ? { pending: { index: live.pending.index, total: live.pending.total } } : {}) });
 }
 
 // ── Redraw on state changes, one window at a time ──
@@ -110,7 +110,7 @@ on((patch) => {
   if (keys.some((k) => ["overview", "sel"].includes(k))) app.dataset.risk = String(riskLevel(countsInView()));
   // Check and fix: a run takes the whole desktop, with Back at its top left.
   if (keys.includes("sel")) app.toggleAttribute("data-fix", state.sel.kind === "run" || state.sel.kind === "past");
-  if (keys.some((k) => ["overview", "findings", "sel", "tab", "filter", "ux"].includes(k))) {
+  if (keys.some((k) => ["overview", "findings", "sel", "tab", "filter", "source", "ux"].includes(k))) {
     // A live transcript is rebuilt only when the selection changes, never on a data refresh.
     if (!(state.sel.kind === "run" && !keys.includes("sel"))) renderCenter(center, ctx);
     if (keys.includes("sel") && narrowLeft() && panels.left) { panels.left = false; applyPanels(); }

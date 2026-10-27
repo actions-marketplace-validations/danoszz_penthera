@@ -9,6 +9,8 @@ import { resolveWstgTags } from "../lib/owasp-wstg.js";
 import { referencesFor } from "../lib/references.js";
 import { formatDepsTerminal } from "../lib/deps/report.js";
 import { describeCoverage } from "../lib/coverage.js";
+import { giantsTerminalLines, foundByText } from "./report/giants.js";
+import { toolById } from "../lib/giants/tools.js";
 
 const PKG_VERSION = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf-8"),
@@ -68,6 +70,10 @@ export function printReport(result, opts = {}) {
   if (result.duration) w(`  Duration   ${(result.duration / 1000).toFixed(1)}s`);
   if (result.modes) w(`  Modes      ${result.modes.join(", ")}`);
   else if (result.mode) w(`  Mode       ${result.mode}`);
+  if (result.giants) {
+    const ran = result.giants.tools.filter((t) => t.status === "ran").map((t) => t.id);
+    w(`  Giants     ${ran.length ? ran.join(", ") : "no other tool ran"}${c.dim(result.giants.online ? " (--giants-online: online features on)" : " (offline)")}`);
+  }
   w("");
 
   // TLS
@@ -357,7 +363,8 @@ export function printReport(result, opts = {}) {
       const needsReview = f.confidence === "needs-human-review" || f.confidence === "potential";
       const tag = needsReview ? c.dim(` [${f.confidence}]`) : "";
       const ai = f.alsoProposedBy?.length ? c.dim(" [also proposed by AI]") : "";
-      w(`  ${colorFn(label)}  ${f.title}${tag}${ai}${f.fid ? c.dim(`  ${f.fid}`) : ""}`);
+      const by = foundByText(f) ? c.dim(` [${foundByText(f)}]`) : "";
+      w(`  ${colorFn(label)}  ${f.title}${tag}${ai}${by}${f.fid ? c.dim(`  ${f.fid}`) : ""}`);
       if (f.url)  w(`  ${" ".repeat(6)} ${c.dim(f.url + (f.line ? `:${f.line}` : "") + (f.lines?.length > 1 ? ` (+${f.lines.length - 1} more)` : ""))}${f.status ? c.dim(` \u2192 ${f.status}`) : ""}`);
       if (f.description && opts.verbose) w(`  ${" ".repeat(6)} ${c.dim(f.description)}`);
     }
@@ -403,6 +410,13 @@ export function printReport(result, opts = {}) {
       w(`  ${c.yellow(`${cov.blindSpots.count} of ${cov.sourceFiles}`)} source files not analysed for code patterns ${c.dim("(listed in the Markdown and JSON reports)")}`);
     }
     w(`  ${c.dim(`Not part of a repo scan: ${cov.notRun.map((n) => n.command).join(", ")}`)}`);
+    w("");
+  }
+
+  // --giants: what each area had besides Penthera, and what other tools reported
+  if (result.giants) {
+    w(`  ${c.dim(line())}`);
+    for (const l of giantsTerminalLines(result.giants, c, { pad, sevLabel: SEV_LABEL, sevColor: SEV_COLOR })) w(l);
     w("");
   }
 
@@ -501,6 +515,13 @@ function printSummaryLine(result, w) {
     w(`  ${c.green("\u2713")} Clean scan \u2014 no issues found`);
   } else {
     w(`  ${parts.join(c.dim(" \u00b7 "))}`);
+  }
+  const other = result.giants?.findings || [];
+  if (other.length) {
+    const o = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+    for (const f of other) o[f.severity] = (o[f.severity] || 0) + 1;
+    const op = Object.entries(o).filter(([, n]) => n).map(([s, n]) => `${n} ${s}`);
+    w(`  ${c.dim(`and from other tools: ${op.join(" \u00b7 ")}${result.giants.failOn === "never" ? " (not counted toward the exit code)" : ""}`)}`);
   }
 }
 
@@ -635,6 +656,9 @@ export function formatSarif(result) {
         url: f.url,
         httpStatus: f.status,
         wstg: f.wstg || resolveWstgTags(f),
+        ...(f.foundBy?.length > 1 ? { foundBy: f.foundBy } : {}),
+        ...(f.sources?.length ? { sources: f.sources } : {}),
+        ...(f.alsoReportedBy?.length ? { alsoReportedBy: f.alsoReportedBy } : {}),
       },
     });
   }
@@ -648,6 +672,25 @@ export function formatSarif(result) {
     aiRun.tool.driver.name = "penthera-ai";
     for (const r of aiRun.results) r.level = "note";
     for (const d of aiRun.tool.driver.rules) d.defaultConfiguration.level = "note";
+  }
+
+  // --giants: one run per other tool, with that tool's name and version, so
+  // code scanning shows each tool honestly. A finding several tools reported
+  // goes in the run of the first; properties.foundBy names the others.
+  const toolRuns = [];
+  if (!result._aiRun && !result._toolRun) {
+    for (const t of result.giants?.tools || []) {
+      if (t.status !== "ran") continue;
+      const mine = (result.giants.findings || []).filter((f) => f.sources?.[0]?.tool === t.id);
+      const run = formatSarif({ timestamp: result.timestamp, target: result.target, findings: mine.map((f) => ({ ...f, templateId: f.sources[0].ruleId })), _toolRun: true }).runs[0];
+      run.tool.driver = { name: t.id, ...(t.version ? { version: t.version } : {}), informationUri: toolById(t.id)?.homepage, rules: run.tool.driver.rules };
+      for (const r of run.tool.driver.rules) {
+        const f = mine.find((x) => x.sources[0].ruleId === r.id);
+        if (f?.sources[0].ruleUrl) r.helpUri = f.sources[0].ruleUrl;
+      }
+      run.invocations = [{ executionSuccessful: true, exitCode: t.exitCode ?? undefined, commandLine: t.command || undefined }];
+      toolRuns.push(run);
+    }
   }
 
   const sarif = {
@@ -668,7 +711,7 @@ export function formatSarif(result) {
         startTimeUtc: result.timestamp,
         endTimeUtc: new Date().toISOString(),
       }],
-    }, ...(aiRun ? [aiRun] : [])],
+    }, ...(aiRun ? [aiRun] : []), ...toolRuns],
   };
   return sarif;
 }

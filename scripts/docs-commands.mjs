@@ -216,7 +216,7 @@ const VALUE_FLAGS = new Set([...INPUT_FLAGS, "-r", "--repo", "--api-root", "-o",
   "--aibom", "--cra-init", "--history", "--auth-cookie", "--auth-bearer", "--timeout", "--concurrency", "--user-agent",
   "--profile", "--nuclei", "--templates", "--base", "--pr-comment", "--license-policy", "--port", "--project",
   "--reports", "--url", "-u", "--max-iterations", "--auto", "--fix-model", "--apply", "--input", "--dir", "--reason",
-  "--expires", "--rules-signers", "--ai-model", "--ai-budget", "--ai-consent", "--ai-scope"]);
+  "--expires", "--rules-signers", "--ai-model", "--ai-budget", "--ai-consent", "--ai-scope", "--with", "--without", "--giants-timeout"]);
 
 const isPlaceholder = (t) => /<[^>]+>|\.\.\.|…|\$\(|\$\{?[A-Z_]+\}?|\[|\]|^~|eyJ/.test(t);
 const isUrl = (t) => /^https?:\/\//.test(t) || /^\$\{?[A-Z_]*URL/.test(t) || /^<url>$/i.test(t);
@@ -312,6 +312,7 @@ export function classify(argv, model, { file = "" } = {}) {
   if (sub === "init" && !has("--yes") && !has("-y")) return res("placeholder", "interactive: init asks questions without --yes");
   if (sub === "agent") return res("placeholder", "interactive: the fix loop asks before each diff");
   if (has("--ai") || sub === "ai") return res("placeholder", "AI mode needs a local model in Ollama, and asks before it runs");
+  if (has("--giants") || has("--with")) return res("placeholder", "runs the other scanners installed on this machine; the result depends on PATH");
   if (sub === "fix" && has("--apply")) return res("placeholder", "applies a diff by id after a plan");
   if (sub === "ui") return res("placeholder", "a long-running server (the install matrix starts ui --demo and checks it)");
   if (sub === "install") return res("external", "npm install");

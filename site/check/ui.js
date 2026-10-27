@@ -13,6 +13,18 @@ const el = (tag, cls, text) => {
   return n;
 };
 
+// ── Counting, without cookies ───────────────────────────────────────────────
+
+// Vercel Web Analytics custom events, so we can see how many checks run and
+// how many lead to an install. An event is a name and at most which button;
+// never the URL or host checked, the score, or anything typed or pasted. Web
+// Analytics sets no cookies (docs/privacy.md). The stub queues events until
+// the analytics script loads; counting never breaks the page.
+window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+function count(name, data) {
+  try { window.va("event", data ? { name, data } : { name }); } catch { /* counting is never worth an error */ }
+}
+
 // ── Copy buttons ────────────────────────────────────────────────────────────
 
 function copyButtons() {
@@ -34,6 +46,7 @@ function copyButtons() {
         return;
       }
       btn.dataset.state = "copied";
+      if (btn.dataset.track) count("copy", { what: btn.dataset.track });
       if (status) status.textContent = `, ${COPY.copied.toLowerCase()}`;
       else labelEl.textContent = COPY.copied;
       clearTimeout(timer);
@@ -168,7 +181,7 @@ function promptDialog(report) {
   cancel.value = "cancel";
   copy.addEventListener("click", async () => {
     const text = promptFor(report, boxes.filter(([b]) => b.checked).map(([, c]) => c));
-    try { await navigator.clipboard.writeText(text); copy.textContent = "Copied"; } catch { copy.textContent = "Copy failed"; }
+    try { await navigator.clipboard.writeText(text); copy.textContent = "Copied"; count("copy", { what: "fix-prompt" }); } catch { copy.textContent = "Copy failed"; }
     setTimeout(() => dlg.close(), 700);
   });
   const actions = el("div", "prompt-actions");
@@ -250,7 +263,7 @@ function deeperOnYourMachine(report) {
   b.dataset.copy = cmd;
   b.append(el("span", "cmd-prompt", "$"), el("code", null, cmd), el("span", "cmd-act", "Copy"));
   b.addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText(cmd); b.lastChild.textContent = "Copied"; } catch { getSelection().selectAllChildren(b.querySelector("code")); }
+    try { await navigator.clipboard.writeText(cmd); b.lastChild.textContent = "Copied"; count("copy", { what: "full-scan" }); } catch { getSelection().selectAllChildren(b.querySelector("code")); }
   });
   wrap.append(b);
   return wrap;
@@ -395,7 +408,9 @@ function setupScan() {
     box.replaceChildren(backBar(), el("p", "report-busy", `Checking ${host}: the page, its headers, its scripts and DNS…`));
     try {
       renderReport(box, await callCheck({ url }), run);
+      count("check", { result: "report" });
     } catch (e) {
+      count("check", { result: "error" });
       box.replaceChildren(backBar(), el("p", "report-error", `${e.message} ${e.hint || ""}`));
     } finally {
       button.disabled = false;
@@ -500,6 +515,8 @@ function metalLight() {
 }
 
 copyButtons();
+// Links marked data-track: counted by where on the page they are.
+for (const a of document.querySelectorAll("a[data-track]")) a.addEventListener("click", () => count("link", { to: a.dataset.track }));
 metalLight();
 heroLoop();
 veilClear();

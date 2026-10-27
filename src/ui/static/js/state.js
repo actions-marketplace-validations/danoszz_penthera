@@ -10,6 +10,8 @@ export const state = {
   right: "none",                     // none | finding | settings
   query: "",
   filter: null,                      // { severity, confidence } from the triage matrix, advanced only
+  source: null,                      // "penthera" or another tool's name (--giants), advanced only
+  giants: [],                        // coverage by area per project, from --giants scans
   pending: null,                     // the live run's diff waiting for a decision, if any
   ux: "simple",                      // simple | advanced, chosen in setup, remembered per browser
 };

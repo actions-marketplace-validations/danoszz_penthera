@@ -84,7 +84,7 @@ function projectView(col, ctx) {
   const when = ago(all ? o.lastScans[0]?.ts : p.lastScan);
   // The report: the verdict as the headline, the score as a 10 × 10 meter,
   // and one blue action. The project and its counts sit around them.
-  const mine = sorted(state.findings.filter((f) => !f.suppressed && (all || f.project === key)));
+  const mine = sorted(state.findings.filter((f) => !f.suppressed && !f.other && (all || f.project === key)));
   const v = verdict({ counts, open, top: mine[0], scanned: true, when });
   const scores = all ? o.projects.map((x) => x.score).filter(Number.isFinite) : [p.score].filter(Number.isFinite);
   const score = scores.length ? Math.min(...scores) : null;
@@ -150,14 +150,51 @@ function projectView(col, ctx) {
       h("div", { class: "cols2" }, miniList(o.columns.newest, "Nothing new."), miniList(o.columns.fixed, "Nothing fixed.", true))));
   }
 
-  const pool = state.findings.filter((f) => !f.suppressed && (all || f.project === key));
+  const pool = state.findings.filter((f) => !f.suppressed && !f.other && (all || f.project === key));
   panel.append(h("section", { class: "section" },
     h("h2", {}, h("span", {}, "Triage :: severity × how sure"), h("span", {}, state.filter ? h("button", { type: "button", class: "linkish", onclick: () => set({ filter: null }) }, "clear filter ×") : "pick a cell to filter")),
     matrix(pool, state.filter, (cell) => set({ filter: cell }))));
 
+  const cov = state.giants.filter((g) => all || g.project === key);
+  if (cov.length) panel.append(giantsCoverage(cov, all));
+
   const list = h("ul", { class: "rows", id: "findings-list", "aria-label": "Findings" });
-  panel.append(h("section", { class: "section" }, h("h2", {}, h("span", {}, "Findings"), h("span", { id: "findings-count" })), list));
+  const sources = sourcesIn(state.findings.filter((f) => !f.suppressed && (all || f.project === key)));
+  panel.append(h("section", { class: "section" },
+    h("h2", {}, h("span", {}, "Findings"), h("span", { id: "findings-count" })),
+    sources.length > 1 ? sourceFilter(sources) : null,
+    list));
   fillFindings(list, ctx);
+}
+
+/** Who reported a row: "penthera" and every other tool that agreed (--giants). */
+const sourcesOf = (f) => (f.foundBy?.length ? f.foundBy : [f.other ? f.source : "penthera"]);
+
+function sourcesIn(rows) {
+  const seen = new Set(rows.flatMap(sourcesOf));
+  return [...seen].sort((a, b) => (a === "penthera" ? -1 : b === "penthera" ? 1 : a.localeCompare(b)));
+}
+
+/** Source filter chips: Penthera, or one of the tools --giants ran. */
+function sourceFilter(sources) {
+  return h("div", { class: "chips source-filter", role: "group", "aria-label": "Filter by source" },
+    h("span", { class: "muted" }, "Source "),
+    ...[null, ...sources].map((src) => h("button", {
+      type: "button", class: ["linkish", state.source === src ? "b" : null], "aria-pressed": String(state.source === src),
+      onclick: () => set({ source: src }),
+    }, src == null ? "all" : src === "penthera" ? "Penthera" : src)));
+}
+
+/** "Coverage by area" from the latest --giants scan of each project in view. */
+function giantsCoverage(cov, all) {
+  return h("section", { class: "section" },
+    h("h2", {}, h("span", {}, "Coverage by area"), h("span", {}, "other tools (--giants)")),
+    ...cov.map((g) => h("table", { class: "giants-cov" },
+      all ? h("caption", {}, shortProject(g.project)) : null,
+      h("tbody", {}, ...g.areas.map((a) => h("tr", {},
+        h("th", { scope: "row" }, a.label),
+        h("td", {}, a.status),
+        h("td", { class: "muted" }, a.tools.length ? a.tools.map((t) => (t.status === "ran" ? `${t.id}${t.version ? ` ${t.version}` : ""} (${t.findings})` : `${t.id}: ${t.status}`)).join(", ") : "no tool for this area")))))));
 }
 
 const sorted = (rows) => [...rows].sort((a, b) => SEV_RANK[a.severity] - SEV_RANK[b.severity] || a.title.localeCompare(b.title));
@@ -190,7 +227,8 @@ function fillFindings(list, ctx) {
   const fl = easy ? null : state.filter;
   const rows = sorted(state.findings
     .filter((f) => !f.suppressed && (all || f.project === state.sel.key))
-    .filter((f) => !fl || (f.severity === fl.severity && (f.confidence || "likely") === fl.confidence))
+    .filter((f) => !fl || (!f.other && f.severity === fl.severity && (f.confidence || "likely") === fl.confidence))
+    .filter((f) => easy || !state.source || sourcesOf(f).includes(state.source))
     .filter((f) => !q || `${f.title} ${f.category} ${f.location} ${f.project}`.toLowerCase().includes(q)));
   visible = rows;
   clear(list);
@@ -215,7 +253,7 @@ function fillFindings(list, ctx) {
   }
   if (!rows.length) list.append(h("li", {}, empty(state.findings.length && q ? `${EMPTY.filtered}` : EMPTY.findings)));
   const count = document.getElementById("findings-count");
-  if (count) count.textContent = q || fl ? `${rows.length} match` : easy ? plural(rows.length, "problem") : plural(rows.length, "open finding");
+  if (count) count.textContent = q || fl || (!easy && state.source) ? `${rows.length} match` : easy ? plural(rows.length, "problem") : plural(rows.length, "open finding");
 }
 
 /** j / k: move the selection and open the finding in the right panel. */

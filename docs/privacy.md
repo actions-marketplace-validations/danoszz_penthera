@@ -6,6 +6,8 @@ Penthera has no telemetry. It does not collect, store or send usage data, analyt
 
 This applies to the CLI, the dashboard and the npm package. The website, [penthera.org](https://penthera.org), is separate: it counts anonymous page views and load times with Vercel Web Analytics and Speed Insights, which set no cookies. The browser check on the site never sends the files you paste; its Content-Security-Policy allows only those two counters.
 
+The site also counts a few named events with Web Analytics, to see how many checks run and how many lead to an install: a check ran (and whether it returned a report or an error), a copy button was used (which one, such as "install" or "mcp"), and a link to GitHub or npm was followed (which one). An event carries its name and that one label, nothing else: never the URL or host you checked, the score, or anything you type or paste. Like page views, events set no cookies.
+
 - **Scan traffic goes to the target you name.** Auth tokens passed with `--auth-bearer`, `--auth-cookie`, or `PENTHERA_*` env vars are sent only to that target.
 - **Every request identifies itself** as `penthera/<version> (+https://github.com/danoszz/penthera)`, so a target's operator can tell where the traffic comes from. Override it with `--user-agent`.
 - **Reports stay local.** Penthera writes them to `reports/` (gitignored) on your machine.

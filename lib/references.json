@@ -215,6 +215,30 @@
     "llm-audit": [
       "ding2025primevul",
       "cloudflare2026securityaudit"
+    ],
+    "secret": [
+      "meli2019bad",
+      "basak2023secretbench"
+    ],
+    "code": [
+      "mitrecwe",
+      "owaspwstg42"
+    ],
+    "dependency-vuln": [
+      "zimmermann2019small",
+      "ladisa2023sok"
+    ],
+    "container-vuln": [
+      "zimmermann2019small",
+      "ladisa2023sok"
+    ],
+    "infra-misconfig": [
+      "owaspwstg42",
+      "owasp2025top10"
+    ],
+    "web": [
+      "owaspwstg42",
+      "owasp2025top10"
     ]
   },
   "sources": {

@@ -454,7 +454,7 @@ describe("site story", () => {
   it("the Upkeep waitlist is an email, not a form, and stores nothing", () => {
     const page = readFileSync(join(out, "upkeep.html"), "utf8");
     expect(page).not.toMatch(/<form\b/);
-    expect(page).toMatch(/href="mailto:upkeep@penthera\.org\?subject=Upkeep%20waitlist/);
+    expect(page).toMatch(/href="mailto:daan@penthera\.org\?subject=Upkeep%20waitlist/);
     expect(page).toContain('data-track="upkeep-waitlist"');
     expect(page).toContain("Nothing to buy yet.");
     expect(page).toContain('<script defer src="/track.js"></script>');

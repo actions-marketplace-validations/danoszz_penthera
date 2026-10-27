@@ -33,4 +33,4 @@ These are hypotheses. If you join the waitlist, tell us what would make it worth
 
 ## How the waitlist works
 
-The button opens an email to upkeep@penthera.org with three lines to fill in: company, team size and role. Nothing is stored on penthera.org. We reply to every message, and we only write again when there is something to try.
+The button opens an email to Daan, who builds Penthera, at daan@penthera.org, with three lines to fill in: company, team size and role. Nothing is stored on penthera.org. He replies to every message, and only writes again when there is something to try.

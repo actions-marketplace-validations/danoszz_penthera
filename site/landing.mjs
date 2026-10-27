@@ -22,7 +22,7 @@ import { ldScript, siteFoot } from "./frame.mjs";
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const CTA_HTML = '<p class="land-cta"><a class="btn" data-variant="default" href="/#scan">Check your site</a><span>Free, passive, nothing stored. Your own site only.</span></p>';
 // `cta: waitlist` in the front matter: a mailto, so nothing is stored on the site.
-const WAITLIST_MAIL = "upkeep@penthera.org";
+const WAITLIST_MAIL = "daan@penthera.org";
 const WAITLIST_HREF = `mailto:${WAITLIST_MAIL}?subject=${encodeURIComponent("Upkeep waitlist")}&body=${encodeURIComponent("Company: \nTeam size: \nRole: \n")}`;
 const WAITLIST_HTML = `<p class="land-cta"><a class="btn" data-variant="default" data-track="upkeep-waitlist" href="${WAITLIST_HREF.replace(/&/g, "&amp;")}">Join the waitlist</a><span>Opens an email to ${WAITLIST_MAIL}. Nothing is stored on penthera.org.</span></p>`;
 const ctaHtml = (p) => (p.cta === "waitlist" ? WAITLIST_HTML : CTA_HTML);

@@ -108,7 +108,7 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 - **Penthera Upkeep, in validation: a waitlist page.** [penthera.org/upkeep](https://penthera.org/upkeep)
   describes a possible paid service (scheduled checks, fix pull requests a
   person approves, a monthly evidence report) with the prices being tested.
-  Joining is an email to upkeep@penthera.org, so the site stores nothing. The
+  Joining is an email to daan@penthera.org, so the site stores nothing. The
   free tool stays complete and MIT; nothing is taken out of it. The live check
   result and the README link to it.
 

@@ -457,7 +457,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   if (engine) await bundle(join(SITE, "check", "engine.js"), resolve(engine), { minify: false });
 
   // Static files, as they are.
-  for (const f of ["styles.css", "theme.js", "track.js", "upkeep.js"]) cpSync(join(SITE, f), join(OUT, f));
+  for (const f of ["styles.css", "theme.js", "track.js", "pro.js"]) cpSync(join(SITE, f), join(OUT, f));
   // The IndexNow key file, served at /<key>.txt (scripts/indexnow.mjs).
   for (const f of readdirSync(SITE).filter((n) => /^[0-9a-f]{32}\.txt$/.test(n))) cpSync(join(SITE, f), join(OUT, f));
   cpSync(join(SITE, "media"), join(OUT, "media"), { recursive: true });
@@ -525,7 +525,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   writeFileSync(join(OUT, "terms.html"), termsPage(ROOT, { styles }));
   // Landing pages, one search question each (site/pages/, site/landing.mjs).
   for (const p of landingPages(SITE)) {
-    writeFileSync(join(OUT, `${p.slug}.html`), landingHtml(p, { origin: ORIGIN, values, styles, blog }));
+    writeFileSync(join(OUT, `${p.slug}.html`), landingHtml(p, { origin: ORIGIN, values, styles, blog, pub }));
     writeFileSync(join(OUT, `${p.slug}.md`), landingMarkdown(p, { origin: ORIGIN, values }));
   }
   // The benchmark pages, from the same published.json: /benchmarks and one

@@ -451,21 +451,34 @@ describe("site story", () => {
     }
   });
 
-  it("the Upkeep waitlist is an email, not a form, and stores nothing", () => {
-    const page = readFileSync(join(out, "upkeep.html"), "utf8");
-    expect(page).not.toMatch(/<form\b/);
-    expect(page).toMatch(/href="mailto:daan@penthera\.org\?subject=Upkeep%20waitlist/);
-    expect(page).toContain('data-track="upkeep-waitlist"');
-    expect(page).toContain("Nothing to buy yet.");
+  it("the Pro waitlist writes an email and stores nothing; /upkeep redirects to /pro", () => {
+    const page = readFileSync(join(out, "pro.html"), "utf8");
+    // The form only fills in an email: the CSP blocks submission (form-action
+    // 'none'), there is no action or method, and the plain mailto always works.
+    const form = page.match(/<form\b[^>]*>/)?.[0];
+    expect(form).toBe('<form class="pro-form" novalidate>');
+    expect(page).toMatch(/href="mailto:daan@penthera\.org\?subject=Penthera%20Pro%20waitlist/);
+    expect(page).toContain('data-track="pro-waitlist"');
+    expect(page).toContain("Sign up for the waitlist");
+    expect(page).toContain("nothing is stored on penthera.org");
     expect(page).toContain('<script defer src="/track.js"></script>');
     expect(existsSync(join(out, "track.js"))).toBe(true);
-    // The poster layout (site/upkeep.mjs): behaviour in /upkeep.js, never inline (CSP).
-    expect(page).toContain('<script defer src="/upkeep.js"></script>');
-    expect(existsSync(join(out, "upkeep.js"))).toBe(true);
+    // Behaviour in /pro.js, never inline (CSP); the header sketch is decoration only.
+    expect(page).toContain('<script defer src="/pro.js"></script>');
+    expect(existsSync(join(out, "pro.js"))).toBe(true);
     expect(page).not.toMatch(/<script>|<style>|\sstyle="/);
-    // Prices are a range while we test, and the free way is always offered next to them.
+    expect(page).toMatch(/<canvas class="pro-canvas" aria-hidden="true">/);
+    // A price range while we test, the free way next to it, and the agent payments line marked as research.
     expect(page).toContain("$100–300");
-    expect(page).toContain("Free and MIT, forever.");
+    expect(page).toContain("init --yes</code> sets up the same checks in your own CI, free.");
+    expect(page).toMatch(/In research<\/span> Checks your agents can call and pay for/);
+    // The calculator and the budget go into the email, nowhere else.
+    const js = readFileSync(join(out, "pro.js"), "utf8");
+    expect(js).not.toMatch(/\bfetch\(|XMLHttpRequest|sendBeacon|localStorage|document\.cookie/);
+    expect(js).toContain("Budget a month:");
+    const vercel = JSON.parse(readFileSync(join(ROOT, "vercel.json"), "utf8"));
+    expect(vercel.redirects).toEqual(expect.arrayContaining([{ source: "/upkeep", destination: "/pro", permanent: true }]));
+    expect(existsSync(join(out, "upkeep.html"))).toBe(false);
   });
 
   it("counts checks and installs without the URL, host or score", () => {
@@ -506,7 +519,7 @@ describe("site landing pages", () => {
   const read = (f) => readFileSync(join(out, f), "utf8");
   const pages = landingPages(join(ROOT, "site"));
   // Live-check pages answer a search question with the live check; the
-  // waitlist page (cta: waitlist, site/pages/upkeep.md) shares the frame only.
+  // waitlist page (cta: waitlist, site/pages/pro.md) shares the frame only.
   const checkPages = pages.filter((p) => p.cta !== "waitlist");
 
   it("has the two search questions, each with a title and a description for search", () => {

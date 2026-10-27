@@ -17,9 +17,16 @@ here.
 | npm tag | Version | Install |
 |---|---|---|
 | `latest` | 2.0.0 (2026-10-25) | `npx penthera` |
-| `next` | 2.1.0-rc.1 (2026-10-27) | `npx penthera@next` |
+| `next` | 2.1.0-rc.2 (2026-10-28) | `npx penthera@next` |
 
-## Release candidate: 2.1.0-rc.1
+## Release candidate: 2.1.0-rc.2
+
+| In 2.1.0-rc.2 | What it means for you |
+|---|---|
+| The agent brief | Your AI assistant gets one short reply after a scan: a verdict, what to act on, what to check first, likely noise, what was not checked. Rules fill it ([docs](docs/commands/brief.md)) |
+| Fewer false findings | Style maps are no longer passwords, `eval` in build output is not reported, and action plan steps fit the findings |
+| `--giants` merge fix | A key inside a private-key block that two tools find counts once |
+| [Penthera Pro](https://penthera.org/pro) | The waitlist for a security partner on top of the free agent: a person, assessments, while we test |
 
 | In 2.1.0-rc.1 | What it means for you |
 |---|---|

@@ -4,6 +4,81 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+## [2.1.0-rc.2] - 2026-10-28
+
+### Added
+
+- **The agent brief: one short reply for your AI assistant.** After a scan,
+  assistants used to write their own summary of a long report, and had to sort
+  out the noise themselves. The brief does that with rules: a verdict (`Fix
+  now`, `Review` or `Nothing to fix`), then Act on, Check first, Likely noise,
+  Not checked and Next. Hits in gitignored files, build output and test
+  fixtures are grouped as likely noise, repeats collapse into one line, and
+  every finding is counted once. A scan prints it when stdout is not a terminal
+  (an agent calling the CLI; `PENTHERA_BRIEF=0` turns that off), or anywhere
+  with `--brief`. Also in the JSON report (`brief`), as `--audience agent`, as
+  the text of every MCP tool result, and merged across scans with `penthera
+  brief repo.json deps.json agents.json`. The MCP server and the Agent Skill
+  ask the assistant to keep the brief's sections and put its own view under
+  "My read". See [docs/commands/brief.md](docs/commands/brief.md).
+
+### Fixed
+
+- **Fewer false findings in repo scans, and action plan steps that fit.** A
+  run on a Next.js and FastAPI monorepo showed these, and each now has a test:
+  - "Hardcoded password" no longer fires on style values (`pass:
+    'text-emerald-400'`, `var(--success)`) or on a `pass` key next to `fail` or
+    `warn`, which is a map of check outcomes. On the CredData dev half, recall
+    and precision are unchanged.
+  - The `eval` check skips folders git ignores and Next.js build folders under
+    another name (`.next-dev`).
+  - A Node.js advisory that names TLS gets the step "Upgrade the runtime", not
+    "Fix the TLS configuration".
+  - Keys in files git ignores get their own low step (check whether the file
+    was shared), not "purge it from git history".
+  - `eval`, `exec` and `innerHTML` findings get the code-execution step, not
+    "Review and remediate this finding".
+- **`penthera agents` says what a permission really allows.** A pre-approved
+  script in `/tmp`, `/var/tmp` or `/dev/shm` is now its own rule,
+  `permission-tmp-script`: any local process can replace the file. "With any
+  arguments" now appears only when the grant has a `*` or no arguments, and an
+  exact command such as `Bash(bash ./scripts/check.sh)` is no longer reported.
+- **Reports leave out what does not apply.** Dependency and agent-config reports
+  no longer print an empty OWASP WSTG table, and only URL scans show
+  "Reachable".
+- **The coverage ledger covers the `eval` check.** A new row says how many files
+  it read, how many were over its size limit, and how many sat in folders it
+  skips.
+- **`--giants`: a private key two tools report is one finding.** Penthera
+  reads a secret's value back from the reported line to merge it with other
+  tools' findings, and a line inside a private key block has no value on its
+  own, so gitleaks' and Penthera's report of the same key stayed apart. When
+  either finding has no value, they now merge on file and line; two different
+  values on one line still do not. Found in E14's dev half and logged as a
+  deviation in its pre-registration.
+
+### Site
+
+- **/upkeep is now /pro: Penthera Pro, a security partner for software built with agents.** The page proposes rather than sells: the agent stays free, and Pro adds a person who sets it up with you, reads what it finds and does assessments when you need one, for $100–300 a month per team while we test. It scrolls sideways as you scroll down, opens with an ASCII header you can move through, shows its benchmark ranks against the free tools (from the same data as /benchmarks), and has a small calculator for what security costs your team now. The waitlist and the calculator only fill in an email you send: nothing is stored on penthera.org. `/upkeep` redirects to `/pro`.
+
+### Docs
+
+- **E14 step 1, the dev half: Penthera plus the free tools.** A new harness,
+  `bench/public/giants.mjs`, reruns gitleaks, trufflehog, Semgrep and CodeQL
+  through E11b's pinned runners, keeps their per-item hits, and builds the
+  pre-registered arms with the merge code `--giants` ships. On the dev half
+  every tool reproduces its E11b numbers. The union finds 2.6 points more
+  CredData rows at about 12 points less precision (11 before the secret-merge
+  fix; the precision test fails either way), and two more SecBench.js
+  vulnerabilities while the median findings per package goes from 1 to 4; the test half is
+  untouched. Results and the logged deviations are in `bench/public/RESULTS.md`
+  and the E14 pre-registration.
+- **Roadmap: upkeep in your own CI, this month.** `penthera watch` on a schedule
+  in the GitHub Action, a readable evidence report, `verify` for more AI
+  reviewers, offline new-CVE alerts with KEV and EPSS, a fresh-malware holdout,
+  and setup pages per agent. The roadmap also lists 2.1.0-rc.1 on npm's `next`
+  tag.
+
 ## [2.1.0-rc.1] - 2026-10-27
 
 ### Added

@@ -17,6 +17,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { renderMarkdown } from "./terms.mjs";
 import { fill } from "./agents.mjs";
+import { ldScript, siteFoot } from "./frame.mjs";
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const CTA_HTML = '<p class="land-cta"><a class="btn" data-variant="default" href="/#scan">Check your site</a><span>Free, passive, nothing stored. Your own site only.</span></p>';
@@ -53,10 +54,15 @@ export function landingMarkdown(p, { origin, values }) {
 }
 
 /** One page as HTML, in the site's own frame (the frame /terms uses). */
-export function landingHtml(p, { origin, values, styles = "/styles.css", theme = "/theme.js" }) {
+export function landingHtml(p, { origin, values, styles = "/styles.css", theme = "/theme.js", blog = false }) {
   const md = fill(p.body.replace(/^# .+\n/m, "").replaceAll("{{CTA}}", "\u0000CTA\u0000"), values, `site/pages/${p.slug}.md`);
   const body = renderMarkdown(md).replace(/<p>\u0000CTA\u0000<\/p>/g, CTA_HTML);
   const url = `${origin}/${p.slug}`;
+  // WebPage and BreadcrumbList, part of the site; the homepage carries the SoftwareApplication.
+  const ld = ldScript([
+    { "@type": "WebPage", "@id": url, url, name: p.title, description: p.description, isPartOf: { "@type": "WebSite", "@id": `${origin}/#website`, url: `${origin}/`, name: "Penthera" }, about: { "@type": "SoftwareApplication", name: "Penthera", url: `${origin}/` } },
+    { "@type": "BreadcrumbList", itemListElement: [{ "@type": "ListItem", position: 1, name: "Penthera", item: `${origin}/` }, { "@type": "ListItem", position: 2, name: p.h1, item: url }] },
+  ]);
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -80,13 +86,14 @@ export function landingHtml(p, { origin, values, styles = "/styles.css", theme =
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="${styles}">
   <script src="${theme}"></script>
+  ${ld}
 </head>
 <body>
   <main class="terms land" id="main">
     <p class="eyebrow"><a href="/">Penthera</a> · Live check</p>
     <h1>${esc(p.h1)}</h1>
 ${body}
-    <p class="land-foot"><a href="/">penthera.org</a> · <a href="/terms">Terms</a> · <a href="https://github.com/danoszz/penthera">Source</a> · MIT license</p>
+    ${siteFoot({ blog })}
   </main>
 </body>
 </html>

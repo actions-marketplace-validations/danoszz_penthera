@@ -508,7 +508,7 @@ describe("site landing pages", () => {
       expect(h, p.slug).toContain("<code>npx penthera");
       expect(h, p.slug).toContain('<a href="/terms">');
       expect(h, p.slug).not.toMatch(/\{\{|\u0000/);
-      expect(h, p.slug).not.toMatch(/<script(?![^>]*\bsrc=)/);
+      expect(h, p.slug).not.toMatch(/<script(?![^>]*\bsrc=)(?![^>]*type="application\/ld\+json")[^>]*>/);
       expect(h, p.slug).not.toMatch(/ style=/);
     }
   });

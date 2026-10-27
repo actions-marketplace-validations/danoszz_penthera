@@ -8,6 +8,12 @@
  *
  * Writes linkedin.png (1200x627), x.png (1600x900) and one x-<benchmark>.png
  * per card (1600x900) for a thread. A sample file gets a SAMPLE stamp.
+ *
+ *   node scripts/media/benchmark-cards.mjs --site
+ *
+ * writes the share cards of /benchmarks and its pages instead (1200x630, into
+ * site/media/social/bench/), with the hash of the published.json they show:
+ * the site build uses a card only while that file is unchanged.
  */
 import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync, cpSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -15,13 +21,16 @@ import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { parseArgs } from "node:util";
 import { publicBenchHtml } from "../../site/public-bench.mjs";
+import { BENCHMARKS, pubHash } from "../../site/benchmarks.mjs";
 
-const { values: args } = parseArgs({ options: { published: { type: "string" }, out: { type: "string" }, chrome: { type: "string" } } });
+const { values: args } = parseArgs({ options: { published: { type: "string" }, out: { type: "string" }, chrome: { type: "string" }, site: { type: "boolean" } } });
 const ROOT = resolve(import.meta.dirname, "..", "..");
 const DIST = join(ROOT, "site", "dist");
 const CHROME = args.chrome || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-const pub = JSON.parse(readFileSync(resolve(args.published), "utf-8"));
-const out = resolve(args.out);
+const pubFile = args.site ? join(ROOT, "bench", "public", "published.json") : resolve(args.published);
+const pubText = readFileSync(pubFile, "utf-8");
+const pub = JSON.parse(pubText);
+const out = args.site ? join(ROOT, "site", "media", "social", "bench") : resolve(args.out);
 mkdirSync(out, { recursive: true });
 
 // One page per image: the site's stylesheet and fonts, the trust band's
@@ -34,7 +43,7 @@ cpSync(join(ROOT, "site", "media", "field.png"), join(tmp, "field.png"));
 const css = readFileSync(join(tmp, "styles.css"), "utf-8").replaceAll('url("/fonts/', 'url("fonts/');
 writeFileSync(join(tmp, "styles.css"), css);
 
-function page(w, h, cardsHtml, cols, forceCompact = false) {
+function page(w, h, cardsHtml, cols, forceCompact = false, url = "penthera.org/#public-benchmarks") {
   // Compact type for the short formats: LinkedIn and X, and the Instagram square.
   const compact = forceCompact || h < 700 || (w <= 1100 && h <= 1100);
   return `<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><link rel="stylesheet" href="styles.css"><style>
@@ -61,36 +70,48 @@ function page(w, h, cardsHtml, cols, forceCompact = false) {
   .shot-k { font-family: var(--px); font-size: 18px; color: var(--text-2); }
   .shot-t { margin: 10px 0 0; font-family: var(--display); font-size: ${compact ? 40 : 64}px; line-height: 1; letter-spacing: -0.035em; font-weight: 500; color: var(--text-1); }
   .pb { margin: 0; } .pb-cards { margin: 0; grid-template-columns: repeat(${cols}, 1fr) !important; }
-  .pb-more, .pb-sample { display: none; }
+  .pb-more, .pb-sample, .pb-link { display: none; }
   .shot-f { display: flex; flex-direction: ${w < 1200 ? "column" : "row"}; gap: 6px; justify-content: space-between; font-family: var(--px); font-size: 16px; color: var(--text-2); }
   .stamp { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); padding: 6px 10px; font-family: var(--px); font-size: 16px; background: var(--accent-ink); color: #fff; }
   </style></head><body>
   <div class="shot-head"><img class="shot-logo" src="logo.svg" alt="Penthera"><div class="shot-right"><p class="shot-k">Public benchmarks · sealed test half</p><h1 class="shot-t">Ranked against the free tools</h1></div></div>
   ${cardsHtml}
-  <p class="shot-f"><span>Sealed half of each dataset, scored once. Same scoring for every tool.</span><span>penthera.org/#public-benchmarks</span></p>
+  <p class="shot-f"><span>Sealed half of each dataset, scored once. Same scoring for every tool.</span><span>${url}</span></p>
   ${pub.sample ? '<p class="stamp">SAMPLE · practice data, not a result</p>' : ""}
   </body></html>`;
 }
 
-function shot(name, html, w, h) {
+function shot(name, html, w, h, scale = 2) {
   const file = join(tmp, `${name}.html`);
   writeFileSync(file, html);
   const png = join(out, `${name}.png`);
   rmSync(png, { force: true });
-  const r = spawnSync(CHROME, ["--headless=new", "--disable-gpu", "--hide-scrollbars", "--force-device-scale-factor=2", `--window-size=${w},${h}`, `--screenshot=${png}`, `file://${file}`], { encoding: "utf-8", timeout: 60_000 });
+  const r = spawnSync(CHROME, ["--headless=new", "--disable-gpu", "--hide-scrollbars", `--force-device-scale-factor=${scale}`, `--window-size=${w},${h}`, `--screenshot=${png}`, `file://${file}`], { encoding: "utf-8", timeout: 60_000 });
   // Headless Chrome can exit non-zero on teardown after writing the file.
   if (!existsSync(png)) throw new Error(`chrome: ${r.stderr.slice(-300)}`);
   console.log(png);
 }
 
 const all = publicBenchHtml(pub);
+const single = (key) => publicBenchHtml({ ...pub, benchmarks: { [key]: pub.benchmarks[key] } });
+if (args.site) {
+  if (pub.sample) throw new Error("refusing to render site cards from a sample file");
+  shot("hub", page(1200, 630, all, 4, false, "penthera.org/benchmarks"), 1200, 630, 1);
+  for (const [key, c] of Object.entries(BENCHMARKS)) {
+    if (!pub.benchmarks[key]) continue;
+    shot(c.slug, page(1200, 630, single(key), 1, false, `penthera.org/benchmarks/${c.slug}`).replace(".pb-cards { margin: 0;", ".pb-cards { margin: 0 auto; max-width: 520px;"), 1200, 630, 1);
+  }
+  writeFileSync(join(out, "source.json"), JSON.stringify({ published: pubHash(pubText) }, null, 2) + "\n");
+  rmSync(tmp, { recursive: true, force: true });
+  process.exit(0);
+}
 shot("linkedin", page(1200, 627, all, 4), 1200, 627);
 shot("x", page(1600, 900, all, 4), 1600, 900);
 // Instagram: a square post (2 x 2 cards) and a story (cards stacked).
 shot("instagram-square", page(1080, 1080, all, 2), 1080, 1080);
 shot("instagram-story", page(1080, 1920, all, 1, true), 1080, 1920);
 for (const key of Object.keys(pub.benchmarks)) {
-  const one = publicBenchHtml({ ...pub, benchmarks: { [key]: pub.benchmarks[key] } });
+  const one = single(key);
   shot(`x-${key}`, page(1600, 900, one, 1).replace(".pb-cards { margin: 0;", ".pb-cards { margin: 0 auto; max-width: 560px;"), 1600, 900);
 }
 rmSync(tmp, { recursive: true, force: true });

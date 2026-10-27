@@ -129,7 +129,8 @@ export function formatOwnerReport(m) {
     if (s.low) parts.push(`${s.low} minor`);
     if (s.info) parts.push(`${plural(s.info, "note")}`);
     L.push(`Penthera checked ${md(m.target)} and found ${parts.join(", ")}.`);
-    L.push(s.serious ? "The serious ones are things an attacker could use today." : "Nothing here needs an emergency response.");
+    L.push(s.serious ? "Look at the serious ones first: if they are real, an attacker could use them." : "Nothing here needs an emergency response.");
+    if (s.seriousInTests) L.push(`${s.seriousInTests === s.serious ? (s.serious === 1 ? "It is" : "All of them are") : `${s.seriousInTests} of them ${s.seriousInTests === 1 ? "is" : "are"}`} in test or fixture files. If those values are made up, set them aside in penthera.suppress.json with a reason.`);
   }
   if (s.inconclusive) L.push(`${plural(s.inconclusive, "check")} could not finish, so those areas are untested, not clean.`);
   if (s.suppressed) L.push(`${plural(s.suppressed, "known issue")} ${s.suppressed === 1 ? "was" : "were"} set aside on purpose by someone on the team (the auditor report lists who and why).`);

@@ -206,6 +206,14 @@ analysis of other code. Penthera prints a one-line notice before it runs;
 using it on closed-source code is your responsibility under your own licence
 (for example GitHub Advanced Security).
 
+On JavaScript library code it is worth adding. In E14, on the sealed test
+half of SecBench.js, Penthera with CodeQL found 54 of 64 injection bugs
+against 45 for Penthera alone, at a mean of 4 findings per package instead
+of 1. Whether those extra findings are right could not be measured there (the
+dataset has no labelled negatives), so `--giants` keeps Penthera-first and
+lists CodeQL's findings under "Also reported by other tools"
+([results](../../bench/public/RESULTS.md)).
+
 ## Limits
 
 - Each tool runs with sane defaults. It is not tuned for your project; when

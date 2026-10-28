@@ -30,7 +30,7 @@ describe("probeBundleSecrets", () => {
     const { fetchUrl } = fakeWeb({ ...home("/app.js"), [`${ORIGIN}/app.js`]: () => new Response(js(KEY)) });
     const findings = await probeBundleSecrets(ORIGIN, { fetchUrl });
     expect(findings).toMatchObject([
-      { title: "Anthropic API key in client bundle", url: `${ORIGIN}/app.js`, category: "secrets", source: "bundle-scan" },
+      { title: "Anthropic API key in client bundle", url: `${ORIGIN}/app.js`, category: "secrets", source: "bundle-scan", confidence: "likely" },
     ]);
     expect(JSON.stringify(findings)).not.toContain(KEY);
   });
@@ -138,5 +138,45 @@ describe("probeBundleSecrets", () => {
       { url: `${ORIGIN}/fb.js`, severity: "low", title: "Likely Firebase web key in client bundle" },
       { url: `${ORIGIN}/ai.js`, severity: "high", title: "Google API key (Gemini / Firebase / Maps) in client bundle" },
     ]);
+  });
+
+  it("does not let a Firebase key hide a Gemini key in the same script", async () => {
+    const google = "AI" + "za" + "SyDq7Lm2Pz9Rt4Vb8Nc3Wd6Yf1Gh5Jk0MsX";
+    const gemini = google.slice(0, -1) + "Z";
+    const bundle = `const firebaseConfig={apiKey:"${google}",authDomain:"demo.firebaseapp.com",projectId:"demo"};const ai={key:"${gemini}"};`;
+    const { fetchUrl } = fakeWeb({ ...home("/app.js"), [`${ORIGIN}/app.js`]: () => new Response(bundle) });
+    const findings = await probeBundleSecrets(ORIGIN, { fetchUrl });
+    expect(findings).toMatchObject([
+      { severity: "low", title: "Likely Firebase web key in client bundle" },
+      { severity: "high", title: "Google API key (Gemini / Firebase / Maps) in client bundle" },
+    ]);
+  });
+
+  it("checks nothing when the home page redirects to another site", async () => {
+    const other = "https://login.other.example";
+    const { fetchUrl, asked } = fakeWeb({
+      [ORIGIN]: () => new Response("", { status: 301, headers: { location: `${other}/` } }),
+      [`${other}/`]: () => new Response('<script src="/app.js"></script>'),
+      [`${other}/app.js`]: () => new Response(js(KEY)),
+    });
+    expect(await probeBundleSecrets(ORIGIN, { fetchUrl })).toEqual([]);
+    expect(asked).not.toContain(`${other}/app.js`);
+  });
+
+  it("ignores name-based matches in minified code", async () => {
+    // The full rule set reports both as a hardcoded password and a generic API key
+    const minified = 'var a={password:"hunter22",apiKey:"x8Kd93LmQp2Zr7"};function l(e){return e.password===a.password}';
+    const { fetchUrl } = fakeWeb({ ...home("/app.js"), [`${ORIGIN}/app.js`]: () => new Response(minified) });
+    expect(await probeBundleSecrets(ORIGIN, { fetchUrl })).toEqual([]);
+  });
+
+  it("does not report keys that are public by design", async () => {
+    // Built at run time, so no key-shape string sits in the repository
+    const stripe = "pk_" + "live_" + "aB3dE5fG7h".repeat(3);
+    const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+    const supabaseAnon = `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ iss: "supabase", role: "anon" })}.${"aB3dE5fG7h".repeat(4)}`;
+    const bundle = `const s="${stripe}";const sb=createClient("https://demo.supabase.co","${supabaseAnon}");`;
+    const { fetchUrl } = fakeWeb({ ...home("/app.js"), [`${ORIGIN}/app.js`]: () => new Response(bundle) });
+    expect(await probeBundleSecrets(ORIGIN, { fetchUrl })).toEqual([]);
   });
 });

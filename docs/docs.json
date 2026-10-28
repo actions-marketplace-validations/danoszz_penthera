@@ -88,7 +88,8 @@
           "MANIFESTO",
           "genai",
           "internal-audit",
-          "decisions/0001-secret-scan-coverage-and-reporting"
+          "decisions/0001-secret-scan-coverage-and-reporting",
+          "decisions/0002-agent-setup-gaps-and-pr-check"
         ]
       },
       {

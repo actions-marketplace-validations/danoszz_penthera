@@ -1,0 +1,67 @@
+# Example: check your AI agent config on every pull request.
+#
+# Copy this file into YOUR repo as `.github/workflows/penthera-agents.yml`.
+# `penthera agents` reads the skills, MCP servers, hooks, permissions and agent
+# instructions in the repo (CLAUDE.md, .mcp.json, .claude/, .cursor/, skills/,
+# ...) offline and uploads the findings to Security > Code scanning. It is
+# report-only: findings never fail the job until you uncomment the last step.
+#
+# `npx` fetches this exact Penthera version from npm. Pin a release you have
+# reviewed, and the actions below to commit SHAs. The scan step runs from the
+# runner's temp folder, so a pull request's own `.npmrc` or `node_modules`
+# cannot change what `npx` runs. For a route that does not fetch Penthera from
+# npm, use the action with `mode: agents` (docs/commands/action.md); it still
+# runs `npm ci` for its one dependency, `yaml`.
+#
+# Fork PRs get a read-only token, so the SARIF upload is skipped for them; the
+# findings are still in the job log. Do not switch this to `pull_request_target`:
+# that would run with write access next to untrusted code.
+
+name: Agent config check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  agents:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Audit agent config with Penthera
+        id: agents
+        working-directory: ${{ runner.temp }}
+        run: |
+          set +e
+          npx --yes penthera@2.0.0 agents "$GITHUB_WORKSPACE" --sarif "$RUNNER_TEMP/penthera-agents.sarif"
+          code=$?
+          set -e
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          # 1 = critical or high findings (in Code scanning); 2 = the check failed.
+          if [ "$code" -eq 2 ]; then exit 2; fi
+
+      - uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        if: always() && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+        with:
+          sarif_file: ${{ runner.temp }}/penthera-agents.sarif
+          category: penthera-agents
+
+      # Optional: block the merge on critical or high findings.
+      # - name: Fail on critical or high
+      #   if: steps.agents.outputs.code == '1'
+      #   run: exit 1

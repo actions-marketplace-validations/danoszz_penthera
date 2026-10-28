@@ -5,7 +5,7 @@
  *   node bench/public/giants.mjs --split dev --collect   # rerun every arm's member, keep per-item hits
  *   node bench/public/giants.mjs --split dev             # score the arms from the kept hits
  *   node bench/public/giants.mjs --split dev --spot-check 50
- *   node bench/public/giants.mjs --split test --final    # step 2: once, after the dev step (not run yet)
+ *   node bench/public/giants.mjs --split test --final    # step 2: once, after the dev step; stops if a tool differs from E11b
  *
  * Members, as registered (§ 2): CredData: Penthera (as the CLI reports it),
  * gitleaks 8.30.1, trufflehog 3.99.3. SecBench.js: Penthera, Semgrep 1.180.0
@@ -57,6 +57,25 @@ const RESAMPLES = 10_000;
 const CRED_TOOLS = ["gitleaks", "trufflehog"];
 const SAST_TOOLS = ["semgrep", "codeql"];
 const sha256 = (s) => createHash("sha256").update(s).digest("hex");
+
+/**
+ * Each other tool's aggregate as E11b published it, scored with E11b's code
+ * (§ 6: checked before any arm is computed; a mismatch stops the run). CredData:
+ * [strict correct, units] and [rows found, in-scope rows]; SecBench.js: [found,
+ * labelled] per class. Test: published.json (E11b final, 2026-10-25). Dev:
+ * E11b's stored dev results, matched in step 1. Penthera is not checked: P is
+ * 2.1.0-rc.2, not E11b's 2.0.0 (§ 9, entry 6).
+ */
+const E11B = {
+  test: {
+    creddata: { gitleaks: { strict: [2242, 2635], recall: [831, 2220] }, trufflehog: { strict: [152, 383], recall: [122, 2220] } },
+    secbench: { semgrep: { "command-injection": [15, 47], "code-injection": [9, 17] }, codeql: { "command-injection": [37, 47], "code-injection": [4, 17] } },
+  },
+  dev: {
+    creddata: { gitleaks: { strict: [4708, 5687], recall: [747, 2239] }, trufflehog: { strict: [157, 351], recall: [77, 2239] } },
+    secbench: { semgrep: { "command-injection": [15, 49], "code-injection": [9, 16] }, codeql: { "command-injection": [35, 49], "code-injection": [5, 16] } },
+  },
+};
 
 // ── Collect ──────────────────────────────────────────────────────────────
 
@@ -391,6 +410,40 @@ async function scoreSecbench(hitsAll) {
   return { out, groups: crossGroups };
 }
 
+// ── Same tool as E11b ────────────────────────────────────────────────────
+
+/** Each other tool's aggregate with E11b's code, against E11B[split]; no arm is built here. */
+async function sameToolCheck(all) {
+  const want = E11B[SPLIT];
+  const got = { creddata: {}, secbench: {} };
+  if (all.creddata) {
+    const C = await import("./creddata.mjs");
+    const keep = inSplit("creddata");
+    const rows = C.loadMeta().filter((r) => keep(r.file) && existsSync(join(CACHE, "creddata", r.file)));
+    for (const t of CRED_TOOLS) {
+      const s = C.scoreHits(rows, all.creddata[t]?.hits || []);
+      got.creddata[t] = { strict: [s.prec.all.correct, s.prec.all.units], recall: [s.rec.primary?.found ?? 0, s.rec.primary?.n ?? 0] };
+    }
+  }
+  if (all.secbench) {
+    const S = await import("./secbench.mjs");
+    const labels = all.secbench.penthera.results.filter((r) => r.status === "ok" && r.sinkFile).map((r) => ({ key: `${r.cls}/${r.folder}`, cls: r.cls, sinkFile: r.sinkFile }));
+    for (const t of SAST_TOOLS) {
+      got.secbench[t] = Object.fromEntries(Object.keys(S.CLASSES).map((c) => {
+        const ls = labels.filter((l) => l.cls === c);
+        return [c, [ls.filter((l) => (all.secbench[t]?.per?.[l.key]?.hits || []).some((h) => h.cls === l.cls && h.file === l.sinkFile)).length, ls.length]];
+      }));
+    }
+  }
+  const mismatches = [];
+  for (const bench of Object.keys(got)) {
+    for (const [tool, m] of Object.entries(got[bench])) {
+      if (JSON.stringify(m) !== JSON.stringify(want[bench][tool])) mismatches.push({ bench, tool, got: m, e11b: want[bench][tool] });
+    }
+  }
+  return { got, mismatches };
+}
+
 // ── Spot-check ───────────────────────────────────────────────────────────
 
 /** A seeded sample of cross-tool merged groups, with the line for a reviewer (local only). */
@@ -416,6 +469,15 @@ if (OPT.collect) {
 
 const all = JSON.parse(readFileSync(HITS, "utf-8"));
 const result = { experiment: "E14", split: SPLIT, date: new Date().toISOString(), hitsSha256: sha256(readFileSync(HITS)), seed: SEED, resamples: RESAMPLES };
+// § 6: every other tool must be the tool E11b measured before any arm is computed.
+result.sameTool = await sameToolCheck(all);
+if (result.sameTool.mismatches.length) {
+  writeFileSync(OUT, JSON.stringify(result, null, 2));
+  console.error(`[e14] stopped: a tool's aggregate differs from E11b's, no arm computed → ${OUT}`);
+  console.error(JSON.stringify(result.sameTool.mismatches, null, 2));
+  process.exit(3);
+}
+console.error("[e14] same tools as E11b: every aggregate matches");
 let credGroups = null;
 if (all.creddata) {
   const { out, groups } = await scoreCreddata(all.creddata);

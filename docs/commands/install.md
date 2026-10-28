@@ -1,4 +1,8 @@
-# Install firewall: `penthera install`
+---
+title: "Install firewall: penthera install"
+sidebarTitle: "Install firewall"
+description: "penthera deps tells you what changed after the fact."
+---
 
 > **Starter.** For "is this package safe to add?"
 

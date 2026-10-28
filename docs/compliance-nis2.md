@@ -1,4 +1,8 @@
-# Compliance: NIS2 and the cyberwetgeving
+---
+title: "Compliance: NIS2 and the cyberwetgeving"
+sidebarTitle: "NIS2"
+description: "What NIS2 and the Dutch cyber law ask of a small team, and what Penthera can show for it."
+---
 
 > **Pro.** For "what do I give my auditor?" under NIS2.
 

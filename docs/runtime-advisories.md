@@ -1,4 +1,8 @@
-# Runtime advisories
+---
+title: "Runtime advisories"
+sidebarTitle: "Runtime advisories"
+description: "When a runtime or web server gets a security release, the first question is which of your systems run an affected version."
+---
 
 > **Pro.** For "is my PHP / nginx / Apache / Node.js / Python / OpenSSL / MongoDB affected by this advisory?"
 

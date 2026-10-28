@@ -1,4 +1,8 @@
-# Privacy and network use
+---
+title: "Privacy and network use"
+sidebarTitle: "Privacy and network"
+description: "Penthera has no telemetry."
+---
 
 > **Pro.** For "what does it send over the network?"
 

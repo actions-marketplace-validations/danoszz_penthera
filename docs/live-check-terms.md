@@ -1,4 +1,8 @@
-# Terms for the live check on penthera.org
+---
+title: "Terms for the live check on penthera.org"
+sidebarTitle: "Live check terms"
+description: "What you may do with penthera.org's live check, what it requests, and what it stores: nothing."
+---
 
 > **Project page.** For "what may I do with the live check, and what does penthera.org do with it?"
 

@@ -1,4 +1,8 @@
-# The agent brief
+---
+title: "The agent brief"
+sidebarTitle: "The agent brief"
+description: "The brief is a short summary of a scan, the same shape every time, for an AI assistant to pass on as it is."
+---
 
 > **Pro.** For "what should my AI assistant tell me after a scan?"
 

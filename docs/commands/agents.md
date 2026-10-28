@@ -1,4 +1,8 @@
-# Auditing your AI tooling: `penthera agents`
+---
+title: "Auditing your AI tooling: penthera agents"
+sidebarTitle: "Agent config audit"
+description: "Your AI tools run code too."
+---
 
 > **Starter.** For "is this MCP server or skill safe?"
 

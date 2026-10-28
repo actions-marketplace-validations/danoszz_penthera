@@ -1,4 +1,8 @@
-# Dependency risk: `penthera deps`
+---
+title: "Dependency risk: penthera deps"
+sidebarTitle: "Dependencies"
+description: "A lockfile change is code you did not write, about to run with your app's access to files, network, environment and CI secrets."
+---
 
 > **Starter.** For "is this package safe to add?"
 

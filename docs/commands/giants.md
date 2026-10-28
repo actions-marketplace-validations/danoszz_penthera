@@ -1,4 +1,8 @@
-# Other tools in one run: `--giants`
+---
+title: "Other tools in one run: --giants"
+sidebarTitle: "Other tools (--giants)"
+description: "--giants runs the free scanners you already have installed, after Penthera's own scan, and folds their findings into the same report, JSON and SARIF."
+---
 
 > **Pro.** For "can Penthera run gitleaks, Semgrep, Trivy and the rest for me, and put it all in one report?"
 

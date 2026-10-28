@@ -434,7 +434,9 @@ export function checkCitations(markdown, entries) {
 function renderMd(entries) {
   const bib = formatBibliography(entries);
   const L = [];
-  L.push("# References");
+  // Front matter instead of a "# References" line: the Mintlify docs site reads
+  // the title from it, and site/terms.mjs puts it back as a heading elsewhere.
+  L.push("---", 'title: "References"', 'sidebarTitle: "References"', 'description: "The research and standards Penthera\'s methodology and findings cite, in APA 7th edition style."', "---");
   L.push("");
   L.push("The research and standards that Penthera's [methodology](METHODOLOGY.md) and per-finding sources cite, in APA 7th edition style, grouped by topic and sorted alphabetically by first author within each group. The BibTeX source is [references.bib](https://github.com/danoszz/penthera/blob/main/docs/references.bib); this page is generated from it by `node scripts/build-references.mjs`, and a test fails if the two drift or if a citation in METHODOLOGY.md does not resolve to an entry here.");
   L.push("");

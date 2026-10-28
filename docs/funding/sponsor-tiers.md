@@ -1,4 +1,8 @@
-# GitHub Sponsors tiers (proposal)
+---
+title: "GitHub Sponsors tiers"
+sidebarTitle: "Sponsor tiers"
+description: "How to sponsor Penthera, what each tier gives, and what sponsorship does not buy."
+---
 
 > **Project page.** For users and companies asking "how can I support Penthera,
 > and what does that buy?"

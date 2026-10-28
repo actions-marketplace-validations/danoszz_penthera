@@ -1,4 +1,8 @@
-# Checking a model's findings: `penthera verify`
+---
+title: "Checking a model's findings: penthera verify"
+sidebarTitle: "Verify AI findings"
+description: "AI security audits, such as Cloudflare's security-audit skill running in your coding agent, find things rules can't."
+---
 
 > **Pro.** For "an AI audit gave me a list of vulnerabilities. Which ones can I
 > trust?"

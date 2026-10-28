@@ -1,4 +1,8 @@
-# Penthera and Socket
+---
+title: "Penthera and Socket"
+sidebarTitle: "vs Socket"
+description: "Where Socket and Penthera overlap on dependency risk, and where they differ."
+---
 
 > **Pro.** For "how does Penthera compare to Socket, and how do I run both?"
 

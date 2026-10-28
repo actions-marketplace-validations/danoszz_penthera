@@ -1,4 +1,8 @@
-# Evidence bundles and audience reports
+---
+title: "Evidence bundles and audience reports"
+sidebarTitle: "Evidence bundles"
+description: "Penthera can write the results of one scan as an evidence bundle: every report, a manifest with the SHA-256 of each file, and an optional SSH signature over the manifest."
+---
 
 > **Pro.** For "what do I give my auditor?"
 

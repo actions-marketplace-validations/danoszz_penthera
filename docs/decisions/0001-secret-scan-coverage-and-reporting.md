@@ -1,4 +1,8 @@
-# ADR 0001: secret-scan coverage, reporting, and library mode
+---
+title: "ADR 0001: secret-scan coverage, reporting, and library mode"
+sidebarTitle: "ADR 0001: secret scan coverage"
+description: "These decisions change the product for every user, not only the benchmark score."
+---
 
 > **Project page.** For maintainers and researchers asking "why does the
 > secret scan read these files, report this way, and when will Penthera treat

@@ -1,4 +1,8 @@
-# Methodology
+---
+title: "Methodology"
+sidebarTitle: "Methodology"
+description: "Penthera is an open-source, offline security scanner for web applications, their dependencies, and the AI tooling used to build them."
+---
 
 > **Pro.** For "how does it decide, and what can't it see?"
 

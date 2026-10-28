@@ -1,4 +1,8 @@
-# Scanning your app: `penthera <url>` and `--repo`
+---
+title: "Scanning your app: penthera <url> and --repo"
+sidebarTitle: "Scan"
+description: "Black-box scans of a running app (localhost, preview, or staging) and white-box scans of its source."
+---
 
 > **Starter.** For "is my app safe to ship?"
 

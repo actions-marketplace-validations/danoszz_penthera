@@ -1,4 +1,8 @@
-# Penthera documentation
+---
+title: "Penthera documentation"
+sidebarTitle: "Overview"
+description: "Penthera is an open-source cyber security agent."
+---
 
 > **Starter and pro.** For "where do I start, and where do I go next?"
 
@@ -40,9 +44,9 @@ For "is my AI setup safe, and can my agent run Penthera?"
 |---|---|
 | "Is this MCP server or skill safe?" | [Auditing your AI tooling](commands/agents.md) |
 | "Can my coding agent run it for me?" | [Penthera as an Agent Skill](commands/skill.md) |
-| "Can my agent call it as a tool?" | [Penthera as an MCP server](commands/mcp.md) (1.9 release candidate) |
+| "Can my agent call it as a tool?" | [Penthera as an MCP server](commands/mcp.md) |
 | "I let an agent work on my code. What should I check?" | [Running AI agents safely](agents-safely.md) |
-| "Can a model look for what the rules miss?" | [AI mode](ai-mode.md) (opt-in, 1.9 release candidate) |
+| "Can a model look for what the rules miss?" | [AI mode](ai-mode.md) (opt-in, experimental) |
 | "An AI audit gave me a list of findings. Which are real?" | [`penthera verify`](commands/verify.md) |
 
 ## 3. I run it in CI

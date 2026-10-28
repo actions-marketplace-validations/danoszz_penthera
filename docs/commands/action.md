@@ -1,4 +1,8 @@
-# Penthera in CI: the GitHub Action
+---
+title: "Penthera in CI: the GitHub Action"
+sidebarTitle: "GitHub Action"
+description: "There are three places to run Penthera on every change: the GitHub Action on pull requests, a scan step in your own workflow, and the pre-commit hook on each developer's machine."
+---
 
 > **Pro.** For "how do I put it in CI?"
 

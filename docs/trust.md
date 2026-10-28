@@ -1,4 +1,8 @@
-# Trust
+---
+title: "Trust"
+sidebarTitle: "Trust"
+description: "How Penthera itself is built, released and run."
+---
 
 > **Starter.** For "can I trust the tool I'm about to run on my code?"
 

@@ -1,4 +1,8 @@
-# References
+---
+title: "References"
+sidebarTitle: "References"
+description: "The research and standards Penthera's methodology and findings cite, in APA 7th edition style."
+---
 
 The research and standards that Penthera's [methodology](METHODOLOGY.md) and per-finding sources cite, in APA 7th edition style, grouped by topic and sorted alphabetically by first author within each group. The BibTeX source is [references.bib](https://github.com/danoszz/penthera/blob/main/docs/references.bib); this page is generated from it by `node scripts/build-references.mjs`, and a test fails if the two drift or if a citation in METHODOLOGY.md does not resolve to an entry here.
 

@@ -1,4 +1,8 @@
-# Internal testing audit
+---
+title: "Internal testing audit"
+sidebarTitle: "Internal audit"
+description: "Penthera is a security tool, so its own release bar has to be easy to check."
+---
 
 > **Pro.** For "how do I know a Penthera release is sound?"
 

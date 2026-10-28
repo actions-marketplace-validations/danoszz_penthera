@@ -1,4 +1,8 @@
-# How Penthera is built: use of generative AI
+---
+title: "How Penthera is built: use of generative AI"
+sidebarTitle: "Use of generative AI"
+description: "We build Penthera with a lot of help from generative AI."
+---
 
 > **Project page.** For "how much of it did AI write?"
 

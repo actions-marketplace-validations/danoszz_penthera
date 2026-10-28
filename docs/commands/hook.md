@@ -1,4 +1,8 @@
-# Pre-commit hook: `penthera hook`
+---
+title: "Pre-commit hook: penthera hook"
+sidebarTitle: "Pre-commit hook"
+description: "Once a secret is pushed, rotating it is the only fix."
+---
 
 > **Pro.** For "how do I put it in CI?"
 

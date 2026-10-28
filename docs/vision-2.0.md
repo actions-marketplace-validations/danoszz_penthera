@@ -1,4 +1,8 @@
-# Penthera 2.0: research plan
+---
+title: "Penthera 2.0: research plan"
+sidebarTitle: "Research plan"
+description: "What Penthera 2.0 measures next, and how each study is pre-registered."
+---
 
 > **Project page.** For researchers, funders and pros asking "how do you know
 > it works, and what will you measure next?"

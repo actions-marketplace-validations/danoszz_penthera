@@ -1,4 +1,8 @@
-# What Penthera is, what it is not, and why
+---
+title: "What Penthera is, what it is not, and why"
+sidebarTitle: "Manifesto and FAQ"
+description: "This page states plainly what Penthera does today, the decisions behind it, and the questions people ask."
+---
 
 > **Project page.** For "why was it built this way?"
 

@@ -23,6 +23,18 @@ function inline(text) {
 
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
+/**
+ * Docs pages carry their title in YAML front matter (for the Mintlify docs
+ * site) instead of a "# Title" line. For every other reader (the Markdown
+ * mirror, llms-full.txt, /terms, /trust) put it back as a heading.
+ */
+export function frontMatterToHeading(md) {
+  const m = /^---\n([\s\S]*?)\n---\n+/.exec(md);
+  if (!m) return md;
+  const title = /^title:\s*"?(.*?)"?\s*$/m.exec(m[1])?.[1].replace(/\\"/g, '"');
+  return `${title ? `# ${title}\n\n` : ""}${md.slice(m[0].length)}`;
+}
+
 /** Markdown (the subset above) to HTML. */
 export function renderMarkdown(md) {
   const out = [];
@@ -69,7 +81,7 @@ export function renderMarkdown(md) {
  * and the site shows it. Used for /terms and /trust.
  */
 export function docPage(root, { file, slug, eyebrow, description, styles = "/styles.css", theme = "/theme.js" }) {
-  const md = readFileSync(join(root, "docs", file), "utf8");
+  const md = frontMatterToHeading(readFileSync(join(root, "docs", file), "utf8"));
   const title = /^# (.+)$/m.exec(md)[1];
   const body = renderMarkdown(md.replace(/^# .+\n/m, ""));
   return `<!doctype html>

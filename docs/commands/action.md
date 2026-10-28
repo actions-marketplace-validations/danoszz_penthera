@@ -66,6 +66,11 @@ SARIF to code scanning. Copy it into `.github/workflows/`, or let
 - run: npx --yes penthera@2.0.0 agents "$GITHUB_WORKSPACE" --sarif "$RUNNER_TEMP/penthera-agents.sarif"
 ```
 
+The rules that [`penthera agents`](agents.md#rules-for-auto-run-registries-and-environment)
+lists for auto-run, registries and environment ship in the next release,
+2.1.0. The 2.0.0 pin above does not have them; they run once you pin 2.1.0 or
+later.
+
 It is report-only until you uncomment its last step. The difference from the
 action: `npx` fetches Penthera from npm on each run, so pin a version you have
 reviewed. The step runs from the runner's temp folder, so a pull request's own

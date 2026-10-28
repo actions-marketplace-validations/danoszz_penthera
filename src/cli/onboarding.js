@@ -8,8 +8,8 @@
  * nothing is written outside the project. `penthera-scan` keeps the URL-first
  * wizard (runScanWizard).
  */
-import { existsSync, mkdirSync, writeFileSync, appendFileSync } from "node:fs";
-import { resolve, join, relative, isAbsolute, sep } from "node:path";
+import { existsSync, mkdirSync, writeFileSync, appendFileSync, lstatSync, realpathSync } from "node:fs";
+import { resolve, join, relative, isAbsolute, sep, dirname } from "node:path";
 import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -314,6 +314,38 @@ function today(now = new Date()) {
  * resolved first, so a root in another spelling (git prints D:/a/app on
  * Windows) still compares equal. `p` is the path module (path.win32 in tests).
  */
+/**
+ * Is anything at `p`, a dangling symlink included? existsSync follows the
+ * link and says no for a dangling one, and a write would then create the
+ * link's target wherever it points.
+ */
+export function entryExists(p) {
+  try { lstatSync(p); return true; } catch { return false; }
+}
+
+/** Is `p` a symlink (dangling or not)? */
+function isSymlink(p) {
+  try { return lstatSync(p).isSymbolicLink(); } catch { return false; }
+}
+
+/**
+ * Create a new file inside the project: never through a symlink (a dangling
+ * one included, `wx` refuses any existing entry) and never into a folder that
+ * resolves outside the project. Returns an error message, or null when written.
+ */
+export function writeNewFile(root, full, content) {
+  try {
+    mkdirSync(dirname(full), { recursive: true });
+    const realRoot = realpathSync(root);
+    const realDir = realpathSync(dirname(full));
+    if (realDir !== realRoot && !realDir.startsWith(realRoot + sep)) return "its folder resolves outside the project";
+    writeFileSync(full, content, { flag: "wx" });
+    return null;
+  } catch (e) {
+    return e?.code === "EEXIST" ? "a file or symlink is already there" : String(e?.message || e);
+  }
+}
+
 export function inside(root, path, p = { resolve, relative, isAbsolute, sep }) {
   const base = p.resolve(root);
   const full = p.resolve(base, path);
@@ -626,7 +658,7 @@ export async function runInit(argv, { version = pkg.version } = {}) {
   const wfFull = inside(root, WORKFLOW_PATH);
   if (!found.git) skip("GitHub workflow: not a git repository");
   else if (found.workflows.length) skip(`GitHub workflow: already present (${found.workflows.join(", ")})`);
-  else if (existsSync(wfFull)) skip(`GitHub workflow: ${WORKFLOW_PATH} exists, left as is`);
+  else if (entryExists(wfFull)) skip(`GitHub workflow: ${WORKFLOW_PATH} exists, left as is`);
   else if (!found.lockfiles.npm.length) skip("GitHub workflow: the PR dependency review reads package-lock.json, none here");
   else {
     const yaml = workflowYaml();
@@ -634,11 +666,9 @@ export async function runInit(argv, { version = pkg.version } = {}) {
     out(newFileDiff(WORKFLOW_PATH, yaml).split("\n").map((l) => `    ${l}`).join("\n"));
     out();
     if (await yesNo(`Write ${WORKFLOW_PATH}? It is not committed`, true)) {
-      if (!dry) {
-        mkdirSync(join(root, ".github", "workflows"), { recursive: true });
-        writeFileSync(wfFull, yaml);
-      }
-      did(`${dry ? "write " : "Wrote "}${WORKFLOW_PATH}${dry ? "" : dim(" (review and commit it yourself)")}`);
+      const err = dry ? null : writeNewFile(root, wfFull, yaml);
+      if (err) skip(`${WORKFLOW_PATH}: not written, ${err}`);
+      else did(`${dry ? "write " : "Wrote "}${WORKFLOW_PATH}${dry ? "" : dim(" (review and commit it yourself)")}`);
     }
   }
 
@@ -647,23 +677,22 @@ export async function runInit(argv, { version = pkg.version } = {}) {
   if (!found.git) skip("Agent config workflow: not a git repository");
   else if (!found.agentConfig.length) skip("Agent config workflow: no agent config here");
   else if (hasAgentsWorkflow(root, found.workflows)) skip("Agent config workflow: already present");
-  else if (existsSync(awFull)) skip(`Agent config workflow: ${AGENTS_WORKFLOW_PATH} exists, left as is`);
+  else if (entryExists(awFull)) skip(`Agent config workflow: ${AGENTS_WORKFLOW_PATH} exists, left as is`);
   else {
     const yaml = agentsWorkflowYaml();
     out(`\n  ${dim(`The agent config check on every pull request, Penthera ${ACTION_PIN.tag.slice(1)} from npm:`)}\n`);
     out(newFileDiff(AGENTS_WORKFLOW_PATH, yaml).split("\n").map((l) => `    ${l}`).join("\n"));
     out();
     if (await yesNo(`Write ${AGENTS_WORKFLOW_PATH}? It is not committed`, true)) {
-      if (!dry) {
-        mkdirSync(join(root, ".github", "workflows"), { recursive: true });
-        writeFileSync(awFull, yaml);
-      }
-      did(`${dry ? "write " : "Wrote "}${AGENTS_WORKFLOW_PATH}${dry ? "" : dim(" (review and commit it yourself)")}`);
+      const err = dry ? null : writeNewFile(root, awFull, yaml);
+      if (err) skip(`${AGENTS_WORKFLOW_PATH}: not written, ${err}`);
+      else did(`${dry ? "write " : "Wrote "}${AGENTS_WORKFLOW_PATH}${dry ? "" : dim(" (review and commit it yourself)")}`);
     }
   }
 
   // .gitignore
   if (found.reportsIgnored) skip(".gitignore: reports/ is already ignored");
+  else if (isSymlink(inside(root, ".gitignore"))) skip(".gitignore: it is a symlink, left as is");
   else if (await yesNo("Add reports/ to .gitignore so scan output is never committed?", true)) {
     if (!dry) {
       const gi = inside(root, ".gitignore");

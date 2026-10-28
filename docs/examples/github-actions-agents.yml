@@ -6,6 +6,10 @@
 # ...) offline and uploads the findings to Security > Code scanning. It is
 # report-only: findings never fail the job until you uncomment the last step.
 #
+# Penthera 2.0.0 does not have the agent rules added after it (VS Code
+# folder-open tasks, hook scripts, registry redirects, loader variables, MCP
+# auto-approve); they ship in 2.1.0 and run once you pin 2.1.0 or later.
+#
 # `npx` fetches this exact Penthera version from npm. Pin a release you have
 # reviewed, and the actions below to commit SHAs. The scan step runs from the
 # runner's temp folder, so a pull request's own `.npmrc` or `node_modules`
@@ -42,6 +46,9 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
+          # setup-node caches npm by itself when package.json names npm in
+          # `packageManager`. This job installs nothing from the repo: no cache.
+          package-manager-cache: false
 
       - name: Audit agent config with Penthera
         id: agents

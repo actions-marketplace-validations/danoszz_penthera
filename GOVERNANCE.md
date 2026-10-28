@@ -4,9 +4,8 @@
 > the maintainer stops?"
 
 Penthera has one maintainer, [@danoszz](https://github.com/danoszz) (Daan van
-der Zwaag). He works on it part-time, next to a PhD. This page says how
-decisions, releases and security reports work, and what happens if he steps
-away.
+der Zwaag), part-time, next to a PhD. This page says how decisions, releases
+and security reports work, and what happens if the maintainer steps away.
 
 ## Who decides
 
@@ -63,9 +62,9 @@ itself is built and released is on [penthera.org/trust](https://penthera.org/tru
 
 ## If the maintainer stops
 
-- He will say so in the README and the repository description, and stop
+- The maintainer will say so in the README and the repository description, and stop
   publishing to npm.
-- He will offer the repository and the npm package to a contributor with a
+- The maintainer will offer the repository and the npm package to a contributor with a
   record of reviewed changes. Without one, the repository is archived, and
   the last release stays installable.
 - The code is MIT licensed. Anyone may fork it and keep it going under

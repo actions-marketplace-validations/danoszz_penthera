@@ -49,4 +49,4 @@ Rather run it yourself? `npx penthera@{{VERSION}} init --yes` sets up the same c
 
 ## How the waitlist works
 
-Each email counts as one data point in the experiment. The button opens an email to Daan, who builds Penthera, at daan@penthera.org. Say who you are and what you'd want: a daily watch on what you shipped, a dashboard, signed reports, a person to ask, or checks your agents can call. Nothing is stored on penthera.org. He replies to every message, and writes again only when there is something to try.
+Each email counts as one data point in the experiment. The button opens an email to Daan, who builds Penthera, at daan@penthera.org. Say who you are and what you'd want: a daily watch on what you shipped, a dashboard, signed reports, a person to ask, or checks your agents can call. Nothing is stored on penthera.org. Daan replies to every message, and writes again only when there is something to try.

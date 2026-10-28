@@ -59,6 +59,6 @@ from your project folder before the first scan. The script is in the skill's own
 bash ~/.claude/skills/penthera/scripts/preflight.sh http://localhost:3000
 ```
 
-Skill source and workflows live in [`skills/penthera/SKILL.md`](../../skills/penthera/SKILL.md).
+Skill source and workflows live in [`skills/penthera/SKILL.md`](https://github.com/danoszz/penthera/blob/main/skills/penthera/SKILL.md).
 
-[Back to the README](../../README.md) · [All commands](README.md)
+[Back to the README](https://github.com/danoszz/penthera/blob/main/README.md) · [All commands](https://github.com/danoszz/penthera/blob/main/docs/commands/README.md)

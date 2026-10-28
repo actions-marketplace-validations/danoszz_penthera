@@ -80,7 +80,7 @@ Every report lands in `reports/penthera-<date>/`: `code`, `deps`, `agents` and
 | Step | Default | What it does |
 |---|---|---|
 | Pre-commit hook | yes | `penthera hook install`: blocks staged secrets, risky agent config and lockfile changes ([hook.md](hook.md)). Git repos only |
-| GitHub workflow | yes | Writes `.github/workflows/penthera.yml` from [the PR dependency review example](../examples/pr-dependency-review.yml), with the action pinned to the release commit SHA. Shown as a diff first. Needs a git repo and `package-lock.json` |
+| GitHub workflow | yes | Writes `.github/workflows/penthera.yml` from [the PR dependency review example](https://github.com/danoszz/penthera/blob/main/docs/examples/pr-dependency-review.yml), with the action pinned to the release commit SHA. Shown as a diff first. Needs a git repo and `package-lock.json` |
 | `.gitignore` | yes | Appends `reports/` so scan output is never committed |
 | Fix loop | no | `penthera agent --loop` on a local `penthera/fix-<date>` branch; every diff asks first ([fix.md](fix.md)) |
 | Dashboard | yes | `penthera ui --open` on this run's reports ([dashboard.md](../dashboard.md)). Runs until Ctrl-C |
@@ -138,13 +138,13 @@ penthera init --yes --dry-run
 - It does not fix IDOR or auth design for you. It points at the route. The fix
   is yours.
 - It does not watch production yet. Scheduled checks are on the
-  [roadmap](../../ROADMAP.md).
+  [roadmap](https://github.com/danoszz/penthera/blob/main/ROADMAP.md).
 - A clean scan is not proof of safety. Every finding has a confidence label, and
   probes that could not run are listed as inconclusive rather than passed.
 - Its accuracy is measured only on labs we wrote ourselves: precision 0.88
   (95% CI 0.69 to 0.96) and recall 0.91 (95% CI 0.73 to 0.98) on 24 findings
-  ([results](../../bench/RESULTS.md)). Accuracy on real apps is not measured
-  yet. That is [experiment E1](../research/prereg/E1-real-world-accuracy.md).
+  ([results](https://github.com/danoszz/penthera/blob/main/bench/RESULTS.md)). Accuracy on real apps is not measured
+  yet. That is [experiment E1](https://github.com/danoszz/penthera/blob/main/docs/research/prereg/E1-real-world-accuracy.md).
 
 ## What it never does
 

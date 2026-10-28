@@ -230,16 +230,20 @@ function isArxivOnly(e) {
 
 const isWebPage = (e) => e.type === "misc" && !isRfc(e) && !isArxivOnly(e);
 
+// A plain [url](url) link rather than an <url> autolink, which MDX (the
+// Mintlify docs) can't parse.
+const mdLink = (url) => `[${url}](${url})`;
+
 function retrieved(e) {
   const [y, m, d] = (e.urldate || "").split("-").map(Number);
-  if (!y || !m || !d) return `<${e.url}>`;
-  return `Retrieved ${MONTHS[m - 1]} ${d}, ${y}, from <${e.url}>`;
+  if (!y || !m || !d) return mdLink(e.url);
+  return `Retrieved ${MONTHS[m - 1]} ${d}, ${y}, from ${mdLink(e.url)}`;
 }
 
 function link(e) {
-  if (e.doi) return `<https://doi.org/${e.doi}>`;
+  if (e.doi) return mdLink(`https://doi.org/${e.doi}`);
   if (!e.url) return "";
-  return isWebPage(e) && e.urldate ? retrieved(e) : `<${e.url}>`;
+  return isWebPage(e) && e.urldate ? retrieved(e) : mdLink(e.url);
 }
 
 /** "2023", "2025b", "n.d.", "n.d.-a". */
@@ -432,7 +436,7 @@ function renderMd(entries) {
   const L = [];
   L.push("# References");
   L.push("");
-  L.push("The research and standards that Penthera's [methodology](METHODOLOGY.md) and per-finding sources cite, in APA 7th edition style, grouped by topic and sorted alphabetically by first author within each group. The BibTeX source is [references.bib](references.bib); this page is generated from it by `node scripts/build-references.mjs`, and a test fails if the two drift or if a citation in METHODOLOGY.md does not resolve to an entry here.");
+  L.push("The research and standards that Penthera's [methodology](METHODOLOGY.md) and per-finding sources cite, in APA 7th edition style, grouped by topic and sorted alphabetically by first author within each group. The BibTeX source is [references.bib](https://github.com/danoszz/penthera/blob/main/docs/references.bib); this page is generated from it by `node scripts/build-references.mjs`, and a test fails if the two drift or if a citation in METHODOLOGY.md does not resolve to an entry here.");
   L.push("");
   L.push("Every entry was checked against the publisher or standards body (Crossref DOI metadata, USENIX, NDSS, arXiv, the RFC Editor, OWASP, MITRE, OASIS, the EU Publications Office) on 2026-10-19. Entries that could not be verified were left out, and so were fields (pages, volume, issue, editors) that the publisher's metadata does not record. Each entry has an anchor named after its BibTeX key, for example [`#bau2010state`](#bau2010state), which is also the key reports and SARIF use.");
   const further = bib.filter((e) => clean(e.keywords).split(/[,;]\s*/).includes(FURTHER_READING));

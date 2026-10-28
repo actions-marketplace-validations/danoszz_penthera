@@ -80,7 +80,7 @@ Penthera is built by AI coding agents, so it follows its own
 
 Every AI-assisted commit names the model and version in its trailer and
 summarizes how AI was used. Commits that are entirely human-written carry no AI
-trailer. See [CONTRIBUTING.md](../CONTRIBUTING.md#use-of-generative-ai) for the
+trailer. See [CONTRIBUTING.md](https://github.com/danoszz/penthera/blob/main/CONTRIBUTING.md#use-of-generative-ai) for the
 exact format, which applies to the maintainer and to all contributors. CI
 checks it on every pull request with `scripts/ci/provenance.mjs`: a commit
 that names an AI co-author without an `AI-Assisted` line, or the other way

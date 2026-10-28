@@ -78,4 +78,4 @@ Then ask your agent for a full security audit. Treat findings that both tools
 report as the highest priority, and use Penthera to re-check fixes for anything
 the skill found that Penthera has a rule for.
 
-[All comparisons](README.md) · [Back to the README](../../README.md)
+[All comparisons](https://github.com/danoszz/penthera/blob/main/docs/compare/README.md) · [Back to the README](https://github.com/danoszz/penthera/blob/main/README.md)

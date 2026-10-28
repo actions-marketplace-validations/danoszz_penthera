@@ -24,7 +24,7 @@ penthera https://staging.example.com --giants --nuclei ./my-templates
 
 This is a feature description, not a claim that the combination finds more.
 Whether it does is measured by experiment E14
-([pre-registration](../research/prereg/E14-giants-combination.md)); until E14
+([pre-registration](https://github.com/danoszz/penthera/blob/main/docs/research/prereg/E14-giants-combination.md)); until E14
 is published, Penthera makes no accuracy claim for `--giants`.
 
 ## What runs
@@ -212,7 +212,7 @@ against 45 for Penthera alone, at a mean of 4 findings per package instead
 of 1. Whether those extra findings are right could not be measured there (the
 dataset has no labelled negatives), so `--giants` keeps Penthera-first and
 lists CodeQL's findings under "Also reported by other tools"
-([results](../../bench/public/RESULTS.md)).
+([results](https://github.com/danoszz/penthera/blob/main/bench/public/RESULTS.md)).
 
 ## Limits
 
@@ -227,4 +227,4 @@ lists CodeQL's findings under "Also reported by other tools"
   the tools you have.
 
 The design and its decisions are in the
-[spec](../research/spec-giants.md).
+[spec](https://github.com/danoszz/penthera/blob/main/docs/research/spec-giants.md).

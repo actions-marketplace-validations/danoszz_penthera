@@ -4,7 +4,7 @@
 
 Last updated: 23 October 2026.
 
-These terms cover the quick check on [penthera.org](https://penthera.org/#scan) and its API, `POST https://penthera.org/api/check`. The Penthera command-line tool itself is covered by its [MIT license](../LICENSE).
+These terms cover the quick check on [penthera.org](https://penthera.org/#scan) and its API, `POST https://penthera.org/api/check`. The Penthera command-line tool itself is covered by its [MIT license](https://github.com/danoszz/penthera/blob/main/LICENSE).
 
 ## In short
 

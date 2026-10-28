@@ -104,6 +104,6 @@ dependency. It ships in 1.10 with a release candidate first, not in a patch.
 ## References
 
 - Meli, McNiece and Reaves (2019), *How Bad Can It Git?* (`meli2019bad` in
-  [references.bib](../references.bib)).
+  [references.bib](https://github.com/danoszz/penthera/blob/main/docs/references.bib)).
 - E11b results and lab notes: `bench/public/` (in
   PR #155).

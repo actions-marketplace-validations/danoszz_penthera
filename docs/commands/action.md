@@ -22,7 +22,7 @@ from npm, no registry lookups. On fork PRs the token is read-only, so the diff
 goes to the job summary instead. Inputs: `mode`, `path`, `base-ref`, `url`,
 `fail-on`, `comment`, `sarif`, `penthera-version`. Copy the full workflow, with
 permissions and a lockfile paths filter, from
-[`docs/examples/pr-dependency-review.yml`](../examples/pr-dependency-review.yml).
+[`docs/examples/pr-dependency-review.yml`](https://github.com/danoszz/penthera/blob/main/docs/examples/pr-dependency-review.yml).
 
 What a reviewer sees:
 
@@ -41,7 +41,7 @@ call is the shape of most credential-stealing packages. The diff shows it with
 
 To scan a preview URL and upload SARIF, see
 [scan in CI](scan.md#ci-integration) and the example
-[`docs/examples/github-actions-scan.yml`](../examples/github-actions-scan.yml).
+[`docs/examples/github-actions-scan.yml`](https://github.com/danoszz/penthera/blob/main/docs/examples/github-actions-scan.yml).
 Pin the Penthera version, so every run is checked by the same rules, and use
 `--baseline` to show only what is new since the last scan. `penthera --repo .`
 and `penthera deps` exit 1 on high or critical findings, so either works as a
@@ -65,7 +65,7 @@ Penthera's own releases are a pattern you can copy: npm provenance through
 trusted publishing, each version staged until a maintainer approves it with
 2FA, CI actions pinned by SHA, CodeQL on every push, and a public
 [OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/danoszz/penthera).
-See [`.github/workflows/publish.yml`](../../.github/workflows/publish.yml).
+See [`.github/workflows/publish.yml`](https://github.com/danoszz/penthera/blob/main/.github/workflows/publish.yml).
 
 ## The same check on every project
 
@@ -105,4 +105,4 @@ Only scan what you have the client's written permission to test.
 - Fix recipes cover common JavaScript and TypeScript frameworks. Other stacks
   get findings and guidance, not diffs.
 
-[Docs index](../index.md) · [All commands](README.md)
+[Docs index](../index.md) · [All commands](https://github.com/danoszz/penthera/blob/main/docs/commands/README.md)

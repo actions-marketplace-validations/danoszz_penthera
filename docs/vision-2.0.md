@@ -6,7 +6,7 @@
 Written 2026-10-19, after v1.7.0; consolidated 2026-10-20. This is the long-term
 plan: the gaps we see, the experiments that decide how to close them, and the
 quality gates every release must pass. What ships next, in order, is in the
-[roadmap](../ROADMAP.md); the reasoning behind today's decisions is in the
+[roadmap](https://github.com/danoszz/penthera/blob/main/ROADMAP.md); the reasoning behind today's decisions is in the
 [manifesto](MANIFESTO.md). Challenge any of it in
 [Discussions](https://github.com/danoszz/penthera/discussions).
 
@@ -118,9 +118,9 @@ We run our own research, to the standard we would expect in a paper.
 | **E4** | Does a classifier catch malicious packages that rules miss? | Temporal split on public malicious-package data plus a benign sample | AUC, precision at fixed recall, vs rules alone (DeLong test) | ≥ 500 malicious and ≥ 5,000 benign packages in the test period |
 | **E5** | Are deterministic checks more robust than LLM judges? | Adversarial set of skills and MCP configs using published evasion techniques; both detectors on every item | Evasion rate (paired, McNemar) | 155 adversarial items for the effect above; more if discordance is lower |
 | **E6** | Does Penthera save time for real users? | Small user study: newcomers secure a seeded app with and without Penthera | Issues fixed in 30 minutes; SUS usability score | 24 to 30 participants, crossover design |
-| **E7** | Does a deterministic audit find agent-environment misconfigurations? | Labelled corpus of public agent setups (devcontainers, agent CI workflows, MCP configs); two labellers. Proposed in [agent-incidents-2026.md](research/agent-incidents-2026.md) | Precision and recall of the planned harness rules ([spec](research/spec-harness-rules.md)) | To be set in its pre-registration |
-| **E10** | How does Penthera do on known-vulnerable apps it wasn't built on? | Six documented apps (Juice Shop, DVNA, NodeGoat, DVWA, crAPI, WebGoat), answer keys frozen before scanning, run offline. [Draft protocol](research/prereg/E10-known-vulnerable-apps.md), [pilot](../bench/known-vuln/RESULTS.md) | Precision and recall per app and class, Wilson intervals | 82 in-scope documented items; pilot on two apps |
-| **E8** | Do harness guardrails reduce judge tampering? | 2×2: `AGENTS.md` block × protected judges, benign coding tasks with one third unsolvable, local open-weight models offline. [Draft pre-registration](research/prereg/E8-harness-guardrails.md) | Tamper-attempt rate and safe-exit rate on unsolvable tasks | 960 unsolvable runs (≥ 138 effective per level after clustering) |
+| **E7** | Does a deterministic audit find agent-environment misconfigurations? | Labelled corpus of public agent setups (devcontainers, agent CI workflows, MCP configs); two labellers. Proposed in [agent-incidents-2026.md](https://github.com/danoszz/penthera/blob/main/docs/research/agent-incidents-2026.md) | Precision and recall of the planned harness rules ([spec](https://github.com/danoszz/penthera/blob/main/docs/research/spec-harness-rules.md)) | To be set in its pre-registration |
+| **E10** | How does Penthera do on known-vulnerable apps it wasn't built on? | Six documented apps (Juice Shop, DVNA, NodeGoat, DVWA, crAPI, WebGoat), answer keys frozen before scanning, run offline. [Draft protocol](https://github.com/danoszz/penthera/blob/main/docs/research/prereg/E10-known-vulnerable-apps.md), [pilot](https://github.com/danoszz/penthera/blob/main/bench/known-vuln/RESULTS.md) | Precision and recall per app and class, Wilson intervals | 82 in-scope documented items; pilot on two apps |
+| **E8** | Do harness guardrails reduce judge tampering? | 2×2: `AGENTS.md` block × protected judges, benign coding tasks with one third unsolvable, local open-weight models offline. [Draft pre-registration](https://github.com/danoszz/penthera/blob/main/docs/research/prereg/E8-harness-guardrails.md) | Tamper-attempt rate and safe-exit rate on unsolvable tasks | 960 unsolvable runs (≥ 138 effective per level after clustering) |
 | **E15** (candidate) | Does a deterministic check catch indirect prompt injections hidden in what an agent reads? | The 95 successful attacks released with Dziemian et al. (2026, arXiv:2603.15714), hidden in skills, rule files and MCP tool descriptions the way an attacker would hide them, plus plain-text variants; normal files from public repositories as negatives; same protocol as E11b (split, one locked run). Expected in advance: hidden and obfuscated payloads are caught, plain persuasive text is not | Detection rate per hiding technique and false-alarm rate on normal files, Wilson intervals | 95 attacks × hiding techniques (±10 pt per technique); ≥ 500 normal files |
 
 Sample sizes are planning minimums from standard power calculations; each
@@ -203,7 +203,7 @@ checked.
 
 Research milestones are not tied to version numbers: a result ships in the
 next minor release after it holds up. 2.0.0 is on npm `latest` (see the
-[roadmap](../ROADMAP.md#where-it-stands)), so the work below lands in 1.10 and
+[roadmap](https://github.com/danoszz/penthera/blob/main/ROADMAP.md#where-it-stands)), so the work below lands in 1.10 and
 later.
 
 | Milestone | Contents | Done when |

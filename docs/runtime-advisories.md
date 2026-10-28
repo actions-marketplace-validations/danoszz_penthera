@@ -44,7 +44,7 @@ on the server itself, not only from outside.
 For the PHP release of 21 October 2026, Penthera's verdicts match OpenAI's
 independent [php2shell-checker](https://github.com/openai/php2shell-checker)
 on every branch it lists; a test keeps it that way. See the
-[case study](research/case-study-php-2026-10.md#an-independent-cross-check).
+[case study](https://github.com/danoszz/penthera/blob/main/docs/research/case-study-php-2026-10.md#an-independent-cross-check).
 
 ## Load an advisory before the next release
 
@@ -100,4 +100,4 @@ unsigned one needs `--allow-unsigned-rules`. See [rule-packs.md](rule-packs.md).
 3. Build and sign it: `npm run rules:build -- ./php-2026-10 --name php-2026-10 --version 1.0.0`,
    then `scripts/rules/sign-pack.sh ./php-2026-10`.
 4. Fold the rule into the bundled `advisories` pack in the next release, with a
-   benchmark case (see [bench/README.md](../bench/README.md)).
+   benchmark case (see [bench/README.md](https://github.com/danoszz/penthera/blob/main/bench/README.md)).

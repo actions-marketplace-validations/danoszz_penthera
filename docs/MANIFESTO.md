@@ -48,7 +48,7 @@ The agent does the routine, repeatable checks a security engineer would do:
   default, never pushes, and only talks to the target you named. It cannot
   edit the tests, CI or settings that judge its fixes, and "could not fix" is
   an accepted outcome, not a failure to work around. See
-  [what the 2026 agent incidents mean for Penthera](research/agent-incidents-2026.md).
+  [what the 2026 agent incidents mean for Penthera](https://github.com/danoszz/penthera/blob/main/docs/research/agent-incidents-2026.md).
 - **"Learning" means bookkeeping, not machine learning.** The local memory
   counts which fix recipes worked for which framework, which findings you marked
   as false positives, and which probes found things. It re-orders and
@@ -178,7 +178,7 @@ pay.
 
 **Will there be a hosted version?**
 Maybe, for teams, later. If it exists, it will not remove anything from the
-local tool. See [ROADMAP.md](../ROADMAP.md).
+local tool. See [ROADMAP.md](https://github.com/danoszz/penthera/blob/main/ROADMAP.md).
 
 **How do I challenge a decision?**
 Open a [discussion](https://github.com/danoszz/penthera/discussions) labeled

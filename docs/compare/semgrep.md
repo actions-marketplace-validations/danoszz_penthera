@@ -53,4 +53,4 @@ npx penthera http://localhost:3000 --repo . --sarif penthera.sarif
 npx penthera deps --base origin/main
 ```
 
-[All comparisons](README.md) · [Back to the README](../../README.md)
+[All comparisons](https://github.com/danoszz/penthera/blob/main/docs/compare/README.md) · [Back to the README](https://github.com/danoszz/penthera/blob/main/README.md)

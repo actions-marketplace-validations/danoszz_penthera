@@ -4,7 +4,7 @@
 
 Penthera is a security tool, so its own release bar has to be easy to check.
 The internal audit is that bar: one command that runs every check a release
-needs and writes the result to [`audit/REPORT.md`](../audit/REPORT.md).
+needs and writes the result to [`audit/REPORT.md`](https://github.com/danoszz/penthera/blob/main/audit/REPORT.md).
 
 ```bash
 npm run audit:internal
@@ -12,8 +12,8 @@ npm run audit:internal
 
 It exits 1 if any gate fails. A release is only tagged from a commit whose
 audit passed (see the release checklist in
-[CONTRIBUTING.md](../CONTRIBUTING.md#cutting-a-release)). The same audit runs
-every Monday in CI ([`internal-audit.yml`](../.github/workflows/internal-audit.yml))
+[CONTRIBUTING.md](https://github.com/danoszz/penthera/blob/main/CONTRIBUTING.md#cutting-a-release)). The same audit runs
+every Monday in CI ([`internal-audit.yml`](https://github.com/danoszz/penthera/blob/main/.github/workflows/internal-audit.yml))
 so drift shows up between releases.
 
 ## The gates
@@ -21,8 +21,8 @@ so drift shows up between releases.
 | Gate | What it checks | Fails when |
 |---|---|---|
 | Test suite | `npm test`, with the live suites pointed at the bundled mock server (`PENTEST_BASE_URL`) | Any test fails |
-| Benchmark | `npm run bench` (offline, seeded) against the **Total** row of the committed [`bench/RESULTS.md`](../bench/RESULTS.md) | Precision or recall drops by more than 0.02, or any request leaves loopback |
-| Self-scan | `penthera --repo .`, `penthera agents .`, `penthera deps .`, and `penthera hook run` on a copy of the tree with every file staged | A high or critical finding is not in [`audit/baseline.json`](../audit/baseline.json), or a baseline entry has no reason |
+| Benchmark | `npm run bench` (offline, seeded) against the **Total** row of the committed [`bench/RESULTS.md`](https://github.com/danoszz/penthera/blob/main/bench/RESULTS.md) | Precision or recall drops by more than 0.02, or any request leaves loopback |
+| Self-scan | `penthera --repo .`, `penthera agents .`, `penthera deps .`, and `penthera hook run` on a copy of the tree with every file staged | A high or critical finding is not in [`audit/baseline.json`](https://github.com/danoszz/penthera/blob/main/audit/baseline.json), or a baseline entry has no reason |
 | CLI smoke | `--help` for every subcommand, plus a fixture run of each: a mock-server scan in every report format, `agents` on a clean and a malicious fixture, `deps`, `install --dry-run`, `fix --plan`, an evidence bundle and its `verify`, one `agent --loop` iteration (every diff declined), `hook install/uninstall` and `memory show/verify` | Any command exits with an unexpected code or produces the wrong output |
 | Packaging | `npm pack --dry-run` | A file outside the allow-list ships, anything that looks like tests, fixtures, reports or secrets ships, or the package exceeds its size budget |
 | Offline | A full `--all --adaptive --offline` scan of the mock server | The report's `egress` field shows any third-party host |
@@ -60,7 +60,7 @@ first.
 Both are skipped by default. Neither has labelled ground truth yet, so the
 report lists their finding counts and shows precision and recall as
 "unlabelled" until they are labelled in `bench/ground-truth.json` (see
-[bench/README.md](../bench/README.md#optional-targets)).
+[bench/README.md](https://github.com/danoszz/penthera/blob/main/bench/README.md#optional-targets)).
 
 ## When a gate fails
 
@@ -74,7 +74,7 @@ report lists their finding counts and shows precision and recall as
   acceptance is reviewed like any other change.
 
 Thresholds (the 0.02 benchmark drop, the package size budget, the allow-list)
-live at the top of [`scripts/audit/run.mjs`](../scripts/audit/run.mjs).
+live at the top of [`scripts/audit/run.mjs`](https://github.com/danoszz/penthera/blob/main/scripts/audit/run.mjs).
 Change them in their own PR, never to make a release pass.
 
 ## The report

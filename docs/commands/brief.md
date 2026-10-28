@@ -62,4 +62,4 @@ The first matching rule wins:
    low, or a dependency capability.
 4. **Act on:** everything else.
 
-The design is in [docs/research/spec-agent-brief.md](../research/spec-agent-brief.md).
+The design is in [docs/research/spec-agent-brief.md](https://github.com/danoszz/penthera/blob/main/docs/research/spec-agent-brief.md).

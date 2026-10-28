@@ -38,6 +38,7 @@
           "index",
           "commands/init",
           "integrations",
+          "before-you-publish",
           "commands/scan",
           "commands/giants",
           "commands/deps",

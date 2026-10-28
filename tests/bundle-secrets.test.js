@@ -18,7 +18,9 @@ function fakeWeb(routes) {
     asked.push(url);
     const res = (routes[url] ?? notFound)();
     const next = res.headers.get("location");
-    return opts.redirect === "follow" && next ? fetchUrl(next, opts) : res;
+    if (opts.redirect === "follow" && next) return fetchUrl(next, opts);
+    Object.defineProperty(res, "url", { value: url }); // what fetch reports after following redirects
+    return res;
   };
   return { fetchUrl, asked };
 }
@@ -108,5 +110,33 @@ describe("probeBundleSecrets", () => {
     } finally {
       await mock.close();
     }
+  });
+
+  it("follows the home page to its https or www twin, and reads that origin's scripts", async () => {
+    const www = "https://www.app.test";
+    const { fetchUrl, asked } = fakeWeb({
+      [ORIGIN]: () => new Response("", { status: 301, headers: { location: `${www}/` } }),
+      [`${www}/`]: () => new Response('<script src="/app.js"></script>'),
+      [`${www}/app.js`]: () => new Response(js(KEY)),
+    });
+    const findings = await probeBundleSecrets(ORIGIN, { fetchUrl });
+    expect(findings.map((f) => f.url)).toEqual([`${www}/app.js`]);
+    expect(asked).toContain(`${www}/app.js`);
+  });
+
+  it("reports a Google key next to Firebase config at low, and a lone one as found", async () => {
+    // Built at run time, so no key-shaped string sits in the repository.
+    const google = "AI" + "za" + "SyDq7Lm2Pz9Rt4Vb8Nc3Wd6Yf1Gh5Jk0MsX";
+    const firebase = `const firebaseConfig = { apiKey: "${google}", authDomain: "demo.firebaseapp.com", projectId: "demo" };`;
+    const { fetchUrl } = fakeWeb({
+      ...home("/fb.js", "/ai.js"),
+      [`${ORIGIN}/fb.js`]: () => new Response(firebase),
+      [`${ORIGIN}/ai.js`]: () => new Response(`const gemini = "${google}";`),
+    });
+    const findings = await probeBundleSecrets(ORIGIN, { fetchUrl });
+    expect(findings).toMatchObject([
+      { url: `${ORIGIN}/fb.js`, severity: "low", title: "Likely Firebase web key in client bundle" },
+      { url: `${ORIGIN}/ai.js`, severity: "high", title: "Google API key (Gemini / Firebase / Maps) in client bundle" },
+    ]);
   });
 });

@@ -1,0 +1,64 @@
+# Trust
+
+> **Starter.** For "can I trust the tool I'm about to run on my code?"
+
+How Penthera itself is built, released and run. Every line links to something
+you can check yourself. Penthera holds no certification, such as SOC 2 or ISO
+27001. This page shows evidence instead.
+
+## Releases you can verify
+
+- **Published from CI with npm provenance.** Each release is built and staged
+  by [the publish workflow](https://github.com/danoszz/penthera/blob/main/.github/workflows/publish.yml)
+  on GitHub Actions. npm records a signed statement that links the tarball to
+  the commit and the workflow that built it. Check it with
+  `npm audit signatures`, or under "Provenance" on the
+  [npm page](https://www.npmjs.com/package/penthera).
+- **A person approves every release.** CI only stages a version; it goes live
+  after the maintainer approves it on npm with two-factor authentication.
+- **One runtime dependency.** The package depends on `yaml` and nothing else
+  ([package.json](https://github.com/danoszz/penthera/blob/main/package.json)).
+  Make your own SBOM with `npx penthera --repo . --sbom sbom.cdx.json`.
+
+## Checked in public
+
+- **OpenSSF Scorecard,** every week:
+  [the current score](https://scorecard.dev/viewer/?uri=github.com/danoszz/penthera).
+- **CodeQL** on every pull request, and a dependency capability diff that
+  Penthera posts on every pull request that changes the lockfile.
+- **Benchmarks,** published with their losses:
+  [penthera.org/benchmarks](https://penthera.org/benchmarks).
+- **The rules are readable.** Every finding comes from a rule in the
+  repository. A model may propose, but a rule decides
+  ([methodology](METHODOLOGY.md)).
+
+## What it collects
+
+- **The command-line tool:** nothing. No telemetry and no account. With
+  `--offline` it contacts only the target you named
+  ([privacy and network use](privacy.md)).
+- **penthera.org:** page views and a few named events, counted without
+  cookies. The live check stores nothing it fetched
+  ([terms](live-check-terms.md)).
+
+## Who runs penthera.org
+
+| Service | What for |
+|---|---|
+| Vercel | Hosting, the live check, cookieless page counts |
+| GitHub | Source code, CI, releases, security advisories |
+| npm | The package registry |
+| Google Workspace | Email for daan@penthera.org |
+
+## Reporting a vulnerability
+
+Report a problem in Penthera itself through a
+[private GitHub security advisory](https://github.com/danoszz/penthera/security/advisories/new).
+You get an acknowledgement within 3 working days
+([security policy](https://github.com/danoszz/penthera/blob/main/SECURITY.md),
+[security.txt](https://penthera.org/.well-known/security.txt)).
+
+## Who builds it
+
+Daan van der Zwaag, part-time, next to a PhD. The code is MIT licensed and
+developed in the open: [github.com/danoszz/penthera](https://github.com/danoszz/penthera).

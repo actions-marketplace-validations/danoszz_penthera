@@ -59,4 +59,4 @@ diff ([docs/commands/action.md](../commands/action.md)) and upload its SARIF:
 Uploading SARIF to code scanning in a private repository also needs GitHub Code
 Security.
 
-[All comparisons](README.md) · [Back to the README](../../README.md)
+[All comparisons](https://github.com/danoszz/penthera/blob/main/docs/compare/README.md) · [Back to the README](https://github.com/danoszz/penthera/blob/main/README.md)

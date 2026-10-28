@@ -134,3 +134,23 @@ behind toggles, like the MCP configs and the comparison table.
   corners. The calculator takes only the reader's own numbers (hours,
   hourly cost, budget) and, like the waitlist, only fills in an email the
   reader sends: nothing is stored.
+- Pro, second pass (2026-10-28): Pro is mostly automated, priced from about
+  $100 a month per team while we test, with a person as an optional add-on.
+  /pro leads with "Rules decide. Pro keeps the record." and a day, week, month
+  rhythm (dependency watch, site checks, signed report); it says plainly that
+  the hosted parts are planned. No "pentest" wording in Pro copy. The landing
+  page has a "Go Pro" plate before About: machined steel, the Pro mark, "What
+  you shipped, checked again every day.", a shimmer and a pointer light
+  (`site/gopro.js`), still with reduced motion.
+- Pro is an experiment, not a sale (decided with the maintainer,
+  2026-10-28). Penthera stays free and complete; Pro measures whether teams
+  need anything beyond the free agent. If they do, the income pays for
+  maintenance beyond one part-time person: independent reviewers, and outside
+  experts who critique the rules. If not, the free tool is the product. So:
+  no Pro pitch in the README or in the live check's result. /pro opens with
+  "Is the free tool enough?", the Go Pro plate says "An experiment, not a
+  sale" and its button reads "Join the experiment", and each waitlist email
+  counts as one data point. The money rules are in GOVERNANCE.md#money.
+  The waitlist must be able to say "no": the budget slider starts at $0
+  with no default above it, and "Nothing more: the free tool is enough" is
+  one of the answers.

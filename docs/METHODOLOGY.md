@@ -24,7 +24,7 @@ regressions, not accuracy on arbitrary applications.
 ## How to cite
 
 If you use Penthera or this methodology in research or a report, cite the
-software. The metadata are in [CITATION.cff](../CITATION.cff), which GitHub
+software. The metadata are in [CITATION.cff](https://github.com/danoszz/penthera/blob/main/CITATION.cff), which GitHub
 renders as "Cite this repository".
 
 ```text
@@ -44,10 +44,10 @@ van der Zwaag, D. (2026). Penthera: An offline security scanner for web apps and
 
 Citations in this document follow APA 7th edition. Each one resolves to an
 entry in [references.md](references.md), generated from
-[references.bib](references.bib); a test fails if a citation has no entry or an
+[references.bib](https://github.com/danoszz/penthera/blob/main/docs/references.bib); a test fails if a citation has no entry or an
 entry is never cited. Measured accuracy is in
-[bench/RESULTS.md](../bench/RESULTS.md), and the method behind those numbers is
-in [bench/README.md](../bench/README.md).
+[bench/RESULTS.md](https://github.com/danoszz/penthera/blob/main/bench/RESULTS.md), and the method behind those numbers is
+in [bench/README.md](https://github.com/danoszz/penthera/blob/main/bench/README.md).
 
 ## Contents
 
@@ -218,7 +218,7 @@ When a runtime or web server gets a security release, such as the critical PHP
 release announced on 20 October 2026 (The PHP Group, 2026), the question is
 which systems run an affected version. Penthera answers it from two kinds of
 evidence and says what it cannot know. The code is in
-[lib/advisories/](../lib/advisories/), and the advisory data is in signed rule
+[lib/advisories/](https://github.com/danoszz/penthera/tree/main/lib/advisories), and the advisory data is in signed rule
 packs ([runtime-advisories.md](runtime-advisories.md)).
 
 ### Evidence
@@ -375,7 +375,7 @@ notifications sent to site operators mostly do not arrive (Stock et al., 2016).
 
 Severity says how bad a finding would be if real. Confidence says how likely it
 is to be real. Penthera reports both and never lets a heuristic look like a
-fact. The labels are defined in [lib/provenance.js](../lib/provenance.js):
+fact. The labels are defined in [lib/provenance.js](https://github.com/danoszz/penthera/blob/main/lib/provenance.js):
 
 | Label | Meaning | Typical sources |
 |---|---|---|
@@ -393,7 +393,7 @@ labels mean what they say. On the current run, all `likely` and
 finding was a false positive. The two `confirmed` false positives are cases
 where the evidence is real but the judgment is wrong: a health endpoint that
 is public by design, and AWS's published example key. See
-[bench/RESULTS.md](../bench/RESULTS.md).
+[bench/RESULTS.md](https://github.com/danoszz/penthera/blob/main/bench/RESULTS.md).
 
 ### Findings proposed by a model
 
@@ -420,7 +420,7 @@ misses. The probes apply these controls:
 - **Randomized canaries.** The SSTI probe multiplies two random four-digit
   numbers and looks for the seven- or eight-digit product, and only when
   neither the raw payload nor the literal expression appears in the response
-  ([lib/injections.js](../lib/injections.js), `buildSstiProbes`). The common
+  ([lib/injections.js](https://github.com/danoszz/penthera/blob/main/lib/injections.js), `buildSstiProbes`). The common
   fixed canary `7*7 = 49` fires on any page that happens to contain "49". XSS
   probes use a random reflection marker per probe (`makeCanary`).
 - **Context before payload.** The XSS probe first checks where its marker is
@@ -546,11 +546,11 @@ Penthera keeps up through reviewed releases, not live updates:
   records where the technique comes from (a paper, an advisory, an OWASP or
   ATLAS entry, an incident write-up) and the date it was added. Finding
   categories are already linked to their sources in
-  [lib/references.json](../lib/references.json); the built-in rules that
+  [lib/references.json](https://github.com/danoszz/penthera/blob/main/lib/references.json); the built-in rules that
   predate this policy are being backfilled.
 - **Every new rule comes with a benchmark case.** A detection rule is added
   together with a labeled true positive and, where a false positive is
-  plausible, a decoy in [bench/](../bench/). The CI floor in the benchmark
+  plausible, a decoy in [bench/](https://github.com/danoszz/penthera/tree/main/bench). The CI floor in the benchmark
   stops a rule that adds false positives.
 - **Your own templates stay local.** `--nuclei <path>` and `--templates <dirs>`
   load YAML templates from directories you choose. Penthera does not download
@@ -570,7 +570,7 @@ installed.
 ## Citations in reports
 
 Each finding category maps to one to three references in
-[lib/references.json](../lib/references.json), chosen to explain why the
+[lib/references.json](https://github.com/danoszz/penthera/blob/main/lib/references.json), chosen to explain why the
 finding matters. Besides the sources discussed above, these include the
 empirical work behind specific header and policy checks: Content Security
 Policy (Weichselbaum et al., 2016), cookie handling and cross-site request
@@ -591,7 +591,7 @@ The references appear in two places:
   keys).
 
 [references.md](references.md) and the `sources` block of `references.json`
-are generated from [references.bib](references.bib) by
+are generated from [references.bib](https://github.com/danoszz/penthera/blob/main/docs/references.bib) by
 `node scripts/build-references.mjs`, and a test fails if they drift.
 
 ## Known limitations

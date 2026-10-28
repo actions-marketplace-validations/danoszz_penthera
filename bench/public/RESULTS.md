@@ -272,6 +272,125 @@ here (frozen scanner, protocol § 5).
     previous clean release (`penthera deps --diff`) is the method that fits
     these; E11 did not test it.
 
+## E14 step 2: the sealed test half, scored once (2026-10-28)
+
+Pre-registration: [E14-giants-combination.md](../../docs/research/prereg/E14-giants-combination.md)
+(registered at `1b7823a`; deviations in its § 9, entries 1 to 9). This is the
+registered result. The test half was opened once, with
+`node bench/public/giants.mjs --split test --final --collect --spot-check 50`,
+on 2026-10-28 from commit `8bcdd68` (main `efbe8c8` plus the same-tool check
+of § 6, written and committed before the run). Nothing was changed after the
+results were seen.
+
+Penthera is **2.1.0-rc.2**: main `efbe8c8`, the commit npm records for the
+`penthera@2.1.0-rc.2` tarball. Each other tool ran through E11b's own runner
+in `competitors.mjs` (same pins, commands and `sandbox-exec` network deny; a
+curl under each profile failed before the run). Per-item outputs: SHA-256
+`4d5880e1f513df0b29620bee78fb9bdbc4e85bee6c9a54695d55bf12905cba41`
+(local; CredData hits carry hashes of the values, never the values).
+
+| Member | Ran |
+|---|---|
+| Penthera 2.1.0-rc.2 | yes, as the CLI reports |
+| gitleaks 8.30.1 | yes |
+| trufflehog 3.99.3 | yes |
+| Semgrep 1.180.0, semgrep-rules `9bbf021` `javascript/` | yes, 67 packages, 0 errors |
+| CodeQL 2.27.2, javascript-security-extended | yes, 67 packages, 0 errors |
+
+**Same tools as E11b.** Before any arm was computed, the harness scored each
+other tool with E11b's code and compared it with E11b's published test
+numbers; a difference would have stopped the run. All four match exactly:
+gitleaks 2,242/2,635 precise and 831/2,220 rows found, trufflehog 152/383
+and 122/2,220, Semgrep 15/47 command and 9/17 code injection, CodeQL 37/47
+and 4/17. Penthera 2.1.0-rc.2 scores what 2.0.0 scored in E11b, to the item
+count: 1,640/1,849 and 1,415/2,220 on CredData, 35/47 and 10/17 on
+SecBench.js.
+
+### CredData, test (2,220 in-scope `T` rows, 1,258 files)
+
+Strict precision over distinct merged hits (a hit is a file and line; across
+tools, hits merge on file, line and the value's hash, or on file and line when
+either has no value), in-scope row recall, F1.
+
+| Arm | Hits | Precision | Recall (row) | F1 |
+|---|---:|---|---|---:|
+| P: Penthera alone | 1,849 | 0.89 [0.87, 0.90] (1,640/1,849) | 0.64 [0.62, 0.66] (1,415/2,220) | 0.74 |
+| gitleaks alone | 2,635 | 0.85 [0.84, 0.86] (2,242/2,635) | 0.37 [0.35, 0.39] (831/2,220) | 0.52 |
+| trufflehog alone | 383 | 0.40 [0.35, 0.45] (152/383) | 0.05 [0.05, 0.07] (122/2,220) | 0.10 |
+| P + gitleaks | 3,729 | 0.84 [0.83, 0.86] (3,146/3,729) | 0.74 [0.72, 0.76] (1,648/2,220) | 0.79 |
+| P + trufflehog | 2,140 | 0.80 [0.78, 0.81] (1,706/2,140) | 0.64 [0.62, 0.66] (1,424/2,220) | 0.71 |
+| **U: union** | 4,017 | 0.80 [0.79, 0.81] (3,210/4,017) | 0.75 [0.73, 0.76] (1,656/2,220) | 0.77 |
+| A: agreement | 1,852 | 0.89 [0.87, 0.90] (1,642/1,852) | 0.64 [0.62, 0.66] (1,415/2,220) | 0.74 |
+
+Paired differences, bootstrap over files (10,000 resamples, seed 20261025):
+
+| | Difference | Estimate [95% interval] | Supported when | Result |
+|---|---|---|---|---|
+| H1 | recall(U) − recall(P) | +0.109 [+0.025, +0.210] | lower bound > 0 | **holds** |
+| H2 | precision(U) − precision(P) | −0.088 [−0.129, −0.043] | lower bound > −0.02 | **fails** |
+| H3 | F1(U) − F1(gitleaks, the better tool) | +0.252 [+0.141, +0.408] | lower bound > 0 | **holds** |
+| A | recall(A) − recall(P) | 0.000 [0.000, 0.000] | lower bound > 0 | fails |
+| A | precision(A) − precision(P) | −0.000 [−0.002, 0.000] | lower bound > −0.02 | holds |
+
+The union finds 241 more rows (11 points) and pays about 9 points of
+precision: it adds 2,168 hits, 598 of them on no `T` row. Almost all of the
+gain comes from gitleaks; trufflehog adds 9 rows and 291 hits to Penthera.
+The agreement arm adds 3 hits where gitleaks and trufflehog agree and
+Penthera did not report, none on a new row. deepsecrets (not a `--giants`
+tool, not rerun) had F1 0.78 here in E11b; the union's is 0.77. Reported,
+not tested.
+
+### SecBench.js, test (64 vulnerabilities with a sink file)
+
+| Arm | Strict recall, pooled | Findings per package (median / mean / max) |
+|---|---|---|
+| P: Penthera alone | 0.70 [0.58, 0.80] (45/64) | 1 / 1.0 / 6 |
+| Semgrep alone | 0.38 [0.27, 0.50] (24/64) | 2 / 29.2 / 777 |
+| CodeQL alone | 0.64 [0.52, 0.75] (41/64) | 2 / 3.3 / 35 |
+| P + Semgrep | 0.75 [0.63, 0.84] (48/64) | 2 / 29.9 / 779 |
+| P + CodeQL | 0.84 [0.74, 0.91] (54/64) | 2 / 4.0 / 40 |
+| **U: union** | 0.84 [0.74, 0.91] (54/64) | 4 / 32.4 / 791 |
+| A: agreement | 0.75 [0.63, 0.84] (48/64) | 1 / 1.4 / 12 |
+
+H4, recall(U) − recall(P): +0.141, bootstrap interval [+0.063, +0.234];
+exact McNemar 0 against 9, p = 0.0039. **H4 holds.** The union finds 9 more
+vulnerabilities and loses none, and its median findings per package goes
+from 1 to 4. CodeQL alone gives all 9: P + CodeQL has the union's recall at
+a mean of 4.0 findings per package, against 32.4 with Semgrep (one package
+gets 777 Semgrep findings).
+
+H1 to H4 are one family. Only H4 has a p-value (H1 to H3 are decided by
+their bootstrap intervals), so the Holm adjustment leaves it at 0.0039.
+
+### What the rule decides
+
+§ 5 of the pre-registration, applied as written:
+
+1. Union, if H1 and H2 hold: **no.** H1 holds; H2 fails, with the whole
+   interval below −0.02.
+2. Agreement, if arm A has recall above P and precision within 0.02: **no.**
+   Its precision holds, but it finds no row Penthera does not.
+3. Otherwise **Penthera-first.** This is the result: `--giants` keeps
+   Penthera-first as its default. Other tools' findings stay in their own
+   section, "Also reported by other tools".
+
+H4 holds while the CredData default is Penthera-first, so § 5 reads it as
+**more found on code, at a cost not measurable here**: SecBench.js has no
+labelled negatives, so the union's extra findings cannot be scored as right
+or wrong. Whether code findings follow a different merge rule is the
+maintainer's decision.
+
+**Spot-check.** 50 cross-tool merges per benchmark, drawn with the seed and
+read line by line (by Claude, for the maintainer to recheck; the samples are
+in the local results folder). CredData: 50 of 50 join one secret on one line,
+30 of them private key blocks. SecBench.js: 50 of 50 join findings on the same
+call or statement on one line.
+
+**Limits.** The same test half as E11b, so each tool's aggregate was public
+before this run (§ 7); the combination was not. CredData is split by file,
+not by repository. Each tool runs on its defaults. Two benchmarks, two
+areas: E14 says nothing about dependencies, infrastructure or live apps.
+
 ## E14 step 1: the dev half (2026-10-27; not the registered test)
 
 Pre-registration: [E14-giants-combination.md](../../docs/research/prereg/E14-giants-combination.md)

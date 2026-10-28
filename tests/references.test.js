@@ -86,7 +86,7 @@ describe("APA 7 reference formatter", () => {
     const e = one(`@article{a, author = {Saltzer, J. H. and Schroeder, M. D.}, title = {The Protection of Information in Computer Systems},
       journal = {Proceedings of the IEEE}, volume = {63}, number = {9}, year = {1975}, pages = {1278--1308}, doi = {10.1109/PROC.1975.9939}}`);
     expect(formatApa(e)).toBe(
-      "Saltzer, J. H., & Schroeder, M. D. (1975). The protection of information in computer systems. *Proceedings of the IEEE*, *63*(9), 1278–1308. <https://doi.org/10.1109/PROC.1975.9939>",
+      "Saltzer, J. H., & Schroeder, M. D. (1975). The protection of information in computer systems. *Proceedings of the IEEE*, *63*(9), 1278–1308. [https://doi.org/10.1109/PROC.1975.9939](https://doi.org/10.1109/PROC.1975.9939)",
     );
   });
 
@@ -94,32 +94,32 @@ describe("APA 7 reference formatter", () => {
     const e = one(`@inproceedings{c, author = {Kocher, Paul C.}, title = {Timing Attacks on Implementations of {Diffie-Hellman}, {RSA}, {DSS}, and Other Systems},
       booktitle = {Advances in Cryptology -- CRYPTO '96}, editor = {Koblitz, Neal}, publisher = {Springer}, year = {1996}, pages = {104--113}, doi = {10.1007/3-540-68697-5_9}}`);
     expect(formatApa(e)).toBe(
-      "Kocher, P. C. (1996). Timing attacks on implementations of Diffie-Hellman, RSA, DSS, and other systems. In N. Koblitz (Ed.), *Advances in Cryptology – CRYPTO '96* (pp. 104–113). Springer. <https://doi.org/10.1007/3-540-68697-5_9>",
+      "Kocher, P. C. (1996). Timing attacks on implementations of Diffie-Hellman, RSA, DSS, and other systems. In N. Koblitz (Ed.), *Advances in Cryptology – CRYPTO '96* (pp. 104–113). Springer. [https://doi.org/10.1007/3-540-68697-5_9](https://doi.org/10.1007/3-540-68697-5_9)",
     );
     const proc = one(`@inproceedings{p, author = {Meli, Michael and McNiece, Matthew R. and Reaves, Bradley}, title = {How Bad Can It {Git}? Characterizing Secret Leakage in Public {GitHub} Repositories},
       booktitle = {Proceedings 2019 Network and Distributed System Security Symposium}, publisher = {Internet Society}, year = {2019}, doi = {10.14722/ndss.2019.23418}}`);
     expect(formatApa(proc)).toBe(
-      "Meli, M., McNiece, M. R., & Reaves, B. (2019). How bad can it Git? Characterizing secret leakage in public GitHub repositories. In *Proceedings 2019 Network and Distributed System Security Symposium*. Internet Society. <https://doi.org/10.14722/ndss.2019.23418>",
+      "Meli, M., McNiece, M. R., & Reaves, B. (2019). How bad can it Git? Characterizing secret leakage in public GitHub repositories. In *Proceedings 2019 Network and Distributed System Security Symposium*. Internet Society. [https://doi.org/10.14722/ndss.2019.23418](https://doi.org/10.14722/ndss.2019.23418)",
     );
   });
 
   it("formats a book with an italic sentence-case title", () => {
     const e = one(`@book{b, author = {Shostack, Adam}, title = {Threat Modeling: Designing for Security}, publisher = {Wiley}, year = {2014}, url = {https://example.org/tm}}`);
-    expect(formatApa(e)).toBe("Shostack, A. (2014). *Threat modeling: Designing for security*. Wiley. <https://example.org/tm>");
+    expect(formatApa(e)).toBe("Shostack, A. (2014). *Threat modeling: Designing for security*. Wiley. [https://example.org/tm](https://example.org/tm)");
   });
 
   it("formats a web page with a corporate author, full date, site name and retrieval date", () => {
     const e = one(`@misc{w, author = {{OWASP Foundation}}, title = {{OWASP Top 10} for {LLM} Applications 2025}, organization = {OWASP Gen AI Security Project},
       year = {2024}, month = nov, day = {17}, url = {https://genai.owasp.org/x/}, urldate = {2026-10-19}}`);
     expect(formatApa(e)).toBe(
-      "OWASP Foundation. (2024, November 17). *OWASP Top 10 for LLM applications 2025*. OWASP Gen AI Security Project. Retrieved October 19, 2026, from <https://genai.owasp.org/x/>",
+      "OWASP Foundation. (2024, November 17). *OWASP Top 10 for LLM applications 2025*. OWASP Gen AI Security Project. Retrieved October 19, 2026, from [https://genai.owasp.org/x/](https://genai.owasp.org/x/)",
     );
   });
 
   it("omits the site name when it equals the corporate author, and uses n.d. without a year", () => {
     const e = one(`@misc{m, author = {{The MITRE Corporation}}, title = {{CWE}: {Common Weakness Enumeration}}, howpublished = {The MITRE Corporation},
       url = {https://cwe.mitre.org/}, urldate = {2026-10-19}}`);
-    expect(formatApa(e)).toBe("The MITRE Corporation. (n.d.). *CWE: Common Weakness Enumeration*. Retrieved October 19, 2026, from <https://cwe.mitre.org/>");
+    expect(formatApa(e)).toBe("The MITRE Corporation. (n.d.). *CWE: Common Weakness Enumeration*. Retrieved October 19, 2026, from [https://cwe.mitre.org/](https://cwe.mitre.org/)");
   });
 
   it("lists three or more authors with a serial comma and ampersand, and hyphenated initials", () => {
@@ -127,7 +127,7 @@ describe("APA 7 reference formatter", () => {
       title = {Small World with High Risks: A Study of Security Threats in the npm Ecosystem}, booktitle = {28th USENIX Security Symposium (USENIX Security 19)},
       publisher = {USENIX Association}, year = {2019}, pages = {995--1010}, url = {https://www.usenix.org/z}}`);
     expect(formatApa(e)).toBe(
-      "Zimmermann, M., Staicu, C.-A., Tenny, C., & Pradel, M. (2019). Small world with high risks: A study of security threats in the npm ecosystem. In *28th USENIX Security Symposium (USENIX Security 19)* (pp. 995–1010). USENIX Association. <https://www.usenix.org/z>",
+      "Zimmermann, M., Staicu, C.-A., Tenny, C., & Pradel, M. (2019). Small world with high risks: A study of security threats in the npm ecosystem. In *28th USENIX Security Symposium (USENIX Security 19)* (pp. 995–1010). USENIX Association. [https://www.usenix.org/z](https://www.usenix.org/z)",
     );
     expect(formatBibliography([e])[0]).toMatchObject({ parenthetical: "(Zimmermann et al., 2019)", narrativeCite: "Zimmermann et al. (2019)" });
   });
@@ -135,13 +135,13 @@ describe("APA 7 reference formatter", () => {
   it("formats RFCs, NIST reports and arXiv preprints as reports", () => {
     const rfc = one(`@misc{r, author = {Lodderstedt, T. and Bradley, J. and Labunets, A. and Fett, D.}, title = {Best Current Practice for {OAuth} 2.0 Security},
       howpublished = {RFC 9700, BCP 240, RFC Editor}, year = {2025}, month = jan, doi = {10.17487/RFC9700}}`);
-    expect(formatApa(rfc)).toBe("Lodderstedt, T., Bradley, J., Labunets, A., & Fett, D. (2025). *Best current practice for OAuth 2.0 security* (RFC 9700, BCP 240). RFC Editor. <https://doi.org/10.17487/RFC9700>");
+    expect(formatApa(rfc)).toBe("Lodderstedt, T., Bradley, J., Labunets, A., & Fett, D. (2025). *Best current practice for OAuth 2.0 security* (RFC 9700, BCP 240). RFC Editor. [https://doi.org/10.17487/RFC9700](https://doi.org/10.17487/RFC9700)");
     const nist = one(`@techreport{n, author = {Scarfone, K. A.}, title = {Technical Guide to Information Security Testing and Assessment},
       institution = {National Institute of Standards and Technology}, type = {NIST Special Publication}, number = {800-115}, year = {2008}, doi = {10.6028/NIST.SP.800-115}}`);
-    expect(formatApa(nist)).toBe("Scarfone, K. A. (2008). *Technical guide to information security testing and assessment* (NIST Special Publication 800-115). National Institute of Standards and Technology. <https://doi.org/10.6028/NIST.SP.800-115>");
+    expect(formatApa(nist)).toBe("Scarfone, K. A. (2008). *Technical guide to information security testing and assessment* (NIST Special Publication 800-115). National Institute of Standards and Technology. [https://doi.org/10.6028/NIST.SP.800-115](https://doi.org/10.6028/NIST.SP.800-115)");
     const arxiv = one(`@misc{x, author = {Perez, F{\\'a}bio and Ribeiro, Ian}, title = {Ignore Previous Prompt: Attack Techniques For Language Models},
       year = {2022}, archivePrefix = {arXiv}, doi = {10.48550/arXiv.2211.09527}}`);
-    expect(formatApa(arxiv)).toBe("Perez, F., & Ribeiro, I. (2022). *Ignore previous prompt: Attack techniques for language models* [Preprint]. arXiv. <https://doi.org/10.48550/arXiv.2211.09527>");
+    expect(formatApa(arxiv)).toBe("Perez, F., & Ribeiro, I. (2022). *Ignore previous prompt: Attack techniques for language models* [Preprint]. arXiv. [https://doi.org/10.48550/arXiv.2211.09527](https://doi.org/10.48550/arXiv.2211.09527)");
   });
 
   it("sentence-cases titles but keeps braced groups and acronyms", () => {

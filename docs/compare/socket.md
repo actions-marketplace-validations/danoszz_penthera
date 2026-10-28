@@ -77,4 +77,4 @@ npx penthera deps --base origin/main   # what the new packages can do, offline
 npx penthera agents --home             # your AI tooling
 ```
 
-[All comparisons](README.md) · [Back to the README](../../README.md)
+[All comparisons](https://github.com/danoszz/penthera/blob/main/docs/compare/README.md) · [Back to the README](https://github.com/danoszz/penthera/blob/main/README.md)

@@ -142,6 +142,7 @@ export function agentFiles({ root, site, version, origin, values, pub = null, po
   const bench = pub?.benchmarks ? benchmarkViews(pub).map((v) => [`benchmarks/${v.c.slug}`, pub.date]) : [];
   const urls = [
     ["", "site/index.html"], ["index.md", "site/agent-ready.mjs"], ...terms.map((t) => [t, "docs/live-check-terms.md"]),
+    ...(existsSync(join(root, "docs", "trust.md")) ? [["trust", "docs/trust.md"]] : []),
     ...(bench.length ? [["benchmarks", pub.date], ...bench] : []),
     ...landing.map((p) => [p.slug, `site/pages/${p.slug}.md`]),
     // Approved posts only: a draft is never built, so never listed.

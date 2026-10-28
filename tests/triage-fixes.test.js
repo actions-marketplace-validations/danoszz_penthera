@@ -173,3 +173,25 @@ describe("E8: the coverage ledger counts what the eval check did not read", () =
     expect(coverageMarkdown(cov).join("\n")).toMatch(/eval, vm and exec sinks \| did not run \| - \|/);
   });
 });
+
+// Clerk secret keys share Stripe's sk_live_/sk_test_ prefix. They are told
+// apart by CLERK_SECRET_KEY, and reported as Clerk's, never as Stripe's.
+// Keys are built at run time so no real-looking key sits in the repository.
+describe("Clerk secret keys", () => {
+  const key = (prefix) => `${prefix}Xq7Lm2Pz9Rt4Vb8Nc3Wd6Yf1Gh5Jk0Ms`;
+  it("names a Clerk live key as Clerk's, critical, and not as Stripe's", async () => {
+    const { findSecretsInText } = await import("../lib/whitebox/secrets.js");
+    const hits = findSecretsInText(`CLERK_SECRET_KEY=${key("sk_" + "live_")}\n`);
+    expect(hits.map((h) => [h.name, h.severity])).toEqual([["Clerk secret key", "critical"]]);
+  });
+  it("reports a Clerk test key at high, also in JSON and YAML config", async () => {
+    const { findSecretsInText } = await import("../lib/whitebox/secrets.js");
+    expect(findSecretsInText(`"CLERK_SECRET_KEY": "${key("sk_" + "test_")}"`).map((h) => h.name)).toEqual(["Clerk test secret key"]);
+    expect(findSecretsInText(`CLERK_SECRET_KEY: ${key("sk_" + "test_")}`).map((h) => h.severity)).toEqual(["high"]);
+  });
+  it("leaves Stripe keys and Clerk publishable keys as they were", async () => {
+    const { findSecretsInText } = await import("../lib/whitebox/secrets.js");
+    expect(findSecretsInText(`STRIPE_SECRET_KEY=${key("sk_" + "live_")}`).map((h) => h.name)).toEqual(["Stripe secret key"]);
+    expect(findSecretsInText(`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${key("pk_" + "test_")}`)).toEqual([]);
+  });
+});

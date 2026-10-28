@@ -64,8 +64,12 @@ export function renderMarkdown(md) {
 }
 
 /** The /terms page, in the site's own frame. */
-export function termsPage(root, { styles = "/styles.css", theme = "/theme.js" } = {}) {
-  const md = readFileSync(join(root, "docs", "live-check-terms.md"), "utf8");
+/**
+ * A page from one Markdown file in docs/: the repository holds the one source
+ * and the site shows it. Used for /terms and /trust.
+ */
+export function docPage(root, { file, slug, eyebrow, description, styles = "/styles.css", theme = "/theme.js" }) {
+  const md = readFileSync(join(root, "docs", file), "utf8");
   const title = /^# (.+)$/m.exec(md)[1];
   const body = renderMarkdown(md.replace(/^# .+\n/m, ""));
   return `<!doctype html>
@@ -74,21 +78,29 @@ export function termsPage(root, { styles = "/styles.css", theme = "/theme.js" } 
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${esc(title)} · Penthera</title>
-  <meta name="description" content="What you may do with penthera.org's live check, what it requests, and what it stores: nothing.">
+  <meta name="description" content="${esc(description)}">
   <meta name="color-scheme" content="dark light">
-  <link rel="canonical" href="https://penthera.org/terms">
-  <link rel="alternate" type="text/markdown" href="/docs/live-check-terms.md">
+  <link rel="canonical" href="https://penthera.org/${slug}">
+  <link rel="alternate" type="text/markdown" href="/docs/${file}">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="${styles}">
   <script src="${theme}"></script>
 </head>
 <body>
   <main class="terms" id="main">
-    <p class="eyebrow"><a href="/">Penthera</a> · Terms</p>
+    <p class="eyebrow"><a href="/">Penthera</a> · ${esc(eyebrow)}</p>
     <h1>${esc(title)}</h1>
 ${body}
   </main>
 </body>
 </html>
 `;
+}
+
+/** /terms: the live check's terms, from docs/live-check-terms.md. */
+export function termsPage(root, opts = {}) {
+  return docPage(root, {
+    file: "live-check-terms.md", slug: "terms", eyebrow: "Terms",
+    description: "What you may do with penthera.org's live check, what it requests, and what it stores: nothing.", ...opts,
+  });
 }

@@ -111,7 +111,7 @@ needs `ollama-cloud`. `"allow": []` turns AI mode off for the repository.
 
 `penthera ui`: in **New scan…**, turn on **AI mode** for a scan of a project
 folder. The same consent appears as a sheet, with a picture of where your code
-goes and two equal buttons, "Use <model> on this computer" and "Not now". See
+goes and two equal buttons, "Use `<model>` on this computer" and "Not now". See
 [dashboard.md](dashboard.md#ai-mode).
 
 ## Options

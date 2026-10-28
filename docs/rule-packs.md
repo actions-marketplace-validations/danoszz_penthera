@@ -118,7 +118,7 @@ Every rule carries:
 | `source` | `https` URL of the advisory, paper or write-up the rule comes from |
 | `date` | `YYYY-MM-DD`, when that source published it |
 | `confidence` | `confirmed`, `likely` or `potential`, as in findings |
-| `references` | Optional keys into [references.bib](./references.bib) |
+| `references` | Optional keys into [references.bib](https://github.com/danoszz/penthera/blob/main/docs/references.bib) |
 | `description` | Optional, shown in finding descriptions |
 
 ### Kinds

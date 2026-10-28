@@ -11,7 +11,7 @@ the reason comes from, and how to check it.
 
 `penthera agents` already audits MCP servers, hooks, permissions and skills.
 The checks marked **(planned)** below are specified in
-[spec-harness-rules.md](research/spec-harness-rules.md) and are not in any
+[spec-harness-rules.md](https://github.com/danoszz/penthera/blob/main/docs/research/spec-harness-rules.md) and are not in any
 release yet. Until they ship, check those items by hand.
 
 ## The checklist
@@ -116,4 +116,4 @@ on it ([Tabassi, 2023](references.md#tabassi2023airmf);
   code. It is not a guide to securing a lab's training or evaluation cluster.
 
 The background is in
-[What the 2026 agent incidents mean for Penthera](research/agent-incidents-2026.md).
+[What the 2026 agent incidents mean for Penthera](https://github.com/danoszz/penthera/blob/main/docs/research/agent-incidents-2026.md).

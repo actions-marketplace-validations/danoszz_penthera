@@ -53,4 +53,4 @@ both. The one network use is npm talking to your configured registry, and
 Penthera prints which one; Penthera itself sends nothing. Workspaces and
 `file:` dependencies are not supported yet.
 
-[Back to the README](../../README.md) · [All commands](README.md)
+[Back to the README](https://github.com/danoszz/penthera/blob/main/README.md) · [All commands](https://github.com/danoszz/penthera/blob/main/docs/commands/README.md)

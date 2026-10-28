@@ -1,4 +1,8 @@
-# Compliance: NIS2 and the cyberwetgeving
+---
+title: "Compliance: NIS2 and the cyberwetgeving"
+sidebarTitle: "NIS2"
+description: "What NIS2 and the Dutch cyber law ask of a small team, and what Penthera can show for it."
+---
 
 > **Pro.** For "what do I give my auditor?" under NIS2.
 
@@ -75,7 +79,7 @@ penthera https://myapp.com --repo . --readiness --assessment assessment.json -o 
 The readiness report is **evidence and self-assessment tooling, not a
 certification**. It is provenance-linked (`source, method, collected_at,
 confidence`) and reproducible, and it lists exactly what only you can attest to.
-Jurisdiction details live in [`lib/jurisdictions/nl.json`](../lib/jurisdictions/nl.json). Only the
+Jurisdiction details live in [`lib/jurisdictions/nl.json`](https://github.com/danoszz/penthera/blob/main/lib/jurisdictions/nl.json). Only the
 Dutch profile exists today.
 
 ### Answer a customer's security questionnaire

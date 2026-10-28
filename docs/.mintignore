@@ -1,0 +1,7 @@
+# Pages in docs/ that the Mintlify site does not publish: research notes and
+# pre-registrations (they live on GitHub), example files, and project-internal
+# pages for maintainers.
+research/
+examples/
+marketing.md
+mcp-listing.md

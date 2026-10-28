@@ -1,4 +1,8 @@
-# Compliance: the Cyber Resilience Act (CRA)
+---
+title: "Compliance: the Cyber Resilience Act (CRA)"
+sidebarTitle: "CRA and AI-BOM"
+description: "What the Cyber Resilience Act asks you to report, and the AI-BOM Penthera writes for it."
+---
 
 > **Pro.** For "what must I report under the CRA, and what is in my AI-BOM?"
 

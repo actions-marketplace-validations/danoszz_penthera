@@ -459,7 +459,14 @@ describe("site story", () => {
     expect(form).toBe('<form class="pro-form" novalidate>');
     expect(page).toMatch(/href="mailto:daan@penthera\.org\?subject=Penthera%20Pro%20waitlist/);
     expect(page).toContain('data-track="pro-waitlist"');
-    expect(page).toContain("Sign up for the waitlist");
+    expect(page).toContain("Join the experiment");
+    // Pro is an experiment that measures a need, not a sale (GOVERNANCE.md#money).
+    expect(page).toContain("Is the free tool enough?");
+    expect(page).toContain("Pro is an experiment, not a sale");
+    // The waitlist measures the need, so it must be able to record "none": the
+    // budget starts at $0 with no nudge upward, and "the free tool is enough" is an answer.
+    expect(page).toMatch(/id="pro-budget" name="budget" min="0" max="2000" step="25" value="0"/);
+    expect(page).toContain('value="Nothing more: the free tool is enough"');
     expect(page).toContain("nothing is stored on penthera.org");
     expect(page).toContain('<script defer src="/track.js"></script>');
     expect(existsSync(join(out, "track.js"))).toBe(true);
@@ -469,7 +476,14 @@ describe("site story", () => {
     expect(page).not.toMatch(/<script>|<style>|\sstyle="/);
     expect(page).toMatch(/<canvas class="pro-canvas" aria-hidden="true">/);
     // A price range while we test, the free way next to it, and the agent payments line marked as research.
-    expect(page).toContain("$100–300");
+    expect(page).toContain('From about <span class="spec-big">$100</span> a month per team.');
+    // Pro copy promises no person on every result and makes no "pentest" claim (docs/research: the name and copy decisions).
+    expect(page).not.toMatch(/pentest/i);
+    expect(page).toContain("Nothing is for sale. The hosted parts are planned, and they get built only if the waitlist shows a need.");
+    // No pitch for Pro in the README or in the live check's result.
+    expect(readFileSync(join(ROOT, "README.md"), "utf8")).not.toMatch(/join the waitlist/i);
+    expect(readFileSync(join(ROOT, "site", "check", "ui.js"), "utf8")).not.toContain('href = "/pro"');
+    expect(readFileSync(join(ROOT, "GOVERNANCE.md"), "utf8")).toContain("Pro is an experiment, not a product for sale.");
     expect(page).toContain("init --yes</code> sets up the same checks in your own CI, free.");
     expect(page).toMatch(/In research<\/span> Checks your agents can call and pay for/);
     // The calculator and the budget go into the email, nowhere else.
@@ -479,6 +493,19 @@ describe("site story", () => {
     const vercel = JSON.parse(readFileSync(join(ROOT, "vercel.json"), "utf8"));
     expect(vercel.redirects).toEqual(expect.arrayContaining([{ source: "/upkeep", destination: "/pro", permanent: true }]));
     expect(existsSync(join(out, "upkeep.html"))).toBe(false);
+  });
+
+  it("the landing page's Go Pro plate links to /pro, with its motion in /gopro.js", () => {
+    const page = readFileSync(join(out, "index.html"), "utf8");
+    const plate = page.slice(page.indexOf('id="go-pro"'), page.indexOf("</section>", page.indexOf('id="go-pro"')));
+    expect(plate).toContain('<h2 id="gopro-title">Go Pro</h2>');
+    expect(plate).toContain("What you shipped, checked again every day.");
+    expect(plate).toMatch(/<a class="gopro-btn" href="\/pro" data-track="gopro-waitlist">Join the experiment/);
+    expect(plate).toContain("An experiment, not a sale");
+    expect(plate).not.toMatch(/\$\d/); // no price on the plate
+    expect(page).toContain('<script defer src="/gopro.js"></script>');
+    expect(existsSync(join(out, "gopro.js"))).toBe(true);
+    expect(readFileSync(join(out, "gopro.js"), "utf8")).toContain("prefers-reduced-motion");
   });
 
   it("counts checks and installs without the URL, host or score", () => {

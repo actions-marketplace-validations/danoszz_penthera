@@ -1,4 +1,8 @@
-# Penthera in your agent: `penthera mcp`
+---
+title: "Penthera in your agent: penthera mcp"
+sidebarTitle: "MCP server"
+description: "penthera mcp runs Penthera as an MCP server."
+---
 
 > **Starter.** For "can my coding agent call Penthera as a tool?"
 
@@ -70,7 +74,7 @@ this repository, with the same pinned server):
 gemini extensions install https://github.com/danoszz/penthera
 ```
 
-The same files are in [docs/mcp-clients/](../mcp-clients/). The test suite
+The same files are in [docs/mcp-clients/](https://github.com/danoszz/penthera/tree/main/docs/mcp-clients). The test suite
 checks each one with Penthera's own MCP rules.
 
 Then ask your agent: "scan this repo for security issues", "is this MCP config
@@ -163,6 +167,6 @@ tools need no network.
   `config.toml` or Windsurf's `mcp_config.json` yet.
 - The server speaks MCP 2026-07-28 and the earlier `initialize` versions
   (2025-11-25 back to 2024-11-05). The design and its security controls are in
-  [the spec](../research/spec-mcp.md).
+  [the spec](https://github.com/danoszz/penthera/blob/main/docs/research/spec-mcp.md).
 
-[Back to the README](../../README.md) · [All commands](README.md)
+[Back to the README](https://github.com/danoszz/penthera/blob/main/README.md) · [All commands](https://github.com/danoszz/penthera/blob/main/docs/commands/README.md)

@@ -1,4 +1,8 @@
-# Scanning your app: `penthera <url>` and `--repo`
+---
+title: "Scanning your app: penthera <url> and --repo"
+sidebarTitle: "Scan"
+description: "Black-box scans of a running app (localhost, preview, or staging) and white-box scans of its source."
+---
 
 > **Starter.** For "is my app safe to ship?"
 
@@ -166,7 +170,7 @@ means.
 ```
 
 Copy the full workflow from
-[`docs/examples/github-actions-scan.yml`](../examples/github-actions-scan.yml)
+[`docs/examples/github-actions-scan.yml`](https://github.com/danoszz/penthera/blob/main/docs/examples/github-actions-scan.yml)
 into your app's repo. Pin the Penthera version so a scheduled run never picks up
 code you have not reviewed.
 
@@ -184,4 +188,4 @@ cp pentest.config.example.js pentest.config.js   # gitignored
 Edit the route groups, then run `npm run pentest:live`. Set `PENTEST_BASE_URL` to
 point at staging without editing the file.
 
-[Back to the README](../../README.md) · [All commands](README.md)
+[Back to the README](https://github.com/danoszz/penthera/blob/main/README.md) · [All commands](https://github.com/danoszz/penthera/blob/main/docs/commands/README.md)

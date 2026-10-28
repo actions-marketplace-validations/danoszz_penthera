@@ -1,4 +1,8 @@
-# The agent brief
+---
+title: "The agent brief"
+sidebarTitle: "The agent brief"
+description: "The brief is a short summary of a scan, the same shape every time, for an AI assistant to pass on as it is."
+---
 
 > **Pro.** For "what should my AI assistant tell me after a scan?"
 
@@ -62,4 +66,4 @@ The first matching rule wins:
    low, or a dependency capability.
 4. **Act on:** everything else.
 
-The design is in [docs/research/spec-agent-brief.md](../research/spec-agent-brief.md).
+The design is in [docs/research/spec-agent-brief.md](https://github.com/danoszz/penthera/blob/main/docs/research/spec-agent-brief.md).

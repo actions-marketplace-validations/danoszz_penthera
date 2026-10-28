@@ -1,4 +1,8 @@
-# The local loop
+---
+title: "The local loop"
+sidebarTitle: "Local loop"
+description: "Since v1.4, Penthera has a loop that runs entirely on your machine: scan, fix on a local branch, verify, record the outcome, repeat."
+---
 
 > **Pro.** For "how do I run the fix loop, and what does it remember?"
 

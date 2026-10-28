@@ -1,4 +1,8 @@
-# Fixing what it finds: `penthera fix` and `penthera agent --loop`
+---
+title: "Fixing what it finds: penthera fix and penthera agent --loop"
+sidebarTitle: "Fix"
+description: "Ask your agent to fix what Penthera finds."
+---
 
 > **Pro.** For "how do I run the fix loop?"
 
@@ -12,7 +16,7 @@ Ask your agent to fix what Penthera finds. It detects the issue, applies a frame
 "Find and fix hardcoded secrets in this repo"
 ```
 
-Fixes come from a [remediation playbook](../../skills/penthera/references/remediation.md) covering Next.js, Express, Fastify, Hono, and FastAPI. They are always shown as diffs for your approval and verified by a re-scan, and nothing touches production. To build secure-by-default in the first place, see [secure defaults](../../skills/penthera/references/secure-defaults.md).
+Fixes come from a [remediation playbook](https://github.com/danoszz/penthera/blob/main/skills/penthera/references/remediation.md) covering Next.js, Express, Fastify, Hono, and FastAPI. They are always shown as diffs for your approval and verified by a re-scan, and nothing touches production. To build secure-by-default in the first place, see [secure defaults](https://github.com/danoszz/penthera/blob/main/skills/penthera/references/secure-defaults.md).
 
 ### Fix recipes
 
@@ -53,4 +57,4 @@ penthera agent --loop --repo . --url http://localhost:3000 -o reports/loop.json
 
 It shows each diff and asks `y/n/skip/quit`, applies it on a local branch `penthera/fix-<yyyymmdd-hhmm>`, re-scans (plus your tests with `--run-tests`), commits the fix if it verified and reverts it if not, and records the outcome in [local memory](../local-loop.md). It refuses a dirty tree or a detached HEAD, runs only an allow-list of local git commands with your repo's hooks disabled, contacts only the `--url` host, and never pushes or opens a pull request. If your repo's own `.git/config` sets `gpg.*`, `filter.*` or `include.*` (or git is older than 2.31), the loop does not start and names the key: move it to your global config, or apply fixes by hand from `penthera fix --plan`. `--auto low` applies without asking only recipes that memory shows verified 3+ times with no failures on your framework. The checker stays as it was: fixes may not touch the protected files above, and a fix is not verified if any of them changed during the run. When the loop cannot fix a finding (verification failed, the diff was refused, or the model had no usable fix), it gives up on it for the rest of the run, records `gave_up` with the reason, and lists it in the summary. A give-up never counts against a recipe. Details and the `loopRun` JSON: [docs/local-loop.md](../local-loop.md#the-agent-loop).
 
-[Back to the README](../../README.md) · [All commands](README.md)
+[Back to the README](https://github.com/danoszz/penthera/blob/main/README.md) · [All commands](https://github.com/danoszz/penthera/blob/main/docs/commands/README.md)

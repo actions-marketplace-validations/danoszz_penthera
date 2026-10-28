@@ -1,4 +1,8 @@
-# Privacy and network use
+---
+title: "Privacy and network use"
+sidebarTitle: "Privacy and network"
+description: "Penthera has no telemetry."
+---
 
 > **Pro.** For "what does it send over the network?"
 
@@ -63,4 +67,4 @@ Penthera never fetches rules or code at runtime. Templates, wordlists and the vu
 
 When a probe's requests time out, fail or are refused by `--offline`, the scan records `{ probe, url, message }` in `result.errors`. The terminal summary shows "N probes inconclusive", and the Markdown report lists each one. A probe that could not run is not a clean result.
 
-Scan only targets you are authorized to test. See [Ethics and authorization](../README.md#ethics-and-authorization).
+Scan only targets you are authorized to test. See [Ethics and authorization](https://github.com/danoszz/penthera/blob/main/README.md#ethics-and-authorization).

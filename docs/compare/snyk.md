@@ -1,4 +1,8 @@
-# Penthera and Snyk
+---
+title: "Penthera and Snyk"
+sidebarTitle: "vs Snyk"
+description: "Where Snyk and Penthera overlap, where they differ, and what each costs."
+---
 
 > **Pro.** For "how does Penthera compare to Snyk, and how do I run both?"
 
@@ -62,4 +66,4 @@ npx penthera http://localhost:3000 --repo .
 
 Both write SARIF, so both can upload to GitHub code scanning.
 
-[All comparisons](README.md) · [Back to the README](../../README.md)
+[All comparisons](https://github.com/danoszz/penthera/blob/main/docs/compare/README.md) · [Back to the README](https://github.com/danoszz/penthera/blob/main/README.md)

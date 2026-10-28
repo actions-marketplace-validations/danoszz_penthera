@@ -17,6 +17,7 @@
  * that is published under the build's version. Links between mirrored pages
  * point at their mirrors; every other link points at the file on GitHub.
  */
+import { frontMatterToHeading } from "./terms.mjs";
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, posix } from "node:path";
@@ -108,7 +109,7 @@ export function agentFiles({ root, site, version, origin, values, pub = null, po
   const pages = docPages(root);
   const mirrored = new Set(pages);
   const out = {};
-  const mirror = (p) => pinTo(absoluteLinks(readFileSync(join(root, p), "utf8"), p, { root, origin, mirrored }), version).trimEnd() + "\n";
+  const mirror = (p) => pinTo(absoluteLinks(frontMatterToHeading(readFileSync(join(root, p), "utf8")), p, { root, origin, mirrored }), version).trimEnd() + "\n";
 
   for (const p of pages) {
     out[p] = `<!-- ${origin}/${p}: a copy of ${REPO}/blob/main/${p}, built from Penthera ${version}. -->\n\n${mirror(p)}`;
@@ -142,6 +143,7 @@ export function agentFiles({ root, site, version, origin, values, pub = null, po
   const bench = pub?.benchmarks ? benchmarkViews(pub).map((v) => [`benchmarks/${v.c.slug}`, pub.date]) : [];
   const urls = [
     ["", "site/index.html"], ["index.md", "site/agent-ready.mjs"], ...terms.map((t) => [t, "docs/live-check-terms.md"]),
+    ...(existsSync(join(root, "docs", "trust.md")) ? [["trust", "docs/trust.md"]] : []),
     ...(bench.length ? [["benchmarks", pub.date], ...bench] : []),
     ...landing.map((p) => [p.slug, `site/pages/${p.slug}.md`]),
     // Approved posts only: a draft is never built, so never listed.

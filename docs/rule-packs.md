@@ -1,4 +1,8 @@
-# Rule packs
+---
+title: "Rule packs"
+sidebarTitle: "Rule packs"
+description: "A rule pack is a directory of detection data that Penthera verifies before it uses a single rule."
+---
 
 > **Pro.** For "how do I tune the rules?"
 
@@ -118,7 +122,7 @@ Every rule carries:
 | `source` | `https` URL of the advisory, paper or write-up the rule comes from |
 | `date` | `YYYY-MM-DD`, when that source published it |
 | `confidence` | `confirmed`, `likely` or `potential`, as in findings |
-| `references` | Optional keys into [references.bib](./references.bib) |
+| `references` | Optional keys into [references.bib](https://github.com/danoszz/penthera/blob/main/docs/references.bib) |
 | `description` | Optional, shown in finding descriptions |
 
 ### Kinds

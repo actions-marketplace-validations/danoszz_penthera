@@ -29,7 +29,7 @@ import { COUNTS } from "../scripts/docs-numbers.mjs";
 import { agentFiles, docPages, fill, REPO } from "./agents.mjs";
 import { jsonLd } from "./agent-ready.mjs";
 import { landingPages, landingHtml, landingMarkdown } from "./landing.mjs";
-import { termsPage } from "./terms.mjs";
+import { termsPage, docPage } from "./terms.mjs";
 import { publicBenchHtml } from "./public-bench.mjs";
 import { readPosts, blogFiles } from "./blog.mjs";
 import { benchmarkHtml, benchmarkMarkdown, benchmarkViews, cardFor, fieldTools, hubHtml, hubMarkdown } from "./benchmarks.mjs";
@@ -457,7 +457,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   if (engine) await bundle(join(SITE, "check", "engine.js"), resolve(engine), { minify: false });
 
   // Static files, as they are.
-  for (const f of ["styles.css", "theme.js", "track.js", "pro.js"]) cpSync(join(SITE, f), join(OUT, f));
+  for (const f of ["styles.css", "theme.js", "track.js", "pro.js", "gopro.js"]) cpSync(join(SITE, f), join(OUT, f));
   // The IndexNow key file, served at /<key>.txt (scripts/indexnow.mjs).
   for (const f of readdirSync(SITE).filter((n) => /^[0-9a-f]{32}\.txt$/.test(n))) cpSync(join(SITE, f), join(OUT, f));
   cpSync(join(SITE, "media"), join(OUT, "media"), { recursive: true });
@@ -523,6 +523,11 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   // /terms: the live check's terms, rendered from docs/live-check-terms.md.
   const styles = `/styles.css?v=${hash(readFileSync(join(OUT, "styles.css")))}`;
   writeFileSync(join(OUT, "terms.html"), termsPage(ROOT, { styles }));
+  // /trust: how Penthera itself is built and released, from docs/trust.md.
+  writeFileSync(join(OUT, "trust.html"), docPage(ROOT, {
+    file: "trust.md", slug: "trust", eyebrow: "Trust", styles,
+    description: "How Penthera is built, released and run: npm provenance, one dependency, public checks, no telemetry. Links you can verify.",
+  }));
   // Landing pages, one search question each (site/pages/, site/landing.mjs).
   for (const p of landingPages(SITE)) {
     writeFileSync(join(OUT, `${p.slug}.html`), landingHtml(p, { origin: ORIGIN, values, styles, blog, pub }));

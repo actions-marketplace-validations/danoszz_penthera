@@ -1,4 +1,8 @@
-# Penthera and GitHub (Dependabot and code scanning)
+---
+title: "Penthera and GitHub (Dependabot and code scanning)"
+sidebarTitle: "vs GitHub"
+description: "What Dependabot and GitHub code scanning cover, what Penthera adds, and when to use both."
+---
 
 > **Pro.** For "how does Penthera compare to Dependabot and code scanning, and how do I run both?"
 
@@ -59,4 +63,4 @@ diff ([docs/commands/action.md](../commands/action.md)) and upload its SARIF:
 Uploading SARIF to code scanning in a private repository also needs GitHub Code
 Security.
 
-[All comparisons](README.md) · [Back to the README](../../README.md)
+[All comparisons](https://github.com/danoszz/penthera/blob/main/docs/compare/README.md) · [Back to the README](https://github.com/danoszz/penthera/blob/main/README.md)

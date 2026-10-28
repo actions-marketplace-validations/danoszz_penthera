@@ -1,4 +1,8 @@
-# Penthera in your coding tool
+---
+title: "Penthera in your coding tool"
+sidebarTitle: "Your coding tool"
+description: "Penthera runs on your machine."
+---
 
 > **Starter.** For "I build with Cursor, Claude Code, Lovable or another AI tool: how do I add Penthera?"
 
@@ -121,7 +125,7 @@ These run in the browser and only accept MCP servers by URL. Penthera's server r
 | **Replit** | the deployed URL into penthera.org | in the Shell: `npx penthera@2.0.0 --repo .` (needs Node.js 22 or later) |
 | **v0** | the **production** URL into penthera.org (preview links can sit behind a Vercel login) | connect GitHub and add the [Action](commands/action.md) to the pull requests v0 opens |
 
-Once the code is on GitHub, the Action checks every pull request: dependencies, AI-tool config and the code. See [the Action](commands/action.md) and [a ready workflow](examples/pr-dependency-review.yml).
+Once the code is on GitHub, the Action checks every pull request: dependencies, AI-tool config and the code. See [the Action](commands/action.md) and [a ready workflow](https://github.com/danoszz/penthera/blob/main/docs/examples/pr-dependency-review.yml).
 
 Mobile builders (Rork and similar) usually have no web URL. Sync to GitHub and scan the repository.
 

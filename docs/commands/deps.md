@@ -1,4 +1,8 @@
-# Dependency risk: `penthera deps`
+---
+title: "Dependency risk: penthera deps"
+sidebarTitle: "Dependencies"
+description: "A lockfile change is code you did not write, about to run with your app's access to files, network, environment and CI secrets."
+---
 
 > **Starter.** For "is this package safe to add?"
 
@@ -148,4 +152,4 @@ medium, or high with `"unknown": "block"`. `allowPackages` exempts packages your
 legal review has cleared. Findings use category `license` and appear in every
 output format, and `--sbom` records each component's license.
 
-[Back to the README](../../README.md) · [All commands](README.md)
+[Back to the README](https://github.com/danoszz/penthera/blob/main/README.md) · [All commands](https://github.com/danoszz/penthera/blob/main/docs/commands/README.md)

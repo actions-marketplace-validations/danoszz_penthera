@@ -278,7 +278,8 @@ never fails CI. Whether it finds more than the rules alone is not measured yet
 |---|---|
 | Scans: URL, repo, dependencies, AI tooling, installs, pre-commit hook | **Stable**: in every release since 1.x, covered by the tests and the release gate |
 | Fix loop and local dashboard (`penthera ui`) | **Stable**; the dashboard was redesigned in 1.9.0 |
-| MCP server, Agent Skill, Claude Code plugin, Gemini CLI extension | **Stable**, since 1.9.0 (the Gemini extension since 2.0.0) |
+| MCP server, Agent Skill, Claude Code plugin | **Stable**, since 1.9.0 |
+| Gemini CLI extension | **Release candidate**: it installs the newest release, which is a release candidate right now (`2.1.0-rc.2`) |
 | Evidence bundles, NIS2 and CRA drafts | **Stable** as readiness tooling, not a certification |
 | AI mode (`--ai`) | **Experimental**: whether it finds more than the rules alone is not measured yet ([AI mode](docs/ai-mode.md)) |
 | Live check on [penthera.org](https://penthera.org) | **Beta**: passive only, [terms](docs/live-check-terms.md) |

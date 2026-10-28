@@ -11,7 +11,9 @@ section: Added
   `pip --index-url`, `--extra-index-url`, `-i` and `PIP_INDEX_URL` pointing
   anywhere but the public npm, Yarn and PyPI registries over HTTPS; low for a
   `localhost` registry, a scoped `@scope:registry` and vendor indexes such as
-  `download.pytorch.org`, at most medium for `--extra-index-url`); `env-code-injection`
+  `download.pytorch.org`, at most medium for `--extra-index-url`; one finding
+  per file at the severity of its worst line, and scope or extra index read
+  from the flag or key, never from the URL); `env-code-injection`
   (`NODE_OPTIONS` with `--require` or `--import`, `LD_PRELOAD`,
   `DYLD_INSERT_LIBRARIES`, `BASH_ENV`, `PYTHONSTARTUP` and similar, in an MCP
   server's `env`, a hook, a task or the Claude Code settings `env`); and
@@ -20,30 +22,45 @@ section: Added
   `chat.tools.global.autoApprove`). It now also reads `.gemini/settings.json`,
   `.roo/mcp.json`, `.vscode/tasks.json` and `.vscode/settings.json`.
 - Fixed: skill folders no longer skip `__pycache__`, `build` and `dist`, so
-  compiled code there is reported. A `.pyc` compiled from a `.py` next to it
-  is low, one without its source high. `node_modules`, `.git` and Python
-  virtual environments (`.venv`, `venv`, any folder with `pyvenv.cfg`) are
-  still skipped, and the result now says so.
-- Fixed: `penthera.lock` is now version 2, which pins `dist` and `build` in a
-  skill and leaves out `__pycache__`. A version 1 file is still compared the
+  compiled code there is reported. A `.pyc` is low only when it is Python's
+  ordinary cache of the `.py` next to it (the `__pycache__` name, a
+  timestamp-based header and the same source size), reported once per
+  `__pycache__` folder; any other `.pyc`, a hash-based one included, is high.
+  `node_modules` and `.git` are still skipped, and the result now says so.
+- Fixed: a folder counts as a Python virtual environment only when it has a
+  `pyvenv.cfg` with `home =`, a `python` in `bin/` or `Scripts/` and a
+  `site-packages` folder, so an empty `pyvenv.cfg` or a folder named `venv`
+  no longer hides anything. A real one is reported (new rule `skill-venv`,
+  medium); its packages and binaries are listed under Not checked, and its
+  other files and text scripts are still scanned.
+- Fixed: `penthera.lock` is now version 2, which pins every file in a skill
+  except `node_modules` and `.git`, `dist`, `build`, `__pycache__` and
+  virtual environments included. A version 1 file is still compared the
   2.0.0 way, so upgrading never reports a changed skill; an info finding asks
-  you to re-pin with `penthera agents --pin`.
+  you to re-pin with `penthera agents --pin`. A lock of an unknown or newer
+  version is not compared, and an info finding says so.
 - Fixed: hooks written as `"$CLAUDE_PROJECT_DIR"/.claude/hooks/x.sh`, the
   form Claude Code documents, now resolve to the script, so the hook rules
-  read it. `node_modules/.bin/*` counts as a package binary, not a missing
+  read it, a path with a space in it included, and so does `npx tsx
+  script.ts`. `node_modules/.bin/*` counts as a package binary, not a missing
   script.
-- Fixed: `penthera agents` no longer reads a hook script or a config file
-  that resolves outside the project (or the plugin folder), by absolute path
-  or through a symlink; it lists them under Not checked. Parse errors no
-  longer quote the file's content.
+- Fixed: `penthera agents` no longer reads a hook script, a config file, an
+  instruction file (`CLAUDE.md`, `AGENTS.md` and the rest) or an agent folder
+  (`skills/`, `.cursor/rules`, `.claude/commands`, `.github/instructions`,
+  `plugins/`) that resolves outside the project (or the plugin folder), by
+  absolute path or through a symlink; it lists them under Not checked. Parse
+  errors no longer quote the file's content.
 - Fixed: the pre-commit hook now runs the agent rules on staged
   `.vscode/tasks.json`, `.vscode/settings.json`, `.gemini/settings.json` and
   `.roo/` files.
 - Fixed: `penthera agents --home` reads Cline's and Roo Code's MCP settings
-  from VS Code's global storage, so their `autoApprove` and `alwaysAllow` keys
-  are checked there too.
+  from the global storage of VS Code, VS Code Insiders, VSCodium, Cursor and
+  Windsurf, so their `autoApprove` and `alwaysAllow` keys are checked there
+  too. A scan of a given home folder reads only that folder, never the real
+  `%APPDATA%`.
 - Fixed: `penthera init` no longer writes a workflow or `.gitignore` through a
-  symlink, a dangling one included.
+  symlink, a dangling one included, and creates no folder outside the project
+  before it refuses.
 - Fixed: a long run of spaces after `registry` in an `.npmrc` no longer slows
   the scan, the pre-commit hook or the MCP tool (the match was quadratic).
 - Fixed: the "Not checked" part of an agents result no longer says nothing
@@ -53,3 +70,7 @@ section: Added
 - Fixed: no finding carries the OWASP MCP03 "Tool Poisoning" label any more.
   No rule reads MCP tool descriptions, so hidden text in skills now maps to
   ASI01 only, and a changed pin to MCP04 and ASI04.
+- Fixed: the `task-folder-open` finding now says what current VS Code does:
+  `task.allowAutomaticTasks` defaults to `off`, yet a trusted workspace still
+  gets a one-time notification, and Allow turns automatic tasks on for every
+  trusted workspace.

@@ -274,6 +274,24 @@ describe("init building blocks", () => {
     }
   });
 
+  it("writeNewFile creates no folder outside the project before it refuses", () => {
+    const outside = realpathSync(mkdtempSync(join(tmpdir(), "penthera-init-out-")));
+    const proj = realpathSync(mkdtempSync(join(tmpdir(), "penthera-init-proj-")));
+    try {
+      symlinkSync(outside, join(proj, ".github"));
+      expect(writeNewFile(proj, join(proj, ".github", "workflows", "x.yml"), "d")).toMatch(/outside the project/);
+      expect(readdirSync(outside)).toEqual([]);
+      symlinkSync(join(outside, "missing"), join(proj, "dangling"));
+      expect(writeNewFile(proj, join(proj, "dangling", "sub", "x.yml"), "d")).toMatch(/outside the project/);
+      expect(readdirSync(outside)).toEqual([]);
+      expect(writeNewFile(proj, join(proj, "a", "b", "x.yml"), "ok")).toBeNull();
+      expect(readFileSync(join(proj, "a", "b", "x.yml"), "utf-8")).toBe("ok");
+    } finally {
+      rmSync(outside, { recursive: true, force: true });
+      rmSync(proj, { recursive: true, force: true });
+    }
+  });
+
   it("parseToggles keeps defaults on Enter and rejects out-of-range numbers", () => {
     expect(parseToggles("", 4)).toEqual([]);
     expect(parseToggles("2, 4", 4)).toEqual([1, 3]);

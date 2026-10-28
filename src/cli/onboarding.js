@@ -334,11 +334,20 @@ function isSymlink(p) {
  * resolves outside the project. Returns an error message, or null when written.
  */
 export function writeNewFile(root, full, content) {
+  const OUTSIDE = "its folder resolves outside the project";
   try {
-    mkdirSync(dirname(full), { recursive: true });
     const realRoot = realpathSync(root);
-    const realDir = realpathSync(dirname(full));
-    if (realDir !== realRoot && !realDir.startsWith(realRoot + sep)) return "its folder resolves outside the project";
+    const within = (d) => d === realRoot || d.startsWith(realRoot.endsWith(sep) ? realRoot : realRoot + sep);
+    // Check the nearest folder that already exists (a symlink counts, even a
+    // dangling one) before creating anything, so a `.github` symlink to
+    // another place never gets a `workflows` folder made inside it.
+    let existing = dirname(full);
+    while (!entryExists(existing) && dirname(existing) !== existing) existing = dirname(existing);
+    let realExisting;
+    try { realExisting = realpathSync(existing); } catch { return OUTSIDE; }
+    if (!within(realExisting)) return OUTSIDE;
+    mkdirSync(dirname(full), { recursive: true });
+    if (!within(realpathSync(dirname(full)))) return OUTSIDE;
     writeFileSync(full, content, { flag: "wx" });
     return null;
   } catch (e) {

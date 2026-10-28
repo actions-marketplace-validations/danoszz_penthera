@@ -3,9 +3,79 @@
 Protocol: [E17 pre-registration](../../docs/research/prereg/E17-offline-and-determinism.md).
 Runner: [run.mjs](run.mjs).
 
+## Registered run, 28 Oct 2026
+
+Registered by merge commit `dfd5053` (28 Oct 2026, 19:02 CEST), which is
+also the commit that ran. Two platforms:
+
+| | macOS | Ubuntu (GitHub Actions) |
+|---|---|---|
+| Node | 26.0.0 | 22.23.4 |
+| Where | the maintainer's machine | [manual workflow run](https://github.com/danoszz/penthera/actions/runs/40731891267) |
+| Raw summary | [registered/macos.json](registered/macos.json) | [registered/ubuntu.json](registered/ubuntu.json) |
+
+**Positive control:** on both platforms a URL scan of the loopback mock
+server without `--offline` tried to reach `raw.githubusercontent.com` and
+`cdn.jsdelivr.net`, and the guard logged both. The guard works, so the run
+is valid.
+
+The two platforms gave the same table:
+
+| Command | T1 express-routes | T2 malicious agents | T3 Penthera repo | T4 deps fixture | Mock server |
+|---|---|---|---|---|---|
+| C1 `--repo` (default) | ✓ ✓ ✓ | ✓ ✓ ✓ | ✓ ✓ ✓ | | |
+| C2 `--repo --offline` | ✓ ✓ ✓ | ✓ ✓ ✓ | ✓ ✓ ✓ | | |
+| C3 `agents` | ✓ ✓ ✓ | ✓ ✓ ✓ | ✓ ✓ ✓ | | |
+| C4 `deps` | | | ✓ ✓ ✓ | ✓ ✓ ✓ | |
+| C5 `--evidence` + `evidence verify` | ✓ ✓ ✓ \* | ✓ ✓ ✓ \* | ✓ ✓ ✓ \* | | |
+| C6 `brief` | ✓ ✓ ✓ | ✓ ✓ ✓ | ✓ ✓ ✓ | | |
+| C7 URL scan `--offline` | | | | | ✓ ✓ ✓ |
+| Control: URL scan, no `--offline` | | | | | ✗ ✓ ✗ (expected) |
+
+Each cell is H1 H2 H3: no outside connections, the same result twice, the
+same result with the network blocked as with it allowed. The exit codes
+were the same in all three runs of every cell.
+
+\* C5 passes under § 9.2, which leaves out the `Generated` line. The strict
+comparison of the full output fails on every target, as in the pilot,
+because that line prints the time the bundle was made. The verdict, the
+hashes and the exit code were identical.
+
+### What this shows
+
+1. **H1 holds for every command in scope:** no Node process tried a
+   connection or DNS lookup past loopback, on either platform.
+2. **H2 and H3 hold:** the normalized results were the same every time, and
+   the same with the network blocked or allowed.
+3. **URL scans are covered only with `--offline`.** Without it, a URL scan
+   downloads the Retire.js database (the control). Blocked, it falls back to
+   the bundled copy, and the result records a different source.
+
+### Limits
+
+- **`git` is not guarded.** Repo scans, evidence bundles and `brief` start
+  `git` (the child-process log shows `exec git` and nothing else). The guard
+  sees only Node. Penthera's code calls only local git commands (`rev-parse`,
+  `ls-files`, `show`, `diff`, `log`, `status`, `config`, `cat-file`), never
+  `fetch`, `clone`, `ls-remote` or `pull`. That comes from reading the code,
+  not from a measurement.
+- No Node child process ran without the guard.
+- Four small targets and one mock server. A larger or stranger repository
+  could reach a code path these did not.
+- `install`, `--giants`, `--recon`, `--suppliers` and AI mode are out of
+  scope by design (§ 4).
+
+### What may be claimed
+
+For repo scans (with or without `--offline`), `agents`, `deps`, `brief`,
+evidence bundles and URL scans **with `--offline`**: "no network at run time,
+and the same result every time, also with the network unplugged. Tested on
+macOS and Ubuntu (E17)." The evidence check's printed timestamp is the one
+line that changes. Nothing broader.
+
 ## Pilot, 28 Oct 2026 (not the registered result)
 
-macOS, Node 22, Penthera 2.1.0-rc.2 at commit `55d1d0a`. Ran once on the
+macOS, Penthera 2.1.0-rc.2 at commit `55d1d0a`. This section first said Node 22; the registered run on the same machine used Node 26.0.0, so the pilot's Node version is not certain. Ran once on the
 frozen protocol to check the runner. Per § 8 it does not count as the
 registered result; the registered run repeats on macOS and on Ubuntu in CI.
 

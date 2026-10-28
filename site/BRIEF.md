@@ -134,3 +134,11 @@ behind toggles, like the MCP configs and the comparison table.
   corners. The calculator takes only the reader's own numbers (hours,
   hourly cost, budget) and, like the waitlist, only fills in an email the
   reader sends: nothing is stored.
+- Pro, second pass (2026-10-28): Pro is mostly automated, priced from about
+  $100 a month per team while we test, with a person as an optional add-on.
+  /pro leads with "Rules decide. Pro keeps the record." and a day, week, month
+  rhythm (dependency watch, site checks, signed report); it says plainly that
+  the hosted parts are planned. No "pentest" wording in Pro copy. The landing
+  page has a "Go Pro" plate before About: machined steel, the Pro mark, "What
+  you shipped, checked again every day.", a shimmer and a pointer light
+  (`site/gopro.js`), still with reduced motion.

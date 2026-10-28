@@ -40,6 +40,7 @@
   <link rel="stylesheet" href="/styles.css">
   <script src="/theme.js"></script>
   <script type="module" src="/check.js"></script>
+  <script defer src="/gopro.js"></script>
   <!-- Vercel Web Analytics and Speed Insights: cookieless page views and load
        times. The CSP lets them reach only these two paths on penthera.org. -->
   <script defer src="/_vercel/insights/script.js"></script>
@@ -508,6 +509,23 @@
         <span class="cmd-act" aria-hidden="true" data-js><span class="cmd-copy">Copy</span><span class="cmd-done">Copied</span></span>
         <span class="sr" aria-live="polite" data-copy-status>, copy the prompt to clipboard</span>
       </button>
+    </section>
+
+    <!-- Go Pro: a steel plate that points to /pro. Shimmer and the pointer light: /gopro.js. -->
+    <section class="gopro" id="go-pro" aria-labelledby="gopro-title">
+      <div class="gopro-plate">
+        <span class="gopro-screw" aria-hidden="true"></span><span class="gopro-screw" aria-hidden="true"></span><span class="gopro-screw" aria-hidden="true"></span><span class="gopro-screw" aria-hidden="true"></span>
+        <div class="gopro-head">
+          <span class="gopro-mark" aria-hidden="true">
+            <svg class="gopro-star" viewBox="0 0 32 32" focusable="false"><defs><linearGradient id="gp-steel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".35" stop-color="#c9cfd8"/><stop offset=".55" stop-color="#6b7380"/><stop offset=".8" stop-color="#e3e8ee"/><stop offset="1" stop-color="#9aa3b0"/></linearGradient><linearGradient id="gp-core" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a8aff"/><stop offset=".55" stop-color="#0000ed"/><stop offset="1" stop-color="#0000a8"/></linearGradient></defs><path d="M16.00 0.40 L16.99 13.60 L21.94 10.06 L18.40 15.01 L31.60 16.00 L18.40 16.99 L21.94 21.94 L16.99 18.40 L16.00 31.60 L15.01 18.40 L10.06 21.94 L13.60 16.99 L0.40 16.00 L13.60 15.01 L10.06 10.06 L15.01 13.60Z" fill="url(#gp-steel)" stroke="rgba(255,255,255,.7)" stroke-width=".4"/><path d="M16.00 11.80 L20.20 16.00 L16.00 20.20 L11.80 16.00Z" fill="url(#gp-core)"/></svg>
+            <svg class="gopro-twinkle" viewBox="0 0 20 20" focusable="false"><path d="M10 0 L11 9 L20 10 L11 11 L10 20 L9 11 L0 10 L9 9Z" fill="#fff"/></svg>
+            <svg class="gopro-twinkle" viewBox="0 0 20 20" focusable="false"><path d="M10 0 L11 9 L20 10 L11 11 L10 20 L9 11 L0 10 L9 9Z" fill="#fff"/></svg>
+          </span>
+          <h2 id="gopro-title">Go Pro</h2>
+        </div>
+        <p class="gopro-line">What you shipped, checked again every day.</p>
+        <p class="gopro-cta"><a class="gopro-btn" href="/pro" data-track="gopro-waitlist">Sign up for the waitlist →</a></p>
+      </div>
     </section>
 
     <!-- 08 · About: who builds it, and why. -->

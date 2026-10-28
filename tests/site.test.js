@@ -469,7 +469,10 @@ describe("site story", () => {
     expect(page).not.toMatch(/<script>|<style>|\sstyle="/);
     expect(page).toMatch(/<canvas class="pro-canvas" aria-hidden="true">/);
     // A price range while we test, the free way next to it, and the agent payments line marked as research.
-    expect(page).toContain("$100–300");
+    expect(page).toContain('From about <span class="spec-big">$100</span> a month per team.');
+    // Pro copy promises no person on every result and makes no "pentest" claim (docs/research: the name and copy decisions).
+    expect(page).not.toMatch(/pentest/i);
+    expect(page).toContain("In validation: Pro is being built with its first teams, and the hosted parts are planned.");
     expect(page).toContain("init --yes</code> sets up the same checks in your own CI, free.");
     expect(page).toMatch(/In research<\/span> Checks your agents can call and pay for/);
     // The calculator and the budget go into the email, nowhere else.
@@ -479,6 +482,18 @@ describe("site story", () => {
     const vercel = JSON.parse(readFileSync(join(ROOT, "vercel.json"), "utf8"));
     expect(vercel.redirects).toEqual(expect.arrayContaining([{ source: "/upkeep", destination: "/pro", permanent: true }]));
     expect(existsSync(join(out, "upkeep.html"))).toBe(false);
+  });
+
+  it("the landing page's Go Pro plate links to /pro, with its motion in /gopro.js", () => {
+    const page = readFileSync(join(out, "index.html"), "utf8");
+    const plate = page.slice(page.indexOf('id="go-pro"'), page.indexOf("</section>", page.indexOf('id="go-pro"')));
+    expect(plate).toContain('<h2 id="gopro-title">Go Pro</h2>');
+    expect(plate).toContain("What you shipped, checked again every day.");
+    expect(plate).toMatch(/<a class="gopro-btn" href="\/pro" data-track="gopro-waitlist">Sign up for the waitlist/);
+    expect(plate).not.toMatch(/\$\d/); // no price on the plate
+    expect(page).toContain('<script defer src="/gopro.js"></script>');
+    expect(existsSync(join(out, "gopro.js"))).toBe(true);
+    expect(readFileSync(join(out, "gopro.js"), "utf8")).toContain("prefers-reduced-motion");
   });
 
   it("counts checks and installs without the URL, host or score", () => {

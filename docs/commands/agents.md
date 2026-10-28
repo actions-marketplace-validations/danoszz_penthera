@@ -87,6 +87,8 @@ npx penthera hook install
     mode: agents
 ```
 
+Or copy one file that runs `npx --yes penthera@2.0.0 agents` on every pull request and uploads SARIF: [`github-actions-agents.yml`](https://github.com/danoszz/penthera/blob/main/docs/examples/github-actions-agents.yml) ([details](action.md#the-agent-config-check-in-one-file)).
+
 ## What you get
 
 From Penthera's own test fixture of a deliberately bad setup (abridged):

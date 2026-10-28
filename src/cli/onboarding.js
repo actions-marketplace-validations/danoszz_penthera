@@ -266,8 +266,10 @@ export async function runScanWizard() {
 export const ACTION_PIN = Object.freeze({ tag: "v2.0.0", sha: "9b6bb2d10cf08601e68a8fdc27ba688c9d721570" });
 
 export const WORKFLOW_PATH = ".github/workflows/penthera.yml";
+export const AGENTS_WORKFLOW_PATH = ".github/workflows/penthera-agents.yml";
 const BIN = fileURLToPath(new URL("../../bin/penthera.js", import.meta.url));
 const WORKFLOW_EXAMPLE = new URL("../../docs/examples/pr-dependency-review.yml", import.meta.url);
+const AGENTS_WORKFLOW_EXAMPLE = new URL("../../docs/examples/github-actions-agents.yml", import.meta.url);
 
 const INIT_HELP = `
   ${bold("penthera init")} — set up Penthera in this project in one command
@@ -285,8 +287,8 @@ const INIT_HELP = `
         --dry-run    Print the checks and file writes instead of doing them
     -h, --help       Show this help
 
-  Reports go to reports/penthera-<date>/. The hook goes in .git/hooks, the workflow
-  in ${WORKFLOW_PATH}, and nothing is committed or pushed.
+  Reports go to reports/penthera-<date>/. The hook goes in .git/hooks, the workflows
+  in ${WORKFLOW_PATH} and ${AGENTS_WORKFLOW_PATH}, and nothing is committed or pushed.
 `;
 
 const AREAS = {
@@ -370,6 +372,35 @@ export function workflowYaml(pin = ACTION_PIN) {
     "",
     pinned,
   ].join("\n");
+}
+
+/** The generated agent config workflow: the agents example, pinned to ACTION_PIN's npm version. */
+export function agentsWorkflowYaml(pin = ACTION_PIN) {
+  const example = readFileSync(AGENTS_WORKFLOW_EXAMPLE, "utf-8");
+  const body = example.slice(example.indexOf("\nname:") + 1);
+  const version = pin.tag.replace(/^v/, "");
+  const pinned = body.replace(/npx --yes penthera@\d+\.\d+\.\d+ agents/, `npx --yes penthera@${version} agents`);
+  if (pinned === body && !body.includes(`npx --yes penthera@${version} agents`)) {
+    throw new Error("docs/examples/github-actions-agents.yml no longer runs `npx --yes penthera@<version> agents`");
+  }
+  return [
+    "# Added by `penthera init`. Review it, then commit it yourself.",
+    "#",
+    "# Checks the repo's skills, MCP servers, hooks and agent instructions on every",
+    "# pull request and push to main, offline, and uploads SARIF to code scanning.",
+    `# Report-only. \`npx\` fetches Penthera ${version} from npm, from the runner's`,
+    "# temp folder. Do not switch this to `pull_request_target`: that would run with",
+    "# write access next to untrusted code.",
+    "",
+    pinned,
+  ].join("\n");
+}
+
+/** Whether a Penthera workflow under .github/workflows already runs the agents check. */
+function hasAgentsWorkflow(root, workflows) {
+  return workflows.some((f) => {
+    try { return /penthera@\S+\s+agents\b|penthera\.js\s+agents\b|mode:\s*["']?agents\b/.test(readFileSync(join(root, f), "utf-8")); } catch { return false; }
+  });
 }
 
 /** A new-file unified diff, for showing the workflow before it is written. */
@@ -608,6 +639,26 @@ export async function runInit(argv, { version = pkg.version } = {}) {
         writeFileSync(wfFull, yaml);
       }
       did(`${dry ? "write " : "Wrote "}${WORKFLOW_PATH}${dry ? "" : dim(" (review and commit it yourself)")}`);
+    }
+  }
+
+  // GitHub workflow: the agent config check
+  const awFull = inside(root, AGENTS_WORKFLOW_PATH);
+  if (!found.git) skip("Agent config workflow: not a git repository");
+  else if (!found.agentConfig.length) skip("Agent config workflow: no agent config here");
+  else if (hasAgentsWorkflow(root, found.workflows)) skip("Agent config workflow: already present");
+  else if (existsSync(awFull)) skip(`Agent config workflow: ${AGENTS_WORKFLOW_PATH} exists, left as is`);
+  else {
+    const yaml = agentsWorkflowYaml();
+    out(`\n  ${dim(`The agent config check on every pull request, Penthera ${ACTION_PIN.tag.slice(1)} from npm:`)}\n`);
+    out(newFileDiff(AGENTS_WORKFLOW_PATH, yaml).split("\n").map((l) => `    ${l}`).join("\n"));
+    out();
+    if (await yesNo(`Write ${AGENTS_WORKFLOW_PATH}? It is not committed`, true)) {
+      if (!dry) {
+        mkdirSync(join(root, ".github", "workflows"), { recursive: true });
+        writeFileSync(awFull, yaml);
+      }
+      did(`${dry ? "write " : "Wrote "}${AGENTS_WORKFLOW_PATH}${dry ? "" : dim(" (review and commit it yourself)")}`);
     }
   }
 

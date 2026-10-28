@@ -11,7 +11,7 @@ import { startMockServer } from "./fixtures/mock-server.js";
 import { parseToggles } from "../src/cli/prompt.js";
 import { detectProjectFramework } from "../lib/whitebox/frameworks.js";
 import { detectProject, portsFromEnv, DEV_PORTS } from "../src/cli/detect.js";
-import { ACTION_PIN, WORKFLOW_PATH, workflowYaml, checkItems, fixFirst } from "../src/cli/onboarding.js";
+import { ACTION_PIN, WORKFLOW_PATH, AGENTS_WORKFLOW_PATH, workflowYaml, agentsWorkflowYaml, checkItems, fixFirst } from "../src/cli/onboarding.js";
 import { HOOK_MARKER } from "../lib/hook/index.js";
 
 const BIN = join(import.meta.dirname, "..", "bin", "penthera.js");
@@ -76,6 +76,7 @@ describe("penthera init (scripted stdin)", () => {
       "",  // ~/.claude and ~/.cursor: default no
       "",  // pre-commit hook: default yes
       "",  // workflow: default yes
+      "",  // agent config workflow: default yes
       "",  // .gitignore: default yes
       "",  // fix loop: default no
       "n", // dashboard
@@ -118,6 +119,9 @@ describe("penthera init (scripted stdin)", () => {
     const wf = readFileSync(join(dir, WORKFLOW_PATH), "utf-8");
     expect(wf).toContain(`danoszz/penthera@${ACTION_PIN.sha} # ${ACTION_PIN.tag}`);
     expect(r.stdout).toContain(`+++ b/${WORKFLOW_PATH}`); // shown as a diff first
+    const awf = readFileSync(join(dir, AGENTS_WORKFLOW_PATH), "utf-8");
+    expect(awf).toContain(`npx --yes penthera@${ACTION_PIN.tag.slice(1)} agents`);
+    expect(r.stdout).toContain(`+++ b/${AGENTS_WORKFLOW_PATH}`);
     expect(readFileSync(join(dir, ".gitignore"), "utf-8")).toMatch(/^reports\/$/m);
     expect(git("check-ignore", "reports/x.json")).toBe("reports/x.json");
 
@@ -137,6 +141,7 @@ describe("penthera init (scripted stdin)", () => {
       "",        // is it your app? default no
       "n",       // hook
       "n",       // workflow
+      "n",       // agent config workflow
       "n",       // .gitignore
       "n",       // dashboard (no fix loop question: code was not selected)
     ]);
@@ -147,6 +152,7 @@ describe("penthera init (scripted stdin)", () => {
     expect(existsSync(join(dir, "reports"))).toBe(false);
     expect(existsSync(hookPath())).toBe(false);
     expect(existsSync(join(dir, WORKFLOW_PATH))).toBe(false);
+    expect(existsSync(join(dir, AGENTS_WORKFLOW_PATH))).toBe(false);
     expect(existsSync(join(dir, ".gitignore"))).toBe(false);
     expect(git("status", "--porcelain")).toBe("");
   });
@@ -155,7 +161,7 @@ describe("penthera init (scripted stdin)", () => {
     const r = await wizard(["init"], [
       "1,2,3,4", // only the running app
       "y",       // it is mine
-      "n", "n", "n", "n",
+      "n", "n", "n", "n", "n",
     ]);
     expect(r.code, r.stderr).toBe(0);
     expect(requests).toBeGreaterThan(0);
@@ -173,7 +179,7 @@ describe("penthera init (scripted stdin)", () => {
   });
 
   it("re-prompts on a bad checklist answer instead of guessing", async () => {
-    const r = await wizard(["init"], ["9", "1,2,3", "n", "n", "n", "n"]);
+    const r = await wizard(["init"], ["9", "1,2,3", "n", "n", "n", "n", "n"]);
     expect(r.stdout).toContain("Type item numbers from 1 to 5");
     expect(r.stdout).toContain("Nothing selected to check.");
     expect(existsSync(join(dir, "reports"))).toBe(false);
@@ -189,6 +195,7 @@ describe("penthera init --yes (smoke)", () => {
     expect(summary().checks.map((c) => c.id)).toEqual(["code", "deps", "agents"]);
     expect(readFileSync(hookPath(), "utf-8")).toContain(HOOK_MARKER);
     expect(existsSync(join(dir, WORKFLOW_PATH))).toBe(true);
+    expect(existsSync(join(dir, AGENTS_WORKFLOW_PATH))).toBe(true);
     expect(readFileSync(join(dir, ".gitignore"), "utf-8")).toContain("reports/");
     expect(r.stdout).toContain("Fix loop: not run with --yes");
     expect(r.stdout).toContain("Dashboard: not opened with --yes");
@@ -209,6 +216,7 @@ describe("penthera init --yes (smoke)", () => {
     expect(r.stdout).toContain("penthera --repo . --offline");
     expect(r.stdout).toContain("would install .git/hooks/pre-commit");
     expect(r.stdout).toContain(`would write ${WORKFLOW_PATH}`);
+    expect(r.stdout).toContain(`would write ${AGENTS_WORKFLOW_PATH}`);
     expect(r.stdout).toContain("would add reports/ to .gitignore");
     expect(requests).toBe(0);
     expect(existsSync(join(dir, "reports"))).toBe(false);
@@ -224,6 +232,7 @@ describe("penthera init --yes (smoke)", () => {
     expect(r.stdout).toContain("not a git repository");
     expect(r.stdout).toContain("Pre-commit hook: not a git repository");
     expect(r.stdout).toContain("GitHub workflow: not a git repository");
+    expect(r.stdout).toContain("Agent config workflow: not a git repository");
   });
 
   it("rejects unknown flags", async () => {
@@ -271,6 +280,15 @@ describe("init building blocks", () => {
       expect(yaml).toContain(line);
     }
     for (const u of yaml.match(/uses: \S+/g)) expect(u).toMatch(/@[0-9a-f]{40}$/);
+  });
+
+  it("agentsWorkflowYaml pins npx to ACTION_PIN's version and keeps the example's SHA-pinned steps", () => {
+    const yaml = agentsWorkflowYaml({ tag: "v9.8.7", sha: "a".repeat(40) });
+    expect(yaml).toContain('npx --yes penthera@9.8.7 agents "$GITHUB_WORKSPACE" --sarif');
+    expect(yaml).not.toMatch(/penthera@(?!9\.8\.7)\d+\.\d+\.\d+/);
+    expect(yaml).toContain("persist-credentials: false");
+    for (const u of yaml.match(/uses: \S+/g)) expect(u).toMatch(/@[0-9a-f]{40}$/);
+    expect(agentsWorkflowYaml()).toContain(`penthera@${ACTION_PIN.tag.slice(1)} agents`);
   });
 
   it("ACTION_PIN is the newest stable release before this version, so it never falls behind", () => {

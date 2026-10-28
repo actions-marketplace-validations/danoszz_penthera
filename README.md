@@ -49,6 +49,59 @@ the results, good or bad, so you can see how far to trust it.
 It finds known classes of problems, not novel ones. It does not replace a human
 pentester.
 
+## Start in 30 seconds
+
+You need Node.js 22 or later. No install, no account.
+
+Building with Cursor, Claude Code, Codex, VS Code, Windsurf, Gemini CLI, Zed,
+JetBrains or Kiro, or an app builder such as Lovable, Bolt, Base44, Replit or
+v0? [Penthera in your coding tool](docs/integrations.md) has the setup for
+each.
+
+**In your terminal.** Run this in your project folder:
+
+```bash
+npx penthera
+```
+
+It detects your setup offline, asks what to check, and gives you a grade per
+area and the three things to fix first. It scans your running app only after
+you confirm the app is yours. Nothing is committed or pushed
+([guided start](docs/commands/init.md)).
+
+**In your coding agent, as a skill.** Then ask "scan my app for security
+issues":
+
+```bash
+npx skills add danoszz/penthera
+```
+
+**In your coding agent, as an MCP server.** Six read-only tools for Claude Code,
+Cursor, Codex, VS Code and Windsurf. Pin the version:
+
+```bash
+claude mcp add penthera -- npx -y penthera@2.0.0 mcp
+```
+
+**In Claude Code, as a plugin.** From Claude Code's prompt:
+
+```
+/plugin marketplace add danoszz/penthera
+/plugin install penthera@penthera
+```
+
+**In Gemini CLI, as an extension.** With the same pinned MCP server:
+
+```bash
+gemini extensions install https://github.com/danoszz/penthera
+```
+
+Other clients: [docs/commands/mcp.md](docs/commands/mcp.md). Other skill install
+routes: [docs/commands/skill.md](docs/commands/skill.md).
+
+To run it in a container:
+`docker build -t penthera . && docker run --rm penthera https://your-app.example`.
+
 ## Public benchmarks
 
 We test Penthera on public datasets that other people built, next to the free
@@ -152,59 +205,6 @@ projects is experiment E1. Reproduce every table with
 `npm run bench:public -- --split test --final` and
 `npm run bench:public -- --competitors --split test --final`.
 
-## Start in 30 seconds
-
-You need Node.js 22 or later. No install, no account.
-
-Building with Cursor, Claude Code, Codex, VS Code, Windsurf, Gemini CLI, Zed,
-JetBrains or Kiro, or an app builder such as Lovable, Bolt, Base44, Replit or
-v0? [Penthera in your coding tool](docs/integrations.md) has the setup for
-each.
-
-**In your terminal.** Run this in your project folder:
-
-```bash
-npx penthera
-```
-
-It detects your setup offline, asks what to check, and gives you a grade per
-area and the three things to fix first. It scans your running app only after
-you confirm the app is yours. Nothing is committed or pushed
-([guided start](docs/commands/init.md)).
-
-**In your coding agent, as a skill.** Then ask "scan my app for security
-issues":
-
-```bash
-npx skills add danoszz/penthera
-```
-
-**In your coding agent, as an MCP server.** Six read-only tools for Claude Code,
-Cursor, Codex, VS Code and Windsurf, new in 1.9.0. Pin the version:
-
-```bash
-claude mcp add penthera -- npx -y penthera@2.0.0 mcp
-```
-
-**In Claude Code, as a plugin.** From Claude Code's prompt:
-
-```
-/plugin marketplace add danoszz/penthera
-/plugin install penthera@penthera
-```
-
-**In Gemini CLI, as an extension.** With the same pinned MCP server:
-
-```bash
-gemini extensions install https://github.com/danoszz/penthera
-```
-
-Other clients: [docs/commands/mcp.md](docs/commands/mcp.md). Other skill install
-routes: [docs/commands/skill.md](docs/commands/skill.md).
-
-To run it in a container:
-`docker build -t penthera . && docker run --rm penthera https://your-app.example`.
-
 ## What it does
 
 ```mermaid
@@ -264,7 +264,7 @@ code `1` means critical or high findings. Every command and flag is in
 [docs/commands/](docs/commands/README.md). Compliance output is readiness
 tooling, not a certification and not legal advice.
 
-**AI mode (opt-in, new in 1.9.0).** `penthera --repo . --ai` lets a local model
+**AI mode (opt-in).** `penthera --repo . --ai` lets a local model
 propose problems no rule describes. Penthera checks each proposal with its
 rules, and anything unconfirmed is labelled "model-proposed, unverified" and
 never fails CI. Whether it finds more than the rules alone is not measured yet
@@ -276,7 +276,7 @@ never fails CI. Whether it finds more than the rules alone is not measured yet
 |---|---|
 | Scans: URL, repo, dependencies, AI tooling, installs, pre-commit hook | **Stable**: in every release since 1.x, covered by the tests and the release gate |
 | Fix loop and local dashboard (`penthera ui`) | **Stable**; the dashboard was redesigned in 1.9.0 |
-| MCP server, Agent Skill, Claude Code plugin, Gemini CLI extension | **Stable**, new in 1.9.0 (the Gemini extension after 1.9.0) |
+| MCP server, Agent Skill, Claude Code plugin, Gemini CLI extension | **Stable**, since 1.9.0 (the Gemini extension since 2.0.0) |
 | Evidence bundles, NIS2 and CRA drafts | **Stable** as readiness tooling, not a certification |
 | AI mode (`--ai`) | **Experimental**: whether it finds more than the rules alone is not measured yet ([AI mode](docs/ai-mode.md)) |
 | Live check on [penthera.org](https://penthera.org) | **Beta**: passive only, [terms](docs/live-check-terms.md) |

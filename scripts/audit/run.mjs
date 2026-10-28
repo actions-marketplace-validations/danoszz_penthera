@@ -24,6 +24,7 @@ import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 import { startMockServer } from "../../tests/fixtures/mock-server.js";
 import { mdCell } from "../../src/report/md-escape.js";
+import { ACTION_PIN } from "../../src/cli/onboarding.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const AUDIT_DIR = join(ROOT, "audit");
@@ -706,8 +707,13 @@ async function gateVersionsDocs() {
     "gemini-extension.json": readJson(join(ROOT, "gemini-extension.json")).version,
     "gemini-extension.json (pin)": readJson(join(ROOT, "gemini-extension.json")).mcpServers?.penthera?.args?.find((x) => x.startsWith("penthera@"))?.slice("penthera@".length),
   };
+  // The plugin and repo MCP launch lines pin a stable release, so during a
+  // release candidate they may stay on the newest stable one (ACTION_PIN).
+  const stable = /-/.test(v) ? ACTION_PIN.tag.slice(1) : v;
+  const stablePins = new Set(["plugin/.mcp.json (pin)", ".mcp.json (pin)"]);
   for (const [file, got] of Object.entries(found)) {
-    if (got !== v) notes.push(`Version drift: ${file} has ${got ?? "none"}, package.json has ${v}`);
+    if (got === v || (stablePins.has(file) && got === stable)) continue;
+    notes.push(`Version drift: ${file} has ${got ?? "none"}, package.json has ${v}${stablePins.has(file) && stable !== v ? ` (or the stable ${stable})` : ""}`);
   }
   const cli = await penthera(["--version"], { log: false });
   if (!cli.stdout.includes(v)) notes.push(`penthera --version prints "${cli.stdout.trim()}", expected ${v}`);

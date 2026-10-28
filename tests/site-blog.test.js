@@ -29,13 +29,13 @@ async function build(name, blogDir, drafts = false) {
   builds[name].has = (f) => existsSync(join(out, f));
 }
 
-/** A copy of blog/ in which `approve` posts carry an approval date. */
+/** A copy of blog/ in which exactly the `approve` posts carry an approval date; the rest are drafts. */
 function fixture(name, approve) {
   const d = join(dir, name);
   mkdirSync(d, { recursive: true });
   for (const f of files) {
     const md = readFileSync(join(BLOG, f), "utf8");
-    writeFileSync(join(d, f), approve.includes(f) ? md.replace(/^approved: false$/m, "approved: 2026-11-02") : md);
+    writeFileSync(join(d, f), md.replace(/^approved: .*$/m, approve.includes(f) ? "approved: 2026-11-02" : "approved: false"));
   }
   return d;
 }
@@ -45,7 +45,7 @@ beforeAll(async () => {
   const prev = process.env.PENTHERA_SITE_STARS;
   process.env.PENTHERA_SITE_STARS = "off";
   try {
-    await build("repo", BLOG);
+    await build("none", fixture("blog-none", []));
     await build("one", fixture("blog-one", ["sealed-half-benchmark.md"]));
     await build("preview", fixture("blog-preview", ["sealed-half-benchmark.md"]), true);
   } finally {
@@ -60,13 +60,13 @@ const ld = (html) => [...html.matchAll(/<script type="application\/ld\+json">([^
 const locs = (xml) => [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
 
 describe("blog drafts", () => {
-  it("the posts in the repo are drafts until Daan approves them", () => {
+  it("every post in the repo is a draft or carries the date Daan approved it", () => {
     expect(files.length).toBeGreaterThanOrEqual(1);
-    for (const f of files) expect(readFileSync(join(BLOG, f), "utf8"), f).toMatch(/^approved: false$/m);
+    for (const f of files) expect(readFileSync(join(BLOG, f), "utf8"), f).toMatch(/^approved: (?:false|\d{4}-\d{2}-\d{2})$/m);
   });
 
   it("with no approved post: no /blog, no feed, no sitemap or llms.txt entry, no link to it", () => {
-    const r = builds.repo;
+    const r = builds.none;
     expect(r.has("blog.html")).toBe(false);
     expect(r.has("blog/feed.xml")).toBe(false);
     for (const f of files) expect(r.has(`blog/${f.replace(/\.md$/, ".html")}`), f).toBe(false);
@@ -97,7 +97,7 @@ describe("blog drafts", () => {
   });
 
   it("refuses an approval that is not a date", () => {
-    const md = readFileSync(join(BLOG, files[0]), "utf8");
+    const md = readFileSync(join(BLOG, files[0]), "utf8").replace(/^approved: .*$/m, "approved: false");
     expect(() => parsePost(md.replace(/^approved: false$/m, "approved: yes"), "x.md")).toThrow(/approved must be false or the date/);
     expect(() => parsePost(md.replace(/^approved: false\n/m, ""), "x.md")).toThrow(/no approved/);
   });

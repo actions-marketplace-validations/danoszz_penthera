@@ -29,7 +29,7 @@ import { COUNTS } from "../scripts/docs-numbers.mjs";
 import { agentFiles, docPages, fill, REPO } from "./agents.mjs";
 import { jsonLd } from "./agent-ready.mjs";
 import { landingPages, landingHtml, landingMarkdown } from "./landing.mjs";
-import { termsPage } from "./terms.mjs";
+import { termsPage, docPage } from "./terms.mjs";
 import { publicBenchHtml } from "./public-bench.mjs";
 import { readPosts, blogFiles } from "./blog.mjs";
 import { benchmarkHtml, benchmarkMarkdown, benchmarkViews, cardFor, fieldTools, hubHtml, hubMarkdown } from "./benchmarks.mjs";
@@ -523,6 +523,11 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   // /terms: the live check's terms, rendered from docs/live-check-terms.md.
   const styles = `/styles.css?v=${hash(readFileSync(join(OUT, "styles.css")))}`;
   writeFileSync(join(OUT, "terms.html"), termsPage(ROOT, { styles }));
+  // /trust: how Penthera itself is built and released, from docs/trust.md.
+  writeFileSync(join(OUT, "trust.html"), docPage(ROOT, {
+    file: "trust.md", slug: "trust", eyebrow: "Trust", styles,
+    description: "How Penthera is built, released and run: npm provenance, one dependency, public checks, no telemetry. Links you can verify.",
+  }));
   // Landing pages, one search question each (site/pages/, site/landing.mjs).
   for (const p of landingPages(SITE)) {
     writeFileSync(join(OUT, `${p.slug}.html`), landingHtml(p, { origin: ORIGIN, values, styles, blog, pub }));

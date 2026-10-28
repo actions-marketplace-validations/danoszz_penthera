@@ -1,4 +1,8 @@
-# Penthera and Socket
+---
+title: "Penthera and Socket"
+sidebarTitle: "vs Socket"
+description: "Where Socket and Penthera overlap on dependency risk, and where they differ."
+---
 
 > **Pro.** For "how does Penthera compare to Socket, and how do I run both?"
 
@@ -77,4 +81,4 @@ npx penthera deps --base origin/main   # what the new packages can do, offline
 npx penthera agents --home             # your AI tooling
 ```
 
-[All comparisons](README.md) · [Back to the README](../../README.md)
+[All comparisons](https://github.com/danoszz/penthera/blob/main/docs/compare/README.md) · [Back to the README](https://github.com/danoszz/penthera/blob/main/README.md)

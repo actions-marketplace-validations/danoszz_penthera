@@ -1,4 +1,8 @@
-# The local dashboard: `penthera ui`
+---
+title: "The local dashboard: penthera ui"
+sidebarTitle: "Dashboard"
+description: "penthera ui opens Penthera in your browser: whether your app is safe to ship, what to fix first, in plain words, and the fix loop that proposes a change and waits for your OK."
+---
 
 > **Starter.** For "can I see it all in one place?"
 
@@ -10,7 +14,7 @@ you give it and `~/.penthera`, and never contacts the network.
 
 | Simple, dark | Advanced, light |
 |---|---|
-| ![Simple mode in the dark theme: the verdict, problems in plain words, and one problem open](../assets/dashboard/ui-dark.jpg) | ![Advanced mode in the light theme: a project with its tabs, the triage matrix and a finding open](../assets/dashboard/ui-light.jpg) |
+| ![Simple mode in the dark theme: the verdict, problems in plain words, and one problem open](https://github.com/danoszz/penthera/raw/main/assets/dashboard/ui-dark.jpg) | ![Advanced mode in the light theme: a project with its tabs, the triage matrix and a finding open](https://github.com/danoszz/penthera/raw/main/assets/dashboard/ui-light.jpg) |
 
 ## Start it
 
@@ -50,7 +54,7 @@ it again from **Penthera ▸ Set up…**):
    where the app runs. **Check my app now** starts a first scan; **Skip** closes
    setup. Closing it early keeps Simple.
 
-![Setup, choosing Simple or Advanced](../assets/dashboard/ui-setup.jpg)
+![Setup, choosing Simple or Advanced](https://github.com/danoszz/penthera/raw/main/assets/dashboard/ui-setup.jpg)
 
 ## The view
 
@@ -113,14 +117,14 @@ over 60,000 characters is cut, and the window says so; Apply (and `y`) then
 stays off until you tick that you have not seen all of it. Every Apply names
 the SHA-256 of the diff it showed, and the server applies nothing else.
 
-![A change waiting for a decision](../assets/dashboard/ui-run.jpg)
+![A change waiting for a decision](https://github.com/danoszz/penthera/raw/main/assets/dashboard/ui-run.jpg)
 
 Below 1180px the inspector becomes a drawer; below 760px the projects window
 does too. A tap outside closes them.
 
 | Narrow, dark | Narrow, light, a problem open |
 |---|---|
-| <img src="../assets/dashboard/narrow-dark.jpg" alt="Simple mode at 390px, dark" width="280"> | <img src="../assets/dashboard/narrow-light.jpg" alt="A problem in the drawer at 390px, light" width="280"> |
+| <img src="https://github.com/danoszz/penthera/raw/main/assets/dashboard/narrow-dark.jpg" alt="Simple mode at 390px, dark" width="280" /> | <img src="https://github.com/danoszz/penthera/raw/main/assets/dashboard/narrow-light.jpg" alt="A problem in the drawer at 390px, light" width="280" /> |
 
 ## User stories
 
@@ -128,7 +132,7 @@ does too. A tap outside closes them.
 |---|---|
 | *As someone who is not a programmer, I want to know if my app is safe without learning security words.* | Simple mode: the verdict sentence, problems as Critical, Serious, Worth fixing or Minor, and one button at a time. |
 | *As a solo founder before launch, I want one sentence that says whether I can ship.* | The verdict at the top of every project. |
-| *As a first-time user, I want to be walked through setting up my project.* | The three-screen setup on the first visit. ![First run](../assets/dashboard/ui-start.jpg) |
+| *As a first-time user, I want to be walked through setting up my project.* | The three-screen setup on the first visit. ![First run](https://github.com/danoszz/penthera/raw/main/assets/dashboard/ui-start.jpg) |
 | *As a founder with no security engineer, I want fixes applied only when I approve them.* | The approval window: Apply, Skip or Stop on every change; verified fixes land as local commits on a separate branch, failed ones are undone, nothing is pushed. |
 | *As a developer, I want to start a scan and be stopped before I hit a host I do not own.* | New scan…: a remote hostname must be typed back before the run starts. |
 | *As a product owner, I want one problem explained in plain words.* | Pick it: the inspector leads with what is wrong, how sure and what to do. |
@@ -171,7 +175,7 @@ A scan of a project folder has an **AI mode** switch, off. Turning it on
 opens a sheet, on every new scan: a picture of where your code goes (your
 code, Penthera, Ollama on this computer, and "internet" crossed out), the
 model picker, the same Model / Reads / Sends / Decides lines the terminal
-shows, and two buttons of equal weight, "Use <model> on this computer" and
+shows, and two buttons of equal weight, "Use `<model>` on this computer" and
 "Not now" (Esc). A model that runs on ollama.com turns the last box into
 "ollama.com" and needs the host typed before its button works. The server
 asks Ollama for the model's route itself, refuses an AI run without that

@@ -14,6 +14,7 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { RESULTS, ROOT, wilson } from "./common.mjs";
+import { BENCHMARKS } from "../../site/benchmarks.mjs";
 
 const argv = process.argv.slice(2);
 const opt = (k) => (argv.includes(k) ? argv[argv.indexOf(k) + 1] : null);
@@ -207,7 +208,7 @@ if (readme) {
     const us = b.rows.find((r) => r.kind === "penthera"), was = b.rows.find((r) => r.kind === "penthera-before");
     const best = b.rows.filter((r) => r.kind === "tool" && !r.excluded && r.score != null).sort((x, y) => y.score - x.score)[0];
     const tie = best && us && b.ranked && us.rank === 1 && us.score - best.score < 0.05 ? ", within the margin" : "";
-    sum.push(`| ${title} | ${measure} | ${pct(was?.score)} | **${pct(us?.score)}** | ${b.ranked && us?.rank ? `**${ordn(us.rank)} of ${b.of}**${tie}` : `${b.field} other tools, not ranked`} | ${best ? `${best.tool} ${pct(best.score)}` : "n/a"} |`);
+    sum.push(`| [${title}](https://penthera.org/benchmarks/${BENCHMARKS[k].slug}) | ${measure} | ${pct(was?.score)} | **${pct(us?.score)}** | ${b.ranked && us?.rank ? `**${ordn(us.rank)} of ${b.of}**${tie}` : `${b.field} other tools, not ranked`} | ${best ? `${best.tool} ${pct(best.score)}` : "n/a"} |`);
   }
   const body = [...sum, "", "<details><summary>Every tool, every number (95% intervals)</summary>", "", L.join("\n").replace(/^### /gm, "#### "), "", "</details>"].join("\n");
   const text = readFileSync(readme, "utf-8");

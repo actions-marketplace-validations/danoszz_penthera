@@ -1,4 +1,8 @@
-# OWASP WSTG coverage map
+---
+title: "OWASP WSTG coverage map"
+sidebarTitle: "OWASP WSTG coverage"
+description: "Penthera maps its probes to the OWASP Web Security Testing Guide (WSTG) v4.2."
+---
 
 > **Pro.** For "which OWASP tests does it cover?"
 

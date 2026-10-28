@@ -1,4 +1,8 @@
-# Evidence bundles and audience reports
+---
+title: "Evidence bundles and audience reports"
+sidebarTitle: "Evidence bundles"
+description: "Penthera can write the results of one scan as an evidence bundle: every report, a manifest with the SHA-256 of each file, and an optional SSH signature over the manifest."
+---
 
 > **Pro.** For "what do I give my auditor?"
 
@@ -204,4 +208,4 @@ Top-level fields: `tool`, `target`, `timestamp`, `duration`, `modes`,
 `fixText`, `sources`, `owasp`, `wstg`), `suppressed` (`title`, `severity`,
 `reason`, `actor`, `by`, `expires`), `inconclusive`, `egress`, `actions`,
 `topActions`, `ownerActions`, `nis2`, `owasp`, `trend` and `timeline`. The
-model is built in [`src/report/model.js`](../src/report/model.js).
+model is built in [`src/report/model.js`](https://github.com/danoszz/penthera/blob/main/src/report/model.js).

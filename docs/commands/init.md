@@ -1,4 +1,8 @@
-# Set up in one command: `penthera init`
+---
+title: "Set up in one command: penthera init"
+sidebarTitle: "Set up"
+description: "One command detects your project, runs the offline checks and offers the hook, the workflow and the dashboard."
+---
 
 > **Starter.** For "is my app safe to ship?"
 
@@ -17,6 +21,11 @@ The wizard finds what your project has, asks one question about what to check,
 runs those checks offline, shows one summary, and then offers to set up the
 hook, the CI workflow and the rest, one yes/no at a time. Press Enter to accept
 a default.
+
+Without a terminal (a coding agent, CI, a pipe), `npx penthera` with no
+arguments does not start the wizard. It prints three commands to run instead,
+`penthera init --yes --dry-run`, `penthera init --yes` and `penthera --repo .`,
+and exits 2.
 
 ## What it does
 
@@ -61,6 +70,12 @@ language, and the report folder:
     ✓ AI tooling    A  1 medium  0.0s
 ```
 
+An area with nothing to read gets no grade. On a fresh clone with no
+`node_modules`, Dependencies shows `–  not checked: 0 of 61 packages installed
+or cached`, with the fix: `npm ci --ignore-scripts` installs the packages
+without running their code, so the next run can read them. When only some are
+missing, the grade covers what was read and the line says how many were not.
+
 Every report lands in `reports/penthera-<date>/`: `code`, `deps`, `agents` and
 `app` as JSON and Markdown, plus `summary.md` and `summary.json`.
 
@@ -69,7 +84,7 @@ Every report lands in `reports/penthera-<date>/`: `code`, `deps`, `agents` and
 | Step | Default | What it does |
 |---|---|---|
 | Pre-commit hook | yes | `penthera hook install`: blocks staged secrets, risky agent config and lockfile changes ([hook.md](hook.md)). Git repos only |
-| GitHub workflow | yes | Writes `.github/workflows/penthera.yml` from [the PR dependency review example](../examples/pr-dependency-review.yml), with the action pinned to the release commit SHA. Shown as a diff first. Needs a git repo and `package-lock.json` |
+| GitHub workflow | yes | Writes `.github/workflows/penthera.yml` from [the PR dependency review example](https://github.com/danoszz/penthera/blob/main/docs/examples/pr-dependency-review.yml), with the action pinned to the release commit SHA. Shown as a diff first. Needs a git repo and `package-lock.json` |
 | `.gitignore` | yes | Appends `reports/` so scan output is never committed |
 | Fix loop | no | `penthera agent --loop` on a local `penthera/fix-<date>` branch; every diff asks first ([fix.md](fix.md)) |
 | Dashboard | yes | `penthera ui --open` on this run's reports ([dashboard.md](../dashboard.md)). Runs until Ctrl-C |
@@ -127,13 +142,13 @@ penthera init --yes --dry-run
 - It does not fix IDOR or auth design for you. It points at the route. The fix
   is yours.
 - It does not watch production yet. Scheduled checks are on the
-  [roadmap](../../ROADMAP.md).
+  [roadmap](https://github.com/danoszz/penthera/blob/main/ROADMAP.md).
 - A clean scan is not proof of safety. Every finding has a confidence label, and
   probes that could not run are listed as inconclusive rather than passed.
 - Its accuracy is measured only on labs we wrote ourselves: precision 0.88
   (95% CI 0.69 to 0.96) and recall 0.91 (95% CI 0.73 to 0.98) on 24 findings
-  ([results](../../bench/RESULTS.md)). Accuracy on real apps is not measured
-  yet. That is [experiment E1](../research/prereg/E1-real-world-accuracy.md).
+  ([results](https://github.com/danoszz/penthera/blob/main/bench/RESULTS.md)). Accuracy on real apps is not measured
+  yet. That is [experiment E1](https://github.com/danoszz/penthera/blob/main/docs/research/prereg/E1-real-world-accuracy.md).
 
 ## What it never does
 
@@ -152,3 +167,10 @@ they exit 1 on high or critical findings.
 The pinned SHA is the last release tagged before this version
 (`ACTION_PIN` in `src/cli/onboarding.js`); Dependabot's `github-actions`
 updates keep it current in your repo.
+
+Known issue: in every release from 1.5.0 to 2.0.0, the action's `mode: deps`
+exits before it scans, and the job still reports success, with no comment and
+no SARIF. The v2.0.0 pin that this version writes has the same problem.
+2.1.0-rc.1 has the fix, so `mode: deps` works with a pin to 2.1.0-rc.1 or later,
+and `init` writes such a pin from the first release after 2.1.0-rc.1. Until
+then, move the pin in your workflow to the 2.1.0-rc.1 release commit.

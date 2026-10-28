@@ -3,6 +3,8 @@
  * Built from bench/public/published.json (bench/public/publish.mjs), so the
  * site shows exactly the numbers the README shows. No file, no block.
  */
+import { BENCHMARKS } from "./benchmarks.mjs";
+
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const n2 = (x) => (x == null ? "n/a" : x.toFixed(2));
 const ord = (n) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th"}`;
@@ -53,6 +55,7 @@ function card(key, b) {
           <p class="pb-lines">${c.lines(us).map(esc).join(" · ")}</p>
           ${close ? `<p class="pb-note">${esc(close)}</p>` : ""}
           <ol class="pb-chart" aria-label="${esc(c.score)}, every tool">${bars}</ol>
+          <p class="pb-link"><a href="/benchmarks/${BENCHMARKS[key].slug}">Every tool, intervals and limits</a></p>
           <details class="pb-more"><summary>How it is scored</summary><ul>${more}</ul></details>
         </li>`;
 }
@@ -68,6 +71,7 @@ export function publicBenchHtml(pub) {
         ${cards}
         </ul>
         <p class="links">
+          <a href="/benchmarks">All four benchmarks</a>
           <a href="https://github.com/danoszz/penthera/blob/main/docs/research/prereg/E11b-improvement-study.md">Protocol</a>
           <a href="https://github.com/danoszz/penthera/blob/main/bench/public/PUBLISHED.md">All numbers</a>
           <a href="https://github.com/danoszz/penthera/tree/main/bench/public">Reproduce it</a>

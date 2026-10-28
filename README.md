@@ -60,10 +60,10 @@ down before that run ([protocol](docs/research/prereg/E11b-improvement-study.md)
 <!-- public-benchmarks:start -->
 | Benchmark | Score | Penthera 1.9.0 | **Penthera 2.0.0** | Rank among free tools | Best other free tool |
 |---|---|---|---|---|---|
-| Leaked secrets (Samsung CredData) | F1 | 0.18 | **0.74** | **2nd of 10** | deepsecrets 0.78 |
-| Malicious npm packages (DataDog) | caught minus false alarms | 0.57 | **0.71** | **1st of 6** | malcontent 0.63 |
-| Malicious PyPI packages (DataDog) | caught minus false alarms | 0.74 | **0.82** | **1st of 8** | GuardDog 0.74 |
-| Injection bugs in JS libraries (SecBench.js) | found in the right file | 0.16 | **0.70** | **1st of 8**, within the margin | odgen 0.68 |
+| [Leaked secrets (Samsung CredData)](https://penthera.org/benchmarks/secrets) | F1 | 0.18 | **0.74** | **2nd of 10** | deepsecrets 0.78 |
+| [Malicious npm packages (DataDog)](https://penthera.org/benchmarks/npm-malware) | caught minus false alarms | 0.57 | **0.71** | **1st of 6** | malcontent 0.63 |
+| [Malicious PyPI packages (DataDog)](https://penthera.org/benchmarks/pypi-malware) | caught minus false alarms | 0.74 | **0.82** | **1st of 8** | GuardDog 0.74 |
+| [Injection bugs in JS libraries (SecBench.js)](https://penthera.org/benchmarks/js-injection) | found in the right file | 0.16 | **0.70** | **1st of 8**, within the margin | odgen 0.68 |
 
 <details><summary>Every tool, every number (95% intervals)</summary>
 
@@ -373,6 +373,26 @@ the other tool goes further and how to run the two together.
 
 All comparisons, including Cloudflare's security-audit skill: [docs/compare/](docs/compare/README.md).
 
+### Run the free tools you already have: `--giants`
+
+`--giants` (2.1 release candidate) runs the free scanners installed on your
+machine after Penthera's own scan: gitleaks, TruffleHog, Semgrep with your
+local rules, osv-scanner, Trivy and Checkov for a repository, nuclei and the
+ZAP baseline for a URL. Their findings go into the same report and SARIF, each
+labelled with the tool, its version and its rule. Nothing is downloaded or
+uploaded, and an area that neither Penthera's rules nor another tool reached
+is reported as "not covered".
+
+```bash
+penthera giants              # which tools you have
+penthera --repo . --giants   # Penthera, then each installed tool
+```
+
+This runs the tools you have and merges their findings. Whether the
+combination finds more is measured by experiment E14 and is not claimed until
+it is published. Details, safety rules and the policy key:
+[docs/commands/giants.md](docs/commands/giants.md).
+
 ## Start here
 
 | You want to know | Read |
@@ -444,10 +464,19 @@ for coding agents. The [roadmap](ROADMAP.md) shows what ships next, and the
 [research plan](docs/vision-2.0.md) what we measure. Issues and pull requests
 are welcome.
 
-Penthera is free. If it caught something before you shipped it, you can
-[sponsor its maintenance](https://github.com/sponsors/danoszz). Sponsorship pays
-for maintainer time and buys no influence over findings
+Penthera is free and stays free. If it caught something before you shipped it,
+you can [sponsor its maintenance](https://github.com/sponsors/danoszz).
+Sponsorship pays for maintainer time and buys no influence over findings
 ([tiers](docs/funding/sponsor-tiers.md)).
+
+**An open question: is the free tool enough?** One person maintains Penthera
+part-time. To keep it going, and to pay independent reviewers and outside
+experts to critique its rules, I'm running a small experiment called
+[Pro](https://penthera.org/pro). It measures whether teams need anything beyond
+the free agent, such as a record kept for them and checks on a schedule. It is
+not for sale, and no check will ever move behind a paywall. If there is no
+need, the free tool is the whole product, and that's a fine answer
+([governance](GOVERNANCE.md#money)).
 
 ## License
 

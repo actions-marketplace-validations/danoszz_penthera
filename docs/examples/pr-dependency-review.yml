@@ -8,7 +8,7 @@
 # lookups, no telemetry. The only API call is the comment on your own PR.
 #
 # Pin the action to a release commit SHA. Find it with:
-#   git ls-remote https://github.com/danoszz/penthera refs/tags/v1.4.0
+#   git ls-remote https://github.com/danoszz/penthera refs/tags/v2.0.0
 #
 # Fork PRs get a read-only token: the comment is skipped and the diff goes to the
 # job summary instead. Do not switch this to `pull_request_target`; that would
@@ -50,7 +50,7 @@ jobs:
           (cd "$RUNNER_TEMP/base" && npm ci --ignore-scripts --no-audit --no-fund)
           npm ci --ignore-scripts --no-audit --no-fund
 
-      - uses: danoszz/penthera@525895575f4a9bebe911707a43804a934eac0c4a # v1.6.1 (or a later release commit SHA)
+      - uses: danoszz/penthera@9b6bb2d10cf08601e68a8fdc27ba688c9d721570 # v2.0.0 (or a later release commit SHA)
         with:
           mode: deps
           fail-on: none # or high / critical to block the merge

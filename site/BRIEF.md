@@ -121,3 +121,36 @@ behind toggles, like the MCP configs and the comparison table.
   `api/_lib/guard.mjs`. Nothing is stored or logged; a count of scans may
   come later, never the results.
 - The rule code is the CLI's (`lib/`), so the site and `npx penthera` agree.
+- Penthera Pro at `/pro` (decided with the maintainer, 2026-10-28; `/upkeep`
+  redirects there). It proposes, it does not sell: a security partner for
+  software built with agents, priced like managed upkeep ($100–300 a month
+  per team while we test, assessments quoted separately), and one line on
+  agent-to-agent paid checks marked "In research". The page is a horizontal
+  poster: the page scrolls down as usual and a pinned row slides left
+  (`site/pro.js`); with no script the panels stack. The header is a canvas
+  sketch, dithered ASCII in brushed steel and Penthera blue, no rainbow; it
+  goes quiet behind the heading instead of putting boxes behind the type.
+  Steel controls with glossy blue selected states, iOS-style, square
+  corners. The calculator takes only the reader's own numbers (hours,
+  hourly cost, budget) and, like the waitlist, only fills in an email the
+  reader sends: nothing is stored.
+- Pro, second pass (2026-10-28): Pro is mostly automated, priced from about
+  $100 a month per team while we test, with a person as an optional add-on.
+  /pro leads with "Rules decide. Pro keeps the record." and a day, week, month
+  rhythm (dependency watch, site checks, signed report); it says plainly that
+  the hosted parts are planned. No "pentest" wording in Pro copy. The landing
+  page has a "Go Pro" plate before About: machined steel, the Pro mark, "What
+  you shipped, checked again every day.", a shimmer and a pointer light
+  (`site/gopro.js`), still with reduced motion.
+- Pro is an experiment, not a sale (decided with the maintainer,
+  2026-10-28). Penthera stays free and complete; Pro measures whether teams
+  need anything beyond the free agent. If they do, the income pays for
+  maintenance beyond one part-time person: independent reviewers, and outside
+  experts who critique the rules. If not, the free tool is the product. So:
+  no Pro pitch in the README or in the live check's result. /pro opens with
+  "Is the free tool enough?", the Go Pro plate says "An experiment, not a
+  sale" and its button reads "Join the experiment", and each waitlist email
+  counts as one data point. The money rules are in GOVERNANCE.md#money.
+  The waitlist must be able to say "no": the budget slider starts at $0
+  with no default above it, and "Nothing more: the free tool is enough" is
+  one of the answers.

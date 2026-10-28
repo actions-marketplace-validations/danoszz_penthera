@@ -1,4 +1,8 @@
-# Pre-commit hook: `penthera hook`
+---
+title: "Pre-commit hook: penthera hook"
+sidebarTitle: "Pre-commit hook"
+description: "Once a secret is pushed, rotating it is the only fix."
+---
 
 > **Pro.** For "how do I put it in CI?"
 
@@ -72,4 +76,4 @@ repos:
       - id: penthera
 ```
 
-[Back to the README](../../README.md) · [All commands](README.md)
+[Back to the README](https://github.com/danoszz/penthera/blob/main/README.md) · [All commands](https://github.com/danoszz/penthera/blob/main/docs/commands/README.md)

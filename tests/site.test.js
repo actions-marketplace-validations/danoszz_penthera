@@ -451,6 +451,63 @@ describe("site story", () => {
     }
   });
 
+  it("the Pro waitlist writes an email and stores nothing; /upkeep redirects to /pro", () => {
+    const page = readFileSync(join(out, "pro.html"), "utf8");
+    // The form only fills in an email: the CSP blocks submission (form-action
+    // 'none'), there is no action or method, and the plain mailto always works.
+    const form = page.match(/<form\b[^>]*>/)?.[0];
+    expect(form).toBe('<form class="pro-form" novalidate>');
+    expect(page).toMatch(/href="mailto:daan@penthera\.org\?subject=Penthera%20Pro%20waitlist/);
+    expect(page).toContain('data-track="pro-waitlist"');
+    expect(page).toContain("Join the experiment");
+    // Pro is an experiment that measures a need, not a sale (GOVERNANCE.md#money).
+    expect(page).toContain("Is the free tool enough?");
+    expect(page).toContain("Pro is an experiment, not a sale");
+    // The waitlist measures the need, so it must be able to record "none": the
+    // budget starts at $0 with no nudge upward, and "the free tool is enough" is an answer.
+    expect(page).toMatch(/id="pro-budget" name="budget" min="0" max="2000" step="25" value="0"/);
+    expect(page).toContain('value="Nothing more: the free tool is enough"');
+    expect(page).toContain("nothing is stored on penthera.org");
+    expect(page).toContain('<script defer src="/track.js"></script>');
+    expect(existsSync(join(out, "track.js"))).toBe(true);
+    // Behaviour in /pro.js, never inline (CSP); the header sketch is decoration only.
+    expect(page).toContain('<script defer src="/pro.js"></script>');
+    expect(existsSync(join(out, "pro.js"))).toBe(true);
+    expect(page).not.toMatch(/<script>|<style>|\sstyle="/);
+    expect(page).toMatch(/<canvas class="pro-canvas" aria-hidden="true">/);
+    // A price range while we test, the free way next to it, and the agent payments line marked as research.
+    expect(page).toContain('From about <span class="spec-big">$100</span> a month per team.');
+    // Pro copy promises no person on every result and makes no "pentest" claim (docs/research: the name and copy decisions).
+    expect(page).not.toMatch(/pentest/i);
+    expect(page).toContain("Nothing is for sale. The hosted parts are planned, and they get built only if the waitlist shows a need.");
+    // No pitch for Pro in the README or in the live check's result.
+    expect(readFileSync(join(ROOT, "README.md"), "utf8")).not.toMatch(/join the waitlist/i);
+    expect(readFileSync(join(ROOT, "site", "check", "ui.js"), "utf8")).not.toContain('href = "/pro"');
+    expect(readFileSync(join(ROOT, "GOVERNANCE.md"), "utf8")).toContain("Pro is an experiment, not a product for sale.");
+    expect(page).toContain("init --yes</code> sets up the same checks in your own CI, free.");
+    expect(page).toMatch(/In research<\/span> Checks your agents can call and pay for/);
+    // The calculator and the budget go into the email, nowhere else.
+    const js = readFileSync(join(out, "pro.js"), "utf8");
+    expect(js).not.toMatch(/\bfetch\(|XMLHttpRequest|sendBeacon|localStorage|document\.cookie/);
+    expect(js).toContain("Budget a month:");
+    const vercel = JSON.parse(readFileSync(join(ROOT, "vercel.json"), "utf8"));
+    expect(vercel.redirects).toEqual(expect.arrayContaining([{ source: "/upkeep", destination: "/pro", permanent: true }]));
+    expect(existsSync(join(out, "upkeep.html"))).toBe(false);
+  });
+
+  it("the landing page's Go Pro plate links to /pro, with its motion in /gopro.js", () => {
+    const page = readFileSync(join(out, "index.html"), "utf8");
+    const plate = page.slice(page.indexOf('id="go-pro"'), page.indexOf("</section>", page.indexOf('id="go-pro"')));
+    expect(plate).toContain('<h2 id="gopro-title">Go Pro</h2>');
+    expect(plate).toContain("What you shipped, checked again every day.");
+    expect(plate).toMatch(/<a class="gopro-btn" href="\/pro" data-track="gopro-waitlist">Join the experiment/);
+    expect(plate).toContain("An experiment, not a sale");
+    expect(plate).not.toMatch(/\$\d/); // no price on the plate
+    expect(page).toContain('<script defer src="/gopro.js"></script>');
+    expect(existsSync(join(out, "gopro.js"))).toBe(true);
+    expect(readFileSync(join(out, "gopro.js"), "utf8")).toContain("prefers-reduced-motion");
+  });
+
   it("counts checks and installs without the URL, host or score", () => {
     // docs/privacy.md: an event is a name and one fixed label, nothing typed.
     const ui = readFileSync(join(ROOT, "site", "check", "ui.js"), "utf8");
@@ -488,6 +545,9 @@ describe("site landing pages", () => {
   const ORIGIN = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).homepage;
   const read = (f) => readFileSync(join(out, f), "utf8");
   const pages = landingPages(join(ROOT, "site"));
+  // Live-check pages answer a search question with the live check; the
+  // waitlist page (cta: waitlist, site/pages/pro.md) shares the frame only.
+  const checkPages = pages.filter((p) => p.cta !== "waitlist");
 
   it("has the two search questions, each with a title and a description for search", () => {
     expect(pages.map((p) => p.slug)).toEqual(expect.arrayContaining(["lovable-bolt-app-security", "website-security-check"]));
@@ -502,13 +562,13 @@ describe("site landing pages", () => {
   });
 
   it("answers once, with the live check as the call to action and the CLI for the code", () => {
-    for (const p of pages) {
+    for (const p of checkPages) {
       const h = read(`${p.slug}.html`);
       expect(h, p.slug).toContain('<a class="btn" data-variant="default" href="/#scan">Check your site</a>');
       expect(h, p.slug).toContain("<code>npx penthera");
       expect(h, p.slug).toContain('<a href="/terms">');
       expect(h, p.slug).not.toMatch(/\{\{|\u0000/);
-      expect(h, p.slug).not.toMatch(/<script(?![^>]*\bsrc=)/);
+      expect(h, p.slug).not.toMatch(/<script(?![^>]*\bsrc=)(?![^>]*type="application\/ld\+json")[^>]*>/);
       expect(h, p.slug).not.toMatch(/ style=/);
     }
   });
@@ -518,6 +578,7 @@ describe("site landing pages", () => {
       const md = readFileSync(join(ROOT, "site", "pages", `${p.slug}.md`), "utf8");
       expect(md, p.slug).not.toContain("\u2014");
       expect(md, p.slug).not.toMatch(/\b(the best|perfect|seamless|robust|powerful|cutting-edge|game-changing|comprehensive|bulletproof|100% secure)\b/i);
+      if (p.cta === "waitlist") { expect(md, p.slug).toContain("## What it is not"); continue; }
       expect(md, p.slug).toContain("## What it cannot see");
       expect(md, p.slug).toMatch(/not a guarantee/);
     }
@@ -530,7 +591,7 @@ describe("site landing pages", () => {
     expect(md).toContain(`up to ${LIMITS.sameSiteFiles + LIMITS.thirdPartyFiles} scripts and stylesheets`);
     expect(md).toContain(`${LIMITS.sameSiteFiles} from your site, ${LIMITS.thirdPartyFiles} from elsewhere`);
     expect(md).toContain(`about ${LIMITS.budgetMs / 1000} seconds`);
-    for (const p of pages) expect(read(`${p.slug}.html`), p.slug).toContain(`${COUNTS.secretPatterns} secret patterns`);
+    for (const p of checkPages) expect(read(`${p.slug}.html`), p.slug).toContain(`${COUNTS.secretPatterns} secret patterns`);
   });
 
   it("lists each page in the sitemap and llms.txt, serves its Markdown, and links it from the homepage", () => {
@@ -538,8 +599,9 @@ describe("site landing pages", () => {
     for (const p of pages) {
       expect(locs, p.slug).toContain(`${ORIGIN}/${p.slug}`);
       expect(read("llms.txt"), p.slug).toContain(`(${ORIGIN}/${p.slug}.md)`);
-      expect(read(`${p.slug}.md`), p.slug).toContain(`(${ORIGIN}/#scan)`);
       expect(read(`${p.slug}.md`), p.slug).not.toMatch(/\]\(\/(?!\/)/);
+      if (p.cta === "waitlist") continue;
+      expect(read(`${p.slug}.md`), p.slug).toContain(`(${ORIGIN}/#scan)`);
       expect(read("index.html"), p.slug).toContain(`<a href="/${p.slug}">`);
     }
   });

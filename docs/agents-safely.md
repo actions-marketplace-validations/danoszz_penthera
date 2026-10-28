@@ -1,4 +1,8 @@
-# Running AI agents safely
+---
+title: "Running AI agents safely"
+sidebarTitle: "Running agents safely"
+description: "A coding agent, an agent job in CI and an eval script all have the same parts: a task, something that judges the result, permissions, a place to run, and a point where it stops."
+---
 
 > **Starter and pro.** For "I let an AI agent work on my code, in CI or in an
 > eval. What should be true before I start it?"
@@ -11,7 +15,7 @@ the reason comes from, and how to check it.
 
 `penthera agents` already audits MCP servers, hooks, permissions and skills.
 The checks marked **(planned)** below are specified in
-[spec-harness-rules.md](research/spec-harness-rules.md) and are not in any
+[spec-harness-rules.md](https://github.com/danoszz/penthera/blob/main/docs/research/spec-harness-rules.md) and are not in any
 release yet. Until they ship, check those items by hand.
 
 ## The checklist
@@ -116,4 +120,4 @@ on it ([Tabassi, 2023](references.md#tabassi2023airmf);
   code. It is not a guide to securing a lab's training or evaluation cluster.
 
 The background is in
-[What the 2026 agent incidents mean for Penthera](research/agent-incidents-2026.md).
+[What the 2026 agent incidents mean for Penthera](https://github.com/danoszz/penthera/blob/main/docs/research/agent-incidents-2026.md).

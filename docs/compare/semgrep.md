@@ -1,4 +1,8 @@
-# Penthera and Semgrep
+---
+title: "Penthera and Semgrep"
+sidebarTitle: "vs Semgrep"
+description: "Where Semgrep and Penthera overlap, where they differ, and how to run both."
+---
 
 > **Pro.** For "how does Penthera compare to Semgrep, and how do I run both?"
 
@@ -53,4 +57,4 @@ npx penthera http://localhost:3000 --repo . --sarif penthera.sarif
 npx penthera deps --base origin/main
 ```
 
-[All comparisons](README.md) · [Back to the README](../../README.md)
+[All comparisons](https://github.com/danoszz/penthera/blob/main/docs/compare/README.md) · [Back to the README](https://github.com/danoszz/penthera/blob/main/README.md)

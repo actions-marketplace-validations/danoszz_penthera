@@ -8,7 +8,7 @@
  * as text.
  */
 import { findingId } from "../../../lib/memory/views.js";
-import { gradeFindings } from "../../../lib/agents/index.js";
+import { gradeFindings } from "../../../lib/agents/grade.js";
 import { buildReportModel, CONFIDENCE_LABELS } from "../../report/model.js";
 
 export const SEVERITIES = ["critical", "high", "medium", "low", "info"];
@@ -74,6 +74,8 @@ export function findingRow(f, report) {
     confidence: str(f.confidence, 40),
     location: str(loc, 500),
     seen: report.timestamp || null,
+    // Tool names only (--giants): anything else in a report file is dropped.
+    foundBy: Array.isArray(f.foundBy) ? f.foundBy.filter((x) => typeof x === "string" && /^[a-z0-9.-]{1,40}$/i.test(x)).slice(0, 10) : [],
   };
 }
 
@@ -260,8 +262,29 @@ export function buildFindings(scans) {
     const latest = series[series.length - 1];
     for (const f of latest.data.findings || []) rows.push(findingRow(f, latest.data));
     for (const f of latest.data.suppressed || []) rows.push({ ...findingRow(f, latest.data), suppressed: true });
+    // --giants: what other tools reported and Penthera did not, marked so the
+    // verdict and score stay Penthera's own.
+    for (const f of latest.data.giants?.findings || []) rows.push({ ...findingRow(f, latest.data), other: true });
   }
   return rows.sort((a, b) => SEV_RANK[a.severity] - SEV_RANK[b.severity] || a.project.localeCompare(b.project) || a.title.localeCompare(b.title));
+}
+
+/** "Coverage by area" from each project's latest --giants scan: `[{ project, online, areas }]`. */
+export function buildGiantsCoverage(scans) {
+  const out = [];
+  for (const [project, series] of groupScans(scans)) {
+    const g = series[series.length - 1].data.giants;
+    if (!g || !Array.isArray(g.areas)) continue;
+    out.push({
+      project,
+      online: g.online === true,
+      areas: g.areas.slice(0, 10).map((a) => ({
+        label: str(a.label, 40), status: a.status === "covered" ? "covered" : "not covered",
+        tools: (Array.isArray(a.tools) ? a.tools : []).slice(0, 10).map((t) => ({ id: str(t.id, 40), status: str(t.status, 40), version: str(t.version, 40), findings: Number.isInteger(t.findings) ? t.findings : 0 })),
+      })),
+    });
+  }
+  return out;
 }
 
 /** The finding and the report it came from, by row id + project. */
@@ -269,7 +292,7 @@ export function locateFinding(scans, id, project) {
   for (const [key, series] of groupScans(scans)) {
     if (project && key !== project) continue;
     const latest = series[series.length - 1];
-    const all = [...(latest.data.findings || []), ...(latest.data.suppressed || [])];
+    const all = [...(latest.data.findings || []), ...(latest.data.suppressed || []), ...(latest.data.giants?.findings || [])];
     const f = all.find((x) => findingId(x) === id);
     if (f) return { finding: f, report: latest };
   }

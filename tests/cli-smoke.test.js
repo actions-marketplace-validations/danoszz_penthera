@@ -36,6 +36,46 @@ describe("CLI smoke (offline commands)", () => {
     }
   });
 
+  it("no arguments without a terminal: a short list of commands, not the whole help, exit 2 (B3)", () => {
+    const env = { ...process.env, NO_COLOR: "1", HOME: dir, PENTHERA_HOME: join(dir, ".penthera") };
+    delete env.npm_command;
+    for (const [args, first] of [[[], /setup wizard needs a terminal/], [["--offline"], /Give a URL, --repo <path>, or a command/]]) {
+      let err;
+      try {
+        execFileSync(process.execPath, [BIN, ...args], { cwd: dir, encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"], env });
+      } catch (e) {
+        err = e;
+      }
+      expect(err?.status).toBe(2);
+      const text = err.stderr + err.stdout;
+      expect(text).toMatch(first);
+      expect(text).toContain("penthera init --yes --dry-run");
+      expect(text).toContain("penthera --repo .");
+      expect(text).not.toContain("Exit codes");
+      expect(text.split("\n").length).toBeLessThan(15);
+    }
+  });
+
+  it("a repo scan piped to another program prints the agent brief; PENTHERA_BRIEF=0 or CI keeps the terminal report", () => {
+    const repo = resolve("tests/fixtures/repo-scan/express-routes");
+    const scan = (extra) => {
+      const env = { ...process.env, NO_COLOR: "1", PENTHERA_NO_ONBOARDING: "1", ...extra };
+      delete env.PENTHERA_BRIEF;
+      delete env.CI;
+      Object.assign(env, extra);
+      try {
+        return execFileSync(process.execPath, [BIN, "--repo", repo], { cwd: dir, encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"], env });
+      } catch (e) {
+        return e.stdout; // exit 1: the fixture has a critical finding
+      }
+    };
+    const piped = scan({});
+    expect(piped).toMatch(/^\*\*Penthera: Fix now\.\*\*/);
+    expect(piped).toMatch(/### Act on[\s\S]*### Not checked/);
+    expect(scan({ PENTHERA_BRIEF: "0" })).toMatch(/penthera\s+security scanner/);
+    expect(scan({ CI: "true" })).toMatch(/penthera\s+security scanner/);
+  });
+
   it("an unknown word is a usage error, not a TypeError stack trace (e2e 2026-10-22)", () => {
     let err;
     try {

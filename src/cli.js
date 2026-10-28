@@ -24,12 +24,13 @@ import { blankAssessment } from "../lib/compliance/self-assessment.js";
 import { buildPolicyPack, policyPackIndex } from "../lib/compliance/policy-pack.js";
 import { parseQuestionnaire, answerQuestionnaire, formatQuestionnaireMarkdown } from "../lib/compliance/questionnaire.js";
 import { buildIncidentReports, formatIncidentMarkdown, incidentTemplate } from "../lib/compliance/incident.js";
-import { buildSbom, buildAiBom } from "../lib/whitebox/sbom.js";
-import { aiBomSummary } from "../lib/whitebox/aibom.js";
+import { buildSbom } from "../lib/whitebox/sbom.js";
 import { buildCraReports, craTemplate, formatCraMarkdown, readCraInput } from "../lib/compliance/cra.js";
 import { emptyHistory, updateHistory, buildAuditLoop } from "../lib/audit-loop.js";
 import { rateSuppliers, parseSupplierList, formatSuppliersMarkdown } from "../lib/supply-chain.js";
 import { yellow } from "./cli/ansi.js";
+import { wantBrief, briefReports } from "./cli/brief.js";
+import { buildBrief, formatBrief } from "./report/brief.js";
 
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8"));
 
@@ -49,6 +50,26 @@ function shouldRunOnboarding(positionals, opts) {
   if (positionals.length > 0) return false;
   if (opts.repo || opts.machine) return false;
   return process.stdin.isTTY && process.stdout.isTTY;
+}
+
+/**
+ * No target, and no terminal for the wizard (an agent, CI, a pipe). A few
+ * commands that work as they are, not the whole help. Exit 2, as before.
+ */
+function printNoTarget(noArgs) {
+  const p = process.env.npm_command === "exec" ? "npx penthera" : "penthera";
+  printError(noArgs
+    ? "No target. The setup wizard needs a terminal, so it did not start."
+    : "No target. Give a URL, --repo <path>, or a command.");
+  process.stderr.write([
+    "  Run one of these in your project folder:",
+    `    ${p} init --yes --dry-run   show what setup would check and write; changes nothing`,
+    `    ${p} init --yes             run the offline checks and set up with safe defaults`,
+    `    ${p} --repo .               scan this repo's code`,
+    "",
+    `  Every option: ${p} --help`,
+    "",
+  ].join("\n") + "\n");
 }
 
 const HELP = `
@@ -73,6 +94,8 @@ const HELP = `
     $ penthera agent --loop          Scan, fix, verify, learn; local commits only (--help)
     $ penthera ui [--open] [--demo]  Local dashboard on 127.0.0.1 (penthera ui --help)
     $ penthera mcp                   MCP server on stdio for your agent (penthera mcp --help)
+    $ penthera giants                Which free scanners --giants can run here (penthera giants --help)
+    $ penthera brief <report.json...>  One short brief from JSON reports, for your AI assistant
 
   ${dim("Scan modes")}
         --profile <name>        quick | standard | deep (default: standard)
@@ -83,7 +106,8 @@ const HELP = `
         --deep                  + Injection probes (SQLi, SSTI, SSRF, XSS, CMDi); asks first
                                + login rate-limit burst and SQL error check on /api/login
         --fuzz                  + Property-based API fuzzing
-        --nuclei <path>         + Community Nuclei YAML templates (alias for --templates)
+        --nuclei <path>         + Community Nuclei YAML templates (alias for --templates;
+                               with --giants, also the folder the nuclei tool runs)
         --templates <paths>     Comma-separated dirs of Nuclei-compatible YAML templates
         --rules <dir>           + Signed rule pack (repeatable; scans, agents, deps)
         --rules-signers <file>  Also trust packs signed by these keys (allowed_signers)
@@ -94,6 +118,15 @@ const HELP = `
         --offline               Contact only the scan target: no recon sources, no
                                Retire.js download (uses the vendored snapshot),
                                no DNS lookups for SPF/DMARC
+
+  ${dim("Other tools")}  ${dim("(--giants; runs the free scanners you have installed; docs/commands/giants.md)")}
+        --giants                Also run gitleaks, TruffleHog, Semgrep, osv-scanner, Trivy, Checkov
+                               (repo) or nuclei and the ZAP baseline (URL), if installed
+        --with <list>           Run only these tools, e.g. --with gitleaks,trivy (implies --giants)
+        --without <list>        Skip these tools
+        --giants-online         Also run tools or features that contact a service (pip-audit,
+                               TruffleHog key verification, osv-scanner via its API)
+        --giants-timeout <s>    Seconds per tool (default 300)
 
   ${dim("AI mode")}  ${dim("(with --repo; opt-in, asks every run; docs/ai-mode.md)")}
         --ai                    A model reads your code for what rules can't see; Penthera checks its findings
@@ -131,7 +164,9 @@ const HELP = `
         --markdown <file>   Write Markdown report (human-readable)
         --sarif <file>      Write SARIF report (GitHub Security tab)
         --audit-seeds <file>  Write repo findings as seeds for an AI audit (security-audit-skill findings.json)
-        --audience <who>    developer | owner | auditor report (for --markdown or stdout)
+        --audience <who>    developer | owner | auditor | agent report (for --markdown or stdout)
+        --brief             Print the agent brief to stdout (the default when stdout is
+                            not a terminal and not CI; PENTHERA_BRIEF=0 turns that off)
         --report-template <file.md>  Your own Markdown template ({{summary.critical}}, {{#each findings}})
         --evidence <dir>    Evidence bundle: all reports + manifest.json with SHA-256s
         --no-footer         Leave the one-line "Checked by Penthera" footer off Markdown output
@@ -184,11 +219,13 @@ const HELP = `
     $ penthera agents --pin
     $ penthera deps --base origin/main
     $ penthera deps --diff ../base-checkout --pr-comment deps.md
+    $ penthera --repo . --giants
+    $ penthera --repo . --with gitleaks,trivy
 
   ${dim("Exit codes")}
     0  No critical or high findings
-    1  Critical or high findings detected
-    2  Scan failed (unreachable target, bad config)
+    1  Critical or high findings detected (other tools' too, with --giants)
+    2  Scan failed (unreachable target, bad config, a tool the policy requires did not run)
 `;
 
 function bold(s) { return `\x1b[1m${s}\x1b[0m`; }
@@ -261,6 +298,17 @@ export async function run() {
     return;
   }
 
+  if (process.argv[2] === "brief") {
+    const { runBrief } = await import("./cli/brief.js");
+    process.exit(runBrief(process.argv.slice(3)));
+  }
+
+  if (process.argv[2] === "giants") {
+    const { runGiantsCommand } = await import("./cli/giants.js");
+    process.exitCode = await runGiantsCommand(process.argv.slice(3));
+    return;
+  }
+
   if (process.argv[2] === "agent") {
     const { runAgent } = await import("./cli/agent.js");
     process.exit(await runAgent(process.argv.slice(3)));
@@ -280,6 +328,7 @@ export async function run() {
         sarif:       { type: "string" },
         "audit-seeds": { type: "string" },
         audience:    { type: "string" },
+        brief:       { type: "boolean", default: false },
         "no-footer": { type: "boolean", default: false },
         "report-template": { type: "string" },
         evidence:    { type: "string" },
@@ -336,6 +385,11 @@ export async function run() {
         concurrency: { type: "string",  default: "15" },
         rate:        { type: "string" },
         "confirm-target": { type: "string" },
+        giants:      { type: "boolean", default: false },
+        with:        { type: "string" },
+        without:     { type: "string" },
+        "giants-online": { type: "boolean", default: false },
+        "giants-timeout": { type: "string" },
         verbose:     { type: "boolean", short: "v", default: false },
         quiet:       { type: "boolean", short: "q", default: false },
         help:        { type: "boolean", short: "h", default: false },
@@ -526,8 +580,16 @@ export async function run() {
   }
 
   if (!agentsMode && !url && !repo && !opts.machine && !opts.readiness && !opts["policy-pack"] && !opts.sbom && !opts.aibom && !opts.questionnaire) {
-    printError("No target specified. Provide a URL, --repo, --machine, --readiness, --policy-pack, --sbom, --aibom, --questionnaire, or combine them.");
-    console.log(HELP);
+    printNoTarget(process.argv.length <= 2);
+    process.exit(2);
+  }
+
+  let giantsOpts = null;
+  try {
+    const { giantsOptions } = await import("./cli/giants.js");
+    giantsOpts = giantsOptions(opts, { url, repo });
+  } catch (e) {
+    printError(e.message);
     process.exit(2);
   }
 
@@ -685,6 +747,18 @@ export async function run() {
   }
   merged.profile = profileOpts.profile;
 
+  // --giants: the free tools installed here, after Penthera's own scan.
+  let giantsRaw = [];
+  if (giantsOpts) {
+    const { runGiantsForScan } = await import("./cli/giants.js");
+    try {
+      giantsRaw = await runGiantsForScan(merged, giantsOpts, { opts, url, repo, deep, rateLimit, onPhase: scanOpts.onPhase });
+    } catch (e) {
+      printError(`--giants: ${e.message}`);
+      process.exit(2);
+    }
+  }
+
   // Local learning store (opt-in): suppress + rank from ~/.penthera/memory, then record this scan.
   if (opts.memory && (url || repo)) {
     const { applyMemoryToScan } = await import("../lib/memory/index.js");
@@ -759,6 +833,7 @@ export async function run() {
   }
 
   const mdOpts = { version: pkg.version, baseline: baselineStats, footer: !opts["no-footer"] };
+  merged.brief = buildBrief(merged, { reports: briefReports(opts) });
   const custom = customReport(merged, opts, { version: pkg.version, template: reportCtx.template });
 
   // Output
@@ -766,8 +841,11 @@ export async function run() {
     console.log(JSON.stringify(merged, null, 2));
   } else if (custom && !opts.markdown) {
     process.stdout.write(custom);
+  } else if (wantBrief(opts)) {
+    process.stdout.write(formatBrief(merged.brief));
   } else if (opts.quiet) {
     printFindings(merged.findings);
+    printFindings((merged.giants?.findings || []).map((f) => ({ ...f, title: `${f.title} [${f.foundBy.join(", ")}]` })));
   } else {
     printReport(merged, { verbose: opts.verbose });
   }
@@ -842,6 +920,9 @@ export async function run() {
   }
 
   if (opts.aibom) {
+    // Loaded here: aibom.js needs the `yaml` dependency, which deps and URL
+    // scans must run without (the GitHub Action has no node_modules).
+    const { buildAiBom, aiBomSummary } = await import("../lib/whitebox/aibom.js");
     const aibom = buildAiBom(resolve(opts.repo || "."), {
       serialNumber: `urn:uuid:${randomUUID()}`,
       timestamp: new Date().toISOString(),
@@ -895,7 +976,7 @@ export async function run() {
 
   if (opts.evidence) {
     try {
-      const bundle = writeEvidence(merged, opts, { version: pkg.version, template: reportCtx.template, mdOpts, sbom, argv: process.argv.slice(2) });
+      const bundle = writeEvidence(merged, opts, { version: pkg.version, template: reportCtx.template, mdOpts, sbom, argv: process.argv.slice(2), giantsRaw });
       if (!opts.quiet && !opts.json) {
         process.stderr.write(`  Evidence bundle ${bundle.manifest.artifacts.length} files${bundle.signed ? ", signed" : ""} → ${opts.evidence}/ (penthera evidence verify ${opts.evidence})\n`);
       }
@@ -917,13 +998,17 @@ export async function run() {
     process.stderr.write("\n");
   }
 
-  // Exit code: 1 if critical or high findings
+  // Exit code: 1 if critical or high findings, other tools' included unless
+  // the policy says giants.failOn: never; 2 if a tool the policy requires did not run.
+  const { giantsGate } = await import("../lib/giants/index.js");
   const hasSevere = merged.findings.some(
     (f) => f.severity === "critical" || f.severity === "high",
-  );
+  ) || giantsGate(merged);
+  if (merged.giants?.requiredNotRun?.length) printError(`The policy file requires ${merged.giants.requiredNotRun.join(", ")}, which did not run (see Coverage by area).`);
+  const code = merged.giants?.requiredNotRun?.length ? 2 : hasSevere ? 1 : 0;
   // Exit only once stdout has drained: on a pipe the write is asynchronous, and
   // exiting at once cut `--json` output off at the pipe buffer (64 KiB).
-  process.stdout.write("", () => process.exit(hasSevere ? 1 : 0));
+  process.stdout.write("", () => process.exit(code));
 }
 
 export { mergeResults };

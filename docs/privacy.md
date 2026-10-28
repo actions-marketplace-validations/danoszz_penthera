@@ -1,4 +1,8 @@
-# Privacy and network use
+---
+title: "Privacy and network use"
+sidebarTitle: "Privacy and network"
+description: "Penthera has no telemetry."
+---
 
 > **Pro.** For "what does it send over the network?"
 
@@ -6,7 +10,7 @@ Penthera has no telemetry. It does not collect, store or send usage data, analyt
 
 This applies to the CLI, the dashboard and the npm package. The website, [penthera.org](https://penthera.org), is separate: it counts anonymous page views and load times with Vercel Web Analytics and Speed Insights, which set no cookies. The browser check on the site never sends the files you paste; its Content-Security-Policy allows only those two counters.
 
-The site also counts a few named events with Web Analytics, to see how many checks run and how many lead to an install: a check ran (and whether it returned a report or an error), a copy button was used (which one, such as "install" or "mcp"), and a link to GitHub or npm was followed (which one). An event carries its name and that one label, nothing else: never the URL or host you checked, the score, or anything you type or paste. Like page views, events set no cookies.
+The site also counts a few named events with Web Analytics, to see how many checks run and how many lead to an install: a check ran (and whether it returned a report or an error), a copy button was used (which one, such as "install" or "mcp"), and a link was followed (which one: GitHub, npm or the Pro waitlist). An event carries its name and that one label, nothing else: never the URL or host you checked, the score, or anything you type or paste. Like page views, events set no cookies. The Pro waitlist is an email you write and send yourself: the form only fills it in, and penthera.org stores nothing from it.
 
 - **Scan traffic goes to the target you name.** Auth tokens passed with `--auth-bearer`, `--auth-cookie`, or `PENTHERA_*` env vars are sent only to that target.
 - **Every request identifies itself** as `penthera/<version> (+https://github.com/danoszz/penthera)`, so a target's operator can tell where the traffic comes from. Override it with `--user-agent`.
@@ -63,4 +67,4 @@ Penthera never fetches rules or code at runtime. Templates, wordlists and the vu
 
 When a probe's requests time out, fail or are refused by `--offline`, the scan records `{ probe, url, message }` in `result.errors`. The terminal summary shows "N probes inconclusive", and the Markdown report lists each one. A probe that could not run is not a clean result.
 
-Scan only targets you are authorized to test. See [Ethics and authorization](../README.md#ethics-and-authorization).
+Scan only targets you are authorized to test. See [Ethics and authorization](https://github.com/danoszz/penthera/blob/main/README.md#ethics-and-authorization).

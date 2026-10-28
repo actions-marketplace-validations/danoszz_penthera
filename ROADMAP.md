@@ -17,6 +17,22 @@ here.
 | npm tag | Version | Install |
 |---|---|---|
 | `latest` | 2.0.0 (2026-10-25) | `npx penthera` |
+| `next` | 2.1.0-rc.2 (2026-10-28) | `npx penthera@next` |
+
+## Release candidate: 2.1.0-rc.2
+
+| In 2.1.0-rc.2 | What it means for you |
+|---|---|
+| The agent brief | Your AI assistant gets one short reply after a scan: a verdict, what to act on, what to check first, likely noise, what was not checked. Rules fill it ([docs](docs/commands/brief.md)) |
+| Fewer false findings | Style maps are no longer passwords, `eval` in build output is not reported, and action plan steps fit the findings |
+| `--giants` merge fix | A key inside a private-key block that two tools find counts once |
+| [Pro, an experiment](https://penthera.org/pro) | Does anyone need more than the free agent? The waitlist measures it. Nothing is for sale, and the free tool stays complete |
+
+| In 2.1.0-rc.1 | What it means for you |
+|---|---|
+| `--giants` | Runs the free scanners you already have (gitleaks, trufflehog, Semgrep, osv-scanner, pip-audit, trivy, checkov, nuclei, the ZAP baseline) and folds their findings into one report; areas without a tool are reported as not covered ([docs](docs/commands/giants.md)) |
+| First-run fixes | The GitHub Action's `mode: deps` scans again (it exited early on 1.5.0 to 2.0.0); nothing unread is reported as clean; a clear message for agents running without a terminal |
+| Benchmark pages | [penthera.org/benchmarks](https://penthera.org/benchmarks): every tool, with intervals and caveats, losses included |
 
 ## Now: 2.0.0
 
@@ -39,12 +55,25 @@ What 1.9.0 added (the MCP server, opt-in AI mode, signed rule packs) is in the
 
 Ordered, not dated. Each item names the user question it answers.
 
+### This month: upkeep in your own CI
+
+The checks Penthera already does, on a schedule, in your own repository, with a
+report you can hand on. Everything stays offline and MIT; no server, no account.
+
+| Item | Question it answers |
+|---|---|
+| `penthera watch` in the GitHub Action, on a schedule | "Did anything change since last week?" Weekly passive checks of your own live site, plus `deps` and `agents`, reported as a job summary and an issue |
+| A readable evidence report | "Can I show a client or an auditor what was checked?" A signed Markdown or PDF summary of an evidence bundle: what was checked, found and fixed |
+| `verify` for more AI reviewers | "Which of my AI reviewer's findings are real?" `penthera verify` reads SARIF and the output of Claude Code's `/security-review`, with a small preregistered measurement of how many model findings the rules confirm |
+| New-CVE alerts for your SBOM, offline | "Is something I shipped now known to be vulnerable?" Advisories with CISA KEV and EPSS ranking arrive with each release in the signed packs; `watch` compares your SBOM against them |
+| A fresh-malware holdout | "Does it catch malware nobody tuned on?" Packages reported after the freeze date, scored once and published whatever the result |
+| Setup pages per agent | "How do I use it from Codex, ChatGPT or Cursor?" One page each, next to [Penthera in your coding tool](docs/integrations.md) |
+
 ### In the top 10 on every benchmark that fits (research track)
 
 The goal: Penthera benchmarked against the free tools on **every established
 public benchmark within its scope**, in the top 10 on each, and #1 where the
-data allows, with every result published, losses included. This is the work we
-are applying to NLnet to fund.
+data allows, with every result published, losses included.
 
 | Item | Question it answers | State |
 |---|---|---|
@@ -135,8 +164,7 @@ How it works, and what it won't do:
   core, if it happens at all.
 - **Earlier candidates:** risk-based prioritization, an MFA probe, a CyFun
   adapter for Belgium, exploit-chain explanations, transitive SBOM entries and
-  container images, an authorized-versus-unauthorized IDOR baseline, and
-  document export for non-technical owners.
+  container images, and an authorized-versus-unauthorized IDOR baseline.
 
 ## Not planned
 

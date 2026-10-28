@@ -1,0 +1,11 @@
+{
+  "tool": "semgrep",
+  "version": "1.180.0",
+  "command": "semgrep scan --config /private/tmp/penthera-giants-semgrep-rules --metrics off --disable-version-check --sarif --output <tmp>/semgrep.sarif --quiet <root>",
+  "exitCode": 0,
+  "network": "denied (sandbox-exec)",
+  "root": "/private/tmp/penthera-giants-target",
+  "url": null,
+  "findings": 3,
+  "recordedOn": "2026-10-26"
+}

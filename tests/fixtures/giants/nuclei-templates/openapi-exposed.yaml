@@ -1,0 +1,24 @@
+id: penthera-fixture-openapi-exposed
+
+info:
+  name: OpenAPI document served publicly
+  author: penthera
+  severity: low
+  description: The API description is served without authentication.
+  classification:
+    cwe-id: CWE-200
+  tags: exposure,fixture
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/openapi.json"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        part: body
+        words:
+          - '"openapi"'

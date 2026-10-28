@@ -17,9 +17,16 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { renderMarkdown } from "./terms.mjs";
 import { fill } from "./agents.mjs";
+import { ldScript, siteFoot } from "./frame.mjs";
+import { proMain, waitlistHref } from "./pro.mjs";
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const CTA_HTML = '<p class="land-cta"><a class="btn" data-variant="default" href="/#scan">Check your site</a><span>Free, passive, nothing stored. Your own site only.</span></p>';
+// `cta: waitlist` in the front matter: a mailto, so nothing is stored on the site.
+const WAITLIST_MAIL = "daan@penthera.org";
+const WAITLIST_HREF = waitlistHref();
+const WAITLIST_HTML = `<p class="land-cta"><a class="btn" data-variant="default" data-track="pro-waitlist" href="${WAITLIST_HREF.replace(/&/g, "&amp;")}">Join the waitlist</a><span>Opens an email to ${WAITLIST_MAIL}. Nothing is stored on penthera.org.</span></p>`;
+const ctaHtml = (p) => (p.cta === "waitlist" ? WAITLIST_HTML : CTA_HTML);
 
 /** Parse one page: front matter, the H1 and the body. Throws on a missing field. */
 export function parsePage(md, file) {
@@ -47,16 +54,22 @@ export function landingPages(site) {
 
 /** One page as Markdown, for agents: the CTA as a link, numbers filled in. */
 export function landingMarkdown(p, { origin, values }) {
-  const body = p.body.replaceAll("{{CTA}}", `[Check your site on penthera.org](${origin}/#scan)`)
+  const cta = p.cta === "waitlist" ? `[Join the waitlist](${WAITLIST_HREF})` : `[Check your site on penthera.org](${origin}/#scan)`;
+  const body = p.body.replaceAll("{{CTA}}", cta)
     .replace(/\]\(\/(?!\/)/g, `](${origin}/`);
   return `${fill(body, values, `site/pages/${p.slug}.md`).trimEnd()}\n`;
 }
 
 /** One page as HTML, in the site's own frame (the frame /terms uses). */
-export function landingHtml(p, { origin, values, styles = "/styles.css", theme = "/theme.js" }) {
+export function landingHtml(p, { origin, values, styles = "/styles.css", theme = "/theme.js", blog = false, pub = null }) {
   const md = fill(p.body.replace(/^# .+\n/m, "").replaceAll("{{CTA}}", "\u0000CTA\u0000"), values, `site/pages/${p.slug}.md`);
-  const body = renderMarkdown(md).replace(/<p>\u0000CTA\u0000<\/p>/g, CTA_HTML);
+  const body = renderMarkdown(md).replace(/<p>\u0000CTA\u0000<\/p>/g, ctaHtml(p));
   const url = `${origin}/${p.slug}`;
+  // WebPage and BreadcrumbList, part of the site; the homepage carries the SoftwareApplication.
+  const ld = ldScript([
+    { "@type": "WebPage", "@id": url, url, name: p.title, description: p.description, isPartOf: { "@type": "WebSite", "@id": `${origin}/#website`, url: `${origin}/`, name: "Penthera" }, about: { "@type": "SoftwareApplication", name: "Penthera", url: `${origin}/` } },
+    { "@type": "BreadcrumbList", itemListElement: [{ "@type": "ListItem", position: 1, name: "Penthera", item: `${origin}/` }, { "@type": "ListItem", position: 2, name: p.h1, item: url }] },
+  ]);
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -80,14 +93,18 @@ export function landingHtml(p, { origin, values, styles = "/styles.css", theme =
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="${styles}">
   <script src="${theme}"></script>
+  <script defer src="/_vercel/insights/script.js"></script>
+  <script defer src="/track.js"></script>${p.layout === "pro" ? '\n  <script defer src="/pro.js"></script>' : ""}
+  ${ld}
 </head>
 <body>
-  <main class="terms land" id="main">
-    <p class="eyebrow"><a href="/">Penthera</a> · Live check</p>
+${p.layout === "pro" ? `  <main class="pro" id="main">${proMain({ version: values.VERSION, pub })}
+  </main>` : `  <main class="terms land" id="main">
+    <p class="eyebrow"><a href="/">Penthera</a> · ${esc(p.eyebrow || "Live check")}</p>
     <h1>${esc(p.h1)}</h1>
 ${body}
-    <p class="land-foot"><a href="/">penthera.org</a> · <a href="/terms">Terms</a> · <a href="https://github.com/danoszz/penthera">Source</a> · MIT license</p>
-  </main>
+    ${siteFoot({ blog })}
+  </main>`}
 </body>
 </html>
 `;

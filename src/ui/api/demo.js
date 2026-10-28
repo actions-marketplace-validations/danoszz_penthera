@@ -12,7 +12,7 @@ import { referencesFor } from "../../../lib/references.js";
 import { formatAudienceReport, AUDIENCES } from "../../report/audience.js";
 import {
   buildOverview, buildFindings, locateFinding, findingDetail, buildDeps, buildAi, loopSummary,
-  explainFinding, buildScanHistory, latestScan, slug,
+  explainFinding, buildScanHistory, latestScan, slug, buildGiantsCoverage,
 } from "./summarize.js";
 
 const DAY = 86_400_000;
@@ -295,6 +295,7 @@ export function createDemoSource({ settings, version = "dev" }) {
     meta: () => ({ reportsDir: "/Users/demo/code/acme-shop/reports", projects: ["/Users/demo/code/acme-shop", "/Users/demo/code/billing-api"], memoryRoot: "/Users/demo/.penthera/memory" }),
     overview: () => buildOverview({ scans, memory, runs: loops }),
     findings: () => buildFindings(scans),
+    giants: () => buildGiantsCoverage(scans),
     async finding(id, project) {
       const hit = locateFinding(scans, id, project);
       if (!hit) return null;

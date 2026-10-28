@@ -1,4 +1,8 @@
-# ADR 0001: secret-scan coverage, reporting, and library mode
+---
+title: "ADR 0001: secret-scan coverage, reporting, and library mode"
+sidebarTitle: "ADR 0001: secret scan coverage"
+description: "These decisions change the product for every user, not only the benchmark score."
+---
 
 > **Project page.** For maintainers and researchers asking "why does the
 > secret scan read these files, report this way, and when will Penthera treat
@@ -104,6 +108,6 @@ dependency. It ships in 1.10 with a release candidate first, not in a patch.
 ## References
 
 - Meli, McNiece and Reaves (2019), *How Bad Can It Git?* (`meli2019bad` in
-  [references.bib](../references.bib)).
+  [references.bib](https://github.com/danoszz/penthera/blob/main/docs/references.bib)).
 - E11b results and lab notes: `bench/public/` (in
   PR #155).

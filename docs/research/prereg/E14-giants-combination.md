@@ -7,7 +7,7 @@
 |---|---|
 | Builds on | [E11b](E11b-improvement-study.md): its split, scoring code, tool versions and sealed test half |
 | Feature it decides | [`--giants`](../spec-giants.md): which merge ships as the default |
-| Status | **Registered.** Approved by Daan van der Zwaag on 2026-10-25 as drafted. The commit that merges this file to `main` is the registration timestamp |
+| Status | **Registered.** Approved by Daan van der Zwaag on 2026-10-25 as drafted. The commit that merges this file to `main` is the registration timestamp. **Step 2 run on 2026-10-28** (§ 9): Penthera-first stays the default |
 | Date written | 2026-10-25 |
 | Authors | Daan van der Zwaag (PI, decides). Drafted with Claude (AI-assisted) |
 | Seen before this registration | Each tool's **aggregate** scores on the E11b test half, as published in `bench/public/RESULTS.md`. E11b stored only those aggregates for the other tools (`competitors-*.test.json`), not their per-item hits, so **no combination has been computed or could have been**. Penthera's own per-item test output exists (`creddata.test.raw.json`), and E11b's leakage audit read parts of it. Per-item outputs on the dev half were looked at during E11b |
@@ -155,4 +155,63 @@ Any change after registration is logged here with its date and reason before
 the test-half run. A look at any combined test-half count before step 2 voids
 the confirmatory claim and is reported as such.
 
-None so far.
+**2026-10-27, step 1 (dev half), from main `1f70835`.** Results in
+[RESULTS.md](../../../bench/public/RESULTS.md#e14-step-1-the-dev-half-2026-10-27-not-the-registered-test).
+No test-half item was read or run.
+
+1. **Penthera's version on dev.** Arm P on the dev half is Penthera
+   2.1.0-rc.1 (main `1f70835`), not 2.0.0. Between the two, the only change to
+   the secret and code-sink rules is one file filter (translation files under
+   `intl/` or named like `de-DE.json` get shape rules only, `c93b270`). For
+   step 2, see entry 6.
+2. **Units within one tool.** Each tool's own hits are counted with E11b's
+   unit (a file and line for CredData; file, line and rule for code), and the
+   spec's key decides only across tools. This is how § 3's "E11b's code and
+   units, unchanged" was read; it reproduces every tool's E11b numbers.
+3. **The value key for multi-line secrets.** `--giants` reads Penthera's
+   secret value back from the reported line. For a line inside a private key
+   block that yields no value, so those hits never merged with gitleaks'
+   (535 of 911 shared lines on dev). Fixed by entry 7.
+4. **Who spot-checked.** The 50 + 50 merged pairs were read by Claude
+   (AI-assisted), not by the maintainer, and are kept for him to recheck.
+5. **Noise counts.** Penthera's SecBench.js findings other than code sinks
+   have no location in the raw output, so they are added to its findings per
+   package unmerged.
+
+**2026-10-27, the maintainer's decisions after step 1.** Both made before
+any test-half run.
+
+6. **P for step 2 is Penthera 2.1.0-rc.2**, not 2.0.0 as § 2 registers. It
+   includes the E1 password fix; the CredData dev numbers do not change with
+   it. Step 2 waits until 2.1.0-rc.2 is released.
+7. **The secret key, when a value is missing.** When either of two secret
+   findings has no value, they merge on file and line alone, for every tool;
+   two different values on one line still do not merge. This changes the
+   spec's key (§ 2 freezes it), so it is a deviation. It is in
+   `lib/giants/merge.js`, the code `--giants` ships, with a fixture test of a
+   private key block (`tests/giants-merge.test.js`). The dev half was
+   rescored with it from the same per-item hits: the union's precision goes
+   from 0.83 to 0.82 and H2 fails either way
+   ([RESULTS.md](../../../bench/public/RESULTS.md#e14-step-1-the-dev-half-2026-10-27-not-the-registered-test)
+   keeps both). Nothing else was changed.
+
+**2026-10-28, step 2 (test half).** The maintainer approved step 2 on
+2026-10-28, with P = Penthera 2.1.0-rc.2 (main `efbe8c8`, the commit npm
+records for the tarball). Results in
+[RESULTS.md](../../../bench/public/RESULTS.md#e14-step-2-the-sealed-test-half-scored-once-2026-10-28).
+
+8. **The same-tool check, in the harness.** § 6 step 2 asks that each other
+   tool's test aggregate be checked against E11b's published one before any
+   arm is computed. Step 1 checked this by hand; for step 2 the harness does
+   it, from a frozen table of E11b's numbers (`published.json`), and stops
+   before scoring on any difference. Written, run on the dev half (every
+   aggregate matched, dev scores unchanged) and committed as `8bcdd68`
+   before the test half was opened. Penthera is not in the check, since P
+   is not E11b's 2.0.0 (entry 6).
+9. **The run.** One run of `giants.mjs --split test --final --collect
+   --spot-check 50` from `8bcdd68`, on 2026-10-28. Every other tool matched
+   E11b exactly, and Penthera 2.1.0-rc.2 scored what 2.0.0 scored, to the
+   item count. Per-item outputs: SHA-256
+   `4d5880e1f513df0b29620bee78fb9bdbc4e85bee6c9a54695d55bf12905cba41`. No
+   key, arm, threshold or line of code was changed after the results were
+   seen. The 50 + 50 spot-check was read by Claude, as in entry 4.

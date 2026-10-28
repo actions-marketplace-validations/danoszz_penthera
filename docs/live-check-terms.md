@@ -1,10 +1,14 @@
-# Terms for the live check on penthera.org
+---
+title: "Terms for the live check on penthera.org"
+sidebarTitle: "Live check terms"
+description: "What you may do with penthera.org's live check, what it requests, and what it stores: nothing."
+---
 
 > **Project page.** For "what may I do with the live check, and what does penthera.org do with it?"
 
 Last updated: 23 October 2026.
 
-These terms cover the quick check on [penthera.org](https://penthera.org/#scan) and its API, `POST https://penthera.org/api/check`. The Penthera command-line tool itself is covered by its [MIT license](../LICENSE).
+These terms cover the quick check on [penthera.org](https://penthera.org/#scan) and its API, `POST https://penthera.org/api/check`. The Penthera command-line tool itself is covered by its [MIT license](https://github.com/danoszz/penthera/blob/main/LICENSE).
 
 ## In short
 

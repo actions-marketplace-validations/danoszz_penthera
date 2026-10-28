@@ -1,0 +1,121 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Penthera",
+  "description": "Open-source, offline security agent for your apps and AI coding tools. Rules decide; a model may only propose.",
+  "colors": {
+    "primary": "#0000ed",
+    "light": "#7a7aff",
+    "dark": "#0000ed"
+  },
+  "favicon": "/assets/favicon.svg",
+  "logo": {
+    "light": "/assets/logo-light.svg",
+    "dark": "/assets/logo-dark.svg",
+    "href": "https://penthera.org"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Benchmarks",
+        "href": "https://penthera.org/benchmarks"
+      },
+      {
+        "label": "Live check",
+        "href": "https://penthera.org/website-security-check"
+      }
+    ],
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/danoszz/penthera"
+    }
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "I'm new",
+        "pages": [
+          "index",
+          "commands/init",
+          "integrations",
+          "commands/scan",
+          "commands/giants",
+          "commands/deps",
+          "commands/install",
+          "dashboard",
+          "privacy"
+        ]
+      },
+      {
+        "group": "I use AI coding tools",
+        "pages": [
+          "commands/agents",
+          "commands/skill",
+          "commands/mcp",
+          "agents-safely",
+          "ai-mode",
+          "commands/verify",
+          "commands/brief"
+        ]
+      },
+      {
+        "group": "I run it in CI",
+        "pages": [
+          "commands/action",
+          "commands/hook",
+          "commands/fix",
+          "local-loop",
+          "rule-packs",
+          "runtime-advisories",
+          "owasp-wstg-coverage"
+        ]
+      },
+      {
+        "group": "Evidence for an auditor",
+        "pages": [
+          "evidence",
+          "compliance-nis2",
+          "compliance-cra"
+        ]
+      },
+      {
+        "group": "Research and method",
+        "pages": [
+          "METHODOLOGY",
+          "references",
+          "vision-2.0",
+          "MANIFESTO",
+          "genai",
+          "internal-audit",
+          "decisions/0001-secret-scan-coverage-and-reporting"
+        ]
+      },
+      {
+        "group": "Compared",
+        "pages": [
+          "compare/github",
+          "compare/semgrep",
+          "compare/snyk",
+          "compare/socket",
+          "compare/zap",
+          "compare/cloudflare-security-audit"
+        ]
+      },
+      {
+        "group": "The project",
+        "pages": [
+          "trust",
+          "funding/sponsor-tiers",
+          "live-check-terms",
+          "voice"
+        ]
+      }
+    ]
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/danoszz/penthera",
+      "website": "https://penthera.org"
+    }
+  }
+}

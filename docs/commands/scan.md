@@ -1,4 +1,8 @@
-# Scanning your app: `penthera <url>` and `--repo`
+---
+title: "Scanning your app: penthera <url> and --repo"
+sidebarTitle: "Scan"
+description: "Black-box scans of a running app (localhost, preview, or staging) and white-box scans of its source."
+---
 
 > **Starter.** For "is my app safe to ship?"
 
@@ -90,11 +94,12 @@ next to it. `penthera init` can add `reports/` to your `.gitignore`.
 | Format | Flag | Use |
 |--------|------|-----|
 | Terminal | *(default)* | Colored summary plus top 3 fixes |
+| **Agent brief** | `--brief`, or the default when stdout is not a terminal | Verdict, act on, check first, likely noise, not checked, next: short, for an AI assistant ([brief.md](brief.md)) |
 | **Markdown** | `--markdown file.md` or `-o file.json` | Human-readable report (exec summary, findings tables, fixes). Written next to `-o` automatically |
 | JSON | `--json` or `-o file.json` | CI pipelines, baseline diffs, custom tooling |
 | SARIF | `--sarif file.sarif` | GitHub Security / Code Scanning tab |
 | AI-audit seeds | `--audit-seeds seeds.json` (with `--repo`) | Repo findings in Cloudflare security-audit-skill `findings.json` form, so an agent running the skill starts from them ([verify.md](verify.md#the-other-way-seeds-for-the-skill)) |
-| Audience report | `--audience developer\|owner\|auditor` | The same scan written for a developer, an owner or an auditor ([docs/evidence.md](../evidence.md#audience-reports)) |
+| Audience report | `--audience developer\|owner\|auditor\|agent` | The same scan written for a developer, an owner, an auditor or an AI assistant ([docs/evidence.md](../evidence.md#audience-reports), [brief.md](brief.md)) |
 | Your template | `--report-template file.md` | Your own Markdown with `{{summary.critical}}`, `{{#each findings}}`, `{{#if x}}`; no code runs |
 | **Evidence bundle** | `--evidence <dir> [--sign-key <ssh-key>]` | All reports plus `manifest.json` with SHA-256s, optionally SSH-signed. Auditors check it with `penthera evidence verify <dir> --allowed-signers <file>` ([docs/evidence.md](../evidence.md)) |
 
@@ -165,7 +170,7 @@ means.
 ```
 
 Copy the full workflow from
-[`docs/examples/github-actions-scan.yml`](../examples/github-actions-scan.yml)
+[`docs/examples/github-actions-scan.yml`](https://github.com/danoszz/penthera/blob/main/docs/examples/github-actions-scan.yml)
 into your app's repo. Pin the Penthera version so a scheduled run never picks up
 code you have not reviewed.
 
@@ -183,4 +188,4 @@ cp pentest.config.example.js pentest.config.js   # gitignored
 Edit the route groups, then run `npm run pentest:live`. Set `PENTEST_BASE_URL` to
 point at staging without editing the file.
 
-[Back to the README](../../README.md) · [All commands](README.md)
+[Back to the README](https://github.com/danoszz/penthera/blob/main/README.md) · [All commands](https://github.com/danoszz/penthera/blob/main/docs/commands/README.md)

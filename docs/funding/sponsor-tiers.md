@@ -1,11 +1,16 @@
-# GitHub Sponsors tiers (proposal)
+---
+title: "GitHub Sponsors tiers"
+sidebarTitle: "Sponsor tiers"
+description: "How to sponsor Penthera, what each tier gives, and what sponsorship does not buy."
+---
 
 > **Project page.** For users and companies asking "how can I support Penthera,
 > and what does that buy?"
 
-Status: proposal. The tiers below still need to be created on the GitHub
-Sponsors dashboard once the profile is approved. Prices are in US dollars
-because GitHub Sponsors tiers are priced in USD.
+Status: live on [GitHub Sponsors](https://github.com/sponsors/danoszz) since
+28 October 2026. This page is the source of truth for what each tier gives;
+the tier descriptions on GitHub follow it. Prices are in US dollars because
+GitHub Sponsors tiers are priced in USD.
 
 ## Tiers
 
@@ -25,7 +30,7 @@ Maintainer time. Specifically, in rough order:
 1. Keeping detection rules current: new AI provider key formats, new
    supply chain attack patterns, new checks for developer tooling.
 2. Security fixes and releases for Penthera itself.
-3. The roadmap in [ROADMAP.md](../../ROADMAP.md).
+3. The roadmap in [ROADMAP.md](https://github.com/danoszz/penthera/blob/main/ROADMAP.md).
 
 ## What sponsorship does not buy
 
@@ -39,7 +44,7 @@ Written down so nobody is surprised:
 - **No support contract or SLA.** Penthera is maintained part-time. Bug reports
   are handled in public issues, in the order the maintainer judges best.
 - **No early or private access to vulnerability information.** Security issues
-  follow [SECURITY.md](../../SECURITY.md) for everyone.
+  follow [SECURITY.md](https://github.com/danoszz/penthera/blob/main/SECURITY.md) for everyone.
 - **No certification or endorsement.** A logo in the README means the company
   supports the project. It does not mean Penthera has assessed or approved that
   company's security, and the README will say so next to the logos.
@@ -67,6 +72,10 @@ https://docs.github.com/en/sponsors/receiving-sponsorships-through-github-sponso
 
 The maintainer intends to publish a short yearly note on total sponsorship
 income and what it paid for.
+
+Penthera stays free and complete. Pro is a separate experiment that measures
+whether teams need more; sponsorship is not tied to it
+([GOVERNANCE.md](https://github.com/danoszz/penthera/blob/main/GOVERNANCE.md#money)).
 
 ## Open questions for the maintainer
 

@@ -1,4 +1,8 @@
-# Auditing your AI tooling: `penthera agents`
+---
+title: "Auditing your AI tooling: penthera agents"
+sidebarTitle: "Agent config audit"
+description: "Your AI tools run code too."
+---
 
 > **Starter.** For "is this MCP server or skill safe?"
 
@@ -17,7 +21,7 @@ penthera agents --pin           # write penthera.lock; later runs flag anything 
 
 It is **offline and deterministic**: no LLM judge, no registry lookups, nothing
 leaves your machine, and it never modifies the config it reads. Every verdict
-is a rule you can read in [`lib/agents/`](../../lib/agents/), so a skill can't talk
+is a rule you can read in [`lib/agents/`](https://github.com/danoszz/penthera/tree/main/lib/agents), so a skill can't talk
 its way past it.
 
 | Check | What it catches |
@@ -106,4 +110,4 @@ From Penthera's own test fixture of a deliberately bad setup (abridged):
 - Its rules cover the patterns in the [methodology](../METHODOLOGY.md). A new
   trick needs a new rule and a release.
 
-[Docs index](../index.md) · [All commands](README.md)
+[Docs index](../index.md) · [All commands](https://github.com/danoszz/penthera/blob/main/docs/commands/README.md)

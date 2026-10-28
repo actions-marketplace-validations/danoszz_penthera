@@ -75,7 +75,10 @@ describe("scan_repo", () => {
     expect(secret.confidence).toBe("confirmed");
     // The secret value itself is never echoed whole.
     expect(JSON.stringify(r)).not.toContain(SECRET);
-    expect(res.result.content[0].text).toMatch(/^Penthera scan_repo on app:/);
+    // The text part is the agent brief, then the reply contract.
+    expect(res.result.content[0].text).toMatch(/^\*\*Penthera: (Fix now|Review|Nothing to fix)\.\*\*/);
+    expect(res.result.content[0].text).toContain("My read");
+    expect(r.brief.schema).toBe("penthera.brief/1");
     expect(JSON.parse(res.result.content[1].text)).toEqual(r);
     // The coverage ledger says what ran and points at the tools for what didn't.
     expect(r.coverage.checks.map((c) => c.id)).toContain("secrets");

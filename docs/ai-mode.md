@@ -1,4 +1,8 @@
-# AI mode: `--ai`
+---
+title: "AI mode: --ai"
+sidebarTitle: "AI mode"
+description: "AI mode is opt-in and experimental."
+---
 
 > **Starter and pro.** For "can a model look for what Penthera's rules miss,
 > without my code leaving my computer and without trusting the model?"
@@ -111,7 +115,7 @@ needs `ollama-cloud`. `"allow": []` turns AI mode off for the repository.
 
 `penthera ui`: in **New scan…**, turn on **AI mode** for a scan of a project
 folder. The same consent appears as a sheet, with a picture of where your code
-goes and two equal buttons, "Use <model> on this computer" and "Not now". See
+goes and two equal buttons, "Use `<model>` on this computer" and "Not now". See
 [dashboard.md](dashboard.md#ai-mode).
 
 ## Options

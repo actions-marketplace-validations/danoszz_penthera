@@ -1,4 +1,8 @@
-# Penthera and OWASP ZAP
+---
+title: "Penthera and OWASP ZAP"
+sidebarTitle: "vs ZAP"
+description: "Where OWASP ZAP and Penthera overlap on live scans, and where they differ."
+---
 
 > **Pro.** For "how does Penthera compare to OWASP ZAP, and how do I run both?"
 
@@ -58,4 +62,4 @@ npx penthera http://localhost:3000 --repo . --sarif penthera.sarif
 docker run -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t http://host.docker.internal:3000
 ```
 
-[All comparisons](README.md) · [Back to the README](../../README.md)
+[All comparisons](https://github.com/danoszz/penthera/blob/main/docs/compare/README.md) · [Back to the README](https://github.com/danoszz/penthera/blob/main/README.md)

@@ -4,6 +4,212 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+## [2.1.0-rc.2] - 2026-10-28
+
+### Added
+
+- **The agent brief: one short reply for your AI assistant.** After a scan,
+  assistants used to write their own summary of a long report, and had to sort
+  out the noise themselves. The brief does that with rules: a verdict (`Fix
+  now`, `Review` or `Nothing to fix`), then Act on, Check first, Likely noise,
+  Not checked and Next. Hits in gitignored files, build output and test
+  fixtures are grouped as likely noise, repeats collapse into one line, and
+  every finding is counted once. A scan prints it when stdout is not a terminal
+  (an agent calling the CLI; `PENTHERA_BRIEF=0` turns that off), or anywhere
+  with `--brief`. Also in the JSON report (`brief`), as `--audience agent`, as
+  the text of every MCP tool result, and merged across scans with `penthera
+  brief repo.json deps.json agents.json`. The MCP server and the Agent Skill
+  ask the assistant to keep the brief's sections and put its own view under
+  "My read". See [docs/commands/brief.md](docs/commands/brief.md).
+
+### Fixed
+
+- **Fewer false findings in repo scans, and action plan steps that fit.** A
+  run on a Next.js and FastAPI monorepo showed these, and each now has a test:
+  - "Hardcoded password" no longer fires on style values (`pass:
+    'text-emerald-400'`, `var(--success)`) or on a `pass` key next to `fail` or
+    `warn`, which is a map of check outcomes. On the CredData dev half, recall
+    and precision are unchanged.
+  - The `eval` check skips folders git ignores and Next.js build folders under
+    another name (`.next-dev`).
+  - A Node.js advisory that names TLS gets the step "Upgrade the runtime", not
+    "Fix the TLS configuration".
+  - Keys in files git ignores get their own low step (check whether the file
+    was shared), not "purge it from git history".
+  - `eval`, `exec` and `innerHTML` findings get the code-execution step, not
+    "Review and remediate this finding".
+- **`penthera agents` says what a permission really allows.** A pre-approved
+  script in `/tmp`, `/var/tmp` or `/dev/shm` is now its own rule,
+  `permission-tmp-script`: any local process can replace the file. "With any
+  arguments" now appears only when the grant has a `*` or no arguments, and an
+  exact command such as `Bash(bash ./scripts/check.sh)` is no longer reported.
+- **Reports leave out what does not apply.** Dependency and agent-config reports
+  no longer print an empty OWASP WSTG table, and only URL scans show
+  "Reachable".
+- **The coverage ledger covers the `eval` check.** A new row says how many files
+  it read, how many were over its size limit, and how many sat in folders it
+  skips.
+- **`--giants`: a private key two tools report is one finding.** Penthera
+  reads a secret's value back from the reported line to merge it with other
+  tools' findings, and a line inside a private key block has no value on its
+  own, so gitleaks' and Penthera's report of the same key stayed apart. When
+  either finding has no value, they now merge on file and line; two different
+  values on one line still do not. Found in E14's dev half and logged as a
+  deviation in its pre-registration.
+
+### Site
+
+- **/upkeep is now /pro: Penthera Pro, a security partner for software built with agents.** The page proposes rather than sells: the agent stays free, and Pro adds a person who sets it up with you, reads what it finds and does assessments when you need one, for $100–300 a month per team while we test. It scrolls sideways as you scroll down, opens with an ASCII header you can move through, shows its benchmark ranks against the free tools (from the same data as /benchmarks), and has a small calculator for what security costs your team now. The waitlist and the calculator only fill in an email you send: nothing is stored on penthera.org. `/upkeep` redirects to `/pro`.
+
+### Docs
+
+- **E14 step 1, the dev half: Penthera plus the free tools.** A new harness,
+  `bench/public/giants.mjs`, reruns gitleaks, trufflehog, Semgrep and CodeQL
+  through E11b's pinned runners, keeps their per-item hits, and builds the
+  pre-registered arms with the merge code `--giants` ships. On the dev half
+  every tool reproduces its E11b numbers. The union finds 2.6 points more
+  CredData rows at about 12 points less precision (11 before the secret-merge
+  fix; the precision test fails either way), and two more SecBench.js
+  vulnerabilities while the median findings per package goes from 1 to 4; the test half is
+  untouched. Results and the logged deviations are in `bench/public/RESULTS.md`
+  and the E14 pre-registration.
+- **Roadmap: upkeep in your own CI, this month.** `penthera watch` on a schedule
+  in the GitHub Action, a readable evidence report, `verify` for more AI
+  reviewers, offline new-CVE alerts with KEV and EPSS, a fresh-malware holdout,
+  and setup pages per agent. The roadmap also lists 2.1.0-rc.1 on npm's `next`
+  tag.
+
+## [2.1.0-rc.1] - 2026-10-27
+
+### Added
+
+- **`--giants`: run the free scanners you already have, in one report.** After
+  its own scan, Penthera runs the tools installed on your machine (gitleaks,
+  TruffleHog, Semgrep with your local rules, osv-scanner, Trivy and Checkov
+  for `--repo`; nuclei with your templates and the ZAP baseline for a URL)
+  and folds their findings into the terminal report, JSON, Markdown, SARIF
+  (one run per tool) and the evidence bundle, each labelled with the tool, its
+  version and its rule. `--with` and `--without` pick tools,
+  `--giants-online` adds pip-audit and TruffleHog key verification, and
+  `penthera giants` lists what you have. A new "Coverage by area" table says
+  which areas another tool covered; an area with no tool is "not covered",
+  never clean. Nothing is downloaded or installed: tools come from `PATH`
+  outside the scanned project, run without a shell, with a timeout, an output
+  cap, a minimal environment and, on macOS and Linux where available, the
+  network denied. CodeQL runs only with `--with codeql`, after a licence
+  notice. Other tools' critical and high findings count toward the exit code
+  unless the policy file says `giants.failOn: never`; the new `giants` policy
+  key can also require, limit or forbid tools. The default merge is
+  Penthera-first until experiment E14 reports, and no accuracy claim is made
+  for the combination before then. Docs: `docs/commands/giants.md`.
+
+### Changed
+
+- **The Claude Code plugin now installs from a small `plugin/` folder.** It holds
+  the Penthera skill, the pinned MCP server, a README, the licence and an icon,
+  and nothing else: no `package.json`, no `bin/`, no test fixtures. It is also
+  the folder Anthropic's plugin directory reviews. The skill now pre-approves only
+  Penthera's own commands (`penthera`, `npx -y penthera`, `npx --no-install
+  penthera`) and reading files; Claude asks before it edits a file or runs
+  anything else. A test keeps the folder's copy of the skill identical to
+  `skills/penthera`.
+
+### Fixed
+
+- **The GitHub Action's `mode: deps` exited before scanning on every release
+  from 1.5.0 to 2.0.0, and the job reported success with no PR comment and no
+  SARIF.** No dependency was checked in those runs. If you use `mode: deps`,
+  move your pin to 2.1.0-rc.1 or later. The cause: the CLI loaded the `yaml`
+  package on every command, and the action's checkout has no `node_modules`.
+  The resulting `ERR_MODULE_NOT_FOUND` exits 1, which the action read as
+  "findings". Deps and URL scans no longer load `yaml`. The action now fails
+  the job when Penthera writes no report. Tests cover both: an action run that
+  writes no report fails, and deps and URL scans run from a copy without
+  `node_modules`.
+- **`penthera init` pins the workflow to v2.0.0**, the newest stable release
+  before this one, not v1.6.1. v2.0.0 still has the `mode: deps` problem
+  above, so move that pin to 2.1.0-rc.1 or later. A test fails when the pin
+  falls behind `CHANGELOG.md`.
+- **Nothing unread is reported as clean.** When packages in the lockfile are not
+  installed or cached, `penthera deps` says how many were not read and how to
+  read them (`npm ci --ignore-scripts`). It prints "Not checked" instead of
+  "Clean scan" when it read none. `init` grades that area `–`, not `A`. The PR
+  comment says "N of M packages scanned".
+- **No arguments without a terminal** (an agent, CI, a pipe) prints three
+  commands to run, `init --yes --dry-run`, `init --yes` and `--repo .`, instead
+  of an error and 150 lines of help. The exit code is still 2.
+- **`--giants` names what ran.** "Running gitleaks..." shows only for a tool
+  that is installed. A missing tool is listed as `not installed`, with its
+  install command. An area where Penthera's own rules read files is "covered",
+  and the row says what Penthera read, for example `Penthera (7 files)`.
+- **The owner report no longer says every serious finding is "things an
+  attacker could use today".** It says "if they are real", and it says how many
+  sit in test or fixture files.
+
+### Site
+
+- **Share images of the public benchmarks.** `scripts/media/` now makes the
+  benchmark cards in Instagram square and story sizes, scatter charts of the
+  results, and a light set: a branded main image, paper-style figures with 95%
+  Wilson intervals, and screenshots of the CLI, the local dashboard and
+  penthera.org. Every number comes from `bench/public/published.json`.
+- **The public benchmarks have their own pages.** [penthera.org/benchmarks](https://penthera.org/benchmarks)
+  and one page each for secrets, npm malware, PyPI malware and JavaScript
+  injection bugs, built from `bench/public/published.json` when the site is
+  built. Each page shows every tool with its rank, score, 95% interval and
+  counts, the tools that were not ranked and why, where another tool does
+  better than Penthera, and the limits first. Each carries schema.org Dataset
+  markup, a Markdown copy for agents and its own share card.
+- **The homepage says what Penthera is in its title and description**, and its
+  benchmark cards link to the pages. The sitemap dates every URL.
+- **`llms.txt`, `llms-full.txt` and `/index.md` lead with the four public
+  rankings.** The bundled lab numbers are labelled as regression checks.
+- **`docs/compare/README.md` no longer says no page compares detection.** It
+  points to the public benchmark and says which of the compared tools are in it.
+- **A blog, built from Markdown in `blog/`.** Posts publish only once Daan sets
+  `approved:` to a date; a draft is checked and never shipped. Published posts
+  get `/blog`, an Atom feed at `/blog/feed.xml`, BlogPosting markup, sitemap
+  and `llms.txt` entries, and a footer link. Numbers in a post come from
+  `published.json` as placeholders, or must appear in its listed sources. Two
+  drafts wait for review: how the benchmark was run, and the secret-scanner
+  results.
+- **penthera.org counts checks and installs, without cookies.** Vercel Web
+  Analytics now records a few named events: a check ran (report or error), a
+  copy button was used (which one), a link to GitHub or npm was followed. An
+  event carries its name and one fixed label, never the URL or host checked,
+  the score, or anything typed. [Privacy](docs/privacy.md) says so, and a test
+  keeps it that way.
+
+- **Penthera Upkeep, in validation: a waitlist page.** [penthera.org/upkeep](https://penthera.org/upkeep)
+  describes a possible paid service (scheduled checks, fix pull requests a
+  person approves, a monthly evidence report) with the prices being tested.
+  Joining is an email to daan@penthera.org, so the site stores nothing. The
+  free tool stays complete and MIT; nothing is taken out of it. The live check
+  result and the README link to it.
+
+### Docs
+
+- **Research plan: E15 as a candidate experiment.** It measures whether
+  Penthera's agent audit catches indirect prompt injections hidden in skills,
+  rule files and MCP tool descriptions, using the 95 attacks released with a
+  2026 public red-teaming competition, and how often it flags normal files.
+  The expected limit is stated in advance: hidden and obfuscated payloads are
+  caught; plain persuasive text is not.
+- **Roadmap: three new checks and a wider benchmark field.** Supabase tables
+  without row-level security; known vulnerabilities ranked by CISA's Known
+  Exploited Vulnerabilities list and EPSS, shipped as data in the signed rule
+  packs so ranking stays offline; Python code rules moved up, parsed with
+  Python's syntax tree. E13's field includes every free tool in scope that runs
+  offline, newer ones such as StingWard too, whatever their result.
+- **Roadmap: one first pass, with the best free tools.** Penthera will run the
+  free scanners you already have (gitleaks, trufflehog, Semgrep, osv-scanner,
+  pip-audit, trivy, checkov, nuclei, ZAP) where they are better or cover more,
+  and fold their findings into one report. Experiment E14 tests whether the
+  combination beats each tool alone. Bundling or auto-installing other
+  scanners is listed as not planned.
+  The spec (`docs/research/spec-giants.md`) is approved and E14 is
+  pre-registered, before any code or combined count.
+
 ## [2.0.0] - 2026-10-25
 
 Everything in [2.0.0-rc.1](#200-rc1---2026-10-25) below, plus:

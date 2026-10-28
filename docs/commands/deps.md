@@ -1,4 +1,8 @@
-# Dependency risk: `penthera deps`
+---
+title: "Dependency risk: penthera deps"
+sidebarTitle: "Dependencies"
+description: "A lockfile change is code you did not write, about to run with your app's access to files, network, environment and CI secrets."
+---
 
 > **Starter.** For "is this package safe to add?"
 
@@ -43,6 +47,18 @@ for every PR (0.4 s for Penthera's own 61 packages, 5 to 16 s for real app
 trees of 500 to 1,700 packages). A capability is what code
 *can* do, not proof that it is malicious; the findings carry confidence
 labels (`potential` for obfuscation and typosquats).
+
+**Only installed code is read.** A package that is in the lockfile but not in
+`node_modules` (or `.venv`) or npm's cache is listed as not read, never as
+clean. On a fresh clone that is every package:
+
+```
+  Scanned    0 · 61 not installed or cached
+  Not read   0 of 61 packages installed or cached, so no package code was read.
+             To check them, run `npm ci --ignore-scripts` (it installs without running package code), then run this again.
+```
+
+The lockfile checks still run: known-bad versions on every entry, typosquat names on your direct dependencies.
 
 **Offline by default.** Old versions for the diff come from the base tree's
 `node_modules` or from npm's local cache (`~/.npm/_cacache`), looked up by the
@@ -136,4 +152,4 @@ medium, or high with `"unknown": "block"`. `allowPackages` exempts packages your
 legal review has cleared. Findings use category `license` and appear in every
 output format, and `--sbom` records each component's license.
 
-[Back to the README](../../README.md) · [All commands](README.md)
+[Back to the README](https://github.com/danoszz/penthera/blob/main/README.md) · [All commands](https://github.com/danoszz/penthera/blob/main/docs/commands/README.md)

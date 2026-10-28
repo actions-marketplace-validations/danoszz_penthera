@@ -24,10 +24,17 @@ together.
   than Penthera somewhere.
 - Prices and plans change. Each page has a last-checked date. Check the vendor's
   page before you rely on a number.
-- No page claims Penthera finds more than another tool. Its own accuracy is
-  measured only on labs we wrote ourselves: precision 0.88 (95% CI 0.69 to
-  0.96) and recall 0.91 (95% CI 0.73 to 0.98) on 24 findings
-  ([results](../../bench/RESULTS.md)). Accuracy on real projects is not measured
+- These pages compare what each tool is for, not how much it finds. Detection
+  is compared in one place: the [public benchmarks](https://penthera.org/benchmarks),
+  four public datasets on which Penthera and every free tool we could run
+  offline were scored the same way, losses included. Penthera does not rank
+  first on all four: on leaked secrets, deepsecrets ranks above it.
+- Of the tools on these pages, only Semgrep (open source) and CodeQL, which
+  GitHub code scanning runs, are in that benchmark, on injection bugs in
+  JavaScript libraries. Snyk, Socket and Semgrep Pro publish no results on those
+  datasets, and cost and licence terms keep us from measuring them, so no page
+  here claims Penthera finds more than they do.
+- A public dataset is not your code. Accuracy on real projects is not measured
   yet. That is [experiment E1](../research/prereg/E1-real-world-accuracy.md).
 
 Spotted something wrong or out of date? Please open an issue or a pull request.

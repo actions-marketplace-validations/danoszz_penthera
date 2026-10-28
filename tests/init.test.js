@@ -92,14 +92,17 @@ describe("penthera init (scripted stdin)", () => {
 
     // Checks run: the three defaults, offline; never the running app
     expect(r.stdout).toMatch(/✓ Code\s+[A-F]/);
-    expect(r.stdout).toMatch(/✓ Dependencies\s+[A-F]/);
+    // The fixture has no node_modules: nothing read is "not checked", never an A.
+    expect(r.stdout).toMatch(/! Dependencies\s+–\s+not checked: 0 of \d+ packages installed or cached/);
+    expect(r.stdout).toContain("npm ci --ignore-scripts");
     expect(r.stdout).toMatch(/✓ AI tooling\s+[A-F]/);
     expect(r.stdout).not.toMatch(/Running app\s+[A-F]/);
     expect(requests).toBe(0);
     const s = summary();
     expect(s.offline).toBe(true);
     expect(s.checks.map((c) => c.id)).toEqual(["code", "deps", "agents"]);
-    expect(s.checks.every((c) => /^[A-F]$/.test(c.grade))).toBe(true);
+    expect(s.checks.filter((c) => c.id !== "deps").every((c) => /^[A-F]$/.test(c.grade))).toBe(true);
+    expect(s.checks.find((c) => c.id === "deps")).toMatchObject({ grade: "–", score: null, notRead: { packages: expect.any(Number) } });
     expect(s.fixFirst.length).toBeGreaterThan(0);
     expect(s.fixFirst.length).toBeLessThanOrEqual(3);
     const rd = join(dir, "reports", reportDirs()[0]);
@@ -268,6 +271,21 @@ describe("init building blocks", () => {
       expect(yaml).toContain(line);
     }
     for (const u of yaml.match(/uses: \S+/g)) expect(u).toMatch(/@[0-9a-f]{40}$/);
+  });
+
+  it("ACTION_PIN is the newest stable release before this version, so it never falls behind", () => {
+    const root = join(import.meta.dirname, "..");
+    const { version } = JSON.parse(readFileSync(join(root, "package.json"), "utf-8"));
+    const num = (v) => v.replace(/-.*/, "").split(".").map(Number);
+    const older = (a, b) => { const [x, y] = [num(a), num(b)]; const i = x.findIndex((n, k) => n !== y[k]); return i >= 0 && x[i] < y[i]; };
+    // Stable releases only (no -rc), newest first as CHANGELOG.md lists them.
+    const released = [...readFileSync(join(root, "CHANGELOG.md"), "utf-8").matchAll(/^## \[(\d+\.\d+\.\d+)\]/gm)].map((m) => m[1]);
+    const expected = released.find((v) => older(v, version));
+    expect(ACTION_PIN.tag, `update ACTION_PIN in src/cli/onboarding.js to v${expected}`).toBe(`v${expected}`);
+    // With the tag fetched (CI checks out full history), the SHA must be that tag's commit.
+    let sha = null;
+    try { sha = execFileSync("git", ["rev-parse", "--verify", "-q", `${ACTION_PIN.tag}^{commit}`], { cwd: root, encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"], env: gitEnv() }).trim(); } catch { /* tag not fetched */ }
+    if (sha) expect(ACTION_PIN.sha).toBe(sha);
   });
 
   it("fixFirst ranks across areas by severity, then effort, and keeps three", () => {

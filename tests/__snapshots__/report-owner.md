@@ -5,7 +5,7 @@
 ## In short
 
 Penthera checked https://shop.example + ./shop and found **2 serious problems** to fix this week, 2 moderate, 1 minor.
-The serious ones are things an attacker could use today.
+Look at the serious ones first: if they are real, an attacker could use them.
 1 check could not finish, so those areas are untested, not clean.
 2 known issues were set aside on purpose by someone on the team (the auditor report lists who and why).
 

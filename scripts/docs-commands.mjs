@@ -216,7 +216,7 @@ const VALUE_FLAGS = new Set([...INPUT_FLAGS, "-r", "--repo", "--api-root", "-o",
   "--aibom", "--cra-init", "--history", "--auth-cookie", "--auth-bearer", "--timeout", "--concurrency", "--user-agent",
   "--profile", "--nuclei", "--templates", "--base", "--pr-comment", "--license-policy", "--port", "--project",
   "--reports", "--url", "-u", "--max-iterations", "--auto", "--fix-model", "--apply", "--input", "--dir", "--reason",
-  "--expires", "--rules-signers", "--ai-model", "--ai-budget", "--ai-consent", "--ai-scope"]);
+  "--expires", "--rules-signers", "--ai-model", "--ai-budget", "--ai-consent", "--ai-scope", "--with", "--without", "--giants-timeout"]);
 
 const isPlaceholder = (t) => /<[^>]+>|\.\.\.|…|\$\(|\$\{?[A-Z_]+\}?|\[|\]|^~|eyJ/.test(t);
 const isUrl = (t) => /^https?:\/\//.test(t) || /^\$\{?[A-Z_]*URL/.test(t) || /^<url>$/i.test(t);
@@ -293,6 +293,9 @@ export function classify(argv, model, { file = "" } = {}) {
   if (sub === "verify" && positionals.length === 0) {
     return { kind: "placeholder", reason: "names `verify` without its findings file", problems, sub, action, flags, positionals };
   }
+  if (sub === "brief" && positionals.length === 0) {
+    return { kind: "placeholder", reason: "names `brief` without its report files", problems, sub, action, flags, positionals };
+  }
   const has = (n) => flags.some((f) => f.name === n);
   const url = positionals.find(isUrl);
   const res = (kind, reason) => ({ kind, reason, problems, sub, action, flags, positionals });
@@ -312,6 +315,7 @@ export function classify(argv, model, { file = "" } = {}) {
   if (sub === "init" && !has("--yes") && !has("-y")) return res("placeholder", "interactive: init asks questions without --yes");
   if (sub === "agent") return res("placeholder", "interactive: the fix loop asks before each diff");
   if (has("--ai") || sub === "ai") return res("placeholder", "AI mode needs a local model in Ollama, and asks before it runs");
+  if (has("--giants") || has("--with")) return res("placeholder", "runs the other scanners installed on this machine; the result depends on PATH");
   if (sub === "fix" && has("--apply")) return res("placeholder", "applies a diff by id after a plan");
   if (sub === "ui") return res("placeholder", "a long-running server (the install matrix starts ui --demo and checks it)");
   if (sub === "install") return res("external", "npm install");
@@ -345,7 +349,7 @@ export function substitute(c, cwd) {
       || (f.name === "--license-policy" && !LICENSE_PRESETS.has(f.value));
     if (input && !existsSync(join(cwd, f.value))) missing.push(f.value);
   }
-  if (["agents", "deps"].includes(c.sub) || (c.sub === "evidence" || c.sub === "rules") && c.action === "verify") {
+  if (["agents", "deps", "brief"].includes(c.sub) || (c.sub === "evidence" || c.sub === "rules") && c.action === "verify") {
     for (const p of c.positionals) if (!existsSync(join(cwd, p))) missing.push(p);
   }
   return { argv, notes, missing };

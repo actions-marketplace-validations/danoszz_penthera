@@ -1,0 +1,97 @@
+name: --giants integration (manual)
+
+# Installs pinned versions of the tools --giants runs and checks that
+# Penthera still reads their output (scripts/giants/record.mjs --check), to
+# catch a change in a tool's output format. Manual only, never on push or
+# pull request: the unit tests use recorded output and need no tool.
+#
+# Network: the runner downloads the pinned releases (checked against each
+# release's own checksum file), pip-installs the Python tools, clones the
+# Semgrep rules at a pinned commit and fills the Trivy and osv-scanner
+# databases. Penthera itself downloads nothing; the tools then run under
+# bwrap with the network denied where the runner allows it.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: giants-integration
+  cancel-in-progress: false
+
+jobs:
+  giants:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GITLEAKS: "8.30.1"
+      TRUFFLEHOG: "3.99.3"
+      TRIVY: "0.76.1"
+      OSV_SCANNER: "2.6.0"
+      NUCLEI: "3.11.1"
+      SEMGREP: "1.180.0"
+      CHECKOV: "3.3.30"
+      PIP_AUDIT: "2.10.1"
+      SEMGREP_RULES_COMMIT: "9bbf021d0acffa3095fcffd17b2bc7787eb4796d"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - run: npm ci --ignore-scripts
+
+      - name: Install the tools (pinned, checksums checked)
+        run: |
+          set -euo pipefail
+          T="$RUNNER_TEMP/giants-tools"
+          mkdir -p "$T/bin" "$T/dl"
+          cd "$T/dl"
+          get() { curl -fsSL --retry 3 -o "$2" "$1"; }
+          get "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS}/gitleaks_${GITLEAKS}_linux_x64.tar.gz" gitleaks.tgz
+          get "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS}/gitleaks_${GITLEAKS}_checksums.txt" gitleaks.sums
+          grep "gitleaks_${GITLEAKS}_linux_x64.tar.gz" gitleaks.sums | sed "s#  .*#  gitleaks.tgz#" | sha256sum -c -
+          tar -xzf gitleaks.tgz -C "$T/bin" gitleaks
+          get "https://github.com/trufflesecurity/trufflehog/releases/download/v${TRUFFLEHOG}/trufflehog_${TRUFFLEHOG}_linux_amd64.tar.gz" trufflehog.tgz
+          get "https://github.com/trufflesecurity/trufflehog/releases/download/v${TRUFFLEHOG}/trufflehog_${TRUFFLEHOG}_checksums.txt" trufflehog.sums
+          grep "trufflehog_${TRUFFLEHOG}_linux_amd64.tar.gz" trufflehog.sums | sed "s#  .*#  trufflehog.tgz#" | sha256sum -c -
+          tar -xzf trufflehog.tgz -C "$T/bin" trufflehog
+          get "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY}/trivy_${TRIVY}_Linux-64bit.tar.gz" trivy.tgz
+          get "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY}/trivy_${TRIVY}_checksums.txt" trivy.sums
+          grep "trivy_${TRIVY}_Linux-64bit.tar.gz" trivy.sums | sed "s#  .*#  trivy.tgz#" | sha256sum -c -
+          tar -xzf trivy.tgz -C "$T/bin" trivy
+          get "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER}/osv-scanner_linux_amd64" osv-scanner
+          get "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER}/osv-scanner_SHA256SUMS" osv.sums
+          grep " osv-scanner_linux_amd64$" osv.sums | sed "s#  .*#  osv-scanner#" | sha256sum -c -
+          install -m 0755 osv-scanner "$T/bin/osv-scanner"
+          get "https://github.com/projectdiscovery/nuclei/releases/download/v${NUCLEI}/nuclei_${NUCLEI}_linux_amd64.zip" nuclei.zip
+          get "https://github.com/projectdiscovery/nuclei/releases/download/v${NUCLEI}/nuclei_${NUCLEI}_checksums.txt" nuclei.sums
+          grep "nuclei_${NUCLEI}_linux_amd64.zip" nuclei.sums | sed "s#  .*#  nuclei.zip#" | sha256sum -c -
+          unzip -q -o nuclei.zip nuclei -d "$T/bin"
+          python3 -m venv "$T/venv"
+          "$T/venv/bin/pip" install -q "semgrep==${SEMGREP}" "checkov==${CHECKOV}" "pip-audit==${PIP_AUDIT}"
+          for b in semgrep checkov pip-audit; do ln -s "$T/venv/bin/$b" "$T/bin/$b"; done
+          git clone -q https://github.com/semgrep/semgrep-rules "$T/semgrep-rules"
+          git -C "$T/semgrep-rules" checkout -q "$SEMGREP_RULES_COMMIT"
+          echo "$T/bin" >> "$GITHUB_PATH"
+          echo "GIANTS_RULES=$T/semgrep-rules/javascript" >> "$GITHUB_ENV"
+
+      - name: Fill the tool databases (the tools do this, not Penthera)
+        run: |
+          trivy fs --download-db-only
+          node -e "import('./tests/fixtures/giants/target.mjs').then((m) => m.writeTarget(process.env.RUNNER_TEMP + '/db-target'))"
+          osv-scanner scan source --download-offline-databases --offline-vulnerabilities "$RUNNER_TEMP/db-target" || true
+
+      - name: penthera giants
+        run: node bin/penthera.js giants
+
+      - name: Check every repo tool still parses (pip-audit uses PyPI)
+        run: node scripts/giants/record.mjs --check --only gitleaks,trufflehog,semgrep,osv-scanner,pip-audit,trivy,checkov,nuclei --semgrep-rules "$GIANTS_RULES"
+
+      - name: Contract tests on the recorded fixtures
+        run: npx vitest run tests/giants-adapters.test.js tests/giants-run.test.js

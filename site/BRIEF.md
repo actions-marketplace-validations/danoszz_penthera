@@ -151,3 +151,6 @@ behind toggles, like the MCP configs and the comparison table.
   "Is the free tool enough?", the Go Pro plate says "An experiment, not a
   sale" and its button reads "Join the experiment", and each waitlist email
   counts as one data point. The money rules are in GOVERNANCE.md#money.
+  The waitlist must be able to say "no": the budget slider starts at $0
+  with no default above it, and "Nothing more: the free tool is enough" is
+  one of the answers.

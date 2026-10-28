@@ -34,6 +34,7 @@ const WANTS = [
   "Signed monthly reports",
   "A person to ask, now and then",
   "Checks my agents can call and pay for",
+  "Nothing more: the free tool is enough",
 ];
 
 const CARDS = [
@@ -196,7 +197,7 @@ export function proMain({ version, pub = null }) {
             <h2 id="pro-calc-title">What does security cost you now?</h2>
             ${SLIDERS.map(slider).join("")}
             <p class="pro-result" aria-live="polite"><span class="pro-result-n" data-cost>$1,800</span> a month of your team's time, <span data-fte>0.13</span> of a full-time role. Pro starts at about $100 a month, and takes the routine watching off your plate.</p>
-            ${slider({ name: "budget", label: "What you'd consider spending a month", min: 100, max: 2000, step: 50, value: 300, unit: "$", hint: "Goes into your email, so we know what fits." }).replace('class="pro-slider"', 'class="pro-slider pro-budget"')}
+            ${slider({ name: "budget", label: "What you'd consider spending a month", min: 0, max: 2000, step: 25, value: 0, unit: "$", hint: "$0 is a real answer: it tells us the free tool is enough. Goes into your email, nothing else." }).replace('class="pro-slider"', 'class="pro-slider pro-budget"')}
           </section>
 
           <section class="pro-panel band pro-join" id="join" aria-labelledby="pro-join-title">

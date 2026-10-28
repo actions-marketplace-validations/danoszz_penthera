@@ -47,7 +47,7 @@
         `I am: ${data.get("role") || ""}`,
         `I'd want: ${wants.length ? wants.join("; ") : ""}`,
         `Security now: ${val("hours")} hours a month at ${money(val("rate"))} an hour (${money(val("hours") * val("rate"))} a month)`,
-        `Budget a month: ${money(val("budget"))}`,
+        `Budget a month: ${val("budget") ? money(val("budget")) : "$0 (the free tool is enough)"}`,
         `Anything else: ${note}`,
         "",
       ].join("\n");

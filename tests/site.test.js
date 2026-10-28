@@ -463,6 +463,10 @@ describe("site story", () => {
     // Pro is an experiment that measures a need, not a sale (GOVERNANCE.md#money).
     expect(page).toContain("Is the free tool enough?");
     expect(page).toContain("Pro is an experiment, not a sale");
+    // The waitlist measures the need, so it must be able to record "none": the
+    // budget starts at $0 with no nudge upward, and "the free tool is enough" is an answer.
+    expect(page).toMatch(/id="pro-budget" name="budget" min="0" max="2000" step="25" value="0"/);
+    expect(page).toContain('value="Nothing more: the free tool is enough"');
     expect(page).toContain("nothing is stored on penthera.org");
     expect(page).toContain('<script defer src="/track.js"></script>');
     expect(existsSync(join(out, "track.js"))).toBe(true);

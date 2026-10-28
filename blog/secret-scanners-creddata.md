@@ -1,8 +1,8 @@
 ---
 title: We benchmarked {{fact:secrets.of}} free secret scanners on {{fact:secrets.n}} labelled secrets. We came {{fact:secrets.penthera.place}}.
 description: gitleaks, trufflehog, deepsecrets, Nosey Parker and five more on Samsung CredData's sealed half, with intervals, the limits, and where Penthera loses.
-date: 2026-11-17
-approved: false
+date: 2026-10-28
+approved: 2026-10-28
 sources: bench/public/published.json, bench/public/RESULTS.md, docs/research/prereg/E11b-improvement-study.md
 keywords: secret scanner benchmark, gitleaks vs trufflehog, open source secret scanner, CredData
 ---

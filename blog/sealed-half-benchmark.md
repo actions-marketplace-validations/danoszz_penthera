@@ -1,8 +1,8 @@
 ---
 title: How we benchmarked Penthera against {{fact:tools}} free tools, losses included
 description: We tuned on one half of four public datasets and scored once on the other, sealed half. What that method is, what it found, and how far to trust it.
-date: 2026-11-03
-approved: false
+date: 2026-10-28
+approved: 2026-10-28
 sources: bench/public/published.json, bench/public/RESULTS.md, docs/research/prereg/E11b-improvement-study.md
 keywords: preregistered benchmark, security tool benchmark, benchmark leakage, sealed test set
 ---

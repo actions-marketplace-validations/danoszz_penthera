@@ -1,4 +1,8 @@
-# The local dashboard: `penthera ui`
+---
+title: "The local dashboard: penthera ui"
+sidebarTitle: "Dashboard"
+description: "penthera ui opens Penthera in your browser: whether your app is safe to ship, what to fix first, in plain words, and the fix loop that proposes a change and waits for your OK."
+---
 
 > **Starter.** For "can I see it all in one place?"
 

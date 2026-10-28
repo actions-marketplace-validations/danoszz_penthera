@@ -1,4 +1,8 @@
-# Penthera in your coding tool
+---
+title: "Penthera in your coding tool"
+sidebarTitle: "Your coding tool"
+description: "Penthera runs on your machine."
+---
 
 > **Starter.** For "I build with Cursor, Claude Code, Lovable or another AI tool: how do I add Penthera?"
 

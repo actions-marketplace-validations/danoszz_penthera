@@ -1,4 +1,8 @@
-# Penthera and OWASP ZAP
+---
+title: "Penthera and OWASP ZAP"
+sidebarTitle: "vs ZAP"
+description: "Where OWASP ZAP and Penthera overlap on live scans, and where they differ."
+---
 
 > **Pro.** For "how does Penthera compare to OWASP ZAP, and how do I run both?"
 

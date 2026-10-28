@@ -1,4 +1,8 @@
-# Voice guide
+---
+title: "Voice guide"
+sidebarTitle: "Voice guide"
+description: "Penthera speaks as a capable, calm security agent working for the reader."
+---
 
 > **Project page.** For anyone writing Penthera's docs, CLI messages, reports
 > or release notes, asking "how should this sound?"

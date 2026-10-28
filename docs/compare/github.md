@@ -1,4 +1,8 @@
-# Penthera and GitHub (Dependabot and code scanning)
+---
+title: "Penthera and GitHub (Dependabot and code scanning)"
+sidebarTitle: "vs GitHub"
+description: "What Dependabot and GitHub code scanning cover, what Penthera adds, and when to use both."
+---
 
 > **Pro.** For "how does Penthera compare to Dependabot and code scanning, and how do I run both?"
 

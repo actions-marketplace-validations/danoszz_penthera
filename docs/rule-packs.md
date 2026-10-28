@@ -1,4 +1,8 @@
-# Rule packs
+---
+title: "Rule packs"
+sidebarTitle: "Rule packs"
+description: "A rule pack is a directory of detection data that Penthera verifies before it uses a single rule."
+---
 
 > **Pro.** For "how do I tune the rules?"
 

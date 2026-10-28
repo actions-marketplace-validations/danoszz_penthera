@@ -1,4 +1,8 @@
-# Running AI agents safely
+---
+title: "Running AI agents safely"
+sidebarTitle: "Running agents safely"
+description: "A coding agent, an agent job in CI and an eval script all have the same parts: a task, something that judges the result, permissions, a place to run, and a point where it stops."
+---
 
 > **Starter and pro.** For "I let an AI agent work on my code, in CI or in an
 > eval. What should be true before I start it?"

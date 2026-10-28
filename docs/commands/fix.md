@@ -1,4 +1,8 @@
-# Fixing what it finds: `penthera fix` and `penthera agent --loop`
+---
+title: "Fixing what it finds: penthera fix and penthera agent --loop"
+sidebarTitle: "Fix"
+description: "Ask your agent to fix what Penthera finds."
+---
 
 > **Pro.** For "how do I run the fix loop?"
 

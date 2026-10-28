@@ -1,4 +1,8 @@
-# Penthera and Semgrep
+---
+title: "Penthera and Semgrep"
+sidebarTitle: "vs Semgrep"
+description: "Where Semgrep and Penthera overlap, where they differ, and how to run both."
+---
 
 > **Pro.** For "how does Penthera compare to Semgrep, and how do I run both?"
 

@@ -1,4 +1,8 @@
-# Penthera and Cloudflare's security-audit skill
+---
+title: "Penthera and Cloudflare's security-audit skill"
+sidebarTitle: "vs Cloudflare audit"
+description: "How Penthera's rules and Cloudflare's AI security-audit skill fit together."
+---
 
 > **Pro.** For "how does Penthera compare to Cloudflare's security-audit skill, and how do I run both?"
 

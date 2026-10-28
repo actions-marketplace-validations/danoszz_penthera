@@ -1,4 +1,8 @@
-# Set up in one command: `penthera init`
+---
+title: "Set up in one command: penthera init"
+sidebarTitle: "Set up"
+description: "One command detects your project, runs the offline checks and offers the hook, the workflow and the dashboard."
+---
 
 > **Starter.** For "is my app safe to ship?"
 

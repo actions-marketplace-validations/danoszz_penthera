@@ -1,4 +1,8 @@
-# Penthera as an Agent Skill
+---
+title: "Penthera as an Agent Skill"
+sidebarTitle: "Agent Skill"
+description: "Penthera ships as an Agent Skill, the open format used by Cursor, Claude Code, Claude.ai, and 40+ agent tools."
+---
 
 > **Starter.** For "can my coding agent run it for me?"
 

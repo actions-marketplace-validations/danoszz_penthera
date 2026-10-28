@@ -1,4 +1,8 @@
-# Penthera and Snyk
+---
+title: "Penthera and Snyk"
+sidebarTitle: "vs Snyk"
+description: "Where Snyk and Penthera overlap, where they differ, and what each costs."
+---
 
 > **Pro.** For "how does Penthera compare to Snyk, and how do I run both?"
 

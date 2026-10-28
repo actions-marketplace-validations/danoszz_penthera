@@ -1,4 +1,8 @@
-# Penthera in your agent: `penthera mcp`
+---
+title: "Penthera in your agent: penthera mcp"
+sidebarTitle: "MCP server"
+description: "penthera mcp runs Penthera as an MCP server."
+---
 
 > **Starter.** For "can my coding agent call Penthera as a tool?"
 

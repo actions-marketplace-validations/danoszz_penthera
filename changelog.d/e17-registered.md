@@ -7,3 +7,5 @@ section: Docs
   The evidence check's printed timestamp is the one line that changes. Limits
   are in `bench/offline/RESULTS.md`: `git` runs outside the guard, and URL
   scans without `--offline` download the Retire.js database.
+- **README and the trust page say what E17 showed,** for the commands that
+  passed only, with its limits.

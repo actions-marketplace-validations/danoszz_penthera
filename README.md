@@ -324,6 +324,11 @@ with `npm run docs:numbers` and `npm run bench`.
 - **Local and offline.** No account, no telemetry, no cloud. `--offline` limits
   network traffic to the target you named, and every report lists the hosts it
   contacted ([network use](docs/privacy.md)).
+- **Tested unplugged.** Repo scans, `agents`, `deps`, `brief`, evidence
+  bundles and URL scans with `--offline` made no outside connections. They
+  gave the same result twice, and the same with the network blocked, on macOS
+  and Ubuntu ([E17 results](bench/offline/RESULTS.md)). The test can't watch
+  `git`, which Penthera uses only for local commands.
 - **Deterministic.** Rules you can read, with `file:line` evidence. A model may
   propose a fix or a lead; a deterministic re-scan and your tests decide.
 - **Non-destructive by default.** Default scans send no attack payloads.

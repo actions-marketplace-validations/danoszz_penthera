@@ -62,7 +62,10 @@ const BENCH_MAX_DROP = 0.02;
 // ~124 KB unpacked, ~36 KB packed, 17 files, no dependencies; no tool or
 // fixture ships), with the maintainer's OK (2026-10-26): it put the package at ~898 KB
 // packed / ~2,435 KB unpacked / 253 files; was 900_000 / 2_400_000 / 260.
-const PACK_BUDGET = { packedBytes: 950_000, unpackedBytes: 2_550_000, files: 280 };
+// Raised for the ADR 0002 agent rules (lib/agents/rules.js and friends, ~25 KB
+// unpacked), with the maintainer's OK (2026-10-28): it put the package at
+// ~2,565 KB unpacked; was 2_550_000. A trim pass follows.
+const PACK_BUDGET = { packedBytes: 950_000, unpackedBytes: 2_600_000, files: 280 };
 
 /** Paths the npm package may contain. Anything else fails the packaging gate. */
 const PACK_ALLOW = [

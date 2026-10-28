@@ -121,3 +121,14 @@ registered result. The registered run repeats on macOS and on Ubuntu in CI.
 ## 9. Deviations
 
 Any change after registration is listed here with its date and reason.
+
+**Proposed before registration, from the pilot (28 Oct 2026; [pilot results](../../../bench/offline/RESULTS.md)):**
+
+1. **C4 targets.** T1 and T2 have no lockfile, so `deps` tests nothing there.
+   Proposal: run C4 on T3 and on a fixture built by `tests/fixtures/deps/build.js`.
+2. **C5 comparison.** `evidence verify` prints the bundle's generation time.
+   Proposal: compare the exit code and the verify lines (hashes and signature)
+   and report the `Generated` line separately. The strict result stays
+   reported next to it.
+3. **Child processes.** The runner must record non-Node child processes, as
+   § 3 says, before the registered run.

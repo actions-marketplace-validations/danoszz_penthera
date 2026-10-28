@@ -341,6 +341,7 @@ export function printReport(result, opts = {}) {
         : l.status === "corrupt" ? c.red("corrupt") : c.dim("none (run with --pin)");
       w(`  Lock       ${status}`);
     }
+    for (const n of a.notChecked || []) w(`  ${c.yellow("Not read")}   ${c.dim(String(n).replace(/[\u0000-\u001f\u007f-\u009f]/g, ""))}`);
     w("");
   }
 

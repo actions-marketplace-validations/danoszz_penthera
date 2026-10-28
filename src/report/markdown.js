@@ -72,6 +72,7 @@ export function formatMarkdownReport(result, opts = {}) {
     const inv = result.agents.inventory || {};
     lines.push(`| **Agent config found** | ${inv.skills || 0} skills, ${inv.mcpServers || 0} MCP servers, ${inv.hooks || 0} hooks, ${inv.plugins || 0} plugins |`);
     if (result.agents.lock) lines.push(`| **penthera.lock** | ${result.agents.lock.status} |`);
+    for (const n of result.agents.notChecked || []) lines.push(`| **Not read** | ${mdInline(n)} |`);
   }
   lines.push("");
 

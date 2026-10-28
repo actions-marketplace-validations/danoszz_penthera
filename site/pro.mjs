@@ -214,7 +214,7 @@ export function proMain({ version, pub = null }) {
             <label class="pro-q" for="pro-note">Anything else <span>(optional)</span></label>
             <textarea id="pro-note" name="note" rows="2" maxlength="600" placeholder="Your stack, your app, what keeps you up at night"></textarea>
             <p class="pro-send"><button class="btn" data-variant="default" type="submit" data-track="pro-waitlist">Join the experiment</button><a class="pro-plain" href="${mail}" data-track="pro-waitlist-plain">or email ${esc(WAITLIST_MAIL)}</a></p>
-            <p class="pro-note">Each email counts as one data point in the experiment. The button opens an email to Daan, who builds Penthera, with your answers and numbers filled in. You send it; nothing is stored on penthera.org. He replies to every one.</p>
+            <p class="pro-note">Each email counts as one data point in the experiment. The button opens an email to Daan, who builds Penthera, with your answers and numbers filled in. You send it; nothing is stored on penthera.org. Daan replies to every one.</p>
           </section>
         </form>
       </div>

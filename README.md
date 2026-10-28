@@ -90,7 +90,9 @@ claude mcp add penthera -- npx -y penthera@2.0.0 mcp
 /plugin install penthera@penthera
 ```
 
-**In Gemini CLI, as an extension.** With the same pinned MCP server:
+**In Gemini CLI, as an extension.** It runs the MCP server pinned in
+[`gemini-extension.json`](gemini-extension.json), which follows the newest
+release, release candidates included:
 
 ```bash
 gemini extensions install https://github.com/danoszz/penthera

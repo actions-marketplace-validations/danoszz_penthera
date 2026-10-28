@@ -8,7 +8,7 @@
  * file nor the repo holds them for another scanner to trip over.
  */
 import { describe, it, expect, afterAll } from "vitest";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -84,11 +84,15 @@ describe("VS Code tasks that run when the folder opens", () => {
     expect(r.agents.inventory.configFiles).toContain(".vscode/tasks.json");
   });
 
-  it("is high when the workspace turns the prompt off, critical when the task downloads and runs code", async () => {
+  it("ignores a workspace task.allowAutomaticTasks (application scope), critical when the task downloads and runs code", async () => {
+    // VS Code registers task.allowAutomaticTasks with ConfigurationScope.APPLICATION,
+    // so the repo's .vscode/settings.json cannot turn the prompt off.
     const root = tmp();
     put(root, ".vscode/tasks.json", tasksJsonc("node scripts/setup.js"));
     put(root, ".vscode/settings.json", `{ "task.allowAutomaticTasks": "on", }`);
-    expect(byRule(await scanAgents(root), "task-folder-open")[0].severity).toBe("high");
+    const hit = byRule(await scanAgents(root), "task-folder-open")[0];
+    expect(hit.severity).toBe("medium");
+    expect(hit.description).toContain("the repo cannot");
 
     const root2 = tmp();
     put(root2, ".vscode/tasks.json", tasksJsonc(DL_RUN));
@@ -284,14 +288,78 @@ describe("skill folders: build output is read", () => {
     expect(r.agents.notChecked.some((l) => l.startsWith("skills/fmt/node_modules"))).toBe(true);
   });
 
-  it("pins __pycache__ content in penthera.lock", () => {
+  it("leaves __pycache__ out of penthera.lock and pins dist", () => {
     const root = tmp();
     const skill = join(root, "skills/fmt");
     put(skill, "SKILL.md", "---\nname: fmt\n---\nok\n");
     put(skill, "__pycache__/a.pyc", PYC);
-    const before = computeLockEntries(discoverAgentConfig(root))["skill:skills/fmt"].sha256;
+    const hash = () => computeLockEntries(discoverAgentConfig(root))["skill:skills/fmt"].sha256;
+    const before = hash();
     put(skill, "__pycache__/a.pyc", Buffer.concat([PYC, Buffer.from([1])]));
-    expect(computeLockEntries(discoverAgentConfig(root))["skill:skills/fmt"].sha256).not.toBe(before);
+    expect(hash()).toBe(before);
+    put(skill, "dist/run.sh", "#!/bin/sh\n");
+    expect(hash()).not.toBe(before);
+  });
+});
+
+describe("skill folders: a skill that ran its own script", () => {
+  const PYC = Buffer.concat([Buffer.from([0x6f, 0x0d, 0x0d, 0x0a]), Buffer.alloc(32)]);
+  const ELF = Buffer.concat([Buffer.from([0x7f, 0x45, 0x4c, 0x46, 2, 1, 1]), Buffer.alloc(64)]);
+
+  it("reports a .pyc compiled from a .py next to it as low, an orphan .pyc as high", async () => {
+    const root = tmp();
+    const skill = join(root, "skills/pdf");
+    put(skill, "SKILL.md", "---\nname: pdf\n---\nRun scripts/fill.py.\n");
+    put(skill, "scripts/fill.py", "print('ok')\n");
+    put(skill, "scripts/__pycache__/fill.cpython-312.pyc", PYC);
+    put(skill, "scripts/legacy.py", "print('ok')\n");
+    put(skill, "scripts/legacy.pyc", PYC);
+    put(skill, "scripts/__pycache__/gone.cpython-312.pyc", PYC);
+    const r = await scanAgents(root);
+    const sev = Object.fromEntries(byRule(r, "embedded-binary").map((f) => [f.url, f.severity]));
+    expect(sev).toEqual({
+      "skills/pdf/scripts/__pycache__/fill.cpython-312.pyc": "low",
+      "skills/pdf/scripts/legacy.pyc": "low",
+      "skills/pdf/scripts/__pycache__/gone.cpython-312.pyc": "high",
+    });
+  });
+
+  it("skips .venv, venv and any folder holding pyvenv.cfg, and lists them under Not checked", async () => {
+    const root = tmp();
+    const skill = join(root, "skills/uvtool");
+    put(skill, "SKILL.md", "---\nname: uvtool\n---\nok\n");
+    put(skill, ".venv/lib/python3.12/site-packages/x/_c.so", ELF);
+    put(skill, "venv/lib/x.pyc", PYC);
+    put(skill, "env312/pyvenv.cfg", "home = /usr/bin\n");
+    put(skill, "env312/lib/y.so", ELF);
+    const r = await scanAgents(root);
+    expect(byRule(r, "embedded-binary")).toEqual([]);
+    for (const d of [".venv", "venv", "env312"]) {
+      expect(r.agents.notChecked.some((l) => l.startsWith(`skills/uvtool/${d}: Python virtual environment`)), d).toBe(true);
+    }
+  });
+
+  it("compares a version 1 penthera.lock the version 1 way: no false lock-changed after upgrading", async () => {
+    const root = tmp();
+    const skill = join(root, "skills/pdf");
+    put(skill, "SKILL.md", "---\nname: pdf\n---\nok\n");
+    put(skill, "scripts/fill.py", "print('ok')\n");
+    put(skill, "scripts/__pycache__/fill.cpython-312.pyc", PYC);
+    put(skill, "dist/x.js", "module.exports = 1;\n");
+    const v1 = computeLockEntries(discoverAgentConfig(root), { version: 1 });
+    // The hash 2.0.0 wrote: every file except the folders it skipped.
+    expect(v1["skill:skills/pdf"].sha256).not.toBe(computeLockEntries(discoverAgentConfig(root))["skill:skills/pdf"].sha256);
+    writeFileSync(join(root, "penthera.lock"), JSON.stringify({ lockfileVersion: 1, entries: v1 }));
+    const r = await scanAgents(root);
+    expect(r.agents.lock.status).toBe("checked");
+    expect(byRule(r, "lock-changed")).toEqual([]);
+    expect(byRule(r, "lock-outdated")[0]).toMatchObject({ severity: "info" });
+
+    const pinned = await scanAgents(root, { pin: true });
+    expect(pinned.agents.lock.status).toBe("pinned");
+    const after = await scanAgents(root);
+    expect(byRule(after, "lock-outdated")).toEqual([]);
+    expect(byRule(after, "lock-changed")).toEqual([]);
   });
 });
 
@@ -330,5 +398,203 @@ describe("new matchers stay linear", () => {
       const ms = cpuMs(() => { findRegistryRedirects(s); findLoaderEnv(s); }, { runs: 3 });
       expect(ms, s.slice(0, 20)).toBeLessThan(500);
     }
+  });
+});
+
+// ── Review fixes (2026-10-28) ────────────────────────────────────────────────
+
+describe("registry patterns in .npmrc stay linear (ReDoS)", () => {
+  it("handles 1 MB of hostile .npmrc and pip.conf content in linear time", () => {
+    const MB = 1_000_000;
+    const hostile = [
+      "registry" + " ".repeat(MB),
+      "registry" + "\t ".repeat(MB / 2),
+      "registry=" + " ".repeat(MB),
+      "@a:registry" + " ".repeat(MB),
+      ("registry" + " ".repeat(200) + "\n").repeat(MB / 210),
+      "npmRegistryServer" + " ".repeat(MB),
+      "index-url" + " ".repeat(MB),
+      "extra-index-url" + " ".repeat(MB) + "=",
+    ];
+    for (const s of hostile) {
+      const ms = cpuMs(() => { findRegistryRedirects(s, "skills/x/.npmrc"); findRegistryRedirects(s, "pip.conf"); }, { runs: 3 });
+      expect(ms, JSON.stringify(s.slice(0, 24))).toBeLessThan(500);
+    }
+  });
+
+  it("still matches .npmrc and .yarnrc forms, and never across lines", () => {
+    expect(findRegistryRedirects(`registry=${EVIL}\n`, ".npmrc")).toHaveLength(1);
+    expect(findRegistryRedirects(`registry = ${EVIL}\n`, ".npmrc")).toHaveLength(1);
+    expect(findRegistryRedirects(`registry "${EVIL}"\n`, ".yarnrc")).toHaveLength(1);
+    expect(findRegistryRedirects(`registry\n${EVIL}\n`, ".npmrc")).toEqual([]);
+    expect(findRegistryRedirects(`index-url =\n${EVIL}\n`, "pip.conf")).toEqual([]);
+  });
+
+  it("scans a skill with a hostile 1 MB .npmrc quickly end to end", async () => {
+    const root = tmp();
+    put(root, "skills/x/SKILL.md", "---\nname: x\n---\nok\n");
+    put(root, "skills/x/.npmrc", "registry" + " ".repeat(1_000_000));
+    const start = process.cpuUsage();
+    await scanAgents(root);
+    const { user, system } = process.cpuUsage(start);
+    expect((user + system) / 1000).toBeLessThan(3000);
+  });
+});
+
+describe("hook scripts: Claude Code's documented form and package binaries", () => {
+  const hook = (command, baseDir) => ({ event: "PreToolUse", matcher: "Bash", hook: { type: "command", command }, file: ".claude/settings.json", baseDir });
+
+  it("expands \"$CLAUDE_PROJECT_DIR\"/path, ${CLAUDE_PROJECT_DIR}/path and quoted forms to one path", () => {
+    const root = tmp();
+    const script = put(root, ".claude/hooks/check.sh", "#!/bin/sh\nexit 0\n");
+    for (const cmd of [
+      '"$CLAUDE_PROJECT_DIR"/.claude/hooks/check.sh',
+      '"${CLAUDE_PROJECT_DIR}"/.claude/hooks/check.sh',
+      '"$CLAUDE_PROJECT_DIR/.claude/hooks/check.sh"',
+      "$CLAUDE_PROJECT_DIR/.claude/hooks/check.sh",
+      'bash "$CLAUDE_PROJECT_DIR"/.claude/hooks/check.sh --fast',
+    ]) {
+      expect(hookScriptTarget(cmd, root)?.path, cmd).toBe(script);
+      const hit = checkHookExtras(hook(cmd, root)).find((h) => h.rule === "hook-local-script");
+      expect(hit?.severity, cmd).toBe("low");
+    }
+    // A project folder with a space stays one word.
+    const spaced = join(tmp(), "my project");
+    const s2 = put(spaced, ".claude/hooks/check.sh", "#!/bin/sh\n");
+    expect(hookScriptTarget('"$CLAUDE_PROJECT_DIR"/.claude/hooks/check.sh', spaced)?.path).toBe(s2);
+  });
+
+  it("reads the script the hook runs, so the hook rules see its content", () => {
+    const root = tmp();
+    put(root, ".claude/hooks/setup.sh", `#!/bin/sh\n${NPM_SET}${EVIL}\n`);
+    const hits = checkHookExtras(hook('"$CLAUDE_PROJECT_DIR"/.claude/hooks/setup.sh', root));
+    expect(rules(hits)).toContain("registry-redirect");
+  });
+
+  it("treats node_modules/.bin as a package binary, and finds the script after a .bin interpreter", () => {
+    const root = tmp();
+    expect(hookScriptTarget("node_modules/.bin/prettier --write src/a.ts", root)).toBeNull();
+    expect(checkHookExtras(hook("node_modules/.bin/prettier --write src/a.ts", root))).toEqual([]);
+    put(root, "node_modules/.bin/tsx", `#!/usr/bin/env node\n${NPM_SET}${EVIL}\n`);
+    put(root, ".claude/hooks/x.ts", "console.log(1)\n");
+    expect(hookScriptTarget("node_modules/.bin/tsx .claude/hooks/x.ts", root)?.token).toBe(".claude/hooks/x.ts");
+    // The tsx shim is not the script: its content is not read as the hook's.
+    expect(rules(checkHookExtras(hook("node_modules/.bin/tsx .claude/hooks/x.ts", root)))).toEqual(["hook-local-script"]);
+  });
+
+  it("stays linear on hostile variable forms", () => {
+    for (const s of [
+      '"$CLAUDE_PROJECT_DIR'.repeat(50_000),
+      '"$CLAUDE_PROJECT_DIR' + "a".repeat(500_000),
+      "$CLAUDE_PROJECT_DIR" + "/a".repeat(250_000),
+    ]) expect(cpuMs(() => hookScriptTarget(s, "/r"), { runs: 3 }), s.slice(0, 20)).toBeLessThan(500);
+  });
+});
+
+describe("nothing outside the project is read", () => {
+  const hook = (command, baseDir) => ({ event: "SessionStart", matcher: "", hook: { type: "command", command }, file: ".claude/settings.json", baseDir });
+
+  it("does not read a hook script outside the project, by absolute path or through a symlink", () => {
+    const outside = tmp();
+    const secret = put(outside, "private.txt", `${NPM_SET}https://private.corp.invalid/npm/\n`);
+    const root = tmp();
+    const abs = checkHookExtras(hook(`bash ${secret}`, root));
+    expect(rules(abs)).toEqual(["hook-local-script"]);
+    expect(abs[0].severity).toBe("medium");
+    expect(abs[0].detail).toContain("did not read");
+    mkdirSync(join(root, ".claude/hooks"), { recursive: true });
+    symlinkSync(secret, join(root, ".claude/hooks/link.sh"));
+    const linked = checkHookExtras(hook("bash .claude/hooks/link.sh", root));
+    expect(rules(linked)).toEqual(["hook-local-script"]);
+    expect(JSON.stringify(linked)).not.toContain("private.corp");
+  });
+
+  it("skips config files that resolve outside the project and lists them under Not checked", async () => {
+    const outside = tmp();
+    const secretFile = put(outside, "secret.txt", "SECRETVALUE-do-not-echo\n");
+    const jsonFile = put(outside, "tasks.json", json({ tasks: [{ label: "x", command: "node a.js", runOptions: { runOn: "folderOpen" } }] }));
+    const root = tmp();
+    for (const [rel, target] of [
+      [".vscode/settings.json", secretFile],
+      [".vscode/tasks.json", jsonFile],
+      [".gemini/settings.json", secretFile],
+      [".roo/mcp.json", secretFile],
+      [".mcp.json", secretFile],
+    ]) {
+      mkdirSync(dirname(join(root, rel)), { recursive: true });
+      symlinkSync(target, join(root, rel));
+    }
+    const r = await scanAgents(root);
+    expect(JSON.stringify(r)).not.toContain("SECRETVALU");
+    expect(byRule(r, "task-folder-open")).toEqual([]);
+    for (const rel of [".vscode/settings.json", ".vscode/tasks.json", ".gemini/settings.json", ".roo/mcp.json", ".mcp.json"]) {
+      expect(r.agents.notChecked.some((l) => l.startsWith(`${rel}: resolves outside the project`)), rel).toBe(true);
+    }
+  });
+
+  it("never quotes file content in a parse error", async () => {
+    const root = tmp();
+    put(root, ".vscode/settings.json", "SECRETVALUE-not-json\n");
+    put(root, ".mcp.json", '{ "mcpServers": { "a": SECRET2 } }');
+    const r = await scanAgents(root);
+    const errs = byRule(r, "config-unparsed");
+    expect(errs).toHaveLength(2);
+    expect(JSON.stringify(r)).not.toMatch(/SECRET/);
+    expect(errs.map((f) => f.description).join(" ")).toMatch(/invalid JSON/);
+  });
+});
+
+describe("registry-redirect severities", () => {
+  const sevIn = async (rel, content) => {
+    const root = tmp();
+    put(root, rel, content);
+    return byRule(await scanAgents(root), "registry-redirect").map((f) => f.severity);
+  };
+
+  it("is low for loopback, scoped and vendor indexes, medium for an extra index and plain-HTTP official registries", async () => {
+    expect(await sevIn("CLAUDE.md", "npm publish --registry http://localhost:4873\n")).toEqual(["low"]);
+    expect(await sevIn("CLAUDE.md", "npm publish --registry http://127.0.0.1:4873\n")).toEqual(["low"]);
+    expect(await sevIn("AGENTS.md", `pip install torch ${PIP_IDX}https://download.pytorch.org/whl/cu121\n`)).toEqual(["low"]);
+    expect(await sevIn("AGENTS.md", "pip install torch --extra-index-url https://download.pytorch.org/whl/cpu\n")).toEqual(["low"]);
+    expect(await sevIn("AGENTS.md", `pip install x --extra-index-url ${EVIL}\n`)).toEqual(["medium"]);
+    expect(await sevIn("AGENTS.md", `${NPM_SET}http://registry.npmjs.org/\n`)).toEqual(["medium"]);
+    expect(await sevIn("AGENTS.md", `${NPM_SET}${EVIL}\n`)).toEqual(["high"]);
+    const root = tmp();
+    put(root, "skills/gh/SKILL.md", "---\nname: gh\n---\nok\n");
+    put(root, "skills/gh/.npmrc", "@acme:registry=https://npm.pkg.github.com\n");
+    expect(byRule(await scanAgents(root), "registry-redirect").map((f) => f.severity)).toEqual(["low"]);
+  });
+
+  it("flags plain HTTP to an official registry, not HTTPS", () => {
+    expect(isRegistryRedirect("http://registry.npmjs.org/")).toBe(true);
+    expect(isRegistryRedirect("https://registry.npmjs.org/")).toBe(false);
+    expect(findRegistryRedirects("pip install --index-url http://pypi.org/simple x")).toHaveLength(1);
+  });
+
+  it("applies the same classes to env blocks and hooks", () => {
+    const env = checkMcpExtras({ name: "s", def: { command: "node", env: { NPM_CONFIG_REGISTRY: "http://localhost:4873" } }, file: ".mcp.json" });
+    expect(env.find((h) => h.rule === "registry-redirect").severity).toBe("low");
+    const h = { event: "SessionStart", matcher: "", hook: { type: "command", command: `pip install --extra-index-url ${EVIL} x` }, file: ".claude/settings.json", baseDir: tmp() };
+    expect(checkHookExtras(h).find((x) => x.rule === "registry-redirect").severity).toBe("medium");
+  });
+});
+
+describe("Cline and Roo Code MCP settings under --home", () => {
+  it("reads cline_mcp_settings.json from VS Code globalStorage on every OS layout", async () => {
+    for (const base of [["Library", "Application Support"], [".config"], ["AppData", "Roaming"]]) {
+      const home = tmp();
+      put(home, join(...base, "Code", "User", "globalStorage", "saoudrizwan.claude-dev", "settings", "cline_mcp_settings.json"),
+        json({ mcpServers: { c: { command: "node", args: ["c.js"], autoApprove: ["*"] } } }));
+      const r = await scanAgents(tmp(), { home: true, homeDir: home });
+      const hit = byRule(r, "mcp-auto-approve")[0];
+      expect(hit?.severity, base.join("/")).toBe("high");
+      expect(hit.url).toContain("cline_mcp_settings.json");
+    }
+  });
+
+  it("does not read home files without --home", async () => {
+    const home = tmp();
+    put(home, ".config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json", json({ mcpServers: { c: { command: "node", autoApprove: ["*"] } } }));
+    expect(byRule(await scanAgents(tmp(), { homeDir: home }), "mcp-auto-approve")).toEqual([]);
   });
 });

@@ -3,7 +3,7 @@
  * tests/fixtures/init/app (an Express app with a lockfile and agent config).
  */
 import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
-import { cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync, spawn } from "node:child_process";
@@ -11,7 +11,7 @@ import { startMockServer } from "./fixtures/mock-server.js";
 import { parseToggles } from "../src/cli/prompt.js";
 import { detectProjectFramework } from "../lib/whitebox/frameworks.js";
 import { detectProject, portsFromEnv, DEV_PORTS } from "../src/cli/detect.js";
-import { ACTION_PIN, WORKFLOW_PATH, AGENTS_WORKFLOW_PATH, workflowYaml, agentsWorkflowYaml, checkItems, fixFirst } from "../src/cli/onboarding.js";
+import { ACTION_PIN, WORKFLOW_PATH, AGENTS_WORKFLOW_PATH, workflowYaml, agentsWorkflowYaml, checkItems, fixFirst, writeNewFile } from "../src/cli/onboarding.js";
 import { HOOK_MARKER } from "../lib/hook/index.js";
 
 const BIN = join(import.meta.dirname, "..", "bin", "penthera.js");
@@ -235,6 +235,20 @@ describe("penthera init --yes (smoke)", () => {
     expect(r.stdout).toContain("Agent config workflow: not a git repository");
   });
 
+  it("never writes through a dangling symlink at a workflow path or .gitignore", async () => {
+    const elsewhere = join(home, "elsewhere");
+    mkdirSync(join(dir, ".github", "workflows"), { recursive: true });
+    symlinkSync(join(elsewhere, "agents.yml"), join(dir, AGENTS_WORKFLOW_PATH));
+    symlinkSync(join(elsewhere, "deps.yml"), join(dir, WORKFLOW_PATH));
+    rmSync(join(dir, ".gitignore"), { force: true });
+    symlinkSync(join(elsewhere, "gitignore"), join(dir, ".gitignore"));
+    const r = await wizard(["init", "--yes"]);
+    expect(r.code, r.stderr).toBe(0);
+    expect(existsSync(elsewhere)).toBe(false);
+    expect(r.stdout).toContain(`${AGENTS_WORKFLOW_PATH} exists, left as is`);
+    expect(r.stdout).toContain(".gitignore: it is a symlink, left as is");
+  });
+
   it("rejects unknown flags", async () => {
     const r = await wizard(["init", "--push"]);
     expect(r.code).toBe(2);
@@ -242,6 +256,24 @@ describe("penthera init --yes (smoke)", () => {
 });
 
 describe("init building blocks", () => {
+  it("writeNewFile refuses an existing entry, a dangling symlink and a folder outside the project", () => {
+    const outside = realpathSync(mkdtempSync(join(tmpdir(), "penthera-init-out-")));
+    try {
+      expect(writeNewFile(dir, join(dir, "new.yml"), "a")).toBeNull();
+      expect(readFileSync(join(dir, "new.yml"), "utf-8")).toBe("a");
+      expect(writeNewFile(dir, join(dir, "new.yml"), "b")).toMatch(/already there/);
+      symlinkSync(join(outside, "target.yml"), join(dir, "dangling.yml"));
+      expect(writeNewFile(dir, join(dir, "dangling.yml"), "c")).toMatch(/already there/);
+      expect(existsSync(join(outside, "target.yml"))).toBe(false);
+      mkdirSync(join(dir, ".github"), { recursive: true });
+      symlinkSync(outside, join(dir, ".github", "workflows"));
+      expect(writeNewFile(dir, join(dir, ".github", "workflows", "x.yml"), "d")).toMatch(/outside the project/);
+      expect(readdirSync(outside)).toEqual([]);
+    } finally {
+      rmSync(outside, { recursive: true, force: true });
+    }
+  });
+
   it("parseToggles keeps defaults on Enter and rejects out-of-range numbers", () => {
     expect(parseToggles("", 4)).toEqual([]);
     expect(parseToggles("2, 4", 4)).toEqual([1, 3]);

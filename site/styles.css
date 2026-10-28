@@ -1095,8 +1095,6 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .report-passed > summary::before { content: "+"; width: 24px; height: 24px; display: grid; place-items: center; border: 1px solid var(--frame); }
 .report-passed[open] > summary::before { content: "\2212"; }
 .report-scope { margin-top: 16px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
-.report-pro { margin-top: 12px; font-size: 14px; color: var(--text-2); }
-.report-pro a { color: var(--accent-ink); }
 .report-deep { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--frame); display: grid; gap: 10px; justify-items: start; }
 .report-deep h3 { font-size: clamp(21px, 2.2vw, 26px); letter-spacing: -0.02em; }
 .report-deep p { max-width: 62ch; }
@@ -1600,7 +1598,8 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .gopro-twinkle + .gopro-twinkle { width: 30%; height: 30%; left: 78%; top: 62%; animation-delay: 1.4s; }
 @keyframes gopro-twinkle { 0%, 70%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); } 80% { opacity: 1; transform: scale(1) rotate(45deg); } }
 .gopro-line { margin-top: 26px; max-width: 30ch; font-family: var(--display); font-size: clamp(22px, 2.3vw, 30px); line-height: 1.25; letter-spacing: -0.015em; color: #1d2026; }
-.gopro-cta { margin-top: 34px; }
+.gopro-note { margin-top: 14px; max-width: 52ch; font-family: var(--px); font-size: 13px; line-height: 1.5; color: #3a404b; }
+.gopro-cta { margin-top: 30px; }
 .gopro-btn {
   position: relative; overflow: hidden; display: inline-flex; align-items: center; min-height: 58px; padding: 0 32px; text-decoration: none;
   font-family: var(--px); font-size: 16px; letter-spacing: 0.02em; color: #fff; border: 1px solid rgba(255, 255, 255, 0.45);

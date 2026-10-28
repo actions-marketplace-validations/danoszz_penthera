@@ -1,17 +1,21 @@
 ---
 title: Penthera Pro: rules decide, Pro keeps the record
-description: Pro keeps your Penthera results, checks what you shipped every day and your sites every week, and sends signed reports. Your code stays in your CI.
+description: Pro is an experiment, not a sale. Penthera stays free; this asks whether teams need more, such as daily checks of what they shipped and signed reports.
 eyebrow: Pro
 cta: waitlist
 layout: pro
 ---
 # Penthera Pro
 
-> In validation. Nothing to buy yet.
+> An experiment, not a sale. Penthera stays free.
 
 Rules decide. Pro keeps the record. The free Penthera agent runs in your CI, and Pro keeps what it found. It watches your dependencies against new advisories every day, checks your sites every week and sends a signed report every month. Your code never leaves your CI.
 
 {{CTA}}
+
+## An open question: is the free tool enough?
+
+Penthera is free and stays free. Pro is an experiment, not a sale: it measures whether teams need anything beyond the free agent. If they do, the income keeps Penthera maintained beyond one part-time person, and pays independent reviewers and outside experts to critique its rules. If they don't, the free tool is the whole product, and that's a fine answer.
 
 ## Rules decide. We show our work.
 
@@ -29,7 +33,7 @@ Every finding comes from a written rule: a model can propose a problem, but a ru
 - **Without `--publish`, nothing leaves your machine.** That is how the free agent works today.
 - **Bring your own model.** `penthera verify` keeps what the rules confirm, and the rest stays labelled unverified. We don't resell model access.
 
-## Price, while we test
+## What we'd test
 
 From about $100 a month per team. A person, if you want one: an optional quarterly review with a written note. Assessments of one app or one release are quoted on their own.
 
@@ -39,10 +43,10 @@ Rather run it yourself? `npx penthera@{{VERSION}} init --yes` sets up the same c
 
 ## What it is not
 
-- **Not finished.** Pro is being built with its first teams, and the hosted parts are planned.
+- **Not for sale.** The hosted parts are planned, and they get built only if the waitlist shows a need. No check ever moves behind a paywall.
 - **Not a certification.** It shows what was checked and found, with the evidence.
 - **Not a reason to upload your code.** Code checks run on your machine or in your own CI.
 
 ## How the waitlist works
 
-The button opens an email to Daan, who builds Penthera, at daan@penthera.org. Say who you are and what you'd want: a daily watch on what you shipped, a dashboard, signed reports, a person to ask, or checks your agents can call. Nothing is stored on penthera.org. He replies to every message, and writes again only when there is something to try.
+Each email counts as one data point in the experiment. The button opens an email to Daan, who builds Penthera, at daan@penthera.org. Say who you are and what you'd want: a daily watch on what you shipped, a dashboard, signed reports, a person to ask, or checks your agents can call. Nothing is stored on penthera.org. He replies to every message, and writes again only when there is something to try.

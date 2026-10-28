@@ -10,8 +10,6 @@ The security review you never had time for. Offline, rule-based, and you can ver
 
 **[penthera.org](https://penthera.org)**: check your live site in a few seconds. Passive, nothing stored.
 
-Want a person to keep an eye on it with you? [Penthera Pro](https://penthera.org/pro) is in validation: join the waitlist.
-
 **132** readable rules · **6** read-only MCP tools · **1** runtime dependency · **0** requests past loopback in the benchmark · **MIT**, no telemetry
 
 <br/>
@@ -466,10 +464,19 @@ for coding agents. The [roadmap](ROADMAP.md) shows what ships next, and the
 [research plan](docs/vision-2.0.md) what we measure. Issues and pull requests
 are welcome.
 
-Penthera is free. If it caught something before you shipped it, you can
-[sponsor its maintenance](https://github.com/sponsors/danoszz). Sponsorship pays
-for maintainer time and buys no influence over findings
+Penthera is free and stays free. If it caught something before you shipped it,
+you can [sponsor its maintenance](https://github.com/sponsors/danoszz).
+Sponsorship pays for maintainer time and buys no influence over findings
 ([tiers](docs/funding/sponsor-tiers.md)).
+
+**An open question: is the free tool enough?** One person maintains Penthera
+part-time. To keep it going, and to pay independent reviewers and outside
+experts to critique its rules, I'm running a small experiment called
+[Pro](https://penthera.org/pro). It measures whether teams need anything beyond
+the free agent, such as a record kept for them and checks on a schedule. It is
+not for sale, and no check will ever move behind a paywall. If there is no
+need, the free tool is the whole product, and that's a fine answer
+([governance](GOVERNANCE.md#money)).
 
 ## License
 

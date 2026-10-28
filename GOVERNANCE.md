@@ -23,6 +23,18 @@ away.
   before it ships, and results are published whether they are good or bad
   ([methodology](docs/METHODOLOGY.md)).
 
+## Money
+
+- **Penthera is free and stays free.** No check moves behind a paywall.
+- **Sponsorship pays for maintenance,** and buys no influence over findings,
+  rules or the roadmap.
+- **Pro is an experiment, not a product for sale.** It measures whether teams
+  need anything beyond the free agent, such as a record kept for them and
+  checks on a schedule ([penthera.org/pro](https://penthera.org/pro)). If
+  there is a need, the income keeps Penthera maintained beyond one part-time
+  person: independent reviewers, and outside experts who critique the rules
+  and the code. If there isn't, the free tool is the whole product.
+
 ## How changes land
 
 1. Every change is a pull request against `main`, with tests and a changelog

@@ -459,7 +459,10 @@ describe("site story", () => {
     expect(form).toBe('<form class="pro-form" novalidate>');
     expect(page).toMatch(/href="mailto:daan@penthera\.org\?subject=Penthera%20Pro%20waitlist/);
     expect(page).toContain('data-track="pro-waitlist"');
-    expect(page).toContain("Sign up for the waitlist");
+    expect(page).toContain("Join the experiment");
+    // Pro is an experiment that measures a need, not a sale (GOVERNANCE.md#money).
+    expect(page).toContain("Is the free tool enough?");
+    expect(page).toContain("Pro is an experiment, not a sale");
     expect(page).toContain("nothing is stored on penthera.org");
     expect(page).toContain('<script defer src="/track.js"></script>');
     expect(existsSync(join(out, "track.js"))).toBe(true);
@@ -472,7 +475,11 @@ describe("site story", () => {
     expect(page).toContain('From about <span class="spec-big">$100</span> a month per team.');
     // Pro copy promises no person on every result and makes no "pentest" claim (docs/research: the name and copy decisions).
     expect(page).not.toMatch(/pentest/i);
-    expect(page).toContain("In validation: Pro is being built with its first teams, and the hosted parts are planned.");
+    expect(page).toContain("Nothing is for sale. The hosted parts are planned, and they get built only if the waitlist shows a need.");
+    // No pitch for Pro in the README or in the live check's result.
+    expect(readFileSync(join(ROOT, "README.md"), "utf8")).not.toMatch(/join the waitlist/i);
+    expect(readFileSync(join(ROOT, "site", "check", "ui.js"), "utf8")).not.toContain('href = "/pro"');
+    expect(readFileSync(join(ROOT, "GOVERNANCE.md"), "utf8")).toContain("Pro is an experiment, not a product for sale.");
     expect(page).toContain("init --yes</code> sets up the same checks in your own CI, free.");
     expect(page).toMatch(/In research<\/span> Checks your agents can call and pay for/);
     // The calculator and the budget go into the email, nowhere else.
@@ -489,7 +496,8 @@ describe("site story", () => {
     const plate = page.slice(page.indexOf('id="go-pro"'), page.indexOf("</section>", page.indexOf('id="go-pro"')));
     expect(plate).toContain('<h2 id="gopro-title">Go Pro</h2>');
     expect(plate).toContain("What you shipped, checked again every day.");
-    expect(plate).toMatch(/<a class="gopro-btn" href="\/pro" data-track="gopro-waitlist">Sign up for the waitlist/);
+    expect(plate).toMatch(/<a class="gopro-btn" href="\/pro" data-track="gopro-waitlist">Join the experiment/);
+    expect(plate).toContain("An experiment, not a sale");
     expect(plate).not.toMatch(/\$\d/); // no price on the plate
     expect(page).toContain('<script defer src="/gopro.js"></script>');
     expect(existsSync(join(out, "gopro.js"))).toBe(true);

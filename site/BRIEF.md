@@ -142,3 +142,12 @@ behind toggles, like the MCP configs and the comparison table.
   page has a "Go Pro" plate before About: machined steel, the Pro mark, "What
   you shipped, checked again every day.", a shimmer and a pointer light
   (`site/gopro.js`), still with reduced motion.
+- Pro is an experiment, not a sale (decided with the maintainer,
+  2026-10-28). Penthera stays free and complete; Pro measures whether teams
+  need anything beyond the free agent. If they do, the income pays for
+  maintenance beyond one part-time person: independent reviewers, and outside
+  experts who critique the rules. If not, the free tool is the product. So:
+  no Pro pitch in the README or in the live check's result. /pro opens with
+  "Is the free tool enough?", the Go Pro plate says "An experiment, not a
+  sale" and its button reads "Join the experiment", and each waitlist email
+  counts as one data point. The money rules are in GOVERNANCE.md#money.

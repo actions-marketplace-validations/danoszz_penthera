@@ -4,13 +4,14 @@
  * left (/pro.js pins it and maps the page's vertical scroll to it). With no
  * script the panels stack vertically and everything still works.
  *
- *   hero → rules decide → day, week, month → ranks → your code stays → price
+ *   hero → is the free tool enough? → rules decide → day, week, month → ranks → your code stays → price
  *   → calculator → waitlist
  *
  * The ranks come from bench/public/published.json at build time, the same file
  * as /benchmarks, so the page cannot drift from the published results.
  *
- * It proposes; it does not sell. The header is a canvas sketch (/pro.js): a
+ * Pro is an experiment, not a sale: the page asks whether anyone needs more
+ * than the free agent, and the waitlist is how the need is measured. The header is a canvas sketch (/pro.js): a
  * dithered ASCII swirl in brushed steel and Penthera blue that follows the
  * pointer. It is decoration only (aria-hidden); the heading is real text.
  *
@@ -142,11 +143,17 @@ export function proMain({ version, pub = null }) {
         <section class="pro-panel pro-hero" aria-labelledby="pro-title">
           <canvas class="pro-canvas" aria-hidden="true"></canvas>
           <div class="pro-hero-text">
-            <ul class="pills" aria-label="Penthera, Pro, in validation"><li><a href="/">Penthera</a></li><li>Pro</li><li>In validation</li></ul>
+            <ul class="pills" aria-label="Penthera, Pro, an experiment"><li><a href="/">Penthera</a></li><li>Pro</li><li>An experiment</li></ul>
             <h1 id="pro-title">${MARK}Penthera Pro</h1>
             <p class="pro-lede">Rules decide. Pro keeps the record.</p>
-            <p class="pro-cta"><a class="btn-steel" href="#join" data-track="pro-hero-waitlist">Sign up for the waitlist</a><span class="pro-scroll-hint" aria-hidden="true">scroll →</span></p>
+            <p class="pro-cta"><a class="btn-steel" href="#join" data-track="pro-hero-waitlist">Join the experiment</a><span class="pro-scroll-hint" aria-hidden="true">scroll →</span></p>
           </div>
+        </section>
+
+        <section class="pro-panel band band-invert pro-why" aria-labelledby="pro-why-title">
+          <p class="label">An open question</p>
+          <h2 id="pro-why-title">Is the free tool enough?</h2>
+          <p class="pro-big">Penthera is free and stays free. Pro is an experiment, not a sale: it measures whether teams need anything beyond the free agent. If they do, the income keeps Penthera maintained beyond one part-time person, and pays independent reviewers and outside experts to critique its rules. If they don't, the free tool is the whole product, and that's a fine answer.</p>
         </section>
 
         <section class="pro-panel band pro-stack" aria-labelledby="pro-stack-title">
@@ -175,10 +182,10 @@ export function proMain({ version, pub = null }) {
         </section>
 
         <section class="pro-panel band band-blue pro-price-panel" aria-labelledby="pro-price-title">
-          <p class="label">Price, while we test</p>
+          <p class="label">What we'd test</p>
           <h2 id="pro-price-title">From about <span class="spec-big">$100</span> a month per team.</h2>
           <p class="pro-big">A person, if you want one: an optional quarterly review with a written note. Assessments of one app or one release are quoted on their own.</p>
-          <p class="pro-self">In validation: Pro is being built with its first teams, and the hosted parts are planned. Nothing to buy yet. It is not a certification: it shows what was checked and found, with the evidence.</p>
+          <p class="pro-self">Nothing is for sale. The hosted parts are planned, and they get built only if the waitlist shows a need. No check ever moves behind a paywall. Pro is not a certification: it shows what was checked and found, with the evidence.</p>
           <p class="pro-self">Rather run it yourself? <code>npx penthera@${esc(version)} init --yes</code> sets up the same checks in your own CI, free.</p>
           <p class="pro-research"><span>In research</span> Checks your agents can call and pay for, one at a time, each with a signed verdict.</p>
         </section>
@@ -194,7 +201,7 @@ export function proMain({ version, pub = null }) {
 
           <section class="pro-panel band pro-join" id="join" aria-labelledby="pro-join-title">
             <p class="label">Waitlist</p>
-            <h2 id="pro-join-title">Sign up for the waitlist.</h2>
+            <h2 id="pro-join-title">Would you use it?</h2>
             <fieldset>
               <legend>I am</legend>
               <div class="pro-chips">${ROLES.map((r, i) => `<label class="pro-chip"><input type="radio" name="role" value="${esc(r)}"${i === 0 ? " checked" : ""}><span>${esc(r)}</span></label>`).join("")}</div>
@@ -205,8 +212,8 @@ export function proMain({ version, pub = null }) {
             </fieldset>
             <label class="pro-q" for="pro-note">Anything else <span>(optional)</span></label>
             <textarea id="pro-note" name="note" rows="2" maxlength="600" placeholder="Your stack, your app, what keeps you up at night"></textarea>
-            <p class="pro-send"><button class="btn" data-variant="default" type="submit" data-track="pro-waitlist">Sign up for the waitlist</button><a class="pro-plain" href="${mail}" data-track="pro-waitlist-plain">or email ${esc(WAITLIST_MAIL)}</a></p>
-            <p class="pro-note">Signing up opens an email to Daan, who builds Penthera, with your answers and numbers filled in. You send it; nothing is stored on penthera.org. He replies to every one.</p>
+            <p class="pro-send"><button class="btn" data-variant="default" type="submit" data-track="pro-waitlist">Join the experiment</button><a class="pro-plain" href="${mail}" data-track="pro-waitlist-plain">or email ${esc(WAITLIST_MAIL)}</a></p>
+            <p class="pro-note">Each email counts as one data point in the experiment. The button opens an email to Daan, who builds Penthera, with your answers and numbers filled in. You send it; nothing is stored on penthera.org. He replies to every one.</p>
           </section>
         </form>
       </div>

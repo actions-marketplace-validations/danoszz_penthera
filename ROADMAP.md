@@ -26,7 +26,7 @@ here.
 | The agent brief | Your AI assistant gets one short reply after a scan: a verdict, what to act on, what to check first, likely noise, what was not checked. Rules fill it ([docs](docs/commands/brief.md)) |
 | Fewer false findings | Style maps are no longer passwords, `eval` in build output is not reported, and action plan steps fit the findings |
 | `--giants` merge fix | A key inside a private-key block that two tools find counts once |
-| [Penthera Pro](https://penthera.org/pro) | The waitlist for a security partner on top of the free agent: a person, assessments, while we test |
+| [Pro, an experiment](https://penthera.org/pro) | Does anyone need more than the free agent? The waitlist measures it. Nothing is for sale, and the free tool stays complete |
 
 | In 2.1.0-rc.1 | What it means for you |
 |---|---|

@@ -1,10 +1,10 @@
-# E17: Does Penthera work unplugged, and give the same answer twice? (pre-registration draft)
+# E17: Does Penthera work unplugged, and give the same answer twice? (pre-registration)
 
 | | |
 |---|---|
 | Experiment | E17 |
 | Related | [E8](E8-harness-guardrails.md) (the network guard), [E11](E11-public-benchmarks.md) (benchmarks run under the same guard) |
-| Status | **Draft, not registered.** Nothing here binds until the maintainer accepts it; the commit that merges the final version to `main` is the registration timestamp. A pilot on the frozen protocol may run before that and is reported only as a pilot (§ 8) |
+| Status | **Registered.** Accepted by the maintainer on 28 Oct 2026; the commit that merges this version to `main` is the registration timestamp. The pilot (§ 8) ran before it and counts only as a pilot |
 | Date written | 2026-10-28 |
 | Authors | Daan van der Zwaag (PI). Drafted with Claude (AI-assisted) |
 | Data collected before registration | None |
@@ -51,8 +51,9 @@ an empty temp `cwd`, and `CI=1` (so no interactive prompts).
 
 **Known limit, stated now:** the guard covers Node processes only. A non-Node
 child process (for example `git`) is not guarded. The runner records every
-child process name the commands spawn where Node exposes it, and the report
-lists non-Node children as unguarded.
+child process the commands spawn (`bench/offline/child-log.cjs`, preloaded
+next to the guard), and the report lists non-Node children, and Node children
+started without the guard, as unguarded.
 
 ## 4. Scope
 
@@ -63,14 +64,15 @@ lists non-Node children as unguarded.
 | C1 | `penthera --repo <T> --json` (default, no `--offline`) |
 | C2 | `penthera --repo <T> --offline --json` |
 | C3 | `penthera agents <T> --json` |
-| C4 | `penthera deps <T> --json` |
+| C4 | `penthera deps <T> --json` (on T3 and T4 only, § 9.1) |
 | C5 | `penthera --repo <T> --evidence <dir>`, then `penthera evidence verify <dir>` |
 | C6 | `penthera brief <C1 report>` |
 | C7 | `penthera http://127.0.0.1:<port> --offline --json` against `tests/fixtures/mock-server.js` |
 
 **Targets:** T1 `tests/fixtures/repo-scan/express-routes`, T2
 `tests/fixtures/agents/malicious`, T3 the Penthera repository at the
-registered commit. C7 uses the mock server only.
+registered commit, T4 the `head` tree that `tests/fixtures/deps/build.js`
+writes (a lockfile project, for C4). C7 uses the mock server only.
 
 **Out of scope, by design:** `install` (it reads the npm registry), `--giants`
 (third-party tools), `--recon`, `--suppliers`, `--giants-online`, AI mode
@@ -98,7 +100,9 @@ that is a deviation (§ 9), and the report shows the result both with and
 without it.
 
 For non-JSON outputs (C5 verify, C6 brief), compare stdout after the same
-path replacement.
+path replacement. For C5 the comparison also leaves out the one line that
+starts with `Generated`, and the exit code must match; the strict comparison
+of the full stdout is reported next to it (§ 9.2).
 
 ## 7. Analysis and reporting
 
@@ -122,13 +126,17 @@ registered result. The registered run repeats on macOS and on Ubuntu in CI.
 
 Any change after registration is listed here with its date and reason.
 
-**Proposed before registration, from the pilot (28 Oct 2026; [pilot results](../../../bench/offline/RESULTS.md)):**
+**Adopted before registration, from the pilot (28 Oct 2026; [pilot results](../../../bench/offline/RESULTS.md)).** The maintainer accepted all three with the protocol, and § 3, § 4 and § 6 above already include them:
 
 1. **C4 targets.** T1 and T2 have no lockfile, so `deps` tests nothing there.
-   Proposal: run C4 on T3 and on a fixture built by `tests/fixtures/deps/build.js`.
+   C4 runs on T3 and on T4, the fixture built by `tests/fixtures/deps/build.js`.
 2. **C5 comparison.** `evidence verify` prints the bundle's generation time.
-   Proposal: compare the exit code and the verify lines (hashes and signature)
-   and report the `Generated` line separately. The strict result stays
+   C5 compares the exit code and the verify lines (hashes and signature)
+   and leaves out the `Generated` line. The strict result stays
    reported next to it.
-3. **Child processes.** The runner must record non-Node child processes, as
-   § 3 says, before the registered run.
+3. **Child processes.** The runner records child processes, as § 3 says
+   (`bench/offline/child-log.cjs`).
+4. **C3 on T1.** The pilot runner skipped `agents` on T1. The registered run
+   includes it, as § 4 already says (every command × target).
+
+**After registration:** none yet.

@@ -19,6 +19,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const BIN = join(ROOT, "bin", "penthera.js");
 const GUARD = join(ROOT, "scripts", "ci", "net-guard.cjs");
+const CHILD_LOG = join(ROOT, "bench", "offline", "child-log.cjs");
 const args = process.argv.slice(2);
 const OUT = args.includes("--out") ? args[args.indexOf("--out") + 1] : join(ROOT, "bench", "offline", "results");
 const PILOT = args.includes("--pilot");
@@ -31,6 +32,13 @@ const TARGETS = {
   T2: join(ROOT, "tests", "fixtures", "agents", "malicious"),
   T3: ROOT,
 };
+
+// § 9.1: `deps` needs a lockfile, so C4 runs on T3 and on T4, the head tree
+// that tests/fixtures/deps/build.js writes (built once, reused by every run).
+const T4_DIR = mkdtempSync(join(tmpdir(), "e17-deps-"));
+spawnSync(process.execPath, [join(ROOT, "tests", "fixtures", "deps", "build.js"), T4_DIR], { stdio: "ignore" });
+const T4 = join(T4_DIR, "head");
+const C4_TARGETS = { T3: ROOT, T4 };
 
 // Each command returns argv for a target; `json` says whether stdout is JSON.
 const COMMANDS = {
@@ -82,15 +90,17 @@ function run(argv, { guard }) {
     TMPDIR: process.env.TMPDIR || tmpdir(),
   };
   if (guard) {
-    env.NODE_OPTIONS = `--require ${GUARD}`;
+    env.NODE_OPTIONS = `--require ${GUARD} --require ${CHILD_LOG}`;
     env.PENTHERA_NET_GUARD_LOG = log;
+    env.PENTHERA_CHILD_LOG = `${log}.children`;
   }
   const t0 = Date.now();
   const r = spawnSync(process.execPath, [BIN, ...argv.map((a) => a.replace("{cwd}", cwd))], {
     cwd, env, encoding: "utf-8", maxBuffer: 256 * 1024 * 1024, timeout: 600_000,
   });
   const guardLog = existsSync(log) ? readFileSync(log, "utf-8") : "";
-  return { home, cwd, code: r.status, stdout: r.stdout, stderr: r.stderr, guardLog, ms: Date.now() - t0 };
+  const children = existsSync(`${log}.children`) ? readFileSync(`${log}.children`, "utf-8") : "";
+  return { home, cwd, code: r.status, stdout: r.stdout, stderr: r.stderr, guardLog, children, ms: Date.now() - t0 };
 }
 
 function hostsOf(guardLog) {
@@ -98,7 +108,7 @@ function hostsOf(guardLog) {
 }
 
 function compare(cmd, a, b) {
-  const tok = (r) => [[r.cwd, "<CWD>"], [r.home, "<HOME>"], [ROOT, "<ROOT>"]];
+  const tok = (r) => [[r.cwd, "<CWD>"], [r.home, "<HOME>"], [T4_DIR, "<T4>"], [ROOT, "<ROOT>"]];
   if (cmd.json) {
     let ja, jb;
     try { ja = normalize(JSON.parse(a.stdout), tok(a)); jb = normalize(JSON.parse(b.stdout), tok(b)); }
@@ -106,7 +116,12 @@ function compare(cmd, a, b) {
     const paths = diffPaths(ja, jb);
     return { ok: paths.length === 0 && a.code === b.code, paths, codes: [a.code, b.code] };
   }
-  const sa = replaceTokens(a.stdout, tok(a)), sb = replaceTokens(b.stdout, tok(b));
+  let sa = replaceTokens(a.stdout, tok(a)), sb = replaceTokens(b.stdout, tok(b));
+  // § 9.2: the verify comparison leaves out the `Generated` line; the strict
+  // comparison is reported next to it.
+  const strict = sa === sb && a.code === b.code;
+  if (cmd.verify) { const drop = (s) => s.split("\n").filter((l) => !/^\s*Generated\b/.test(l)).join("\n"); sa = drop(sa); sb = drop(sb); }
+  if (cmd.verify) return { ok: sa === sb && a.code === b.code, strict, paths: sa === sb ? [] : ["stdout"], codes: [a.code, b.code] };
   return { ok: sa === sb && a.code === b.code, paths: sa === sb ? [] : ["stdout"], codes: [a.code, b.code] };
 }
 
@@ -124,15 +139,20 @@ function runCommand(id, target, guard) {
   const second = cmd.evidence
     ? runIn(first, ["evidence", "verify", join(first.cwd, "ev")], guard)
     : runIn(first, ["brief", join(first.cwd, "r.json")], guard);
-  return { ...second, guardLog: first.guardLog + second.guardLog, firstCode: first.code };
+  return { ...second, guardLog: first.guardLog + second.guardLog, children: first.children + second.children, firstCode: first.code };
 }
 
 function runIn(prev, argv, guard) {
   const log = join(prev.cwd, "..", `${prev.cwd.split("/").pop()}-guard2.log`);
   const env = { PATH: process.env.PATH, HOME: prev.home, CI: "1", NO_COLOR: "1", PENTHERA_BRIEF: "0" };
-  if (guard) { env.NODE_OPTIONS = `--require ${GUARD}`; env.PENTHERA_NET_GUARD_LOG = log; }
+  if (guard) {
+    env.NODE_OPTIONS = `--require ${GUARD} --require ${CHILD_LOG}`;
+    env.PENTHERA_NET_GUARD_LOG = log;
+    env.PENTHERA_CHILD_LOG = `${log}.children`;
+  }
   const r = spawnSync(process.execPath, [BIN, ...argv], { cwd: prev.cwd, env, encoding: "utf-8", maxBuffer: 64 * 1024 * 1024 });
-  return { home: prev.home, cwd: prev.cwd, code: r.status, stdout: r.stdout, stderr: r.stderr, guardLog: existsSync(log) ? readFileSync(log, "utf-8") : "" };
+  const read = (f) => (existsSync(f) ? readFileSync(f, "utf-8") : "");
+  return { home: prev.home, cwd: prev.cwd, code: r.status, stdout: r.stdout, stderr: r.stderr, guardLog: read(log), children: read(`${log}.children`) };
 }
 
 async function withMockServer(fn) {
@@ -143,21 +163,27 @@ async function withMockServer(fn) {
 }
 
 mkdirSync(OUT, { recursive: true });
-const summary = { experiment: "E17", pilot: PILOT, node: process.version, platform: process.platform, rows: [] };
+const commit = spawnSync("git", ["rev-parse", "--short", "HEAD"], { cwd: ROOT, encoding: "utf-8" }).stdout.trim();
+const summary = { experiment: "E17", pilot: PILOT, commit, node: process.version, platform: process.platform, rows: [] };
+
+// Child processes seen under the guard, deduplicated: `exec git` is unguarded.
+const childrenOf = (...runs) => [...new Set(runs.flatMap((r) => (r.children || "").split("\n").filter(Boolean)))].sort();
 
 for (const id of Object.keys(COMMANDS)) {
-  for (const [tid, target] of Object.entries(TARGETS)) {
-    if (id === "C3" && tid !== "T2" && tid !== "T3") continue; // agents: config targets only
+  for (const [tid, target] of Object.entries(id === "C4" ? C4_TARGETS : TARGETS)) {
     const A = runCommand(id, target, true);
     const B = runCommand(id, target, true);
     const C = runCommand(id, target, false);
-    const h2 = compare(COMMANDS[id].json ? COMMANDS[id] : { json: false }, A, B);
-    const h3 = compare(COMMANDS[id].json ? COMMANDS[id] : { json: false }, A, C);
+    const cmp = COMMANDS[id].json ? COMMANDS[id] : { json: false, verify: id === "C5" };
+    const h2 = compare(cmp, A, B);
+    const h3 = compare(cmp, A, C);
     const row = {
       command: id, target: tid, codes: { A: A.code, B: B.code, C: C.code },
       H1: { pass: !A.guardLog && !B.guardLog, hosts: hostsOf(A.guardLog + B.guardLog) },
       H2: { pass: h2.ok, paths: h2.paths }, H3: { pass: h3.ok, paths: h3.paths },
+      children: childrenOf(A, B),
     };
+    if (id === "C5") { row.H2.strict = h2.strict; row.H3.strict = h3.strict; }
     summary.rows.push(row);
     writeFileSync(join(OUT, `${id}-${tid}-A.out`), A.stdout + "\n--- stderr\n" + A.stderr);
     writeFileSync(join(OUT, `${id}-${tid}-C.out`), C.stdout + "\n--- stderr\n" + C.stderr);
@@ -180,6 +206,7 @@ await withMockServer(async (port) => {
       command: id, target: "mock", codes: { A: A.code, B: B.code, C: C.code },
       H1: { pass: !A.guardLog && !B.guardLog, hosts: hostsOf(A.guardLog + B.guardLog) },
       H2: { pass: h2.ok, paths: h2.paths }, H3: { pass: h3.ok, paths: h3.paths },
+      children: childrenOf(A, B),
     };
     summary.rows.push(row);
     process.stderr.write(`${id} mock: H1 ${row.H1.pass ? "pass" : "FAIL " + row.H1.hosts.join(", ")} · H2 ${row.H2.pass ? "pass" : "FAIL " + row.H2.paths.slice(0, 5).join(", ")} · H3 ${row.H3.pass ? "pass" : "FAIL " + row.H3.paths.slice(0, 5).join(", ")}\n`);
@@ -189,5 +216,6 @@ await withMockServer(async (port) => {
 
 const ctrl = summary.rows.find((r) => r.command === "CTRL");
 summary.guardWorks = ctrl ? !ctrl.H1.pass : null;
+rmSync(T4_DIR, { recursive: true, force: true });
 writeFileSync(join(OUT, "summary.json"), JSON.stringify(summary, null, 2) + "\n");
 process.stderr.write(`\nPositive control (guard logs an outside connection): ${summary.guardWorks ? "yes" : "NO, run void"}\n`);

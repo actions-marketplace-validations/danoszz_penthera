@@ -3,9 +3,10 @@
 > **Project page.** For users and companies asking "how can I support Penthera,
 > and what does that buy?"
 
-Status: proposal. The tiers below still need to be created on the GitHub
-Sponsors dashboard once the profile is approved. Prices are in US dollars
-because GitHub Sponsors tiers are priced in USD.
+Status: live on [GitHub Sponsors](https://github.com/sponsors/danoszz) since
+28 October 2026. This page is the source of truth for what each tier gives;
+the tier descriptions on GitHub follow it. Prices are in US dollars because
+GitHub Sponsors tiers are priced in USD.
 
 ## Tiers
 
@@ -67,6 +68,10 @@ https://docs.github.com/en/sponsors/receiving-sponsorships-through-github-sponso
 
 The maintainer intends to publish a short yearly note on total sponsorship
 income and what it paid for.
+
+Penthera stays free and complete. Pro is a separate experiment that measures
+whether teams need more; sponsorship is not tied to it
+([GOVERNANCE.md](../../GOVERNANCE.md#money)).
 
 ## Open questions for the maintainer
 

@@ -24,7 +24,6 @@
     "docs/examples",
     "scripts/rules",
     "pentest.config.example.js",
-    "CHANGELOG.md",
     "LICENSE",
     "README.md",
     "SECURITY.md"

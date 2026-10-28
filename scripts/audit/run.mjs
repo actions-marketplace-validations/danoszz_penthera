@@ -64,7 +64,9 @@ const BENCH_MAX_DROP = 0.02;
 // packed / ~2,435 KB unpacked / 253 files; was 900_000 / 2_400_000 / 260.
 // Raised for the ADR 0002 agent rules (lib/agents/rules.js and friends, ~25 KB
 // unpacked), with the maintainer's OK (2026-10-28): it put the package at
-// ~2,565 KB unpacked; was 2_550_000. A trim pass follows.
+// ~2,565 KB unpacked; was 2_550_000. The trim pass that followed dropped
+// CHANGELOG.md from the tarball (not read at run time): ~2,445 KB unpacked,
+// ~896 KB packed, 256 files.
 const PACK_BUDGET = { packedBytes: 950_000, unpackedBytes: 2_600_000, files: 280 };
 
 /** Paths the npm package may contain. Anything else fails the packaging gate. */

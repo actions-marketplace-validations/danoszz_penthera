@@ -3,6 +3,55 @@
 Protocol: [E17 pre-registration](../../docs/research/prereg/E17-offline-and-determinism.md).
 Runner: [run.mjs](run.mjs).
 
+## Deviation: the normaliser, 29 Oct 2026
+
+A logged deviation from the registered plan (§ 6 and § 9 of the protocol).
+The maintainer approved it on 29 Oct 2026.
+
+**What was wrong.** § 6 removed every JSON key whose name matched
+`/(At|Ms|_at|_ms|time|timestamp|date|duration|elapsed|generated)$/i`, with
+everything under it. The match ignores case, so `At` and `Ms` also hit names
+like `hasParams` and `format`. On the registered targets the pattern removed
+three fields that are analysis output, not run metadata:
+
+| Field | Where |
+|---|---|
+| `attackSurface[].hasParams` | C1, C2 on T1 |
+| `boundaries.public[].hasParams` | C1, C2 on T1 |
+| `deps.format` | C4 on T3 and T4 |
+
+So H2 and H3 were tested on slightly less than the whole result. A methodology
+review of 29 Oct 2026 found this.
+
+**What changed.** The runner now removes an exact list of key paths, found
+by running the old pattern over the real output of every command:
+`timestamp`, `duration`, `findings[].collected_at` and, for the URL scan,
+`fingerprint.headers.date` (the HTTP `Date` header of the scanned server).
+Everything else is compared. The list is in
+[normalize.mjs](normalize.mjs), and
+[tests/bench-offline.test.js](../../tests/bench-offline.test.js) fails on the
+old pattern. The runner still applies the old pattern and stores its result
+next to the new one in each row (`registeredPattern`), as § 6 requires.
+
+**Re-run.** macOS only, Node 26.0.0, commit `0a69642` (the fix), on the same
+targets. Raw summary: [rerun-2026-10-29/macos.json](rerun-2026-10-29/macos.json).
+The Ubuntu run in CI has not been repeated yet.
+
+| | Registered run, old pattern (28 Oct) | Re-run, old pattern (29 Oct) | Re-run, exact paths (29 Oct) |
+|---|---|---|---|
+| H1, every command × target | pass | pass | pass |
+| H2, every command × target | pass | pass | pass |
+| H3, every command × target | pass | pass | pass |
+| C5 strict (full stdout) | fails on every target | fails on every target | fails on every target |
+| Control: guard logged outside hosts | yes | yes | yes |
+| Control: H3 differing paths | 3 | 3 | 4 |
+
+The verdict did not change. The three fields the old pattern hid were the
+same in every run. The control's extra path is `retireDb.snapshotDate`:
+without `--offline` the scan downloads a newer Retire.js database, so its
+date differs from the bundled copy. The old pattern hid that difference too.
+The control is expected to fail H3, so this changes nothing about the claim.
+
 ## Registered run, 28 Oct 2026
 
 Registered by merge commit `dfd5053` (28 Oct 2026, 19:02 CEST), which is

@@ -139,4 +139,13 @@ Any change after registration is listed here with its date and reason.
 4. **C3 on T1.** The pilot runner skipped `agents` on T1. The registered run
    includes it, as § 4 already says (every command × target).
 
-**After registration:** none yet.
+**After registration:**
+
+5. **Normalization by exact paths (29 Oct 2026, approved by the maintainer).**
+   The § 6 pattern, matched without case, also removed `hasParams`
+   (`attackSurface[]`, `boundaries.public[]`) and `deps.format`, which are
+   analysis output. The runner now removes only `timestamp`, `duration`,
+   `findings[].collected_at` and `fingerprint.headers.date`, and reports the
+   old pattern's result next to it. Re-run on macOS at commit `0a69642`: the
+   verdict is unchanged under both. The § 6 text above stays as registered.
+   Old and new results side by side: [E17 results](../../../bench/offline/RESULTS.md#deviation-the-normaliser-29-oct-2026).

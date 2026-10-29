@@ -395,8 +395,10 @@ describe("site story", () => {
     const h = html();
     expect(h).toMatch(/<\/section>\s*(<!--[\s\S]*?-->\s*)?<section class="slab" aria-label="The problem">\s*<div class="hero-text">\s*<p class="problem">/);
     const slab = h.slice(h.indexOf('class="slab"'), h.indexOf('id="answer"'));
-    const at = ['class="problem"', 'class="pills"', 'class="lede"', 'class="hero-actions"', 'class="note"', 'class="loop"'].map((m) => slab.indexOf(m));
+    const at = ['class="problem"', 'class="pills"', 'class="lede"', 'class="hero-actions"', 'class="loop"'].map((m) => slab.indexOf(m));
     expect(at.every((n) => n > 0)).toBe(true);
+    // The note was dropped (2026-10-29): the poster already offers the code scan.
+    expect(slab).not.toContain('class="note"');
     expect([...at].sort((a, b) => a - b)).toEqual(at);
     const css = readFileSync(join(out, "styles.css"), "utf8");
     expect(css).toContain('.hero[data-mode="fix"] + .slab');
@@ -489,7 +491,7 @@ describe("site story", () => {
     expect(tour.match(/<figure class="shot">/g)).toHaveLength(3);
     for (const f of ["media/tour/tour-1-scan.jpg", "media/tour/tour-2-verdict.jpg", "media/tour/tour-3-fix.jpg"]) {
       expect(existsSync(join(out, f)), f).toBe(true);
-      expect(tour).toMatch(new RegExp(`<img src="/${f}" width="800" height="500" loading="lazy" alt="[^"]{40,}">`));
+      expect(tour).toMatch(new RegExp(`<img src="/${f}" width="1200" height="750" loading="lazy" alt="[^"]{40,}">`));
     }
   });
 

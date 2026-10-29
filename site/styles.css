@@ -446,8 +446,8 @@ main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
 /* The problem slab (2026-10-29): after the poster, the problem gets a section
  * of its own on a flat grey, with section padding above and below. One
  * hierarchy, top to bottom: the problem in display type, the pills, the
- * lede, the two ways in, the note, then the loop. Spacing on the 8 px scale:
- * 40 · 24 · 40 · 16, and the loop a section step below. */
+ * lede, the two ways in, then the loop. Spacing on the 8 px scale: 40 · 24
+ * · 40, and the loop a section step below. */
 main > .slab { margin-top: var(--section); padding-bottom: var(--section); background: var(--slab); }
 .hero-text {
   position: relative; z-index: 1;
@@ -472,7 +472,6 @@ main > .slab { margin-top: var(--section); padding-bottom: var(--section); backg
 .slab .pills { margin: 40px 0 0; }
 .slab .lede { margin-top: 24px; }
 .slab .hero-actions { margin-top: 40px; }
-.slab .note { margin-top: 16px; max-width: 64ch; }
 .pills { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 20px; padding: 0 0 0 4px; list-style: none; }
 .pills li {
   padding: 5px 12px 4px; color: #fff; background: #0000ed;

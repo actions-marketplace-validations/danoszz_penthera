@@ -111,7 +111,8 @@ the limits band stays dithered. The problem line is display type at the h2
 scale (40 to 88 px, line-height 1, tracking -0.04em, balanced) and keeps its
 marker strokes, now 0.88em bands inside a 1em line, so the lines sit tight.
 One order, spaced on the 8 px scale: problem, 40, pills, 24, lede, 40, the
-two ways in, 16, the note, then the loop a section step below. "See it work"
+two ways in, then the loop a section step below. The note under the
+buttons was dropped on review: the poster already offers the code scan. "See it work"
 drops the walkthrough video (the loop is enough) for three light-theme shots
 of `penthera ui` side by side, numbered 1 to 3: start a check, see what to
 fix first, approve a fix. They are made from the real dashboard with demo

@@ -108,7 +108,7 @@
     </section>
 
     <!-- The problem, on its own grey slab: the problem line, the pills, the
-         lede, the two ways in and the note, then the 12-second loop. Fix mode
+         lede and the two ways in, then the 12-second loop. Fix mode
          hides it with the poster (.hero[data-mode="fix"] + .slab). -->
     <section class="slab" aria-label="The problem">
       <div class="hero-text">
@@ -124,7 +124,6 @@
           </button>
           <button class="btn btn-prompt" type="button" data-js data-track="agent-prompt" data-copy="Set up Penthera in this repo. Run `npx penthera init --dry-run` and show me what it would do. Then run `npx penthera agents` and `npx penthera deps`, and list the findings by severity, with the file for each. Do not change, commit or push anything without asking me."><svg class="tool-icon" viewBox="0 0 9 9" aria-hidden="true"><path d="M0 0h1v1h-1zM4 0h1v1h-1zM8 0h1v1h-1zM1 1h1v1h-1zM4 1h1v1h-1zM7 1h1v1h-1zM2 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM3 3h3v1h-3zM0 4h9v1h-9zM3 5h3v1h-3zM2 6h1v1h-1zM4 6h1v1h-1zM6 6h1v1h-1zM1 7h1v1h-1zM4 7h1v1h-1zM7 7h1v1h-1zM0 8h1v1h-1zM4 8h1v1h-1zM8 8h1v1h-1z"/></svg><span data-copy-label>Copy prompt for your AI coding agent</span></button>
         </div>
-        <p class="note">Or scan your code, dependencies and AI tooling on your machine. No install, no account, Node 22 or later.</p>
       </div>
       <figure class="loop">
         <video data-loop muted loop playsinline preload="metadata" poster="/media/hero.jpg" width="960" height="526" controls aria-label="A 12-second loop: npx penthera sets up a project, an offline scan runs in the terminal, the dashboard shows the verdict, and a fix is approved">
@@ -267,21 +266,21 @@
         <li>
           <p class="step-n"><span>1</span> Start a check</p>
           <figure class="shot">
-            <img src="/media/tour/tour-1-scan.jpg" width="800" height="500" loading="lazy" alt="The Check my app window in the dashboard, light theme: Check my app or Fix problems for me, the app's folder code/acme-shop, where the app runs, AI mode off, Offline on, and the Check my app button">
+            <img src="/media/tour/tour-1-scan.jpg" width="1200" height="750" loading="lazy" alt="The Check my app window in the dashboard, light theme: what do you want to do, with Check my app chosen over Fix problems for me, the app's folder code/acme-shop, and where the app runs, http://localhost:3000">
             <figcaption>Run <code>npx penthera ui</code>, pick your app's folder and check it. Local only.</figcaption>
           </figure>
         </li>
         <li>
           <p class="step-n"><span>2</span> See what to fix first</p>
           <figure class="shot">
-            <img src="/media/tour/tour-2-verdict.jpg" width="800" height="500" loading="lazy" alt="The dashboard in Simple mode, light theme: the verdict 'Not ready to ship: 1 critical problem to fix first', 11 to fix and 17 fixed, the list to fix, and a hardcoded Stripe live secret key open with what is wrong, how sure Penthera is, what to do and how to check the fix">
+            <img src="/media/tour/tour-2-verdict.jpg" width="1200" height="750" loading="lazy" alt="The dashboard's verdict in Simple mode, light theme: 'Not ready to ship: 1 critical problem to fix first', 11 to fix and 17 fixed, a score of 55 out of 100, the buttons Fix problems for me and Show me the first one, and first in the list to fix a critical hardcoded Stripe live secret key in code/acme-shop">
             <figcaption>A verdict, then each problem in plain words: what is wrong, how sure it is, what to do.</figcaption>
           </figure>
         </li>
         <li>
           <p class="step-n"><span>3</span> Approve a fix</p>
           <figure class="shot">
-            <img src="/media/tour/tour-3-fix.jpg" width="800" height="500" loading="lazy" alt="A fix waiting for approval, light theme: 'Penthera wants to change 1 file to fix this: Missing Content-Security-Policy header', the diff to next.config.js that adds security headers, and Stop fixing, Skip this one and Apply this fix">
+            <img src="/media/tour/tour-3-fix.jpg" width="1200" height="750" loading="lazy" alt="Fix 1 of 3 waiting for approval, light theme: 'Penthera wants to change 1 file to fix this: Missing Content-Security-Policy header', a note that it changes next.config.js on a separate branch and undoes the change if the problem stays, and the diff that adds a headers function to next.config.js">
             <figcaption>Each fix is a diff you approve. A re-scan confirms it. It never commits or pushes.</figcaption>
           </figure>
         </li>

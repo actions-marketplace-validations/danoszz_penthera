@@ -13,7 +13,8 @@ import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import {
   findRegistryRedirects, isRegistryRedirect, findLoaderEnv, loaderEnv, hookScriptTarget,
-  checkHookExtras, checkMcpExtras, checkTasks,
+  checkHookExtras, checkMcpExtras, checkTasks, npmSpecPinned, pySpecPinned, runnerPackage,
+  gitSource, gitRefPinned,
 } from "../lib/agents/rules.js";
 import { scanAgents, NOT_CHECKED_TOOL_DESCRIPTIONS } from "../lib/agents/index.js";
 import { computeLockEntries } from "../lib/agents/lock.js";
@@ -854,5 +855,75 @@ describe("Cline and Roo Code in VS Code forks", () => {
     expect(paths.every((p) => p.startsWith("/h"))).toBe(true);
     expect(vscodeGlobalStoragePaths("/h", "win32", "/real/AppData").some((p) => p.startsWith("/real/AppData"))).toBe(true);
     expect(claudeDesktopConfigPaths("/h", "win32", null).every((p) => p.startsWith("/h"))).toBe(true);
+  });
+});
+
+// ── Git sources: pinned only by a full commit ───────────────────────────────
+
+describe("git sources in MCP launch specs", () => {
+  const SHA = "0123456789abcdef".repeat(3).slice(0, 40);
+  const REPO = j("https://", "github", ".com/", "acme/", "mcp-tool");
+  const GITP = j("git", "+");
+
+  it("treats a git+ URL as pinned only with a full commit SHA", () => {
+    // uvx --from git+https://… with no ref, a tag or a commit
+    expect(runnerPackage(["uvx", "--from", GITP + REPO, "tool"])).toMatchObject({ pinned: false, git: true });
+    expect(runnerPackage(["uvx", "--from", `${GITP}${REPO}@v1.2`, "tool"])).toMatchObject({ pinned: false });
+    expect(runnerPackage(["uvx", "--from", `${GITP}${REPO}@${SHA}`, "tool"])).toMatchObject({ pinned: true });
+    // pip install git+…@v1.2 (the spec pip receives)
+    expect(pySpecPinned(`${GITP}${REPO}@v1.2`)).toBe(false);
+    expect(pySpecPinned(`${GITP}${REPO}@${SHA}#subdirectory=srv`)).toBe(true);
+    expect(pySpecPinned(`tool @ ${GITP}${REPO}@main`)).toBe(false);
+    expect(pySpecPinned(`tool @ ${GITP}${REPO}@${SHA}`)).toBe(true);
+    expect(pySpecPinned(j(GITP, "ssh://", "git@", "github.com/acme/mcp-tool"))).toBe(false);
+    // a short SHA is not a full commit
+    expect(pySpecPinned(`${GITP}${REPO}@${SHA.slice(0, 7)}`)).toBe(false);
+  });
+
+  it("treats npm git specs (github:, owner/repo, git+…#ref) as pinned only with #<sha>", () => {
+    expect(runnerPackage(["npx", "-y", j("github", ":acme/mcp-tool")])).toMatchObject({ pinned: false, git: true, autoYes: true });
+    expect(npmSpecPinned(j("github", ":acme/mcp-tool#v1.2.0"))).toBe(false);
+    expect(npmSpecPinned(j("github", `:acme/mcp-tool#${SHA}`))).toBe(true);
+    expect(npmSpecPinned("acme/mcp-tool")).toBe(false);
+    expect(npmSpecPinned(`acme/mcp-tool#${SHA}`)).toBe(true);
+    expect(npmSpecPinned(`${GITP}${REPO}.git#main`)).toBe(false);
+    expect(npmSpecPinned(`${GITP}${REPO}.git#${SHA}`)).toBe(true);
+    expect(npmSpecPinned(`tool@${GITP}${REPO}.git#${SHA}`)).toBe(true);
+    expect(npmSpecPinned(j(GITP, "ssh://", "git@", "github.com:acme/mcp-tool.git#v1"))).toBe(false);
+    expect(npmSpecPinned(REPO)).toBe(false);
+    // unchanged: local paths, tarball URLs and exact versions
+    expect(npmSpecPinned("./local")).toBe(true);
+    expect(npmSpecPinned("../up/pkg")).toBe(true);
+    expect(npmSpecPinned(j("https://", "example.invalid/", "pkg-1.0.0.tgz"))).toBe(true);
+    expect(npmSpecPinned("pkg@1.2.3")).toBe(true);
+    expect(pySpecPinned("./x")).toBe(true);
+  });
+
+  it("finds the git source and its ref", () => {
+    expect(gitSource("pkg==1.0.0")).toBeNull();
+    expect(gitSource(`tool @ ${GITP}${REPO}@v1`)).toBe(`${GITP}${REPO}@v1`);
+    // `git@host` in an ssh URL is the user, not a ref
+    expect(gitRefPinned(j(GITP, "ssh://", "git@", "github.com/acme/mcp-tool"))).toBe(false);
+  });
+
+  it("stays linear on long specs", () => {
+    const long = `${GITP}${REPO}` + "@".repeat(50_000) + "x";
+    expect(cpuMs(() => { npmSpecPinned(long); pySpecPinned(long); gitSource("a@".repeat(50_000)); })).toBeLessThan(1000);
+  });
+
+  it("reports an unpinned git source in .mcp.json and passes a commit", async () => {
+    const root = tmp();
+    put(root, ".mcp.json", json({ mcpServers: {
+      tagged: { command: "npx", args: ["-y", `${GITP}${REPO}.git#main`] },
+      branch: { command: "uvx", args: ["--from", `${GITP}${REPO}@v1.2`, "mcp-tool"] },
+      shorthand: { command: "npx", args: ["-y", j("github", ":acme/mcp-tool")] },
+      pinned: { command: "uvx", args: ["--from", `${GITP}${REPO}@${SHA}`, "mcp-tool"] },
+      pinnedNpm: { command: "npx", args: ["-y", `${GITP}${REPO}.git#${SHA}`] },
+    } }));
+    const hits = byRule(await scanAgents(root), "mcp-unpinned");
+    const names = hits.map((f) => f.title.match(/"([^"]+)"/)[1]).sort();
+    expect(names).toEqual(["branch", "shorthand", "tagged"]);
+    expect(hits.every((f) => /git source/.test(f.title))).toBe(true);
+    expect(JSON.stringify(hits)).toMatch(/40-character commit SHA/);
   });
 });

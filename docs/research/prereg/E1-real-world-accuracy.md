@@ -484,7 +484,18 @@ deviation.
 
 ## Amendments
 
-None yet.
+1. **29 Oct 2026, approved by the maintainer, before any data was collected.**
+   - **Version under test (§ 6.3):** the frozen version is now Penthera
+     2.1.0, the first stable release of the 2.x line, instead of 1.7.0. The
+     reason: 1.7.0 is no longer what users install, so its accuracy would not
+     tell them anything. The rest of § 6.3 holds for 2.1.0: it is frozen at
+     its release tag before the frame is built, and no rule changes during
+     the study. If 2.1.0 is not released before the frame is built, the study
+     waits.
+   - **Data license:** the published manifest and labels are released under
+     CC BY 4.0. Scanned projects keep their own licenses, and their source
+     is not redistributed.
+   - The registered text above is unchanged.
 
 ## Notes added after registration, 29 Oct 2026
 
@@ -563,13 +574,8 @@ one place:
 | 2026-10-20 | Registered by merge to `main` | `d8d50c5` |
 | 2026-10-29 | Abstract and these notes added; registered text unchanged | this commit |
 
-Deviations so far: none. No data has been collected.
+Deviations so far: none. Amendment 1 (29 Oct 2026) sets the version under test to 2.1.0 and the data license to CC BY 4.0, before any data. No data has been collected.
 
-**Open for the maintainer, before the frame is built.** § 6.3 freezes
-Penthera 1.7.0. The current release line is 2.x. Measuring 2.x instead is a
-change to § 6.3, so it needs a dated amendment before any project is
-scanned. Two more gaps for an amendment: a license for the published data
-files (CC BY 4.0 would match common practice), and the names of labeller B
-and the third person.
+**Still open for the maintainer:** the names of labeller B and the third person.
 
 No figure: there are no data yet.

@@ -1149,6 +1149,11 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 
 /* Blog (site/blog.mjs): the landing frame. */
 .blog-meta, .blog-src { margin-top: 16px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
+/* Blog figures: white paper plates (blog/figures/*.svg) in both themes, framed
+ * so the plate reads as a figure on the black ground too. */
+.md-fig { margin: 32px 0 0; }
+.md-fig img { display: block; width: 100%; height: auto; background: #ffffff; border: 1px solid var(--frame); }
+.md-fig figcaption { margin-top: 10px; line-height: 1.6; }
 .blog-draft { display: inline-block; margin-bottom: 16px; padding: 6px 10px; font-family: var(--px); font-size: 13px; background: var(--accent); color: var(--on-accent); }
 
 /* Research (/research, site/research.mjs): the benchmark frame. One statement,

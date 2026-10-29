@@ -22,6 +22,9 @@ F1 balances precision (how many reported secrets were real) and recall (how many
 
 The median F1 of the other free tools was {{fact:secrets.median.f1}}.
 
+![Scatter plot of precision against recall for every secret scanner on the CredData test half, each point with 95% Wilson whiskers, over curves of equal F1. deepsecrets sits furthest to the right; Penthera sits higher, with fewer false hits and lower recall; trufflehog and whispers sit near the bottom left.](figures/secrets-precision-recall.svg)
+Precision against recall for every tool, with 95% Wilson intervals as whiskers and curves of equal F1. Up is fewer false hits, right is more secrets found. Drawn by `blog/figures/make.mjs` from published.json.
+
 ## Where Penthera loses
 
 deepsecrets finds more. Its recall is {{fact:secrets.deepsecrets.r}} against Penthera's {{fact:secrets.penthera.r}}, and the intervals do not overlap. Penthera reports fewer false hits: precision {{fact:secrets.penthera.p}} against {{fact:secrets.deepsecrets.p}}. If missing a secret costs you more than reading a false alarm, that trade goes the wrong way for you.
@@ -55,7 +58,7 @@ CredSweeper scored F1 {{fact:secrets.credsweeper.score}}. It is made by the Cred
 
 - **Dataset.** Samsung CredData, a set of files from open-source projects with hand-reviewed credential labels (Yun et al., 2021). Only its sealed test half was scored, once, as the [method post](/blog/sealed-half-benchmark) describes.
 - **Intervals.** Precision and recall carry 95% Wilson intervals (Wilson, 1927). F1, F0.5 and F2 are computed from the two rates and have no interval of their own here.
-- **Figure.** [Precision against recall for every tool](https://github.com/danoszz/penthera/blob/main/blog/figures/secrets-precision-recall.svg), with the intervals as whiskers and curves of equal F1. It is drawn by `blog/figures/make.mjs` from published.json.
+- **Figure.** The plot under the ranking is drawn by `blog/figures/make.mjs` from published.json ([the SVG](https://github.com/danoszz/penthera/blob/main/blog/figures/secrets-precision-recall.svg)).
 - **Other work.** Meli et al. (2019) measured how secrets leak on GitHub at scale. SecretBench is another labelled set of real secrets (Basak et al., 2023). Numbers on those sets are not comparable with these.
 
 ## Check it yourself

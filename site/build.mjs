@@ -590,6 +590,13 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   const research = researchEntries({ root: ROOT, pub, posts: posts.published });
   writeFileSync(join(OUT, "research.html"), researchHtml(research, { origin: ORIGIN, pub, styles, blog }));
   writeFileSync(join(OUT, "research.md"), researchMarkdown(research, { origin: ORIGIN, pub }));
+  // The figures of every post the build renders, at /blog/figures/.
+  for (const p of [...posts.published, ...(drafts ? posts.drafts : [])]) {
+    for (const [name, fig] of Object.entries(p.figures)) {
+      mkdirSync(join(OUT, "blog", "figures"), { recursive: true });
+      cpSync(fig.path, join(OUT, "blog", "figures", name));
+    }
+  }
   for (const [f, text] of Object.entries(blogFiles(posts, { origin: ORIGIN, styles, drafts }))) {
     mkdirSync(dirname(join(OUT, f)), { recursive: true });
     writeFileSync(join(OUT, f), text);

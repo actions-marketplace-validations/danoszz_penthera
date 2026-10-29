@@ -116,7 +116,10 @@ buttons was dropped on review: the poster already offers the code scan. "See it 
 drops the walkthrough video (the loop is enough) for three light-theme shots
 of `penthera ui` side by side, numbered 1 to 3: start a check, see what to
 fix first, approve a fix. They are made from the real dashboard with demo
-data by `site/tools/tour-shots.mjs` and show light in both themes.
+data by `site/tools/tour-shots.mjs` and show light in both themes. After
+review each is cropped to its key area (the Check my app window, the verdict
+with the first problem, the fix dialog with its diff) at device scale 2, so
+it reads at a third of the page; no lightbox.
 
 ## Anti-references
 

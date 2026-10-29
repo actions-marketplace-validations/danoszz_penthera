@@ -106,7 +106,7 @@ function devToTest() {
   const dev = Object.fromEntries([...line[1].matchAll(/(secrets F1|SecBench\.js|npm|PyPI) (\d\.\d\d) to (\d\.\d\d)/g)].map((m) => [m[1], { dev: +m[2], test: +m[3] }]));
   const table = {};
   for (const [label, key] of [["Secrets F1", "secrets F1"], ["npm, caught minus false alarms", "npm"], ["PyPI, caught minus false alarms", "PyPI"], ["SecBench.js, found", "SecBench.js"]]) {
-    const m = results.match(new RegExp(`\\| ${label.replace(/[.]/g, "\\.")} \\| (\\d\\.\\d\\d) \\| (\\d\\.\\d\\d) \\|`));
+    const m = results.match(new RegExp(`\\| ${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\| (\\d\\.\\d\\d) \\| (\\d\\.\\d\\d) \\|`));
     if (!m) throw new Error(`bench/public/RESULTS.md "Both test runs" has no row "${label}"`);
     table[key] = { r1: +m[1], r2: +m[2] };
   }

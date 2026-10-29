@@ -11,6 +11,8 @@
  *   bench/public/published.json   E11b sealed test half (secrets, npm, PyPI)
  *   bench/public/RESULTS.md       E11 summary table and the E14 step-2 CredData
  *                                 table, read as written (counts, not rounded rates)
+ *   bench/public/reanalysis.json  the exploratory re-analysis of 29 Oct 2026
+ *                                 (written by reanalysis.mjs from local per-item data)
  *
  * Captions (n, source file, date) and alt text live next to each figure in
  * RESULTS.md; each SVG also carries <title> and <desc>.
@@ -40,6 +42,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = join(HERE, "figures");
 const published = JSON.parse(readFileSync(join(HERE, "published.json"), "utf-8"));
 const results = readFileSync(join(HERE, "RESULTS.md"), "utf-8");
+const reanalysis = JSON.parse(readFileSync(join(HERE, "reanalysis.json"), "utf-8"));
 
 const C = {
   plate: "#ffffff",
@@ -314,11 +317,88 @@ function e11Figure() {
   return svg(W, y0 + h + 44, "E11 estimates against their registered thresholds", desc, body);
 }
 
+// Figure: one CredData estimate under three intervals (exploratory re-analysis).
+function reanalysisIntervalsFigure() {
+  const T = reanalysis.creddata.tools;
+  const groups = [];
+  for (const tool of ["Penthera", "gitleaks"]) {
+    for (const [key, name] of [["precision", "precision"], ["recall", "recall in scope"], ["f1", "F1"]]) groups.push({ tool, name, m: T[tool][key] });
+  }
+  const methods = [["wilson", "Wilson (registered)", "square"], ["files", "files", "ring"], ["repositories", "repositories", "dot"]];
+  const x0 = 230, w = 380, y0 = 14, rowH = 14, gap = 8;
+  const X = (v) => f(x0 + v * w);
+  const gh = (methods.length + 1) * rowH + gap;
+  const h = groups.length * gh;
+  const body = [];
+  for (let i = 1; i < 5; i++) body.push(`<line x1="${X(i / 5)}" y1="${y0}" x2="${X(i / 5)}" y2="${y0 + h}" stroke="${C.grid}" stroke-width="1"/>`);
+  body.push(`<rect x="${X(0)}" y="${y0}" width="${w}" height="${h}" fill="none" stroke="${C.frame}" stroke-width="1"/>`);
+  for (let i = 0; i <= 5; i++) body.push(text(X(i / 5), y0 + h + 15, (i / 5).toFixed(1), { size: 11, anchor: "middle" }));
+  body.push(text(x0 + w / 2, y0 + h + 33, "Share, with 95% interval", { fill: C.ink, anchor: "middle" }));
+  const desc = [];
+  groups.forEach((g, gi) => {
+    const top = y0 + gi * gh + gap / 2;
+    const pen = g.tool === "Penthera";
+    const color = pen ? C.penthera : C.other;
+    if (gi > 0) body.push(`<line x1="${X(0)}" y1="${f(top - gap / 2)}" x2="${X(1)}" y2="${f(top - gap / 2)}" stroke="${C.grid}" stroke-width="1"/>`);
+    body.push(text(16, top + rowH / 2 + 4, `${g.tool}, ${g.name} ${g.m.value.toFixed(2)}`, { fill: pen ? C.penthera : C.ink, weight: pen ? "bold" : "normal" }));
+    const parts = [];
+    methods.forEach(([k, label, shape], mi) => {
+      const ci = g.m[k];
+      const y = f(top + (mi + 1) * rowH + rowH / 2);
+      body.push(text(x0 - 8, y + 4, label, { size: 10.5, fill: C.refLabel, anchor: "end" }));
+      if (!ci) {
+        body.push(text(X(0) + 6, y + 4, "none for F1", { size: 10, fill: C.refLabel }));
+        return;
+      }
+      body.push(`<line x1="${X(ci[0])}" y1="${y}" x2="${X(ci[1])}" y2="${y}" stroke="${color}" stroke-width="1.5"/>`);
+      body.push(...mark(X, (v) => v, { x: g.m.value, y, color, shape, r: 3.5 }));
+      parts.push(`${label} [${ci[0].toFixed(2)}, ${ci[1].toFixed(2)}]`);
+    });
+    desc.push(`${g.tool} ${g.name} ${g.m.value.toFixed(2)}: ${parts.join(", ")}`);
+  });
+  return svg(W, y0 + h + 44, "CredData test half: one estimate, three intervals",
+    "Dot plot of Penthera's and gitleaks' precision, in-scope recall and F1 on the CredData test half, each with up to three 95% intervals: Wilson (as registered in E11b), a bootstrap over files (as in E14) and a bootstrap over repositories (exploratory). " + desc.join("; ") + ". Resampling files or repositories gives wider intervals than Wilson's, most of all for gitleaks' recall.", body);
+}
+
+// Figure: secret scanners' recall in scope and over every true row (exploratory re-analysis).
+function reanalysisScopeFigure() {
+  const rows = reanalysis.scopeFree.secrets.filter((r) => r.all).sort((a, b) => b.inScope[0] / b.inScope[1] - a.inScope[0] / a.inScope[1]);
+  const x0 = 210, w = 380, y0 = 30, rowH = 24;
+  const X = (v) => f(x0 + v * w);
+  const h = rows.length * rowH;
+  const body = [];
+  for (let i = 1; i < 5; i++) body.push(`<line x1="${X(i / 5)}" y1="${y0}" x2="${X(i / 5)}" y2="${y0 + h}" stroke="${C.grid}" stroke-width="1"/>`);
+  body.push(`<rect x="${X(0)}" y="${y0}" width="${w}" height="${h}" fill="none" stroke="${C.frame}" stroke-width="1"/>`);
+  for (let i = 0; i <= 5; i++) body.push(text(X(i / 5), y0 + h + 15, (i / 5).toFixed(1), { size: 11, anchor: "middle" }));
+  body.push(text(x0 + w / 2, y0 + h + 33, "Recall (share of true credential rows found)", { fill: C.ink, anchor: "middle" }));
+  const desc = [];
+  rows.forEach((r, i) => {
+    const y = f(y0 + i * rowH + rowH / 2);
+    const pen = r.kind === "penthera";
+    const color = pen ? C.penthera : r.excluded ? C.muted : C.other;
+    const a = r.inScope[0] / r.inScope[1], b = r.all[0] / r.all[1];
+    const name = pen ? `Penthera ${r.version}` : r.excluded ? `${r.tool} (trained on CredData)` : r.tool;
+    body.push(text(16, y + 4, name, { fill: pen ? C.penthera : r.excluded ? C.muted : C.ink, weight: pen ? "bold" : "normal" }));
+    body.push(`<line x1="${X(Math.min(a, b))}" y1="${y}" x2="${X(Math.max(a, b))}" y2="${y}" stroke="${color}" stroke-width="1"/>`);
+    body.push(...mark(X, (v) => v, { x: b, y, color, shape: "ring", r: 4 }));
+    body.push(...mark(X, (v) => v, { x: a, y, color, shape: r.excluded ? "ring" : "dot", r: 4.5 }));
+    desc.push(`${name}: ${a.toFixed(2)} in scope, ${b.toFixed(2)} over all true rows`);
+  });
+  // Label the two ends once, above the first ranked tool.
+  const r0 = rows.find((r) => !r.excluded);
+  body.push(text(X(r0.inScope[0] / r0.inScope[1]), y0 - 8, "● in scope (registered)", { size: 11, fill: C.refLabel, anchor: "middle" }));
+  body.push(text(X(r0.all[0] / r0.all[1]), y0 - 8, "○ all true rows", { size: 11, fill: C.refLabel, anchor: "middle" }));
+  return svg(W, y0 + h + 44, "Secret scanners on CredData: recall in scope and over all true rows",
+    `Dumbbell plot of recall on the CredData test half for ${rows.length} secret scanners: the registered in-scope recall (filled dot, ${reanalysis.creddata.rows.inScope} rows) and the recall over every true row (ring, ${reanalysis.creddata.rows.T} rows). ` + desc.join("; ") + ". Every tool's recall drops over all rows; Penthera's drops the most, because most true rows are in families it has no rule for.", body);
+}
+
 const FIGURES = {
   "e11-hypotheses.svg": e11Figure,
   "e11b-secrets-precision-recall.svg": secretsFigure,
   "e11b-malware-caught-vs-false-alarms.svg": malwareFigure,
   "e14-creddata-arms.svg": e14Figure,
+  "reanalysis-creddata-intervals.svg": reanalysisIntervalsFigure,
+  "reanalysis-secrets-scope.svg": reanalysisScopeFigure,
 };
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

@@ -212,6 +212,15 @@ and differing path. The CI run uploads it as an artifact.
   nothing broader (§ 7). `git` is not guarded; that it only runs local
   commands comes from reading the code, not from a measurement.
 
+### Limits (added 29 Oct 2026)
+
+`git` runs outside the guard. Four small targets and one mock server.
+`install`, `--giants`, `--recon`, `--suppliers` and AI mode are out of
+scope. The full list is under "Limits" in
+[bench/offline/RESULTS.md](../../../bench/offline/RESULTS.md). What every
+results file reports is in the
+[results-file checklist](../results-checklist.md).
+
 ### Status
 
 Draft `dd37a9b`; pilot `00209fd`; registered `dfd5053` (28 Oct 2026);

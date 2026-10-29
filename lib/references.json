@@ -773,7 +773,22 @@
       "url": "https://doi.org/10.1073/pnas.1708274114"
     },
     "bhuiyan2023secbenchjs": {
+      "cite": "Bhuiyan et al. 2023",
+      "title": "SecBench.js: An Executable Security Benchmark Suite for Server-Side JavaScript",
+      "url": "https://doi.org/10.1109/ICSE48619.2023.00096"
+    },
+    "jackson2026emudhra": {
       "cite": "Mozilla bug 2083449",
+      "title": "eMudhra: Private Key Compromise of Intermediate Certificates",
+      "url": "https://bugzilla.mozilla.org/show_bug.cgi?id=2083449"
+    },
+    "heninger2012mining": {
+      "cite": "Heninger et al. 2012",
+      "title": "Mining Your Ps and Qs: Detection of Widespread Weak Keys in Network Devices",
+      "url": "https://www.usenix.org/conference/usenixsecurity12/technical-sessions/presentation/heninger"
+    },
+    "nemec2017roca": {
+      "cite": "Nemec et al. 2017",
       "title": "The Return of Coppersmith's Attack: Practical Factorization of Widely Used RSA Moduli",
       "url": "https://doi.org/10.1145/3133956.3133969"
     },
@@ -848,9 +863,44 @@
       "url": "https://doi.org/10.48550/arXiv.2503.17332"
     },
     "wang2025cybergym": {
+      "cite": "Wang et al. 2025",
+      "title": "CyberGym: Evaluating AI Agents' Real-World Cybersecurity Capabilities at Scale",
+      "url": "https://doi.org/10.48550/arXiv.2506.02548"
+    },
+    "kapoor2023leakage": {
       "cite": "Kapoor & Narayanan 2023",
       "title": "Leakage and the Reproducibility Crisis in Machine-Learning-Based Science",
       "url": "https://doi.org/10.1016/j.patter.2023.100804"
+    },
+    "bossuyt2015stard": {
+      "cite": "Bossuyt et al. 2015",
+      "title": "STARD 2015: An Updated List of Essential Items for Reporting Diagnostic Accuracy Studies",
+      "url": "https://doi.org/10.1136/bmj.h5527"
+    },
+    "ralph2021empirical": {
+      "cite": "Ralph et al. 2021",
+      "title": "Empirical Standards for Software Engineering Research",
+      "url": "https://doi.org/10.48550/arXiv.2010.03525"
+    },
+    "sigsoft2026benchmarking": {
+      "cite": "ACM SIGSOFT Empirical Standards",
+      "title": "Benchmarking (of Software Systems)",
+      "url": "https://github.com/acmsigsoft/EmpiricalStandards/blob/master/docs/standards/Benchmarking.md"
+    },
+    "sigsoft2026registered": {
+      "cite": "ACM SIGSOFT Empirical Standards",
+      "title": "Registered Reports",
+      "url": "https://github.com/acmsigsoft/EmpiricalStandards/blob/master/docs/supplements/RegisteredReports.md"
+    },
+    "sigsoft2026irr": {
+      "cite": "ACM SIGSOFT Empirical Standards",
+      "title": "Inter-Rater Reliability and Agreement",
+      "url": "https://github.com/acmsigsoft/EmpiricalStandards/blob/master/docs/supplements/InterRaterReliabilityAndAgreement.md"
+    },
+    "field2007bootstrapping": {
+      "cite": "Field & Welsh 2007",
+      "title": "Bootstrapping Clustered Data",
+      "url": "https://doi.org/10.1111/j.1467-9868.2007.00593.x"
     }
   }
 }

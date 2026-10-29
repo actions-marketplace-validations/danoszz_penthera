@@ -260,11 +260,21 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 ## Research methods and statistics
 
+<a id="sigsoft2026benchmarking"></a>† ACM SIGSOFT Empirical Standards. (n.d.-a). *Benchmarking (of software systems)*. Retrieved October 29, 2026, from [https://github.com/acmsigsoft/EmpiricalStandards/blob/master/docs/standards/Benchmarking.md](https://github.com/acmsigsoft/EmpiricalStandards/blob/master/docs/standards/Benchmarking.md)
+
+<a id="sigsoft2026irr"></a>† ACM SIGSOFT Empirical Standards. (n.d.-b). *Inter-rater reliability and agreement*. Retrieved October 29, 2026, from [https://github.com/acmsigsoft/EmpiricalStandards/blob/master/docs/supplements/InterRaterReliabilityAndAgreement.md](https://github.com/acmsigsoft/EmpiricalStandards/blob/master/docs/supplements/InterRaterReliabilityAndAgreement.md)
+
+<a id="sigsoft2026registered"></a>† ACM SIGSOFT Empirical Standards. (n.d.-c). *Registered reports*. Retrieved October 29, 2026, from [https://github.com/acmsigsoft/EmpiricalStandards/blob/master/docs/supplements/RegisteredReports.md](https://github.com/acmsigsoft/EmpiricalStandards/blob/master/docs/supplements/RegisteredReports.md)
+
+<a id="bossuyt2015stard"></a>† Bossuyt, P. M., Reitsma, J. B., Bruns, D. E., Gatsonis, C. A., Glasziou, P. P., Irwig, L., Lijmer, J. G., Moher, D., Rennie, D., de Vet, H. C. W., Kressel, H. Y., Rifai, N., Golub, R. M., Altman, D. G., Hooft, L., Korevaar, D. A., & Cohen, J. F. (2015). STARD 2015: An updated list of essential items for reporting diagnostic accuracy studies. *BMJ*, Article h5527. [https://doi.org/10.1136/bmj.h5527](https://doi.org/10.1136/bmj.h5527)
+
 <a id="cohen1960coefficient"></a>† Cohen, J. (1960). A coefficient of agreement for nominal scales. *Educational and Psychological Measurement*, *20*(1), 37–46. [https://doi.org/10.1177/001316446002000104](https://doi.org/10.1177/001316446002000104)
 
 <a id="efron1979bootstrap"></a>† Efron, B. (1979). Bootstrap methods: Another look at the jackknife. *The Annals of Statistics*, *7*(1), 1–26. [https://doi.org/10.1214/aos/1176344552](https://doi.org/10.1214/aos/1176344552)
 
 <a id="feinstein1990paradoxes"></a>† Feinstein, A. R., & Cicchetti, D. V. (1990). High agreement but low kappa: I. The problems of two paradoxes. *Journal of Clinical Epidemiology*, *43*(6), 543–549. [https://doi.org/10.1016/0895-4356(90)90158-L](https://doi.org/10.1016/0895-4356(90)90158-L)
+
+<a id="field2007bootstrapping"></a>† Field, C. A., & Welsh, A. H. (2007). Bootstrapping clustered data. *Journal of the Royal Statistical Society Series B: Statistical Methodology*, *69*(3), 369–390. [https://doi.org/10.1111/j.1467-9868.2007.00593.x](https://doi.org/10.1111/j.1467-9868.2007.00593.x)
 
 <a id="fleiss1969large"></a>† Fleiss, J. L., Cohen, J., & Everitt, B. S. (1969). Large sample standard errors of kappa and weighted kappa. *Psychological Bulletin*, *72*(5), 323–327. [https://doi.org/10.1037/h0028106](https://doi.org/10.1037/h0028106)
 
@@ -275,6 +285,8 @@ Entries marked † are further reading: they inform the work but are not cited i
 <a id="nosek2018preregistration"></a>† Nosek, B. A., Ebersole, C. R., DeHaven, A. C., & Mellor, D. T. (2018). The preregistration revolution. *Proceedings of the National Academy of Sciences*, *115*(11), 2600–2606. [https://doi.org/10.1073/pnas.1708274114](https://doi.org/10.1073/pnas.1708274114)
 
 <a id="petersson2004capture"></a>† Petersson, H., Thelin, T., Runeson, P., & Wohlin, C. (2004). Capture–recapture in software inspections after 10 years research: Theory, evaluation and application. *Journal of Systems and Software*, *72*(2), 249–264. [https://doi.org/10.1016/S0164-1212(03)00090-6](https://doi.org/10.1016/S0164-1212(03)00090-6)
+
+<a id="ralph2021empirical"></a>† Ralph, P., bin Ali, N., Baltes, S., Bianculli, D., Diaz, J., Dittrich, Y., Ernst, N., Felderer, M., Feldt, R., Filieri, A., de França, B. B. N., Furia, C. A., Gay, G., Gold, N., Graziotin, D., He, P., Hoda, R., Juristo, N., Kitchenham, B., . . . Vegas, S. (2021). *Empirical standards for software engineering research* [Preprint]. arXiv. [https://doi.org/10.48550/arXiv.2010.03525](https://doi.org/10.48550/arXiv.2010.03525)
 
 <a id="webber2013recall"></a>† Webber, W. (2013). Approximate recall confidence intervals. *ACM Transactions on Information Systems*, *31*(1), 1–33. [https://doi.org/10.1145/2414782.2414784](https://doi.org/10.1145/2414782.2414784)
 

@@ -308,6 +308,16 @@ dataset lines.
   benchmarks (secrets F1 0.81 to 0.74, SecBench.js 0.88 to 0.70, npm 0.83 to
   0.71, PyPI 0.92 to 0.82). The test numbers are the result.
 
+### Limits (added 29 Oct 2026)
+
+CredData is split by file, not by repository, and SecBench.js had four
+packages on both halves (§ 11). The free tools ran on their defaults while
+Penthera was tuned on the dev half. The rest is under "How far to trust
+these numbers" in [RESULTS.md](../../../bench/public/RESULTS.md). An
+exploratory re-analysis there shows the intervals by repository, recall
+without the scope filter, and a log of each tuning pass. What every results
+file reports is in the [results-file checklist](../results-checklist.md).
+
 ### Status and log
 
 The status row above and § 11 already log dates, commits and deviations.

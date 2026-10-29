@@ -135,4 +135,5 @@ Findings judged incorrect or cannot-tell:
 - **Strict precision** counts only answer-key matches as correct: a lower bound.
 - **Recall** is over root causes (answer-key `group`s) in scope for the run. Entries that need a session or payloads count only in runs that have them.
 - The labels here are one provisional labeller's (see each `labels.json`); the protocol needs two, blinded, with κ ≥ 0.70.
+- What a results file must report, and the gaps this pilot leaves open, are in the [results-file checklist](../../docs/research/results-checklist.md).
 

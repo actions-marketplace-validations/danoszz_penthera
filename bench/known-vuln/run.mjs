@@ -256,6 +256,7 @@ export function renderResults(report) {
   L.push("- **Strict precision** counts only answer-key matches as correct: a lower bound.");
   L.push("- **Recall** is over root causes (answer-key `group`s) in scope for the run. Entries that need a session or payloads count only in runs that have them.");
   L.push("- The labels here are one provisional labeller's (see each `labels.json`); the protocol needs two, blinded, with κ ≥ 0.70.");
+  L.push("- What a results file must report, and the gaps this pilot leaves open, are in the [results-file checklist](../../docs/research/results-checklist.md).");
   L.push("");
   return L.join("\n");
 }

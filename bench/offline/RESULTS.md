@@ -5,6 +5,8 @@
 
 Protocol: [E17 pre-registration](../../docs/research/prereg/E17-offline-and-determinism.md).
 Runner: [run.mjs](run.mjs).
+Reporting items: the [results-file checklist](../../docs/research/results-checklist.md).
+How to repeat the run is at the end of the Summary below.
 
 ## Summary (added 29 Oct 2026)
 

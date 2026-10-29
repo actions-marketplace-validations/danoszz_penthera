@@ -4,6 +4,7 @@
  */
 import { COPY } from "./copy.js";
 import { liveField } from "./field.js";
+import { cardRows, failedChecks, handoffTitle, rowTag } from "./card.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const el = (tag, cls, text) => {
@@ -81,8 +82,8 @@ function heroLoop() {
 // and verify command, and a prompt for your coding agent built from the
 // checks you pick. The report stays in this tab; nothing is stored.
 
-const SEV = { high: 0, medium: 1, low: 2, info: 3 };
 const API = "/api/check";
+const REPO_URL = "https://github.com/danoszz/penthera";
 
 async function callCheck(body) {
   const res = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, consent: true }) });
@@ -142,7 +143,7 @@ function promptFor(report, picked) {
 }
 
 function promptDialog(report) {
-  const failed = report.checks.filter((c) => !c.passed).sort((a, b) => SEV[a.severity] - SEV[b.severity]);
+  const failed = failedChecks(report);
   const dlg = el("dialog", "prompt-dialog");
   const form = el("form");
   form.method = "dialog";
@@ -195,78 +196,201 @@ function promptDialog(report) {
 
 const CATEGORY = {};
 
-function renderReport(box, report, rescan) {
-  for (const c of report.categories) CATEGORY[c.id] = c.label;
-  box.replaceChildren(backBar());
-  // Left: what was checked and the verdict. Right: the score, and the one
-  // blue button on the screen, Prompt to fix. Everything else is white.
-  const head = el("div", "report-head");
-  const id = el("div", "report-id");
-  id.append(el("p", "report-host", new URL(report.url).host), el("h2", "report-verdict", report.verdict));
-  const side = el("div", "report-side");
-  const score = el("div", "report-score");
+// ── The result, where the example was ──────────────────────────────────────
+
+// The report replaces the poster in the same grid: the hand-off on the left
+// (Prompt to fix, the full scan, the code scan), your result card on the
+// right, where the example card stood. The full report folds out below.
+
+const svg = (cls, box, d) => {
+  const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  s.setAttribute("viewBox", box);
+  s.setAttribute("aria-hidden", "true");
+  if (cls) s.setAttribute("class", cls);
+  const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  p.setAttribute("d", d);
+  s.append(p);
+  return s;
+};
+
+function starLink() {
+  const a = el("a", "ghost");
+  a.href = REPO_URL;
+  a.append(svg(null, "0 0 9 9", "M4 0h1v2h1v1h3v1H8v1H7v1h1v3H7V8H6V7H3v1H2v1H1V6h1V5H1V4H0V3h3V2h1z"), document.createTextNode("Star on GitHub"));
+  a.addEventListener("click", () => count("link", { to: "github-star-result" }));
+  return a;
+}
+
+// A command to copy; onCopy counts which one, by a fixed label.
+function copyCmd(cmd, cls, onCopy) {
+  const b = el("button", `cmd${cls ? ` ${cls}` : ""}`);
+  b.type = "button";
+  const act = el("span", "cmd-act", "Copy");
+  b.append(el("span", "cmd-prompt", "$"), el("code", null, cmd), act);
+  b.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(cmd); act.textContent = "Copied"; onCopy(); } catch { getSelection().selectAllChildren(b.querySelector("code")); }
+  });
+  return b;
+}
+
+function step(n, title, note, actions, cls) {
+  const li = el("li", cls);
+  const num = el("span", "handoff-n", n);
+  num.setAttribute("aria-hidden", "true");
+  const t = el("span", "handoff-t", title);
+  t.append(el("small", null, note));
+  const a = el("span", "handoff-a");
+  a.append(...actions);
+  li.append(num, t, a);
+  return li;
+}
+
+// The next steps, the same for every result: a clean one gets them too. On
+// a phone, where npx can't run, one step: star it and finish on a laptop.
+function handoff(url, fixes, openPrompt) {
+  const ol = el("ol", "handoff");
+  let n = 1;
+  if (fixes) {
+    const b = el("button", "btn glow", `Prompt to fix (${fixes})`);
+    b.type = "button";
+    b.dataset.variant = "default";
+    b.addEventListener("click", openPrompt);
+    ol.append(step(String(n++), "Copy the prompt into Claude Code, Cursor or Codex", "Evidence, fix and a verify command for each finding.", [b], "hide-m"));
+  }
+  ol.append(step(String(n++), "Run the full scan on your own machine", "Exposed files, debug pages, API specs. Never from penthera.org.",
+    [copyCmd(`npx penthera ${url}`, "steel", () => count("copy", { what: "full-scan" }))], "hide-m"));
+  ol.append(step(String(n++), "Scan the code behind it", "Secrets and API routes in your code. It runs offline.",
+    [copyCmd("npx penthera --repo .", null, () => count("copy", { what: "repo-result" })), starLink()], "hide-m"));
+  ol.append(step("→", "The full scan and your code run on your laptop", "Star it now, find it there later.", [starLink()], "only-m"));
+  return ol;
+}
+
+function kicker(host, state) {
+  const k = el("div", "report-kick");
+  const back = el("button", "report-back", "Back");
+  back.type = "button";
+  back.setAttribute("aria-label", "Back to the start");
+  back.addEventListener("click", () => leaveFixMode());
+  const what = el("p");
+  what.append(document.createTextNode(host), el("span", null, ` · ${state} · passive`));
+  k.append(back, what);
+  return k;
+}
+
+function cardShell(host, rescan) {
+  const card = el("section", "card");
+  card.setAttribute("aria-label", "Your result");
+  const top = el("div", "card-top");
+  top.append(el("span", "card-host", host));
+  if (rescan) {
+    const again = el("button", "btn btn-white btn-sm", "Check again");
+    again.type = "button";
+    again.addEventListener("click", rescan);
+    top.append(again);
+  }
+  card.append(top);
+  return card;
+}
+
+function resultCard(report, rescan, openPrompt) {
+  const card = cardShell(new URL(report.url).host, rescan);
+  const fixes = failedChecks(report).length;
+  const score = el("div", "card-score");
   const n = el("p", "score-n", String(report.score));
   n.append(el("span", null, "/100"));
   score.append(pixels(report.score), n);
-  side.append(score);
-  const failed = report.checks.filter((c) => !c.passed);
-  if (failed.length) {
-    const open = el("button", "btn report-prompt", `Prompt to fix (${failed.length})`);
-    open.type = "button";
-    open.dataset.variant = "default";
-    open.addEventListener("click", () => { const d = promptDialog(report); document.body.append(d); d.showModal(); });
-    side.append(open);
-  } else {
-    side.append(el("p", "report-clean", "Nothing to fix from the outside. The full scan goes further."));
+  const rows = el("ul", "card-rows");
+  for (const c of cardRows(report)) {
+    const li = el("li", c.passed ? "ok" : null);
+    li.append(el("span", "card-tag", rowTag(c)), document.createTextNode(c.title));
+    rows.append(li);
   }
-  const meta = el("p", "report-meta", `Checked ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
-  const again = el("button", "btn btn-white btn-sm", "Check again");
-  again.type = "button";
-  again.addEventListener("click", rescan);
-  meta.append(again);
-  side.append(meta);
-  head.append(id, side);
+  card.append(el("p", "card-verdict", report.verdict), score, rows);
+  if (fixes) {
+    const b = el("button", "card-prompt", `Prompt to fix (${fixes})`);
+    b.type = "button";
+    b.addEventListener("click", openPrompt);
+    card.append(b);
+  } else {
+    card.append(el("p", "card-clean", "The full scan on your own machine goes further."));
+  }
+  const more = el("div", "card-more");
+  const a = el("a", null, `All ${report.checks.length} checks, with evidence`);
+  a.href = "#report-detail";
+  more.append(a, el("span", null, "nothing stored"));
+  card.append(more);
+  return card;
+}
 
+// Every check with its evidence, fix and verify command, below the fold.
+function reportDetail(report) {
+  const wrap = el("div", "report-detail");
+  wrap.id = "report-detail";
+  wrap.append(el("h3", null, "Every check, with evidence"));
   const cats = el("ul", "report-cats");
   for (const c of report.categories) {
     const li = el("li", c.passed === c.total ? "ok" : null);
     li.append(el("span", null, c.label), el("span", "cat-n", `${c.passed} / ${c.total} passed`));
     cats.append(li);
   }
-  // What to fix first, open; what passed, folded into one line.
-  const list = el("ol", "report-list");
-  failed.sort((a, b) => SEV[a.severity] - SEV[b.severity]).forEach((c) => list.append(findingItem(c)));
+  wrap.append(cats);
+  const failed = failedChecks(report);
+  if (failed.length) {
+    const list = el("ol", "report-list");
+    failed.forEach((c) => list.append(findingItem(c)));
+    wrap.append(list);
+  }
   const passed = report.checks.filter((c) => c.passed);
-  const fold = el("details", "report-passed");
-  fold.append(el("summary", null, `${passed.length} checks passed`));
-  const okList = el("ol", "report-list");
-  passed.forEach((c) => okList.append(findingItem(c)));
-  fold.append(okList);
-  const scope = el("p", "report-scope", report.scope);
-  box.append(head, cats);
-  if (failed.length) box.append(list);
-  if (passed.length) box.append(fold);
-  box.append(scope);
-  box.append(deeperOnYourMachine(report));
+  if (passed.length) {
+    const fold = el("details", "report-passed");
+    fold.append(el("summary", null, `${passed.length} checks passed`));
+    const okList = el("ol", "report-list");
+    passed.forEach((c) => okList.append(findingItem(c)));
+    fold.append(okList);
+    wrap.append(fold);
+  }
+  wrap.append(el("p", "report-scope", report.scope));
+  return wrap;
+}
+
+// One layout for every state: the left column and a card in the example's place.
+function layout(box, left, card, below) {
+  const grid = el("div", "report-grid");
+  const col = el("div", "report-left");
+  col.append(...left);
+  grid.append(col, card);
+  box.replaceChildren(grid, ...(below ? [below] : []));
   box.hidden = false;
 }
 
-// The deeper scan runs only on the visitor's own machine: penthera.org
-// never sends more than a browser visit would.
-function deeperOnYourMachine(report) {
-  const wrap = el("div", "report-deep");
-  wrap.append(el("h3", null, "Go deeper on your own machine"));
-  wrap.append(el("p", null, "Exposed files, debug pages, API specs and your code: the full scan runs where you are responsible for it, never from penthera.org."));
-  const cmd = `npx penthera ${report.url}`;
-  const b = el("button", "cmd cmd-white", "");
-  b.type = "button";
-  b.dataset.copy = cmd;
-  b.append(el("span", "cmd-prompt", "$"), el("code", null, cmd), el("span", "cmd-act", "Copy"));
-  b.addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText(cmd); b.lastChild.textContent = "Copied"; count("copy", { what: "full-scan" }); } catch { getSelection().selectAllChildren(b.querySelector("code")); }
-  });
-  wrap.append(b);
-  return wrap;
+function title(text) {
+  const h = el("h2", "handoff-title", text);
+  h.tabIndex = -1;
+  return h;
+}
+
+function renderReport(box, report, rescan) {
+  for (const c of report.categories) CATEGORY[c.id] = c.label;
+  const openPrompt = () => { const d = promptDialog(report); document.body.append(d); d.showModal(); };
+  const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const h = title(handoffTitle(report));
+  layout(box, [kicker(new URL(report.url).host, `checked ${time}`), h, handoff(report.url, failedChecks(report).length, openPrompt)],
+    resultCard(report, rescan, openPrompt), reportDetail(report));
+  h.focus({ preventScroll: true });
+}
+
+function renderBusy(box, host) {
+  const card = cardShell(host);
+  card.append(el("p", "card-verdict", "Checking"), el("p", "report-busy", "The page, its headers, its scripts and DNS…"));
+  layout(box, [kicker(host, "checking"), title(`Checking ${host}.`)], card);
+}
+
+function renderError(box, host, url, e, rescan) {
+  const card = cardShell(host, rescan);
+  card.append(el("p", "card-verdict", "No report"), el("p", "report-error", `${e.message} ${e.hint || ""}`));
+  const h = title("No report this time.");
+  layout(box, [kicker(host, "not checked"), h, handoff(url, 0)], card);
+  h.focus({ preventScroll: true });
 }
 
 // ── Consent before every first check of a site ─────────────────────────────
@@ -347,20 +471,10 @@ function askConsent(host) {
 
 // ── Fix mode ────────────────────────────────────────────────────────────────
 
-// Once a check starts, the hero steps aside: the report takes the top of the
-// screen, with a way back at the top left. Entering adds a history entry, so
-// the browser's back button leaves fix mode too.
+// Once a check starts, the poster steps aside and the report takes its
+// place. Entering adds a history entry, so the browser's back button leaves
+// fix mode too; so does Back above the result.
 let leaveFixMode = () => {};
-
-function backBar() {
-  const bar = el("div", "report-top");
-  const back = el("button", "report-back", "Back");
-  back.type = "button";
-  back.setAttribute("aria-label", "Back to the start");
-  back.addEventListener("click", () => leaveFixMode());
-  bar.append(back, el("span", "report-mode", "Check and fix"));
-  return bar;
-}
 
 function setupScan() {
   const form = $("[data-scan]");
@@ -370,21 +484,10 @@ function setupScan() {
   const input = form.querySelector("input");
   const button = form.querySelector("button[type=submit]");
 
-  // The report starts 24 px below the header, wherever the header ends: the
-  // logotype grows with the viewport, so this is measured, not fixed.
-  const placeBelowHeader = () => {
-    // The logotype overflows the bar, so take the lowest of the two.
-    const parts = [$(".bar"), $(".bar .brand")].filter(Boolean);
-    if (!parts.length) return;
-    const top = Math.max(...parts.map((p) => p.getBoundingClientRect().bottom)) - hero.getBoundingClientRect().top;
-    hero.style.setProperty("--fix-top", `${Math.ceil(top + 24)}px`);
-  };
-  addEventListener("resize", () => { if (hero.dataset.mode === "fix") placeBelowHeader(); });
   const enter = () => {
     if (hero.dataset.mode !== "fix") history.pushState({ penthera: "fix" }, "", "#check");
     hero.dataset.mode = "fix";
     scrollTo({ top: 0, behavior: "instant" });
-    placeBelowHeader();
   };
   const exit = () => {
     delete hero.dataset.mode;
@@ -404,14 +507,13 @@ function setupScan() {
     if (!(await askConsent(host))) { input.focus(); return; }
     button.disabled = true;
     enter();
-    box.hidden = false;
-    box.replaceChildren(backBar(), el("p", "report-busy", `Checking ${host}: the page, its headers, its scripts and DNS…`));
+    renderBusy(box, host);
     try {
       renderReport(box, await callCheck({ url }), run);
       count("check", { result: "report" });
     } catch (e) {
       count("check", { result: "error" });
-      box.replaceChildren(backBar(), el("p", "report-error", `${e.message} ${e.hint || ""}`));
+      renderError(box, host, /^https?:\/\//i.test(url) ? url : `https://${url}`, e, run);
     } finally {
       button.disabled = false;
     }
@@ -461,9 +563,9 @@ function barPalette() {
 
 function veilClear() {
   const veil = $(".veil");
-  // The whole hero text block (headline, subline, install command), not just
-  // the headline, and the footer.
-  const targets = [$(".hero-text"), $(".foot")].filter(Boolean);
+  // The poster (the question, the field and the example), the result that
+  // replaces it, the text block below it, and the footer.
+  const targets = [$(".poster"), $(".report"), $(".hero-text"), $(".foot")].filter(Boolean);
   if (!veil || !targets.length) return;
   const inZone = new Set();
   let io;

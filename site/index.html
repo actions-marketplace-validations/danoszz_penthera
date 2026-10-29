@@ -70,23 +70,44 @@
   </header>
 
   <main id="main">
-    <!-- Hero: the problem, the title, and the live check as the first thing to do. -->
+    <!-- Hero: the poster is the check. The title as a kicker-size h1, the
+         question, the field, and on the right a real result from the test
+         server, labelled Example. Your result replaces it in the same place. -->
     <section class="hero" aria-labelledby="hero-title">
       <img class="field" src="/media/field.png" alt="" width="360" height="225" aria-hidden="true">
+      <div class="poster" data-poster>
+        <div class="poster-text">
+          <h1 id="hero-title">Penthera: your <span class="nowrap">open-source</span> cyber security agent</h1>
+          <p class="ask">Is your site/app safe?</p>
+          <p class="ask-sub">Find out in seconds. Then fix it with your coding agent.</p>
+          <form class="scan" id="scan" data-scan novalidate>
+            <label class="sr" for="scan-url">Your site's address, for a free cyber security quick scan</label>
+            <div class="scan-row">
+              <input id="scan-url" name="url" type="text" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="your-site.com" required>
+              <button class="btn scan-go" data-variant="default" type="submit">Check</button>
+            </div>
+            <p class="scan-note">Passive · nothing stored · your own site only · <a href="/terms">Terms</a></p>
+            <noscript><p class="scan-note">The live check needs JavaScript. Or run <code>npx penthera https://your-site.com</code> on your own machine.</p></noscript>
+          </form>
+          <div class="scan-alt">
+            <span>No site live yet? Scan the code:</span>
+            <button class="cmd" type="button" data-copy="npx penthera --repo .">
+              <span class="cmd-prompt" aria-hidden="true">$</span>
+              <code>npx penthera --repo .</code>
+              <span class="cmd-act" aria-hidden="true" data-js><span class="cmd-copy">Copy</span><span class="cmd-done">Copied</span></span>
+              <span class="sr" aria-live="polite" data-copy-status>, copy to clipboard</span>
+            </button>
+          </div>
+        </div>
+        <div class="poster-card">
+          {{EX_CARD}}
+          <p class="card-cap">This is what you get back. Yours replaces it, right here.</p>
+        </div>
+      </div>
+      <div class="report" data-report hidden></div>
       <div class="hero-text">
         <p class="problem"><span>AI coding tools ship faster than anyone can check.</span></p>
-        <form class="scan" id="scan" data-scan novalidate>
-          <label class="scan-label" for="scan-url">Is your site/app safe? Check it with a free cyber security quick scan.</label>
-          <div class="scan-row">
-            <input id="scan-url" name="url" type="text" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="your-site.com" required>
-            <button class="btn scan-go" data-variant="default" type="submit">Check</button>
-          </div>
-          <p class="scan-note">Passive: only what one browser visit loads. Nothing is stored. Your own site only. <a href="/terms">Terms</a></p>
-          <noscript><p class="scan-note">The live check needs JavaScript. Or run <code>npx penthera https://your-site.com</code> on your own machine.</p></noscript>
-        </form>
-        <div class="report" data-report hidden></div>
         <ul class="pills" aria-label="Open source, MIT license, works offline"><li>Open source</li><li>MIT</li><li>Offline</li></ul>
-        <h1 id="hero-title">Penthera: your <span class="nowrap">open-source</span> cyber security agent</h1>
         <p class="lede">The security review you never had time for. Offline, rule-based, and you can verify every finding yourself.</p>
 
 

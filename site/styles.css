@@ -439,22 +439,11 @@ main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
  * skips the light theme's invert; the static PNG stays until its first frame. */
 .field-live { filter: none; }
 .hero.live img.field { visibility: hidden; }
+/* Below the poster: the problem, the pills, the lede and the two ways in. */
 .hero-text {
   position: relative; z-index: 1;
-  max-width: var(--measure); margin: 0 auto;
-  /* The first screen is at least 90vh; the headline sits in the lower half
-   * of the cloud, over the dots, with the text block at the bottom. */
-  min-height: 90vh;
-  display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start;
-  padding-top: clamp(240px, 42vh, 440px);
-}
-/* A long gradient behind the text, full width: the cloud stays visible at
- * the top and fades to the ground under the headline, so it reads. */
-.hero-text::before {
-  content: ""; position: absolute; z-index: -1; pointer-events: none;
-  top: 22%; bottom: -12%;
-  left: calc(50% - 50vw); width: 100vw;
-  background: linear-gradient(rgba(var(--ground-rgb), 0), rgba(var(--ground-rgb), 0.8) 32%, rgba(var(--ground-rgb), 0.94) 50%, rgb(var(--ground-rgb)) 85%);
+  max-width: var(--measure); margin: clamp(56px, 8vw, 112px) auto 0;
+  display: flex; flex-direction: column; align-items: flex-start;
 }
 /* The problem, said before the answer: one line in display type, on a
  * ground-coloured strip so it reads over the field. */
@@ -1031,11 +1020,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 /* ── The live check (2026-10-23) ─────────────────────────────────────────
  * The first thing to do on the page: a field, a button, and a report that
  * opens in place. The score is a 10 × 10 grid of pixels, one per point. */
-.scan { margin: 8px 0 36px; max-width: 640px; display: grid; gap: 10px; }
-.report + .pills, .report[hidden] + .pills { margin-top: 0; }
-.report:not([hidden]) { margin-bottom: 48px; }
-.scan-label, .scan-note { justify-self: start; padding: 2px 8px; margin-left: -8px; background: var(--ground); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
-.scan-label { font-family: var(--display); font-size: clamp(19px, 2vw, 24px); font-weight: 500; letter-spacing: -0.01em; color: var(--text-1); }
+.scan { max-width: 640px; display: grid; gap: 10px; }
 .scan-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .scan-row input {
   min-height: 52px; min-width: 0; padding: 0 16px;
@@ -1047,35 +1032,18 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .scan-go { min-height: 52px; padding: 0 28px; font-size: 15px; }
 .scan-note { font-family: var(--px); font-size: 13px; color: var(--text-3); }
 
-.report {
-  position: relative; z-index: 1; margin-top: 28px; max-width: 980px;
-  padding: clamp(20px, 3vw, 32px); border: 1px solid rgba(var(--ink-rgb), 0.28);
-  background: color-mix(in srgb, var(--ground) 88%, transparent);
-  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
-}
+.report { position: relative; z-index: 1; }
 .report-busy, .report-error { font-family: var(--px); font-size: 15px; color: var(--text-1); }
 .report-busy::after { content: "▌"; margin-left: 4px; animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .report-busy::after { animation: none; } }
-.report-head { display: grid; gap: 24px 40px; align-items: start; }
-@media (min-width: 760px) { .report-head { grid-template-columns: 1fr minmax(260px, 340px); } }
-.report-host { font-family: var(--px); font-size: 14px; color: var(--text-3); }
-.report-verdict { margin-top: 6px; font-size: clamp(26px, 3.4vw, 40px); line-height: 1.05; letter-spacing: -0.03em; }
-.report-score { display: flex; align-items: center; gap: 20px; }
 .meter { display: grid; grid-template-columns: repeat(10, 9px); gap: 2px; }
 .meter i { width: 9px; height: 9px; background: var(--pt-sparse); outline: 1px solid var(--hair); outline-offset: -1px; }
 .meter i.on { background: var(--frame); outline: 0; }
 .score-n { font-family: var(--display); font-size: clamp(56px, 7vw, 88px); line-height: 0.9; letter-spacing: -0.05em; color: var(--text-1); }
 .score-n span { font-family: var(--px); font-size: 15px; letter-spacing: 0; color: var(--text-3); margin-left: 6px; }
-.report-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
-.report-prompt { width: 100%; min-height: 56px; padding: 0 24px; font-size: 16px; }
-.report-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
 .linkish { padding: 0; border: 0; background: none; font: inherit; color: var(--text-1); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.report-cats { list-style: none; margin: 28px 0 0; padding: 0; display: grid; gap: 0 32px; border-top: 1px solid var(--frame); }
-@media (min-width: 760px) { .report-cats { grid-template-columns: 1fr 1fr; } }
-.report-cats li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--hair); color: var(--text-1); }
 .cat-n { font-family: var(--px); font-size: 13px; color: var(--text-3); }
-.report-cats li:not(.ok) .cat-n { color: var(--text-1); }
 .report-list { list-style: none; margin: 20px 0 0; padding: 0; display: grid; gap: 6px; }
 .finding details { border: 1px solid var(--hair); }
 .finding summary { display: flex; align-items: baseline; gap: 12px; padding: 12px 14px; cursor: pointer; list-style: none; color: var(--text-1); }
@@ -1095,11 +1063,6 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .report-passed > summary::before { content: "+"; width: 24px; height: 24px; display: grid; place-items: center; border: 1px solid var(--frame); }
 .report-passed[open] > summary::before { content: "\2212"; }
 .report-scope { margin-top: 16px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
-.report-deep { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--frame); display: grid; gap: 10px; justify-items: start; }
-.report-deep h3 { font-size: clamp(21px, 2.2vw, 26px); letter-spacing: -0.02em; }
-.report-deep p { max-width: 62ch; }
-.deep-steps { display: grid; gap: 8px; justify-items: start; }
-.deep-steps pre { margin: 0; padding: 8px 10px; border: 1px solid var(--hair); white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text-1); }
 
 .prompt-dialog {
   width: min(640px, calc(100vw - 32px)); max-height: min(80vh, 760px); padding: 24px;
@@ -1237,28 +1200,17 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
  * every other control is white (the ink colour, so black in the light
  * theme), so the eye lands on blue. */
 /* --fix-top: where the header ends, measured by ui.js (the logotype scales with the viewport). */
-.hero[data-mode="fix"] .hero-text { min-height: 0; justify-content: flex-start; padding-top: var(--fix-top, calc(var(--ticker-h) + 140px)); }
-.hero[data-mode="fix"] .hero-text::before { top: 0; background: rgba(var(--ground-rgb), 0.82); }
-.hero[data-mode="fix"] :is(.problem, .scan, .pills, h1, .lede, .hero-actions, .note),
-.hero[data-mode="fix"] .loop { display: none; }
-.hero[data-mode="fix"] .report { margin-top: 0; max-width: none; width: 100%; }
-.report-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -4px 0 20px; }
+.hero[data-mode="fix"] :is(.poster, .hero-text, .loop) { display: none; }
 .report-back {
   display: inline-flex; align-items: center; gap: 10px; min-height: var(--target); padding: 0 14px 0 10px;
   font: 14px / 1 var(--px); color: var(--text-1); background: none; border: 1px solid var(--hair); cursor: pointer;
 }
 .report-back::before { content: ""; width: 10px; height: 10px; border-left: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); margin-left: 4px; }
 .report-back:hover { border-color: var(--frame); }
-.report-mode { font-family: var(--px); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-3); }
-.report-side { display: grid; gap: 14px; }
-.report-score { justify-content: flex-end; }
-@media (max-width: 759px) { .report-score { justify-content: flex-start; } }
-.report-clean { color: var(--text-1); }
 .btn-white { --btn-bg: var(--frame); --btn-fg: var(--ground); --btn-bd: var(--frame); }
 .btn-white:hover { --btn-bg: rgba(var(--ink-rgb), 0.82); --btn-fg: var(--ground); --btn-bd: transparent; }
 .cmd-white { --cmd-bd: var(--frame); --cmd-act-fg: var(--ground); --cmd-act-bg: var(--frame); --cmd-act-bd: var(--frame); background: var(--frame); color: var(--ground); }
 .cmd-white code, .cmd-white .cmd-prompt { color: var(--ground); }
-.report-deep .cmd { max-width: 100%; }
 
 /* ── Public benchmarks: ranked against the free tools (section 02) ─────── */
 .pb { margin-top: clamp(80px, 10vw, 140px); }
@@ -1630,3 +1582,182 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .pro-list li::before { content: ""; position: absolute; left: 0; top: 0.55em; width: 8px; height: 8px; background: linear-gradient(180deg, #5a5aff, #0000ed 60%, #0000b8); transform: rotate(45deg); }
 .pro-list b { font-weight: 500; color: var(--text-1); }
 .pro-big code, .pro-list code { font-size: 0.82em; color: var(--text-1); }
+
+/* ── The poster is the check (2026-10-29, direction A) ────────────────────
+ * The first screen is the check: the title as a kicker-size h1, the
+ * question in display type, the field and a glowing Check. On the right, a
+ * metal card with a real result of the test server, labelled Example, built
+ * with the site. Your result lands in the same place, and the left side
+ * turns into the hand-off: Prompt to fix, the full scan, the code scan. */
+.hero {
+  /* Where the header ends: the bar's solid box (ticker, gap, mark, air). */
+  --logo-h: calc(clamp(112px, calc(100vw - 360px), 288px) * 63 / 279);
+  --head: calc(var(--ticker-h) + 32px + max(var(--target), var(--logo-h)));
+}
+/* The field sits top right, behind the card, and fades out to the left so
+ * no dots run behind the headline. */
+.hero .field {
+  inset: calc(var(--head) + 4px) 0 auto auto;
+  width: min(66vw, 960px); height: min(620px, 72vh);
+  -webkit-mask: linear-gradient(90deg, transparent 0, transparent 18%, #000 62%); mask: linear-gradient(90deg, transparent 0, transparent 18%, #000 62%);
+}
+.poster, .report {
+  position: relative; z-index: 1; max-width: var(--measure); margin: 0 auto;
+  padding-top: calc(var(--head) + clamp(40px, 6vw, 80px));
+}
+.poster, .report-grid { display: grid; gap: 40px; align-items: start; }
+@media (min-width: 1000px) { .poster, .report-grid { grid-template-columns: minmax(0, 1fr) minmax(400px, 500px); gap: 56px; } }
+.poster-text { padding-top: 8px; }
+#hero-title, .report-kick {
+  max-width: none; margin: 0 0 22px;
+  font: 14px / 1.4 var(--px); letter-spacing: 0.02em; color: var(--text-1);
+  text-wrap: pretty;
+}
+.ask {
+  font-family: var(--display); font-weight: 500; color: var(--text-1);
+  font-size: clamp(54px, 7.2vw, 112px); line-height: 0.9; letter-spacing: -0.05em;
+  max-width: 8.2ch; text-wrap: balance;
+}
+.ask-sub { margin-top: 22px; max-width: 30ch; font: 500 clamp(18px, 1.7vw, 23px) / 1.35 var(--display); letter-spacing: -0.01em; color: var(--text-1); }
+.poster .scan { margin-top: 32px; }
+.scan-row { gap: 0; }
+.scan-row input { min-height: 64px; padding: 0 20px; font-size: 19px; border-right: 0; }
+.scan-go { min-height: 64px; padding: 0 32px; font-size: 18px; }
+/* The glow: the one call to act on the first screen, and Prompt to fix after. */
+.scan-go:not(:disabled), .handoff .glow {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 10px 34px -6px rgba(0, 0, 237, 0.95), 0 0 60px -10px rgba(60, 60, 255, 0.7);
+}
+.scan-note { margin-top: 4px; }
+.scan-note a { color: var(--accent-ink); }
+.scan-alt { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; margin-top: 28px; font: 13px / 1.3 var(--px); color: var(--text-3); }
+
+/* The metal card: black steel on the dark ground, silver on the light one,
+ * lit from above. No inner rules: rows are spaced plates. */
+.card, .handoff li {
+  --plate: color-mix(in srgb, rgb(var(--ink-rgb)) 10%, var(--ground));
+  position: relative; isolation: isolate;
+  background:
+    radial-gradient(520px circle at 30% -160px, rgba(255, 255, 255, var(--sheen)), transparent 70%),
+    linear-gradient(180deg, rgba(255, 255, 255, var(--lit)), transparent 46%, rgba(0, 0, 0, var(--shade))),
+    var(--plate);
+  border: 1px solid rgba(var(--ink-rgb), 0.26);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, calc(var(--lit) * 4)), inset 0 -1px 0 rgba(0, 0, 0, calc(var(--shade) * 0.8)), 0 40px 80px -30px rgba(0, 0, 0, 0.6);
+}
+.card { padding: 30px; }
+.card::before, .handoff li::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: repeating-linear-gradient(180deg, rgba(var(--ink-rgb), 0.035) 0 1px, transparent 1px 3px);
+}
+.poster-card { padding-top: 56px; }
+.report .card { margin-top: 56px; }
+.card-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 30px; }
+.card-label {
+  padding: 5px 12px 4px; font: 13px var(--px); color: #fff; background: #0000ed;
+  clip-path: polygon(0 3px, 3px 3px, 3px 0, calc(100% - 6px) 0, calc(100% - 6px) 2px, 100% 2px, 100% calc(100% - 4px), calc(100% - 3px) calc(100% - 4px), calc(100% - 3px) 100%, 5px 100%, 5px calc(100% - 2px), 0 calc(100% - 2px));
+  transform: rotate(-1.2deg);
+}
+.card-host { font: 13px / 1.3 var(--px); letter-spacing: 0.02em; color: var(--text-3); overflow-wrap: anywhere; }
+.card-verdict { margin-top: 12px; font: 500 clamp(28px, 2.7vw, 38px) / 1 var(--display); letter-spacing: -0.03em; color: var(--text-1); }
+.card-score { display: flex; align-items: center; gap: 22px; margin: 22px 0; }
+.card .meter i { background: rgba(var(--ink-rgb), 0.12); outline: 0; }
+.card .meter i.on { background: var(--frame); }
+.card .score-n { font-size: clamp(64px, 6.4vw, 92px); }
+.card-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.card-rows li { display: flex; align-items: center; gap: 14px; padding: 10px 12px; background: rgba(var(--ink-rgb), 0.045); color: var(--text-1); font-size: 16px; line-height: 1.25; }
+.card-tag {
+  flex: none; min-width: 50px; padding: 3px 6px; text-align: center;
+  font: 12px / 1 var(--px); letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ground); background: var(--frame); border: 1px solid var(--frame);
+}
+.card-rows li:first-child .card-tag { color: #fff; background: #0000ed; border-color: #6a6aff; box-shadow: 0 0 10px rgba(60, 60, 255, 0.7); }
+.card-rows li.ok .card-tag { color: var(--text-2); background: none; border-color: rgba(var(--ink-rgb), 0.45); box-shadow: none; }
+.card-clean { margin-top: 14px; color: var(--text-1); }
+/* The example's button is a picture of the real one: not focusable, hidden from screen readers. */
+.card-fake, .card .card-prompt {
+  display: flex; align-items: center; justify-content: center; width: 100%; min-height: 56px; margin-top: 20px;
+  font: 18px / 1 var(--px); letter-spacing: 0.02em; color: #fff;
+  background: linear-gradient(180deg, #5a5aff 0%, #0000ed 55%, #0000b8 100%);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 10px 34px -6px rgba(0, 0, 237, 0.95);
+}
+.card-cap { margin-top: 14px; font: 13px / 1.45 var(--px); letter-spacing: 0.02em; color: var(--text-3); }
+.card-more { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; margin-top: 14px; font: 13px / 1.3 var(--px); color: var(--text-3); }
+.card-more a { display: inline-flex; align-items: center; min-height: var(--target); color: var(--text-1); text-underline-offset: 3px; }
+.card .report-busy, .card .report-error { margin-top: 14px; }
+
+/* After a check: the hand-off, above the fold. */
+.report-kick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 18px; }
+.report-kick span { color: var(--text-3); }
+.report-back { min-height: 36px; }
+/* Focused by the script when a result lands, so a screen reader starts there; not a control. */
+.handoff-title:focus { outline: none; }
+.handoff-title { max-width: 13ch; font-size: clamp(40px, 4.6vw, 68px); line-height: 0.95; letter-spacing: -0.045em; color: var(--text-1); }
+.handoff { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 10px; max-width: 660px; }
+.handoff li { display: grid; grid-template-columns: 32px 1fr; gap: 2px 14px; align-items: center; padding: 14px 18px; }
+.handoff-n { grid-row: span 2; align-self: start; width: 32px; height: 32px; display: grid; place-items: center; font: 14px var(--px); color: var(--text-1); background: rgba(var(--ink-rgb), 0.08); box-shadow: inset 0 0 0 1px rgba(var(--ink-rgb), 0.35); }
+.handoff li:first-child .handoff-n { color: #fff; background: #0000ed; box-shadow: 0 0 14px rgba(60, 60, 255, 0.8); }
+.handoff-t { color: var(--text-1); font-size: 17px; }
+.handoff-t small { display: block; margin-top: 3px; font: 13px / 1.4 var(--px); color: var(--text-3); }
+.handoff-a { grid-column: 2; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.handoff .glow { min-height: 48px; padding: 0 20px; font-size: 15px; }
+.handoff .cmd { max-width: 100%; }
+.handoff .cmd code { white-space: normal; overflow-wrap: anywhere; }
+/* Steel: a light metal key, the same in both themes. */
+.steel {
+  --cmd-bd: rgba(255, 255, 255, 0.9);
+  color: #0b0b0e;
+  background: linear-gradient(180deg, #ffffff 0%, #d9dce1 38%, #a8adb5 62%, #e9ebee 100%);
+  box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 rgba(0, 0, 0, 0.35), 0 10px 26px -10px rgba(var(--ink-rgb), 0.45);
+}
+.steel code, .steel .cmd-prompt { color: #0b0b0e; }
+.steel .cmd-act { --cmd-act-fg: #3a3e46; --cmd-act-bg: transparent; --cmd-act-bd: rgba(0, 0, 0, 0.25); }
+.ghost {
+  display: inline-flex; align-items: center; gap: 8px; min-height: var(--target); padding: 0 16px;
+  font: 14px / 1 var(--px); color: var(--text-1); text-decoration: none; white-space: nowrap;
+  background: rgba(var(--ink-rgb), 0.06); border: 1px solid rgba(var(--ink-rgb), 0.4);
+}
+.ghost:hover { background: var(--frame); color: var(--ground); }
+.ghost svg { width: 11px; height: 11px; fill: currentColor; }
+.handoff li.only-m { display: none; }
+
+/* The full report, below the hand-off: categories, findings with evidence,
+ * what passed, the scope. */
+.report-detail { margin-top: clamp(48px, 6vw, 80px); max-width: 980px; }
+.report-cats { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px 12px; }
+@media (min-width: 760px) { .report-cats { grid-template-columns: 1fr 1fr; } }
+.report-cats li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; background: rgba(var(--ink-rgb), 0.045); color: var(--text-1); }
+.report-cats li.ok .cat-n { color: var(--text-3); }
+
+@media (max-width: 999px) {
+  .poster-card { padding-top: 0; }
+  .report .card { margin-top: 0; }
+  /* Your result first on a phone, with Prompt to fix inside the card. */
+  .report-grid > .card { order: -1; }
+}
+@media (min-width: 760px) { .card .card-prompt { display: none; } }
+@media (max-width: 759px) {
+  .hero .field { inset: calc(var(--head) + 8px) 0 auto; width: 100%; height: 132px; -webkit-mask: linear-gradient(180deg, #000 60%, transparent); mask: linear-gradient(180deg, #000 60%, transparent); }
+  .poster { padding-top: calc(var(--head) + 150px); gap: 28px; }
+  .report { padding-top: calc(var(--head) + 24px); }
+  #hero-title, .report-kick { font-size: 12px; margin-bottom: 14px; }
+  .ask { font-size: 54px; }
+  .ask-sub { margin-top: 14px; font-size: 18px; }
+  .poster .scan { margin-top: 22px; }
+  .scan-row input { min-height: 56px; padding: 0 14px; font-size: 16px; }
+  .scan-go { min-height: 56px; padding: 0 20px; font-size: 16px; }
+  .scan-alt, .card-cap, .card-wide { display: none; }
+  .card { padding: 20px; }
+  .card-score { margin: 14px 0; gap: 16px; }
+  .card .meter { grid-template-columns: repeat(10, 7px); }
+  .card .meter i { width: 7px; height: 7px; }
+  .card .score-n { font-size: 64px; }
+  .card-rows li { padding: 9px 10px; font-size: 15px; }
+  .handoff-title { font-size: 40px; }
+  .report-kick p { display: none; }
+  .handoff li { padding: 14px; grid-template-columns: 28px 1fr; }
+  .handoff-n { width: 28px; height: 28px; }
+  .handoff li.hide-m { display: none; }
+  .handoff li.only-m { display: grid; }
+}
+.report-detail { scroll-margin-top: 24px; }
+.report-detail h3 + .report-cats { margin-top: 14px; }

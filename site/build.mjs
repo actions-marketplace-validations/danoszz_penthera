@@ -33,6 +33,7 @@ import { termsPage, docPage } from "./terms.mjs";
 import { publicBenchHtml } from "./public-bench.mjs";
 import { readPosts, blogFiles } from "./blog.mjs";
 import { benchmarkHtml, benchmarkMarkdown, benchmarkViews, cardFor, fieldTools, hubHtml, hubMarkdown } from "./benchmarks.mjs";
+import { cardRows, failedChecks, rowTag } from "./check/card.js";
 
 const SITE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(SITE, "..");
@@ -140,6 +141,41 @@ export function exampleValues(packRules) {
     RULES_ALL: String(rules), REFS: String(COUNTS.references),
     PKGS: (COUNTS.popularNpm + COUNTS.popularPypi).toLocaleString("en-US"),
   };
+}
+
+/**
+ * The hero's example result: the live check's own passive report
+ * (api/_lib/tier1.mjs), run at build time against the test server in
+ * tests/fixtures/mock-server.js on loopback. Nothing leaves the machine: the
+ * host is an IP address, so no DNS is asked. The random port is shown as
+ * 8765, the port the other examples use.
+ */
+export async function exampleCheck() {
+  const { startMockServer } = await import("../tests/fixtures/mock-server.js");
+  const { passiveReport } = await import("../api/_lib/tier1.mjs");
+  const server = await startMockServer(0);
+  try {
+    const r = await passiveReport(new URL(server.url), { allowPrivate: true, anyPort: true, typed: server.url, timeout: 5000 });
+    const port = (s) => String(s).replaceAll(`127.0.0.1:${server.port}`, "127.0.0.1:8765");
+    return JSON.parse(port(JSON.stringify(r)));
+  } finally {
+    await server.close();
+  }
+}
+
+/** The metal example card: the markup ui.js renders for your result, labelled Example. */
+export function exampleCardHtml(report) {
+  const rows = cardRows(report, { withPassed: true });
+  const meter = Array.from({ length: 100 }, (_, i) => (i < report.score ? '<i class="on"></i>' : "<i></i>")).join("");
+  return `<section class="card card-example" aria-labelledby="example-title">
+          <div class="card-top"><span class="card-label" id="example-title">Example</span><span class="card-host">real output<span class="card-wide"> · test server</span></span></div>
+          <p class="card-verdict">${esc(report.verdict)}</p>
+          <div class="card-score"><div class="meter" role="img" aria-label="${report.score} out of 100">${meter}</div><p class="score-n">${report.score}<span>/100</span></p></div>
+          <ul class="card-rows">
+${rows.map((c) => `            <li${c.passed ? ' class="ok"' : ""}><span class="card-tag">${esc(rowTag(c))}</span>${esc(c.title)}</li>`).join("\n")}
+          </ul>
+          <p class="card-fake" aria-hidden="true">Prompt to fix (${failedChecks(report).length})</p>
+        </section>`;
 }
 
 /** Wilson score interval, 95%, as README and bench/ report it. */
@@ -487,6 +523,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
     ...ruleNumbers(),
     ...exampleValues(packs.reduce((n, p) => n + p.count, 0)),
     ...e10Values(),
+    EX_CARD: exampleCardHtml(await exampleCheck()),
     STARS: await starCount(),
     TICKER: tickerHtml(readNews()),
     SITE_URL: siteUrl(),

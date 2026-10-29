@@ -39,7 +39,7 @@ The request carries this User-Agent:
 Penthera-Research/E20 (+https://penthera.org/research/e20; opt out: robots.txt User-agent: Penthera-Research)
 ```
 
-The results name the one source address the visits come from, so you can match it to your logs.
+The visits come from one source address. It is listed on this page before the study starts, and again in the results, so you can match it to your logs.
 
 ## How to opt out
 
@@ -56,11 +56,11 @@ If the visit already happened, email us. We delete your site's record from the r
 
 ## What we keep and publish
 
-The raw per-site results stay private. They hold check outcomes and short evidence such as header values, never page bodies. They are never committed or shared, and are deleted 12 months after publication. What we publish is the share of sites that pass each check, with a 95% interval, and the score distribution. There is no ranking, and no site is named.
+The raw per-site results stay private. They hold check outcomes and short evidence such as header values, never page bodies, never IP addresses, and no email addresses: the part before the @ is removed before anything is written. They are never committed or shared, and are deleted 12 months after publication. What we publish is the share of sites that pass each check, with a 95% interval, and the score distribution. There is no ranking, and no site is named.
 
 ## What it is not
 
-It is not a security test of your site. It does not look for your subdomains, staging hosts, app or API, and it does not crawl other pages: only the homepage you put forward. It sends nothing a browser visit to your homepage would not send, minus the scripts. A good or bad result for one site is never published, and it is not a guarantee of anything. To check your own site, use the [live check](/#scan).
+It is not a security test of your site. It does not look for your subdomains, staging hosts, app or API, and it does not crawl other pages: only the homepage you put forward. It sends nothing a browser visit to your homepage would not send, minus the scripts. A good or bad result for one site is never published, and it is not a guarantee of anything. We never claim a site is vulnerable, and we do not come back to probe further. To check your own site, use the [live check](/#scan).
 
 ## Contact
 

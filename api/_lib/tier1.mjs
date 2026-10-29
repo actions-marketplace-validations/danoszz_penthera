@@ -32,12 +32,16 @@ export const SCOPE = "Only what a browser loads: /robots.txt first (a site can o
  * @param {URL} target
  * @param {{typed?: string, now?: number, lookup?: Function, allowPrivate?: boolean, anyPort?: boolean,
  *   timeout?: number, dns?: object, dnsTimeout?: number, budgetMs?: number, retireDb?: object,
- *   assets?: boolean, secrets?: boolean, userAgent?: string, optOutTokens?: string[], optOutAll?: boolean}} opts
+ *   assets?: boolean, secrets?: boolean, userAgent?: string, optOutTokens?: string[], optOutAll?: boolean,
+ *   onPage?: Function}} opts
  *   lookup, allowPrivate, anyPort, dns and retireDb are for tests. The E20
  *   study (bench/front-door/run.mjs) sets the rest: assets: false skips the
  *   referenced scripts and stylesheets, secrets: false the secret rules, and
  *   userAgent and optOutTokens name the study instead of the live check, and
- *   optOutAll also honors a robots.txt `*` group with Disallow: /.
+ *   optOutAll also honors a robots.txt `*` group with Disallow: /. onPage
+ *   (study only) is called once with { html, url, headers } of the page that
+ *   was already fetched, so the study can read a link or the hosting
+ *   platform without a second request. The live check never sets it.
  */
 export async function passiveReport(target, opts = {}) {
   const budget = makeBudget({ budgetMs: opts.budgetMs ?? LIMITS.budgetMs });
@@ -61,6 +65,7 @@ export async function passiveReport(target, opts = {}) {
   const host = new URL(pageUrl).hostname;
   const html = /html/i.test(String(result.headers["content-type"] || "")) && result.status < 400 ? result.body : "";
   const parsed = html ? parsePage(html, pageUrl) : null;
+  opts.onPage?.({ html, url: pageUrl, headers: result.headers });
 
   const [assets, dns, securityTxt] = await Promise.all([
     parsed && opts.assets !== false ? loadAssets(parsed, pageUrl, budget, guard) : { files: [], wanted: 0, skipped: 0 },

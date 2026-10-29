@@ -901,6 +901,136 @@
       "cite": "Field & Welsh 2007",
       "title": "Bootstrapping Clustered Data",
       "url": "https://doi.org/10.1111/j.1467-9868.2007.00593.x"
+    },
+    "lepochat2019tranco": {
+      "cite": "Le Pochat et al. 2019",
+      "title": "Tranco: A Research-Oriented Top Sites Ranking Hardened Against Manipulation",
+      "url": "https://doi.org/10.14722/ndss.2019.23386"
+    },
+    "ruth2022toppling": {
+      "cite": "Ruth et al. 2022",
+      "title": "Toppling Top Lists: Evaluating the Accuracy of Popular Website Lists",
+      "url": "https://doi.org/10.1145/3517745.3561444"
+    },
+    "felt2017measuring": {
+      "cite": "Felt et al. 2017",
+      "title": "Measuring HTTPS Adoption on the Web",
+      "url": "https://www.usenix.org/conference/usenixsecurity17/technical-sessions/presentation/felt"
+    },
+    "kranch2015upgrading": {
+      "cite": "Kranch & Bonneau 2015",
+      "title": "Upgrading HTTPS in Mid-Air: An Empirical Study of Strict Transport Security and Key Pinning",
+      "url": "https://doi.org/10.14722/ndss.2015.23162"
+    },
+    "amann2017mission": {
+      "cite": "Amann et al. 2017",
+      "title": "Mission Accomplished? HTTPS Security after DigiNotar",
+      "url": "https://doi.org/10.1145/3131365.3131401"
+    },
+    "scheitle2018caa": {
+      "cite": "Scheitle et al. 2018",
+      "title": "A First Look at Certification Authority Authorization (CAA)",
+      "url": "https://doi.org/10.1145/3213232.3213235"
+    },
+    "durumeric2015email": {
+      "cite": "Durumeric et al. 2015",
+      "title": "Neither Snow Nor Rain Nor MITM...: An Empirical Analysis of Email Delivery Security",
+      "url": "https://doi.org/10.1145/2815675.2815695"
+    },
+    "poteat2021securitytxt": {
+      "cite": "Poteat & Li 2021",
+      "title": "Who You Gonna Call? An Empirical Evaluation of Website security.txt Deployment",
+      "url": "https://doi.org/10.1145/3487552.3487841"
+    },
+    "findlay2022securitytxt": {
+      "cite": "Findlay & Abdou 2022",
+      "title": "Characterizing the Adoption of Security.txt Files and their Applications to Vulnerability Notification",
+      "url": "https://doi.org/10.14722/madweb.2022.23014"
+    },
+    "almanac2024security": {
+      "cite": "Franken & Vanderlinden 2024",
+      "title": "Security",
+      "url": "https://almanac.httparchive.org/en/2024/security"
+    },
+    "almanac2025security": {
+      "cite": "Vanderlinden & Franken 2026",
+      "title": "Security",
+      "url": "https://almanac.httparchive.org/en/2025/security"
+    },
+    "helme2022top1m": {
+      "cite": "Helme 2022",
+      "title": "Top 1 Million Analysis: June 2022",
+      "url": "https://scotthelme.co.uk/top-1-million-analysis-june-2022/"
+    },
+    "escape2025vibe": {
+      "cite": "Hinniger-Foray et al. 2025",
+      "title": "Methodology: How We Discovered over 2k High-Impact Vulnerabilities in Apps Built with Vibe Coding Platforms",
+      "url": "https://escape.tech/blog/methodology-how-we-discovered-vulnerabilities-apps-built-with-vibe-coding/"
+    },
+    "foudil2022rfc9116": {
+      "cite": "RFC 9116 (2022)",
+      "title": "A File Format to Aid in Security Vulnerability Disclosure",
+      "url": "https://doi.org/10.17487/RFC9116"
+    },
+    "koster2022rfc9309": {
+      "cite": "RFC 9309 (2022)",
+      "title": "Robots Exclusion Protocol",
+      "url": "https://doi.org/10.17487/RFC9309"
+    },
+    "hallambaker2019rfc8659": {
+      "cite": "RFC 8659 (2019)",
+      "title": "DNS Certification Authority Authorization (CAA) Resource Record",
+      "url": "https://doi.org/10.17487/RFC8659"
+    },
+    "bailey2012menlo": {
+      "cite": "Bailey et al. 2012",
+      "title": "The Menlo Report",
+      "url": "https://doi.org/10.1109/MSP.2012.52"
+    },
+    "dittrich2012menlo": {
+      "cite": "Dittrich & Kenneally 2012",
+      "title": "The Menlo Report: Ethical Principles Guiding Information and Communication Technology Research",
+      "url": "https://doi.org/10.2139/ssrn.2445102"
+    },
+    "partridge2016ethical": {
+      "cite": "Partridge & Allman 2016",
+      "title": "Ethical Considerations in Network Measurement Papers",
+      "url": "https://doi.org/10.1145/2896816"
+    },
+    "durumeric2013zmap": {
+      "cite": "Durumeric et al. 2013",
+      "title": "ZMap: Fast Internet-wide Scanning and Its Security Applications",
+      "url": "https://www.usenix.org/conference/usenixsecurity13/technical-sessions/paper/durumeric"
+    },
+    "benjamini1995fdr": {
+      "cite": "Benjamini & Hochberg 1995",
+      "title": "Controlling the False Discovery Rate: A Practical and Powerful Approach to Multiple Testing",
+      "url": "https://doi.org/10.1111/j.2517-6161.1995.tb02031.x"
+    },
+    "nl2026sr138ab": {
+      "cite": "Art. 138ab Sr",
+      "title": "Wetboek van Strafrecht, artikel 138ab (computervredebreuk)",
+      "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0001854&boek=Tweede&titeldeel=V&artikel=138ab"
+    },
+    "eu2016gdpr": {
+      "cite": "GDPR",
+      "title": "Regulation (EU) 2016/679 of the European Parliament and of the Council of 27 April 2016 on the protection of natural persons with regard to the processing of personal data and on the free movement of such data (General Data Protection Regulation)",
+      "url": "https://eur-lex.europa.eu/eli/reg/2016/679/oj"
+    },
+    "cjeu2016breyer": {
+      "cite": "Breyer (C-582/14)",
+      "title": "Judgment of 19 October 2016, Patrick Breyer v Bundesrepublik Deutschland, Case C-582/14",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:62014CJ0582"
+    },
+    "scotus2021vanburen": {
+      "cite": "Van Buren v. United States (2021)",
+      "title": "Van Buren v. United States, No. 19-783 (decided June 3, 2021)",
+      "url": "https://www.supremecourt.gov/opinions/20pdf/19-783_k53l.pdf"
+    },
+    "ninthcir2022hiq": {
+      "cite": "hiQ Labs v. LinkedIn (2022)",
+      "title": "hiQ Labs, Inc. v. LinkedIn Corporation, No. 17-16783 (opinion on remand, filed April 18, 2022)",
+      "url": "https://cdn.ca9.uscourts.gov/datastore/opinions/2022/04/18/17-16783.pdf"
     }
   }
 }

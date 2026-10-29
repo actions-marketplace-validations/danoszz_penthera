@@ -773,7 +773,57 @@
       "url": "https://doi.org/10.1073/pnas.1708274114"
     },
     "bhuiyan2023secbenchjs": {
+      "cite": "Bhuiyan et al. 2023",
+      "title": "SecBench.js: An Executable Security Benchmark Suite for Server-Side JavaScript",
+      "url": "https://doi.org/10.1109/ICSE48619.2023.00096"
+    },
+    "yun2021creddata": {
+      "cite": "Yun et al. 2021",
+      "title": "Project CredData: A Dataset of Credentials for Research",
+      "url": "https://github.com/Samsung/CredData"
+    },
+    "datadog2023malicious": {
+      "cite": "Datadog Security Labs 2023",
+      "title": "Open-Source Dataset of Malicious Software Packages",
+      "url": "https://github.com/DataDog/malicious-software-packages-dataset"
+    },
+    "lamb2022reproducible": {
+      "cite": "Lamb & Zacchiroli 2022",
+      "title": "Reproducible Builds: Increasing the Integrity of Software Supply Chains",
+      "url": "https://doi.org/10.1109/MS.2021.3073045"
+    },
+    "dziemian2026ipiarena": {
+      "cite": "Dziemian et al. 2026",
+      "title": "How Vulnerable Are AI Agents to Indirect Prompt Injections? Insights from a Large-Scale Public Competition",
+      "url": "https://doi.org/10.48550/arXiv.2603.15714"
+    },
+    "wang2026mcptox": {
+      "cite": "Wang et al. 2026",
+      "title": "MCPTox: A Benchmark for Tool Poisoning on Real-World MCP Servers",
+      "url": "https://doi.org/10.1609/aaai.v40i42.40895"
+    },
+    "zhu2025cvebench": {
+      "cite": "Zhu et al. 2025",
+      "title": "CVE-Bench: A Benchmark for AI Agents' Ability to Exploit Real-World Web Application Vulnerabilities",
+      "url": "https://doi.org/10.48550/arXiv.2503.17332"
+    },
+    "wang2025cybergym": {
+      "cite": "Wang et al. 2025",
+      "title": "CyberGym: Evaluating AI Agents' Real-World Cybersecurity Capabilities at Scale",
+      "url": "https://doi.org/10.48550/arXiv.2506.02548"
+    },
+    "jackson2026emudhra": {
       "cite": "Mozilla bug 2083449",
+      "title": "eMudhra: Private Key Compromise of Intermediate Certificates",
+      "url": "https://bugzilla.mozilla.org/show_bug.cgi?id=2083449"
+    },
+    "heninger2012mining": {
+      "cite": "Heninger et al. 2012",
+      "title": "Mining Your Ps and Qs: Detection of Widespread Weak Keys in Network Devices",
+      "url": "https://www.usenix.org/conference/usenixsecurity12/technical-sessions/presentation/heninger"
+    },
+    "nemec2017roca": {
+      "cite": "Nemec et al. 2017",
       "title": "The Return of Coppersmith's Attack: Practical Factorization of Widely Used RSA Moduli",
       "url": "https://doi.org/10.1145/3133956.3133969"
     },
@@ -812,42 +862,12 @@
       "title": "Incidente OpenAI e Hugging Face a Black Hat 2026: Token forgiati, plugin Groovy e nove CVE su Artifactory",
       "url": "https://www.noze.it/insights/black-hat-openai-hugging-face-ricostruzione/"
     },
-    "yun2021creddata": {
-      "cite": "Yun et al. 2021",
-      "title": "Project CredData: A Dataset of Credentials for Research",
-      "url": "https://github.com/Samsung/CredData"
-    },
     "li2022odgen": {
       "cite": "Li et al. 2022",
       "title": "Mining Node.js Vulnerabilities via Object Dependence Graph and Query",
       "url": "https://www.usenix.org/conference/usenixsecurity22/presentation/li-song"
     },
-    "datadog2023malicious": {
-      "cite": "Datadog Security Labs 2023",
-      "title": "Open-Source Dataset of Malicious Software Packages",
-      "url": "https://github.com/datadog/malicious-software-packages-dataset"
-    },
-    "lamb2022reproducible": {
-      "cite": "Lamb & Zacchiroli 2022",
-      "title": "Reproducible Builds: Increasing the Integrity of Software Supply Chains",
-      "url": "https://doi.org/10.1109/MS.2021.3073045"
-    },
-    "dziemian2026ipiarena": {
-      "cite": "Dziemian et al. 2026",
-      "title": "How Vulnerable Are AI Agents to Indirect Prompt Injections? Insights from a Large-Scale Public Competition",
-      "url": "https://doi.org/10.48550/arXiv.2603.15714"
-    },
-    "wang2026mcptox": {
-      "cite": "Wang et al. 2026",
-      "title": "MCPTox: A Benchmark for Tool Poisoning on Real-World MCP Servers",
-      "url": "https://doi.org/10.1609/aaai.v40i42.40895"
-    },
-    "zhu2025cvebench": {
-      "cite": "Zhu et al. 2025",
-      "title": "CVE-Bench: A Benchmark for AI Agents' Ability to Exploit Real-World Web Application Vulnerabilities",
-      "url": "https://doi.org/10.48550/arXiv.2503.17332"
-    },
-    "wang2025cybergym": {
+    "kapoor2023leakage": {
       "cite": "Kapoor & Narayanan 2023",
       "title": "Leakage and the Reproducibility Crisis in Machine-Learning-Based Science",
       "url": "https://doi.org/10.1016/j.patter.2023.100804"

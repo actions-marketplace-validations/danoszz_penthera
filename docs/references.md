@@ -22,7 +22,7 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 <a id="durumeric2014heartbleed"></a>Durumeric, Z., Li, F., Kasten, J., Amann, J., Beekman, J., Payer, M., Weaver, N., Adrian, D., Paxson, V., Bailey, M., & Halderman, J. A. (2014). The matter of Heartbleed. In *Proceedings of the 2014 Conference on Internet Measurement Conference (IMC '14)* (pp. 475–488). ACM. [https://doi.org/10.1145/2663716.2663755](https://doi.org/10.1145/2663716.2663755)
 
-<a id="wang2025cybergym"></a>† Kapoor, S., & Narayanan, A. (2023). *Leakage and the reproducibility crisis in machine-learning-based science* [Preprint]. arXiv. [https://doi.org/10.1016/j.patter.2023.100804](https://doi.org/10.1016/j.patter.2023.100804)
+<a id="kapoor2023leakage"></a>† Kapoor, S., & Narayanan, A. (2023). Leakage and the reproducibility crisis in machine-learning-based science. *Patterns*, *4*(9), Article 100804. [https://doi.org/10.1016/j.patter.2023.100804](https://doi.org/10.1016/j.patter.2023.100804)
 
 <a id="kar2022httpfuzz"></a>Kar, A., Natadze, A., Branca, E., & Stakhanova, N. (2022). HTTPFuzz: Web server fingerprinting with HTTP request fuzzing. In *Proceedings of the 19th International Conference on Security and Cryptography* (pp. 261–271). SCITEPRESS. [https://doi.org/10.5220/0011328900003283](https://doi.org/10.5220/0011328900003283)
 
@@ -54,7 +54,7 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 ## Software supply chain
 
-<a id="datadog2023malicious"></a>† Datadog Security Labs. (2023, March 20). *Open-source dataset of malicious software packages*. GitHub. Retrieved October 29, 2026, from [https://github.com/datadog/malicious-software-packages-dataset](https://github.com/datadog/malicious-software-packages-dataset)
+<a id="datadog2023malicious"></a>† Datadog Security Labs. (2023, March 20). *Open-source dataset of malicious software packages*. Retrieved October 29, 2026, from [https://github.com/DataDog/malicious-software-packages-dataset](https://github.com/DataDog/malicious-software-packages-dataset)
 
 <a id="ladisa2023sok"></a>Ladisa, P., Plate, H., Martinez, M., & Barais, O. (2023). SoK: Taxonomy of attacks on open-source software supply chains. In *2023 IEEE Symposium on Security and Privacy (SP)* (pp. 1509–1526). IEEE. [https://doi.org/10.1109/SP46215.2023.10179304](https://doi.org/10.1109/SP46215.2023.10179304)
 
@@ -78,17 +78,21 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 <a id="meli2019bad"></a>Meli, M., McNiece, M. R., & Reaves, B. (2019). How bad can it Git? Characterizing secret leakage in public GitHub repositories. In *Proceedings 2019 Network and Distributed System Security Symposium*. Internet Society. [https://doi.org/10.14722/ndss.2019.23418](https://doi.org/10.14722/ndss.2019.23418)
 
-<a id="yun2021creddata"></a>† Yun, J., Choi, S., Lee, Y., Sokol, O., Shim, W., Melkonyan, A., & Kuzmenko, D. (2021). *Project CredData: A dataset of credentials for research*. GitHub. Retrieved October 29, 2026, from [https://github.com/Samsung/CredData](https://github.com/Samsung/CredData)
+<a id="yun2021creddata"></a>† Yun, J., Choi, S., Lee, Y., Sokol, O., Shim, W., Melkonyan, A., & Kuzmenko, D. (2021). *Project CredData: A dataset of credentials for research*. Samsung. Retrieved October 29, 2026, from [https://github.com/Samsung/CredData](https://github.com/Samsung/CredData)
 
 ## Web application security
 
 <a id="barth2008robust"></a>Barth, A., Jackson, C., & Mitchell, J. C. (2008). Robust defenses for cross-site request forgery. In *Proceedings of the 15th ACM Conference on Computer and Communications Security (CCS '08)* (pp. 75–88). ACM. [https://doi.org/10.1145/1455770.1455782](https://doi.org/10.1145/1455770.1455782)
+
+<a id="bhuiyan2023secbenchjs"></a>† Bhuiyan, M. H. M., Parthasarathy, A. S., Vasilakis, N., Pradel, M., & Staicu, C.-A. (2023). SecBench.js: An executable security benchmark suite for server-side JavaScript. In *2023 IEEE/ACM 45th International Conference on Software Engineering (ICSE)* (pp. 1059–1070). IEEE. [https://doi.org/10.1109/ICSE48619.2023.00096](https://doi.org/10.1109/ICSE48619.2023.00096)
 
 <a id="chen2018cors"></a>Chen, J., Jiang, J., Duan, H., Wan, T., Chen, S., Paxson, V., & Yang, M. (2018). We still don't have secure cross-domain requests: An empirical study of CORS. In *27th USENIX Security Symposium (USENIX Security 18)* (pp. 1079–1093). USENIX Association. [https://www.usenix.org/conference/usenixsecurity18/presentation/chen-jianjun](https://www.usenix.org/conference/usenixsecurity18/presentation/chen-jianjun)
 
 <a id="crosby2009opportunities"></a>Crosby, S. A., Wallach, D. S., & Riedi, R. H. (2009). Opportunities and limits of remote timing attacks. *ACM Transactions on Information and System Security*, *12*(3), 1–29. [https://doi.org/10.1145/1455526.1455530](https://doi.org/10.1145/1455526.1455530)
 
 <a id="fett2016comprehensive"></a>Fett, D., Küsters, R., & Schmitz, G. (2016). A comprehensive formal security analysis of OAuth 2.0. In *Proceedings of the 2016 ACM SIGSAC Conference on Computer and Communications Security (CCS '16)* (pp. 1204–1215). ACM. [https://doi.org/10.1145/2976749.2978385](https://doi.org/10.1145/2976749.2978385)
+
+<a id="heninger2012mining"></a>† Heninger, N., Durumeric, Z., Wustrow, E., & Halderman, J. A. (2012). Mining your Ps and Qs: Detection of widespread weak keys in network devices. In *21st USENIX Security Symposium (USENIX Security 12)* (pp. 205–220). USENIX Association. [https://www.usenix.org/conference/usenixsecurity12/technical-sessions/presentation/heninger](https://www.usenix.org/conference/usenixsecurity12/technical-sessions/presentation/heninger)
 
 <a id="hodges2012rfc6797"></a>Hodges, J., Jackson, C., & Barth, A. (2012). *HTTP strict transport security (HSTS)* (RFC 6797). RFC Editor. [https://doi.org/10.17487/RFC6797](https://doi.org/10.17487/RFC6797)
 
@@ -106,7 +110,7 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 <a id="lodderstedt2025rfc9700"></a>Lodderstedt, T., Bradley, J., Labunets, A., & Fett, D. (2025). *Best current practice for OAuth 2.0 security* (RFC 9700, BCP 240). RFC Editor. [https://doi.org/10.17487/RFC9700](https://doi.org/10.17487/RFC9700)
 
-<a id="bhuiyan2023secbenchjs"></a>† Nemec, M., Sys, M., Svenda, P., Klinec, D., & Matyas, V. (2017). The return of Coppersmith's attack: Practical factorization of widely used RSA moduli. In *Proceedings of the 2017 ACM SIGSAC Conference on Computer and Communications Security* (pp. 1631–1648). ACM. [https://doi.org/10.1145/3133956.3133969](https://doi.org/10.1145/3133956.3133969)
+<a id="nemec2017roca"></a>† Nemec, M., Sys, M., Svenda, P., Klinec, D., & Matyas, V. (2017). The return of Coppersmith's attack: Practical factorization of widely used RSA moduli. In *Proceedings of the 2017 ACM SIGSAC Conference on Computer and Communications Security* (pp. 1631–1648). ACM. [https://doi.org/10.1145/3133956.3133969](https://doi.org/10.1145/3133956.3133969)
 
 <a id="owaspwstg42"></a>OWASP Foundation. (n.d.-b). *OWASP Web Security Testing Guide, version 4.2*. Retrieved October 19, 2026, from [https://wstg.owasp.org/v4.2/](https://wstg.owasp.org/v4.2/)
 
@@ -172,6 +176,8 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 <a id="wang2026mcptox"></a>† Wang, Z., Gao, Y., Wang, Y., Liu, S., Sun, H., Cheng, H., Shi, G., Du, H., & Li, X. (2026). MCPTox: A benchmark for tool poisoning on real-world MCP servers. In *Proceedings of the AAAI Conference on Artificial Intelligence* (pp. 35811–35819). AAAI. [https://doi.org/10.1609/aaai.v40i42.40895](https://doi.org/10.1609/aaai.v40i42.40895)
 
+<a id="wang2025cybergym"></a>† Wang, Z., Shi, T., He, J., Cai, M., Zhang, J., & Song, D. (2025). *CyberGym: Evaluating AI agents' real-world cybersecurity capabilities at scale* [Preprint]. arXiv. [https://doi.org/10.48550/arXiv.2506.02548](https://doi.org/10.48550/arXiv.2506.02548)
+
 <a id="zhong2025impossiblebench"></a>† Zhong, Z., Raghunathan, A., & Carlini, N. (2025). *ImpossibleBench: Measuring LLMs' propensity of exploiting test cases* [Preprint]. arXiv. [https://doi.org/10.48550/arXiv.2510.20270](https://doi.org/10.48550/arXiv.2510.20270)
 
 <a id="zhu2025cvebench"></a>† Zhu, Y., Kellermann, A., Bowman, D., Li, P., Gupta, A., Danda, A., Fang, R., Jensen, C., Ihli, E., Benn, J., Geronimo, J., Dhir, A., Rao, S., Yu, K., Stone, T., & Kang, D. (2025). *CVE-Bench: A benchmark for AI agents' ability to exploit real-world web application vulnerabilities* [Preprint]. arXiv. [https://doi.org/10.48550/arXiv.2503.17332](https://doi.org/10.48550/arXiv.2503.17332)
@@ -217,6 +223,8 @@ Entries marked † are further reading: they inform the work but are not cited i
 <a id="gitlab2024cve9596"></a>† GitLab. (2024, October 10). *CVE-2024-9596* [Unauthenticated disclosure of the GitLab version number]. CVE Program. Retrieved October 29, 2026, from [https://www.cve.org/CVERecord?id=CVE-2024-9596](https://www.cve.org/CVERecord?id=CVE-2024-9596)
 
 <a id="gitlab2026patch"></a>† GitLab. (2026, October 21). *GitLab critical patch release: 19.5.1, 19.4.3, 19.3.6, 19.2.9, 19.1.9, 19.0.10, 18.11.13*. GitLab Docs. Retrieved October 29, 2026, from [https://docs.gitlab.com/releases/patches/patch-release-gitlab-19-5-1-released/](https://docs.gitlab.com/releases/patches/patch-release-gitlab-19-5-1-released/)
+
+<a id="jackson2026emudhra"></a>† Jackson, D. (2026, October 18). *eMudhra: Private key compromise of intermediate certificates* [Bug 2083449]. Bugzilla@Mozilla, CA Program :: CA Certificate Compliance. Retrieved October 29, 2026, from [https://bugzilla.mozilla.org/show_bug.cgi?id=2083449](https://bugzilla.mozilla.org/show_bug.cgi?id=2083449)
 
 <a id="li2017largescale"></a>Li, F., & Paxson, V. (2017). A large-scale empirical study of security patches. In *Proceedings of the 2017 ACM SIGSAC Conference on Computer and Communications Security (CCS '17)* (pp. 2201–2215). ACM. [https://doi.org/10.1145/3133956.3134072](https://doi.org/10.1145/3133956.3134072)
 

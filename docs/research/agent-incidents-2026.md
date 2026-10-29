@@ -3,7 +3,7 @@
 > **Project page.** For "what should a tool that verifies code and runs an
 > agent loop learn from the 2026 agent incidents?"
 
-Status: **published 2026-10-20; the positioning section is a proposal awaiting the maintainer's approval.**
+Status: **published 2026-10-20.**
 
 ## Summary
 

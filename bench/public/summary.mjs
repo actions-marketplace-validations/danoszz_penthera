@@ -1,11 +1,13 @@
 /**
  * The README's benchmark summary: one row per benchmark, then what a tied rank
- * means and how the secrets rank depends on the F weight. Built from
- * published.json and rank-intervals.json only, so no number is typed by hand.
+ * means, how the secrets rank depends on the F weight, which ranked tools are
+ * barely in the contest, and what a malware flag means at a low prevalence.
+ * Built from published.json and rank-intervals.json only, so no number is
+ * typed by hand.
  * publish.mjs writes it into README.md; tests/bench-summary.test.js checks
  * that README.md still matches it.
  */
-import { BENCHMARKS, RANK_INTERVALS, tiedPhrase } from "../../site/benchmarks.mjs";
+import { BENCHMARKS, PREVALENCE, RANK_INTERVALS, WEAK, flagShare, tiedPhrase, weakField } from "../../site/benchmarks.mjs";
 
 export const SUMMARY_ROWS = [
   ["Leaked secrets (Samsung CredData)", "secrets", "F1"],
@@ -16,6 +18,7 @@ export const SUMMARY_ROWS = [
 
 const SHORT = { secrets: "CredData", npm: "npm", pypi: "PyPI", library: "SecBench.js" };
 const pct = (x) => (x == null ? "n/a" : x.toFixed(2));
+const pc1 = (x) => `${(x * 100).toFixed(1)}%`;
 const ordn = (n) => `${n}${["th", "st", "nd", "rd"][n % 10 > 3 || [11, 12, 13].includes(n % 100) ? 0 : n % 10]}`;
 /** F-beta: beta below 1 weighs precision more, above 1 recall. */
 export const fBeta = (p, r, beta) => (p && r ? ((1 + beta * beta) * p * r) / (beta * beta * p + r) : 0);
@@ -61,5 +64,12 @@ export function readmeSummary(published, label) {
     };
     out.push("", `Leaked secrets: ${ordn(us.rank)} by F1, the registered score; ${by(0.5, "F0.5, which weighs precision more")}; ${by(2, "F2, which weighs recall more")}.`);
   }
+  // How much of each field is a contest, and what a malware flag means at a low prevalence. Exploratory.
+  const weak = SUMMARY_ROWS.map(([, k]) => [k, published.benchmarks[k]?.ranked && weakField(published.benchmarks[k])]).filter(([, w]) => w)
+    .map(([k, w]) => `${w.tools.length} of ${w.of} on ${SHORT[k]} (${w.tools.join(", ")})`);
+  if (weak.length) out.push("", `Some ranked tools are barely in the contest. Other ranked tools scoring below ${pct(WEAK)}: ${weak.join("; ")}.`);
+  const flags = ["npm", "pypi"].map((k) => [k, flagShare(published.benchmarks[k]?.rows.find((r) => r.kind === "penthera"))]).filter(([, f]) => f)
+    .map(([k, f]) => `${SHORT[k]}, about ${f.measured == null ? `${pc1(f.worst)} at the top of the false-alarm interval (it raised no false alarm on that sample)` : `${pc1(f.measured)} at the measured false-alarm rate, ${pc1(f.worst)} at the top of its interval`}`);
+  if (flags.length) out.push("", `If 1 package in ${(1 / PREVALENCE).toLocaleString("en-US")} were malicious, the share of Penthera's malware flags that would be right: ${flags.join("; ")}. Exploratory, like the rank intervals.`);
   return out;
 }

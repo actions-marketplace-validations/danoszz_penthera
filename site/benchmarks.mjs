@@ -52,6 +52,36 @@ export function intervalNote(iv) {
   return `How sure the rank is: ${how}. ${span}${first}. This analysis is exploratory: it was done after the registered ranking.`;
 }
 
+/** A score below this is barely a contest; the notes name the ranked tools under it. */
+export const WEAK = 0.1;
+/** The other ranked tools scoring below WEAK: { tools, of }, or null when there are none. */
+export function weakField(b) {
+  const others = b.rows.filter((r) => r.rank != null && !r.excluded && r.kind !== "penthera");
+  const tools = others.filter((r) => r.score < WEAK).map((r) => r.tool);
+  return tools.length ? { tools, of: others.length } : null;
+}
+/** The prevalence the flag share assumes: 1 malicious package in 1,000. */
+export const PREVALENCE = 1 / 1000;
+/** The share of Penthera's malware flags that would be right at PREVALENCE, measured and at the top of the false-alarm interval. */
+export function flagShare(us) {
+  if (!us?.benignCI) return null;
+  const right = (fa) => (us.r * PREVALENCE) / (us.r * PREVALENCE + fa * (1 - PREVALENCE));
+  return { measured: us.fa ? right(us.fa) : null, worst: right(us.benignCI[1]) };
+}
+const pc1 = (x) => `${(x * 100).toFixed(1)}%`;
+/** The two notes as sentences, for a page: who is barely in the contest, and what a flag means. Exploratory. */
+export function fieldNotes(key, b) {
+  const out = [], w = weakField(b), f = flagShare(b.rows.find((r) => r.kind === "penthera"));
+  if (w) out.push(`${w.tools.length} of the ${w.of} other ranked tools ${w.tools.length === 1 ? "scores" : "score"} below ${n2(WEAK)}: ${w.tools.join(", ")}.`);
+  if (f && (key === "npm" || key === "pypi")) {
+    const at = `If 1 package in ${(1 / PREVALENCE).toLocaleString("en-US")} were malicious`;
+    out.push(f.measured == null
+      ? `${at}, about ${pc1(f.worst)} of Penthera's flags would be right at the top of its false-alarm interval. It raised no false alarm on this sample, so only that upper figure means anything.`
+      : `${at}, about ${pc1(f.measured)} of Penthera's flags would be right at its measured false-alarm rate, and ${pc1(f.worst)} at the top of the interval.`);
+  }
+  return out;
+}
+
 /**
  * What each benchmark page says around the numbers. Words only: a test fails
  * if a digit appears here, so no number can be typed by hand.
@@ -329,6 +359,7 @@ export function benchmarkHtml(key, pub, { origin, styles = "/styles.css", theme 
     ...v.ranked.filter((r) => r.caveat).map((r) => `${esc(r.tool)}: ${esc(r.caveat)}.`),
     `A rank needs at least five other free tools measured; this benchmark has ${v.b.field}.`,
     ...(v.iv ? [esc(intervalNote(v.iv))] : []),
+    ...fieldNotes(v.key, v.b).map(esc),
     `Median score of the other free tools: ${n2(v.b.others[v.key === "secrets" ? "f1" : v.key === "library" ? "r" : "j"].median)}.`,
   ];
   const body = `    <p class="bm-answer">${esc(answer(v, pub))}</p>
@@ -449,7 +480,7 @@ ${v.ranked.map((r) => row(r, r.rank)).join("\n")}
 ${v.unranked.map((r) => row(r, "–")).join("\n")}
 
 Not ranked: ${v.unranked.map((r) => `${name(r)} (${unrankedReason(r)})`).join("; ")}.
-${v.iv ? `\n${intervalNote(v.iv)}\n` : ""}
+${v.iv ? `\n${intervalNote(v.iv)}\n` : ""}${fieldNotes(v.key, v.b).map((s) => `\n${s}\n`).join("")}
 ## Where another tool does better than Penthera
 
 ${betterThanUs(v).map((x) => `- ${x.measure}: ${said(x.tool)} ${n2(x.theirs)}, Penthera ${n2(x.ours)}. Overall, ${x.tool.tool} scored ${n2(x.overall)}.`).join("\n") || "- On no single measure here."}

@@ -2,9 +2,17 @@
  * The landing page's Go Pro plate (site/index.html, #go-pro): a light that
  * follows the pointer and a slight tilt towards it. The shimmer, the glow and
  * the twinkles are CSS. Off with reduced motion and on touch-only screens.
+ * Off screen, the CSS loops pause (data-rest): the star's glow animates a
+ * filter, which restyles and repaints on the main thread every frame.
  */
 (() => {
   const plate = document.querySelector(".gopro-plate");
+  if (plate && "IntersectionObserver" in window) {
+    new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) delete plate.dataset.rest;
+      else plate.dataset.rest = "";
+    }).observe(plate);
+  }
   if (!plate || matchMedia("(prefers-reduced-motion: reduce)").matches || !matchMedia("(hover: hover)").matches) return;
   const set = (k, v) => plate.style.setProperty(k, v);
   plate.addEventListener("pointermove", (e) => {

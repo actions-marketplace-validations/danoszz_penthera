@@ -930,29 +930,40 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 /* A progressive blur, 0 at the top edge to 32 px at the bottom: six stacked
  * layers, each blurring twice as much as the last over a band nearer the
  * bottom, masked so neighbouring bands overlap. One blurred layer under a
- * fading mask reads as a frosted rectangle; this has no edge. */
+ * fading mask reads as a frosted rectangle; this has no edge.
+ *
+ * Cost (2026-10-29): a backdrop blur is paid over its whole box, mask or
+ * not, every frame that anything under it moves. So each layer is only as
+ * tall as its mask is opaque (--clear, % of the veil), with the mask's stops
+ * rescaled to match: the same picture, and the heavy blurs work on the
+ * smallest strips (32 px over 18%, not 100%), 41% less blurred area in all. */
 .veil {
   position: fixed; inset: auto 0 0; z-index: 9;
   height: var(--veil-h);
   pointer-events: none;
-  transition: opacity 240ms var(--out);
+  contain: strict;
+  transition: opacity 240ms var(--out), visibility 0s;
 }
 .veil > i {
-  position: absolute; inset: 0;
+  position: absolute; inset: auto 0 0;
+  height: calc(var(--clear) * 1%);
   -webkit-backdrop-filter: blur(var(--b)); backdrop-filter: blur(var(--b));
-  -webkit-mask-image: linear-gradient(to top, #000 var(--solid), transparent var(--clear));
-  mask-image: linear-gradient(to top, #000 var(--solid), transparent var(--clear));
+  -webkit-mask-image: linear-gradient(to top, #000 calc(var(--solid) / var(--clear) * 100%), transparent 100%);
+  mask-image: linear-gradient(to top, #000 calc(var(--solid) / var(--clear) * 100%), transparent 100%);
 }
-.veil > i:nth-child(1) { --b: 1px;  --solid: 66%; --clear: 100%; }
-.veil > i:nth-child(2) { --b: 2px;  --solid: 50%; --clear: 83%; }
-.veil > i:nth-child(3) { --b: 4px;  --solid: 34%; --clear: 66%; }
-.veil > i:nth-child(4) { --b: 8px;  --solid: 18%; --clear: 50%; }
-.veil > i:nth-child(5) { --b: 16px; --solid: 6%;  --clear: 34%; }
-.veil > i:nth-child(6) { --b: 32px; --solid: 0%;  --clear: 18%; }
+/* --solid and --clear: where each layer's mask is opaque up to and clear
+ * from, in % of the veil's height from the bottom. */
+.veil > i:nth-child(1) { --b: 1px;  --solid: 66; --clear: 100; }
+.veil > i:nth-child(2) { --b: 2px;  --solid: 50; --clear: 83; }
+.veil > i:nth-child(3) { --b: 4px;  --solid: 34; --clear: 66; }
+.veil > i:nth-child(4) { --b: 8px;  --solid: 18; --clear: 50; }
+.veil > i:nth-child(5) { --b: 16px; --solid: 6;  --clear: 34; }
+.veil > i:nth-child(6) { --b: 32px; --solid: 0;  --clear: 18; }
 
 /* Off while the hero headline is inside the veil's zone, so the first screen
- * reads clean; it fades in once the headline has scrolled above it. */
-.veil[data-off] { opacity: 0; }
+ * reads clean; it fades in once the headline has scrolled above it. Once
+ * faded out it is hidden too, so its blurs are not drawn at zero opacity. */
+.veil[data-off] { opacity: 0; visibility: hidden; transition: opacity 240ms var(--out), visibility 0s 240ms; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
@@ -1699,6 +1710,8 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 @keyframes gopro-shimmer-btn { 0%, 62% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
 .gopro-btn:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 20px 44px -10px rgba(0, 0, 237, 1); }
 .gopro-btn:focus-visible { outline: 2px solid #7a7aff; outline-offset: 3px; }
+/* Off screen the loops wait (gopro.js sets data-rest). */
+.gopro-plate[data-rest]::before, .gopro-plate[data-rest] .gopro-btn::after, .gopro-plate[data-rest] .gopro-star, .gopro-plate[data-rest] .gopro-twinkle { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) {
   .gopro-plate::before, .gopro-btn::after, .gopro-star, .gopro-twinkle { animation: none; }
   .gopro-plate, .gopro-star, .gopro-btn { transition: none; }
@@ -1732,6 +1745,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
   inset: calc(var(--head) + 4px) 0 auto auto;
   width: min(66vw, 960px); height: min(620px, 72vh);
   -webkit-mask: linear-gradient(90deg, transparent 0, transparent 18%, #000 62%); mask: linear-gradient(90deg, transparent 0, transparent 18%, #000 62%);
+  --field-from: 0.18;   /* the mask is clear up to here; check/field.js skips those columns */
 }
 .poster, .report {
   position: relative; z-index: 1; max-width: var(--measure); margin: 0 auto;
@@ -1868,7 +1882,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 }
 @media (min-width: 760px) { .card .card-prompt { display: none; } }
 @media (max-width: 759px) {
-  .hero .field { inset: calc(var(--head) + 8px) 0 auto; width: 100%; height: 132px; -webkit-mask: linear-gradient(180deg, #000 60%, transparent); mask: linear-gradient(180deg, #000 60%, transparent); }
+  .hero .field { --field-from: 0; inset: calc(var(--head) + 8px) 0 auto; width: 100%; height: 132px; -webkit-mask: linear-gradient(180deg, #000 60%, transparent); mask: linear-gradient(180deg, #000 60%, transparent); }
   .poster { padding-top: calc(var(--head) + 150px); gap: 28px; }
   .report { padding-top: calc(var(--head) + 24px); }
   #hero-title, .report-kick { font-size: 12px; margin-bottom: 14px; }

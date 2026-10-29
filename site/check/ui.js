@@ -60,17 +60,21 @@ function copyButtons() {
   }
 }
 
-// ── Hero loop: plays only when motion is welcome ────────────────────────────
+// ── Hero loop: plays only when motion is welcome, and only on screen ────────
 
 function heroLoop() {
   const v = $("[data-loop]");
   if (!v) return;
   const still = matchMedia("(prefers-reduced-motion: reduce)");
+  let onScreen = true;
   const apply = () => {
     if (still.matches) { v.pause(); v.controls = true; return; }
     v.controls = false;
+    // Off screen it waits, so the decoder does not run for nobody.
+    if (!onScreen) { v.pause(); return; }
     v.play().catch(() => { v.controls = true; });
   };
+  new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; apply(); }).observe(v);
   still.addEventListener("change", apply);
   apply();
 }
@@ -591,19 +595,39 @@ function veilClear() {
 // The plates' sheen is a light above the page. With a mouse, the pointer
 // carries it: every plate gets the pointer's position in its own
 // coordinates, so they all catch the same light. Off with reduced motion.
+//
+// Cost (2026-10-29): every write restyles and repaints a plate, so a frame
+// reads every rect first and then writes, never interleaved (a read after a
+// write forces a style pass per plate), and writes only to the plates the
+// light can reach, plus once to a plate it just left. The sheen is a 400 px
+// circle that is clear at 72%, so past REACH the plate shows none of it.
+const REACH = 300;
 function metalLight() {
   const fine = matchMedia("(hover: hover) and (pointer: fine)");
   const still = matchMedia("(prefers-reduced-motion: reduce)");
   if (!fine.matches || still.matches) return;
   const plates = [...document.querySelectorAll(".pillars li, .bench-stats li, .road li, .ways > li, .prompt-card, .btn-prompt, .pb-card")];
+  const lit = new Map();   // plate → the "lx,ly" it was last given, while the light reaches it
+  const placed = new Set(); // plates that have had the pointer's light at least once
   let x = 0, y = 0, queued = false;
   const paint = () => {
     queued = false;
-    for (const el of plates) {
-      const r = el.getBoundingClientRect();
+    const rects = plates.map((el) => el.getBoundingClientRect());
+    for (let i = 0; i < plates.length; i++) {
+      const el = plates[i], r = rects[i];
       if (r.bottom < -200 || r.top > innerHeight + 200) continue;
+      // Distance from the pointer to the plate's nearest edge.
+      const dx = Math.max(r.left - x, 0, x - r.right), dy = Math.max(r.top - y, 0, y - r.bottom);
+      const near = dx * dx + dy * dy < REACH * REACH;
+      // Each plate gets the pointer's light once, which clears the resting
+      // light; after that, only plates in reach or just out of it.
+      if (!near && placed.has(el) && !lit.has(el)) continue;
+      const v = `${Math.round(x - r.left)},${Math.round(y - r.top)}`;
+      if (lit.get(el) === v) continue;
       el.style.setProperty("--lx", `${Math.round(x - r.left)}px`);
       el.style.setProperty("--ly", `${Math.round(y - r.top)}px`);
+      placed.add(el);
+      if (near) lit.set(el, v); else lit.delete(el);
     }
   };
   let seen = false;
@@ -613,6 +637,8 @@ function metalLight() {
   addEventListener("scroll", queue, { passive: true });
   document.documentElement.addEventListener("pointerleave", () => {
     for (const el of plates) { el.style.removeProperty("--lx"); el.style.removeProperty("--ly"); }
+    lit.clear();
+    placed.clear();
   });
 }
 

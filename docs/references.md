@@ -50,7 +50,11 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 ## Software supply chain
 
+<a id="datadog2023malicious"></a>† Datadog Security Labs. (2023, March 20). *Open-source dataset of malicious software packages*. Retrieved October 29, 2026, from [https://github.com/DataDog/malicious-software-packages-dataset](https://github.com/DataDog/malicious-software-packages-dataset)
+
 <a id="ladisa2023sok"></a>Ladisa, P., Plate, H., Martinez, M., & Barais, O. (2023). SoK: Taxonomy of attacks on open-source software supply chains. In *2023 IEEE Symposium on Security and Privacy (SP)* (pp. 1509–1526). IEEE. [https://doi.org/10.1109/SP46215.2023.10179304](https://doi.org/10.1109/SP46215.2023.10179304)
+
+<a id="lamb2022reproducible"></a>† Lamb, C., & Zacchiroli, S. (2022). Reproducible builds: Increasing the integrity of software supply chains. *IEEE Software*, *39*(2), 62–70. [https://doi.org/10.1109/MS.2021.3073045](https://doi.org/10.1109/MS.2021.3073045)
 
 <a id="lauinger2017thou"></a>Lauinger, T., Chaabane, A., Arshad, S., Robertson, W., Wilson, C., & Kirda, E. (2017). Thou shalt not depend on me: Analysing the use of outdated JavaScript libraries on the web. In *Proceedings 2017 Network and Distributed System Security Symposium*. Internet Society. [https://doi.org/10.14722/ndss.2017.23414](https://doi.org/10.14722/ndss.2017.23414)
 
@@ -70,9 +74,13 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 <a id="meli2019bad"></a>Meli, M., McNiece, M. R., & Reaves, B. (2019). How bad can it Git? Characterizing secret leakage in public GitHub repositories. In *Proceedings 2019 Network and Distributed System Security Symposium*. Internet Society. [https://doi.org/10.14722/ndss.2019.23418](https://doi.org/10.14722/ndss.2019.23418)
 
+<a id="yun2021creddata"></a>† Yun, J., Choi, S., Lee, Y., Sokol, O., Shim, W., Melkonyan, A., & Kuzmenko, D. (2021). *Project CredData: A dataset of credentials for research*. Samsung. Retrieved October 29, 2026, from [https://github.com/Samsung/CredData](https://github.com/Samsung/CredData)
+
 ## Web application security
 
 <a id="barth2008robust"></a>Barth, A., Jackson, C., & Mitchell, J. C. (2008). Robust defenses for cross-site request forgery. In *Proceedings of the 15th ACM Conference on Computer and Communications Security (CCS '08)* (pp. 75–88). ACM. [https://doi.org/10.1145/1455770.1455782](https://doi.org/10.1145/1455770.1455782)
+
+<a id="bhuiyan2023secbenchjs"></a>† Bhuiyan, M. H. M., Parthasarathy, A. S., Vasilakis, N., Pradel, M., & Staicu, C.-A. (2023). SecBench.js: An executable security benchmark suite for server-side JavaScript. In *2023 IEEE/ACM 45th International Conference on Software Engineering (ICSE)* (pp. 1059–1070). IEEE. [https://doi.org/10.1109/ICSE48619.2023.00096](https://doi.org/10.1109/ICSE48619.2023.00096)
 
 <a id="chen2018cors"></a>Chen, J., Jiang, J., Duan, H., Wan, T., Chen, S., Paxson, V., & Yang, M. (2018). We still don't have secure cross-domain requests: An empirical study of CORS. In *27th USENIX Security Symposium (USENIX Security 18)* (pp. 1079–1093). USENIX Association. [https://www.usenix.org/conference/usenixsecurity18/presentation/chen-jianjun](https://www.usenix.org/conference/usenixsecurity18/presentation/chen-jianjun)
 
@@ -128,6 +136,8 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 <a id="ding2025primevul"></a>Ding, Y., Fu, Y., Ibrahim, O., Sitawarin, C., Chen, X., Alomair, B., Wagner, D., Ray, B., & Chen, Y. (2025). Vulnerability detection with code language models: How far are we? In *Proceedings of the 47th IEEE/ACM International Conference on Software Engineering (ICSE 2025)*. [https://doi.org/10.48550/arXiv.2403.18624](https://doi.org/10.48550/arXiv.2403.18624)
 
+<a id="dziemian2026ipiarena"></a>† Dziemian, M., Lin, M., Fu, X., Nowak, M., Winter, N., Jones, E., Zou, A., Ahmad, L., Chaudhuri, K., Chennabasappa, S., Davies, X., Deason, L., Edelman, B. L., Emek, T., Evtimov, I., Gust, J., Hamin, M., He, K., Krawiecka, K., . . . Kolter, Z. (2026). *How vulnerable are AI agents to indirect prompt injections? Insights from a large-scale public competition* [Preprint]. arXiv. [https://doi.org/10.48550/arXiv.2603.15714](https://doi.org/10.48550/arXiv.2603.15714)
+
 <a id="greshake2023signed"></a>Greshake, K., Abdelnabi, S., Mishra, S., Endres, C., Holz, T., & Fritz, M. (2023). Not what you've signed up for: Compromising real-world LLM-integrated applications with indirect prompt injection. In *Proceedings of the 16th ACM Workshop on Artificial Intelligence and Security (AISec '23)* (pp. 79–90). ACM. [https://doi.org/10.1145/3605764.3623985](https://doi.org/10.1145/3605764.3623985)
 
 <a id="liu2023prompt"></a>Liu, Y., Deng, G., Li, Y., Wang, K., Wang, Z., Wang, X., Zhang, T., Liu, Y., Wang, H., Zheng, Y., Zhang, L. Y., & Liu, Y. (2023). *Prompt injection attack against LLM-integrated applications* [Preprint]. arXiv. [https://doi.org/10.48550/arXiv.2306.05499](https://doi.org/10.48550/arXiv.2306.05499)
@@ -148,7 +158,13 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 <a id="spracklen2025package"></a>Spracklen, J., Wijewickrama, R., Sakib, A. H. M. N., Maiti, A., Viswanath, B., & Jadliwala, M. (2025). We have a package for you! A comprehensive analysis of package hallucinations by code generating LLMs. In *34th USENIX Security Symposium (USENIX Security 25)* (pp. 3687–3706). USENIX Association. [https://www.usenix.org/conference/usenixsecurity25/presentation/spracklen](https://www.usenix.org/conference/usenixsecurity25/presentation/spracklen)
 
+<a id="wang2026mcptox"></a>† Wang, Z., Gao, Y., Wang, Y., Liu, S., Sun, H., Cheng, H., Shi, G., Du, H., & Li, X. (2026). MCPTox: A benchmark for tool poisoning on real-world MCP servers. In *Proceedings of the AAAI Conference on Artificial Intelligence* (pp. 35811–35819). AAAI. [https://doi.org/10.1609/aaai.v40i42.40895](https://doi.org/10.1609/aaai.v40i42.40895)
+
+<a id="wang2025cybergym"></a>† Wang, Z., Shi, T., He, J., Cai, M., Zhang, J., & Song, D. (2025). *CyberGym: Evaluating AI agents' real-world cybersecurity capabilities at scale* [Preprint]. arXiv. [https://doi.org/10.48550/arXiv.2506.02548](https://doi.org/10.48550/arXiv.2506.02548)
+
 <a id="zhong2025impossiblebench"></a>† Zhong, Z., Raghunathan, A., & Carlini, N. (2025). *ImpossibleBench: Measuring LLMs' propensity of exploiting test cases* [Preprint]. arXiv. [https://doi.org/10.48550/arXiv.2510.20270](https://doi.org/10.48550/arXiv.2510.20270)
+
+<a id="zhu2025cvebench"></a>† Zhu, Y., Kellermann, A., Bowman, D., Li, P., Gupta, A., Danda, A., Fang, R., Jensen, C., Ihli, E., Benn, J., Geronimo, J., Dhir, A., Rao, S., Yu, K., Stone, T., & Kang, D. (2025). *CVE-Bench: A benchmark for AI agents' ability to exploit real-world web application vulnerabilities* [Preprint]. arXiv. [https://doi.org/10.48550/arXiv.2503.17332](https://doi.org/10.48550/arXiv.2503.17332)
 
 ## Standards and regulation
 
@@ -217,3 +233,27 @@ Entries marked † are further reading: they inform the work but are not cited i
 <a id="ubuntusecurityfaq"></a>Ubuntu Security Team. (n.d.). *Security/FAQ*. Ubuntu Wiki. Retrieved October 21, 2026, from [https://wiki.ubuntu.com/SecurityTeam/FAQ](https://wiki.ubuntu.com/SecurityTeam/FAQ)
 
 <a id="zhang2018precise"></a>Zhang, H., & Qian, Z. (2018). Precise and accurate patch presence test for binaries. In *27th USENIX Security Symposium (USENIX Security 18)* (pp. 887–902). USENIX Association. [https://www.usenix.org/conference/usenixsecurity18/presentation/zhang-hang](https://www.usenix.org/conference/usenixsecurity18/presentation/zhang-hang)
+
+## Research methods and statistics
+
+<a id="cohen1960coefficient"></a>† Cohen, J. (1960). A coefficient of agreement for nominal scales. *Educational and Psychological Measurement*, *20*(1), 37–46. [https://doi.org/10.1177/001316446002000104](https://doi.org/10.1177/001316446002000104)
+
+<a id="efron1979bootstrap"></a>† Efron, B. (1979). Bootstrap methods: Another look at the jackknife. *The Annals of Statistics*, *7*(1), 1–26. [https://doi.org/10.1214/aos/1176344552](https://doi.org/10.1214/aos/1176344552)
+
+<a id="feinstein1990paradoxes"></a>† Feinstein, A. R., & Cicchetti, D. V. (1990). High agreement but low kappa: I. The problems of two paradoxes. *Journal of Clinical Epidemiology*, *43*(6), 543–549. [https://doi.org/10.1016/0895-4356(90)90158-L](https://doi.org/10.1016/0895-4356(90)90158-L)
+
+<a id="fleiss1969large"></a>† Fleiss, J. L., Cohen, J., & Everitt, B. S. (1969). Large sample standard errors of kappa and weighted kappa. *Psychological Bulletin*, *72*(5), 323–327. [https://doi.org/10.1037/h0028106](https://doi.org/10.1037/h0028106)
+
+<a id="mcnemar1947note"></a>† McNemar, Q. (1947). Note on the sampling error of the difference between correlated proportions or percentages. *Psychometrika*, *12*(2), 153–157. [https://doi.org/10.1007/BF02295996](https://doi.org/10.1007/BF02295996)
+
+<a id="newcombe1998interval"></a>† Newcombe, R. G. (1998). Interval estimation for the difference between independent proportions: Comparison of eleven methods. *Statistics in Medicine*, *17*(8), 873–890. [https://doi.org/10.1002/(SICI)1097-0258(19980430)17:8<873::AID-SIM779>3.0.CO;2-I](https://doi.org/10.1002/(SICI)1097-0258(19980430)17:8<873::AID-SIM779>3.0.CO;2-I)
+
+<a id="nosek2018preregistration"></a>† Nosek, B. A., Ebersole, C. R., DeHaven, A. C., & Mellor, D. T. (2018). The preregistration revolution. *Proceedings of the National Academy of Sciences*, *115*(11), 2600–2606. [https://doi.org/10.1073/pnas.1708274114](https://doi.org/10.1073/pnas.1708274114)
+
+<a id="petersson2004capture"></a>† Petersson, H., Thelin, T., Runeson, P., & Wohlin, C. (2004). Capture–recapture in software inspections after 10 years research: Theory, evaluation and application. *Journal of Systems and Software*, *72*(2), 249–264. [https://doi.org/10.1016/S0164-1212(03)00090-6](https://doi.org/10.1016/S0164-1212(03)00090-6)
+
+<a id="webber2013recall"></a>† Webber, W. (2013). Approximate recall confidence intervals. *ACM Transactions on Information Systems*, *31*(1), 1–33. [https://doi.org/10.1145/2414782.2414784](https://doi.org/10.1145/2414782.2414784)
+
+<a id="wilson1927probable"></a>† Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. *Journal of the American Statistical Association*, *22*(158), 209–212. [https://doi.org/10.1080/01621459.1927.10502953](https://doi.org/10.1080/01621459.1927.10502953)
+
+<a id="youden1950index"></a>† Youden, W. J. (1950). Index for rating diagnostic tests. *Cancer*, *3*(1), 32–35. [https://doi.org/10.1002/1097-0142(1950)3:1<32::AID-CNCR2820030106>3.0.CO;2-3](https://doi.org/10.1002/1097-0142(1950)3:1<32::AID-CNCR2820030106>3.0.CO;2-3)

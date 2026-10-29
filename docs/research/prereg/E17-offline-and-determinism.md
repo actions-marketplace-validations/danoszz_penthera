@@ -10,6 +10,29 @@
 | Data collected before registration | None |
 | Cost | $0. Local runs only |
 
+## Abstract (added 29 Oct 2026, after registration and the result)
+
+> **Project page.** For researchers asking "does Penthera make no network
+> calls, and give the same answer twice?" This abstract was added after the
+> result. It changes nothing in the protocol. The registered text is the
+> version merged to `main` in `dfd5053` (28 Oct 2026); § 9 entry 5 is the one
+> logged change since, and `git diff dfd5053 -- docs/research/prereg/E17-offline-and-determinism.md`
+> shows every later edit.
+
+**Question.** Do Penthera's offline commands make no outside connections,
+give the same result twice, and give the same result with the network
+blocked as with it allowed?
+**Method.** Seven commands on four fixed targets and a loopback mock server,
+each run twice under a network guard and once without it, on macOS and on
+Ubuntu. A positive control checks that the guard sees a real connection.
+Pass or fail per cell, no sampling.
+**Result.** All three hypotheses hold for every command in scope, on both
+platforms. URL scans hold only with `--offline`. The guard covers Node
+processes; `git` runs unguarded. Results:
+[bench/offline/RESULTS.md](../../../bench/offline/RESULTS.md).
+**Limits.** Four small targets. `install`, `--giants`, `--recon`,
+`--suppliers` and AI mode are out of scope by design.
+
 ## 1. Why
 
 Penthera's copy says it is offline and that "you can verify every finding
@@ -149,3 +172,49 @@ Any change after registration is listed here with its date and reason.
    old pattern's result next to it. Re-run on macOS at commit `0a69642` and on
    Ubuntu in CI: the verdict is unchanged under both. The § 6 text above stays as registered.
    Old and new results side by side: [E17 results](../../../bench/offline/RESULTS.md#deviation-the-normaliser-29-oct-2026).
+
+## Notes added after the result, 29 Oct 2026
+
+These notes add context, reproduction details and what the result means.
+They change no part of the protocol or its deviations above.
+
+### Context and references
+
+Same output from the same input is the goal reproducible builds set for
+software packages ([Lamb & Zacchiroli, 2022](../../references.md#lamb2022reproducible)).
+E17 applies the same test to a scanner's output, not to its build.
+Pre-registration: [Nosek et al. (2018)](../../references.md#nosek2018preregistration).
+No statistics are cited: the hypotheses are pass or fail on a
+deterministic program (§ 2).
+
+### Reproduce
+
+| What | Value |
+|---|---|
+| Runner | `node bench/offline/run.mjs [--out <dir>]` ([run.mjs](../../../bench/offline/run.mjs)) |
+| Guard and child log | `scripts/ci/net-guard.cjs`, `bench/offline/child-log.cjs` |
+| Normalizer (after entry 5) | [normalize.mjs](../../../bench/offline/normalize.mjs), tested in `tests/bench-offline.test.js` |
+| Registered run | commit `dfd5053`, 28 Oct 2026: macOS (Node 26.0.0) and Ubuntu in GitHub Actions (Node 22.23.4, workflow `bench-offline.yml`) |
+| Re-run after entry 5 | commit `0a69642`, 29 Oct 2026, macOS and Ubuntu |
+| Raw summaries | `bench/offline/registered/*.json`, `bench/offline/rerun-2026-10-29/macos.json` (MIT, as the repository) |
+
+**Not shared, and why.** The full raw stdout of each run stays in the
+runner's output folder: it is large, and the summaries hold every verdict
+and differing path. The CI run uploads it as an artifact.
+
+### What the result means
+
+- **For users.** Repo scans, `agents`, `deps`, `brief`, evidence bundles and
+  URL scans with `--offline` made no outside connection and gave the same
+  result every time, on macOS and Ubuntu. A URL scan without `--offline`
+  downloads the Retire.js database; use `--offline` on an air-gapped host.
+- **For the tool and its copy.** The claim may name these commands and
+  nothing broader (§ 7). `git` is not guarded; that it only runs local
+  commands comes from reading the code, not from a measurement.
+
+### Status
+
+Draft `dd37a9b`; pilot `00209fd`; registered `dfd5053` (28 Oct 2026);
+normalizer deviation `6c9e736` and Ubuntu re-run `933c404` (29 Oct 2026);
+this abstract and these notes 29 Oct 2026. No figure: the result is a
+pass-or-fail table.

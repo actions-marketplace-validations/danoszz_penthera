@@ -1,7 +1,37 @@
 # E17 results: offline and determinism
 
+> **Project page.** For researchers asking "did Penthera's offline commands
+> stay offline and give the same answer twice?"
+
 Protocol: [E17 pre-registration](../../docs/research/prereg/E17-offline-and-determinism.md).
 Runner: [run.mjs](run.mjs).
+
+## Summary (added 29 Oct 2026)
+
+**Question.** Do seven offline commands make no outside connection (H1),
+give the same result twice (H2), and give the same result with the network
+blocked as with it allowed (H3)?
+**Method.** Each command × target ran twice under a network guard and once
+without it, on macOS and on Ubuntu, with a positive control (§ 2 to § 6 of
+the protocol).
+**Result.** H1, H2 and H3 hold for every command and target in scope, on
+both platforms, in the registered run (28 Oct 2026, `dfd5053`) and in the
+re-run with the corrected normalizer (29 Oct 2026, `0a69642`). URL scans
+hold only with `--offline`.
+**Limits.** `git` runs outside the guard. Four small targets.
+`install`, `--giants`, `--recon`, `--suppliers` and AI mode are out of
+scope.
+**What it changes.** The copy may say "no network at run time, and the same
+result every time" for the passing commands, naming them, and nothing
+broader.
+
+To repeat it: `npm ci --ignore-scripts`, then `node bench/offline/run.mjs
+--out <dir>` at the commit you want to test (Node.js 22 or later). The CI
+version is the manual workflow `.github/workflows/bench-offline.yml`. The raw
+summaries in [registered/](registered/) and
+[rerun-2026-10-29/](rerun-2026-10-29/) are MIT-licensed, as the repository.
+The full per-run stdout is not committed; the CI run keeps it as an
+artifact.
 
 ## Deviation: the normaliser, 29 Oct 2026
 

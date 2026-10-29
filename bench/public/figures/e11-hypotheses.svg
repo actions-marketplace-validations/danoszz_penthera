@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="374" viewBox="0 0 640 374" role="img" aria-labelledby="t d">
+<title id="t">E11 estimates against their registered thresholds</title>
+<desc id="d">Dot plot of the seven E11 estimates for Penthera 1.9.0, each with its 95% interval, against the threshold registered in E11 § 1 (dashed). H1: 0.58 [0.55, 0.6], threshold &gt; 0.7; H2: 0.27 [0.26, 0.29], threshold &gt; 0.5; H3: 0.13 [0.08, 0.2], threshold &gt; 0.5; H4 npm: 0.44 [0.39, 0.5], threshold &gt; 0.7; H4 PyPI: 0.8 [0.75, 0.84], threshold &gt; 0.7; H5 npm: 0 [0, 0.01], threshold &lt; 0.1; H5 PyPI: 0.08 [0.06, 0.12], threshold &lt; 0.1. Only H4 PyPI and H5 npm clear their threshold, so no hypothesis holds for both ecosystems.</desc>
+<rect width="640" height="374" fill="#ffffff"/>
+<line x1="306" y1="22" x2="306" y2="330" stroke="#ebebeb" stroke-width="1"/>
+<line x1="382" y1="22" x2="382" y2="330" stroke="#ebebeb" stroke-width="1"/>
+<line x1="458" y1="22" x2="458" y2="330" stroke="#ebebeb" stroke-width="1"/>
+<line x1="534" y1="22" x2="534" y2="330" stroke="#ebebeb" stroke-width="1"/>
+<rect x="230" y="22" width="380" height="308" fill="none" stroke="#bfbfbf" stroke-width="1"/>
+<text x="230" y="345" font-size="11" fill="#333333" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">0.0</text>
+<text x="306" y="345" font-size="11" fill="#333333" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">0.2</text>
+<text x="382" y="345" font-size="11" fill="#333333" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">0.4</text>
+<text x="458" y="345" font-size="11" fill="#333333" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">0.6</text>
+<text x="534" y="345" font-size="11" fill="#333333" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">0.8</text>
+<text x="610" y="345" font-size="11" fill="#333333" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">1.0</text>
+<text x="420" y="363" font-size="12" fill="#000000" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Estimate (share), with 95% interval</text>
+<text x="16" y="54" font-size="12" fill="#000000" text-anchor="start" font-family="Helvetica, Arial, sans-serif">H1 Secret precision</text>
+<line x1="496" y1="34" x2="496" y2="62" stroke="#b3b3b3" stroke-width="1" stroke-dasharray="3 2"/>
+<text x="500" y="42" font-size="11" fill="#8c8c8c" text-anchor="start" font-family="Helvetica, Arial, sans-serif">&gt; 0.7</text>
+<line x1="439" y1="50" x2="458" y2="50" stroke="#ED7A00" stroke-width="1.5"/>
+<rect x="445.9" y="45.5" width="9" height="9" fill="#ED7A00" stroke="#ffffff" stroke-width="1.5"/>
+<text x="466" y="54" font-size="11" fill="#ED7A00" text-anchor="start" font-family="Helvetica, Arial, sans-serif">fails</text>
+<text x="16" y="98" font-size="12" fill="#000000" text-anchor="start" font-family="Helvetica, Arial, sans-serif">H2 Secret recall</text>
+<line x1="420" y1="78" x2="420" y2="106" stroke="#b3b3b3" stroke-width="1" stroke-dasharray="3 2"/>
+<text x="424" y="86" font-size="11" fill="#8c8c8c" text-anchor="start" font-family="Helvetica, Arial, sans-serif">&gt; 0.5</text>
+<line x1="328.8" y1="94" x2="340.2" y2="94" stroke="#ED7A00" stroke-width="1.5"/>
+<rect x="328.1" y="89.5" width="9" height="9" fill="#ED7A00" stroke="#ffffff" stroke-width="1.5"/>
+<text x="348.2" y="98" font-size="11" fill="#ED7A00" text-anchor="start" font-family="Helvetica, Arial, sans-serif">fails</text>
+<text x="16" y="142" font-size="12" fill="#000000" text-anchor="start" font-family="Helvetica, Arial, sans-serif">H3 SecBench.js recall at the sink</text>
+<line x1="420" y1="122" x2="420" y2="150" stroke="#b3b3b3" stroke-width="1" stroke-dasharray="3 2"/>
+<text x="424" y="130" font-size="11" fill="#8c8c8c" text-anchor="start" font-family="Helvetica, Arial, sans-serif">&gt; 0.5</text>
+<line x1="260.4" y1="138" x2="306" y2="138" stroke="#ED7A00" stroke-width="1.5"/>
+<rect x="274.9" y="133.5" width="9" height="9" fill="#ED7A00" stroke="#ffffff" stroke-width="1.5"/>
+<text x="314" y="142" font-size="11" fill="#ED7A00" text-anchor="start" font-family="Helvetica, Arial, sans-serif">fails</text>
+<text x="16" y="186" font-size="12" fill="#000000" text-anchor="start" font-family="Helvetica, Arial, sans-serif">H4 Malware flagged, npm</text>
+<line x1="496" y1="166" x2="496" y2="194" stroke="#b3b3b3" stroke-width="1" stroke-dasharray="3 2"/>
+<text x="500" y="174" font-size="11" fill="#8c8c8c" text-anchor="start" font-family="Helvetica, Arial, sans-serif">&gt; 0.7</text>
+<line x1="378.2" y1="182" x2="420" y2="182" stroke="#ED7A00" stroke-width="1.5"/>
+<rect x="392.7" y="177.5" width="9" height="9" fill="#ED7A00" stroke="#ffffff" stroke-width="1.5"/>
+<text x="428" y="186" font-size="11" fill="#ED7A00" text-anchor="start" font-family="Helvetica, Arial, sans-serif">fails</text>
+<text x="16" y="230" font-size="12" fill="#000000" text-anchor="start" font-family="Helvetica, Arial, sans-serif">H4 Malware flagged, PyPI</text>
+<line x1="496" y1="210" x2="496" y2="238" stroke="#b3b3b3" stroke-width="1" stroke-dasharray="3 2"/>
+<text x="500" y="218" font-size="11" fill="#8c8c8c" text-anchor="start" font-family="Helvetica, Arial, sans-serif">&gt; 0.7</text>
+<line x1="515" y1="226" x2="549.2" y2="226" stroke="#0000ED" stroke-width="1.5"/>
+<circle cx="534" cy="226" r="5" fill="#0000ED" stroke="#ffffff" stroke-width="1.5"/>
+<text x="557.2" y="230" font-size="11" fill="#0000ED" text-anchor="start" font-family="Helvetica, Arial, sans-serif">passes</text>
+<text x="16" y="274" font-size="12" fill="#000000" text-anchor="start" font-family="Helvetica, Arial, sans-serif">H5 Benign flagged, npm</text>
+<line x1="268" y1="254" x2="268" y2="282" stroke="#b3b3b3" stroke-width="1" stroke-dasharray="3 2"/>
+<text x="264" y="262" font-size="11" fill="#8c8c8c" text-anchor="end" font-family="Helvetica, Arial, sans-serif">&lt; 0.1</text>
+<line x1="230" y1="270" x2="233.8" y2="270" stroke="#0000ED" stroke-width="1.5"/>
+<circle cx="230" cy="270" r="5" fill="#0000ED" stroke="#ffffff" stroke-width="1.5"/>
+<text x="241.8" y="274" font-size="11" fill="#0000ED" text-anchor="start" font-family="Helvetica, Arial, sans-serif">passes</text>
+<text x="16" y="318" font-size="12" fill="#000000" text-anchor="start" font-family="Helvetica, Arial, sans-serif">H5 Benign flagged, PyPI</text>
+<line x1="268" y1="298" x2="268" y2="326" stroke="#b3b3b3" stroke-width="1" stroke-dasharray="3 2"/>
+<text x="264" y="306" font-size="11" fill="#8c8c8c" text-anchor="end" font-family="Helvetica, Arial, sans-serif">&lt; 0.1</text>
+<line x1="252.8" y1="314" x2="275.6" y2="314" stroke="#ED7A00" stroke-width="1.5"/>
+<rect x="255.9" y="309.5" width="9" height="9" fill="#ED7A00" stroke="#ffffff" stroke-width="1.5"/>
+<text x="283.6" y="318" font-size="11" fill="#ED7A00" text-anchor="start" font-family="Helvetica, Arial, sans-serif">fails</text>
+</svg>

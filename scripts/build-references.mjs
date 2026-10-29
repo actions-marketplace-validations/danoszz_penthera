@@ -29,6 +29,7 @@ const TOPICS = [
   ["llm", "LLM and agent security"],
   ["standards", "Standards and regulation"],
   ["advisories", "Vulnerability advisories and version data"],
+  ["methods", "Research methods and statistics"],
 ];
 
 /** Entries with this keyword may stay uncited in METHODOLOGY.md. */

@@ -82,7 +82,7 @@ npx skills add danoszz/penthera
 Cursor, Codex, VS Code and Windsurf. Pin the version:
 
 ```bash
-claude mcp add penthera -- npx -y penthera@2.0.0 mcp
+claude mcp add penthera -- npx -y penthera@2.1.0 mcp
 ```
 
 **In Claude Code, as a plugin.** From Claude Code's prompt:
@@ -289,7 +289,7 @@ never fails CI. Whether it finds more than the rules alone is not measured yet
 | Scans: URL, repo, dependencies, AI tooling, installs, pre-commit hook | **Stable**: in every release since 1.x, covered by the tests and the release gate |
 | Fix loop and local dashboard (`penthera ui`) | **Stable**; the dashboard was redesigned in 1.9.0 |
 | MCP server, Agent Skill, Claude Code plugin | **Stable**, since 1.9.0 |
-| Gemini CLI extension | **Release candidate**: it installs the newest release, which is a release candidate right now (`2.1.0-rc.2`) |
+| Gemini CLI extension | **Stable**: it installs the newest release (2.1.0) |
 | Evidence bundles, NIS2 and CRA drafts | **Stable** as readiness tooling, not a certification |
 | AI mode (`--ai`) | **Experimental**: whether it finds more than the rules alone is not measured yet ([AI mode](docs/ai-mode.md)) |
 | Live check on [penthera.org](https://penthera.org) | **Beta**: passive only, [terms](docs/live-check-terms.md) |
@@ -315,7 +315,7 @@ Each feature goes through the same path: **method → evidence → tool.**
 | Precision, bundled benchmark | 0.92, 95% CI 0.74 to 0.98 | 22 true and 2 false positives |
 | Recall, bundled benchmark | 0.96, 95% CI 0.79 to 0.99 | 1 miss, [explained](bench/RESULTS.md) |
 | Requests past loopback during the benchmark | 0 | Enforced by a network guard |
-| Public benchmarks (E11b), sealed test half | #1 of the free tools on npm and PyPI malware, tied #1 on JS library injection bugs, #2 on leaked secrets | 4 public datasets, up to 10 free tools each ([results](bench/public/RESULTS.md#e11b-final-the-sealed-test-half-scored-once-2026-10-25), [summary](#public-benchmarks)) |
+| Public benchmarks (E11b), sealed test half | 1st on npm and PyPI malware (tied 1st to 3rd), 1st on JS library injection bugs (tied 1st to 4th), 2nd on leaked secrets | 4 public datasets, up to 10 free tools each ([results](bench/public/RESULTS.md#e11b-final-the-sealed-test-half-scored-once-2026-10-25), [summary](#public-benchmarks)) |
 | E10 pilot, known-vulnerable apps | Precision 0.88, 95% CI 0.78 to 0.93. Recall 0.07 before fixes, 0.71 (CI 0.45 to 0.88) after | 14 root causes in Juice Shop and DVNA ([results](bench/known-vuln/RESULTS-after-fixes.md)) |
 | Detection rules, all readable | 132 in this release: 16 URL scan templates, 21 secret and AI-key patterns, 15 dependency capabilities, 39 AI-tooling rules, 5 fix recipes, and the signed rule packs | [Rule packs](docs/rule-packs.md) |
 
@@ -361,8 +361,8 @@ with `npm run docs:numbers` and `npm run bench`.
 **Verify it yourself.** In an empty folder:
 
 ```bash
-npm install penthera@2.0.0 && npm audit signatures
-npx penthera@2.0.0 rules list
+npm install penthera@2.1.0 && npm audit signatures
+npx penthera@2.1.0 rules list
 ```
 
 The first checks npm's registry signature and the build provenance of the
@@ -446,7 +446,7 @@ What changed, what we are measuring, and what comes next, in one place.
 
 | | Where it stands | Read more |
 |---|---|---|
-| **Latest release** | 2.0.0 (2026-10-25) on npm `latest`: public benchmark results, library mode, wider secret and malware detection, every hit listed per finding. A major version because the default scan finds more ([upgrading](CHANGELOG.md)) | [CHANGELOG](CHANGELOG.md), [roadmap](ROADMAP.md#now-190) |
+| **Latest release** | 2.1.0 (2026-10-29) on npm `latest`: the agent brief, `--giants`, fewer false findings, honest rank intervals, the research hub ([changes](CHANGELOG.md)) | [CHANGELOG](CHANGELOG.md), [roadmap](ROADMAP.md#now-210) |
 | **Research** | Public benchmarks (E11b) published: on a sealed half of four public datasets, #1 of the free tools on npm and PyPI malware, tied #1 on JS library injection bugs, #2 on leaked secrets ([summary](#public-benchmarks)). E10 pilot published: precision 0.88, recall 0.07 to 0.71 on two known-vulnerable apps after fixes (one labeller, not independent; a re-run is pending because default scans no longer send login checks). E1 on real code is pre-registered; E8 (agent guardrails) is a draft | [E11b results](bench/public/RESULTS.md), [E10 results](bench/known-vuln/RESULTS.md), [E1 pre-registration](docs/research/prereg/E1-real-world-accuracy.md), [agents safely](docs/agents-safely.md) |
 | **Next** | Real-world precision and recall with intervals (E1), published whatever the result | [Roadmap: next](ROADMAP.md#next), [research plan](docs/vision-2.0.md) |
 

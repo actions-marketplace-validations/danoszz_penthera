@@ -50,11 +50,11 @@ Get the code onto your machine first. Most builders sync to GitHub; see
 for each one.
 
 ```bash
-npx penthera@2.0.0 --repo .
+npx penthera@2.1.0 --repo .
 ```
 
 ```bash
-npx penthera@2.0.0 agents .
+npx penthera@2.1.0 agents .
 ```
 
 Read the exit code before you publish:

@@ -300,7 +300,7 @@ quality from depending on anyone's free evenings.
   go into that release; features wait for the next one.
 - **No version bump or tag without the maintainer's go.**
 
-**Now:** 2.0.0 is on `latest` since 2026-10-25. See the [roadmap](ROADMAP.md#now-200)
+**Now:** 2.1.0 is on `latest` since 2026-10-29. See the [roadmap](ROADMAP.md#now-210)
 for what is in it.
 
 Between releases:

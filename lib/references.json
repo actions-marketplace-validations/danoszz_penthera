@@ -716,6 +716,101 @@
       "cite": "NOS liveblog (2026-10-21)",
       "title": "Websites kwetsbaar voor softwarelek: RTL Nieuws, DigiD en MijnOverheid uit de lucht",
       "url": "https://nos.nl/liveblog/2636066-websites-kwetsbaar-voor-softwarelek-digid-en-mijnoverheid-uit-de-lucht"
+    },
+    "wilson1927probable": {
+      "cite": "Wilson 1927",
+      "title": "Probable Inference, the Law of Succession, and Statistical Inference",
+      "url": "https://doi.org/10.1080/01621459.1927.10502953"
+    },
+    "newcombe1998interval": {
+      "cite": "Newcombe 1998",
+      "title": "Interval Estimation for the Difference Between Independent Proportions: Comparison of Eleven Methods",
+      "url": "https://doi.org/10.1002/(SICI)1097-0258(19980430)17:8<873::AID-SIM779>3.0.CO;2-I"
+    },
+    "cohen1960coefficient": {
+      "cite": "Cohen 1960",
+      "title": "A Coefficient of Agreement for Nominal Scales",
+      "url": "https://doi.org/10.1177/001316446002000104"
+    },
+    "fleiss1969large": {
+      "cite": "Fleiss et al. 1969",
+      "title": "Large Sample Standard Errors of Kappa and Weighted Kappa",
+      "url": "https://doi.org/10.1037/h0028106"
+    },
+    "feinstein1990paradoxes": {
+      "cite": "Feinstein & Cicchetti 1990",
+      "title": "High Agreement but Low Kappa: I. The Problems of Two Paradoxes",
+      "url": "https://doi.org/10.1016/0895-4356(90)90158-L"
+    },
+    "mcnemar1947note": {
+      "cite": "McNemar 1947",
+      "title": "Note on the Sampling Error of the Difference Between Correlated Proportions or Percentages",
+      "url": "https://doi.org/10.1007/BF02295996"
+    },
+    "youden1950index": {
+      "cite": "Youden 1950",
+      "title": "Index for Rating Diagnostic Tests",
+      "url": "https://doi.org/10.1002/1097-0142(1950)3:1<32::AID-CNCR2820030106>3.0.CO;2-3"
+    },
+    "efron1979bootstrap": {
+      "cite": "Efron 1979",
+      "title": "Bootstrap Methods: Another Look at the Jackknife",
+      "url": "https://doi.org/10.1214/aos/1176344552"
+    },
+    "petersson2004capture": {
+      "cite": "Petersson et al. 2004",
+      "title": "Capture-Recapture in Software Inspections after 10 Years Research: Theory, Evaluation and Application",
+      "url": "https://doi.org/10.1016/S0164-1212(03)00090-6"
+    },
+    "webber2013recall": {
+      "cite": "Webber 2013",
+      "title": "Approximate Recall Confidence Intervals",
+      "url": "https://doi.org/10.1145/2414782.2414784"
+    },
+    "nosek2018preregistration": {
+      "cite": "Nosek et al. 2018",
+      "title": "The Preregistration Revolution",
+      "url": "https://doi.org/10.1073/pnas.1708274114"
+    },
+    "bhuiyan2023secbenchjs": {
+      "cite": "Bhuiyan et al. 2023",
+      "title": "SecBench.js: An Executable Security Benchmark Suite for Server-Side JavaScript",
+      "url": "https://doi.org/10.1109/ICSE48619.2023.00096"
+    },
+    "yun2021creddata": {
+      "cite": "Yun et al. 2021",
+      "title": "Project CredData: A Dataset of Credentials for Research",
+      "url": "https://github.com/Samsung/CredData"
+    },
+    "datadog2023malicious": {
+      "cite": "Datadog Security Labs 2023",
+      "title": "Open-Source Dataset of Malicious Software Packages",
+      "url": "https://github.com/DataDog/malicious-software-packages-dataset"
+    },
+    "lamb2022reproducible": {
+      "cite": "Lamb & Zacchiroli 2022",
+      "title": "Reproducible Builds: Increasing the Integrity of Software Supply Chains",
+      "url": "https://doi.org/10.1109/MS.2021.3073045"
+    },
+    "dziemian2026ipiarena": {
+      "cite": "Dziemian et al. 2026",
+      "title": "How Vulnerable Are AI Agents to Indirect Prompt Injections? Insights from a Large-Scale Public Competition",
+      "url": "https://doi.org/10.48550/arXiv.2603.15714"
+    },
+    "wang2026mcptox": {
+      "cite": "Wang et al. 2026",
+      "title": "MCPTox: A Benchmark for Tool Poisoning on Real-World MCP Servers",
+      "url": "https://doi.org/10.1609/aaai.v40i42.40895"
+    },
+    "zhu2025cvebench": {
+      "cite": "Zhu et al. 2025",
+      "title": "CVE-Bench: A Benchmark for AI Agents' Ability to Exploit Real-World Web Application Vulnerabilities",
+      "url": "https://doi.org/10.48550/arXiv.2503.17332"
+    },
+    "wang2025cybergym": {
+      "cite": "Wang et al. 2025",
+      "title": "CyberGym: Evaluating AI Agents' Real-World Cybersecurity Capabilities at Scale",
+      "url": "https://doi.org/10.48550/arXiv.2506.02548"
     }
   }
 }

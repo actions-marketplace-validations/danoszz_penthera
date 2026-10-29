@@ -12,6 +12,31 @@
 | Authors | Daan van der Zwaag (PI, decides). Drafted with Claude (AI-assisted) |
 | Seen before this registration | Each tool's **aggregate** scores on the E11b test half, as published in `bench/public/RESULTS.md`. E11b stored only those aggregates for the other tools (`competitors-*.test.json`), not their per-item hits, so **no combination has been computed or could have been**. Penthera's own per-item test output exists (`creddata.test.raw.json`), and E11b's leakage audit read parts of it. Per-item outputs on the dev half were looked at during E11b |
 
+## Abstract (added 29 Oct 2026, after registration and the result)
+
+> Added after the result. It summarizes the protocol and its result and
+> changes nothing in either. The last change before this note is `fb10906`
+> (28 Oct 2026); `git diff fb10906 -- docs/research/prereg/E14-giants-combination.md`
+> shows what was added since.
+
+**Question.** Does one report that merges Penthera with free tools find
+more, without losing more than 0.02 precision, than Penthera alone? The
+answer sets the default merge for `--giants`.
+**Method.** Four arms (Penthera, each other tool, the union, an agreement
+rule) on E11b's sealed test half of CredData and SecBench.js, merged by keys
+fixed before the first count. Paired bootstrap intervals over files or
+packages; a decision rule fixed in § 5.
+**Result.** On CredData the union found more labelled credentials (recall
++0.109 [+0.025, +0.210], H1 holds) and lost more than the margin in
+precision (−0.088 [−0.129, −0.043], H2 fails). On SecBench.js it found 9
+more of 64 bugs (H4 holds, McNemar p = 0.0039). By § 5, `--giants` keeps
+Penthera-first as its default.
+**Limits.** The same test half as E11b, whose per-tool aggregates were
+public before this run. Two benchmarks; nothing on dependencies, live apps
+or infrastructure. SecBench.js has no labelled negatives, so the cost of
+extra code findings is not measured. Results:
+[RESULTS.md](../../../bench/public/RESULTS.md#e14-step-2-the-sealed-test-half-scored-once-2026-10-28).
+
 ## 1. Research questions
 
 **RQ1.** Does a merged report from Penthera and the free tools find more of
@@ -215,3 +240,66 @@ records for the tarball). Results in
    `4d5880e1f513df0b29620bee78fb9bdbc4e85bee6c9a54695d55bf12905cba41`. No
    key, arm, threshold or line of code was changed after the results were
    seen. The 50 + 50 spot-check was read by Claude, as in entry 4.
+
+## Notes added after the result, 29 Oct 2026
+
+These notes add references, a figure, reproduction details and what the
+result means. They change no part of the registered protocol or its
+deviations above.
+
+### References
+
+In APA 7, linked to [references.md](../../references.md):
+
+- Paired bootstrap intervals (§ 3): [Efron (1979)](../../references.md#efron1979bootstrap).
+- McNemar's test for paired proportions (H4): [McNemar (1947)](../../references.md#mcnemar1947note).
+- Wilson intervals: [Wilson (1927)](../../references.md#wilson1927probable).
+- Datasets: [Yun et al. (2021)](../../references.md#yun2021creddata) and
+  [Bhuiyan et al. (2023)](../../references.md#bhuiyan2023secbenchjs).
+
+Holm–Bonferroni (§ 4) is named without a bibliography entry: Holm (1979)
+could not be checked against a publisher page on 29 Oct 2026.
+
+### Figure
+
+![Scatter plot of strict precision against in-scope recall for the E14 arms on the CredData test half. Penthera alone is at precision 0.89 and recall 0.64. The union moves right to recall 0.75 but down to precision 0.80, below the shaded band that marks 0.02 under Penthera alone. P plus gitleaks is at 0.84 and 0.74, P plus trufflehog at 0.80 and 0.64, gitleaks alone at 0.85 and 0.37, trufflehog alone at 0.40 and 0.05. The agreement arm overlaps Penthera alone.](../../../bench/public/figures/e14-creddata-arms.svg)
+
+*Figure 1. E14 arms on the CredData test half, 28 Oct 2026. Whiskers are
+Wilson 95% intervals of each arm's own proportion; the hypothesis tests use
+the paired bootstrap in § 3, which is not drawn. The shaded band is H2's
+margin. n = 2,220 in-scope true rows in 1,258 files. Data: the E14 step-2
+table in [bench/public/RESULTS.md](../../../bench/public/RESULTS.md#e14-step-2-the-sealed-test-half-scored-once-2026-10-28).
+Script: `node bench/public/figures.mjs`.*
+
+### Reproduce
+
+| What | Value |
+|---|---|
+| Penthera | 2.1.0-rc.2, main `efbe8c8` (entry 6) |
+| Harness | `8bcdd68` (entry 8) |
+| Command | `node bench/public/giants.mjs --split test --final --collect --spot-check 50` |
+| Other tools | E11b's pins and sandbox, in `bench/public/competitors.mjs` |
+| Frozen check table | [published.json](../../../bench/public/published.json) |
+| Per-item outputs | SHA-256 `4d5880e1…` (entry 9); kept locally |
+
+**Not shared, and why.** The per-item outputs stay local. CredData hits in
+them carry value hashes, and the files follow the source projects'
+licenses; the published table holds every count the hypotheses use. The
+spot-check samples are local too, for the maintainer to recheck.
+
+### What the result means
+
+- **For users.** Adding gitleaks to a Penthera report found 233 more of
+  2,220 labelled secrets on this dataset, and added 1,880 hits, 374 of them
+  on no labelled secret. `--giants` shows other tools' findings in their own
+  section, so a user can read the extra findings without them diluting
+  Penthera's list.
+- **For the tool.** The default stays Penthera-first (§ 5, rule 3). Whether
+  code findings get a different merge rule is the maintainer's open
+  decision; precision on code cannot be measured on SecBench.js.
+- **Next check.** The same keys on E1's projects and on new holdouts (§ 7).
+
+### Status
+
+Registered `1b7823a` (25 Oct 2026); step 1 on dev 27 Oct; step 2 on test
+28 Oct (`fb10906`); this abstract, figure and notes 29 Oct 2026.

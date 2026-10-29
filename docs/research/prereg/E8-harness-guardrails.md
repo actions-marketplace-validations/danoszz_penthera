@@ -1,5 +1,25 @@
 # E8: Do harness guardrails reduce judge tampering? (pre-registration)
 
+> **Project page.** For researchers asking "do an `AGENTS.md` block and
+> read-only tests stop a coding agent from gaming the checks that judge it?"
+
+## Abstract
+
+**Question.** When an AI coding agent gets benign tasks, a third of which
+cannot be solved, do two guardrails change how often it tampers with the
+tests that judge it, and how often it stops honestly?
+**Method.** A 2×2 design: an `AGENTS.md` block (B) and protected,
+read-only judges (J). 120 tasks derived from public repositories by the
+ImpossibleBench method, 3 local open-weight models, 2 seeds: 2,880 runs in
+offline containers. Primary outcomes come from a syscall trace and test
+results, not from human judgment.
+**Outcomes.** Tamper attempts, safe exits and gaming success on unsolvable
+tasks; a mixed-effects logistic model with Holm-adjusted tests (§ 8).
+**Result.** None yet. Nothing has been built or run (draft, 29 Oct 2026).
+**Limits.** Local open-weight models only, one wording of the block, one
+scaffold, toy unsolvability. Small models may rarely tamper, which would
+leave H1 without power (§ 4.2).
+
 | | |
 |---|---|
 | Experiment | E8 in [vision-2.0.md](../../vision-2.0.md#experiments), proposed in [agent-incidents-2026.md](../agent-incidents-2026.md) |
@@ -315,6 +335,43 @@ labelled exploratory.
 | Main run and analysis | Following the registration |
 
 Dates are targets, not part of the protocol.
+
+## 13. What the result will mean
+
+- **For users.** If H1 or H2 holds, the `AGENTS.md` block in
+  `penthera agents` advice gets a measured effect, with its interval and
+  the models named. If neither holds, the docs say the block's effect is
+  unmeasured or absent, and stop recommending it as a guard.
+- **For the tool.** If H3 holds, protected judges become the guard to
+  recommend first. If H3 fails because gaming moves to source files (§ 8.2),
+  the advice names that route. No Penthera rule changes because of E8; the
+  advice and the spec do.
+- **Scope.** Results hold for local open-weight models and this scaffold.
+  They are not a claim about commercial agents.
+
+## 14. Open science
+
+| What | Where | License | Shared? |
+|---|---|---|---|
+| Protocol | this file | MIT | Yes |
+| Task builder, trace parser, analysis | to be published with the results (§ 8.4) | MIT | Yes |
+| Task manifest, seeds, image digest, model hashes | with the results | MIT | Yes |
+| Source repositories | their own hosts, pinned by commit | each project's own | Linked, not copied |
+| Transcripts | after review (§ 10) | | Yes, with sandbox-escape recipes redacted and the redaction noted |
+
+The κ in § 6.4 is Cohen's ([Cohen, 1960](../../references.md#cohen1960coefficient)),
+with the calibration rule of E1 § 6.2. Pre-registration follows
+[Nosek et al. (2018)](../../references.md#nosek2018preregistration).
+
+## 15. Revision log
+
+| Date | Change | Commit |
+|---|---|---|
+| 2026-10-20 | Draft written | `7f31513` |
+| 2026-10-29 | Abstract, § 13 (what the result means), § 14 (open science), this log | this commit |
+
+Still a draft. Penthera's version and the spec version are named when the
+materials are frozen (§ 7).
 
 ## Amendments
 

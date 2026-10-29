@@ -10,7 +10,7 @@
 | Approach approved | 29 Oct 2026, by the maintainer: a passive check of the Tranco top 1000, aggregates only. E20b added the same day |
 | Data collected before registration | None. The runner was tested on loopback only (§ 9) |
 | Decisions | Taken 29 Oct 2026 by the maintainer (§ 10). Open ones are in § 10.2 |
-| Sub-measure B (app page) | **Pending the maintainer's decision.** § 4.2. Off in the runner until this row says Adopted |
+| Sub-measure B (app page) | **Adopted** for both cohorts, 29 Oct 2026, by the maintainer (§ 4.2) |
 | Independent review | **None.** Decided by the maintainer on 29 Oct 2026: no outside review. A self-review checklist is worked through on registration day instead (§ 13) |
 | Timeline | Registration Sat 31 Oct 2026; runs Sun 1 Nov 2026; results internal until the maintainer's own check, publication planned around 11 Nov 2026 |
 | Tranco list ID | `pending` (fetched and hashed on registration day, § 3.1) |
@@ -21,7 +21,7 @@
 | YC list SHA-256 | `pending` |
 | Exclusion list SHA-256 | `pending` (§ 5.1) |
 | Study page live | `pending`: https://penthera.org/research/e20 must answer before any run (§ 4) |
-| Source address | `pending`: listed on the study page before any run (§ 4) |
+| Source address | **Not published**, decided 29 Oct 2026 by the maintainer for privacy (§ 4). Confirmed privately on request |
 | Cost | $0. One laptop or one small server, about 30 minutes per cohort |
 
 ## Abstract
@@ -283,9 +283,17 @@ disclosure process this study does not have.
   requests, how to opt out, what is kept, and who to contact. **It must be
   live before any run.** The maintainer opens the URL on registration day and
   records the date in the table above.
-- **Source address.** One fixed address, listed on the study page **before**
-  the run (so an owner who sees the traffic can match it while it happens),
-  and again in the results.
+- **Source address: not published.** Decided by the maintainer on 29 Oct
+  2026. The study runs from the maintainer's own connection, whose address
+  is personal data; publishing it would contradict the privacy Penthera asks
+  of others. Nothing that identifies a maintainer's location, network or
+  machine is published anywhere in E20. The User-Agent identifies every
+  request. An owner who wants to know whether a request was ours emails the
+  address and time they saw, and we confirm or deny privately. The address
+  is kept only in the private run log, for those confirmations, and deleted
+  with the raw data. If someone asks for a published, named address, a
+  later run can use a rented server whose address is not personal data;
+  that would be a logged deviation.
 
 ### 4.1 What E20 could look at, and does not
 
@@ -323,12 +331,11 @@ as a result about the front door only. A study of the wider surface would
 need consent from the companies, or a bug-bounty program that invites it,
 and would be a separate, separately registered study.
 
-### 4.2 Sub-measure B: one app or login page (pending the maintainer's decision)
+### 4.2 Sub-measure B: one app or login page (adopted)
 
-**Status.** Pending. The runner keeps B off on a registered run until the
-table row "Sub-measure B (app page)" says **Adopted**. If the maintainer
-declines, delete this section, § 6.6, the B rows in § 4 and § 5, and the B
-section of `bench/front-door/run.mjs`; nothing else depends on it.
+**Status.** Adopted for both cohorts by the maintainer on 29 Oct 2026. The
+runner turns B on for a registered run because the table row above says
+**Adopted**.
 
 **Why consider it.** For a startup, the homepage is often a marketing site
 on a site builder or a static host, and its headers are mostly that host's
@@ -498,7 +505,7 @@ only for the bootstrap, and prints only the interval.
 - **Reporting.** The 95% interval is the one shown next to every number.
   The decision interval is shown next to each decision.
 
-### 6.6 Sub-measure B (pending)
+### 6.6 Sub-measure B (adopted)
 
 Reported apart from everything above, and only if B is adopted.
 
@@ -528,8 +535,9 @@ HubSpot, Ghost, Shopify, other, none) from the generator tag. Per platform
 with at least 20 sites: the median score and the share per check. The
 question: how much of a front-door score is the platform's default? This is
 exploratory, platform labels are heuristics, and a platform result says
-nothing about a site that runs on it. Whether platforms are named or
-labelled "platform A, B" in a publication is open (§ 10.2).
+nothing about a site that runs on it. Platforms are named in a publication
+only for groups of at least 20 sites, framed as platform defaults (decided
+by the maintainer, 29 Oct 2026); smaller groups go under "other".
 
 ### 6.8 Clustering and a simple model (exploratory, specified now)
 
@@ -711,7 +719,7 @@ Belmont principles to ICT research and adds a fourth.
 
 | Principle | What it asks | How E20 meets it | What is left |
 |---|---|---|---|
-| Respect for persons | Consent where possible; respect autonomy | Sites are organizations, not people. Consent from 1,300 sites is not practical, so E20 uses the web's own consent signals: robots.txt opt-out before the visit (our name, or `*` disallowing all), removal on request after, a study page, an honest User-Agent | Owners who do not read robots.txt or logs never learn of it; the study page and published source address are the mitigation |
+| Respect for persons | Consent where possible; respect autonomy | Sites are organizations, not people. Consent from 1,300 sites is not practical, so E20 uses the web's own consent signals: robots.txt opt-out before the visit (our name, or `*` disallowing all), removal on request after, a study page, an honest User-Agent | Owners who do not read robots.txt or logs never learn of it; the study page, the User-Agent and private confirmation on request are the mitigation |
 | Beneficence | Do no harm; maximize benefit | One visit, 3 to 4 requests, 4 sites a second overall; no assets, no payloads; sensitive categories excluded; no names published. Benefit: a public baseline that helps site owners judge their own front door | A few requests to a fragile server; a WAF alert someone has to read (§ 8.5) |
 | Justice | Fair selection; fair spread of burdens and benefits | Cohorts chosen by public, fixed rules (a top list; every company in two batches), not by who looks weak. No cohort is singled out in reporting | Startups bear the comparison; results are framed as a baseline for them, and founders can get a private report (§ 8.8) |
 | Respect for law and public interest | Comply with law; be transparent and accountable | Legal reasoning in § 8.4; protocol, code and decisions public before the run; an incident plan (§ 8.6); results reviewed before publishing | Not legal advice; untested jurisdictions are handled by exclusion |
@@ -731,11 +739,11 @@ Internet-wide scan, but we apply each:
 |---|---|
 | Coordinate with local network admins | The run is from one address we control; we tell the hosting provider in advance if it is a rented server |
 | Verify the scan will not overwhelm the network or upstream | About 4 sites a second, 3 to 4 small requests each; trivial for any uplink |
-| Signal the benign nature in web pages and DNS of the source | User-Agent with the study URL; study page live before the run; reverse DNS for the source address pointing to a `penthera.org` name, where the host allows it |
+| Signal the benign nature in web pages and DNS of the source | User-Agent with the study URL; study page live before the run; no reverse DNS of our own: the address is a maintainer's connection and is not published (§ 4); private confirmation on request instead |
 | Explain purpose and scope in all communications | The study page, every reply to an owner, and the results say the same scope (§ 4) |
 | Simple opt-out, honored promptly | robots.txt, before the visit; email removal after |
 | No larger or more frequent than needed | One visit per site, once. No repeat run without a new registration |
-| Spread traffic over time or addresses | A 1-second pause per worker, 4 workers. One source address on purpose, so owners can match it |
+| Spread traffic over time or addresses | A 1-second pause per worker, 4 workers. One source address, confirmed privately on request |
 
 ### 8.4 Law (our reasoning, not legal advice)
 
@@ -799,7 +807,7 @@ is not legal advice. If a lawyer reading this disagrees, the study waits.
 | Risk | Mitigation | Residual risk |
 |---|---|---|
 | Load on a site | 3 to 4 requests per site, once, with time and size limits; 4 sites a second overall | A very fragile server notices; negligible |
-| Alarm: a WAF or SOC flags the traffic and someone spends time on it | Honest User-Agent, study page, source address published before the run, no payloads that look like attacks | Some security teams will still open a ticket. We answer every one (§ 8.6) |
+| Alarm: a WAF or SOC flags the traffic and someone spends time on it | Honest User-Agent, study page live before the run, private confirmation of our address on request, no payloads that look like attacks | Some security teams will still open a ticket. We answer every one (§ 8.6) |
 | Being read as reconnaissance or an attack | No discovery, no guessed paths, no probing; scope stated in public before the run | A reader may still see "scan" and assume the worst; the study page is the answer |
 | A site is named or identifiable from results | No names; groups under 20 suppressed; no ranking; per-site data never shared | Small country-TLD groups could narrow a guess; they are suppressed |
 | Reputational harm to startups as a group ("startups are insecure") | Front-door-only framing next to every number; no AI-built claim; intervals and "inconclusive" reported honestly | Readers may over-generalize; the limits travel with each chart |
@@ -921,15 +929,12 @@ The maintainer decided six questions on 29 Oct 2026.
 
 ### 10.2 Open, for the maintainer before registration
 
-1. **Sub-measure B** (§ 4.2): adopt, adopt for E20b only, or drop. Our
-   recommendation is to adopt it for both cohorts, so the paired comparison
-   is the same instrument on both.
+1. **Sub-measure B** (§ 4.2): adopted for both cohorts (29 Oct 2026).
 2. **E20b size**: two batches, as decided, or more batches to narrow Q8's
    intervals (§ 3.3). Decide before any list is read.
-3. **Platform names** (§ 6.7): name platforms in a publication, or label
-   them A, B, C.
-4. **Founder notes** (§ 8.8): send them, or not.
-5. **Source address and reverse DNS** (§ 8.3): which machine runs it.
+3. **Platform names** (§ 6.7): named, groups of 20 or more only (29 Oct 2026).
+4. **Founder notes** (§ 8.8): disclosure-first drafts, sent by hand (29 Oct 2026).
+5. **Source address** (§ 4): the maintainer's own machine; the address is not published (29 Oct 2026).
 
 ### 10.3 Registration day
 
@@ -945,14 +950,13 @@ In this order. Nothing is sent to a study site before step 11.
 5. Complete `bench/front-door/lists/exclusions.txt` by reading both lists
    (§ 5.1).
 6. `shasum -a 256` the three files and fill in every `pending` row above.
-7. Put the source address on the study page, and record it above.
+7. Record privately (run log only) the source address and the run window, for confirmation requests.
 8. Change the status line to `**Registered.**` with the date, and commit the
    three files and this prereg together. That commit, merged to `main`, is
    the registration.
 9. Run `npm test` and `node bench/front-door/run.mjs --self-test` on the
    registered commit.
-10. Check the study page answers again, and that the source address on it
-    matches the machine.
+10. Check the study page answers again.
 11. Run each cohort once:
     `node bench/front-door/run.mjs --registered E20 --cohort tranco --list bench/front-door/lists/tranco-<ID>-top1000.csv --exclude bench/front-door/lists/exclusions.txt`,
     then the same with `--cohort yc` and the YC file.
@@ -1071,7 +1075,7 @@ item is answered yes, or fixed, or written down as a known gap:
 - [ ] Sub-measure B (§ 4.2) is decided: adopted, adopted for E20b only, or
       removed.
 - [ ] The limits (§ 12) are complete enough to sit next to every number.
-- [ ] The study page is live, lists the source address, and matches § 4.
+- [ ] The study page is live, publishes nothing that identifies a maintainer's location, network or machine, and matches § 4.
 - [ ] Nothing here would make me uncomfortable if my own site were in the
       list.
 
@@ -1144,7 +1148,7 @@ Any change after registration is listed here with its date and reason.
   pending, removable option with runner support and tests; the ethics
   position, Menlo and ZMap tables, legal reasoning, a harm table and an
   incident plan; email redaction in raw records; the source address on the
-  study page before the run; a review section; a
+  study page before the run (later replaced: the address is not published, § 4); a review section; a
   results-file plan; the limits section. Drafted with Claude; the
   maintainer has not yet accepted it.
 - **29 Oct 2026, maintainer decision.** No independent review before

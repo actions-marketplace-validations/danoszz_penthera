@@ -25,7 +25,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { ldScript, siteFoot } from "./frame.mjs";
+import { ldScript, siteFooter } from "./frame.mjs";
 import { benchmarkViews, fieldTools, n2, ord, tiedPhrase } from "./benchmarks.mjs";
 
 const REPO = "https://github.com/danoszz/penthera";
@@ -352,7 +352,7 @@ function tools(entries) {
     </div>`;
 }
 
-export function researchHtml(entries, { origin, pub = null, styles = "/styles.css", theme = "/theme.js", script = "/research.js", blog = false }) {
+export function researchHtml(entries, { origin, pub = null, styles = "/styles.css", theme = "/theme.js", script = "/research.js", foot = siteFooter() }) {
   const url = `${origin}/research`;
   const count = (t) => entries.filter((e) => e.type === t).length;
   const tally = TYPES.map((t) => [t, count(t)]).filter(([, n]) => n).map(([t, n]) => `${n} ${({ Study: ["study", "studies"], Result: ["result", "results"], "Case study": ["case study", "case studies"], Post: ["post", "posts"] })[t][n === 1 ? 0 : 1]}`).join(" · ");
@@ -406,8 +406,8 @@ ${entries.map(item).join("\n")}
     <p class="rs-none" hidden>Nothing matches. <button type="button" class="rs-reset">Clear the search and filters</button></p>
     <p class="rs-all" data-js hidden><button type="button" class="btn-steel" aria-controls="rs-items">Show all ${entries.length}</button></p>
     <p class="rs-how">A study is registered by the commit that merges its protocol, and the protocol lists any data seen before that. Changes after that are logged in its deviations section, with the date and the reason. Everything here is read from <a href="${REPO}/tree/main/docs/research">docs/research</a>, <a href="${REPO}/tree/main/bench">bench</a> and the blog when the site is built.</p>
-    ${siteFoot({ blog })}
   </main>
+  ${foot}
 </body>
 </html>
 `;

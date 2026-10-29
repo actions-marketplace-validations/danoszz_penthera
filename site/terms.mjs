@@ -6,6 +6,7 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { siteFooter } from "./frame.mjs";
 
 const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const REPO = "https://github.com/danoszz/penthera/blob/main/docs/";
@@ -95,7 +96,7 @@ export function renderMarkdown(md) {
  * A page from one Markdown file in docs/: the repository holds the one source
  * and the site shows it. Used for /terms and /trust.
  */
-export function docPage(root, { file, slug, eyebrow, description, styles = "/styles.css", theme = "/theme.js" }) {
+export function docPage(root, { file, slug, eyebrow, description, styles = "/styles.css", theme = "/theme.js", foot = siteFooter() }) {
   const md = frontMatterToHeading(readFileSync(join(root, "docs", file), "utf8"));
   const title = /^# (.+)$/m.exec(md)[1];
   const body = renderMarkdown(md.replace(/^# .+\n/m, ""));
@@ -119,6 +120,7 @@ export function docPage(root, { file, slug, eyebrow, description, styles = "/sty
     <h1>${esc(title)}</h1>
 ${body}
   </main>
+  ${foot}
 </body>
 </html>
 `;

@@ -41,7 +41,7 @@ import { RANK_INTERVALS, fieldTools, n2, ord } from "./benchmarks.mjs";
 
 /** F-beta: beta below 1 weighs precision more, above 1 recall. */
 const fBeta = (p, r, beta) => (p && r ? ((1 + beta * beta) * p * r) / (beta * beta * p + r) : 0);
-import { ldScript, siteFoot } from "./frame.mjs";
+import { ldScript, siteFooter } from "./frame.mjs";
 
 const REPO = "https://github.com/danoszz/penthera";
 const AUTHOR = { "@type": "Person", name: "Daan van der Zwaag", url: "https://daanvanderzwaag.com" };
@@ -177,7 +177,7 @@ const sized = (html, figures) => html.replace(/<img src="\/blog\/figures\/([^"]+
 
 // ── HTML, Markdown, Atom ────────────────────────────────────────────────────
 
-function page({ title, description, url, path, h1, crumb, ld, body, styles, theme, draft = false, type = "article", feed = true }) {
+function page({ title, description, url, path, h1, crumb, ld, body, styles, theme, foot = siteFooter(), draft = false, type = "article", feed = true }) {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -203,8 +203,8 @@ ${feed ? '  <link rel="alternate" type="application/atom+xml" href="/blog/feed.x
 ${draft ? '    <p class="blog-draft">Draft: not approved, not listed and not indexed.</p>\n' : ""}    <nav class="eyebrow" aria-label="Breadcrumb">${crumb}</nav>
     <h1>${esc(h1)}</h1>
 ${body}
-    ${siteFoot({ blog: true })}
   </main>
+  ${foot}
 </body>
 </html>
 `;
@@ -237,7 +237,7 @@ export function postLd(p, origin) {
 }
 
 /** One post as HTML. */
-export function postHtml(p, { origin, styles = "/styles.css", theme = "/theme.js" }) {
+export function postHtml(p, { origin, styles = "/styles.css", theme = "/theme.js", foot }) {
   const path = `/blog/${p.slug}`;
   const url = `${origin}${path}`;
   const body = `    <p class="blog-meta"><time datetime="${p.date}">${longDate(p.date)}</time> · ${esc(AUTHOR.name)}</p>
@@ -247,7 +247,7 @@ ${sized(renderMarkdown(p.md), p.figures)}
     "@type": "BreadcrumbList",
     itemListElement: [["Penthera", "/"], ["Blog", "/blog"], [p.title, path]].map(([n, u], i) => ({ "@type": "ListItem", position: i + 1, name: n, item: `${origin}${u}` })),
   }]);
-  return page({ title: p.title, description: p.description, url, path, h1: p.title, ld, body, styles, theme, draft: !p.approved,
+  return page({ title: p.title, description: p.description, url, path, h1: p.title, ld, body, styles, theme, foot, draft: !p.approved,
     crumb: `<a href="/">Penthera</a> · <a href="/blog">Blog</a>` });
 }
 
@@ -257,7 +257,7 @@ export function postMarkdown(p, { origin }) {
 }
 
 /** /blog: the published posts, newest first. */
-export function blogIndexHtml(posts, { origin, styles = "/styles.css", theme = "/theme.js" }) {
+export function blogIndexHtml(posts, { origin, styles = "/styles.css", theme = "/theme.js", foot }) {
   const body = `    <p class="terms-for">How Penthera is built and measured, with the data behind each number.</p>
     <ul class="bm-hub">
 ${posts.map((p) => `      <li><a href="/blog/${p.slug}">${esc(p.title)}</a><span><time datetime="${p.date}">${longDate(p.date)}</time>. ${esc(p.description)}</span></li>`).join("\n")}
@@ -268,7 +268,7 @@ ${posts.map((p) => `      <li><a href="/blog/${p.slug}">${esc(p.title)}</a><span
     blogPost: posts.map((p) => ({ "@id": `${origin}/blog/${p.slug}#post` })),
   }]);
   return page({ title: "Blog: how Penthera is built and measured", description: "Posts on how Penthera is built and measured, with the data and the protocol behind every number.",
-    url: `${origin}/blog`, path: "/blog", h1: "Blog", ld, body, styles, theme, type: "website", crumb: `<a href="/">Penthera</a> · Blog` });
+    url: `${origin}/blog`, path: "/blog", h1: "Blog", ld, body, styles, theme, foot, type: "website", crumb: `<a href="/">Penthera</a> · Blog` });
 }
 
 /** /blog.md */
@@ -307,17 +307,17 @@ ${posts.map((p) => `  <entry>
  * The files the blog adds to the site, as site path to content. Nothing when
  * no post is approved; drafts only with `drafts: true` (a local preview).
  */
-export function blogFiles(posts, { origin, styles, drafts = false }) {
+export function blogFiles(posts, { origin, styles, drafts = false, foot }) {
   const out = {};
   if (posts.published.length) {
-    const index = blogIndexHtml(posts.published, { origin, styles });
+    const index = blogIndexHtml(posts.published, { origin, styles, foot });
     out["blog.html"] = index;
     out["blog/index.html"] = index;
     out["blog.md"] = blogIndexMarkdown(posts.published, { origin });
     out["blog/feed.xml"] = atomFeed(posts.published, { origin });
   }
   for (const p of [...posts.published, ...(drafts ? posts.drafts : [])]) {
-    out[`blog/${p.slug}.html`] = postHtml(p, { origin, styles });
+    out[`blog/${p.slug}.html`] = postHtml(p, { origin, styles, foot });
     if (p.approved) out[`blog/${p.slug}.md`] = postMarkdown(p, { origin });
   }
   return out;

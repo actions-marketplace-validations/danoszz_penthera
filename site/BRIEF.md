@@ -121,6 +121,29 @@ review each is cropped to its key area (the Check my app window, the verdict
 with the first problem, the fix dialog with its diff) at device scale 2, so
 it reads at a third of the page; no lightbox.
 
+Decided with the maintainer, 2026-10-29 (footer and Pro): no divider lines
+anywhere on the site. Space, grounds and shared heights separate things; the
+rule under the Pro kickers, the lines between Pro panels and the line above
+the footer are gone, and Pro's progress bar fades out at the end of the row.
+Every page, the homepage included, now has the same footer
+(`site/frame.mjs`), a map of the whole site built from what the build
+renders, so new pages show up in it by themselves and a test fails if a
+built page is missing:
+
+- a status line with a breathing blue LED ("Built from Penthera <version>.
+  Runs offline. Rules decide.") beside the bar's three controls (theme,
+  Star with its count, Download);
+- four groups under numbered Departure Mono labels: Product, Research (with
+  each benchmark and each approved post set in, in mono), Trust, Elsewhere;
+- a 1-bit ramp, from a blue gradient cell through ordered dither to empty
+  paper, on a row of its own: the footer's only dither, never behind text;
+- the wordmark as a plate across the whole measure, polished steel (chrome on
+  black, gunmetal on paper) with blue light under it, linking to the top;
+- the facts in mono: MIT, scan only what you own, no cookies or third-party
+  requests.
+
+The bottom veil still switches off over the footer.
+
 ## Anti-references
 
 - Security-vendor pages: dark gradients, shields, padlocks, "threat

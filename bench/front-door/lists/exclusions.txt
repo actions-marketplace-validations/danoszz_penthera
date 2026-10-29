@@ -1,0 +1,27 @@
+# E20 exclusion list (docs/research/prereg/E20-front-door.md, § 5).
+# DRAFT: completed by hand on registration day, then hashed; no edits after.
+#
+# One "<domain> <category>" per line. A domain also covers every subdomain:
+# "gov" excludes every .gov host. Categories: adult, gambling, health,
+# government, at-risk. When unsure, a site is listed. Listed hosts are never
+# visited and are counted per category, never named.
+
+# government: public-sector suffixes, written before the target lists were read
+gov government
+mil government
+gov.uk government
+gov.au government
+gc.ca government
+gouv.fr government
+gov.br government
+gob.mx government
+gov.in government
+go.jp government
+go.kr government
+gov.cn government
+gov.it government
+bund.de government
+europa.eu government
+int government
+
+# Domains from the Tranco and YC lists, added by hand on registration day:

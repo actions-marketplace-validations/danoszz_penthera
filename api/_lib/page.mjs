@@ -412,9 +412,11 @@ export const TOKEN = "penthera-quickcheck";
  * "*" speaks to crawlers, which walk a site, while this check fetches what
  * one browser visit to one page fetches. Blocking it takes one line from the
  * owner, aimed at us. Groups follow RFC 9309: consecutive User-agent lines
- * share the rules that follow them.
+ * share the rules that follow them. `tokens` adds names for callers that
+ * identify themselves differently (the E20 study, bench/front-door).
  */
-export function optedOut(robots) {
+export function optedOut(robots, tokens = [TOKEN]) {
+  const names = tokens.map((t) => String(t).toLowerCase());
   let agents = [];
   let inRules = false;
   for (const raw of String(robots).split(/\r?\n/)) {
@@ -428,7 +430,7 @@ export function optedOut(robots) {
       agents.push(value.split("/")[0].trim().toLowerCase());
     } else if (key === "disallow" || key === "allow") {
       inRules = true;
-      if (key === "disallow" && (value === "/" || value === "/*") && agents.includes(TOKEN)) return true;
+      if (key === "disallow" && (value === "/" || value === "/*") && agents.some((a) => names.includes(a))) return true;
     }
   }
   return false;
@@ -437,6 +439,7 @@ export function optedOut(robots) {
 /**
  * GET /robots.txt through the guard (4 s, 64 KB, in the request budget) and
  * refuse when the owner opted out. No file, or any fetch error, means go on.
+ * `optOutAll` (the E20 study only) also refuses on a `*` group with Disallow: /.
  */
 export async function checkOptOut(origin, budget, opts = {}) {
   let res;
@@ -447,7 +450,14 @@ export async function checkOptOut(origin, budget, opts = {}) {
   } catch {
     return;
   }
-  if (res.status === 200 && optedOut(res.body)) {
+  if (res.status === 200 && optedOut(res.body, opts.optOutTokens)) {
     throw new CheckError("opted_out", "This site's owner opted out of Penthera's online check.", 403, "Ask the owner, or, if it's your site, run npx penthera on your own machine.");
+  }
+  // The E20 study (bench/front-door) also honors `User-agent: *` with
+  // `Disallow: /`, because a survey is closer to a crawler. The live check
+  // never sets optOutAll, so the API never sends this. Same code, marked
+  // `all`, so the study can count it apart from an opt-out naming us.
+  if (res.status === 200 && opts.optOutAll && optedOut(res.body, ["*"])) {
+    throw Object.assign(new CheckError("opted_out", "This site's robots.txt disallows every user agent.", 403, ""), { all: true });
   }
 }

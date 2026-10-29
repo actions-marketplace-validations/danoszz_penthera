@@ -96,7 +96,7 @@ export async function resolvePublic(host, { lookup = dnsLookup, allowPrivate = f
   return answers[0];
 }
 
-const UA = "Penthera-QuickCheck/1 (+https://penthera.org/terms; passive check run by a visitor; opt out: robots.txt)";
+export const UA = "Penthera-QuickCheck/1 (+https://penthera.org/terms; passive check run by a visitor; opt out: robots.txt)";
 
 /**
  * GET the page once, as a browser would, and keep only what came before the
@@ -128,16 +128,17 @@ export async function fetchHeaders(start, { maxRedirects = 4, timeout = 6000, lo
  * Same guard as fetchHeaders: every hop resolved, checked and pinned again.
  * `onHop` runs before each request (the caller's request budget); it may
  * throw to stop. The body is decoded as UTF-8; a compressed body (which we
- * never ask for) is left empty. Nothing is logged.
+ * never ask for) is left empty. Nothing is logged. `userAgent` replaces the
+ * live check's User-Agent (the E20 study names itself, bench/front-door).
  */
-export async function fetchBody(start, { maxRedirects = 4, timeout = 6000, maxBytes = 1_500_000, accept, onHop, lookup, allowPrivate = false, anyPort = false } = {}) {
+export async function fetchBody(start, { maxRedirects = 4, timeout = 6000, maxBytes = 1_500_000, accept, onHop, lookup, allowPrivate = false, anyPort = false, userAgent } = {}) {
   let url = start;
   const hops = [];
   for (let i = 0; i <= maxRedirects; i++) {
     onHop?.(url);
     const host = url.hostname.replace(/^\[|\]$/g, "");
     const { address, family } = await resolvePublic(host, { lookup, allowPrivate });
-    const res = await requestOnce(url, address, family, timeout, { maxBytes, accept });
+    const res = await requestOnce(url, address, family, timeout, { maxBytes, accept, userAgent });
     hops.push({ url: url.href, status: res.status });
     const location = res.headers.location;
     if (res.status >= 300 && res.status < 400 && location) {
@@ -157,7 +158,7 @@ function requestOnce(url, address, family, timeout, body = null) {
   return new Promise((resolve, reject) => {
     const req = lib.request(url, {
       method: "GET",
-      headers: { "User-Agent": UA, Accept: body?.accept || "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8" },
+      headers: { "User-Agent": body?.userAgent || UA, Accept: body?.accept || "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8" },
       // Pinned: connect to the address that passed the guard, nothing else.
       lookup: (_h, opts, cb) => (opts?.all ? cb(null, [{ address, family }]) : cb(null, address, family)),
       servername: secure && !isIP(url.hostname) ? url.hostname : undefined,

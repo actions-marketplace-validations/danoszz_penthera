@@ -26,7 +26,11 @@ const CTA_HTML = '<p class="land-cta"><a class="btn" data-variant="default" href
 const WAITLIST_MAIL = "daan@penthera.org";
 const WAITLIST_HREF = waitlistHref();
 const WAITLIST_HTML = `<p class="land-cta"><a class="btn" data-variant="default" data-track="pro-waitlist" href="${WAITLIST_HREF.replace(/&/g, "&amp;")}">Join the waitlist</a><span>Opens an email to ${WAITLIST_MAIL}. Nothing is stored on penthera.org.</span></p>`;
-const ctaHtml = (p) => (p.cta === "waitlist" ? WAITLIST_HTML : CTA_HTML);
+// `cta: contact` in the front matter: a mailto about a study (site/pages/research-e20.md).
+const CONTACT_MAIL = "daan@penthera.org";
+export const contactHref = (p) => `mailto:${CONTACT_MAIL}?subject=${encodeURIComponent(p.subject || p.h1)}`;
+const contactHtml = (p) => `<p class="land-cta"><a class="btn" data-variant="default" href="${esc(contactHref(p))}">Email the study</a><span>Opens an email to ${CONTACT_MAIL}. Nothing is stored on penthera.org.</span></p>`;
+const ctaHtml = (p) => (p.cta === "waitlist" ? WAITLIST_HTML : p.cta === "contact" ? contactHtml(p) : CTA_HTML);
 
 /** Parse one page: front matter, the H1 and the body. Throws on a missing field. */
 export function parsePage(md, file) {
@@ -54,7 +58,9 @@ export function landingPages(site) {
 
 /** One page as Markdown, for agents: the CTA as a link, numbers filled in. */
 export function landingMarkdown(p, { origin, values }) {
-  const cta = p.cta === "waitlist" ? `[Join the waitlist](${WAITLIST_HREF})` : `[Check your site on penthera.org](${origin}/#scan)`;
+  const cta = p.cta === "waitlist" ? `[Join the waitlist](${WAITLIST_HREF})`
+    : p.cta === "contact" ? `[Email the study](${contactHref(p)})`
+    : `[Check your site on penthera.org](${origin}/#scan)`;
   const body = p.body.replaceAll("{{CTA}}", cta)
     .replace(/\]\(\/(?!\/)/g, `](${origin}/`);
   return `${fill(body, values, `site/pages/${p.slug}.md`).trimEnd()}\n`;

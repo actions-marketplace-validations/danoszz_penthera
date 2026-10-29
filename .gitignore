@@ -38,3 +38,6 @@ coverage/
 # Internal audit command logs (uploaded as a CI artifact, never committed)
 audit/logs/
 /docs/distribution/
+
+# E20 raw results: per-site data stays private (bench/front-door/run.mjs)
+bench/front-door/results/

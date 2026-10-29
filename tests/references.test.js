@@ -39,7 +39,7 @@ describe("references data", () => {
       expect(e.doi || e.url, e.key).toBeTruthy();
       expect(e.title, e.key).toBeTruthy();
       expect(e.year || e.urldate, e.key).toBeTruthy();
-      expect(e.note, e.key).toMatch(/^(blackbox|design|threatmodel|supplychain|secrets|web|llm|standards|advisories)$/);
+      expect(e.note, e.key).toMatch(/^(blackbox|design|threatmodel|supplychain|secrets|web|llm|standards|advisories|methods)$/);
     }
   });
 

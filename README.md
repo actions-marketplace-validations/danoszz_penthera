@@ -10,6 +10,8 @@ The security review you never had time for. Offline, rule-based, and you can ver
 
 **[penthera.org](https://penthera.org)**: check your live site in a few seconds. Passive, nothing stored.
 
+Daily notes from Penthera: **[x.com/penthera_org](https://x.com/penthera_org)**
+
 **132** readable rules · **6** read-only MCP tools · **1** runtime dependency · **0** requests past loopback in the benchmark · **MIT**, no telemetry
 
 <br/>
@@ -49,6 +51,61 @@ the results, good or bad, so you can see how far to trust it.
 It finds known classes of problems, not novel ones. It does not replace a human
 pentester.
 
+## Start in 30 seconds
+
+You need Node.js 22 or later. No install, no account.
+
+Building with Cursor, Claude Code, Codex, VS Code, Windsurf, Gemini CLI, Zed,
+JetBrains or Kiro, or an app builder such as Lovable, Bolt, Base44, Replit or
+v0? [Penthera in your coding tool](docs/integrations.md) has the setup for
+each.
+
+**In your terminal.** Run this in your project folder:
+
+```bash
+npx penthera
+```
+
+It detects your setup offline, asks what to check, and gives you a grade per
+area and the three things to fix first. It scans your running app only after
+you confirm the app is yours. Nothing is committed or pushed
+([guided start](docs/commands/init.md)).
+
+**In your coding agent, as a skill.** Then ask "scan my app for security
+issues":
+
+```bash
+npx skills add danoszz/penthera
+```
+
+**In your coding agent, as an MCP server.** Six read-only tools for Claude Code,
+Cursor, Codex, VS Code and Windsurf. Pin the version:
+
+```bash
+claude mcp add penthera -- npx -y penthera@2.1.0 mcp
+```
+
+**In Claude Code, as a plugin.** From Claude Code's prompt:
+
+```
+/plugin marketplace add danoszz/penthera
+/plugin install penthera@penthera
+```
+
+**In Gemini CLI, as an extension.** It runs the MCP server pinned in
+[`gemini-extension.json`](gemini-extension.json), which follows the newest
+release, release candidates included:
+
+```bash
+gemini extensions install https://github.com/danoszz/penthera
+```
+
+Other clients: [docs/commands/mcp.md](docs/commands/mcp.md). Other skill install
+routes: [docs/commands/skill.md](docs/commands/skill.md).
+
+To run it in a container:
+`docker build -t penthera . && docker run --rm penthera https://your-app.example`.
+
 ## Public benchmarks
 
 We test Penthera on public datasets that other people built, next to the free
@@ -61,9 +118,17 @@ down before that run ([protocol](docs/research/prereg/E11b-improvement-study.md)
 | Benchmark | Score | Penthera 1.9.0 | **Penthera 2.0.0** | Rank among free tools | Best other free tool |
 |---|---|---|---|---|---|
 | [Leaked secrets (Samsung CredData)](https://penthera.org/benchmarks/secrets) | F1 | 0.18 | **0.74** | **2nd of 10** | deepsecrets 0.78 |
-| [Malicious npm packages (DataDog)](https://penthera.org/benchmarks/npm-malware) | caught minus false alarms | 0.57 | **0.71** | **1st of 6** | malcontent 0.63 |
-| [Malicious PyPI packages (DataDog)](https://penthera.org/benchmarks/pypi-malware) | caught minus false alarms | 0.74 | **0.82** | **1st of 8** | GuardDog 0.74 |
-| [Injection bugs in JS libraries (SecBench.js)](https://penthera.org/benchmarks/js-injection) | found in the right file | 0.16 | **0.70** | **1st of 8**, within the margin | odgen 0.68 |
+| [Malicious npm packages (DataDog)](https://penthera.org/benchmarks/npm-malware) | caught minus false alarms | 0.57 | **0.71** | **1st of 6, tied 1st to 3rd** ⁴ | malcontent 0.63 |
+| [Malicious PyPI packages (DataDog)](https://penthera.org/benchmarks/pypi-malware) | caught minus false alarms | 0.74 | **0.82** | **1st of 8, tied 1st to 3rd** ⁴ | GuardDog 0.74 |
+| [Injection bugs in JS libraries (SecBench.js)](https://penthera.org/benchmarks/js-injection) | found in the right file | 0.16 | **0.70** | **1st of 8, tied 1st to 4th** ⁴ | odgen 0.68 |
+
+⁴ A tied range is a rank interval: the range Penthera's rank fell in, in 95% of 10,000 bootstrap redraws of each tool's counts (on SecBench.js, of its 64 test bugs). Penthera alone came out first in 76% of the redraws on npm, 82% on PyPI and 60% on SecBench.js. Exploratory: computed after the registered ranking.
+
+Leaked secrets: 2nd by F1, the registered score; 1st by F0.5, which weighs precision more (0.82 against deepsecrets 0.80); 2nd by F2, which weighs recall more (0.68 against deepsecrets 0.77).
+
+Some ranked tools are barely in the contest. Other ranked tools scoring below 0.10: 1 of 9 on CredData (trufflehog); 3 of 5 on npm (clamav, yara, ossgadget); 4 of 7 on PyPI (clamav, ossgadget, bandit4mal, aura); 1 of 7 on SecBench.js (njsscan).
+
+If 1 package in 1,000 were malicious, the share of Penthera's malware flags that would be right: npm, about 2.7% at the top of the false-alarm interval (it raised no false alarm on that sample); PyPI, about 1.6% at the measured false-alarm rate, 0.9% at the top of its interval. Exploratory, like the rank intervals.
 
 <details><summary>Every tool, every number (95% intervals)</summary>
 
@@ -128,7 +193,7 @@ down before that run ([protocol](docs/research/prereg/E11b-improvement-study.md)
 | – | semgrep, every file 1.180.0 (another setting of semgrep, not ranked) | 16/47 | 9/17 | 0.39 [0.28, 0.51] |
 | – | Penthera 1.9.0 | 0/47 | 10/17 | 0.16 [0.09, 0.26] |
 
-A rank is shown only where at least 5 other free tools were measured; otherwise "–".
+A rank is shown only where at least 5 other free tools were measured; otherwise "–". The rank column orders tools by score, and close scores can swap places. Penthera's 95% rank interval (bootstrap, exploratory): 2nd on CredData, 1st to 3rd on npm, 1st to 3rd on PyPI, 1st to 4th on SecBench.js.
 
 Paid tools (GitGuardian, Socket, Snyk, Phylum, Semgrep Pro) publish no results on these benchmarks, so they are not in the tables.
 
@@ -151,59 +216,6 @@ on the other half; GuardDog helped build the malware dataset. Accuracy on real
 projects is experiment E1. Reproduce every table with
 `npm run bench:public -- --split test --final` and
 `npm run bench:public -- --competitors --split test --final`.
-
-## Start in 30 seconds
-
-You need Node.js 22 or later. No install, no account.
-
-Building with Cursor, Claude Code, Codex, VS Code, Windsurf, Gemini CLI, Zed,
-JetBrains or Kiro, or an app builder such as Lovable, Bolt, Base44, Replit or
-v0? [Penthera in your coding tool](docs/integrations.md) has the setup for
-each.
-
-**In your terminal.** Run this in your project folder:
-
-```bash
-npx penthera
-```
-
-It detects your setup offline, asks what to check, and gives you a grade per
-area and the three things to fix first. It scans your running app only after
-you confirm the app is yours. Nothing is committed or pushed
-([guided start](docs/commands/init.md)).
-
-**In your coding agent, as a skill.** Then ask "scan my app for security
-issues":
-
-```bash
-npx skills add danoszz/penthera
-```
-
-**In your coding agent, as an MCP server.** Six read-only tools for Claude Code,
-Cursor, Codex, VS Code and Windsurf, new in 1.9.0. Pin the version:
-
-```bash
-claude mcp add penthera -- npx -y penthera@2.0.0 mcp
-```
-
-**In Claude Code, as a plugin.** From Claude Code's prompt:
-
-```
-/plugin marketplace add danoszz/penthera
-/plugin install penthera@penthera
-```
-
-**In Gemini CLI, as an extension.** With the same pinned MCP server:
-
-```bash
-gemini extensions install https://github.com/danoszz/penthera
-```
-
-Other clients: [docs/commands/mcp.md](docs/commands/mcp.md). Other skill install
-routes: [docs/commands/skill.md](docs/commands/skill.md).
-
-To run it in a container:
-`docker build -t penthera . && docker run --rm penthera https://your-app.example`.
 
 ## What it does
 
@@ -264,7 +276,7 @@ code `1` means critical or high findings. Every command and flag is in
 [docs/commands/](docs/commands/README.md). Compliance output is readiness
 tooling, not a certification and not legal advice.
 
-**AI mode (opt-in, new in 1.9.0).** `penthera --repo . --ai` lets a local model
+**AI mode (opt-in).** `penthera --repo . --ai` lets a local model
 propose problems no rule describes. Penthera checks each proposal with its
 rules, and anything unconfirmed is labelled "model-proposed, unverified" and
 never fails CI. Whether it finds more than the rules alone is not measured yet
@@ -276,7 +288,8 @@ never fails CI. Whether it finds more than the rules alone is not measured yet
 |---|---|
 | Scans: URL, repo, dependencies, AI tooling, installs, pre-commit hook | **Stable**: in every release since 1.x, covered by the tests and the release gate |
 | Fix loop and local dashboard (`penthera ui`) | **Stable**; the dashboard was redesigned in 1.9.0 |
-| MCP server, Agent Skill, Claude Code plugin, Gemini CLI extension | **Stable**, new in 1.9.0 (the Gemini extension after 1.9.0) |
+| MCP server, Agent Skill, Claude Code plugin | **Stable**, since 1.9.0 |
+| Gemini CLI extension | **Stable**: it installs the newest release (2.1.0) |
 | Evidence bundles, NIS2 and CRA drafts | **Stable** as readiness tooling, not a certification |
 | AI mode (`--ai`) | **Experimental**: whether it finds more than the rules alone is not measured yet ([AI mode](docs/ai-mode.md)) |
 | Live check on [penthera.org](https://penthera.org) | **Beta**: passive only, [terms](docs/live-check-terms.md) |
@@ -302,7 +315,7 @@ Each feature goes through the same path: **method → evidence → tool.**
 | Precision, bundled benchmark | 0.92, 95% CI 0.74 to 0.98 | 22 true and 2 false positives |
 | Recall, bundled benchmark | 0.96, 95% CI 0.79 to 0.99 | 1 miss, [explained](bench/RESULTS.md) |
 | Requests past loopback during the benchmark | 0 | Enforced by a network guard |
-| Public benchmarks (E11b), sealed test half | #1 of the free tools on npm and PyPI malware, tied #1 on JS library injection bugs, #2 on leaked secrets | 4 public datasets, up to 10 free tools each ([results](bench/public/RESULTS.md#e11b-final-the-sealed-test-half-scored-once-2026-10-25), [summary](#public-benchmarks)) |
+| Public benchmarks (E11b), sealed test half | 1st on npm and PyPI malware (tied 1st to 3rd), 1st on JS library injection bugs (tied 1st to 4th), 2nd on leaked secrets | 4 public datasets, up to 10 free tools each ([results](bench/public/RESULTS.md#e11b-final-the-sealed-test-half-scored-once-2026-10-25), [summary](#public-benchmarks)) |
 | E10 pilot, known-vulnerable apps | Precision 0.88, 95% CI 0.78 to 0.93. Recall 0.07 before fixes, 0.71 (CI 0.45 to 0.88) after | 14 root causes in Juice Shop and DVNA ([results](bench/known-vuln/RESULTS-after-fixes.md)) |
 | Detection rules, all readable | 132 in this release: 16 URL scan templates, 21 secret and AI-key patterns, 15 dependency capabilities, 39 AI-tooling rules, 5 fix recipes, and the signed rule packs | [Rule packs](docs/rule-packs.md) |
 
@@ -324,6 +337,11 @@ with `npm run docs:numbers` and `npm run bench`.
 - **Local and offline.** No account, no telemetry, no cloud. `--offline` limits
   network traffic to the target you named, and every report lists the hosts it
   contacted ([network use](docs/privacy.md)).
+- **Tested unplugged.** Repo scans, `agents`, `deps`, `brief`, evidence
+  bundles and URL scans with `--offline` made no outside connections. They
+  gave the same result twice, and the same with the network blocked, on macOS
+  and Ubuntu ([E17 results](bench/offline/RESULTS.md)). The test can't watch
+  `git`, which Penthera uses only for local commands.
 - **Deterministic.** Rules you can read, with `file:line` evidence. A model may
   propose a fix or a lead; a deterministic re-scan and your tests decide.
 - **Non-destructive by default.** Default scans send no attack payloads.
@@ -343,8 +361,8 @@ with `npm run docs:numbers` and `npm run bench`.
 **Verify it yourself.** In an empty folder:
 
 ```bash
-npm install penthera@2.0.0 && npm audit signatures
-npx penthera@2.0.0 rules list
+npm install penthera@2.1.0 && npm audit signatures
+npx penthera@2.1.0 rules list
 ```
 
 The first checks npm's registry signature and the build provenance of the
@@ -428,7 +446,7 @@ What changed, what we are measuring, and what comes next, in one place.
 
 | | Where it stands | Read more |
 |---|---|---|
-| **Latest release** | 2.0.0 (2026-10-25) on npm `latest`: public benchmark results, library mode, wider secret and malware detection, every hit listed per finding. A major version because the default scan finds more ([upgrading](CHANGELOG.md)) | [CHANGELOG](CHANGELOG.md), [roadmap](ROADMAP.md#now-190) |
+| **Latest release** | 2.1.0 (2026-10-29) on npm `latest`: the agent brief, `--giants`, fewer false findings, honest rank intervals, the research hub ([changes](CHANGELOG.md)) | [CHANGELOG](CHANGELOG.md), [roadmap](ROADMAP.md#now-210) |
 | **Research** | Public benchmarks (E11b) published: on a sealed half of four public datasets, #1 of the free tools on npm and PyPI malware, tied #1 on JS library injection bugs, #2 on leaked secrets ([summary](#public-benchmarks)). E10 pilot published: precision 0.88, recall 0.07 to 0.71 on two known-vulnerable apps after fixes (one labeller, not independent; a re-run is pending because default scans no longer send login checks). E1 on real code is pre-registered; E8 (agent guardrails) is a draft | [E11b results](bench/public/RESULTS.md), [E10 results](bench/known-vuln/RESULTS.md), [E1 pre-registration](docs/research/prereg/E1-real-world-accuracy.md), [agents safely](docs/agents-safely.md) |
 | **Next** | Real-world precision and recall with intervals (E1), published whatever the result | [Roadmap: next](ROADMAP.md#next), [research plan](docs/vision-2.0.md) |
 

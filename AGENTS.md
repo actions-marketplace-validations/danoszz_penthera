@@ -38,12 +38,11 @@ site/         penthera.org
 
 1. **Add a changelog fragment** in `changelog.d/` with a `section:` line
    ([format](changelog.d/README.md)). Do not edit `CHANGELOG.md`.
-2. **Add the trailers** to every commit you write. CI rejects a commit that has
-   one without the other (`scripts/ci/provenance.mjs`):
+2. **Add the AI-Assisted trailer** to every commit you write. Do not add a
+   `Co-Authored-By:` line. CI checks it (`scripts/ci/provenance.mjs`):
 
    ```
    AI-Assisted: <tool> with <model and version>; <what it did, in one line>
-   Co-Authored-By: <model and version> <vendor noreply address>
    ```
 
 3. **No version bumps or tags.** Only the maintainer starts a release.
@@ -58,13 +57,13 @@ site/         penthera.org
 
 ## Using Penthera from an agent
 
-Pin the version. `latest` on npm is 2.0.0, with the MCP server, AI mode and library mode.
+Pin the version. `latest` on npm is 2.1.0, with the MCP server, AI mode, library mode and the agent brief.
 
 | Route | Command | Read |
 |---|---|---|
-| CLI | `npx penthera@2.0.0 --repo .` | [scan](docs/commands/scan.md) |
+| CLI | `npx penthera@2.1.0 --repo .` | [scan](docs/commands/scan.md) |
 | Agent Skill | `npx skills add danoszz/penthera` | [skill](docs/commands/skill.md) |
-| MCP server | `claude mcp add penthera -- npx -y penthera@2.0.0 mcp` | [mcp](docs/commands/mcp.md) |
+| MCP server | `claude mcp add penthera -- npx -y penthera@2.1.0 mcp` | [mcp](docs/commands/mcp.md) |
 
 The MCP tools are read-only, read only inside your project, never apply fixes
 and run no shell. `scan_url` is passive and reaches only loopback or hosts the

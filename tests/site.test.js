@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync, readFileSync, mkdirSync, writeFileSync, existsSync
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
-import { buildSite, readNews, readCompare, e10Numbers, prerelease, mcpNote, firstRelease, siteVersion } from "../site/build.mjs";
+import { buildSite, exampleCheck, readNews, readCompare, e10Numbers, prerelease, mcpNote, firstRelease, siteVersion } from "../site/build.mjs";
 import { docPages, absoluteLinks, pinTo } from "../site/agents.mjs";
 import { landingPages } from "../site/landing.mjs";
 import { readKey } from "../scripts/indexnow.mjs";
@@ -375,20 +375,34 @@ describe("site news ticker", () => {
 describe("site story", () => {
   const html = () => readFileSync(join(out, "index.html"), "utf8");
 
-  it("tells it in order: problem, the live check, what it finds, trust and limits, see it work, compare, get started, questions, agents, about", () => {
+  it("tells it in order: the live check, the problem, what it finds, trust and limits, see it work, compare, get started, questions, agents, about", () => {
     const h = html();
-    const order = ['class="problem"', 'id="scan"', 'id="answer"', 'id="checks"', 'id="trust"', 'id="limits"', 'id="tour"', 'id="compare"', 'id="get"', 'id="faq"', 'id="for-agents"', 'id="about"'];
+    const order = ['id="scan"', 'class="problem"', 'id="answer"', 'id="checks"', 'id="trust"', 'id="limits"', 'id="tour"', 'id="compare"', 'id="get"', 'id="faq"', 'id="for-agents"', 'id="about"'];
     const at = order.map((m) => h.indexOf(m));
     for (const [i, m] of order.entries()) expect(at[i], m).toBeGreaterThan(0);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
     expect(h).toContain("AI coding tools ship faster than anyone can check.");
-    expect(h).toContain('<h1 id="hero-title">Penthera: your <span class="nowrap">open-source</span> cyber security agent</h1>');
+    expect(h).toContain('<h1 id="hero-title"><span class="sr">Penthera: </span>your <span class="nowrap">open-source</span> cyber security agent</h1>');
     expect(h).toContain('<p class="bubble">yo, is my app safe?</p>');
     expect(h).toMatch(/<h2 id="faq-title">Before you install\.<\/h2>/);
     // Merged away: no section repeats another.
     for (const gone of ['class="walk', 'class="eu"', 'class="vision', 'class="ba-counts"', "data-check", 'class="desk"', 'class="spec"']) expect(h, gone).not.toContain(gone);
     // Each question is answered once: the FAQ no longer repeats the about and limits chapters.
     for (const q of ["What is Penthera, and why does it exist?", "What can't it do?"]) expect(h, q).not.toContain(q);
+  });
+
+  it("gives the problem its own grey section after the poster, hidden with the poster in fix mode", () => {
+    const h = html();
+    expect(h).toMatch(/<\/section>\s*(<!--[\s\S]*?-->\s*)?<section class="slab" aria-label="The problem">\s*<div class="hero-text">\s*<p class="problem">/);
+    const slab = h.slice(h.indexOf('class="slab"'), h.indexOf('id="answer"'));
+    const at = ['class="problem"', 'class="pills"', 'class="lede"', 'class="hero-actions"', 'class="loop"'].map((m) => slab.indexOf(m));
+    expect(at.every((n) => n > 0)).toBe(true);
+    // The note was dropped (2026-10-29): the poster already offers the code scan.
+    expect(slab).not.toContain('class="note"');
+    expect([...at].sort((a, b) => a - b)).toEqual(at);
+    const css = readFileSync(join(out, "styles.css"), "utf8");
+    expect(css).toContain('.hero[data-mode="fix"] + .slab');
+    expect(css).toMatch(/main > \.slab \{[^}]*background: var\(--slab\)/);
   });
 
   it("ends with who builds it and why, how to reach him, and the signature", () => {
@@ -404,7 +418,7 @@ describe("site story", () => {
     expect(js).toContain("Only check a site you own, or one you have written permission to test.");
     expect(js).toMatch(/consent:\s*!0|consent:\s*true/);
     // No deeper scan from penthera.org: the report points to the CLI instead.
-    expect(js).toContain("Go deeper on your own machine");
+    expect(js).toContain("Run the full scan on your own machine");
     expect(js).not.toMatch(/action:\s*[`"']deep|action:\s*[`"']token/);
   });
 
@@ -425,7 +439,44 @@ describe("site story", () => {
     expect(hero.indexOf('id="scan"')).toBeLessThan(hero.indexOf('class="loop"'));
   });
 
-  it("shows the four areas with counts from the rules, and the tour as one walkthrough", () => {
+  it("makes the poster the check: the title as the h1 above the question, the field, and a real example result", async () => {
+    const h = html();
+    const hero = h.slice(h.indexOf('class="hero"'), h.indexOf('id="answer"'));
+    expect(h.match(/<h1[ >]/g)).toHaveLength(1);
+    expect(hero.indexOf('id="hero-title"')).toBeLessThan(hero.indexOf('<p class="ask">Is your site/app safe?</p>'));
+    expect(hero.indexOf('class="ask"')).toBeLessThan(hero.indexOf('id="scan"'));
+    // The example is the live check's own report of the test server, made at build time.
+    const r = await exampleCheck();
+    const card = hero.slice(hero.indexOf('class="card card-example"'), hero.indexOf('class="card-cap"'));
+    expect(card).toContain('id="example-title">Example</span>');
+    expect(card).toContain(`<p class="card-verdict">${r.verdict}</p>`);
+    expect(card).toContain(`<p class="score-n">${r.score}<span>/100</span></p>`);
+    expect(card.match(/<i class="on"><\/i>/g)).toHaveLength(r.score);
+    const worst = r.checks.filter((c) => !c.passed)[0];
+    expect(card).toContain(worst.title);
+    expect(card).toContain(`Prompt to fix (${r.checks.filter((c) => !c.passed).length})`);
+    // The example's button is a picture: not focusable, hidden from screen readers.
+    expect(card).toMatch(/<p class="card-fake" aria-hidden="true">/);
+    expect(card).not.toMatch(/<button|<a /);
+    // No Pro pitch in the hero or the check.
+    expect(hero).not.toMatch(/\bPro\b|go-pro|\/pro\b/);
+    expect(readFileSync(join(ROOT, "site", "check", "ui.js"), "utf8")).not.toMatch(/\bPro\b|\/pro\b/);
+  }, 30_000);
+
+  it("hands off after a result: prompt, full scan, code scan and a star, with two fixed labels named in privacy.md", () => {
+    const ui = readFileSync(join(ROOT, "site", "check", "ui.js"), "utf8");
+    for (const t of ["Prompt to fix (", "Run the full scan on your own machine", "npx penthera --repo .", "Star on GitHub", "Star it now, find it there later."]) expect(ui, t).toContain(t);
+    expect(ui).toContain('count("copy", { what: "repo-result" })');
+    expect(ui).toContain('count("link", { to: "github-star-result" })');
+    const privacy = readFileSync(join(ROOT, "docs", "privacy.md"), "utf8");
+    for (const l of ["repo-result", "github-star-result"]) expect(privacy, l).toContain(`"${l}"`);
+    // The terms say what is counted, as privacy.md does.
+    const terms = readFileSync(join(ROOT, "docs", "live-check-terms.md"), "utf8");
+    expect(terms).not.toContain("does not record that you ran a check");
+    expect(terms).toContain("counts that a check ran");
+  });
+
+  it("shows the four areas with counts from the rules, and the tour as three dashboard steps", () => {
     const h = html();
     const map = h.slice(h.indexOf('id="checks"'), h.indexOf('id="trust"'));
     for (const [n, what] of [[COUNTS.secretPatterns, "secret and AI-key patterns"], [COUNTS.agentRules, "AI-tooling rules"], [COUNTS.urlTemplates, "URL scan templates"], [(COUNTS.popularNpm + COUNTS.popularPypi).toLocaleString("en-US"), "package names"]]) {
@@ -434,12 +485,13 @@ describe("site story", () => {
     expect(map.match(/<li class="map-cell /g)).toHaveLength(4);
     expect(map.match(/<p class="map-one"><strong>[^<]+\.<\/strong>/g)).toHaveLength(4);
     const tour = h.slice(h.indexOf('id="tour"'), h.indexOf('id="compare"'));
-    // One walkthrough and two stills: the dashboard and the fix loop.
-    expect(tour.match(/<video /g)).toHaveLength(1);
-    expect(tour.match(/<figure class="shot">/g)).toHaveLength(2);
-    for (const f of ["media/tour/ui-dark.jpg", "media/tour/ui-light.jpg", "media/tour/ui-run.jpg", "media/walkthrough.mp4"]) {
+    // No video: three numbered stills of the light dashboard, each with alt text.
+    expect(tour).not.toContain("<video");
+    expect(tour.match(/<p class="step-n"><span>[123]<\/span> /g)).toHaveLength(3);
+    expect(tour.match(/<figure class="shot">/g)).toHaveLength(3);
+    for (const f of ["media/tour/tour-1-scan.jpg", "media/tour/tour-2-verdict.jpg", "media/tour/tour-3-fix.jpg"]) {
       expect(existsSync(join(out, f)), f).toBe(true);
-      expect(tour).toContain(`/${f}`);
+      expect(tour).toMatch(new RegExp(`<img src="/${f}" width="1200" height="750" loading="lazy" alt="[^"]{40,}">`));
     }
   });
 
@@ -546,8 +598,9 @@ describe("site landing pages", () => {
   const read = (f) => readFileSync(join(out, f), "utf8");
   const pages = landingPages(join(ROOT, "site"));
   // Live-check pages answer a search question with the live check; the
-  // waitlist page (cta: waitlist, site/pages/pro.md) shares the frame only.
-  const checkPages = pages.filter((p) => p.cta !== "waitlist");
+  // waitlist page (cta: waitlist, site/pages/pro.md) and the study page
+  // (cta: contact, site/pages/research-e20.md) share the frame only.
+  const checkPages = pages.filter((p) => !p.cta);
 
   it("has the two search questions, each with a title and a description for search", () => {
     expect(pages.map((p) => p.slug)).toEqual(expect.arrayContaining(["lovable-bolt-app-security", "website-security-check"]));
@@ -578,7 +631,7 @@ describe("site landing pages", () => {
       const md = readFileSync(join(ROOT, "site", "pages", `${p.slug}.md`), "utf8");
       expect(md, p.slug).not.toContain("\u2014");
       expect(md, p.slug).not.toMatch(/\b(the best|perfect|seamless|robust|powerful|cutting-edge|game-changing|comprehensive|bulletproof|100% secure)\b/i);
-      if (p.cta === "waitlist") { expect(md, p.slug).toContain("## What it is not"); continue; }
+      if (p.cta) { expect(md, p.slug).toContain("## What it is not"); continue; }
       expect(md, p.slug).toContain("## What it cannot see");
       expect(md, p.slug).toMatch(/not a guarantee/);
     }
@@ -600,10 +653,21 @@ describe("site landing pages", () => {
       expect(locs, p.slug).toContain(`${ORIGIN}/${p.slug}`);
       expect(read("llms.txt"), p.slug).toContain(`(${ORIGIN}/${p.slug}.md)`);
       expect(read(`${p.slug}.md`), p.slug).not.toMatch(/\]\(\/(?!\/)/);
-      if (p.cta === "waitlist") continue;
+      if (p.cta) continue;
       expect(read(`${p.slug}.md`), p.slug).toContain(`(${ORIGIN}/#scan)`);
       expect(read("index.html"), p.slug).toContain(`<a href="/${p.slug}">`);
     }
+  });
+
+  it("serves the E20 study page at the User-Agent's URL, with the opt-out and a contact", async () => {
+    const { USER_AGENT } = await import("../bench/front-door/run.mjs");
+    const vercel = JSON.parse(readFileSync(join(ROOT, "vercel.json"), "utf8"));
+    const path = new URL(/\+(https:\/\/[^;)]+)/.exec(USER_AGENT)[1]).pathname;
+    expect(vercel.redirects).toContainEqual({ source: path, destination: "/research-e20", permanent: true });
+    const h = read("research-e20.html");
+    expect(h).toContain(USER_AGENT);
+    expect(h).toContain("User-agent: Penthera-Research\nDisallow: /");
+    expect(h).toContain('href="mailto:daan@penthera.org?subject=Penthera-Research%2FE20"');
   });
 
   it("names one host in the sitemap, robots.txt and /terms", () => {

@@ -102,10 +102,10 @@ const blogList = (posts, origin) => (posts.length ? `## Blog\n\n${posts.map((p) 
 
 /**
  * Every file for agents and crawlers.
- * @param {{ root: string, site: string, version: string, origin: string, values: Record<string,string>, pub?: object, posts?: object[], now?: Date }} o
+ * @param {{ root: string, site: string, version: string, origin: string, values: Record<string,string>, pub?: object, posts?: object[], research?: object[], now?: Date }} o
  * @returns {Record<string, string>} site path (no leading slash) to content
  */
-export function agentFiles({ root, site, version, origin, values, pub = null, posts = [], now = new Date() }) {
+export function agentFiles({ root, site, version, origin, values, pub = null, posts = [], research = [], now = new Date() }) {
   const pages = docPages(root);
   const mirrored = new Set(pages);
   const out = {};
@@ -145,6 +145,8 @@ export function agentFiles({ root, site, version, origin, values, pub = null, po
     ["", "site/index.html"], ["index.md", "site/agent-ready.mjs"], ...terms.map((t) => [t, "docs/live-check-terms.md"]),
     ...(existsSync(join(root, "docs", "trust.md")) ? [["trust", "docs/trust.md"]] : []),
     ...(bench.length ? [["benchmarks", pub.date], ...bench] : []),
+    // /research is dated by its newest entry.
+    ...(research.length ? [["research", research.find((e) => e.date)?.date || "site/research.mjs"]] : []),
     ...landing.map((p) => [p.slug, `site/pages/${p.slug}.md`]),
     // Approved posts only: a draft is never built, so never listed.
     ...(posts.length ? [["blog", posts[0].date], ...posts.map((p) => [`blog/${p.slug}`, p.date])] : []),

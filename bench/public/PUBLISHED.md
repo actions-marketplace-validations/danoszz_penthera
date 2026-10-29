@@ -18,16 +18,16 @@
 
 ### Malicious npm packages (DataDog)
 
-| Rank | Tool | Caught | False alarms on benign packages | Caught minus false alarms |
-|---:|---|---|---|---|
-| 1 | **Penthera** 2.0.0 | 0.71 [0.62, 0.78] (79/112) | 0.00 [0.00, 0.02] (0/150) | 0.71 |
-| 2 | malcontent 1.27.1 (bf280ad6), yara-x 1.21.0 | 0.68 [0.59, 0.76] (76/112) | 0.05 [0.03, 0.10] (8/150) | 0.63 |
-| 3 | GuardDog 3.2.0 ² | 0.62 [0.52, 0.70] (69/112) | 0.03 [0.01, 0.07] (4/150) | 0.59 |
-| 4 | ossgadget 0.2.20 (414b6a59) | 0.94 [0.88, 0.97] (105/112) | 0.89 [0.83, 0.93] (133/150) | 0.05 |
-| 5 | clamav 1.5.4 | 0.01 [0.00, 0.05] (1/112) | 0.00 [0.00, 0.02] (0/150) | 0.01 |
-| 6 | yara yara-python 4.5.4 (YARA 4.5), YARA-Forge core 20261004 | 0.00 [0.00, 0.03] (0/112) | 0.00 [0.00, 0.02] (0/150) | 0.00 |
-| – | osv-scanner 2.6.0 ³ | 0.90 [0.83, 0.94] (101/112) | 0.01 [0.00, 0.04] (1/150) | 0.90 |
-| – | Penthera 1.9.0 | 0.57 [0.48, 0.66] (64/112) | 0.00 [0.00, 0.02] (0/150) | 0.57 |
+| Rank | Tool | Caught, with a payload | Caught, all `malicious_intent` | False alarms on benign packages | Caught minus false alarms |
+|---:|---|---|---|---|---|
+| 1 | **Penthera** 2.0.0 | 0.71 [0.62, 0.78] (79/112) | 0.53 (79/150) | 0.00 [0.00, 0.02] (0/150) | 0.71 |
+| 2 | malcontent 1.27.1 (bf280ad6), yara-x 1.21.0 | 0.68 [0.59, 0.76] (76/112) | 0.51 (76/150) | 0.05 [0.03, 0.10] (8/150) | 0.63 |
+| 3 | GuardDog 3.2.0 ² | 0.62 [0.52, 0.70] (69/112) | 0.69 (103/150) | 0.03 [0.01, 0.07] (4/150) | 0.59 |
+| 4 | ossgadget 0.2.20 (414b6a59) | 0.94 [0.88, 0.97] (105/112) | 0.91 (137/150) | 0.89 [0.83, 0.93] (133/150) | 0.05 |
+| 5 | clamav 1.5.4 | 0.01 [0.00, 0.05] (1/112) | 0.01 (1/150) | 0.00 [0.00, 0.02] (0/150) | 0.01 |
+| 6 | yara yara-python 4.5.4 (YARA 4.5), YARA-Forge core 20261004 | 0.00 [0.00, 0.03] (0/112) | 0.00 (0/150) | 0.00 [0.00, 0.02] (0/150) | 0.00 |
+| – | osv-scanner 2.6.0 ³ | 0.90 [0.83, 0.94] (101/112) | 0.91 (137/150) | 0.01 [0.00, 0.04] (1/150) | 0.90 |
+| – | Penthera 1.9.0 | 0.57 [0.48, 0.66] (64/112) | 0.43 (64/150) | 0.00 [0.00, 0.02] (0/150) | 0.57 |
 
 ### Malicious PyPI packages (DataDog)
 
@@ -59,7 +59,7 @@
 | – | semgrep, every file 1.180.0 (another setting of semgrep, not ranked) | 16/47 | 9/17 | 0.39 [0.28, 0.51] |
 | – | Penthera 1.9.0 | 0/47 | 10/17 | 0.16 [0.09, 0.26] |
 
-A rank is shown only where at least 5 other free tools were measured; otherwise "–".
+A rank is shown only where at least 5 other free tools were measured; otherwise "–". The rank column orders tools by score, and close scores can swap places. Penthera's 95% rank interval (bootstrap, exploratory): 2nd on CredData, 1st to 3rd on npm, 1st to 3rd on PyPI, 1st to 4th on SecBench.js.
 
 Paid tools (GitGuardian, Socket, Snyk, Phylum, Semgrep Pro) publish no results on these benchmarks, so they are not in the tables.
 

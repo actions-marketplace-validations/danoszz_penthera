@@ -120,9 +120,9 @@ function hero(w, h) {
   const square = w / h < 1.4;
   const px = (v) => `${Math.round(v * s)}px`;
   const tiles = [
-    ["npm", "1st", "of 6", "Malicious npm packages", `${pct(us(B.npm).r)} caught, ${us(B.npm).benign[0]} false alarms in ${us(B.npm).benign[1]}`],
-    ["pypi", "1st", "of 8", "Malicious PyPI packages", `${pct(us(B.pypi).r)} caught, ${pct(us(B.pypi).fa)} false alarms`],
-    ["library", "1st", "of 8, tied", "Injection bugs in JS libraries", `${us(B.library).command[0]} of ${us(B.library).command[1]} command injections found`],
+    ["npm", "1st", "of 6, tied 1st to 3rd", "Malicious npm packages", `${pct(us(B.npm).r)} caught, ${us(B.npm).benign[0]} false alarms in ${us(B.npm).benign[1]}`],
+    ["pypi", "1st", "of 8, tied 1st to 3rd", "Malicious PyPI packages", `${pct(us(B.pypi).r)} caught, ${pct(us(B.pypi).fa)} false alarms`],
+    ["library", "1st", "of 8, tied 1st to 4th", "Injection bugs in JS libraries", `${us(B.library).command[0]} of ${us(B.library).command[1]} command injections found`],
     ["secrets", "2nd", "of 10", "Leaked secrets", `${pct(us(B.secrets).p)} of warnings real, ${pct(us(B.secrets).r)} found`],
   ];
   // Every ranked tool on that benchmark, best first; bars start at 0 (a negative J draws none).
@@ -646,7 +646,7 @@ app.listen(3000);
   .prompt { color: ${BLUE}; } .foot { grid-column: 1 / -1; font-family: ${MONO}; font-size: 16px; color: ${GREY}; display: flex; justify-content: space-between; }`;
   const body = `<div class="head"><img src="logo.svg" alt="Penthera"><span>Real output of penthera 2.0.0 on a two-bug example app (excerpt)</span></div>
   <div class="win"><div class="bar"><b></b><b></b><b></b><em>src/server.js</em></div><div class="code">${lines}</div></div>
-  <div class="win"><div class="bar"><b></b><b></b><b></b><em>~/my-app — zsh</em></div><pre><span class="prompt">$</span> npx penthera@2.0.0 --repo . --offline
+  <div class="win"><div class="bar"><b></b><b></b><b></b><em>~/my-app — zsh</em></div><pre><span class="prompt">$</span> npx penthera@2.1.0 --repo . --offline
 
 ${ansiToHtml(text)}</pre></div>
   <div class="foot"><span>Offline · nothing uploaded · every finding names its rule</span><span>penthera.org</span></div>`;
@@ -679,7 +679,7 @@ function phpShot() {
   const body = `<div class="head"><img src="logo.svg" alt="Penthera"><span>Real output of penthera 2.0.0 (excerpt)</span></div>
   <div class="win"><div class="bar"><b></b><b></b><b></b><em>Dockerfile</em></div><div class="code">${lines}</div>
   <p class="note">PHP fixed two remote code execution flaws in October 2026 (CVE-2026-109618 and CVE-2026-109619, CVSS 9.2). Fixed in 8.2.35, 8.3.36, 8.4.27 and 8.5.12.</p></div>
-  <div class="win"><div class="bar"><b></b><b></b><b></b><em>~/php-site — zsh</em></div><pre><span class="prompt">$</span> npx penthera@2.0.0 --repo . --offline
+  <div class="win"><div class="bar"><b></b><b></b><b></b><em>~/php-site — zsh</em></div><pre><span class="prompt">$</span> npx penthera@2.1.0 --repo . --offline
 
 ${ansiToHtml(text)}</pre></div>
   <div class="foot"><span>Offline · nothing uploaded · every finding names its rule</span><span>penthera.org</span></div>`;

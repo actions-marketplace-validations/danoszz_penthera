@@ -51,7 +51,7 @@ describe("plugin/ folder", () => {
     const entries = line.match(/\S+\([^)]*\)|\S+/g) ?? [];
     for (const e of entries) {
       expect(["Write", "Edit", "Bash"], e).not.toContain(e);
-      if (e.startsWith("Bash(")) expect(e, e).toMatch(/^Bash\((penthera|npx -y penthera|npx --no-install penthera):\*\)$/);
+      if (e.startsWith("Bash(")) expect(e, e).toMatch(/^Bash\((penthera|npx -y penthera@\d+\.\d+\.\d+|npx --no-install penthera):\*\)$/);
     }
   });
 

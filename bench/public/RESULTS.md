@@ -13,6 +13,35 @@ Scanner: the detection code of `58ae9d7` (version 1.9.0). The runs were made
 from this branch, whose commits add only the protocol and the runner; no rule
 was changed.
 
+## In this file (added 29 Oct 2026)
+
+This file holds three studies on the same three public datasets. Each
+section keeps its own date, scanner and commit; read the newest first for
+the current numbers, and E11 for the registered baseline.
+
+What each study must report, and where to find it here, is in the
+[results-file checklist](../../docs/research/results-checklist.md).
+
+| Study | Section | Scanner | Data | Headline |
+|---|---|---|---|---|
+| E11, registered baseline | [Summary](#summary) and §§ 1 to 3 | 1.9.0, `58ae9d7` | All data, 24 Oct 2026 | None of five hypotheses supported |
+| Exploratory re-analysis, not registered | [Exploratory re-analysis](#exploratory-re-analysis-29-oct-2026-after-the-registered-analysis) | The E11b and E14 test runs, no new scan | Test half, 29 Oct 2026 | Wider intervals by repository; recall over every true row; the per-pass log. No registered result changes |
+| E14 step 2, registered | [E14 step 2](#e14-step-2-the-sealed-test-half-scored-once-2026-10-28) | 2.1.0-rc.2, `efbe8c8` | Test half, 28 Oct 2026 | The union finds more but costs more than 0.02 precision; Penthera-first stays the default |
+| E14 step 1 | [E14 step 1](#e14-step-1-the-dev-half-2026-10-27-not-the-registered-test) | 2.1.0-rc.1, `1f70835` | Dev half, 27 Oct 2026 | Not a result: builds and checks the merge |
+| E11b final | [E11b final](#e11b-final-the-sealed-test-half-scored-once-2026-10-25) | 2.0.0, `219b73a` | Test half, 25 Oct 2026 | The tuned rules against 1.9.0 and the free tools |
+| E11b dev baseline | [E11b dev baseline](#e11b-dev-baseline-dev-half-only-the-test-half-is-sealed) | 1.9.0 | Dev half, 24 Oct 2026 | The reference for tuning |
+
+The datasets are CredData ([Yun et al., 2021](../../docs/references.md#yun2021creddata)),
+SecBench.js ([Bhuiyan et al., 2023](../../docs/references.md#bhuiyan2023secbenchjs))
+and DataDog's malicious packages
+([Datadog Security Labs, 2023](../../docs/references.md#datadog2023malicious)).
+Intervals are Wilson's ([Wilson, 1927](../../docs/references.md#wilson1927probable));
+the malware ranking score is Youden's J ([Youden, 1950](../../docs/references.md#youden1950index));
+paired differences use the bootstrap ([Efron, 1979](../../docs/references.md#efron1979bootstrap))
+and McNemar's test ([McNemar, 1947](../../docs/references.md#mcnemar1947note)).
+How to repeat each run, and what is not shared, is at the
+[end of this file](#reproduce-licenses-and-what-is-not-shared-added-29-oct-2026).
+
 ## Summary
 
 | | Hypothesis | Estimate | Verdict |
@@ -22,6 +51,13 @@ was changed.
 | H3 | SecBench.js recall at the sink above 0.50 | 0.13 [0.08, 0.20], n = 129 | Not supported |
 | H4 | Malware flagged above 0.70, each ecosystem | npm 0.44 [0.39, 0.50], n = 300; PyPI 0.80 [0.75, 0.84], n = 299 | Not supported (npm fails; PyPI alone would pass) |
 | H5 | Benign flagged below 0.10, each ecosystem | npm 0.00 [0.00, 0.01], n = 300; PyPI 0.08 [0.06, 0.12], n = 300 | Not supported (PyPI's upper bound is 0.12; npm alone would pass) |
+
+![Dot plot of the seven E11 estimates with 95% intervals against their registered thresholds. Only PyPI malware detection (0.80, threshold above 0.70) and npm benign flags (0.00, threshold below 0.10) clear their thresholds; every other estimate fails, so no hypothesis holds as stated.](figures/e11-hypotheses.svg)
+
+*Figure 1 (added 29 Oct 2026). The table above as a picture: each estimate
+with its Wilson 95% interval, against the threshold registered in E11 § 1
+(dashed). Blue circles pass, orange squares fail. n as in the table. Data:
+this table, run 24 Oct 2026. Script: `node bench/public/figures.mjs`.*
 
 The short version:
 
@@ -272,6 +308,263 @@ here (frozen scanner, protocol § 5).
     previous clean release (`penthera deps --diff`) is the method that fits
     these; E11 did not test it.
 
+## Exploratory re-analysis (29 Oct 2026, after the registered analysis)
+
+**Not a registered result.** Nothing in this section changes a registered
+number, rank, verdict or headline. Where a number here differs from a
+registered one, both are shown and the reason is given. The analyses were
+chosen after the results were known.
+
+**Question.** How much do three choices move the test-half numbers: treating
+every row as independent, counting recall only in Penthera's scope, and
+tuning in passes on the dev half?
+
+**Inputs.** No new scan and no download. The script reads what the
+registered runs left in the local bench cache:
+
+- E14 step 2's per-item hits (SHA-256 `4d5880e1…`, as recorded above). They
+  are Penthera 2.1.0-rc.2, which scores what 2.0.0 scored in E11b, to the
+  item count, plus gitleaks and trufflehog.
+- E11b's per-benchmark result files (aggregates), and CredData's labels at
+  the E11 pin, cut to the test half by `split/creddata.json`.
+- E11b's own per-hit CredData file for 2.0.0 is not usable: the local copy
+  holds a later attempt in which every repository scan failed (337 errors,
+  25 Oct 2026). The aggregates of the scored run are intact and match
+  [published.json](published.json).
+
+Before computing anything new, `node bench/public/reanalysis.mjs` rebuilds
+the registered counts (precision and recall for Penthera, gitleaks and
+trufflehog, E14's union, every tool's in-scope recall and malware counts)
+and E14's three bootstrap intervals over files, and stops on any difference.
+All matched. The output is [reanalysis.json](reanalysis.json): counts and
+intervals only. Same resampler as E14 (10,000 resamples, seed 20261025,
+percentile 95%); only the cluster changes.
+
+### 1. Intervals when rows cluster
+
+Wilson intervals treat each row and each hit as independent. On CredData
+they are not: rows sit in files, and files in repositories. The test half's
+2,220 in-scope rows come from 204 repositories; the largest holds 21% of
+them, and the ten largest hold 45%. A cluster bootstrap resamples whole
+repositories ([Field and Welsh, 2007](../../docs/references.md#field2007bootstrapping)).
+
+| Tool, measure | Estimate | Wilson (registered, E11b) | Bootstrap over files (E14's unit) | Bootstrap over repositories |
+|---|---:|---|---|---|
+| **Penthera**, precision | 0.89 | [0.87, 0.90] | [0.83, 0.93] | [0.83, 0.93] |
+| **Penthera**, recall in scope | 0.64 | [0.62, 0.66] | [0.59, 0.70] | [0.58, 0.70] |
+| **Penthera**, F1 | 0.74 | none | [0.71, 0.78] | [0.70, 0.78] |
+| gitleaks, precision | 0.85 | [0.84, 0.86] | [0.81, 0.92] | [0.82, 0.89] |
+| gitleaks, recall in scope | 0.37 | [0.35, 0.39] | [0.20, 0.56] | [0.17, 0.59] |
+| gitleaks, F1 | 0.52 | none | [0.33, 0.67] | [0.28, 0.69] |
+| trufflehog, precision | 0.40 | [0.35, 0.45] | [0.22, 0.59] | [0.20, 0.60] |
+| trufflehog, recall in scope | 0.05 | [0.05, 0.07] | [0.02, 0.09] | [0.01, 0.09] |
+| trufflehog, F1 | 0.10 | none | [0.03, 0.16] | [0.03, 0.16] |
+
+The estimates do not move; the intervals do. Penthera's recall interval is
+about three times as wide by repository as by Wilson, and gitleaks' about
+ten times. Most of the widening already comes from resampling files.
+
+E14's paired tests, with repositories in place of files:
+
+| | Difference | Estimate | Over files (registered) | Over repositories | Verdict |
+|---|---|---:|---|---|---|
+| H1 | recall(U) − recall(P) | +0.109 | [+0.025, +0.210] | [+0.024, +0.205] | holds, as registered |
+| H2 | precision(U) − precision(P) | −0.088 | [−0.129, −0.043] | [−0.133, −0.057] | fails, as registered |
+| H3 | F1(U) − F1(gitleaks) | +0.252 | [+0.141, +0.408] | [+0.128, +0.438] | holds, as registered |
+
+E14's decision (Penthera-first) is the same under either unit.
+
+Penthera's F1 interval by repository, [0.70, 0.78], reaches up to
+deepsecrets' 0.78, the tool ranked first on secrets. A paired test against
+deepsecrets needs its per-item hits, which E11b did not keep, so the
+registered rank (2nd) is neither confirmed nor changed here.
+
+![Dot plot of precision, in-scope recall and F1 on the CredData test half for Penthera and gitleaks, each with three 95% intervals: Wilson, a bootstrap over files and a bootstrap over repositories. The estimates stay put; the file and repository intervals are wider than Wilson's, most of all for gitleaks' recall, which spans about 0.17 to 0.59 by repository.](figures/reanalysis-creddata-intervals.svg)
+
+*Figure 5 (exploratory, 29 Oct 2026). The table above for Penthera and
+gitleaks: each estimate with up to three 95% intervals. F1 has no Wilson
+interval. n = 2,220 in-scope true rows in 204 repositories; precision over
+1,849 (Penthera) and 2,635 (gitleaks) hits. Data: [reanalysis.json](reanalysis.json),
+from E14 step 2's per-item hits of 28 Oct 2026.*
+
+**SecBench.js.** The 64 scored vulnerabilities on the test half are in 64
+different packages. A bootstrap over packages is then the same as one over
+items, so the registered Wilson intervals stand.
+
+**DataDog.** Not possible with the stored data. Malicious packages cluster
+in campaigns, which would be found by maintainer account, publish window
+and file-hash similarity. None of these is stored for the samples, and each
+package is already one unit. It needs new labels, which belong in a new
+study.
+
+### 2. Recall without the scope filter
+
+The registered recall counts only items inside a scope fixed before the
+runs. Here every item counts, for every tool with stored counts.
+
+**Secrets.** In scope means the four CredData families E11 § 4.1 assigned to
+Penthera's rules: provider keys, private keys, passwords and API keys (2,220
+`T` rows). The other 4,425 `T` rows are the families E11 left out: a bare
+`Key` or `Secret` (1,476), and UUIDs, tokens, `Auth`, Basic authorization
+and the rest (2,949). Precision is unchanged: it already counts a hit on any
+`T` row as correct.
+
+| Tool | Precision | Recall in scope (registered) | Recall, all 6,645 `T` rows | F1 (registered) | F1, all rows |
+|---|---:|---|---|---:|---:|
+| deepsecrets 2.2.0 | 0.80 | 0.77 (1,704) | 0.42 (2,808) | 0.78 | 0.55 |
+| **Penthera** 2.0.0 | 0.89 | 0.64 (1,415) | 0.25 (1,687) | 0.74 | 0.39 |
+| noseyparker 0.24.0 | 0.76 | 0.62 (1,387) | 0.29 (1,938) | 0.69 | 0.42 |
+| gitleaks 8.30.1 | 0.85 | 0.37 (831) | 0.35 (2,297) | 0.52 | 0.49 |
+| ripsecrets 0.1.11 | 0.65 | 0.35 (766) | 0.29 (1,935) | 0.45 | 0.40 |
+| kingfisher 2.14.0 | 0.96 | 0.29 (653) | 0.12 (814) | 0.45 | 0.22 |
+| detect-secrets 1.5.0 | 0.30 | 0.53 (1,187) | 0.29 (1,930) | 0.38 | 0.30 |
+| secretlint 13.0.7 | 0.92 | 0.19 (424) | 0.07 (483) | 0.32 | 0.13 |
+| whispers 2.4.0 | 0.46 | 0.09 (193) | 0.04 (296) | 0.15 | 0.08 |
+| trufflehog 3.99.3 | 0.40 | 0.05 (122) | 0.03 (191) | 0.10 | 0.05 |
+| credsweeper 1.19.4 (not ranked) | 1.00 | 0.98 (2,183) | 0.99 (6,569) | 0.99 | 0.99 |
+
+Penthera 1.9.0's run kept no counts by family, so it has no row here.
+
+Every tool loses recall over all rows. Penthera loses the most: it finds 147
+of the 1,476 bare `Key`/`Secret` rows and 125 of the other 2,949, where
+gitleaks finds 1,114 of the bare `Key`/`Secret` rows. By F1 over all rows,
+Penthera would be 5th of the ten ranked tools, behind deepsecrets, gitleaks,
+noseyparker and ripsecrets. The registered rank (2nd) stands, because the
+scope was fixed before any run. It is still a choice that suits a tool built
+for those four families, and a reader should know the ranking depends on it.
+
+![Dumbbell plot of recall on the CredData test half for eleven secret scanners: a filled dot for the registered in-scope recall and a ring for recall over all true rows. Every tool moves left. Penthera 2.0.0 goes from 0.64 to 0.25, the largest drop; gitleaks barely moves, from 0.37 to 0.35; deepsecrets goes from 0.77 to 0.42.](figures/reanalysis-secrets-scope.svg)
+
+*Figure 6 (exploratory, 29 Oct 2026). Recall in scope (filled dot, n = 2,220
+rows) and over every true row (ring, n = 6,645 rows) for each secret
+scanner on the test half. Grey hollow: not ranked. Data:
+[reanalysis.json](reanalysis.json), from the E11b result files of 25 Oct 2026.*
+
+**npm malware.** The registered row counts the 112 `malicious_intent`
+packages that carry a payload (decided before the test half was read). E11b
+§ 7 asks for the rate over all 150 `malicious_intent` packages next to it.
+[published.json](published.json) always held it (`all`); the E11b table
+below shows it since 29 Oct 2026. The last columns add the 25 compromised
+releases, which E11b left out of both.
+
+| Tool | Caught, payload (registered) | Caught, all `malicious_intent` | Caught, all 175 malicious npm | Benign flagged | J, all 175 |
+|---|---|---|---|---|---:|
+| **Penthera** 2.0.0 | 0.71 (79/112) | 0.53 (79/150) | 0.57 (99/175) | 0/150 | 0.57 |
+| GuardDog 3.2.0 ² | 0.62 (69/112) | 0.69 (103/150) | 0.69 (121/175) | 4/150 | 0.66 |
+| malcontent 1.27.1 | 0.68 (76/112) | 0.51 (76/150) | 0.55 (97/175) | 8/150 | 0.50 |
+| ossgadget 0.2.20 | 0.94 (105/112) | 0.91 (137/150) | 0.93 (162/175) | 133/150 | 0.04 |
+| clamav 1.5.4 | 0.01 (1/112) | 0.01 (1/150) | 0.02 (4/175) | 0/150 | 0.02 |
+| yara, YARA-Forge core | 0.00 (0/112) | 0.00 (0/150) | 0.07 (12/175) | 0/150 | 0.07 |
+| osv-scanner 2.6.0 ³ | 0.90 (101/112) | 0.91 (137/150) | 0.92 (161/175) | 1/150 | 0.91 |
+
+On all 175, GuardDog's J is above Penthera's (0.66 against 0.57). The
+difference is the 38 packages with no payload (registry spam that
+republishes itself, empty packages): GuardDog flags 34 of them, Penthera
+none. A code check has nothing to find in them. GuardDog's rate is also
+inflated by construction. Footnotes ² and ³ are the ones under the E11b
+final tables below. Penthera 1.9.0 kept no group counts beyond the two
+registered rows.
+
+**PyPI malware.** The registered row counts the 150 `malicious_intent`
+packages. The new column adds the 7 compromised releases that could be
+scanned (one more has no package root).
+
+| Tool | Caught (registered) | Compromised releases | Caught, all | Benign flagged | J, all |
+|---|---|---|---|---|---:|
+| **Penthera** 2.0.0 | 0.87 (131/150) | 1/7 | 0.84 (132/157) | 8/150 | 0.79 |
+| GuardDog 3.2.0 ² | 0.85 (128/150) | 2/7 | 0.83 (130/157) | 16/147 | 0.72 |
+| malcontent 1.27.1 | 0.93 (139/150) | 4/7 | 0.91 (143/157) | 32/147 | 0.69 |
+| yara, YARA-Forge core | 0.25 (37/150) | 0/7 | 0.24 (37/157) | 0/147 | 0.24 |
+| clamav 1.5.4 | 0.00 (0/150) | 0/7 | 0.00 (0/157) | 0/147 | 0.00 |
+| ossgadget 0.2.20 | 0.77 (116/150) | 7/7 | 0.78 (123/157) | 143/147 | −0.19 |
+| aura 2.1 | 0.59 (88/149) | 6/6 | 0.61 (94/155) | 100/121 | −0.22 |
+| bandit4mal 03ba95f3 | 0.59 (89/150) | 7/7 | 0.61 (96/157) | 124/147 | −0.23 |
+| osv-scanner 2.6.0 ³ | 0.74 (110/149) | 7/7 | 0.75 (117/156) | 0/147 | 0.75 |
+
+Penthera stays first by J. It finds 1 of the 7 compromised releases, as E11
+found (follow-up 11 above).
+
+**SecBench.js.** The two registered classes hold 70 entries; 64 have a sink
+file in the published package and are scored. Of the other 6, 3 are not on
+the npm registry and 3 have no sink file in the package. Over all 70:
+Penthera 0.64 (45/70, registered 0.70, 45/64), odgen 0.60 (42/70, registered
+0.68, 42/62), CodeQL and eslint-plugin-security 0.59 (41/70). No tool could
+score the 6, so this only changes the denominator. SecBench.js also has
+classes E11 never scanned (path traversal, prototype pollution, ReDoS and
+others); recall there cannot be computed from these runs.
+
+### 3. Per-pass log of the E11b tuning
+
+What each tuning pass on the dev half changed, taken from the commit
+messages between the sealed split (`72d3149`) and 2.0.0 (`219b73a`):
+`git log --no-merges 72d3149..219b73a -- lib/`. The dev numbers are the
+ones each commit message reports; they were not re-run here. The review
+sheets are in the lab notebook, which is not in the repository.
+
+| Gap | Pass | Commit | Dev change reported | Tried and dropped |
+|---|---|---|---|---|
+| Secrets | 1 (A2, C1 to C3): more file types, a key needs its body | `65c7d74` | precision 0.56 → 0.75, recall 0.27 → 0.41 | none |
+| Secrets | A6: a finding lists every line it hit | `72dfd02` | recall as the CLI reports 0.15 → 0.38, precision 0.74 | none |
+| Secrets | 2, A4a: password key names by their words | `bb08342` | precision 0.75 → 0.90, recall 0.41 → 0.54 | none |
+| Secrets | 2: hit cap 50 → 200 per rule and file | `9877f3d` | private-key recall 0.60 → 0.94; 192 of the 199 new rows from two files | none |
+| Secrets | 2, A4b: bare passwords in config files | `632c0dd` | precision 0.91 → 0.92, recall 0.63 → 0.69 | a learned threshold (cross-validated AUC 0.49), not shipped |
+| Secrets | 2, A3: more private-key forms | `303b6b6` | private-key recall 0.94 → 0.97 | none |
+| Secrets | 2, A5: generic API key by key words and value shape | `a3c3a77` | API-key recall 0.14 → 0.25, rule precision 0.55 → 0.94 | `.sh` as a config file (10 true, 13 not true) |
+| Secrets | round 2, R1: provider formats from their docs | `fdc8943` | provider recall 0.50 → 0.54 | none |
+| Secrets | round 2, R2: broader token and secret names | `b1794cb` | precision 0.93 → 0.94, recall 0.71 → 0.72 | none |
+| npm malware | A: what an install hook runs | `dcaeae0` | 69 → 73 of 105 | none |
+| npm malware | B: code that runs what it downloads | `62768bf` | 73 → 80 of 105 | none |
+| npm malware | C: entry files that send command output out | `cbfb5cf` | 80 → 82 of 105 | an out-of-band host list (caught nothing new) |
+| npm malware | D: a dependency installed from a URL | `87da3d8` | 82 → 87 of 105 | none |
+| PyPI false alarms | C1: `setup.py` is risky only when it downloads and runs | `55c305c` | benign 11 → 1 of 150; malicious 113 → 112 of 149 | none |
+| PyPI malware | round 2, P1: network on import | `5eb924e` | 112 → 121 of 149 | none |
+| PyPI malware | round 2, P2: chat bot keys next to network code | `67f6cc1` | 121 → 127 of 149 | none |
+| PyPI malware | round 2, P3: obfuscation forms | `9fa530f` | 127 → 131 of 149 | none |
+| PyPI malware | round 2, P4: download and run | `9277b5a` | 131 → 135 of 149 | none |
+| PyPI malware | round 2, P5: `setup.py` helpers | `b3af4ff` | 135 → 138 of 149 | `eval` in a library module reached by import, after a benign hit |
+| Library mode | D1 and D2: exported parameters as sources | `11963eb` | command injection 0 → 40 of 49, code injection 7 → 10 of 16 | none |
+| Library mode | round 2, pass 1: one helper call | `18ff83c` | command injection 40 → 44 of 49 | none |
+| Library mode | round 2, pass 2: values kept on `this` | `2de5b5d` | 44 → 45 of 49 | none |
+| Library mode | round 2, pass 2b: exports copied from an object | `24e0fb0` | 45 → 46 of 49 | none |
+| Library mode | round 2, pass 3: one long line no longer hides a file | `ad1bf8d` | code injection 10 → 11 of 16 | `Function` without `new` (no strict hit, one more benign `eval` finding) |
+
+What the repository shows:
+
+- 24 rule passes reached a commit, and all 24 are in 2.0.0. None was rolled
+  back as a whole after its commit. Inside five passes, a part was tried and
+  dropped, or narrowed, for the reason in the last column.
+- A pass tried and dropped before any commit would only be in the lab
+  notebook. The repository cannot count those.
+- Three more commits in the range are code-scanning fixes (`27a893d`,
+  `9d67c4c`, `8099271`) that report no change in detection.
+- Command injection in library mode got four passes over two rounds (D1 and
+  D2, then passes 1, 2 and 2b). E11b § 8 allows at most three passes per
+  gap; it does not say whether a new round starts the count again. Logged
+  as a deviation in E11b § 11 on 29 Oct 2026.
+- One fix landed before the seal and was not part of the dev tuning:
+  `172f741` (IOC hosts match whole hostnames only), committed 15 minutes
+  before `72d3149`. It fixed a false alarm E11 saw on the benign
+  `litellm` 1.106.3 over all data. The split later put that package in the
+  benign PyPI test half. The fix is general, and 2.0.0 does not flag the
+  package, so it may account for 1 of the 6 fewer PyPI false alarms from
+  1.9.0 to 2.0.0 on the test half. The leakage audit did not list it; it
+  is disclosed there, in E11b § 11, since 29 Oct 2026.
+- After 2.0.0, one secret-rule change (`c93b270`, translation files) came
+  from ten real apps, not from either half. It left CredData dev unchanged,
+  and E14 shows the test half unchanged.
+
+### Limits of this re-analysis
+
+- It was planned after the results were known, so it can suggest, not test.
+- Repository is CredData's folder per source project. Projects that share
+  code or authors are still treated as independent.
+- The CredData bootstrap uses E14's per-item hits from 2.1.0-rc.2, not 2.0.0's
+  own. They match 2.0.0 at every count E11b and E14 report; they are not
+  proven identical line by line.
+- Tools without stored per-item hits (deepsecrets, noseyparker and the
+  others) have no repository interval.
+- The per-pass log is only as complete as the commit messages.
+
 ## E14 step 2: the sealed test half, scored once (2026-10-28)
 
 Pre-registration: [E14-giants-combination.md](../../docs/research/prereg/E14-giants-combination.md)
@@ -379,6 +672,15 @@ H4 holds while the CredData default is Penthera-first, so § 5 reads it as
 labelled negatives, so the union's extra findings cannot be scored as right
 or wrong. Whether code findings follow a different merge rule is the
 maintainer's decision.
+
+![Scatter plot of strict precision against in-scope recall for the E14 arms on the CredData test half. Penthera alone is at precision 0.89 and recall 0.64. The union moves right to recall 0.75 but down to precision 0.80, below the shaded band that marks 0.02 under Penthera alone. The agreement arm overlaps Penthera alone.](figures/e14-creddata-arms.svg)
+
+*Figure 2 (added 29 Oct 2026). The CredData arms above, precision against
+recall, with Wilson 95% whiskers for each arm's own proportion. The shaded
+band is H2's margin; the union lands below it. The H1 and H2 tests use the
+paired bootstrap in the table above, which the whiskers do not show.
+n = 2,220 in-scope true rows. Data: the CredData table in this section, run
+28 Oct 2026.*
 
 **Spot-check.** 50 cross-tool merges per benchmark, drawn with the seed and
 read line by line (by Claude, for the maintainer to recheck; the samples are
@@ -544,18 +846,29 @@ where at least five other free tools were measured. Generated by
 | – | Penthera 1.9.0 | 0.56 [0.51, 0.60] | 0.10 [0.09, 0.12] | 0.18 |
 | | Free tools, mean / median | 0.68 / 0.76 | 0.36 / 0.35 | 0.43 / 0.45 |
 
+![Scatter plot of strict precision against in-scope recall for the secret scanners on the CredData test half. Penthera 2.0.0 sits at precision 0.89 and recall 0.64; deepsecrets at 0.80 and 0.77 has the highest F1 among ranked tools; Penthera 1.9.0 sits at 0.56 and 0.10.](figures/e11b-secrets-precision-recall.svg)
+
+*Figure 3 (added 29 Oct 2026). The secrets table above, precision against
+recall, with Wilson 95% whiskers and dashed curves of equal F1. Hollow
+marks are not ranked. n = 2,220 in-scope true rows. Data:
+[published.json](published.json), test half, 25 Oct 2026.*
+
 #### Malicious npm packages (DataDog)
 
-| Rank | Tool | Caught | False alarms on benign packages | Caught minus false alarms |
-|---:|---|---|---|---|
-| 1 | **Penthera** 2.0.0 | 0.71 [0.62, 0.78] (79/112) | 0.00 [0.00, 0.02] (0/150) | 0.71 |
-| 2 | malcontent 1.27.1 (bf280ad6), yara-x 1.21.0 | 0.68 [0.59, 0.76] (76/112) | 0.05 [0.03, 0.10] (8/150) | 0.63 |
-| 3 | GuardDog 3.2.0 ² | 0.62 [0.52, 0.70] (69/112) | 0.03 [0.01, 0.07] (4/150) | 0.59 |
-| 4 | ossgadget 0.2.20 (414b6a59) | 0.94 [0.88, 0.97] (105/112) | 0.89 [0.83, 0.93] (133/150) | 0.05 |
-| 5 | clamav 1.5.4 | 0.01 [0.00, 0.05] (1/112) | 0.00 [0.00, 0.02] (0/150) | 0.01 |
-| 6 | yara yara-python 4.5.4 (YARA 4.5), YARA-Forge core 20261004 | 0.00 [0.00, 0.03] (0/112) | 0.00 [0.00, 0.02] (0/150) | 0.00 |
-| – | osv-scanner 2.6.0 ³ | 0.90 [0.83, 0.94] (101/112) | 0.01 [0.00, 0.04] (1/150) | 0.90 |
-| – | Penthera 1.9.0 | 0.57 [0.48, 0.66] (64/112) | 0.00 [0.00, 0.02] (0/150) | 0.57 |
+| Rank | Tool | Caught, with a payload | Caught, all `malicious_intent` | False alarms on benign packages | Caught minus false alarms |
+|---:|---|---|---|---|---|
+| 1 | **Penthera** 2.0.0 | 0.71 [0.62, 0.78] (79/112) | 0.53 (79/150) | 0.00 [0.00, 0.02] (0/150) | 0.71 |
+| 2 | malcontent 1.27.1 (bf280ad6), yara-x 1.21.0 | 0.68 [0.59, 0.76] (76/112) | 0.51 (76/150) | 0.05 [0.03, 0.10] (8/150) | 0.63 |
+| 3 | GuardDog 3.2.0 ² | 0.62 [0.52, 0.70] (69/112) | 0.69 (103/150) | 0.03 [0.01, 0.07] (4/150) | 0.59 |
+| 4 | ossgadget 0.2.20 (414b6a59) | 0.94 [0.88, 0.97] (105/112) | 0.91 (137/150) | 0.89 [0.83, 0.93] (133/150) | 0.05 |
+| 5 | clamav 1.5.4 | 0.01 [0.00, 0.05] (1/112) | 0.01 (1/150) | 0.00 [0.00, 0.02] (0/150) | 0.01 |
+| 6 | yara yara-python 4.5.4 (YARA 4.5), YARA-Forge core 20261004 | 0.00 [0.00, 0.03] (0/112) | 0.00 (0/150) | 0.00 [0.00, 0.02] (0/150) | 0.00 |
+| – | osv-scanner 2.6.0 ³ | 0.90 [0.83, 0.94] (101/112) | 0.91 (137/150) | 0.01 [0.00, 0.04] (1/150) | 0.90 |
+| – | Penthera 1.9.0 | 0.57 [0.48, 0.66] (64/112) | 0.43 (64/150) | 0.00 [0.00, 0.02] (0/150) | 0.57 |
+
+The column "Caught, all `malicious_intent`" was added on 29 Oct 2026, as
+E11b § 7 asks. It also counts the 38 packages with no payload. The rank and
+the score still use the payload column, as registered.
 
 #### Malicious PyPI packages (DataDog)
 
@@ -572,6 +885,16 @@ where at least five other free tools were measured. Generated by
 | – | Penthera 1.9.0 | 0.83 [0.77, 0.88] (125/150) | 0.09 [0.06, 0.15] (14/150) | 0.74 |
 | – | osv-scanner 2.6.0 ³ | 0.74 [0.66, 0.80] (110/149) | 0.00 [0.00, 0.03] (0/147) | 0.74 |
 
+![Two scatter plots, npm and PyPI, of the share of malicious packages caught against the share of benign packages flagged. On npm, Penthera 2.0.0 catches 0.71 and flags none of 150 benign packages. On PyPI it catches 0.87 and flags 0.05. ossgadget, aura and bandit4mal flag most benign packages.](figures/e11b-malware-caught-vs-false-alarms.svg)
+
+*Figure 4 (added 29 Oct 2026). The two malware tables above: share of
+malicious packages caught against share of benign packages flagged, with
+Wilson 95% whiskers. The dashed diagonal is chance; the height above it is
+Youden's J, the registered ranking score. Hollow marks are not ranked or
+inflated by construction. n = 112 npm packages with a payload, 150 PyPI
+packages, about 150 benign per ecosystem. Data: [published.json](published.json),
+test half, 25 Oct 2026.*
+
 #### Injection bugs in JavaScript libraries (SecBench.js)
 
 | Rank | Tool | Command injection | Code injection | Both |
@@ -587,7 +910,7 @@ where at least five other free tools were measured. Generated by
 | – | semgrep, every file 1.180.0 (another setting of semgrep, not ranked) | 16/47 | 9/17 | 0.39 [0.28, 0.51] |
 | – | Penthera 1.9.0 | 0/47 | 10/17 | 0.16 [0.09, 0.26] |
 
-A rank is shown only where at least 5 other free tools were measured; otherwise "–".
+A rank is shown only where at least 5 other free tools were measured; otherwise "–". The rank column orders tools by score, and close scores can swap places. Penthera's 95% rank interval (bootstrap, exploratory): 2nd on CredData, 1st to 3rd on npm, 1st to 3rd on PyPI, 1st to 4th on SecBench.js.
 
 Paid tools (GitGuardian, Socket, Snyk, Phylum, Semgrep Pro) publish no results on these benchmarks, so they are not in the tables.
 
@@ -638,6 +961,9 @@ Amendment: [E11b-improvement-study.md](../../docs/research/prereg/E11b-improveme
 before either half was scored; only the dev half was scored. The scanner is
 unchanged from E11. `npm run bench:public -- --split dev`, 2026-10-24, 0
 blocked connections.
+
+*Note added 29 Oct 2026: the maintainer approved E11b on 24 Oct 2026, and
+it was completed on 25 Oct. This section is kept as it was written.*
 
 ### CredData, dev (5,515 labelled files; 9,108 `T`, 24,032 `F`, 2,043 `X` rows)
 
@@ -799,3 +1125,33 @@ Its most frequent rules on malicious npm packages are process spawn,
 outbound network and download capabilities (61, 56 and 46 of 150), which
 points the same way as follow-up 9 (code that runs on load). Its "any issue"
 count is not usable as a verdict: it marks half the benign npm packages.
+
+## Reproduce, licenses and what is not shared (added 29 Oct 2026)
+
+| Run | Commit | Command |
+|---|---|---|
+| E11 | `58ae9d7` scanner; results `a043516` | `npm run bench:public` |
+| E11b dev baseline | split sealed in `72d3149` | `npm run bench:public -- --split dev`, and `--competitors --split dev` for the other tools |
+| E11b final | main `219b73a` | `npm run bench:public -- --split test --final`; tables by `node bench/public/publish.mjs` |
+| E14 step 1 | main `1f70835` | `node bench/public/giants.mjs --split dev --collect` |
+| E14 step 2 | `8bcdd68` (Penthera from `efbe8c8`) | `node bench/public/giants.mjs --split test --final --collect --spot-check 50` |
+| Figures 1 to 6 | this commit | `node bench/public/figures.mjs` (`--check` fails if a committed SVG is stale) |
+| Exploratory re-analysis | the E11b and E14 test outputs | `node bench/public/reanalysis.mjs` writes [reanalysis.json](reanalysis.json) from the local per-item files (`--check` fails if it is stale) |
+
+The [README](README.md#reproduce) has every flag. Dataset pins and the
+reasons for each sample size are in E11 § 2 and § 7.1.
+
+**Licenses.** Penthera, the runners, the split manifests, this file,
+[published.json](published.json) and the figures are MIT, as the
+repository. CredData's code is Apache-2.0 and each of its data files keeps
+its source project's license. DataDog's dataset is Apache-2.0. SecBench.js
+packages are fetched from npm, each under its own license.
+
+**Not shared, and why.**
+
+- Malware samples, and any snippet or IOC taken from them: safety (E11 § 10).
+- CredData's materialized files: their own licenses; `download_data.py`
+  rebuilds them from the pin.
+- Per-item outputs (E14 hashes `4d5880e1…` and `e89fe650…`) and the E11b
+  lab notebook: they quote dataset lines and file paths. Every count the
+  hypotheses use is in this file.

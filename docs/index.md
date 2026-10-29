@@ -30,6 +30,7 @@ npx penthera
 |---|---|
 | "What does `npx penthera` do, and what does it not do?" | [Set up in one command](commands/init.md) |
 | "I build with Cursor, Claude Code, Lovable or another AI tool: how do I add it?" | [Penthera in your coding tool](integrations.md) |
+| "An AI tool built my app. What should I check before I publish it?" | [Before you publish](before-you-publish.md) |
 | "How do I scan my running app and its source?" | [Scanning your app](commands/scan.md) |
 | "Can it run gitleaks, Trivy and Semgrep for me, in one report?" | [Other tools in one run: `--giants`](commands/giants.md) |
 | "Is this package safe to add?" | [Dependency risk](commands/deps.md), [the install firewall](commands/install.md) |

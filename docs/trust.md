@@ -36,6 +36,23 @@ you can check yourself. Penthera holds no certification, such as SOC 2 or ISO
   repository. A model may propose, but a rule decides
   ([methodology](METHODOLOGY.md)).
 
+## Tested unplugged
+
+A pre-registered experiment, E17, ran each offline command twice with the
+network blocked and once with it allowed, on macOS and Ubuntu
+([protocol](https://github.com/danoszz/penthera/blob/main/docs/research/prereg/E17-offline-and-determinism.md),
+[results](https://github.com/danoszz/penthera/blob/main/bench/offline/RESULTS.md)).
+
+- **No network at run time.** Repo scans, `agents`, `deps`, `brief`,
+  evidence bundles and URL scans with `--offline` made no outside
+  connections or DNS lookups.
+- **The same result every time.** Two runs gave the same result, and so did
+  a run with the network blocked. The one line that changes is the time
+  `evidence verify` prints.
+- **Limits.** The test watches Node only, so it can't see `git`; Penthera
+  calls only local git commands. A URL scan without `--offline` downloads the
+  Retire.js database. The targets were small fixtures and this repository.
+
 ## What it collects
 
 - **The command-line tool:** nothing. No telemetry and no account. With

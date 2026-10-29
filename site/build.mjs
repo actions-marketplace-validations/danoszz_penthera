@@ -32,7 +32,10 @@ import { landingPages, landingHtml, landingMarkdown } from "./landing.mjs";
 import { termsPage, docPage } from "./terms.mjs";
 import { publicBenchHtml } from "./public-bench.mjs";
 import { readPosts, blogFiles } from "./blog.mjs";
+import { siteFooter, footGroups } from "./frame.mjs";
 import { benchmarkHtml, benchmarkMarkdown, benchmarkViews, cardFor, fieldTools, hubHtml, hubMarkdown } from "./benchmarks.mjs";
+import { cardRows, failedChecks, rowTag } from "./check/card.js";
+import { researchEntries, researchHtml, researchMarkdown } from "./research.mjs";
 
 const SITE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(SITE, "..");
@@ -140,6 +143,41 @@ export function exampleValues(packRules) {
     RULES_ALL: String(rules), REFS: String(COUNTS.references),
     PKGS: (COUNTS.popularNpm + COUNTS.popularPypi).toLocaleString("en-US"),
   };
+}
+
+/**
+ * The hero's example result: the live check's own passive report
+ * (api/_lib/tier1.mjs), run at build time against the test server in
+ * tests/fixtures/mock-server.js on loopback. Nothing leaves the machine: the
+ * host is an IP address, so no DNS is asked. The random port is shown as
+ * 8765, the port the other examples use.
+ */
+export async function exampleCheck() {
+  const { startMockServer } = await import("../tests/fixtures/mock-server.js");
+  const { passiveReport } = await import("../api/_lib/tier1.mjs");
+  const server = await startMockServer(0);
+  try {
+    const r = await passiveReport(new URL(server.url), { allowPrivate: true, anyPort: true, typed: server.url, timeout: 5000 });
+    const port = (s) => String(s).replaceAll(`127.0.0.1:${server.port}`, "127.0.0.1:8765");
+    return JSON.parse(port(JSON.stringify(r)));
+  } finally {
+    await server.close();
+  }
+}
+
+/** The metal example card: the markup ui.js renders for your result, labelled Example. */
+export function exampleCardHtml(report) {
+  const rows = cardRows(report, { withPassed: true });
+  const meter = Array.from({ length: 100 }, (_, i) => (i < report.score ? '<i class="on"></i>' : "<i></i>")).join("");
+  return `<section class="card card-example" aria-labelledby="example-title">
+          <div class="card-top"><span class="card-label" id="example-title">Example</span><span class="card-host">real output<span class="card-wide"> · test server</span></span></div>
+          <p class="card-verdict">${esc(report.verdict)}</p>
+          <div class="card-score"><div class="meter" role="img" aria-label="${report.score} out of 100">${meter}</div><p class="score-n">${report.score}<span>/100</span></p></div>
+          <ul class="card-rows">
+${rows.map((c) => `            <li${c.passed ? ' class="ok"' : ""}><span class="card-tag">${esc(rowTag(c))}</span>${esc(c.title)}</li>`).join("\n")}
+          </ul>
+          <p class="card-fake" aria-hidden="true">Prompt to fix (${failedChecks(report).length})</p>
+        </section>`;
 }
 
 /** Wilson score interval, 95%, as README and bench/ report it. */
@@ -457,7 +495,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   if (engine) await bundle(join(SITE, "check", "engine.js"), resolve(engine), { minify: false });
 
   // Static files, as they are.
-  for (const f of ["styles.css", "theme.js", "track.js", "pro.js", "gopro.js"]) cpSync(join(SITE, f), join(OUT, f));
+  for (const f of ["styles.css", "theme.js", "track.js", "pro.js", "gopro.js", "research.js"]) cpSync(join(SITE, f), join(OUT, f));
   // The IndexNow key file, served at /<key>.txt (scripts/indexnow.mjs).
   for (const f of readdirSync(SITE).filter((n) => /^[0-9a-f]{32}\.txt$/.test(n))) cpSync(join(SITE, f), join(OUT, f));
   cpSync(join(SITE, "media"), join(OUT, "media"), { recursive: true });
@@ -466,12 +504,11 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   for (const f of ["favicon.svg", "logo.svg"]) cpSync(join(UI, f), join(OUT, f));
   mkdirSync(join(OUT, "fonts"), { recursive: true });
   for (const f of ["DepartureMono-Regular.woff2", "DepartureMono-LICENSE.txt"]) cpSync(join(UI, "fonts", f), join(OUT, "fonts", f));
+  // The walkthrough is no longer on the page; it stays at its URL for links shared before.
   cpSync(join(ROOT, "assets", "walkthrough.mp4"), join(OUT, "media", "walkthrough.mp4"));
   cpSync(join(ROOT, "assets", "walkthrough-poster.jpg"), join(OUT, "media", "walkthrough.jpg"));
   cpSync(join(ROOT, "assets", "walkthrough.vtt"), join(OUT, "media", "walkthrough.vtt"));
-  // The tour's dashboard shots: the same files the docs show.
-  mkdirSync(join(OUT, "media", "tour"), { recursive: true });
-  for (const f of ["ui-dark.jpg", "ui-light.jpg", "ui-run.jpg"]) cpSync(join(ROOT, "assets", "dashboard", f), join(OUT, "media", "tour", f));
+  // The tour's three dashboard shots live in site/media/tour/ (site/tools/tour-shots.mjs).
 
   // The page: version-stamp the assets it loads and fill in measured numbers.
   const packs = activePacks();
@@ -487,6 +524,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
     ...ruleNumbers(),
     ...exampleValues(packs.reduce((n, p) => n + p.count, 0)),
     ...e10Values(),
+    EX_CARD: exampleCardHtml(await exampleCheck()),
     STARS: await starCount(),
     TICKER: tickerHtml(readNews()),
     SITE_URL: siteUrl(),
@@ -512,8 +550,16 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   values.BENCH_TOOLS = pub ? String(fieldTools(pub)) : "other";
   // The blog (site/blog.mjs): approved posts only; no approved post, no /blog and no link to it.
   const posts = readPosts(blogDir, pub);
-  const blog = posts.published.length > 0;
-  values.BLOG_FOOT = blog ? ' · <a href="/blog">Blog</a>' : "";
+  // The footer of every page: a map of what this build renders, so a new
+  // landing page, benchmark or approved post shows up in it by itself.
+  const groups = footGroups({
+    pages: landingPages(SITE),
+    benchmarks: pub ? benchmarkViews(pub).map((v) => ({ slug: v.c.slug, label: v.c.label })) : [],
+    posts: posts.published,
+  });
+  const footer = (home = false) => siteFooter({ groups, version: values.VERSION, stars: values.STARS, home });
+  const foot = footer();
+  values.FOOTER = footer(true);
   const cmp = readCompare();
   values.COMPARE = compareTable(cmp, values);
   values.COMPARE_SUMMARY = compareSummary(cmp, values);
@@ -522,15 +568,15 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   writeFileSync(join(OUT, "index.html"), html);
   // /terms: the live check's terms, rendered from docs/live-check-terms.md.
   const styles = `/styles.css?v=${hash(readFileSync(join(OUT, "styles.css")))}`;
-  writeFileSync(join(OUT, "terms.html"), termsPage(ROOT, { styles }));
+  writeFileSync(join(OUT, "terms.html"), termsPage(ROOT, { styles, foot }));
   // /trust: how Penthera itself is built and released, from docs/trust.md.
   writeFileSync(join(OUT, "trust.html"), docPage(ROOT, {
-    file: "trust.md", slug: "trust", eyebrow: "Trust", styles,
+    file: "trust.md", slug: "trust", eyebrow: "Trust", styles, foot,
     description: "How Penthera is built, released and run: npm provenance, one dependency, public checks, no telemetry. Links you can verify.",
   }));
   // Landing pages, one search question each (site/pages/, site/landing.mjs).
   for (const p of landingPages(SITE)) {
-    writeFileSync(join(OUT, `${p.slug}.html`), landingHtml(p, { origin: ORIGIN, values, styles, blog, pub }));
+    writeFileSync(join(OUT, `${p.slug}.html`), landingHtml(p, { origin: ORIGIN, values, styles, foot, pub }));
     writeFileSync(join(OUT, `${p.slug}.md`), landingMarkdown(p, { origin: ORIGIN, values }));
   }
   // The benchmark pages, from the same published.json: /benchmarks and one
@@ -540,23 +586,35 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   if (pub) {
     const image = (slug) => { const f = cardFor(SITE, pubText, slug); return f ? `${ORIGIN}/${f}?v=${hash(readFileSync(join(SITE, f)))}` : undefined; };
     mkdirSync(join(OUT, "benchmarks"), { recursive: true });
-    const hub = hubHtml(pub, { origin: ORIGIN, styles, image: image("hub"), blog });
+    const hub = hubHtml(pub, { origin: ORIGIN, styles, image: image("hub"), foot });
     writeFileSync(join(OUT, "benchmarks.html"), hub);
     writeFileSync(join(OUT, "benchmarks", "index.html"), hub);
     writeFileSync(join(OUT, "benchmarks.md"), hubMarkdown(pub, { origin: ORIGIN }));
     for (const v of benchmarkViews(pub)) {
-      writeFileSync(join(OUT, "benchmarks", `${v.c.slug}.html`), benchmarkHtml(v.key, pub, { origin: ORIGIN, styles, image: image(v.c.slug), blog }));
+      writeFileSync(join(OUT, "benchmarks", `${v.c.slug}.html`), benchmarkHtml(v.key, pub, { origin: ORIGIN, styles, image: image(v.c.slug), foot }));
       writeFileSync(join(OUT, "benchmarks", `${v.c.slug}.md`), benchmarkMarkdown(v.key, pub, { origin: ORIGIN }));
     }
   }
-  for (const [f, text] of Object.entries(blogFiles(posts, { origin: ORIGIN, styles, drafts }))) {
+  // /research: every study, result, case study and post, newest first (site/research.mjs).
+  const research = researchEntries({ root: ROOT, pub, posts: posts.published });
+  const script = `/research.js?v=${hash(readFileSync(join(OUT, "research.js")))}`;
+  writeFileSync(join(OUT, "research.html"), researchHtml(research, { origin: ORIGIN, pub, styles, script, foot }));
+  writeFileSync(join(OUT, "research.md"), researchMarkdown(research, { origin: ORIGIN, pub }));
+  // The figures of every post the build renders, at /blog/figures/.
+  for (const p of [...posts.published, ...(drafts ? posts.drafts : [])]) {
+    for (const [name, fig] of Object.entries(p.figures)) {
+      mkdirSync(join(OUT, "blog", "figures"), { recursive: true });
+      cpSync(fig.path, join(OUT, "blog", "figures", name));
+    }
+  }
+  for (const [f, text] of Object.entries(blogFiles(posts, { origin: ORIGIN, styles, drafts, foot }))) {
     mkdirSync(dirname(join(OUT, f)), { recursive: true });
     writeFileSync(join(OUT, f), text);
   }
   // For agents and crawlers: llms.txt (the same placeholders, so its pins
   // match the page), the docs as Markdown, the sitemap, robots.txt and
   // security.txt. All from the repo, at the package's homepage.
-  for (const [f, text] of Object.entries(agentFiles({ root: ROOT, site: SITE, version: siteVersion(version), origin: ORIGIN, values, pub, posts: posts.published }))) {
+  for (const [f, text] of Object.entries(agentFiles({ root: ROOT, site: SITE, version: siteVersion(version), origin: ORIGIN, values, pub, posts: posts.published, research }))) {
     mkdirSync(dirname(join(OUT, f)), { recursive: true });
     writeFileSync(join(OUT, f), text);
   }

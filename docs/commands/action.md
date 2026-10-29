@@ -13,17 +13,31 @@ pull requests, a scan step in your own workflow, and the
 ## The GitHub Action
 
 ```yaml
-- uses: danoszz/penthera@<release-commit-sha> # pin to a release commit
+- name: "Penthera: your open-source cyber security agent"
+  uses: danoszz/penthera@9b6bb2d10cf08601e68a8fdc27ba688c9d721570 # v2.0.0
   with:
     mode: deps        # deps | agents | scan (scan also needs url:)
     fail-on: none     # none | high | critical
 ```
 
+Pin the action to a release commit SHA, not a tag: a tag can be moved, a
+commit cannot. Find the SHA for a release with
+`git ls-remote https://github.com/danoszz/penthera refs/tags/v2.0.0`.
+
+The action's name contains a colon, so a `name:` line that holds it needs
+quotes. The snippet on the GitHub Marketplace page may print the name without
+quotes. YAML then fails with `mapping values are not allowed here`. Add the
+quotes, or leave the `name:` line out.
+
+In 2.0.0, `mode: deps` exits before it scans and still reports success. The
+fix is in 2.1.0-rc.1 and later ([known issue](init.md)).
+
 On every pull request it posts one comment with the capability diff against
 the PR base and edits that same comment on each push. It also uploads SARIF to
-code scanning. Penthera runs from the action's own checkout: no npx, no install
-from npm, no registry lookups. On fork PRs the token is read-only, so the diff
-goes to the job summary instead. Inputs: `mode`, `path`, `base-ref`, `url`,
+code scanning. Penthera runs from the action's own checkout: no npx and no
+install of Penthera from npm. One exception: `mode: agents` runs `npm ci` for
+its one dependency, `yaml`, when the checkout does not have it. On fork PRs the
+token is read-only, so the diff goes to the job summary instead. Inputs: `mode`, `path`, `base-ref`, `url`,
 `fail-on`, `comment`, `sarif`, `penthera-version`. Copy the full workflow, with
 permissions and a lockfile paths filter, from
 [`docs/examples/pr-dependency-review.yml`](https://github.com/danoszz/penthera/blob/main/docs/examples/pr-dependency-review.yml).
@@ -40,6 +54,28 @@ A patch release that starts reading the whole environment next to a network
 call is the shape of most credential-stealing packages. The diff shows it with
 `file:line` evidence, whether or not an advisory exists yet
 ([`penthera deps`](deps.md)).
+
+## The agent config check in one file
+
+[`docs/examples/github-actions-agents.yml`](https://github.com/danoszz/penthera/blob/main/docs/examples/github-actions-agents.yml)
+runs `penthera agents` on every pull request and push to `main`, and uploads
+SARIF to code scanning. Copy it into `.github/workflows/`, or let
+`penthera init` write it when the repo has agent config. The step it runs:
+
+```yaml
+- run: npx --yes penthera@2.1.0 agents "$GITHUB_WORKSPACE" --sarif "$RUNNER_TEMP/penthera-agents.sarif"
+```
+
+The rules that [`penthera agents`](agents.md#rules-for-auto-run-registries-and-environment)
+lists for auto-run, registries and environment ship in the next release,
+2.1.0. The 2.0.0 pin above does not have them; they run once you pin 2.1.0 or
+later.
+
+It is report-only until you uncomment its last step. The difference from the
+action: `npx` fetches Penthera from npm on each run, so pin a version you have
+reviewed. The step runs from the runner's temp folder, so a pull request's own
+`.npmrc` cannot change what `npx` fetches. Fork PRs skip the SARIF upload,
+because their token is read-only.
 
 ## A scan step in your own workflow
 

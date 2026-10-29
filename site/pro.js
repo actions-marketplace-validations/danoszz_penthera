@@ -78,6 +78,8 @@
       track.style.transform = `translate3d(${-x}px, 0, 0)`;
       sticky.scrollLeft = 0; // focus can scroll a clipped box; keep the transform in charge
       if (bar) bar.style.transform = `scaleX(${travel ? x / travel : 0})`;
+      // At the end of the row the full bar would read as a rule above the footer: it fades out.
+      if (bar) bar.parentElement.toggleAttribute("data-done", travel > 0 && x >= travel - 1);
     };
     const panelY = (el) => outer.offsetTop + Math.min(travel, el.closest(".pro-panel")?.offsetLeft ?? 0);
     window.addEventListener("scroll", move, { passive: true });

@@ -33,7 +33,7 @@ jobs:
       contents: read
       pull-requests: write
     env:
-      PENTHERA_VERSION: latest # pin, e.g. 1.3.0
+      PENTHERA_VERSION: 2.0.0 # a release you have reviewed
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

@@ -14,6 +14,30 @@
 | Scanner under test | Penthera at commit `58ae9d7` (package version 1.9.0), bundled rules only, no `--rules`, no AI mode |
 | Structure | Mirrors E10: questions and hypotheses, datasets, scope, procedure, scoring, analysis, threats, safety, deviations |
 
+## Abstract (added 29 Oct 2026, after registration)
+
+> Added after registration. It summarizes the protocol and its result and
+> changes nothing in either. The registered text is the version in `fe21c5e`
+> (24 Oct 2026); `git diff fe21c5e -- docs/research/prereg/E11-public-benchmarks.md`
+> shows every later change.
+
+**Question.** How does Penthera do on three public datasets that other
+people labelled, one per capability: secrets, code-execution sinks and
+malicious packages?
+**Method.** Penthera 1.9.0 (`58ae9d7`), bundled rules only, offline, on
+Samsung CredData, SecBench.js and a seeded sample of DataDog's malicious
+packages plus 600 popular benign packages. Five hypotheses with fixed
+thresholds, Wilson 95% intervals.
+**Result.** None of the five hypotheses was supported. Secret precision 0.58
+[0.55, 0.60] (n = 2,099), in-scope secret recall 0.27 [0.26, 0.29]
+(n = 4,459), SecBench.js recall at the sink 0.13 [0.08, 0.20] (n = 129).
+Malware flagged: npm 0.44, PyPI 0.80; benign flagged: npm 0.00, PyPI 0.08.
+Full results: [bench/public/RESULTS.md](../../../bench/public/RESULTS.md#summary).
+**Limits.** CredData values are obfuscated and its labels came from other
+scanners' output; SecBench.js tests libraries, which the sink check was not
+built for; GuardDog found most of DataDog's samples. Rates per group, not
+the precision a user sees.
+
 ## 1. Research questions and hypotheses
 
 E11 runs one public benchmark per Penthera capability:
@@ -357,3 +381,79 @@ ideas the results suggest, as follow-ups for later pull requests.
 ## Amendments
 
 None yet.
+
+## Notes added after registration, 29 Oct 2026
+
+These notes add references, a figure, reproduction details, a status log and
+one correction. They change no part of the registered protocol above.
+
+### References
+
+In APA 7, linked to [references.md](../../references.md):
+
+- Datasets: [Yun et al. (2021)](../../references.md#yun2021creddata) for CredData,
+  [Bhuiyan et al. (2023)](../../references.md#bhuiyan2023secbenchjs) for SecBench.js,
+  [Datadog Security Labs (2023)](../../references.md#datadog2023malicious) for the
+  malicious packages. Related secret datasets: [Basak et al. (2023)](../../references.md#basak2023secretbench)
+  and [Meli et al. (2019)](../../references.md#meli2019bad).
+- Wilson interval (§ 1, § 7): [Wilson (1927)](../../references.md#wilson1927probable).
+- Pre-registration: [Nosek et al. (2018)](../../references.md#nosek2018preregistration).
+
+### Correction to § 2: CredData's license
+
+§ 2 says CredData's code is under the MIT license. At the pinned commit
+`c49ed106`, CredData's `LICENSE` file is the Apache License 2.0, and its
+README says each data file stays under its source project's license
+(checked 29 Oct 2026). The second half of the § 2 cell is right; the first
+is not. This changes no number: the license did not affect any run.
+
+### Figure
+
+![Dot plot of the seven E11 estimates with 95% intervals against their registered thresholds. Only PyPI malware detection (0.80, threshold above 0.70) and npm benign flags (0.00, threshold below 0.10) clear their thresholds; every other estimate fails, so no hypothesis holds as stated.](../../../bench/public/figures/e11-hypotheses.svg)
+
+*Figure 1. E11's seven estimates for Penthera 1.9.0, each with its Wilson
+95% interval, against the thresholds registered in § 1 (dashed). Blue
+circles pass, orange squares fail. A
+hypothesis is supported only when the whole interval clears its threshold;
+H4 and H5 need both ecosystems. n = 2,099 hit lines (H1), 4,459 true rows
+(H2), 129 vulnerabilities (H3), 300 or 299 packages per group (H4, H5). Data:
+the summary table of [bench/public/RESULTS.md](../../../bench/public/RESULTS.md#summary),
+run 24 Oct 2026. Script: `node bench/public/figures.mjs`.*
+
+### Reproduce
+
+| What | Value |
+|---|---|
+| Scanner | Penthera at `58ae9d7` (1.9.0) |
+| Command | `npm run bench:public` ([README](../../../bench/public/README.md#reproduce) lists the variants) |
+| Dataset pins | § 2 of this file |
+| Run | 24 Oct 2026, Node.js 26.0.0, macOS, 0 blocked connections |
+| Results | [RESULTS.md](../../../bench/public/RESULTS.md), commit `a043516` |
+
+**Not shared, and why.** Malware samples and their content (§ 10, safety).
+CredData's materialized files (each keeps its source project's license;
+`download_data.py` rebuilds them). The per-run result files stay in the
+local cache; the published tables carry every count.
+
+### What the result means
+
+- **For users.** On these datasets Penthera 1.9.0 missed every registered
+  target. Its secret scan did not read `.txt`, `.md`, `.pem`, `.key`, `.php`
+  or `.cs` files, which held 47% of the in-scope credentials. Its sink check
+  did not report command injection in libraries.
+- **For the tool.** The follow-ups in RESULTS.md became the E11b
+  improvement study, tuned on a dev half and scored once on a sealed test
+  half ([E11b](E11b-improvement-study.md)). E11's numbers stay as the
+  registered baseline.
+
+### Status and log
+
+| Date | Event | Commit |
+|---|---|---|
+| 2026-10-24 | Registered, before any Penthera run on the datasets | `fe21c5e` |
+| 2026-10-24 | Results | `a043516` |
+| 2026-10-24 | E11b amendment: split, tune on dev, score test once | `262745c` |
+| 2026-10-29 | Abstract, these notes, Figure 1, the license correction | this commit |
+
+Deviations from this protocol in the E11 run: none logged. The tuning that
+followed is a separate, registered amendment (E11b), not a deviation.

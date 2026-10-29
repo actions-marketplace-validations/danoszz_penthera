@@ -21,7 +21,9 @@
  * form into the email; with no script, the plain mailto link still works.
  */
 
-const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+import { RANK_INTERVALS, tiedPhrase } from "./benchmarks.mjs";
+
+const esc =(s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 export const WAITLIST_MAIL = "daan@penthera.org";
 export const waitlistHref = (body = "I am: \nI'd want: \nBudget a month: \nAnything else: \n") =>
@@ -101,12 +103,12 @@ function proof(pub) {
     const us = tools.find((r) => r.kind === "penthera");
     const best = tools.filter((r) => r.kind !== "penthera").sort((a, c) => c.score - a.score)[0];
     if (!us || !best) return "";
-    // A lead under 0.03 is within the noise of these samples: call it a tie, as the results do.
-    const tie = us.rank === 1 && us.score - best.score < 0.03;
+    // The rank interval (bench/public/rank-intervals.json) says how sure the place is.
+    const tied = tiedPhrase(RANK_INTERVALS.penthera[key]);
     const pct = (v) => Math.max(2, Math.round(Math.max(0, v) * 100));
     return `<li class="pro-proof-row">
               <p class="pro-proof-k">${esc(label)}</p>
-              <p class="pro-proof-rank"><span>${tie ? "tied " : ""}${ORD(us.rank)}</span> of ${tools.length}</p>
+              <p class="pro-proof-rank"><span>${ORD(us.rank)}</span> of ${tools.length}${esc(tied)}</p>
               <svg class="pro-proof-bars" viewBox="0 0 100 14" preserveAspectRatio="none" aria-hidden="true" focusable="false">
                 <rect x="0" y="0" width="${pct(us.score)}" height="6" fill="url(#pro-bar-b)"/>
                 <rect x="0" y="8" width="${pct(best.score)}" height="6" fill="url(#pro-bar-s)"/>
@@ -121,7 +123,7 @@ function proof(pub) {
           <ol class="pro-proof-list">
             ${rows}
           </ol>
-          <p class="pro-proof-note">Four public datasets other people built, on a half we sealed before we started. Penthera against the best other free tool on each; a lead under 0.03 counts as a tie. <a href="/benchmarks">Every tool, intervals and limits</a></p>
+          <p class="pro-proof-note">Four public datasets other people built, on a half we sealed before we started. Penthera against the best other free tool on each. Where a range follows the rank, Penthera's rank fell in that range in 95% of bootstrap redraws. <a href="/benchmarks">Every tool, intervals and limits</a></p>
         </section>`;
 }
 

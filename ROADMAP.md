@@ -16,33 +16,35 @@ here.
 
 | npm tag | Version | Install |
 |---|---|---|
-| `latest` | 2.0.0 (2026-10-25) | `npx penthera` |
-| `next` | 2.1.0-rc.2 (2026-10-28) | `npx penthera@next` |
+| `latest` | 2.1.0 (2026-10-29) | `npx penthera` |
 
-## Release candidate: 2.1.0-rc.2
+## Now: 2.1.0
 
-| In 2.1.0-rc.2 | What it means for you |
+2.1.0 is on npm's `latest` tag since 2026-10-29. It went through two release
+candidates first.
+
+| In 2.1.0 (rc.2) | What it means for you |
 |---|---|
 | The agent brief | Your AI assistant gets one short reply after a scan: a verdict, what to act on, what to check first, likely noise, what was not checked. Rules fill it ([docs](docs/commands/brief.md)) |
 | Fewer false findings | Style maps are no longer passwords, `eval` in build output is not reported, and action plan steps fit the findings |
 | `--giants` merge fix | A key inside a private-key block that two tools find counts once |
 | [Pro, an experiment](https://penthera.org/pro) | Does anyone need more than the free agent? The waitlist measures it. Nothing is for sale, and the free tool stays complete |
 
-| In 2.1.0-rc.1 | What it means for you |
+| In 2.1.0 (rc.1) | What it means for you |
 |---|---|
 | `--giants` | Runs the free scanners you already have (gitleaks, trufflehog, Semgrep, osv-scanner, pip-audit, trivy, checkov, nuclei, the ZAP baseline) and folds their findings into one report; areas without a tool are reported as not covered ([docs](docs/commands/giants.md)) |
 | First-run fixes | The GitHub Action's `mode: deps` scans again (it exited early on 1.5.0 to 2.0.0); nothing unread is reported as clean; a clear message for agents running without a terminal |
 | Benchmark pages | [penthera.org/benchmarks](https://penthera.org/benchmarks): every tool, with intervals and caveats, losses included |
 
-## Now: 2.0.0
+## Before: 2.0.0
 
-2.0.0 is on npm's `latest` tag since 2026-10-25. It's a major version because
+2.0.0 was on npm's `latest` tag from 2026-10-25. It's a major version because
 the default scan finds more, so a CI gate that passed on 1.9 can fail after the
 upgrade ([upgrading](CHANGELOG.md)).
 
 | In 2.0.0 | What it means for you |
 |---|---|
-| Public benchmarks | On a sealed half of four public datasets: #1 of the free tools on npm and PyPI malware, tied #1 on JS library injection bugs, #2 on leaked secrets ([results](bench/public/RESULTS.md)) |
+| Public benchmarks | On a sealed half of four public datasets: 1st on npm and PyPI malware (tied 1st to 3rd), 1st on JS library injection bugs (tied 1st to 4th), 2nd on leaked secrets ([results](bench/public/RESULTS.md)) |
 | Library mode | The parameters of an exported function count as untrusted, so command and code injection in npm libraries is found ([docs](docs/commands/scan.md)) |
 | More of your repo read for secrets | Key files, PHP, C#, configs, Terraform state; docs and translations with fixed-shape rules only; every line a rule hit is listed |
 | Malware detection | Code that runs what it downloads, HTTP tarball dependencies, Python code that runs at import time, `setup.py` payloads |
@@ -108,7 +110,7 @@ to report stays deterministic.
 |---|---|---|---|
 | Secrets | F1 0.74 on CredData, ahead of gitleaks (0.52) and trufflehog (0.10) | gitleaks, trufflehog (verifies keys only with your opt-in, since it contacts the provider) | Planned |
 | Code | JS/TS injection: 0.70 on SecBench.js, ahead of CodeQL (0.64) and Semgrep (0.38) | Semgrep with local rules, for other languages; CodeQL only where its terms allow (open-source code, or your own licence) | Planned |
-| Dependencies | Capabilities, malware (1st on npm and PyPI), licences, typosquats | osv-scanner, pip-audit, for known CVEs in your lockfiles | Planned |
+| Dependencies | Capabilities, malware (1st on npm and PyPI, tied 1st to 3rd once the uncertainty is counted), licences, typosquats | osv-scanner, pip-audit, for known CVEs in your lockfiles | Planned |
 | Infrastructure | Runtime versions pinned in Dockerfiles and version files | trivy (container images, IaC), checkov (Terraform, Kubernetes, CI config) | Planned |
 | Live app | Passive checks, Nuclei-compatible templates, `--deep` injection probes | nuclei, the ZAP baseline scan | Planned |
 | E14: the combination against each tool alone | "Is the combined report better, or only longer?" | Same protocol as E11b on the same public benchmarks. Combined precision may not drop by more than 0.02 | Pre-registered ([E14](docs/research/prereg/E14-giants-combination.md)); [spec](docs/research/spec-giants.md) approved. Next: the build, then the dev-half rerun |

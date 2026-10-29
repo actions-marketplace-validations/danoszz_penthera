@@ -14,7 +14,7 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { RESULTS, ROOT, wilson } from "./common.mjs";
-import { BENCHMARKS } from "../../site/benchmarks.mjs";
+import { malwareTableLines, rankIntervalLine, readmeSummary } from "./summary.mjs";
 
 const argv = process.argv.slice(2);
 const opt = (k) => (argv.includes(k) ? argv[argv.indexOf(k) + 1] : null);
@@ -176,14 +176,13 @@ for (const r of [...S.rows].sort((a, b) => (!!a.excluded - !!b.excluded) || ((b.
 L.push(`| | Free tools, mean / median | ${pct(S.others.p.mean)} / ${pct(S.others.p.median)} | ${pct(S.others.r.mean)} / ${pct(S.others.r.median)} | ${pct(S.others.f1.mean)} / ${pct(S.others.f1.median)} |`, "");
 for (const key of ["npm", "pypi"]) {
   const M = published.benchmarks[key];
-  L.push(`### ${M.title}`, "", "| Rank | Tool | Caught | False alarms on benign packages | Caught minus false alarms |", "|---:|---|---|---|---|");
-  for (const r of [...M.rows].sort((a, b) => (!!a.excluded - !!b.excluded) || ((b.score ?? -1) - (a.score ?? -1)))) L.push(`| ${r.rank ?? "–"} | ${name(r)}${r.caveat ? (r.kind === "lookup" ? " ³" : " ²") : ""} | ${pct(r.r)}${civ(r.detectCI)} (${kn(r.detect)}) | ${pct(r.fa)}${civ(r.benignCI)} (${kn(r.benign)}) | ${pct(r.j)} |`);
+  L.push(`### ${M.title}`, "", ...malwareTableLines(M, key));
   L.push("");
 }
 const B = published.benchmarks.library;
 L.push(`### ${B.title}`, "", "| Rank | Tool | Command injection | Code injection | Both |", "|---:|---|---|---|---|");
 for (const r of [...B.rows].sort((a, b) => (!!a.excluded - !!b.excluded) || ((b.score ?? -1) - (a.score ?? -1)))) L.push(`| ${r.rank ?? "–"} | ${name(r)}${r.caveat ? ` (${r.caveat})` : ""} | ${kn(r.command)} | ${kn(r.code)} | ${pct(r.r)}${civ(r.pooledCI)} |`);
-L.push("", `A rank is shown only where at least ${MIN_FIELD} other free tools were measured; otherwise "–".`,
+L.push("", `A rank is shown only where at least ${MIN_FIELD} other free tools were measured; otherwise "–". ${rankIntervalLine()}`,
   "", `Paid tools (${PAID.join(", ")}) publish no results on these benchmarks, so they are not in the tables.`, "",
   "Published elsewhere, on other datasets (context, not comparable):", "",
   ...Object.values(published.benchmarks).flatMap((b) => b.context.map((c) => `- [${c.title}](${c.url})`)), "",
@@ -199,18 +198,8 @@ const readme = opt("--readme");
 if (readme) {
   if (sample && readme === join(ROOT, "README.md")) throw new Error("refusing to write sample numbers into README.md");
   const START = "<!-- public-benchmarks:start -->", END = "<!-- public-benchmarks:end -->";
-  // One row per benchmark on top; every table folded below it.
-  const SUM = [["Leaked secrets (Samsung CredData)", "secrets", "F1"], ["Malicious npm packages (DataDog)", "npm", "caught minus false alarms"], ["Malicious PyPI packages (DataDog)", "pypi", "caught minus false alarms"], ["Injection bugs in JS libraries (SecBench.js)", "library", "found in the right file"]];
-  const ordn = (n) => `${n}${["th", "st", "nd", "rd"][n % 10 > 3 || [11, 12, 13].includes(n % 100) ? 0 : n % 10]}`;
-  const sum = [`| Benchmark | Score | Penthera 1.9.0 | **Penthera ${label || "now"}** | Rank among free tools | Best other free tool |`, "|---|---|---|---|---|---|"];
-  for (const [title, k, measure] of SUM) {
-    const b = published.benchmarks[k];
-    const us = b.rows.find((r) => r.kind === "penthera"), was = b.rows.find((r) => r.kind === "penthera-before");
-    const best = b.rows.filter((r) => r.kind === "tool" && !r.excluded && r.score != null).sort((x, y) => y.score - x.score)[0];
-    const tie = best && us && b.ranked && us.rank === 1 && us.score - best.score < 0.05 ? ", within the margin" : "";
-    sum.push(`| [${title}](https://penthera.org/benchmarks/${BENCHMARKS[k].slug}) | ${measure} | ${pct(was?.score)} | **${pct(us?.score)}** | ${b.ranked && us?.rank ? `**${ordn(us.rank)} of ${b.of}**${tie}` : `${b.field} other tools, not ranked`} | ${best ? `${best.tool} ${pct(best.score)}` : "n/a"} |`);
-  }
-  const body = [...sum, "", "<details><summary>Every tool, every number (95% intervals)</summary>", "", L.join("\n").replace(/^### /gm, "#### "), "", "</details>"].join("\n");
+  // One row per benchmark on top (bench/public/summary.mjs); every table folded below it.
+  const body = [...readmeSummary(published, label), "", "<details><summary>Every tool, every number (95% intervals)</summary>", "", L.join("\n").replace(/^### /gm, "#### "), "", "</details>"].join("\n");
   const text = readFileSync(readme, "utf-8");
   const a = text.indexOf(START), b = text.indexOf(END);
   if (a < 0 || b < a) throw new Error(`${readme}: no ${START} ... ${END} markers`);

@@ -8,8 +8,8 @@
  * nothing is written outside the project. `penthera-scan` keeps the URL-first
  * wizard (runScanWizard).
  */
-import { existsSync, mkdirSync, writeFileSync, appendFileSync } from "node:fs";
-import { resolve, join, relative, isAbsolute, sep } from "node:path";
+import { existsSync, mkdirSync, writeFileSync, appendFileSync, lstatSync, realpathSync } from "node:fs";
+import { resolve, join, relative, isAbsolute, sep, dirname } from "node:path";
 import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -266,8 +266,10 @@ export async function runScanWizard() {
 export const ACTION_PIN = Object.freeze({ tag: "v2.0.0", sha: "9b6bb2d10cf08601e68a8fdc27ba688c9d721570" });
 
 export const WORKFLOW_PATH = ".github/workflows/penthera.yml";
+export const AGENTS_WORKFLOW_PATH = ".github/workflows/penthera-agents.yml";
 const BIN = fileURLToPath(new URL("../../bin/penthera.js", import.meta.url));
 const WORKFLOW_EXAMPLE = new URL("../../docs/examples/pr-dependency-review.yml", import.meta.url);
+const AGENTS_WORKFLOW_EXAMPLE = new URL("../../docs/examples/github-actions-agents.yml", import.meta.url);
 
 const INIT_HELP = `
   ${bold("penthera init")} — set up Penthera in this project in one command
@@ -285,8 +287,8 @@ const INIT_HELP = `
         --dry-run    Print the checks and file writes instead of doing them
     -h, --help       Show this help
 
-  Reports go to reports/penthera-<date>/. The hook goes in .git/hooks, the workflow
-  in ${WORKFLOW_PATH}, and nothing is committed or pushed.
+  Reports go to reports/penthera-<date>/. The hook goes in .git/hooks, the workflows
+  in ${WORKFLOW_PATH} and ${AGENTS_WORKFLOW_PATH}, and nothing is committed or pushed.
 `;
 
 const AREAS = {
@@ -312,6 +314,47 @@ function today(now = new Date()) {
  * resolved first, so a root in another spelling (git prints D:/a/app on
  * Windows) still compares equal. `p` is the path module (path.win32 in tests).
  */
+/**
+ * Is anything at `p`, a dangling symlink included? existsSync follows the
+ * link and says no for a dangling one, and a write would then create the
+ * link's target wherever it points.
+ */
+export function entryExists(p) {
+  try { lstatSync(p); return true; } catch { return false; }
+}
+
+/** Is `p` a symlink (dangling or not)? */
+function isSymlink(p) {
+  try { return lstatSync(p).isSymbolicLink(); } catch { return false; }
+}
+
+/**
+ * Create a new file inside the project: never through a symlink (a dangling
+ * one included, `wx` refuses any existing entry) and never into a folder that
+ * resolves outside the project. Returns an error message, or null when written.
+ */
+export function writeNewFile(root, full, content) {
+  const OUTSIDE = "its folder resolves outside the project";
+  try {
+    const realRoot = realpathSync(root);
+    const within = (d) => d === realRoot || d.startsWith(realRoot.endsWith(sep) ? realRoot : realRoot + sep);
+    // Check the nearest folder that already exists (a symlink counts, even a
+    // dangling one) before creating anything, so a `.github` symlink to
+    // another place never gets a `workflows` folder made inside it.
+    let existing = dirname(full);
+    while (!entryExists(existing) && dirname(existing) !== existing) existing = dirname(existing);
+    let realExisting;
+    try { realExisting = realpathSync(existing); } catch { return OUTSIDE; }
+    if (!within(realExisting)) return OUTSIDE;
+    mkdirSync(dirname(full), { recursive: true });
+    if (!within(realpathSync(dirname(full)))) return OUTSIDE;
+    writeFileSync(full, content, { flag: "wx" });
+    return null;
+  } catch (e) {
+    return e?.code === "EEXIST" ? "a file or symlink is already there" : String(e?.message || e);
+  }
+}
+
 export function inside(root, path, p = { resolve, relative, isAbsolute, sep }) {
   const base = p.resolve(root);
   const full = p.resolve(base, path);
@@ -370,6 +413,35 @@ export function workflowYaml(pin = ACTION_PIN) {
     "",
     pinned,
   ].join("\n");
+}
+
+/** The generated agent config workflow: the agents example, pinned to ACTION_PIN's npm version. */
+export function agentsWorkflowYaml(pin = ACTION_PIN) {
+  const example = readFileSync(AGENTS_WORKFLOW_EXAMPLE, "utf-8");
+  const body = example.slice(example.indexOf("\nname:") + 1);
+  const version = pin.tag.replace(/^v/, "");
+  const pinned = body.replace(/npx --yes penthera@\d+\.\d+\.\d+ agents/, `npx --yes penthera@${version} agents`);
+  if (pinned === body && !body.includes(`npx --yes penthera@${version} agents`)) {
+    throw new Error("docs/examples/github-actions-agents.yml no longer runs `npx --yes penthera@<version> agents`");
+  }
+  return [
+    "# Added by `penthera init`. Review it, then commit it yourself.",
+    "#",
+    "# Checks the repo's skills, MCP servers, hooks and agent instructions on every",
+    "# pull request and push to main, offline, and uploads SARIF to code scanning.",
+    `# Report-only. \`npx\` fetches Penthera ${version} from npm, from the runner's`,
+    "# temp folder. Do not switch this to `pull_request_target`: that would run with",
+    "# write access next to untrusted code.",
+    "",
+    pinned,
+  ].join("\n");
+}
+
+/** Whether a Penthera workflow under .github/workflows already runs the agents check. */
+function hasAgentsWorkflow(root, workflows) {
+  return workflows.some((f) => {
+    try { return /penthera@\S+\s+agents\b|penthera\.js\s+agents\b|mode:\s*["']?agents\b/.test(readFileSync(join(root, f), "utf-8")); } catch { return false; }
+  });
 }
 
 /** A new-file unified diff, for showing the workflow before it is written. */
@@ -595,7 +667,7 @@ export async function runInit(argv, { version = pkg.version } = {}) {
   const wfFull = inside(root, WORKFLOW_PATH);
   if (!found.git) skip("GitHub workflow: not a git repository");
   else if (found.workflows.length) skip(`GitHub workflow: already present (${found.workflows.join(", ")})`);
-  else if (existsSync(wfFull)) skip(`GitHub workflow: ${WORKFLOW_PATH} exists, left as is`);
+  else if (entryExists(wfFull)) skip(`GitHub workflow: ${WORKFLOW_PATH} exists, left as is`);
   else if (!found.lockfiles.npm.length) skip("GitHub workflow: the PR dependency review reads package-lock.json, none here");
   else {
     const yaml = workflowYaml();
@@ -603,16 +675,33 @@ export async function runInit(argv, { version = pkg.version } = {}) {
     out(newFileDiff(WORKFLOW_PATH, yaml).split("\n").map((l) => `    ${l}`).join("\n"));
     out();
     if (await yesNo(`Write ${WORKFLOW_PATH}? It is not committed`, true)) {
-      if (!dry) {
-        mkdirSync(join(root, ".github", "workflows"), { recursive: true });
-        writeFileSync(wfFull, yaml);
-      }
-      did(`${dry ? "write " : "Wrote "}${WORKFLOW_PATH}${dry ? "" : dim(" (review and commit it yourself)")}`);
+      const err = dry ? null : writeNewFile(root, wfFull, yaml);
+      if (err) skip(`${WORKFLOW_PATH}: not written, ${err}`);
+      else did(`${dry ? "write " : "Wrote "}${WORKFLOW_PATH}${dry ? "" : dim(" (review and commit it yourself)")}`);
+    }
+  }
+
+  // GitHub workflow: the agent config check
+  const awFull = inside(root, AGENTS_WORKFLOW_PATH);
+  if (!found.git) skip("Agent config workflow: not a git repository");
+  else if (!found.agentConfig.length) skip("Agent config workflow: no agent config here");
+  else if (hasAgentsWorkflow(root, found.workflows)) skip("Agent config workflow: already present");
+  else if (entryExists(awFull)) skip(`Agent config workflow: ${AGENTS_WORKFLOW_PATH} exists, left as is`);
+  else {
+    const yaml = agentsWorkflowYaml();
+    out(`\n  ${dim(`The agent config check on every pull request, Penthera ${ACTION_PIN.tag.slice(1)} from npm:`)}\n`);
+    out(newFileDiff(AGENTS_WORKFLOW_PATH, yaml).split("\n").map((l) => `    ${l}`).join("\n"));
+    out();
+    if (await yesNo(`Write ${AGENTS_WORKFLOW_PATH}? It is not committed`, true)) {
+      const err = dry ? null : writeNewFile(root, awFull, yaml);
+      if (err) skip(`${AGENTS_WORKFLOW_PATH}: not written, ${err}`);
+      else did(`${dry ? "write " : "Wrote "}${AGENTS_WORKFLOW_PATH}${dry ? "" : dim(" (review and commit it yourself)")}`);
     }
   }
 
   // .gitignore
   if (found.reportsIgnored) skip(".gitignore: reports/ is already ignored");
+  else if (isSymlink(inside(root, ".gitignore"))) skip(".gitignore: it is a symlink, left as is");
   else if (await yesNo("Add reports/ to .gitignore so scan output is never committed?", true)) {
     if (!dry) {
       const gi = inside(root, ".gitignore");

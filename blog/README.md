@@ -15,3 +15,8 @@ rules are in that file's header. In short:
   verbatim in a file listed in `sources:`. `npm test` checks both.
 - Follow the [voice guide](../docs/voice.md): one question per post in the
   quote line, numbers with their sample and interval, limits next to claims.
+- Figures are SVGs in `figures/`, drawn by `figures/make.mjs`. Show one inline
+  as a paragraph that starts with `![alt text](figures/<name>.svg)`, with the
+  caption on the next lines. The alt text says what the figure shows; the
+  build serves the file at `/blog/figures/` and fails on a missing file or a
+  missing alt text.

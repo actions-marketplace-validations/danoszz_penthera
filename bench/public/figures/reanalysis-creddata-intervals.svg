@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="442" viewBox="0 0 640 442" role="img" aria-labelledby="t d">
+<title id="t">CredData test half: one estimate, three intervals</title>
+<desc id="d">Dot plot of Penthera's and gitleaks' precision, in-scope recall and F1 on the CredData test half, each with up to three 95% intervals: Wilson (as registered in E11b), a bootstrap over files (as in E14) and a bootstrap over repositories (exploratory). Penthera precision 0.89: Wilson (registered) [0.87, 0.90], files [0.83, 0.93], repositories [0.83, 0.93]; Penthera recall in scope 0.64: Wilson (registered) [0.62, 0.66], files [0.59, 0.70], repositories [0.58, 0.70]; Penthera F1 0.74: files [0.71, 0.78], repositories [0.70, 0.78]; gitleaks precision 0.85: Wilson (registered) [0.84, 0.86], files [0.81, 0.92], repositories [0.82, 0.89]; gitleaks recall in scope 0.37: Wilson (registered) [0.35, 0.39], files [0.20, 0.56], repositories [0.17, 0.59]; gitleaks F1 0.52: files [0.33, 0.67], repositories [0.28, 0.69]. Resampling files or repositories gives wider intervals than Wilson's, most of all for gitleaks' recall.</desc>
+<rect width="640" height="442" fill="#ffffff"/>
+<line x1="306" y1="14" x2="306" y2="398" stroke="#ebebeb" stroke-width="1"/>
+<line x1="382" y1="14" x2="382" y2="398" stroke="#ebebeb" stroke-width="1"/>
+<line x1="458" y1="14" x2="458" y2="398" stroke="#ebebeb" stroke-width="1"/>
+<line x1="534" y1="14" x2="534" y2="398" stroke="#ebebeb" stroke-width="1"/>
+<rect x="230" y="14" width="380" height="384" fill="none" stroke="#bfbfbf" stroke-width="1"/>
+<text x="230" y="413" font-size="11" fill="#333333" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">0.0</text>
+<text x="306" y="413" font-size="11" fill="#333333" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">0.2</text>
+<text x="382" y="413" font-size="11" fill="#333333" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">0.4</text>
+<text x="458" y="413" font-size="11" fill="#333333" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">0.6</text>
+<text x="534" y="413" font-size="11" fill="#333333" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">0.8</text>
+<text x="610" y="413" font-size="11" fill="#333333" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">1.0</text>
+<text x="420" y="431" font-size="12" fill="#000000" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Share, with 95% interval</text>
+<text x="16" y="29" font-size="12" fill="#0000ED" text-anchor="start" font-weight="bold" font-family="Helvetica, Arial, sans-serif">Penthera, precision 0.89</text>
+<text x="222" y="43" font-size="10.5" fill="#8c8c8c" text-anchor="end" font-family="Helvetica, Arial, sans-serif">Wilson (registered)</text>
+<line x1="561.25" y1="39" x2="572.23" y2="39" stroke="#0000ED" stroke-width="1.5"/>
+<rect x="563.56" y="35.5" width="7" height="7" fill="#0000ED" stroke="#ffffff" stroke-width="1.5"/>
+<text x="222" y="57" font-size="10.5" fill="#8c8c8c" text-anchor="end" font-family="Helvetica, Arial, sans-serif">files</text>
+<line x1="546.62" y1="53" x2="583.21" y2="53" stroke="#0000ED" stroke-width="1.5"/>
+<circle cx="567.06" cy="53" r="3.5" fill="#ffffff" stroke="#0000ED" stroke-width="1.5"/>
+<text x="222" y="71" font-size="10.5" fill="#8c8c8c" text-anchor="end" font-family="Helvetica, Arial, sans-serif">repositories</text>
+<line x1="547.15" y1="67" x2="584.01" y2="67" stroke="#0000ED" stroke-width="1.5"/>
+<circle cx="567.06" cy="67" r="3.5" fill="#0000ED" stroke="#ffffff" stroke-width="1.5"/>
+<line x1="230" y1="78" x2="610" y2="78" stroke="#ebebeb" stroke-width="1"/>
+<text x="16" y="93" font-size="12" fill="#0000ED" text-anchor="start" font-weight="bold" font-family="Helvetica, Arial, sans-serif">Penthera, recall in scope 0.64</text>
+<text x="222" y="107" font-size="10.5" fill="#8c8c8c" text-anchor="end" font-family="Helvetica, Arial, sans-serif">Wilson (registered)</text>
+<line x1="464.54" y1="103" x2="479.7" y2="103" stroke="#0000ED" stroke-width="1.5"/>
+<rect x="468.71" y="99.5" width="7" height="7" fill="#0000ED" stroke="#ffffff" stroke-width="1.5"/>
+<text x="222" y="121" font-size="10.5" fill="#8c8c8c" text-anchor="end" font-family="Helvetica, Arial, sans-serif">files</text>
+<line x1="453.52" y1="117" x2="495.16" y2="117" stroke="#0000ED" stroke-width="1.5"/>
+<circle cx="472.21" cy="117" r="3.5" fill="#ffffff" stroke="#0000ED" stroke-width="1.5"/>
+<text x="222" y="135" font-size="10.5" fill="#8c8c8c" text-anchor="end" font-family="Helvetica, Arial, sans-serif">repositories</text>
+<line x1="450.13" y1="131" x2="496.72" y2="131" stroke="#0000ED" stroke-width="1.5"/>
+<circle cx="472.21" cy="131" r="3.5" fill="#0000ED" stroke="#ffffff" stroke-width="1.5"/>
+<line x1="230" y1="142" x2="610" y2="142" stroke="#ebebeb" stroke-width="1"/>
+<text x="16" y="157" font-size="12" fill="#0000ED" text-anchor="start" font-weight="bold" font-family="Helvetica, Arial, sans-serif">Penthera, F1 0.74</text>
+<text x="222" y="171" font-size="10.5" fill="#8c8c8c" text-anchor="end" font-family="Helvetica, Arial, sans-serif">Wilson (registered)</text>
+<text x="236" y="171" font-size="10" fill="#8c8c8c" text-anchor="start" font-family="Helvetica, Arial, sans-serif">none for F1</text>
+<text x="222" y="185" font-size="10.5" fill="#8c8c8c" text-anchor="end" font-family="Helvetica, Arial, sans-serif">files</text>
+<line x1="499.27" y1="181" x2="526.21" y2="181" stroke="#0000ED" stroke-width="1.5"/>
+<circle cx="511.85" cy="181" r="3.5" fill="#ffffff" stroke="#0000ED" stroke-width="1.5"/>
+<text x="222" y="199" font-size="10.5" fill="#8c8c8c" text-anchor="end" font-family="Helvetica, Arial, sans-serif">repositories</text>
+<line x1="495.39" y1="195" x2="526.93" y2="195" stroke="#0000ED" stroke-width="1.5"/>
+<circle cx="511.85" cy="195" r="3.5" fill="#0000ED" stroke="#ffffff" stroke-width="1.5"/>
+<line x1="230" y1="206" x2="610" y2="206" stroke="#ebebeb" stroke-width="1"/>
+<text x="16" y="221" font-size="12" fill="#000000" text-anchor="start" font-family="Helvetica, Arial, sans-serif">gitleaks, precision 0.85</text>
+<text x="222" y="235" font-size="10.5" fill="#8c8c8c" text-anchor="end" font-family="Helvetica, Arial, sans-serif">Wilson (registered)</text>
+<line x1="547.95" y1="231" x2="558.28" y2="231" stroke="#4d4d4d" stroke-width="1.5"/>
+<rect x="549.84" y="227.5" width="7" height="7" fill="#4d4d4d" stroke="#ffffff" stroke-width="1.5"/>
+<text x="222" y="249" font-size="10.5" fill="#8c8c8c" text-anchor="end" font-family="Helvetica, Arial, sans-serif">files</text>
+<line x1="538.71" y1="245" x2="578.08" y2="245" stroke="#4d4d4d" stroke-width="1.5"/>
+<circle cx="553.34" cy="245" r="3.5" fill="#ffffff" stroke="#4d4d4d" stroke-width="1.5"/>
+<text x="222" y="263" font-size="10.5" fill="#8c8c8c" text-anchor="end" font-family="Helvetica, Arial, sans-serif">repositories</text>
+<line x1="541.07" y1="259" x2="570.02" y2="259" stroke="#4d4d4d" stroke-width="1.5"/>
+<circle cx="553.34" cy="259" r="3.5" fill="#4d4d4d" stroke="#ffffff" stroke-width="1.5"/>
+<line x1="230" y1="270" x2="610" y2="270" stroke="#ebebeb" stroke-width="1"/>
+<text x="16" y="285" font-size="12" fill="#000000" text-anchor="start" font-family="Helvetica, Arial, sans-serif">gitleaks, recall in scope 0.37</text>
+<text x="222" y="299" font-size="10.5" fill="#8c8c8c" text-anchor="end" font-family="Helvetica, Arial, sans-serif">Wilson (registered)</text>
+<line x1="364.67" y1="295" x2="379.99" y2="295" stroke="#4d4d4d" stroke-width="1.5"/>
+<rect x="368.73" y="291.5" width="7" height="7" fill="#4d4d4d" stroke="#ffffff" stroke-width="1.5"/>
+<text x="222" y="313" font-size="10.5" fill="#8c8c8c" text-anchor="end" font-family="Helvetica, Arial, sans-serif">files</text>
+<line x1="306.38" y1="309" x2="441.58" y2="309" stroke="#4d4d4d" stroke-width="1.5"/>
+<circle cx="372.23" cy="309" r="3.5" fill="#ffffff" stroke="#4d4d4d" stroke-width="1.5"/>
+<text x="222" y="327" font-size="10.5" fill="#8c8c8c" text-anchor="end" font-family="Helvetica, Arial, sans-serif">repositories</text>
+<line x1="293.65" y1="323" x2="452.68" y2="323" stroke="#4d4d4d" stroke-width="1.5"/>
+<circle cx="372.23" cy="323" r="3.5" fill="#4d4d4d" stroke="#ffffff" stroke-width="1.5"/>
+<line x1="230" y1="334" x2="610" y2="334" stroke="#ebebeb" stroke-width="1"/>
+<text x="16" y="349" font-size="12" fill="#000000" text-anchor="start" font-family="Helvetica, Arial, sans-serif">gitleaks, F1 0.52</text>
+<text x="222" y="363" font-size="10.5" fill="#8c8c8c" text-anchor="end" font-family="Helvetica, Arial, sans-serif">Wilson (registered)</text>
+<text x="236" y="363" font-size="10" fill="#8c8c8c" text-anchor="start" font-family="Helvetica, Arial, sans-serif">none for F1</text>
+<text x="222" y="377" font-size="10.5" fill="#8c8c8c" text-anchor="end" font-family="Helvetica, Arial, sans-serif">files</text>
+<line x1="353.88" y1="373" x2="483.08" y2="373" stroke="#4d4d4d" stroke-width="1.5"/>
+<circle cx="427.56" cy="373" r="3.5" fill="#ffffff" stroke="#4d4d4d" stroke-width="1.5"/>
+<text x="222" y="391" font-size="10.5" fill="#8c8c8c" text-anchor="end" font-family="Helvetica, Arial, sans-serif">repositories</text>
+<line x1="336.59" y1="387" x2="493.49" y2="387" stroke="#4d4d4d" stroke-width="1.5"/>
+<circle cx="427.56" cy="387" r="3.5" fill="#4d4d4d" stroke="#ffffff" stroke-width="1.5"/>
+</svg>

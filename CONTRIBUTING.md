@@ -248,13 +248,15 @@ disclosure rules of the
 [NLnet generative AI policy](https://nlnet.nl/foundation/policies/generativeAI/);
 how the project itself uses AI is described in [docs/genai.md](docs/genai.md).
 
-If an AI assistant wrote or substantially shaped a commit, add these trailers to
+If an AI assistant wrote or substantially shaped a commit, add this trailer to
 the commit message:
 
 ```
 AI-Assisted: <tool> with <model and version>; <what it did, in one line>
-Co-Authored-By: <model and version> <noreply address of the vendor>
 ```
+
+A `Co-Authored-By:` line for the AI is optional; the `AI-Assisted` line is the
+disclosure.
 
 For example:
 
@@ -263,13 +265,11 @@ fix(deps): handle pax size headers in the tar reader
 
 AI-Assisted: Claude Code with Claude Opus 5.5; wrote the parser change and
   the regression test from my description of the bug, I reviewed both
-Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Signed-off-by: Your Name <you@example.com>
 ```
 
 CI checks every commit in a pull request (`scripts/ci/provenance.mjs`): a
-commit that names an AI co-author needs the `AI-Assisted` line, and the other
-way round.
+commit that names an AI co-author must also have the `AI-Assisted` line.
 
 - **Summarise the prompt** in the `AI-Assisted` line: what you asked for, not
   the full transcript. For grant-funded work, the full prompts and outputs also
@@ -279,8 +279,7 @@ way round.
 - **You remain responsible.** By signing off you certify the change can be
   published under the MIT licence and does not copy code under incompatible
   terms. Only submit code you understand and can explain.
-- **Docs and tests only:** if AI only helped with documentation or tests, the
-  `Co-Authored-By` trailer is enough.
+- **Docs and tests only:** the same `AI-Assisted` line applies; keep it short.
 
 Report security issues in Penthera itself privately; see [SECURITY.md](SECURITY.md).
 
@@ -301,7 +300,7 @@ quality from depending on anyone's free evenings.
   go into that release; features wait for the next one.
 - **No version bump or tag without the maintainer's go.**
 
-**Now:** 2.0.0 is on `latest` since 2026-10-25. See the [roadmap](ROADMAP.md#now-200)
+**Now:** 2.1.0 is on `latest` since 2026-10-29. See the [roadmap](ROADMAP.md#now-210)
 for what is in it.
 
 Between releases:

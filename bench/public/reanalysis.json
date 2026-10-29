@@ -1,0 +1,1278 @@
+{
+  "note": "Exploratory re-analysis, 29 Oct 2026, after the registered analysis (bench/public/reanalysis.mjs). Not a registered result.",
+  "inputs": {
+    "e14Hits": {
+      "sha256": "4d5880e1f513df0b29620bee78fb9bdbc4e85bee6c9a54695d55bf12905cba41",
+      "penthera": "2.1.0-rc.2"
+    },
+    "e11b": {
+      "creddata.test.json": "f767e9a609ba4b3b83817fd56a5ffaad178e16d450c953fdc6ad4655064e547b",
+      "competitors-creddata.test.json": "4655e2cd3b12255a03ef93107bcae35ef48860c598150cb9edad846b8831e088",
+      "secbench.test.json": "5736d5b0519efe5ebc55b34582dec8ef2f815a6f798567ed907959591df58b8f",
+      "competitors-secbench.test.json": "3d1a4c32fabae2248b25dcb7cd9e5bac443f282771792d55a1ea3251f687b97d",
+      "malware.test.json": "4c961f26e41c16858a1ee56ebfe5313087630826cd07b0f0138725fcfb352227",
+      "competitors-malware.test.json": "f09667e23ce50621c0a4c0c6462fb235894900cb4ca3ca8ce7300ee71f5a9e68"
+    },
+    "labels": "CredData meta/*.csv at the E11 pin, test half by bench/public/split/creddata.json"
+  },
+  "bootstrap": {
+    "seed": 20261025,
+    "resamples": 10000,
+    "interval": "percentile 95%"
+  },
+  "creddata": {
+    "unit": "row (recall) and file:line hit (precision), as E11b; clusters: CredData's data/<repo>/ folder",
+    "rows": {
+      "T": 6645,
+      "inScope": 2220
+    },
+    "clusters": {
+      "files": 1258,
+      "repositories": 276,
+      "repositoriesWithInScopeRows": 204,
+      "largestRepositoryShareOfInScopeRows": 0.2059,
+      "top10RepositoriesShareOfInScopeRows": 0.4532
+    },
+    "tools": {
+      "Penthera": {
+        "precision": {
+          "k": 1640,
+          "n": 1849,
+          "value": 0.887,
+          "wilson": [
+            0.8717,
+            0.9006
+          ],
+          "files": [
+            0.8332,
+            0.9295
+          ],
+          "repositories": [
+            0.8346,
+            0.9316
+          ]
+        },
+        "recall": {
+          "k": 1415,
+          "n": 2220,
+          "value": 0.6374,
+          "wilson": [
+            0.6172,
+            0.6571
+          ],
+          "files": [
+            0.5882,
+            0.6978
+          ],
+          "repositories": [
+            0.5793,
+            0.7019
+          ]
+        },
+        "f1": {
+          "value": 0.7417,
+          "files": [
+            0.7086,
+            0.7795
+          ],
+          "repositories": [
+            0.6984,
+            0.7814
+          ]
+        },
+        "recallAllRows": {
+          "k": 1687,
+          "n": 6645,
+          "value": 0.2539,
+          "wilson": [
+            0.2436,
+            0.2645
+          ],
+          "repositories": [
+            0.2046,
+            0.3269
+          ]
+        }
+      },
+      "gitleaks": {
+        "precision": {
+          "k": 2242,
+          "n": 2635,
+          "value": 0.8509,
+          "wilson": [
+            0.8367,
+            0.8639
+          ],
+          "files": [
+            0.8124,
+            0.916
+          ],
+          "repositories": [
+            0.8186,
+            0.8948
+          ]
+        },
+        "recall": {
+          "k": 831,
+          "n": 2220,
+          "value": 0.3743,
+          "wilson": [
+            0.3544,
+            0.3947
+          ],
+          "files": [
+            0.201,
+            0.5568
+          ],
+          "repositories": [
+            0.1675,
+            0.586
+          ]
+        },
+        "f1": {
+          "value": 0.5199,
+          "files": [
+            0.326,
+            0.666
+          ],
+          "repositories": [
+            0.2805,
+            0.6934
+          ]
+        },
+        "recallAllRows": {
+          "k": 2297,
+          "n": 6645,
+          "value": 0.3457,
+          "wilson": [
+            0.3343,
+            0.3572
+          ],
+          "repositories": [
+            0.1583,
+            0.5527
+          ]
+        }
+      },
+      "trufflehog": {
+        "precision": {
+          "k": 152,
+          "n": 383,
+          "value": 0.3969,
+          "wilson": [
+            0.3491,
+            0.4467
+          ],
+          "files": [
+            0.2155,
+            0.5888
+          ],
+          "repositories": [
+            0.1981,
+            0.6012
+          ]
+        },
+        "recall": {
+          "k": 122,
+          "n": 2220,
+          "value": 0.055,
+          "wilson": [
+            0.0462,
+            0.0652
+          ],
+          "files": [
+            0.0181,
+            0.0942
+          ],
+          "repositories": [
+            0.0141,
+            0.0925
+          ]
+        },
+        "f1": {
+          "value": 0.0965,
+          "files": [
+            0.0337,
+            0.162
+          ],
+          "repositories": [
+            0.0265,
+            0.1591
+          ]
+        },
+        "recallAllRows": {
+          "k": 191,
+          "n": 6645,
+          "value": 0.0287,
+          "wilson": [
+            0.025,
+            0.033
+          ],
+          "repositories": [
+            0.0143,
+            0.042
+          ]
+        }
+      }
+    },
+    "e14": {
+      "H1": {
+        "what": "recall(U) - recall(P)",
+        "estimate": 0.1086,
+        "registered": {
+          "estimate": 0.109,
+          "ci": [
+            0.025,
+            0.21
+          ]
+        },
+        "files": [
+          0.0248,
+          0.2102
+        ],
+        "repositories": [
+          0.0244,
+          0.2054
+        ]
+      },
+      "H2": {
+        "what": "precision(U) - precision(P)",
+        "estimate": -0.0879,
+        "registered": {
+          "estimate": -0.088,
+          "ci": [
+            -0.129,
+            -0.043
+          ]
+        },
+        "files": [
+          -0.1285,
+          -0.0434
+        ],
+        "repositories": [
+          -0.1326,
+          -0.0567
+        ]
+      },
+      "H3": {
+        "what": "F1(U) - F1(gitleaks)",
+        "estimate": 0.2517,
+        "registered": {
+          "estimate": 0.252,
+          "ci": [
+            0.141,
+            0.408
+          ]
+        },
+        "files": [
+          0.141,
+          0.4079
+        ],
+        "repositories": [
+          0.1281,
+          0.4377
+        ]
+      }
+    }
+  },
+  "scopeFree": {
+    "secrets": [
+      {
+        "tool": "Penthera",
+        "version": "2.0.0",
+        "kind": "penthera",
+        "precision": [
+          1640,
+          1849
+        ],
+        "inScope": [
+          1415,
+          2220
+        ],
+        "all": [
+          1687,
+          6645
+        ],
+        "allWilson": [
+          0.2436,
+          0.2645
+        ],
+        "f1InScope": 0.7417,
+        "f1All": 0.3948
+      },
+      {
+        "tool": "Penthera",
+        "version": "1.9.0",
+        "kind": "penthera-before",
+        "inScope": [
+          233,
+          2220
+        ],
+        "all": null,
+        "why": "no family counts stored for this run"
+      },
+      {
+        "tool": "gitleaks",
+        "version": "8.30.1",
+        "kind": "tool",
+        "precision": [
+          2242,
+          2635
+        ],
+        "inScope": [
+          831,
+          2220
+        ],
+        "all": [
+          2297,
+          6645
+        ],
+        "allWilson": [
+          0.3343,
+          0.3572
+        ],
+        "f1InScope": 0.5199,
+        "f1All": 0.4916
+      },
+      {
+        "tool": "detect-secrets",
+        "version": "1.5.0",
+        "kind": "tool",
+        "precision": [
+          2237,
+          7444
+        ],
+        "inScope": [
+          1187,
+          2220
+        ],
+        "all": [
+          1930,
+          6645
+        ],
+        "allWilson": [
+          0.2797,
+          0.3015
+        ],
+        "f1InScope": 0.3848,
+        "f1All": 0.2954
+      },
+      {
+        "tool": "trufflehog",
+        "version": "3.99.3",
+        "kind": "tool",
+        "precision": [
+          152,
+          383
+        ],
+        "inScope": [
+          122,
+          2220
+        ],
+        "all": [
+          191,
+          6645
+        ],
+        "allWilson": [
+          0.025,
+          0.033
+        ],
+        "f1InScope": 0.0965,
+        "f1All": 0.0536
+      },
+      {
+        "tool": "noseyparker",
+        "version": "0.24.0",
+        "kind": "tool",
+        "precision": [
+          1898,
+          2501
+        ],
+        "inScope": [
+          1387,
+          2220
+        ],
+        "all": [
+          1938,
+          6645
+        ],
+        "allWilson": [
+          0.2808,
+          0.3027
+        ],
+        "f1InScope": 0.6853,
+        "f1All": 0.4214
+      },
+      {
+        "tool": "kingfisher",
+        "version": "2.14.0",
+        "kind": "tool",
+        "precision": [
+          797,
+          834
+        ],
+        "inScope": [
+          653,
+          2220
+        ],
+        "all": [
+          814,
+          6645
+        ],
+        "allWilson": [
+          0.1148,
+          0.1306
+        ],
+        "f1InScope": 0.4498,
+        "f1All": 0.2172
+      },
+      {
+        "tool": "ripsecrets",
+        "version": "0.1.11",
+        "kind": "tool",
+        "precision": [
+          1883,
+          2877
+        ],
+        "inScope": [
+          766,
+          2220
+        ],
+        "all": [
+          1935,
+          6645
+        ],
+        "allWilson": [
+          0.2804,
+          0.3022
+        ],
+        "f1InScope": 0.4519,
+        "f1All": 0.4031
+      },
+      {
+        "tool": "credsweeper",
+        "version": "1.19.4",
+        "kind": "tool",
+        "excluded": true,
+        "precision": [
+          12259,
+          12305
+        ],
+        "inScope": [
+          2183,
+          2220
+        ],
+        "all": [
+          6569,
+          6645
+        ],
+        "allWilson": [
+          0.9857,
+          0.9909
+        ],
+        "f1InScope": 0.9898,
+        "f1All": 0.9924
+      },
+      {
+        "tool": "whispers",
+        "version": "2.4.0",
+        "kind": "tool",
+        "precision": [
+          281,
+          605
+        ],
+        "inScope": [
+          193,
+          2220
+        ],
+        "all": [
+          296,
+          6645
+        ],
+        "allWilson": [
+          0.0398,
+          0.0498
+        ],
+        "f1InScope": 0.1465,
+        "f1All": 0.0813
+      },
+      {
+        "tool": "deepsecrets",
+        "version": "2.2.0",
+        "kind": "tool",
+        "precision": [
+          2752,
+          3427
+        ],
+        "inScope": [
+          1704,
+          2220
+        ],
+        "all": [
+          2808,
+          6645
+        ],
+        "allWilson": [
+          0.4107,
+          0.4345
+        ],
+        "f1InScope": 0.7849,
+        "f1All": 0.5538
+      },
+      {
+        "tool": "secretlint",
+        "version": "13.0.7",
+        "kind": "tool",
+        "precision": [
+          459,
+          499
+        ],
+        "inScope": [
+          424,
+          2220
+        ],
+        "all": [
+          483,
+          6645
+        ],
+        "allWilson": [
+          0.0667,
+          0.0792
+        ],
+        "f1InScope": 0.3163,
+        "f1All": 0.1347
+      }
+    ],
+    "npm": [
+      {
+        "tool": "Penthera",
+        "version": "2.0.0",
+        "kind": "penthera",
+        "registered": [
+          79,
+          112
+        ],
+        "maliciousIntent": [
+          79,
+          150
+        ],
+        "compromised": [
+          20,
+          25
+        ],
+        "all": [
+          99,
+          175
+        ],
+        "allWilson": [
+          0.4916,
+          0.637
+        ],
+        "benign": [
+          0,
+          150
+        ],
+        "jAll": 0.5657
+      },
+      {
+        "tool": "Penthera",
+        "version": "1.9.0",
+        "kind": "penthera-before",
+        "excluded": true,
+        "registered": [
+          64,
+          112
+        ],
+        "maliciousIntent": [
+          64,
+          150
+        ],
+        "compromised": null,
+        "all": null,
+        "allWilson": null,
+        "benign": [
+          0,
+          150
+        ],
+        "jAll": null,
+        "why": "no per-group counts stored for this run"
+      },
+      {
+        "tool": "GuardDog",
+        "version": "3.2.0",
+        "kind": "tool",
+        "registered": [
+          69,
+          112
+        ],
+        "maliciousIntent": [
+          103,
+          150
+        ],
+        "compromised": [
+          18,
+          25
+        ],
+        "all": [
+          121,
+          175
+        ],
+        "allWilson": [
+          0.6195,
+          0.7551
+        ],
+        "benign": [
+          4,
+          150
+        ],
+        "jAll": 0.6648
+      },
+      {
+        "tool": "clamav",
+        "version": "1.5.4",
+        "kind": "tool",
+        "registered": [
+          1,
+          112
+        ],
+        "maliciousIntent": [
+          1,
+          150
+        ],
+        "compromised": [
+          3,
+          25
+        ],
+        "all": [
+          4,
+          175
+        ],
+        "allWilson": [
+          0.0089,
+          0.0573
+        ],
+        "benign": [
+          0,
+          150
+        ],
+        "jAll": 0.0229
+      },
+      {
+        "tool": "yara",
+        "version": "yara-python 4.5.4 (YARA 4.5), YARA-Forge core 20261004",
+        "kind": "tool",
+        "registered": [
+          0,
+          112
+        ],
+        "maliciousIntent": [
+          0,
+          150
+        ],
+        "compromised": [
+          12,
+          25
+        ],
+        "all": [
+          12,
+          175
+        ],
+        "allWilson": [
+          0.0397,
+          0.116
+        ],
+        "benign": [
+          0,
+          150
+        ],
+        "jAll": 0.0686
+      },
+      {
+        "tool": "ossgadget",
+        "version": "0.2.20 (414b6a59)",
+        "kind": "tool",
+        "registered": [
+          105,
+          112
+        ],
+        "maliciousIntent": [
+          137,
+          150
+        ],
+        "compromised": [
+          25,
+          25
+        ],
+        "all": [
+          162,
+          175
+        ],
+        "allWilson": [
+          0.8771,
+          0.9561
+        ],
+        "benign": [
+          133,
+          150
+        ],
+        "jAll": 0.039
+      },
+      {
+        "tool": "malcontent",
+        "version": "1.27.1 (bf280ad6), yara-x 1.21.0",
+        "kind": "tool",
+        "registered": [
+          76,
+          112
+        ],
+        "maliciousIntent": [
+          76,
+          150
+        ],
+        "compromised": [
+          21,
+          25
+        ],
+        "all": [
+          97,
+          175
+        ],
+        "allWilson": [
+          0.4803,
+          0.626
+        ],
+        "benign": [
+          8,
+          150
+        ],
+        "jAll": 0.501
+      },
+      {
+        "tool": "osv-scanner",
+        "version": "2.6.0",
+        "kind": "lookup",
+        "excluded": true,
+        "registered": [
+          101,
+          112
+        ],
+        "maliciousIntent": [
+          137,
+          150
+        ],
+        "compromised": [
+          24,
+          25
+        ],
+        "all": [
+          161,
+          175
+        ],
+        "allWilson": [
+          0.8702,
+          0.9517
+        ],
+        "benign": [
+          1,
+          150
+        ],
+        "jAll": 0.9133
+      }
+    ],
+    "pypi": [
+      {
+        "tool": "Penthera",
+        "version": "2.0.0",
+        "kind": "penthera",
+        "registered": [
+          131,
+          150
+        ],
+        "maliciousIntent": [
+          131,
+          150
+        ],
+        "compromised": [
+          1,
+          7
+        ],
+        "all": [
+          132,
+          157
+        ],
+        "allWilson": [
+          0.7755,
+          0.8898
+        ],
+        "benign": [
+          8,
+          150
+        ],
+        "jAll": 0.7874
+      },
+      {
+        "tool": "Penthera",
+        "version": "1.9.0",
+        "kind": "penthera-before",
+        "excluded": true,
+        "registered": [
+          125,
+          150
+        ],
+        "maliciousIntent": [
+          125,
+          150
+        ],
+        "compromised": null,
+        "all": null,
+        "allWilson": null,
+        "benign": [
+          14,
+          150
+        ],
+        "jAll": null,
+        "why": "no per-group counts stored for this run"
+      },
+      {
+        "tool": "GuardDog",
+        "version": "3.2.0",
+        "kind": "tool",
+        "registered": [
+          128,
+          150
+        ],
+        "maliciousIntent": [
+          128,
+          150
+        ],
+        "compromised": [
+          2,
+          7
+        ],
+        "all": [
+          130,
+          157
+        ],
+        "allWilson": [
+          0.7613,
+          0.879
+        ],
+        "benign": [
+          16,
+          147
+        ],
+        "jAll": 0.7192
+      },
+      {
+        "tool": "clamav",
+        "version": "1.5.4",
+        "kind": "tool",
+        "registered": [
+          0,
+          150
+        ],
+        "maliciousIntent": [
+          0,
+          150
+        ],
+        "compromised": [
+          0,
+          7
+        ],
+        "all": [
+          0,
+          157
+        ],
+        "allWilson": [
+          0,
+          0.0239
+        ],
+        "benign": [
+          0,
+          147
+        ],
+        "jAll": 0
+      },
+      {
+        "tool": "yara",
+        "version": "yara-python 4.5.4 (YARA 4.5), YARA-Forge core 20261004",
+        "kind": "tool",
+        "registered": [
+          37,
+          150
+        ],
+        "maliciousIntent": [
+          37,
+          150
+        ],
+        "compromised": [
+          0,
+          7
+        ],
+        "all": [
+          37,
+          157
+        ],
+        "allWilson": [
+          0.1761,
+          0.3079
+        ],
+        "benign": [
+          0,
+          147
+        ],
+        "jAll": 0.2357
+      },
+      {
+        "tool": "ossgadget",
+        "version": "0.2.20 (414b6a59)",
+        "kind": "tool",
+        "registered": [
+          116,
+          150
+        ],
+        "maliciousIntent": [
+          116,
+          150
+        ],
+        "compromised": [
+          7,
+          7
+        ],
+        "all": [
+          123,
+          157
+        ],
+        "allWilson": [
+          0.7127,
+          0.8407
+        ],
+        "benign": [
+          143,
+          147
+        ],
+        "jAll": -0.1893
+      },
+      {
+        "tool": "malcontent",
+        "version": "1.27.1 (bf280ad6), yara-x 1.21.0",
+        "kind": "tool",
+        "registered": [
+          139,
+          150
+        ],
+        "maliciousIntent": [
+          139,
+          150
+        ],
+        "compromised": [
+          4,
+          7
+        ],
+        "all": [
+          143,
+          157
+        ],
+        "allWilson": [
+          0.8559,
+          0.9461
+        ],
+        "benign": [
+          32,
+          147
+        ],
+        "jAll": 0.6931
+      },
+      {
+        "tool": "osv-scanner",
+        "version": "2.6.0",
+        "kind": "lookup",
+        "excluded": true,
+        "registered": [
+          110,
+          149
+        ],
+        "maliciousIntent": [
+          110,
+          149
+        ],
+        "compromised": [
+          7,
+          7
+        ],
+        "all": [
+          117,
+          156
+        ],
+        "allWilson": [
+          0.6766,
+          0.8114
+        ],
+        "benign": [
+          0,
+          147
+        ],
+        "jAll": 0.75
+      },
+      {
+        "tool": "bandit4mal",
+        "version": "lyvd/bandit4mal 03ba95f3 (bandit 1.6.3 fork)",
+        "kind": "tool",
+        "registered": [
+          89,
+          150
+        ],
+        "maliciousIntent": [
+          89,
+          150
+        ],
+        "compromised": [
+          7,
+          7
+        ],
+        "all": [
+          96,
+          157
+        ],
+        "allWilson": [
+          0.5334,
+          0.6842
+        ],
+        "benign": [
+          124,
+          147
+        ],
+        "jAll": -0.2321
+      },
+      {
+        "tool": "aura",
+        "version": "2.1 (SourceCode-AI/aura b40e6dd2)",
+        "kind": "tool",
+        "registered": [
+          88,
+          149
+        ],
+        "maliciousIntent": [
+          88,
+          149
+        ],
+        "compromised": [
+          6,
+          6
+        ],
+        "all": [
+          94,
+          155
+        ],
+        "allWilson": [
+          0.5279,
+          0.6799
+        ],
+        "benign": [
+          100,
+          121
+        ],
+        "jAll": -0.22
+      }
+    ],
+    "secbench": {
+      "entries": 70,
+      "scored": 64,
+      "notScored": {
+        "command-injection": {
+          "notOnRegistry": 3,
+          "noSinkFile": 0,
+          "ofWhichSinkNotInTarball": 0
+        },
+        "code-injection": {
+          "notOnRegistry": 0,
+          "noSinkFile": 3,
+          "ofWhichSinkNotInTarball": 1
+        }
+      },
+      "clusters": {
+        "vulnerabilities": 64,
+        "packages": 64,
+        "note": "every package holds one scored vulnerability, so a package bootstrap is an item bootstrap"
+      },
+      "rows": [
+        {
+          "tool": "Penthera",
+          "version": "2.0.0",
+          "kind": "penthera",
+          "registered": [
+            45,
+            64
+          ],
+          "entries": [
+            45,
+            70
+          ],
+          "entriesWilson": [
+            0.5259,
+            0.745
+          ]
+        },
+        {
+          "tool": "Penthera",
+          "version": "1.9.0",
+          "kind": "penthera-before",
+          "excluded": true,
+          "registered": [
+            10,
+            64
+          ],
+          "entries": [
+            10,
+            70
+          ],
+          "entriesWilson": [
+            0.0795,
+            0.2434
+          ]
+        },
+        {
+          "tool": "njsscan",
+          "version": "1.0.1",
+          "kind": "tool",
+          "registered": [
+            3,
+            60
+          ],
+          "entries": [
+            3,
+            70
+          ],
+          "entriesWilson": [
+            0.0147,
+            0.1186
+          ]
+        },
+        {
+          "tool": "codeql",
+          "version": "2.27.2",
+          "kind": "tool",
+          "registered": [
+            41,
+            64
+          ],
+          "entries": [
+            41,
+            70
+          ],
+          "entriesWilson": [
+            0.4688,
+            0.6937
+          ]
+        },
+        {
+          "tool": "semgrep",
+          "version": "1.180.0",
+          "kind": "tool",
+          "registered": [
+            24,
+            64
+          ],
+          "entries": [
+            24,
+            70
+          ],
+          "entriesWilson": [
+            0.2425,
+            0.4596
+          ]
+        },
+        {
+          "tool": "semgrep, every file",
+          "version": "1.180.0",
+          "kind": "tool",
+          "excluded": true,
+          "registered": [
+            25,
+            64
+          ],
+          "entries": [
+            25,
+            70
+          ],
+          "entriesWilson": [
+            0.255,
+            0.4741
+          ]
+        },
+        {
+          "tool": "eslint-plugin-security",
+          "version": "4.2.0",
+          "kind": "tool",
+          "registered": [
+            41,
+            64
+          ],
+          "entries": [
+            41,
+            70
+          ],
+          "entriesWilson": [
+            0.4688,
+            0.6937
+          ]
+        },
+        {
+          "tool": "bearer",
+          "version": "2.1.1",
+          "kind": "tool",
+          "registered": [
+            14,
+            64
+          ],
+          "entries": [
+            14,
+            70
+          ],
+          "entriesWilson": [
+            0.123,
+            0.3082
+          ]
+        },
+        {
+          "tool": "graudit",
+          "version": "849d7c7",
+          "kind": "tool",
+          "registered": [
+            22,
+            64
+          ],
+          "entries": [
+            22,
+            70
+          ],
+          "entriesWilson": [
+            0.2176,
+            0.4303
+          ]
+        },
+        {
+          "tool": "odgen",
+          "version": "c5157ee",
+          "kind": "tool",
+          "registered": [
+            42,
+            62
+          ],
+          "entries": [
+            42,
+            70
+          ],
+          "entriesWilson": [
+            0.4829,
+            0.7067
+          ]
+        }
+      ]
+    }
+  },
+  "malware": {
+    "clusterBootstrap": null,
+    "why": "no campaign, maintainer or publish-window id is stored for the samples; each package is already one unit, so there is nothing to cluster by without new labels"
+  }
+}

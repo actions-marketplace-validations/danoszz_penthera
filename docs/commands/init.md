@@ -85,6 +85,7 @@ Every report lands in `reports/penthera-<date>/`: `code`, `deps`, `agents` and
 |---|---|---|
 | Pre-commit hook | yes | `penthera hook install`: blocks staged secrets, risky agent config and lockfile changes ([hook.md](hook.md)). Git repos only |
 | GitHub workflow | yes | Writes `.github/workflows/penthera.yml` from [the PR dependency review example](https://github.com/danoszz/penthera/blob/main/docs/examples/pr-dependency-review.yml), with the action pinned to the release commit SHA. Shown as a diff first. Needs a git repo and `package-lock.json` |
+| Agent config workflow | yes | Writes `.github/workflows/penthera-agents.yml` from [the agent config example](https://github.com/danoszz/penthera/blob/main/docs/examples/github-actions-agents.yml): `npx --yes penthera@<version> agents` on every pull request, with SARIF to code scanning. The version is the same release as the action pin. Shown as a diff first. Needs a git repo and agent config |
 | `.gitignore` | yes | Appends `reports/` so scan output is never committed |
 | Fix loop | no | `penthera agent --loop` on a local `penthera/fix-<date>` branch; every diff asks first ([fix.md](fix.md)) |
 | Dashboard | yes | `penthera ui --open` on this run's reports ([dashboard.md](../dashboard.md)). Runs until Ctrl-C |
@@ -120,7 +121,7 @@ per fix it knows. Nothing is written until you apply a plan
 ## `--yes` and `--dry-run`
 
 `--yes` answers every question with its safe default: the code, dependency and
-AI tooling checks that apply, offline, then the hook, the workflow and
+AI tooling checks that apply, offline, then the hook, the workflows and
 `.gitignore`. It never scans a URL, never runs the fix loop and never opens the
 dashboard, even when a dev server is running.
 

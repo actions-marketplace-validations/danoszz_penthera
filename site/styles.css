@@ -40,6 +40,8 @@
  * Blue band, measured: white 9.45 · text-2 (white .85) 6.9 · text-3 (white .72) 5.1
  * Grey band, measured on its lighter pixel (#575757): white 7.2 · text-2
  *   (white .85) 5.8 · text-3 (white .78) 5.2. Links are white, underlined.
+ * --slab is the one flat grey (2026-10-29): the problem section's ground, a
+ *   step off the page's own, with the theme's ink. Measured in each palette.
  */
 :root,
 :root[data-theme="dark"],
@@ -59,6 +61,7 @@
   --on-accent: #ffffff;
   --focus: #7a7aff;
   --field-filter: none;              /* field.png is white ink */
+  --slab: #1f1f1f;                   /* the problem slab, flat: text-1 16.5 · text-3 6.7 */
 }
 
 :root[data-theme="light"],
@@ -78,6 +81,7 @@
   --on-accent: #ffffff;
   --focus: #0000ed;
   --field-filter: invert(1);
+  --slab: #e6e6e1;                   /* the problem slab, flat: text-1 15.8 · text-3 4.9 */
 }
 
 :root .band-blue,
@@ -439,40 +443,35 @@ main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
  * skips the light theme's invert; the static PNG stays until its first frame. */
 .field-live { filter: none; }
 .hero.live img.field { visibility: hidden; }
+/* The problem slab (2026-10-29): after the poster, the problem gets a section
+ * of its own on a flat grey, with section padding above and below. One
+ * hierarchy, top to bottom: the problem in display type, the pills, the
+ * lede, the two ways in, then the loop. Spacing on the 8 px scale: 40 · 24
+ * · 40, and the loop a section step below. */
+main > .slab { margin-top: var(--section); padding-bottom: var(--section); background: var(--slab); }
 .hero-text {
   position: relative; z-index: 1;
   max-width: var(--measure); margin: 0 auto;
-  /* The first screen is at least 90vh; the headline sits in the lower half
-   * of the cloud, over the dots, with the text block at the bottom. */
-  min-height: 90vh;
-  display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start;
-  padding-top: clamp(240px, 42vh, 440px);
+  display: flex; flex-direction: column; align-items: flex-start;
 }
-/* A long gradient behind the text, full width: the cloud stays visible at
- * the top and fades to the ground under the headline, so it reads. */
-.hero-text::before {
-  content: ""; position: absolute; z-index: -1; pointer-events: none;
-  top: 22%; bottom: -12%;
-  left: calc(50% - 50vw); width: 100vw;
-  background: linear-gradient(rgba(var(--ground-rgb), 0), rgba(var(--ground-rgb), 0.8) 32%, rgba(var(--ground-rgb), 0.94) 50%, rgb(var(--ground-rgb)) 85%);
-}
-/* The problem, said before the answer: one line in display type, on a
- * ground-coloured strip so it reads over the field. */
 /* Marked line by line: each line gets its own stroke of ground, as long as
- * its words, with the field showing between the lines. */
+ * its words. The stroke is a background band 0.88em tall inside a line box
+ * of 1em, so the lines sit tight and a thin line of grey shows between the
+ * strokes, never a gap the size of a line. */
 .problem {
-  margin: 0 0 24px; max-width: 30ch;
-  font-family: var(--display); font-size: clamp(22px, 3vw, 36px); font-weight: 500;
-  line-height: 1.62; letter-spacing: -0.02em; color: var(--text-1);
+  margin: 0; max-width: 17ch;
+  font-family: var(--display); font-size: clamp(40px, 6.4vw, 88px); font-weight: 500;
+  line-height: 1; letter-spacing: -0.04em; color: var(--text-1);
   text-wrap: balance;
 }
 .problem span {
-  padding: 2px 10px 4px; margin-left: -10px; background: var(--ground);
+  padding: 0 0.14em; margin-left: -0.14em;
+  background: linear-gradient(var(--ground), var(--ground)) 0 56% / 100% 0.88em no-repeat;
   -webkit-box-decoration-break: clone; box-decoration-break: clone;
 }
-/* Three separate labels in blue highlighter: a solid #0000ed stroke with
- * stepped, pixel-cut ends and a slight tilt each, so they read as marked by
- * hand. White on #0000ed is 9.45:1 in both themes. */
+.slab .pills { margin: 40px 0 0; }
+.slab .lede { margin-top: 24px; }
+.slab .hero-actions { margin-top: 40px; }
 .pills { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 20px; padding: 0 0 0 4px; list-style: none; }
 .pills li {
   padding: 5px 12px 4px; color: #fff; background: #0000ed;
@@ -494,7 +493,7 @@ h1 {
 .hero-actions { display: flex; flex-wrap: wrap; align-items: stretch; gap: 12px; margin-top: 36px; }
 .btn-prompt { min-height: var(--target); max-width: 100%; gap: 10px; padding: 8px 16px; white-space: normal; text-align: left; }
 .btn-prompt .tool-icon { width: 14px; height: 14px; margin: 0; }
-.loop { position: relative; z-index: 1; max-width: var(--measure); margin: clamp(64px, 10vw, 128px) auto 0; }
+.loop { position: relative; z-index: 1; max-width: var(--measure); margin: var(--section) auto 0; }
 .loop video, .walk video { display: block; width: 100%; height: auto; border: 1px solid var(--frame); background: var(--ground); }
 figcaption { margin-top: 10px; color: var(--text-3); }
 /* A link in a caption gets a 44 px hit area without moving the text. */
@@ -890,26 +889,93 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 
 /* ── Footer ───────────────────────────────────────────────────────────── */
 
-/* The footer: one quiet strip. The veil switches off over it (check/ui.js). */
+/* The footer (2026-10-29): one piece on every page, built by site/frame.mjs.
+ * A status line and the bar's three controls, a site map in four groups
+ * under Departure Mono labels, a 1-bit dither ramp on a row of its own, then
+ * the wordmark as a big steel plate with a blue glow, and the facts. No
+ * rules: space separates the parts. No dither behind the wordmark or any
+ * text. The veil switches off over it (check/ui.js). */
 .foot {
-  padding: 16px var(--gutter) 20px;
-  border-top: 1px solid var(--frame);
-  color: var(--text-3);
-  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px 32px;
+  --foot-pad: max(var(--gutter), calc((100vw - var(--measure)) / 2));
+  position: relative; isolation: isolate;
+  display: grid; gap: clamp(48px, 6vw, 80px);
+  padding: clamp(72px, 10vw, 136px) var(--foot-pad) 28px;
+  background: var(--ground); color: var(--text-3);
   font-size: 12px;
 }
-.foot-main { display: grid; gap: 6px; flex: 1 1 420px; }
-.nowrap { white-space: nowrap; }
-/* The mark again, on the right, closing the page; it links back to the top. */
-.foot-mark {
-  --logo-w: clamp(120px, 18vw, 220px); --logo-h: calc(var(--logo-w) * 63 / 279);
-  display: inline-flex; align-items: center; min-height: var(--target); margin-left: auto;
+.foot-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 20px 32px; }
+.foot-status {
+  display: inline-flex; align-items: center; gap: 12px;
+  font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2);
+}
+/* The one light on the footer: a square LED in Penthera blue, breathing.
+ * The breath crossfades two fixed glows (bright on ::after, dim on ::before)
+ * by opacity, so it runs on the compositor; animating the box-shadow itself
+ * would repaint every frame. Off screen it waits (theme.js sets data-rest). */
+.foot-led {
+  position: relative; flex: none; width: 8px; height: 8px;
+  background: linear-gradient(180deg, #8a8aff, #0000ed 60%, #0000b8);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35) inset;
+}
+.foot-led::before, .foot-led::after { content: ""; position: absolute; inset: 0; pointer-events: none; will-change: opacity; }
+.foot-led::before { box-shadow: 0 0 4px 1px rgba(0, 0, 237, 0.5), 0 0 12px 2px rgba(0, 0, 237, 0.2); opacity: 0; animation: foot-led-dim 2.8s ease-in-out infinite; }
+.foot-led::after { box-shadow: 0 0 10px 2px rgba(0, 0, 237, 0.7), 0 0 28px 6px rgba(0, 0, 237, 0.35); animation: foot-led 2.8s ease-in-out infinite; }
+.foot-led[data-rest]::before, .foot-led[data-rest]::after { animation-play-state: paused; }
+@keyframes foot-led { 50% { opacity: 0; } }
+@keyframes foot-led-dim { 50% { opacity: 1; } }
+.foot-ctas { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* The map: four groups, each under a numbered mono label. */
+.foot-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 48px 32px; }
+.foot-k { display: flex; align-items: baseline; gap: 10px; margin-bottom: 18px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
+.foot-k span { color: var(--accent-ink); font-variant-numeric: tabular-nums; }
+.foot-nav ul { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.foot-nav a {
+  display: inline-flex; align-items: center; min-height: 32px; padding: 2px 0;
+  font-family: var(--display); font-size: 17px; line-height: 1.2; letter-spacing: -0.01em;
   color: var(--text-1); text-decoration: none;
 }
-.foot-mark:hover { background: none; color: var(--accent-ink); }
-.foot p a { display: inline-block; padding: 12px 0; margin: -12px 0; }
-/* The bar's three controls again, so the end of the page has the same ways out. */
-.foot-ctas { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+/* Pages under a page (each benchmark, each post): mono, smaller, set in. */
+.foot-sub a { min-height: 28px; padding-left: 14px; font-family: var(--px); font-size: 12px; letter-spacing: 0.01em; color: var(--text-2); }
+@media (pointer: coarse) { .foot-nav a, .foot-sub a { min-height: var(--target); } }
+@media (max-width: 1000px) { .foot-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .foot-nav { grid-template-columns: minmax(0, 1fr); gap: 40px; } }
+
+/* A 1-bit ramp, blue to empty paper: the only dither in the footer, on a row
+ * with nothing else in it. */
+.foot-field { display: grid; grid-template-columns: repeat(8, 1fr); height: clamp(20px, 3vw, 36px); }
+.foot-field { --dot: conic-gradient(from 270deg at 1px 1px, var(--frame) 25%, transparent 0); }
+.foot-field > i:nth-child(1) { background: linear-gradient(180deg, #5a5aff, #0000ed 55%, #0000b8); box-shadow: 0 8px 28px -6px rgba(0, 0, 237, 0.7); }
+.foot-field > i:nth-child(2) { background: var(--pt-half); }
+.foot-field > i:nth-child(3) { background: var(--dot) 0 0 / 2px 2px; }
+.foot-field > i:nth-child(4) { background: var(--dot) 0 0 / 3px 3px; }
+.foot-field > i:nth-child(5) { background: var(--dot) 0 0 / 4px 4px; }
+.foot-field > i:nth-child(6) { background: var(--dot) 0 0 / 6px 6px; }
+.foot-field > i:nth-child(7) { background: var(--dot) 0 0 / 8px 8px; }
+.foot-field > i:nth-child(8) { background: var(--dot) 0 0 / 12px 12px; }
+
+/* The wordmark as a plate across the whole measure: polished steel (chrome
+ * on black, gunmetal on paper) with blue light under it. It links back to the
+ * top. Nothing sits behind it. */
+.foot-mark {
+  display: block; padding: 0; color: var(--text-1); text-decoration: none;
+  filter: drop-shadow(0 22px 44px rgba(0, 0, 237, 0.42));
+  transition: filter 240ms var(--out);
+}
+.foot-word {
+  display: block; width: 100%; aspect-ratio: 279 / 63;
+  background: linear-gradient(180deg, #ffffff 0%, #d3d9e0 34%, #7f8896 50%, #f4f6f8 64%, #9aa3b0 100%);
+  -webkit-mask: url("/logo.svg") left center / contain no-repeat;
+  mask: url("/logo.svg") left center / contain no-repeat;
+}
+:root[data-theme="light"] .foot-mark { filter: drop-shadow(0 22px 40px rgba(0, 0, 237, 0.22)); }
+:root[data-theme="light"] .foot-word { background: linear-gradient(180deg, #4a515c 0%, #1b1e23 40%, #000000 52%, #5d6572 70%, #15171b 100%); }
+.foot-mark:hover, :root[data-theme="light"] .foot-mark:hover { background: none; filter: drop-shadow(0 22px 52px rgba(0, 0, 237, 0.6)); }
+.foot-mark:hover .foot-word { background: linear-gradient(180deg, #8a8aff 0%, #2a2aff 45%, #0000ed 60%, #0000b8 100%); }
+
+.foot-facts { display: flex; flex-wrap: wrap; gap: 6px 28px; margin-top: calc(-1 * clamp(16px, 3vw, 40px)); font-size: 12px; color: var(--text-3); }
+@media (prefers-reduced-motion: reduce) { .foot-led::before, .foot-led::after { animation: none; } }
+.nowrap { white-space: nowrap; }
 /* The maker, at the end of Open R&D. */
 .by {
   justify-self: start;
@@ -931,29 +997,40 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 /* A progressive blur, 0 at the top edge to 32 px at the bottom: six stacked
  * layers, each blurring twice as much as the last over a band nearer the
  * bottom, masked so neighbouring bands overlap. One blurred layer under a
- * fading mask reads as a frosted rectangle; this has no edge. */
+ * fading mask reads as a frosted rectangle; this has no edge.
+ *
+ * Cost (2026-10-29): a backdrop blur is paid over its whole box, mask or
+ * not, every frame that anything under it moves. So each layer is only as
+ * tall as its mask is opaque (--clear, % of the veil), with the mask's stops
+ * rescaled to match: the same picture, and the heavy blurs work on the
+ * smallest strips (32 px over 18%, not 100%), 41% less blurred area in all. */
 .veil {
   position: fixed; inset: auto 0 0; z-index: 9;
   height: var(--veil-h);
   pointer-events: none;
-  transition: opacity 240ms var(--out);
+  contain: strict;
+  transition: opacity 240ms var(--out), visibility 0s;
 }
 .veil > i {
-  position: absolute; inset: 0;
+  position: absolute; inset: auto 0 0;
+  height: calc(var(--clear) * 1%);
   -webkit-backdrop-filter: blur(var(--b)); backdrop-filter: blur(var(--b));
-  -webkit-mask-image: linear-gradient(to top, #000 var(--solid), transparent var(--clear));
-  mask-image: linear-gradient(to top, #000 var(--solid), transparent var(--clear));
+  -webkit-mask-image: linear-gradient(to top, #000 calc(var(--solid) / var(--clear) * 100%), transparent 100%);
+  mask-image: linear-gradient(to top, #000 calc(var(--solid) / var(--clear) * 100%), transparent 100%);
 }
-.veil > i:nth-child(1) { --b: 1px;  --solid: 66%; --clear: 100%; }
-.veil > i:nth-child(2) { --b: 2px;  --solid: 50%; --clear: 83%; }
-.veil > i:nth-child(3) { --b: 4px;  --solid: 34%; --clear: 66%; }
-.veil > i:nth-child(4) { --b: 8px;  --solid: 18%; --clear: 50%; }
-.veil > i:nth-child(5) { --b: 16px; --solid: 6%;  --clear: 34%; }
-.veil > i:nth-child(6) { --b: 32px; --solid: 0%;  --clear: 18%; }
+/* --solid and --clear: where each layer's mask is opaque up to and clear
+ * from, in % of the veil's height from the bottom. */
+.veil > i:nth-child(1) { --b: 1px;  --solid: 66; --clear: 100; }
+.veil > i:nth-child(2) { --b: 2px;  --solid: 50; --clear: 83; }
+.veil > i:nth-child(3) { --b: 4px;  --solid: 34; --clear: 66; }
+.veil > i:nth-child(4) { --b: 8px;  --solid: 18; --clear: 50; }
+.veil > i:nth-child(5) { --b: 16px; --solid: 6;  --clear: 34; }
+.veil > i:nth-child(6) { --b: 32px; --solid: 0;  --clear: 18; }
 
 /* Off while the hero headline is inside the veil's zone, so the first screen
- * reads clean; it fades in once the headline has scrolled above it. */
-.veil[data-off] { opacity: 0; }
+ * reads clean; it fades in once the headline has scrolled above it. Once
+ * faded out it is hidden too, so its blurs are not drawn at zero opacity. */
+.veil[data-off] { opacity: 0; visibility: hidden; transition: opacity 240ms var(--out), visibility 0s 240ms; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
@@ -1031,11 +1108,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 /* ── The live check (2026-10-23) ─────────────────────────────────────────
  * The first thing to do on the page: a field, a button, and a report that
  * opens in place. The score is a 10 × 10 grid of pixels, one per point. */
-.scan { margin: 8px 0 36px; max-width: 640px; display: grid; gap: 10px; }
-.report + .pills, .report[hidden] + .pills { margin-top: 0; }
-.report:not([hidden]) { margin-bottom: 48px; }
-.scan-label, .scan-note { justify-self: start; padding: 2px 8px; margin-left: -8px; background: var(--ground); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
-.scan-label { font-family: var(--display); font-size: clamp(19px, 2vw, 24px); font-weight: 500; letter-spacing: -0.01em; color: var(--text-1); }
+.scan { max-width: 640px; display: grid; gap: 10px; }
 .scan-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .scan-row input {
   min-height: 52px; min-width: 0; padding: 0 16px;
@@ -1047,35 +1120,18 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .scan-go { min-height: 52px; padding: 0 28px; font-size: 15px; }
 .scan-note { font-family: var(--px); font-size: 13px; color: var(--text-3); }
 
-.report {
-  position: relative; z-index: 1; margin-top: 28px; max-width: 980px;
-  padding: clamp(20px, 3vw, 32px); border: 1px solid rgba(var(--ink-rgb), 0.28);
-  background: color-mix(in srgb, var(--ground) 88%, transparent);
-  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
-}
+.report { position: relative; z-index: 1; }
 .report-busy, .report-error { font-family: var(--px); font-size: 15px; color: var(--text-1); }
 .report-busy::after { content: "▌"; margin-left: 4px; animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .report-busy::after { animation: none; } }
-.report-head { display: grid; gap: 24px 40px; align-items: start; }
-@media (min-width: 760px) { .report-head { grid-template-columns: 1fr minmax(260px, 340px); } }
-.report-host { font-family: var(--px); font-size: 14px; color: var(--text-3); }
-.report-verdict { margin-top: 6px; font-size: clamp(26px, 3.4vw, 40px); line-height: 1.05; letter-spacing: -0.03em; }
-.report-score { display: flex; align-items: center; gap: 20px; }
 .meter { display: grid; grid-template-columns: repeat(10, 9px); gap: 2px; }
 .meter i { width: 9px; height: 9px; background: var(--pt-sparse); outline: 1px solid var(--hair); outline-offset: -1px; }
 .meter i.on { background: var(--frame); outline: 0; }
 .score-n { font-family: var(--display); font-size: clamp(56px, 7vw, 88px); line-height: 0.9; letter-spacing: -0.05em; color: var(--text-1); }
 .score-n span { font-family: var(--px); font-size: 15px; letter-spacing: 0; color: var(--text-3); margin-left: 6px; }
-.report-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
-.report-prompt { width: 100%; min-height: 56px; padding: 0 24px; font-size: 16px; }
-.report-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
 .linkish { padding: 0; border: 0; background: none; font: inherit; color: var(--text-1); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.report-cats { list-style: none; margin: 28px 0 0; padding: 0; display: grid; gap: 0 32px; border-top: 1px solid var(--frame); }
-@media (min-width: 760px) { .report-cats { grid-template-columns: 1fr 1fr; } }
-.report-cats li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--hair); color: var(--text-1); }
 .cat-n { font-family: var(--px); font-size: 13px; color: var(--text-3); }
-.report-cats li:not(.ok) .cat-n { color: var(--text-1); }
 .report-list { list-style: none; margin: 20px 0 0; padding: 0; display: grid; gap: 6px; }
 .finding details { border: 1px solid var(--hair); }
 .finding summary { display: flex; align-items: baseline; gap: 12px; padding: 12px 14px; cursor: pointer; list-style: none; color: var(--text-1); }
@@ -1095,11 +1151,6 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .report-passed > summary::before { content: "+"; width: 24px; height: 24px; display: grid; place-items: center; border: 1px solid var(--frame); }
 .report-passed[open] > summary::before { content: "\2212"; }
 .report-scope { margin-top: 16px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
-.report-deep { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--frame); display: grid; gap: 10px; justify-items: start; }
-.report-deep h3 { font-size: clamp(21px, 2.2vw, 26px); letter-spacing: -0.02em; }
-.report-deep p { max-width: 62ch; }
-.deep-steps { display: grid; gap: 8px; justify-items: start; }
-.deep-steps pre { margin: 0; padding: 8px 10px; border: 1px solid var(--hair); white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text-1); }
 
 .prompt-dialog {
   width: min(640px, calc(100vw - 32px)); max-height: min(80vh, 760px); padding: 24px;
@@ -1124,13 +1175,15 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .limits .road-title { margin-top: 0; }
 .limits-one { margin-top: 16px; max-width: 64ch; font-size: clamp(17px, 1.6vw, 20px); color: var(--text-1); }
 .limits .road + .limits-one { margin-top: 20px; font-size: 17px; color: var(--text-2); }
-.tour-video { margin: 40px 0 0; }
-.tour-video video { display: block; width: 100%; height: auto; border: 1px solid var(--frame); background: var(--ground); box-shadow: 6px 6px 0 var(--frame); }
-.tour-video figcaption, .tour-shots figcaption { margin-top: 10px; }
-.tour-shots { margin-top: 32px; display: grid; gap: 24px; }
-@media (min-width: 860px) { .tour-shots { grid-template-columns: 1fr 1fr; } }
-.tour-shots figure { margin: 0; }
-.tour-shots img { display: block; width: 100%; height: auto; border: 1px solid var(--frame); }
+/* 03 · See it work: three steps of the dashboard, side by side on wide
+ * screens, stacked on a phone. Light shots in both themes. */
+.tour-steps { list-style: none; margin: 48px 0 0; padding: 0; display: grid; gap: 48px; }
+@media (min-width: 900px) { .tour-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; } }
+.tour-steps li { min-width: 0; }
+.tour-steps .step-n { margin-bottom: 16px; }
+.tour-steps figure { margin: 0; }
+.tour-steps img { display: block; width: 100%; height: auto; border: 1px solid var(--frame); }
+.tour-steps figcaption { margin-top: 16px; max-width: 40ch; }
 .about-text + .about-text { margin-top: 20px; }
 .about { padding-bottom: clamp(96px, 12vw, 160px); }
 .about-text { margin-top: 28px; max-width: 60ch; font-family: var(--display); font-size: clamp(21px, 2.3vw, 28px); line-height: 1.35; letter-spacing: -0.01em; color: var(--text-1); }
@@ -1149,7 +1202,6 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .land-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin: 28px 0 8px; }
 .land-cta .btn { text-decoration: none; }
 .land-cta span { font-family: var(--px); font-size: 13px; color: var(--text-3); }
-.land-foot { margin-top: 64px; padding-top: 16px; border-top: 1px solid var(--hair); font-family: var(--px); font-size: 13px; color: var(--text-3); }
 
 /* Benchmark pages (/benchmarks, site/benchmarks.mjs): the landing frame, wider for the tables. */
 .terms.bm { max-width: 1040px; }
@@ -1173,8 +1225,129 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .pb-link { font-family: var(--px); font-size: 12px; }
 
 /* Blog (site/blog.mjs): the landing frame. */
+/* Long bare URLs in a post break instead of widening the page at 390 px. */
+.blog a { overflow-wrap: anywhere; }
 .blog-meta, .blog-src { margin-top: 16px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
+/* Blog figures: white paper plates (blog/figures/*.svg) in both themes, framed
+ * so the plate reads as a figure on the black ground too. */
+.md-fig { margin: 32px 0 0; }
+.md-fig img { display: block; width: 100%; height: auto; background: #ffffff; border: 1px solid var(--frame); }
+.md-fig figcaption { margin-top: 10px; line-height: 1.6; }
 .blog-draft { display: inline-block; margin-bottom: 16px; padding: 6px 10px; font-family: var(--px); font-size: 13px; background: var(--accent); color: var(--on-accent); }
+
+/* Research (/research, site/research.mjs): the benchmark frame. One statement,
+ * the public benchmark on a blue plate, then a dated list held apart by space,
+ * never by rules. */
+.rs .rs-purpose { margin-top: 28px; max-width: 30ch; font-family: var(--display); font-size: clamp(24px, 3.4vw, 42px); line-height: 1.12; letter-spacing: -0.025em; color: var(--text-1); text-wrap: balance; }
+.rs .rs-tally { margin-top: 20px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
+
+.rs .rs-feature {
+  position: relative; isolation: isolate; margin-top: 48px; padding: clamp(24px, 4vw, 48px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1px 0 rgba(0, 0, 0, 0.3), 0 24px 60px -30px rgba(0, 0, 237, 0.7);
+}
+.rs .rs-feature::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 3px);
+}
+.rs .rs-feature-k { display: flex; flex-wrap: wrap; gap: 8px; font-family: var(--px); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-2); }
+.rs .rs-feature-k > * { padding: 3px 8px; background: rgba(255, 255, 255, 0.12); }
+.rs .rs-feature-k > :first-child { background: #ffffff; color: #0000ed; }
+.rs .rs-feature h2 { margin-top: 20px; max-width: 22ch; font-size: clamp(28px, 4vw, 52px); line-height: 1; letter-spacing: -0.035em; }
+.rs .rs-feature h2 a { color: var(--text-1); text-decoration: none; }
+.rs .rs-feature h2 a:hover { background: none; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; }
+.rs .rs-feature-lede { margin-top: 16px; max-width: 62ch; color: var(--text-2); }
+.rs .rs-ranks { list-style: none; margin: 28px 0 0; padding: 0; display: grid; gap: 12px; }
+.rs .rs-ranks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 559px) { .rs .rs-feature { padding: 22px 18px 26px; } .rs .rs-ranks { gap: 8px; } .rs .rs-rank-row { padding: 14px 12px 16px; } .rs .rs-rank, .rs .rs-rank-v { font-size: 12px; } }
+@media (min-width: 960px) { .rs .rs-ranks { grid-template-columns: repeat(4, minmax(0, 1fr)); } .rs .rs-rank-k { min-height: 60px; } }
+.rs .rs-ranks li + li { margin-top: 0; }
+.rs .rs-rank-row {
+  display: grid; align-content: start; gap: 10px; padding: 18px 18px 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04) 55%, rgba(0, 0, 40, 0.25));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+}
+.rs .rs-rank-row p { margin: 0; }
+.rs .rs-rank-k { font-family: var(--display); font-size: 16px; font-weight: 500; line-height: 1.2; color: var(--text-1); }
+.rs .rs-rank-k span { display: block; margin-top: 4px; font-family: var(--px); font-size: 12px; font-weight: 400; color: var(--text-2); }
+.rs .rs-rank { font-family: var(--px); font-size: 13px; line-height: 1.4; color: var(--text-1); }
+.rs .rs-place {
+  display: block; margin-bottom: 6px; font-family: var(--display); font-size: clamp(40px, 5vw, 68px); font-weight: 500; line-height: 0.9; letter-spacing: -0.045em;
+  background: linear-gradient(180deg, #ffffff 40%, #c9cfff 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.rs .rs-rank-v { font-family: var(--px); font-size: 12px; color: var(--text-2); }
+.rs .rs-feature-note { margin-top: 18px; font-family: var(--px); font-size: 12px; color: var(--text-2); max-width: 72ch; }
+.rs .rs-feature-cta { margin-top: 24px; }
+.rs .rs-feature-cta .btn-steel { max-width: 100%; padding: 12px 24px; justify-content: center; text-align: center; line-height: 1.3; }
+@media (max-width: 479px) { .rs .rs-feature-cta .btn-steel { display: flex; width: 100%; font-size: 15px; } }
+.rs .rs-feature-cta .btn-steel:hover { background: linear-gradient(180deg, #ffffff 0%, #d3d9e0 45%, #8f98a6 55%, #e3e8ee 100%); color: #0a0a0a; }
+
+.rs h2.rs-list-title { margin-top: 80px; max-width: 20ch; font-size: clamp(26px, 3.4vw, 40px); line-height: 1.05; letter-spacing: -0.03em; }
+.rs .rs-list { list-style: none; margin: 32px 0 0; padding: 0; display: grid; gap: 36px; }
+.rs .rs-list li + li { margin-top: 0; }
+.rs .rs-item { display: grid; gap: 8px 32px; }
+@media (min-width: 760px) { .rs .rs-item { grid-template-columns: 112px minmax(0, 1fr); align-items: start; } }
+.rs .rs-date { margin: 0; padding-top: 3px; font-family: var(--px); font-size: 13px; color: var(--text-3); white-space: nowrap; }
+.rs .rs-body { min-width: 0; }
+.rs .rs-tags { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-family: var(--px); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
+.rs .rs-type { color: var(--text-3); }
+.rs .rs-id { text-transform: none; }
+.rs .rs-status { padding: 2px 8px; }
+.rs .rs-status.is-result { background: var(--accent); color: var(--on-accent); }
+.rs .rs-status.is-registered { background: var(--frame); color: var(--ground); }
+.rs .rs-status.is-running { box-shadow: inset 0 0 0 1px var(--frame); color: var(--text-1); }
+.rs .rs-status.is-draft { box-shadow: inset 0 0 0 1px rgba(var(--ink-rgb), 0.45); color: var(--text-2); }
+.rs .rs-body h3 { margin-top: 10px; max-width: 46ch; font-size: clamp(19px, 2.1vw, 24px); line-height: 1.2; letter-spacing: -0.015em; text-wrap: balance; }
+.rs .rs-body h3 a { color: var(--text-1); text-decoration: none; }
+.rs .rs-body h3 a:hover { background: none; color: var(--accent-ink); text-decoration: underline; }
+.rs .rs-sub { margin-top: 6px; font-family: var(--px); font-size: 12px; color: var(--text-3); }
+.rs .rs-sum { margin-top: 8px; max-width: 70ch; font-size: 15px; line-height: 1.5; color: var(--text-2); }
+.rs .rs-more { margin-left: 4px; font-family: var(--px); font-size: 12px; white-space: nowrap; }
+.rs .rs-how { margin-top: 64px; max-width: 72ch; font-size: 14px; color: var(--text-3); }
+
+/* /research: search, filter chips and "Show all" (site/research.js). Hidden
+ * until the script runs (data-js), so the list alone is the page without it. */
+.rs .rs-tools { margin-top: 28px; display: grid; gap: 14px; max-width: 760px; }
+.rs .rs-search { margin: 0; display: grid; gap: 8px; }
+.rs .rs-search label { font-family: var(--px); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-3); }
+.rs .rs-field { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.rs .rs-field input {
+  min-height: 52px; min-width: 0; padding: 0 16px; margin: 0;
+  font: 16px / 1 var(--px); letter-spacing: 0.02em; color: var(--text-1);
+  background: var(--ground); border: 1px solid var(--frame); border-radius: 0;
+  -webkit-appearance: none; appearance: none;
+}
+.rs .rs-field input::placeholder { color: var(--text-3); }
+.rs .rs-field input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.rs .rs-field input:focus-visible { outline: 2px solid var(--focus); outline-offset: 0; }
+.rs .rs-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.rs .rs-chip, .rs .rs-clear, .rs .rs-reset {
+  display: inline-flex; align-items: center; gap: 8px; min-height: var(--target); margin: 0; padding: 0 14px; cursor: pointer;
+  border: 1px solid rgba(var(--ink-rgb), 0.26); border-radius: 0;
+  font-family: var(--sans); font-size: 15px; line-height: 1.1; color: var(--text-1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, calc(var(--lit) * 1.6)), rgba(var(--ink-rgb), 0.04) 52%, rgba(0, 0, 0, var(--shade)));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, calc(var(--lit) * 3)), 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition: border-color 120ms, transform var(--press) var(--out);
+}
+.rs .rs-clear { min-height: 52px; padding: 0 18px; font-family: var(--px); font-size: 14px; }
+.rs .rs-chip:hover, .rs .rs-clear:hover, .rs .rs-reset:hover { border-color: var(--frame); }
+.rs .rs-chip:active, .rs .rs-clear:active, .rs .rs-reset:active { transform: scale(0.97); }
+.rs .rs-chip[aria-pressed="true"] {
+  border-color: rgba(255, 255, 255, 0.4); color: #fff;
+  background: linear-gradient(180deg, #5a5aff 0%, #0000ed 55%, #0000b8 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 6px 18px -8px rgba(0, 0, 237, 0.8);
+}
+.rs .rs-n { font-family: var(--px); font-size: 12px; opacity: 0.72; }
+.rs .rs-chips-status { align-items: center; }
+.rs .rs-chips-k { margin-right: 4px; font-family: var(--px); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-3); }
+.rs .rs-chips-status .rs-chip { min-height: 38px; padding: 0 12px; font-size: 14px; }
+.rs .rs-count { margin: 0; font-family: var(--px); font-size: 13px; color: var(--text-3); }
+.rs .rs-note { margin-top: 8px; font-family: var(--px); font-size: 12px; line-height: 1.5; color: var(--text-2); }
+.rs .rs-none { margin-top: 0; max-width: 30ch; font-family: var(--display); font-size: clamp(22px, 2.6vw, 30px); line-height: 1.15; letter-spacing: -0.02em; color: var(--text-1); }
+.rs .rs-none .rs-reset { margin-top: 16px; display: flex; letter-spacing: 0; }
+.rs .rs-all { margin-top: 40px; }
+.rs .rs-all .btn-steel { border: 0; border-radius: 0; cursor: pointer; color: #0a0a0a; }
+@media (max-width: 479px) { .rs .rs-all .btn-steel { display: flex; width: 100%; justify-content: center; } }
+@media (prefers-reduced-motion: reduce) { .rs .rs-chip, .rs .rs-clear, .rs .rs-reset { transition: none; } }
 
 /* Consent before a check: a heavy blur over the page, the terms in plain
  * words, and slide to scan, after the first iPhone's slide to unlock. The
@@ -1237,28 +1410,17 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
  * every other control is white (the ink colour, so black in the light
  * theme), so the eye lands on blue. */
 /* --fix-top: where the header ends, measured by ui.js (the logotype scales with the viewport). */
-.hero[data-mode="fix"] .hero-text { min-height: 0; justify-content: flex-start; padding-top: var(--fix-top, calc(var(--ticker-h) + 140px)); }
-.hero[data-mode="fix"] .hero-text::before { top: 0; background: rgba(var(--ground-rgb), 0.82); }
-.hero[data-mode="fix"] :is(.problem, .scan, .pills, h1, .lede, .hero-actions, .note),
-.hero[data-mode="fix"] .loop { display: none; }
-.hero[data-mode="fix"] .report { margin-top: 0; max-width: none; width: 100%; }
-.report-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -4px 0 20px; }
+.hero[data-mode="fix"] :is(.poster, .hero-text, .loop), .hero[data-mode="fix"] + .slab { display: none; }
 .report-back {
   display: inline-flex; align-items: center; gap: 10px; min-height: var(--target); padding: 0 14px 0 10px;
   font: 14px / 1 var(--px); color: var(--text-1); background: none; border: 1px solid var(--hair); cursor: pointer;
 }
 .report-back::before { content: ""; width: 10px; height: 10px; border-left: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); margin-left: 4px; }
 .report-back:hover { border-color: var(--frame); }
-.report-mode { font-family: var(--px); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-3); }
-.report-side { display: grid; gap: 14px; }
-.report-score { justify-content: flex-end; }
-@media (max-width: 759px) { .report-score { justify-content: flex-start; } }
-.report-clean { color: var(--text-1); }
 .btn-white { --btn-bg: var(--frame); --btn-fg: var(--ground); --btn-bd: var(--frame); }
 .btn-white:hover { --btn-bg: rgba(var(--ink-rgb), 0.82); --btn-fg: var(--ground); --btn-bd: transparent; }
 .cmd-white { --cmd-bd: var(--frame); --cmd-act-fg: var(--ground); --cmd-act-bg: var(--frame); --cmd-act-bd: var(--frame); background: var(--frame); color: var(--ground); }
 .cmd-white code, .cmd-white .cmd-prompt { color: var(--ground); }
-.report-deep .cmd { max-width: 100%; }
 
 /* ── Public benchmarks: ranked against the free tools (section 02) ─────── */
 .pb { margin-top: clamp(80px, 10vw, 140px); }
@@ -1349,27 +1511,24 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
   padding: clamp(56px, 9vh, 112px) clamp(24px, 6vw, 96px);
 }
 /* One grid for every panel after the hero: the same width, the kicker
- * (label or number) and the heading at the same height, a hairline under the
- * kicker row that runs across all panels, and short panels' body text at the
- * foot, so each panel uses the full height. */
+ * (label or number) and the heading at the same height on every panel, and
+ * short panels' body text at the foot, so each panel uses the full height.
+ * No rules: the shared heights and the panels' own grounds carry the grid
+ * (2026-10-29, no divider lines on the site). */
 .pro { --kick: clamp(80px, 12vh, 150px); --row: 40px; }
 @media (min-width: 900px) {
   .pro-h.is-h .pro-panel:not(.pro-hero) { width: min(100vw, 880px); }
 }
 .pro-h.is-h .pro-panel:not(.pro-hero) { justify-content: flex-start; padding-top: var(--kick); padding-bottom: clamp(48px, 9vh, 96px); }
-.pro-h.is-h .pro-panel:not(.pro-hero)::before {
-  content: ""; position: absolute; left: 0; right: 0; top: calc(var(--kick) + 30px);
-  border-top: 1px solid rgba(var(--ink-rgb), 0.16); pointer-events: none;
-}
 .pro-h.is-h .pro-panel:not(.pro-hero) > .label,
-.pro-h.is-h .pro-panel:not(.pro-hero) > .pro-num { height: 20px; margin: 0 0 var(--row); line-height: 20px; }
-.pro-h.is-h .pro-panel:not(.pro-hero) > h2 { margin-top: 12px; }
+.pro-h.is-h .pro-panel:not(.pro-hero) > .pro-num { height: 20px; margin: 0 0 calc(var(--row) * 0.7); line-height: 20px; }
+.pro-h.is-h .pro-panel:not(.pro-hero) > h2 { margin-top: 0; }
 .pro-h.is-h .pro-panel > :not(.pro-visual-wrap) { flex-shrink: 0; }
 .pro-h.is-h :is(.pro-stack, .pro-card-panel) > .pro-big { margin-top: auto; padding-top: var(--row); }
 .pro-h.is-h :is(.pro-calc, .pro-join) { padding-bottom: 32px; }
-.pro-h.is-h .pro-panel + .pro-panel, .pro-h.is-h .pro-form > .pro-panel { border-left: 1px solid rgba(var(--ink-rgb), 0.14); }
 .pro-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(127, 136, 150, 0.25); display: none; }
-.pro-h.is-h .pro-progress { display: block; }
+.pro-h.is-h .pro-progress { display: block; transition: opacity 240ms var(--out); }
+.pro-h.is-h .pro-progress[data-done] { opacity: 0; }
 .pro-progress span {
   display: block; height: 100%; transform-origin: 0 50%; transform: scaleX(0);
   background: linear-gradient(90deg, #f4f6f8, #8f98a6 40%, #0000ed);
@@ -1465,7 +1624,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
 }
 .pro-range input[type="range"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-.pro-result { margin-top: 24px; max-width: 46ch; padding-top: 20px; border-top: 1px solid var(--hair); color: var(--text-2); }
+.pro-result { margin-top: 36px; max-width: 46ch; color: var(--text-2); }
 .pro-result-n { font-family: var(--display); font-size: clamp(32px, 4vw, 48px); letter-spacing: -0.03em; color: var(--text-1); font-variant-numeric: tabular-nums; }
 .pro-budget { margin-top: 24px; }
 
@@ -1615,6 +1774,8 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 @keyframes gopro-shimmer-btn { 0%, 62% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
 .gopro-btn:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 20px 44px -10px rgba(0, 0, 237, 1); }
 .gopro-btn:focus-visible { outline: 2px solid #7a7aff; outline-offset: 3px; }
+/* Off screen the loops wait (gopro.js sets data-rest). */
+.gopro-plate[data-rest]::before, .gopro-plate[data-rest] .gopro-btn::after, .gopro-plate[data-rest] .gopro-star, .gopro-plate[data-rest] .gopro-twinkle { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) {
   .gopro-plate::before, .gopro-btn::after, .gopro-star, .gopro-twinkle { animation: none; }
   .gopro-plate, .gopro-star, .gopro-btn { transition: none; }
@@ -1630,3 +1791,183 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .pro-list li::before { content: ""; position: absolute; left: 0; top: 0.55em; width: 8px; height: 8px; background: linear-gradient(180deg, #5a5aff, #0000ed 60%, #0000b8); transform: rotate(45deg); }
 .pro-list b { font-weight: 500; color: var(--text-1); }
 .pro-big code, .pro-list code { font-size: 0.82em; color: var(--text-1); }
+
+/* ── The poster is the check (2026-10-29, direction A) ────────────────────
+ * The first screen is the check: the title as a kicker-size h1, the
+ * question in display type, the field and a glowing Check. On the right, a
+ * metal card with a real result of the test server, labelled Example, built
+ * with the site. Your result lands in the same place, and the left side
+ * turns into the hand-off: Prompt to fix, the full scan, the code scan. */
+.hero {
+  /* Where the header ends: the bar's solid box (ticker, gap, mark, air). */
+  --logo-h: calc(clamp(112px, calc(100vw - 360px), 288px) * 63 / 279);
+  --head: calc(var(--ticker-h) + 32px + max(var(--target), var(--logo-h)));
+}
+/* The field sits top right, behind the card, and fades out to the left so
+ * no dots run behind the headline. */
+.hero .field {
+  inset: calc(var(--head) + 4px) 0 auto auto;
+  width: min(66vw, 960px); height: min(620px, 72vh);
+  -webkit-mask: linear-gradient(90deg, transparent 0, transparent 18%, #000 62%); mask: linear-gradient(90deg, transparent 0, transparent 18%, #000 62%);
+  --field-from: 0.18;   /* the mask is clear up to here; check/field.js skips those columns */
+}
+.poster, .report {
+  position: relative; z-index: 1; max-width: var(--measure); margin: 0 auto;
+  padding-top: calc(var(--head) + clamp(40px, 6vw, 80px));
+}
+.poster, .report-grid { display: grid; gap: 40px; align-items: start; }
+@media (min-width: 1000px) { .poster, .report-grid { grid-template-columns: minmax(0, 1fr) minmax(400px, 500px); gap: 56px; } }
+.poster-text { padding-top: 8px; }
+#hero-title, .report-kick {
+  max-width: none; margin: 0 0 22px;
+  font: 14px / 1.4 var(--px); letter-spacing: 0.02em; color: var(--text-1);
+  text-wrap: pretty;
+}
+.ask {
+  font-family: var(--display); font-weight: 500; color: var(--text-1);
+  font-size: clamp(54px, 7.2vw, 112px); line-height: 0.9; letter-spacing: -0.05em;
+  max-width: 8.2ch; text-wrap: balance;
+}
+.ask-sub { margin-top: 22px; max-width: 30ch; font: 500 clamp(18px, 1.7vw, 23px) / 1.35 var(--display); letter-spacing: -0.01em; color: var(--text-1); }
+.poster .scan { margin-top: 32px; }
+.scan-row { gap: 0; }
+.scan-row input { min-height: 64px; padding: 0 20px; font-size: 19px; border-right: 0; }
+.scan-go { min-height: 64px; padding: 0 32px; font-size: 18px; }
+/* The glow: the one call to act on the first screen, and Prompt to fix after. */
+.scan-go:not(:disabled), .handoff .glow {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 10px 34px -6px rgba(0, 0, 237, 0.95), 0 0 60px -10px rgba(60, 60, 255, 0.7);
+}
+.scan-note { margin-top: 4px; }
+.scan-note a { color: var(--accent-ink); }
+.scan-alt { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; margin-top: 28px; font: 13px / 1.3 var(--px); color: var(--text-3); }
+
+/* The metal card: black steel on the dark ground, silver on the light one,
+ * lit from above. No inner rules: rows are spaced plates. */
+.card, .handoff li {
+  --plate: color-mix(in srgb, rgb(var(--ink-rgb)) 10%, var(--ground));
+  position: relative; isolation: isolate;
+  background:
+    radial-gradient(520px circle at 30% -160px, rgba(255, 255, 255, var(--sheen)), transparent 70%),
+    linear-gradient(180deg, rgba(255, 255, 255, var(--lit)), transparent 46%, rgba(0, 0, 0, var(--shade))),
+    var(--plate);
+  border: 1px solid rgba(var(--ink-rgb), 0.26);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, calc(var(--lit) * 4)), inset 0 -1px 0 rgba(0, 0, 0, calc(var(--shade) * 0.8)), 0 40px 80px -30px rgba(0, 0, 0, 0.6);
+}
+.card { padding: 30px; }
+.card::before, .handoff li::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: repeating-linear-gradient(180deg, rgba(var(--ink-rgb), 0.035) 0 1px, transparent 1px 3px);
+}
+.poster-card { padding-top: 56px; }
+.report .card { margin-top: 56px; }
+.card-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 30px; }
+.card-label {
+  padding: 5px 12px 4px; font: 13px var(--px); color: #fff; background: #0000ed;
+  clip-path: polygon(0 3px, 3px 3px, 3px 0, calc(100% - 6px) 0, calc(100% - 6px) 2px, 100% 2px, 100% calc(100% - 4px), calc(100% - 3px) calc(100% - 4px), calc(100% - 3px) 100%, 5px 100%, 5px calc(100% - 2px), 0 calc(100% - 2px));
+  transform: rotate(-1.2deg);
+}
+.card-host { font: 13px / 1.3 var(--px); letter-spacing: 0.02em; color: var(--text-3); overflow-wrap: anywhere; }
+.card-verdict { margin-top: 12px; font: 500 clamp(28px, 2.7vw, 38px) / 1 var(--display); letter-spacing: -0.03em; color: var(--text-1); }
+.card-score { display: flex; align-items: center; gap: 22px; margin: 22px 0; }
+.card .meter i { background: rgba(var(--ink-rgb), 0.12); outline: 0; }
+.card .meter i.on { background: var(--frame); }
+.card .score-n { font-size: clamp(64px, 6.4vw, 92px); }
+.card-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.card-rows li { display: flex; align-items: center; gap: 14px; padding: 10px 12px; background: rgba(var(--ink-rgb), 0.045); color: var(--text-1); font-size: 16px; line-height: 1.25; }
+.card-tag {
+  flex: none; min-width: 50px; padding: 3px 6px; text-align: center;
+  font: 12px / 1 var(--px); letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ground); background: var(--frame); border: 1px solid var(--frame);
+}
+.card-rows li:first-child .card-tag { color: #fff; background: #0000ed; border-color: #6a6aff; box-shadow: 0 0 10px rgba(60, 60, 255, 0.7); }
+.card-rows li.ok .card-tag { color: var(--text-2); background: none; border-color: rgba(var(--ink-rgb), 0.45); box-shadow: none; }
+.card-clean { margin-top: 14px; color: var(--text-1); }
+/* The example's button is a picture of the real one: not focusable, hidden from screen readers. */
+.card-fake, .card .card-prompt {
+  display: flex; align-items: center; justify-content: center; width: 100%; min-height: 56px; margin-top: 20px;
+  font: 18px / 1 var(--px); letter-spacing: 0.02em; color: #fff;
+  background: linear-gradient(180deg, #5a5aff 0%, #0000ed 55%, #0000b8 100%);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 10px 34px -6px rgba(0, 0, 237, 0.95);
+}
+.card-cap { margin-top: 14px; font: 13px / 1.45 var(--px); letter-spacing: 0.02em; color: var(--text-3); }
+.card-more { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; margin-top: 14px; font: 13px / 1.3 var(--px); color: var(--text-3); }
+.card-more a { display: inline-flex; align-items: center; min-height: var(--target); color: var(--text-1); text-underline-offset: 3px; }
+.card .report-busy, .card .report-error { margin-top: 14px; }
+
+/* After a check: the hand-off, above the fold. */
+.report-kick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 18px; }
+.report-kick span { color: var(--text-3); }
+.report-back { min-height: 36px; }
+/* Focused by the script when a result lands, so a screen reader starts there; not a control. */
+.handoff-title:focus { outline: none; }
+.handoff-title { max-width: 13ch; font-size: clamp(40px, 4.6vw, 68px); line-height: 0.95; letter-spacing: -0.045em; color: var(--text-1); }
+.handoff { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 10px; max-width: 660px; }
+.handoff li { display: grid; grid-template-columns: 32px 1fr; gap: 2px 14px; align-items: center; padding: 14px 18px; }
+.handoff-n { grid-row: span 2; align-self: start; width: 32px; height: 32px; display: grid; place-items: center; font: 14px var(--px); color: var(--text-1); background: rgba(var(--ink-rgb), 0.08); box-shadow: inset 0 0 0 1px rgba(var(--ink-rgb), 0.35); }
+.handoff li:first-child .handoff-n { color: #fff; background: #0000ed; box-shadow: 0 0 14px rgba(60, 60, 255, 0.8); }
+.handoff-t { color: var(--text-1); font-size: 17px; }
+.handoff-t small { display: block; margin-top: 3px; font: 13px / 1.4 var(--px); color: var(--text-3); }
+.handoff-a { grid-column: 2; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.handoff .glow { min-height: 48px; padding: 0 20px; font-size: 15px; }
+.handoff .cmd { max-width: 100%; }
+.handoff .cmd code { white-space: normal; overflow-wrap: anywhere; }
+/* Steel: a light metal key, the same in both themes. */
+.steel {
+  --cmd-bd: rgba(255, 255, 255, 0.9);
+  color: #0b0b0e;
+  background: linear-gradient(180deg, #ffffff 0%, #d9dce1 38%, #a8adb5 62%, #e9ebee 100%);
+  box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 rgba(0, 0, 0, 0.35), 0 10px 26px -10px rgba(var(--ink-rgb), 0.45);
+}
+.steel code, .steel .cmd-prompt { color: #0b0b0e; }
+.steel .cmd-act { --cmd-act-fg: #3a3e46; --cmd-act-bg: transparent; --cmd-act-bd: rgba(0, 0, 0, 0.25); }
+.ghost {
+  display: inline-flex; align-items: center; gap: 8px; min-height: var(--target); padding: 0 16px;
+  font: 14px / 1 var(--px); color: var(--text-1); text-decoration: none; white-space: nowrap;
+  background: rgba(var(--ink-rgb), 0.06); border: 1px solid rgba(var(--ink-rgb), 0.4);
+}
+.ghost:hover { background: var(--frame); color: var(--ground); }
+.ghost svg { width: 11px; height: 11px; fill: currentColor; }
+.handoff li.only-m { display: none; }
+
+/* The full report, below the hand-off: categories, findings with evidence,
+ * what passed, the scope. */
+.report-detail { margin-top: clamp(48px, 6vw, 80px); max-width: 980px; }
+.report-cats { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px 12px; }
+@media (min-width: 760px) { .report-cats { grid-template-columns: 1fr 1fr; } }
+.report-cats li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; background: rgba(var(--ink-rgb), 0.045); color: var(--text-1); }
+.report-cats li.ok .cat-n { color: var(--text-3); }
+
+@media (max-width: 999px) {
+  .poster-card { padding-top: 0; }
+  .report .card { margin-top: 0; }
+  /* Your result first on a phone, with Prompt to fix inside the card. */
+  .report-grid > .card { order: -1; }
+}
+@media (min-width: 760px) { .card .card-prompt { display: none; } }
+@media (max-width: 759px) {
+  .hero .field { --field-from: 0; inset: calc(var(--head) + 8px) 0 auto; width: 100%; height: 132px; -webkit-mask: linear-gradient(180deg, #000 60%, transparent); mask: linear-gradient(180deg, #000 60%, transparent); }
+  .poster { padding-top: calc(var(--head) + 150px); gap: 28px; }
+  .report { padding-top: calc(var(--head) + 24px); }
+  #hero-title, .report-kick { font-size: 12px; margin-bottom: 14px; }
+  .ask { font-size: 54px; }
+  .ask-sub { margin-top: 14px; font-size: 18px; }
+  .poster .scan { margin-top: 22px; }
+  .scan-row input { min-height: 56px; padding: 0 14px; font-size: 16px; }
+  .scan-go { min-height: 56px; padding: 0 20px; font-size: 16px; }
+  .scan-alt, .card-cap, .card-wide { display: none; }
+  .card { padding: 20px; }
+  .card-score { margin: 14px 0; gap: 16px; }
+  .card .meter { grid-template-columns: repeat(10, 7px); }
+  .card .meter i { width: 7px; height: 7px; }
+  .card .score-n { font-size: 64px; }
+  .card-rows li { padding: 9px 10px; font-size: 15px; }
+  .handoff-title { font-size: 40px; }
+  .report-kick p { display: none; }
+  .handoff li { padding: 14px; grid-template-columns: 28px 1fr; }
+  .handoff-n { width: 28px; height: 28px; }
+  .handoff li.hide-m { display: none; }
+  .handoff li.only-m { display: grid; }
+}
+.report-detail { scroll-margin-top: 24px; }
+.report-detail h3 + .report-cats { margin-top: 14px; }

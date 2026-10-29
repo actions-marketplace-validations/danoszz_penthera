@@ -3,10 +3,11 @@
  *
  *   node scripts/ci/provenance.mjs <base-ref> [head-ref]
  *
- * Every non-merge commit in base..head that names an AI co-author must also
- * carry an `AI-Assisted:` trailer saying what the AI did, and the other way
- * round. Commits with neither are human-written and pass. Exits 1 and lists
- * the offending commits otherwise.
+ * The disclosure is the `AI-Assisted:` trailer, which names the tool and model
+ * and says what the AI did. A `Co-Authored-By:` line naming an AI is optional,
+ * but a commit that has one must also carry `AI-Assisted:` (it would otherwise
+ * claim AI help without saying what it was). Commits with neither are
+ * human-written and pass. Exits 1 and lists the offending commits otherwise.
  */
 import { execFileSync } from "node:child_process";
 
@@ -28,7 +29,6 @@ for (const sha of shas) {
   const coauthor = AI_COAUTHOR.test(body);
   const assisted = AI_ASSISTED.test(body);
   if (coauthor && !assisted) bad.push(`${sha.slice(0, 7)} names an AI co-author but has no "AI-Assisted: <tool> with <model>; <what it did>" trailer`);
-  if (assisted && !coauthor) bad.push(`${sha.slice(0, 7)} has an AI-Assisted trailer but no Co-Authored-By trailer naming the model`);
 }
 
 if (bad.length) {

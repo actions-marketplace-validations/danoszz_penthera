@@ -1,5 +1,31 @@
 # Research: Cloudflare's security-audit skill, and what Penthera does with it
 
+> **Project page.** For "what is Cloudflare's security-audit skill, how does
+> it relate to Penthera, and what should Penthera take from it?"
+
+## Summary
+
+- **Question.** Is Cloudflare's security-audit skill a competitor, and what
+  can Penthera learn from its design and from what its users report?
+- **Method.** A reading of the skill's repository at one commit, its README
+  and files, and its 33 issues and 70 pull requests as of 2026-10-22
+  (Cloudflare, 2026). No code from it was run.
+- **Result.** It answers the same question as Penthera's code checks in the
+  opposite way: a model decides, where Penthera's rules decide. Seven ways to
+  build on it, four concrete follow-ups from its issues, and a proposed
+  experiment, E9, to measure rules, the skill and both.
+- **Limits.** No measurement: nothing here says which finds more. The only
+  accuracy figures are the skill's own "roughly half" and a third-party
+  comparison with a conflict of interest.
+
+| Record | |
+|---|---|
+| Written | 2026-10-22, commits [`2cd6095`](https://github.com/danoszz/penthera/commit/2cd6095) and [`4471917`](https://github.com/danoszz/penthera/commit/4471917) |
+| Penthera | 1.8.0 when written |
+| Source | `cloudflare/security-audit-skill` at commit `c1c8a8c` (2026-09-14) |
+| Status | Research input. The user-facing comparison, [compare/cloudflare-security-audit.md](../compare/cloudflare-security-audit.md), was merged in #89. E9 has no protocol in [prereg/](prereg/) yet. |
+| Last reviewed | 2026-10-29 (see [Changes](#changes)) |
+
 Written 2026-10-22. Status: **research input, not a plan.** The maintainer
 decides what moves to the [roadmap](../../ROADMAP.md). The side-by-side for
 users is in [docs/compare/cloudflare-security-audit.md](../compare/cloudflare-security-audit.md).
@@ -114,9 +140,51 @@ Honest, and specific:
 Never claim Penthera finds more. Penthera's accuracy is measured only on labs we
 wrote ourselves; the comparison waits for E9.
 
-## Sources
+Update, 2026-10-29: since then, the public benchmark (E11b) has measured
+Penthera on four public datasets ([results](../../bench/public/RESULTS.md)).
+It does not include the skill, so the comparison still waits for E9.
 
-- Cloudflare. (2026). *security-audit-skill* [Computer software]. GitHub.
-  https://github.com/cloudflare/security-audit-skill/tree/c1c8a8c
-- Repository metadata: GitHub REST API, `repos/cloudflare/security-audit-skill`,
-  read 2026-10-22.
+
+## Reproduce
+
+Everything above can be checked against public sources:
+
+```bash
+git clone https://github.com/cloudflare/security-audit-skill
+cd security-audit-skill && git checkout c1c8a8c
+gh api repos/cloudflare/security-audit-skill --jq '.created_at, .stargazers_count, .forks_count'
+gh issue list -R cloudflare/security-audit-skill --state all --limit 200
+gh pr list -R cloudflare/security-audit-skill --state all --limit 200
+```
+
+Star, fork, issue and PR counts change over time. The ones above are from
+2026-10-22. Nothing was run: no code from the skill, and no scan of any
+Cloudflare system.
+
+## Threats to validity
+
+- **A reading, not a test.** The table of strengths and weaknesses comes
+  from the skill's own documentation and its users' reports, not from
+  running it.
+- **Selection of issues.** "Substantive" was our judgement. Many issues and
+  PRs were spam or unrelated, and we did not record which were left out.
+- **Our interest.** Penthera is in the same place on agent users' screens.
+  We tried to say where the skill goes further, but the people who wrote
+  this note build Penthera.
+- **Third-party numbers.** The figures from issue #20 come from a comparison
+  run by a third party with its own tool in the race. We have not reproduced them.
+
+## References
+
+Cloudflare. (2026). *Security-audit-skill*. Retrieved October 22, 2026, from [https://github.com/cloudflare/security-audit-skill/tree/c1c8a8c](https://github.com/cloudflare/security-audit-skill/tree/c1c8a8c) ([entry](../references.md#cloudflare2026securityaudit))
+
+Repository metadata: GitHub REST API, `repos/cloudflare/security-audit-skill`,
+read 2026-10-22. Issues and pull requests are linked where they are used.
+
+## Changes
+
+- 2026-10-22: first version (`2cd6095`); the issues and PRs section added
+  (`4471917`).
+- 2026-10-29: added the summary, the record, a note on the public benchmark,
+  reproduction steps, threats to validity, and a reference that links to the
+  shared bibliography. No result or number changed.

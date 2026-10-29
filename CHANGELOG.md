@@ -4,6 +4,404 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-29
+
+### Added
+
+- **`penthera agents` checks five more ways agent config runs code
+  ([ADR 0002](docs/decisions/0002-agent-setup-gaps-and-pr-check.md)).**
+  New rules, each with a test on a defanged fixture:
+  `task-folder-open` (a `.vscode/tasks.json` task with `runOn: "folderOpen"`,
+  medium, critical when it downloads and runs code); `hook-local-script` (a hook that runs a script
+  file, low when the script is in the project and was read, medium when it
+  is not); `registry-redirect` (`npm config set registry`, `--registry`,
+  `.npmrc`, `NPM_CONFIG_REGISTRY`, `YARN_REGISTRY`, `npmRegistryServer`,
+  `pip --index-url`, `--extra-index-url`, `-i` and `PIP_INDEX_URL` pointing
+  anywhere but the public npm, Yarn and PyPI registries over HTTPS; low for a
+  `localhost` registry, a scoped `@scope:registry` and vendor indexes such as
+  `download.pytorch.org`, at most medium for `--extra-index-url`; one finding
+  per file at the severity of its worst line, and scope or extra index read
+  from the flag or key, never from the URL); `env-code-injection`
+  (`NODE_OPTIONS` with `--require` or `--import`, `LD_PRELOAD`,
+  `DYLD_INSERT_LIBRARIES`, `BASH_ENV`, `PYTHONSTARTUP` and similar, in an MCP
+  server's `env`, a hook, a task or the Claude Code settings `env`); and
+  `mcp-auto-approve` (Cline `autoApprove`, Roo Code `alwaysAllow`, Gemini CLI
+  `trust: true`, Claude Code `enableAllProjectMcpServers` and VS Code
+  `chat.tools.global.autoApprove`). It now also reads `.gemini/settings.json`,
+  `.roo/mcp.json`, `.vscode/tasks.json` and `.vscode/settings.json`.
+- Fixed: skill folders no longer skip `__pycache__`, `build` and `dist`, so
+  compiled code there is reported. A `.pyc` is low only when it is Python's
+  ordinary cache of the `.py` next to it (the `__pycache__` name, a
+  timestamp-based header and the same source size), reported once per
+  `__pycache__` folder; any other `.pyc`, a hash-based one included, is high.
+  `node_modules` and `.git` are still skipped, and the result now says so.
+- Fixed: a folder counts as a Python virtual environment only when it has a
+  `pyvenv.cfg` with `home =`, a `python` in `bin/` or `Scripts/` and a
+  `site-packages` folder, so an empty `pyvenv.cfg` or a folder named `venv`
+  no longer hides anything. A real one is reported (new rule `skill-venv`,
+  medium); its packages and binaries are listed under Not checked, and its
+  other files and text scripts are still scanned.
+- Fixed: `penthera.lock` is now version 2, which pins every file in a skill
+  except `node_modules` and `.git`, `dist`, `build`, `__pycache__` and
+  virtual environments included. A version 1 file is still compared the
+  2.0.0 way, so upgrading never reports a changed skill; an info finding asks
+  you to re-pin with `penthera agents --pin`. A lock of an unknown or newer
+  version is not compared, and an info finding says so.
+- Fixed: hooks written as `"$CLAUDE_PROJECT_DIR"/.claude/hooks/x.sh`, the
+  form Claude Code documents, now resolve to the script, so the hook rules
+  read it, a path with a space in it included, and so does `npx tsx
+  script.ts`. `node_modules/.bin/*` counts as a package binary, not a missing
+  script.
+- Fixed: `penthera agents` no longer reads a hook script, a config file, an
+  instruction file (`CLAUDE.md`, `AGENTS.md` and the rest) or an agent folder
+  (`skills/`, `.cursor/rules`, `.claude/commands`, `.github/instructions`,
+  `plugins/`) that resolves outside the project (or the plugin folder), by
+  absolute path or through a symlink; it lists them under Not checked. Parse
+  errors no longer quote the file's content.
+- Fixed: the pre-commit hook now runs the agent rules on staged
+  `.vscode/tasks.json`, `.vscode/settings.json`, `.gemini/settings.json` and
+  `.roo/` files.
+- Fixed: `penthera agents --home` reads Cline's and Roo Code's MCP settings
+  from the global storage of VS Code, VS Code Insiders, VSCodium, Cursor and
+  Windsurf, so their `autoApprove` and `alwaysAllow` keys are checked there
+  too. A scan of a given home folder reads only that folder, never the real
+  `%APPDATA%`.
+- Fixed: `penthera init` no longer writes a workflow or `.gitignore` through a
+  symlink, a dangling one included, and creates no folder outside the project
+  before it refuses.
+- Fixed: a long run of spaces after `registry` in an `.npmrc` no longer slows
+  the scan, the pre-commit hook or the MCP tool (the match was quadratic).
+- Fixed: the "Not checked" part of an agents result no longer says nothing
+  was skipped. It always says MCP tool descriptions are not read, and it
+  names agent config on disk that no rule covers yet (Codex, Cursor hooks,
+  Windsurf, Kiro, OpenCode, dev containers and others).
+- Fixed: no finding carries the OWASP MCP03 "Tool Poisoning" label any more.
+  No rule reads MCP tool descriptions, so hidden text in skills now maps to
+  ASI01 only, and a changed pin to MCP04 and ASI04.
+- Fixed: the `task-folder-open` finding now says what current VS Code does:
+  `task.allowAutomaticTasks` defaults to `off`, yet a trusted workspace still
+  gets a one-time notification, and Allow turns automatic tasks on for every
+  trusted workspace.
+- **The agent config check on every pull request, in one file.**
+  `docs/examples/github-actions-agents.yml` runs
+  `npx --yes penthera@2.0.0 agents` on pull requests and pushes to `main`,
+  uploads SARIF to code scanning and stays report-only until you opt in to
+  failing the job. `penthera init` offers to write it as
+  `.github/workflows/penthera-agents.yml` when the repo has agent config. It is
+  shown as a diff first and never committed.
+
+### Detection
+
+- **Provider keys in client JavaScript.** A URL scan now reads the scripts the
+  home page loads from its own site (up to 10, 2 MB each) and reports provider
+  keys left in them, such as one set in a `NEXT_PUBLIC_` or `VITE_` variable.
+  Keys are shown masked. A Google key next to Firebase config is reported at
+  low, because Firebase web keys are public by design. Scripts on other sites
+  are never requested, and a redirect is followed only to the same site on
+  https or with `www.`. Scripts past the first 10 or over 2 MB are not
+  checked. Contributed by @divya-o.
+- **Clerk secret keys, named as Clerk's.** Clerk's secret keys use the same
+  `sk_live_` and `sk_test_` prefixes as Stripe's, so a leaked Clerk key was
+  reported as a Stripe key, and a Clerk test key not at all. A key assigned to
+  `CLERK_SECRET_KEY` (in `.env`, JSON or YAML) is now reported as a Clerk
+  secret key: critical for a live key, high for a test key, which still opens
+  the development instance and its users. Publishable keys (`pk_`) stay
+  unreported. On the CredData dev half, precision and recall are unchanged.
+
+### Changed
+
+- **AI disclosure in commits is the `AI-Assisted` trailer alone.** A
+  `Co-Authored-By` line for the AI is no longer required; the provenance check
+  still rejects an AI co-author line without an `AI-Assisted` line.
+  CONTRIBUTING, AGENTS.md and the generative AI page say so.
+- **The plugin and the repo's MCP config pin a stable release.**
+  `plugin/.mcp.json` and `.mcp.json` start `penthera@2.0.0`, not the release
+  candidate. The docs and examples that pinned `penthera@1.8.1` or `latest` now
+  pin 2.0.0. The internal audit accepts the newest stable pin in these two
+  files while the package is a release candidate.
+- **Docs: a GitHub Action snippet that is valid YAML.** `docs/commands/action.md`
+  shows the action pinned to the v2.0.0 commit SHA, with its name in quotes.
+  The name contains a colon, so the unquoted snippet on the Marketplace page
+  fails to parse. The page also says that `mode: agents` runs `npm ci` for its
+  one dependency. The README now shows "Start in 30 seconds" before the
+  benchmark tables and drops the dated "new in 1.9.0" labels.
+- **A smaller npm package.** The package no longer ships `CHANGELOG.md`.
+  Nothing reads it at run time, and the full history stays on
+  [GitHub](https://github.com/danoszz/penthera/blob/main/CHANGELOG.md). This
+  takes the package from 2,570 KB to 2,445 KB unpacked (945 KB to 896 KB
+  packed). Scans, rules and output are the same.
+- **The first screen of [penthera.org](https://penthera.org) is now the live
+  check.** "Is your site/app safe?" sits over the field and the Check button,
+  with the title kept as the page's h1 in a small kicker above it. On the
+  right, an example result card shows real output: the site's own passive
+  check, run at build time against the test server in
+  `tests/fixtures/mock-server.js` on loopback. Your result replaces that card
+  in the same place. The left side then lists the next steps above the fold:
+  Prompt to fix, `npx penthera <url>`, `npx penthera --repo .` and Star on
+  GitHub. A clean result gets the same next steps. On a phone, Prompt to fix
+  sits inside the card, and Star on GitHub stands in for the commands you
+  would run on a laptop. The check itself is unchanged: passive, nothing
+  stored, the same consent and slide to scan.
+- Two new cookieless event labels, named in
+  [docs/privacy.md](../docs/privacy.md): `copy {what: "repo-result"}` and
+  `link {to: "github-star-result"}`, for the two new buttons next to a
+  result. The live check's terms now say what is counted, as privacy.md does:
+  that a check ran and whether it returned a report or an error, never the
+  address, the score or anything you type.
+
+### Fixed
+
+- **The live-check terms now say what the page counts.** They said the page
+  does not record that a check ran; it does send a cookieless count of checks
+  (report or error), as the privacy page already said. It never records what
+  was checked.
+- **`penthera agents`: a git source counts as pinned only with a full commit.**
+  An MCP server launched from `git+https://…`, `git+ssh://…`, `github:owner/repo`
+  or `owner/repo` was treated as pinned. It now needs a full 40-character commit
+  SHA (`#<sha>` for npm, `@<sha>` for uv and pip). A tag or a branch can be moved
+  to other code, so `uvx --from git+https://…@v1.2` and `npx github:owner/repo#main`
+  are reported as `mcp-unpinned`.
+- **The Penthera skill pins its own CLI.** `skills/penthera/SKILL.md` and its
+  preflight script run `npx -y penthera@2.0.0`, and `allowed-tools` pre-approves
+  only that pinned command.
+
+### Site
+
+- **The blog is live: [penthera.org/blog](https://penthera.org/blog).** Two
+  posts, approved 28 October: how we benchmarked Penthera against the free
+  tools on a sealed half of each dataset, losses included, and what we learned
+  scoring 10 free secret scanners on CredData, where Penthera came 2nd. Every
+  number in them comes from `published.json` or a cited source, and the build
+  checks it.
+- **penthera.org/research/e20:** what the E20 study requests from a site, how
+  to opt out with robots.txt, what is kept, and who to contact. It goes live
+  before any study visit.
+- **A research page: [penthera.org/research](https://penthera.org/research).**
+  Every pre-registered study with its status (Registered, Running, Result or
+  Draft), the result files, the case studies and the blog posts, newest first,
+  each dated. The public benchmark is the featured card, with each rank given
+  with its interval. The build reads it all from the repo and fails when a
+  headline's source no longer says what the headline states. A study that says
+  it is not registered is always shown as Draft. Also in the footer, the
+  sitemap and `llms.txt`, as `/research.md` for agents.
+- **Search and filters on /research.** The page opens on the newest six
+  entries, with a button to show them all. Chips filter by type (studies,
+  results, case studies, posts) and a study by status, each with its count,
+  and a search box filters titles, summaries and study IDs as you type. A
+  filtered view keeps its query in the URL, so you can share it. Without
+  JavaScript, and for crawlers and agents, the page still lists every entry.
+  Each study now appears once: E17 is one entry, with its 29 Oct re-run as a
+  note.
+- **E21, drafted and not registered:** would the free, offline rules have
+  flagged known server-side bugs in open-source code before they were
+  exploited? Vulnerable and fixed commits, scanned in local checkouts, no AI
+  model run, $0. Candidate CVEs are listed for the maintainer to confirm.
+- **One footer on every page, with a map of the whole site.** penthera.org's
+  homepage, landing pages, Pro, Research, the benchmarks, the blog, Trust and
+  Terms now end the same way: the theme switch, Star and Download, then every
+  page in four groups (Product, Research, Trust, Elsewhere), a 1-bit dither
+  ramp and the wordmark in polished steel. The map is built from the pages the
+  build renders, so a new page or approved post appears by itself, and a test
+  fails if a page is missing. /pro loses the line under its section labels and
+  between its panels, and long links in blog posts no longer widen the page on
+  a phone.
+- **Pro is now an open experiment, and the landing page asks the question.**
+  Penthera stays free and complete. A "Go Pro" plate on the landing page and
+  the rewritten /pro ask whether teams need anything beyond the free agent,
+  such as daily checks of what they shipped, weekly site checks and signed
+  reports. The waitlist measures the answer: nothing is for sale, and no check
+  moves behind a paywall. If there is a need, the income pays for
+  maintenance, independent reviewers and outside experts who critique the
+  rules ([GOVERNANCE.md](GOVERNANCE.md#money)). The README and the live
+  check's result no longer point to Pro. The plate shimmers and catches the
+  light under the pointer, and keeps still with reduced motion.
+- **The home page states the problem on its own, and shows the dashboard in
+  three steps.** "AI coding tools ship faster than anyone can check." now
+  opens a section of its own on a flat grey, set tight in display type, with
+  the pills, the lede, the two ways in and the 12-second loop below it. "See
+  it work" drops the 80-second walkthrough video for three light-theme shots
+  of `penthera ui` side by side: start a check, see what to fix first, and
+  approve a fix as a diff. The shots come from the real dashboard with demo
+  data (`site/tools/tour-shots.mjs`), cropped so each reads at a third of
+  the page.
+- **Blog figures show in the post.** The precision-recall plot in the secret
+  scanner post and the dev-to-test plot in the method post are now inline,
+  with alt text and a caption, served from `/blog/figures/`. They stay white
+  plates in the dark theme too.
+- **The home page is lighter on your machine, with the same look.** The
+  dithered field in the hero draws at up to 60 frames a second while the
+  pointer moves and 20 while it only drifts, instead of every display frame
+  (120 on ProMotion screens), and skips the columns its mask hides. The metal
+  plates' pointer light no longer forces a style pass per plate and only
+  touches the plates it can reach. The bottom blur gives each of its six
+  layers only the strip its mask shows, and is hidden once faded out. The
+  12-second loop, the Go Pro plate's glow and the footer's LED pause off
+  screen, and the LED breathes by opacity instead of repainting its glow. On the hero,
+  main-thread time while idle drops from about 45% to about 6%.
+- **A trust page: [penthera.org/trust](https://penthera.org/trust).** How
+  Penthera itself is built and released, with a link for every claim: npm
+  provenance from CI, a person approving every release, one runtime
+  dependency, the weekly OpenSSF Scorecard, CodeQL on every pull request, no
+  telemetry, and who runs penthera.org. It holds no certification and says
+  so. From `docs/trust.md`, linked from every page footer.
+
+### Docs
+
+- **Before you publish an app an AI built.** A new page for people using app
+  builders. It lists what Base44, Lovable, Replit and Netlify already check
+  before publish, from their own docs. Then it shows how to add Penthera as a
+  second check that runs on your own machine, with the exit codes to act on.
+- **Readable page names on docs.penthera.org.** Each published docs page now
+  carries its title, a short sidebar name and a one-line description in front
+  matter, so the docs site shows "Set up" and "MCP server" instead of "Init"
+  and "Mcp", and search engines get a description. The duplicate heading is
+  gone; the Markdown mirror, llms-full.txt, /terms and /trust put the title
+  back as a heading. Stale "1.9 release candidate" notes are removed from the
+  docs index.
+- **E14 step 2, the registered result: Penthera plus the free tools on the
+  sealed test half.** Penthera 2.1.0-rc.2 with gitleaks and trufflehog finds
+  11 points more CredData rows than Penthera alone (H1 holds) but loses 9
+  points of precision, beyond the registered 0.02 margin (H2 fails). With
+  Semgrep and CodeQL it finds 9 more of 64 SecBench.js bugs (H4 holds), at 4
+  findings per package instead of 1. By the pre-registered rule, `--giants`
+  keeps Penthera-first as its default. Every other tool matched its E11b
+  numbers exactly before any combination was computed. In
+  `bench/public/RESULTS.md` and the E14 pre-registration.
+- **E17, a check that Penthera works unplugged.** A pre-registration and a
+  runner that runs each offline command with the network blocked, twice, and
+  once with it allowed, and compares the results. It also records the child
+  processes a command starts, since the guard sees only Node. A manual
+  workflow runs it on Ubuntu. The pilot found no outside connections and the
+  same JSON every time; the evidence check's printed timestamp and URL scans
+  without `--offline` are the exceptions, written up in
+  `bench/offline/RESULTS.md`.
+- **E17 registered result: no network at run time, same result every time.**
+  On macOS and Ubuntu, repo scans, `agents`, `deps`, `brief`, evidence
+  bundles and URL scans with `--offline` made no outside connections and gave
+  the same result twice, and the same with the network blocked or allowed.
+  The evidence check's printed timestamp is the one line that changes. Limits
+  are in `bench/offline/RESULTS.md`: `git` runs outside the guard, and URL
+  scans without `--offline` download the Retire.js database.
+- **README and the trust page say what E17 showed,** for the commands that
+  passed only, with its limits.
+- **E20 draft protocol: how safe is the web's front door?** A passive check
+  of the Tranco top 1000 and of the companies in the two most recent Y
+  Combinator batches (E20b), with the live check's own rules, published as
+  aggregates only. The maintainer's decisions of 29 Oct are in: lists fetched
+  and hashed on registration day, a fixed rate of 4 sites at a time with a
+  1 second pause, `User-agent: *` with `Disallow: /` honored as an opt-out,
+  and a hand-written exclusion list (adult, gambling, health, government,
+  sites of people at risk) hashed with the lists. Not registered yet, and
+  nothing has been sent to any site. The runner, `bench/front-door/run.mjs`,
+  works on loopback only until the protocol is registered and both the list
+  and the exclusion list match the hashes recorded in it
+  (`docs/research/prereg/E20-front-door.md`).
+- **The live check's passive report takes study options:** skip referenced
+  files, skip the secret rules, its own User-Agent and robots.txt name, and
+  (for the study only) honor a robots.txt `*` group. The live check itself is
+  unchanged.
+- **E20 protocol, revision 2 (still a draft, nothing sent to any site).**
+  Verified prior work and an honest list of what E20 adds; decision rules
+  for every hypothesis, a Bonferroni-corrected family of 11 claims, a
+  10-point smallest difference that matters and a power statement; the
+  Menlo principles, measurement norms, Dutch, EU and US legal reasoning, a
+  harm table and an incident plan; a self-review checklist in place of an
+  outside review, listed as a limit. The runner now records decisions,
+  a seeded bootstrap for the median, Benjamini–Hochberg q-values for
+  secondary differences, a one-per-site sensitivity view and the hosting
+  platform, and removes email addresses from raw records before they are
+  written. An optional sub-measure (one linked login or app page, same site
+  only, headers only) is in the runner and tested on loopback, and stays off
+  until the maintainer adopts it.
+- **Which ranked tools are barely in the contest, and what a malware flag
+  means.** The README summary and the benchmark pages now name the ranked
+  tools that score below 0.10 (on npm, 3 of the 5 others; on PyPI, 4 of 7),
+  and say what share of Penthera's malware flags would be right if 1 package
+  in 1,000 were malicious: about 2.7% on npm at the top of the false-alarm
+  interval, 1.6% on PyPI at the measured rate (0.9% at the top). Exploratory,
+  computed from `published.json`; the registered ranking is unchanged.
+- **GOVERNANCE.md: who decides, how releases happen, and what happens if the
+  maintainer stops.** One maintainer, part-time. The rules that don't move
+  (rules decide, no run-time downloads, authorized targets only), sponsors
+  buy no influence, every release approved by a person with two-factor
+  authentication, and a plan for handing over or archiving.
+- **Benchmark ranks now carry their rank interval.** Where a point rank is
+  less sure than it reads, the README, penthera.org, the blog and the results
+  files now say "1st of 6, tied 1st to 3rd" (npm), "1st of 8, tied 1st to
+  3rd" (PyPI) and "1st of 8, tied 1st to 4th" (SecBench.js), with a note on
+  what the range means. Secrets stays "2nd of 10": its interval is one place.
+  The intervals come from an exploratory bootstrap done after the registered
+  ranking (`bench/public/rank-intervals.json`); a test checks that each one
+  contains the published rank and that the README matches what
+  `publish.mjs` writes.
+- **Secrets by F0.5 and F2.** Penthera is 2nd by F1, 1st by F0.5 (0.82
+  against deepsecrets 0.80) and 2nd by F2 (0.68 against 0.77), computed from
+  the published precision and recall.
+- **E17 normaliser, a logged deviation.** The registered key pattern also
+  removed `hasParams` and `deps.format`, which are analysis output. The
+  runner now removes an exact list of volatile paths and reports the old
+  pattern next to it. Re-run on macOS on 29 Oct 2026: same verdict. In
+  `bench/offline/RESULTS.md` and § 9 of the E17 pre-registration.
+- **The docs build as a Mintlify site.** `docs/docs.json` gives them the same
+  five journeys as the docs index (new, AI coding tools, CI, auditors,
+  research), in Penthera's colours. Mintlify's checker passes: three pages
+  that MDX couldn't parse are fixed, and links that leave the docs folder now
+  point to GitHub, so they work on GitHub and on the docs site alike.
+  `references.md` now writes plain links instead of `<url>` autolinks.
+- **The research notes and benchmark posts meet the project's research
+  standard.** Each of the seven notes in `docs/research/` and the two posts in
+  `blog/` now opens with its question, method, result and limits, and ends
+  with how to reproduce it, threats to validity, APA references that link to
+  [references.md](../docs/references.md), and a log of changes. 19 sources,
+  each checked against its publisher, DOI, CVE record or author page on
+  2026-10-29, were added to `docs/references.bib`. Three figures are drawn
+  from data in the repository by `docs/research/figures/runtime-strings.mjs`
+  and `blog/figures/make.mjs`. No result or number changed.
+- **Every research protocol and result page now meets the same standard.**
+  Each pre-registration (E1, E8, E10, E11, E11b, E14, E15, E17, E21) and both
+  results pages open with an abstract: question, method, result or "no
+  result yet", and limits. Registered protocols keep their registered text;
+  the additions are dated and marked as added after registration. New:
+  APA 7 citations for the statistics and datasets the studies use (20
+  entries, each checked against Crossref, arXiv or the dataset's own
+  repository), reproduction tables with commits, commands and licenses,
+  "what the result means" sections, and revision logs. E11's notes correct
+  CredData's code license (Apache-2.0, not MIT). Four figures, drawn by
+  `node bench/public/figures.mjs` from committed data, show the E11
+  hypotheses, the E11b secret and malware results, and the E14 arms.
+- **An exploratory re-analysis of the public benchmarks, after the
+  registered one.** [bench/public/RESULTS.md](../bench/public/RESULTS.md)
+  adds intervals that resample CredData by repository, recall over every
+  true row and every malicious package next to the registered in-scope
+  recall, and a log of what each tuning pass on the dev half changed. No
+  registered number, rank or verdict changes. `node bench/public/reanalysis.mjs`
+  rebuilds it from the local per-item files, with no download.
+- **A results-file checklist.** [docs/research/results-checklist.md](../docs/research/results-checklist.md)
+  lists 19 reporting items from STARD 2015 and the ACM SIGSOFT Empirical
+  Standards, each with where it lives in our files. A test checks that every
+  results file links it or has an abstract, data and code, limits and
+  changes.
+- **Scope-free secrets recall on the site and blog.** The secrets benchmark
+  page and the CredData post now say that, counted over every true
+  credential row, Penthera's recall is 0.25 and it would place 5th by F1.
+  The registered ranking counts in-scope rows and is unchanged.
+- **E11b disclosures.** The npm malware table shows the rate over all
+  `malicious_intent` packages next to the registered payload row. E11b's
+  deviations log a fix that landed 15 minutes before the split was sealed
+  (`litellm`) and the pass-limit question for library mode.
+- **Fixed:** an unclosed entry in `docs/references.bib` had hidden one
+  reference and shown another under the wrong anchor.
+- **Two drafts for review: `penthera watch` and E15.** The watch spec
+  describes re-checking what you shipped on a schedule in your own CI, against
+  advisory data (CISA KEV, EPSS, npm and PyPI) that ships offline in signed
+  packs with each release. The E15 pre-registration plans to measure whether
+  static agent checks find prompt injection hidden in skills, rule files and
+  MCP tool descriptions, and states in advance that plain persuasive text is
+  expected to be missed. Neither is built or registered yet.
+- **Penthera's daily notes on X are linked** from the README and the site
+  footer (x.com/penthera_org). The footer link is counted like the other links,
+  with the label "x-footer", as the privacy page lists.
+
 ## [2.1.0-rc.2] - 2026-10-28
 
 ### Added

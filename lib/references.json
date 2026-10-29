@@ -716,6 +716,321 @@
       "cite": "NOS liveblog (2026-10-21)",
       "title": "Websites kwetsbaar voor softwarelek: RTL Nieuws, DigiD en MijnOverheid uit de lucht",
       "url": "https://nos.nl/liveblog/2636066-websites-kwetsbaar-voor-softwarelek-digid-en-mijnoverheid-uit-de-lucht"
+    },
+    "wilson1927probable": {
+      "cite": "Wilson 1927",
+      "title": "Probable Inference, the Law of Succession, and Statistical Inference",
+      "url": "https://doi.org/10.1080/01621459.1927.10502953"
+    },
+    "newcombe1998interval": {
+      "cite": "Newcombe 1998",
+      "title": "Interval Estimation for the Difference Between Independent Proportions: Comparison of Eleven Methods",
+      "url": "https://doi.org/10.1002/(SICI)1097-0258(19980430)17:8<873::AID-SIM779>3.0.CO;2-I"
+    },
+    "cohen1960coefficient": {
+      "cite": "Cohen 1960",
+      "title": "A Coefficient of Agreement for Nominal Scales",
+      "url": "https://doi.org/10.1177/001316446002000104"
+    },
+    "fleiss1969large": {
+      "cite": "Fleiss et al. 1969",
+      "title": "Large Sample Standard Errors of Kappa and Weighted Kappa",
+      "url": "https://doi.org/10.1037/h0028106"
+    },
+    "feinstein1990paradoxes": {
+      "cite": "Feinstein & Cicchetti 1990",
+      "title": "High Agreement but Low Kappa: I. The Problems of Two Paradoxes",
+      "url": "https://doi.org/10.1016/0895-4356(90)90158-L"
+    },
+    "mcnemar1947note": {
+      "cite": "McNemar 1947",
+      "title": "Note on the Sampling Error of the Difference Between Correlated Proportions or Percentages",
+      "url": "https://doi.org/10.1007/BF02295996"
+    },
+    "youden1950index": {
+      "cite": "Youden 1950",
+      "title": "Index for Rating Diagnostic Tests",
+      "url": "https://doi.org/10.1002/1097-0142(1950)3:1<32::AID-CNCR2820030106>3.0.CO;2-3"
+    },
+    "efron1979bootstrap": {
+      "cite": "Efron 1979",
+      "title": "Bootstrap Methods: Another Look at the Jackknife",
+      "url": "https://doi.org/10.1214/aos/1176344552"
+    },
+    "petersson2004capture": {
+      "cite": "Petersson et al. 2004",
+      "title": "Capture-Recapture in Software Inspections after 10 Years Research: Theory, Evaluation and Application",
+      "url": "https://doi.org/10.1016/S0164-1212(03)00090-6"
+    },
+    "webber2013recall": {
+      "cite": "Webber 2013",
+      "title": "Approximate Recall Confidence Intervals",
+      "url": "https://doi.org/10.1145/2414782.2414784"
+    },
+    "nosek2018preregistration": {
+      "cite": "Nosek et al. 2018",
+      "title": "The Preregistration Revolution",
+      "url": "https://doi.org/10.1073/pnas.1708274114"
+    },
+    "bhuiyan2023secbenchjs": {
+      "cite": "Bhuiyan et al. 2023",
+      "title": "SecBench.js: An Executable Security Benchmark Suite for Server-Side JavaScript",
+      "url": "https://doi.org/10.1109/ICSE48619.2023.00096"
+    },
+    "yun2021creddata": {
+      "cite": "Yun et al. 2021",
+      "title": "Project CredData: A Dataset of Credentials for Research",
+      "url": "https://github.com/Samsung/CredData"
+    },
+    "datadog2023malicious": {
+      "cite": "Datadog Security Labs 2023",
+      "title": "Open-Source Dataset of Malicious Software Packages",
+      "url": "https://github.com/DataDog/malicious-software-packages-dataset"
+    },
+    "lamb2022reproducible": {
+      "cite": "Lamb & Zacchiroli 2022",
+      "title": "Reproducible Builds: Increasing the Integrity of Software Supply Chains",
+      "url": "https://doi.org/10.1109/MS.2021.3073045"
+    },
+    "dziemian2026ipiarena": {
+      "cite": "Dziemian et al. 2026",
+      "title": "How Vulnerable Are AI Agents to Indirect Prompt Injections? Insights from a Large-Scale Public Competition",
+      "url": "https://doi.org/10.48550/arXiv.2603.15714"
+    },
+    "wang2026mcptox": {
+      "cite": "Wang et al. 2026",
+      "title": "MCPTox: A Benchmark for Tool Poisoning on Real-World MCP Servers",
+      "url": "https://doi.org/10.1609/aaai.v40i42.40895"
+    },
+    "zhu2025cvebench": {
+      "cite": "Zhu et al. 2025",
+      "title": "CVE-Bench: A Benchmark for AI Agents' Ability to Exploit Real-World Web Application Vulnerabilities",
+      "url": "https://doi.org/10.48550/arXiv.2503.17332"
+    },
+    "wang2025cybergym": {
+      "cite": "Wang et al. 2025",
+      "title": "CyberGym: Evaluating AI Agents' Real-World Cybersecurity Capabilities at Scale",
+      "url": "https://doi.org/10.48550/arXiv.2506.02548"
+    },
+    "jackson2026emudhra": {
+      "cite": "Mozilla bug 2083449",
+      "title": "eMudhra: Private Key Compromise of Intermediate Certificates",
+      "url": "https://bugzilla.mozilla.org/show_bug.cgi?id=2083449"
+    },
+    "heninger2012mining": {
+      "cite": "Heninger et al. 2012",
+      "title": "Mining Your Ps and Qs: Detection of Widespread Weak Keys in Network Devices",
+      "url": "https://www.usenix.org/conference/usenixsecurity12/technical-sessions/presentation/heninger"
+    },
+    "nemec2017roca": {
+      "cite": "Nemec et al. 2017",
+      "title": "The Return of Coppersmith's Attack: Practical Factorization of Widely Used RSA Moduli",
+      "url": "https://doi.org/10.1145/3133956.3133969"
+    },
+    "gitlab2026patch": {
+      "cite": "GitLab 19.5.1 patch release",
+      "title": "GitLab Critical Patch Release: 19.5.1, 19.4.3, 19.3.6, 19.2.9, 19.1.9, 19.0.10, 18.11.13",
+      "url": "https://docs.gitlab.com/releases/patches/patch-release-gitlab-19-5-1-released/"
+    },
+    "gitlab2024cve9596": {
+      "cite": "CVE-2024-9596",
+      "title": "CVE-2024-9596",
+      "url": "https://www.cve.org/CVERecord?id=CVE-2024-9596"
+    },
+    "openai2026php2shell": {
+      "cite": "OpenAI 2026",
+      "title": "php2shell-checker",
+      "url": "https://github.com/openai/php2shell-checker/tree/40a4746ec4925d4d7510b99f9e134277918b1ac3"
+    },
+    "bengio2026agents": {
+      "cite": "Bengio 2026",
+      "title": "Why Are AI Agents Lying, Cheating and Coordinating?",
+      "url": "https://yoshuabengio.org/en/blog/why-are-ai-agents-lying-cheating-and-coordinating"
+    },
+    "cotra2026huggingface": {
+      "cite": "Cotra 2026",
+      "title": "The Hugging Face Attack Surprised Me",
+      "url": "https://www.planned-obsolescence.org/p/the-hugging-face-attack-surprised"
+    },
+    "horatau2026huggingface": {
+      "cite": "Horatau 2026",
+      "title": "The Hugging Face Incident Is Not an AI Story",
+      "url": "https://uphack.io/blog/post/the-hugging-face-incident-is-not-an-ai-story/"
+    },
+    "noze2026huggingface": {
+      "cite": "noze S.r.l. 2026",
+      "title": "Incidente OpenAI e Hugging Face a Black Hat 2026: Token forgiati, plugin Groovy e nove CVE su Artifactory",
+      "url": "https://www.noze.it/insights/black-hat-openai-hugging-face-ricostruzione/"
+    },
+    "li2022odgen": {
+      "cite": "Li et al. 2022",
+      "title": "Mining Node.js Vulnerabilities via Object Dependence Graph and Query",
+      "url": "https://www.usenix.org/conference/usenixsecurity22/presentation/li-song"
+    },
+    "kapoor2023leakage": {
+      "cite": "Kapoor & Narayanan 2023",
+      "title": "Leakage and the Reproducibility Crisis in Machine-Learning-Based Science",
+      "url": "https://doi.org/10.1016/j.patter.2023.100804"
+    },
+    "bossuyt2015stard": {
+      "cite": "Bossuyt et al. 2015",
+      "title": "STARD 2015: An Updated List of Essential Items for Reporting Diagnostic Accuracy Studies",
+      "url": "https://doi.org/10.1136/bmj.h5527"
+    },
+    "ralph2021empirical": {
+      "cite": "Ralph et al. 2021",
+      "title": "Empirical Standards for Software Engineering Research",
+      "url": "https://doi.org/10.48550/arXiv.2010.03525"
+    },
+    "sigsoft2026benchmarking": {
+      "cite": "ACM SIGSOFT Empirical Standards",
+      "title": "Benchmarking (of Software Systems)",
+      "url": "https://github.com/acmsigsoft/EmpiricalStandards/blob/master/docs/standards/Benchmarking.md"
+    },
+    "sigsoft2026registered": {
+      "cite": "ACM SIGSOFT Empirical Standards",
+      "title": "Registered Reports",
+      "url": "https://github.com/acmsigsoft/EmpiricalStandards/blob/master/docs/supplements/RegisteredReports.md"
+    },
+    "sigsoft2026irr": {
+      "cite": "ACM SIGSOFT Empirical Standards",
+      "title": "Inter-Rater Reliability and Agreement",
+      "url": "https://github.com/acmsigsoft/EmpiricalStandards/blob/master/docs/supplements/InterRaterReliabilityAndAgreement.md"
+    },
+    "field2007bootstrapping": {
+      "cite": "Field & Welsh 2007",
+      "title": "Bootstrapping Clustered Data",
+      "url": "https://doi.org/10.1111/j.1467-9868.2007.00593.x"
+    },
+    "lepochat2019tranco": {
+      "cite": "Le Pochat et al. 2019",
+      "title": "Tranco: A Research-Oriented Top Sites Ranking Hardened Against Manipulation",
+      "url": "https://doi.org/10.14722/ndss.2019.23386"
+    },
+    "ruth2022toppling": {
+      "cite": "Ruth et al. 2022",
+      "title": "Toppling Top Lists: Evaluating the Accuracy of Popular Website Lists",
+      "url": "https://doi.org/10.1145/3517745.3561444"
+    },
+    "felt2017measuring": {
+      "cite": "Felt et al. 2017",
+      "title": "Measuring HTTPS Adoption on the Web",
+      "url": "https://www.usenix.org/conference/usenixsecurity17/technical-sessions/presentation/felt"
+    },
+    "kranch2015upgrading": {
+      "cite": "Kranch & Bonneau 2015",
+      "title": "Upgrading HTTPS in Mid-Air: An Empirical Study of Strict Transport Security and Key Pinning",
+      "url": "https://doi.org/10.14722/ndss.2015.23162"
+    },
+    "amann2017mission": {
+      "cite": "Amann et al. 2017",
+      "title": "Mission Accomplished? HTTPS Security after DigiNotar",
+      "url": "https://doi.org/10.1145/3131365.3131401"
+    },
+    "scheitle2018caa": {
+      "cite": "Scheitle et al. 2018",
+      "title": "A First Look at Certification Authority Authorization (CAA)",
+      "url": "https://doi.org/10.1145/3213232.3213235"
+    },
+    "durumeric2015email": {
+      "cite": "Durumeric et al. 2015",
+      "title": "Neither Snow Nor Rain Nor MITM...: An Empirical Analysis of Email Delivery Security",
+      "url": "https://doi.org/10.1145/2815675.2815695"
+    },
+    "poteat2021securitytxt": {
+      "cite": "Poteat & Li 2021",
+      "title": "Who You Gonna Call? An Empirical Evaluation of Website security.txt Deployment",
+      "url": "https://doi.org/10.1145/3487552.3487841"
+    },
+    "findlay2022securitytxt": {
+      "cite": "Findlay & Abdou 2022",
+      "title": "Characterizing the Adoption of Security.txt Files and their Applications to Vulnerability Notification",
+      "url": "https://doi.org/10.14722/madweb.2022.23014"
+    },
+    "almanac2024security": {
+      "cite": "Franken & Vanderlinden 2024",
+      "title": "Security",
+      "url": "https://almanac.httparchive.org/en/2024/security"
+    },
+    "almanac2025security": {
+      "cite": "Vanderlinden & Franken 2026",
+      "title": "Security",
+      "url": "https://almanac.httparchive.org/en/2025/security"
+    },
+    "helme2022top1m": {
+      "cite": "Helme 2022",
+      "title": "Top 1 Million Analysis: June 2022",
+      "url": "https://scotthelme.co.uk/top-1-million-analysis-june-2022/"
+    },
+    "escape2025vibe": {
+      "cite": "Hinniger-Foray et al. 2025",
+      "title": "Methodology: How We Discovered over 2k High-Impact Vulnerabilities in Apps Built with Vibe Coding Platforms",
+      "url": "https://escape.tech/blog/methodology-how-we-discovered-vulnerabilities-apps-built-with-vibe-coding/"
+    },
+    "foudil2022rfc9116": {
+      "cite": "RFC 9116 (2022)",
+      "title": "A File Format to Aid in Security Vulnerability Disclosure",
+      "url": "https://doi.org/10.17487/RFC9116"
+    },
+    "koster2022rfc9309": {
+      "cite": "RFC 9309 (2022)",
+      "title": "Robots Exclusion Protocol",
+      "url": "https://doi.org/10.17487/RFC9309"
+    },
+    "hallambaker2019rfc8659": {
+      "cite": "RFC 8659 (2019)",
+      "title": "DNS Certification Authority Authorization (CAA) Resource Record",
+      "url": "https://doi.org/10.17487/RFC8659"
+    },
+    "bailey2012menlo": {
+      "cite": "Bailey et al. 2012",
+      "title": "The Menlo Report",
+      "url": "https://doi.org/10.1109/MSP.2012.52"
+    },
+    "dittrich2012menlo": {
+      "cite": "Dittrich & Kenneally 2012",
+      "title": "The Menlo Report: Ethical Principles Guiding Information and Communication Technology Research",
+      "url": "https://doi.org/10.2139/ssrn.2445102"
+    },
+    "partridge2016ethical": {
+      "cite": "Partridge & Allman 2016",
+      "title": "Ethical Considerations in Network Measurement Papers",
+      "url": "https://doi.org/10.1145/2896816"
+    },
+    "durumeric2013zmap": {
+      "cite": "Durumeric et al. 2013",
+      "title": "ZMap: Fast Internet-wide Scanning and Its Security Applications",
+      "url": "https://www.usenix.org/conference/usenixsecurity13/technical-sessions/paper/durumeric"
+    },
+    "benjamini1995fdr": {
+      "cite": "Benjamini & Hochberg 1995",
+      "title": "Controlling the False Discovery Rate: A Practical and Powerful Approach to Multiple Testing",
+      "url": "https://doi.org/10.1111/j.2517-6161.1995.tb02031.x"
+    },
+    "nl2026sr138ab": {
+      "cite": "Art. 138ab Sr",
+      "title": "Wetboek van Strafrecht, artikel 138ab (computervredebreuk)",
+      "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0001854&boek=Tweede&titeldeel=V&artikel=138ab"
+    },
+    "eu2016gdpr": {
+      "cite": "GDPR",
+      "title": "Regulation (EU) 2016/679 of the European Parliament and of the Council of 27 April 2016 on the protection of natural persons with regard to the processing of personal data and on the free movement of such data (General Data Protection Regulation)",
+      "url": "https://eur-lex.europa.eu/eli/reg/2016/679/oj"
+    },
+    "cjeu2016breyer": {
+      "cite": "Breyer (C-582/14)",
+      "title": "Judgment of 19 October 2016, Patrick Breyer v Bundesrepublik Deutschland, Case C-582/14",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:62014CJ0582"
+    },
+    "scotus2021vanburen": {
+      "cite": "Van Buren v. United States (2021)",
+      "title": "Van Buren v. United States, No. 19-783 (decided June 3, 2021)",
+      "url": "https://www.supremecourt.gov/opinions/20pdf/19-783_k53l.pdf"
+    },
+    "ninthcir2022hiq": {
+      "cite": "hiQ Labs v. LinkedIn (2022)",
+      "title": "hiQ Labs, Inc. v. LinkedIn Corporation, No. 17-16783 (opinion on remand, filed April 18, 2022)",
+      "url": "https://cdn.ca9.uscourts.gov/datastore/opinions/2022/04/18/17-16783.pdf"
     }
   }
 }

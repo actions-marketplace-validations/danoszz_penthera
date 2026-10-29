@@ -91,6 +91,18 @@ patterns, never flat" for those plates. The bottom blur stays as it is.
 Secondary detail folds away: the benchmark chart and the agent prompts sit
 behind toggles, like the MCP configs and the comparison table.
 
+Decided with the maintainer, 2026-10-29 (direction A, "the poster is the
+check"): the first screen is the live check. "Is your site/app safe?" in
+display type over the field and a glowing Check; the approved title stays
+the h1, set as a Departure Mono kicker above it. On the right, a metal card
+labelled Example shows the live check's own report of the test server, made
+at build time on loopback, never a number written by hand; your result
+replaces it in the same place, and the left side becomes the hand-off above
+the fold (Prompt to fix, `npx penthera <url>`, `npx penthera --repo .` and
+Star on GitHub). The problem line, the pills, the lede and the loop follow
+below the first screen. The dots sit behind the card, never behind the
+headline.
+
 ## Anti-references
 
 - Security-vendor pages: dark gradients, shields, padlocks, "threat

@@ -412,9 +412,11 @@ export const TOKEN = "penthera-quickcheck";
  * "*" speaks to crawlers, which walk a site, while this check fetches what
  * one browser visit to one page fetches. Blocking it takes one line from the
  * owner, aimed at us. Groups follow RFC 9309: consecutive User-agent lines
- * share the rules that follow them.
+ * share the rules that follow them. `tokens` adds names for callers that
+ * identify themselves differently (the E20 study, bench/front-door).
  */
-export function optedOut(robots) {
+export function optedOut(robots, tokens = [TOKEN]) {
+  const names = tokens.map((t) => String(t).toLowerCase());
   let agents = [];
   let inRules = false;
   for (const raw of String(robots).split(/\r?\n/)) {
@@ -428,7 +430,7 @@ export function optedOut(robots) {
       agents.push(value.split("/")[0].trim().toLowerCase());
     } else if (key === "disallow" || key === "allow") {
       inRules = true;
-      if (key === "disallow" && (value === "/" || value === "/*") && agents.includes(TOKEN)) return true;
+      if (key === "disallow" && (value === "/" || value === "/*") && agents.some((a) => names.includes(a))) return true;
     }
   }
   return false;
@@ -447,7 +449,7 @@ export async function checkOptOut(origin, budget, opts = {}) {
   } catch {
     return;
   }
-  if (res.status === 200 && optedOut(res.body)) {
+  if (res.status === 200 && optedOut(res.body, opts.optOutTokens)) {
     throw new CheckError("opted_out", "This site's owner opted out of Penthera's online check.", 403, "Ask the owner, or, if it's your site, run npx penthera on your own machine.");
   }
 }

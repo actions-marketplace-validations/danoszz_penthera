@@ -31,12 +31,16 @@ export const SCOPE = "Only what a browser loads: /robots.txt first (a site can o
 /**
  * @param {URL} target
  * @param {{typed?: string, now?: number, lookup?: Function, allowPrivate?: boolean, anyPort?: boolean,
- *   timeout?: number, dns?: object, dnsTimeout?: number, budgetMs?: number, retireDb?: object}} opts
- *   lookup, allowPrivate, anyPort, dns and retireDb are for tests.
+ *   timeout?: number, dns?: object, dnsTimeout?: number, budgetMs?: number, retireDb?: object,
+ *   assets?: boolean, secrets?: boolean, userAgent?: string, optOutTokens?: string[]}} opts
+ *   lookup, allowPrivate, anyPort, dns and retireDb are for tests. The E20
+ *   study (bench/front-door/run.mjs) sets the rest: assets: false skips the
+ *   referenced scripts and stylesheets, secrets: false the secret rules, and
+ *   userAgent and optOutTokens name the study instead of the live check.
  */
 export async function passiveReport(target, opts = {}) {
   const budget = makeBudget({ budgetMs: opts.budgetMs ?? LIMITS.budgetMs });
-  const guard = { lookup: opts.lookup, allowPrivate: opts.allowPrivate, anyPort: opts.anyPort };
+  const guard = { lookup: opts.lookup, allowPrivate: opts.allowPrivate, anyPort: opts.anyPort, userAgent: opts.userAgent, optOutTokens: opts.optOutTokens };
   const pageOpts = { ...guard, timeout: Math.min(opts.timeout ?? 6000, 6000), maxBytes: LIMITS.pageBytes, onHop: () => budget.hop() };
 
   let result;
@@ -58,7 +62,7 @@ export async function passiveReport(target, opts = {}) {
   const parsed = html ? parsePage(html, pageUrl) : null;
 
   const [assets, dns, securityTxt] = await Promise.all([
-    parsed ? loadAssets(parsed, pageUrl, budget, guard) : { files: [], wanted: 0, skipped: 0 },
+    parsed && opts.assets !== false ? loadAssets(parsed, pageUrl, budget, guard) : { files: [], wanted: 0, skipped: 0 },
     dnsChecks(host, { dns: opts.dns, dnsTimeout: Math.min(opts.dnsTimeout ?? 2500, 2500) }).catch(() => []),
     securityTxtCheck(pageUrl, budget, guard, opts.now ?? Date.now()),
   ]);
@@ -66,7 +70,7 @@ export async function passiveReport(target, opts = {}) {
   const extra = [];
   if (parsed) {
     extra.push(
-      ...secretChecks(html, assets.files, pageUrl),
+      ...(opts.secrets === false ? [] : secretChecks(html, assets.files, pageUrl)),
       ...libraryChecks(html, parsed, assets.files, pageUrl, { db: opts.retireDb }),
       ...mixedContentCheck(parsed, pageUrl, result.headers),
       ...sriCheck(parsed, pageUrl),

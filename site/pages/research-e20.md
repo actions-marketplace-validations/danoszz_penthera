@@ -31,8 +31,9 @@ Per site, in this order, and nothing else:
 2. `GET /` over HTTPS, following at most 4 redirects. Only if HTTPS does not connect, `GET /` over HTTP.
 3. `GET /.well-known/security.txt`, the file [RFC 9116](https://www.rfc-editor.org/rfc/rfc9116) asks sites to publish.
 4. Public DNS records: SPF and DMARC (TXT) and CAA.
+5. If your homepage links to a login or app page on your own domain (a link named "Log in", "Sign in", "App" or "Dashboard", or a path like `/login`), one `GET` of that page, after checking that page's host's robots.txt. Headers only: no form is filled, nobody logs in, and links to another domain are never followed.
 
-It does not load your scripts, stylesheets or images. It guesses no paths, sends no query strings, forms, payloads or logins, and reads no keys. At most 4 sites are visited at a time, and each worker waits 1 second between sites.
+It does not load your scripts, stylesheets or images. It guesses no paths, follows no other links, sends no query strings, forms, payloads or logins, and reads no keys. At most 4 sites are visited at a time, and each worker waits 1 second between sites.
 
 The request carries this User-Agent:
 
@@ -40,7 +41,7 @@ The request carries this User-Agent:
 Penthera-Research/E20 (+https://penthera.org/research/e20; opt out: robots.txt User-agent: Penthera-Research)
 ```
 
-The visits come from one source address. It is listed on this page before the study starts, and again in the results, so you can match it to your logs.
+Every request carries the User-Agent above. We do not publish the address the visits come from, for the same privacy reasons we ask of others. If you want to know whether a request in your logs was ours, email us the address and time you saw, and we will confirm or deny privately.
 
 ## How to opt out
 

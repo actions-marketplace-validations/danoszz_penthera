@@ -309,11 +309,11 @@ describe("E20 hosting platform (§ 6.7)", () => {
   });
 });
 
-describe("E20 sub-measure B, pending (§ 4.2)", () => {
-  it("is off on a registered run until the prereg row says Adopted, and the draft says pending", () => {
+describe("E20 sub-measure B, adopted (§ 4.2)", () => {
+  it("is on for a registered run only because the prereg row says Adopted (29 Oct 2026)", () => {
     const text = readFileSync(join(__dirname, "..", "docs", "research", "prereg", "E20-front-door.md"), "utf8");
-    expect(appPageAdopted(text)).toBe(false);
-    expect(text).toMatch(/\|\s*Sub-measure B \(app page\)\s*\|\s*\*\*Pending the maintainer's decision/);
+    expect(appPageAdopted(text)).toBe(true);
+    expect(appPageAdopted("| Sub-measure B (app page) | **Pending the maintainer's decision.** |")).toBe(false);
     expect(appPageAdopted("| Sub-measure B (app page) | **Adopted** 1 Nov |")).toBe(true);
     expect(() => authorize(reg({ rateFlags: ["--app-page"] }))).toThrow(/sub-measures are fixed/);
   });

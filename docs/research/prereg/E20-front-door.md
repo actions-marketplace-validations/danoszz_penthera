@@ -168,6 +168,42 @@ disclosure process this study does not have.
 - **Source address.** One fixed address, written in the results, so a site
   owner can match it to their logs.
 
+### 4.1 What E20 could look at, and does not
+
+E20 measures the **front door**: the page a company puts forward at its main
+domain. More of a company's surface is reachable without logging in, and
+two ways to see more were considered and left out on purpose.
+
+- **Subdomain discovery from certificate transparency logs.** Every TLS
+  certificate is logged publicly, so the names of a company's subdomains
+  (`staging.`, `admin.`, `api.`, `old.`) can be read without touching the
+  company at all, and each name could then be checked like the homepage.
+  E20 does not do this, for four reasons:
+  - It is the first step of an attack (reconnaissance). Doing it to
+    hundreds of companies who did not ask would contradict the reason
+    Penthera exists, and the project rule that scans touch only hosts the
+    maintainer named.
+  - The hosts it finds were not put forward to visitors. Many are staging,
+    internal or forgotten systems. Requests to them are less expected,
+    more likely to set off alarms, and harder to justify than a homepage
+    visit.
+  - A finding on a forgotten host is a vulnerability report, not a
+    statistic. It would need a disclosure process per company, which this
+    study does not have (§ 8).
+  - It multiplies the requests per company by tens or hundreds, against the
+    budget in § 4.
+- **Crawling other pages** (pricing, docs, blog). These are usually served
+  by the same host with the same headers, so they add load and little
+  information.
+
+**What this means for the results.** E20 says nothing about a company's
+app, API, staging hosts or other subdomains. A company with a strong
+homepage can run a weak app, and a weak homepage can sit in front of a
+well-built app. Every result is stated as a result about the front door
+only. A study of the wider surface would need consent from the companies,
+or a bug-bounty program that invites it, and would be a separate,
+separately registered study.
+
 ## 5. Exclusions
 
 | Reason | Rule | Reported as |

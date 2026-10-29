@@ -60,7 +60,7 @@ The raw per-site results stay private. They hold check outcomes and short eviden
 
 ## What it is not
 
-It is not a security test of your site. It sends nothing a browser visit to your homepage would not send, minus the scripts. A good or bad result for one site is never published, and it is not a guarantee of anything. To check your own site, use the [live check](/#scan).
+It is not a security test of your site. It does not look for your subdomains, staging hosts, app or API, and it does not crawl other pages: only the homepage you put forward. It sends nothing a browser visit to your homepage would not send, minus the scripts. A good or bad result for one site is never published, and it is not a guarantee of anything. To check your own site, use the [live check](/#scan).
 
 ## Contact
 

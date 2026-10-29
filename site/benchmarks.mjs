@@ -69,10 +69,21 @@ export function flagShare(us) {
   return { measured: us.fa ? right(us.fa) : null, worst: right(us.benignCI[1]) };
 }
 const pc1 = (x) => `${(x * 100).toFixed(1)}%`;
+/** The exploratory re-analysis (bench/public/reanalysis.mjs): recall over every true row. */
+export const REANALYSIS = JSON.parse(readFileSync(new URL("../bench/public/reanalysis.json", import.meta.url), "utf8"));
+/** Penthera's recall over every true CredData row, and its place by F1 over those rows among the ranked tools. */
+export function scopeFreeSecrets(re = REANALYSIS) {
+  const rows = re.scopeFree.secrets.filter((r) => r.all && !r.excluded && (r.kind === "penthera" || r.kind === "tool"));
+  const us = rows.find((r) => r.kind === "penthera");
+  if (!us) return null;
+  return { recall: us.all[0] / us.all[1], place: 1 + rows.filter((r) => r.f1All > us.f1All).length, of: rows.length };
+}
 /** The two notes as sentences, for a page: who is barely in the contest, and what a flag means. Exploratory. */
 export function fieldNotes(key, b) {
   const out = [], w = weakField(b), f = flagShare(b.rows.find((r) => r.kind === "penthera"));
   if (w) out.push(`${w.tools.length} of the ${w.of} other ranked tools ${w.tools.length === 1 ? "scores" : "score"} below ${n2(WEAK)}: ${w.tools.join(", ")}.`);
+  const s = key === "secrets" ? scopeFreeSecrets() : null;
+  if (s) out.push(`Counted over every true credential row, not only the in-scope ones, Penthera's recall is ${n2(s.recall)} and it would place ${ord(s.place)} by F1. The registered ranking counts in-scope rows. This is exploratory: it was done after the registered ranking.`);
   if (f && (key === "npm" || key === "pypi")) {
     const at = `If 1 package in ${(1 / PREVALENCE).toLocaleString("en-US")} were malicious`;
     out.push(f.measured == null

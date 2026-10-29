@@ -12,5 +12,13 @@ section: Docs
   Standards, each with where it lives in our files. A test checks that every
   results file links it or has an abstract, data and code, limits and
   changes.
+- **Scope-free secrets recall on the site and blog.** The secrets benchmark
+  page and the CredData post now say that, counted over every true
+  credential row, Penthera's recall is 0.25 and it would place 5th by F1.
+  The registered ranking counts in-scope rows and is unchanged.
+- **E11b disclosures.** The npm malware table shows the rate over all
+  `malicious_intent` packages next to the registered payload row. E11b's
+  deviations log a fix that landed 15 minutes before the split was sealed
+  (`litellm`) and the pass-limit question for library mode.
 - **Fixed:** an unclosed entry in `docs/references.bib` had hidden one
   reference and shown another under the wrong anchor.

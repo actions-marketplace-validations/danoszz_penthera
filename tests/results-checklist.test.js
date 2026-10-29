@@ -87,6 +87,23 @@ describe("exploratory re-analysis", () => {
     for (const r of re.scopeFree.secbench.rows) expect(r.registered, r.tool).toEqual(pub.benchmarks.library.rows.find((x) => x.tool === r.tool && x.version === r.version).pooled);
   });
 
+  it("gives the site and the blog the same scope-free secrets numbers", async () => {
+    const { scopeFreeSecrets, fieldNotes } = await import("../site/benchmarks.mjs");
+    const s = scopeFreeSecrets(re);
+    expect(s.recall.toFixed(2)).toBe("0.25");
+    expect(s.place).toBe(5);
+    expect(fieldNotes("secrets", pub.benchmarks.secrets).join(" ")).toContain("Penthera's recall is 0.25 and it would place 5th by F1");
+    expect(read("blog/secret-scanners-creddata.md")).toContain("Penthera's recall is 0.25 and it would place 5th by F1");
+  });
+
+  it("prints the npm table with the all-malicious_intent column, as publish.mjs writes it", async () => {
+    const { malwareTableLines } = await import("../bench/public/summary.mjs");
+    for (const key of ["npm", "pypi"]) {
+      const table = malwareTableLines(pub.benchmarks[key], key).join("\n");
+      for (const f of ["bench/public/PUBLISHED.md", "bench/public/RESULTS.md"]) expect(read(f), `${f} ${key}`).toContain(table);
+    }
+  });
+
   it("is labelled exploratory in RESULTS.md, with the figures current", () => {
     expect(read("bench/public/RESULTS.md")).toContain("## Exploratory re-analysis (29 Oct 2026, after the registered analysis)");
     expect(() => execFileSync(process.execPath, [join(ROOT, "bench/public/figures.mjs"), "--check"], { stdio: "pipe" })).not.toThrow();

@@ -28,6 +28,8 @@ deepsecrets finds more. Its recall is {{fact:secrets.deepsecrets.r}} against Pen
 
 So the rank depends on how you weigh the two. F1 weighs them equally. F0.5 weighs precision more: there Penthera scores {{fact:secrets.penthera.f05}} and deepsecrets {{fact:secrets.deepsecrets.f05}}, so Penthera would rank first of the ranked tools. F2 weighs recall more: deepsecrets scores {{fact:secrets.deepsecrets.f2}} and Penthera {{fact:secrets.penthera.f2}}, so Penthera stays second. The registered score is F1.
 
+Counted over every true credential row, not only the in-scope ones, Penthera's recall is 0.25 and it would place 5th by F1. The registered ranking counts in-scope rows. This check is exploratory: it was done after the registered ranking ([re-analysis](https://github.com/danoszz/penthera/blob/main/bench/public/RESULTS.md#exploratory-re-analysis-29-oct-2026-after-the-registered-analysis)).
+
 kingfisher has the highest precision of the ranked tools, {{fact:secrets.kingfisher.p}}, at a recall of {{fact:secrets.kingfisher.r}}.
 
 ## gitleaks and trufflehog

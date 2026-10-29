@@ -8,7 +8,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readmeSummary, rankIntervalLine, fBeta } from "../bench/public/summary.mjs";
-import { RANK_INTERVALS, tiedPhrase } from "../site/benchmarks.mjs";
+import { RANK_INTERVALS, WEAK, flagShare, tiedPhrase, weakField } from "../site/benchmarks.mjs";
 
 const ROOT = join(import.meta.dirname, "..");
 const pub = JSON.parse(readFileSync(join(ROOT, "bench", "public", "published.json"), "utf8"));
@@ -52,5 +52,19 @@ describe("benchmark summary", () => {
     expect(line).toContain(`${["", "1st", "2nd", "3rd"][place(0.5)]} by F0.5`);
     expect(line).toContain(`${["", "1st", "2nd", "3rd"][place(2)]} by F2`);
     expect(fBeta(0.5, 0.5, 2)).toBeCloseTo(0.5);
+  });
+
+  it("names only ranked tools below the weak line, and the flag share falls as false alarms rise", () => {
+    for (const b of Object.values(pub.benchmarks)) {
+      const w = weakField(b);
+      if (!w) continue;
+      for (const t of w.tools) expect(b.rows.find((r) => r.tool === t && r.rank != null).score, t).toBeLessThan(WEAK);
+    }
+    for (const k of ["npm", "pypi"]) {
+      const f = flagShare(pub.benchmarks[k].rows.find((r) => r.kind === "penthera"));
+      if (f.measured != null) expect(f.worst, k).toBeLessThanOrEqual(f.measured);
+      expect(f.worst, k).toBeGreaterThan(0);
+    }
+    expect(flagShare({ r: 1, fa: 0.001, benignCI: [0, 0.001] }).measured).toBeCloseTo(0.5, 2);
   });
 });

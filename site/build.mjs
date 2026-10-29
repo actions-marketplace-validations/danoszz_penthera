@@ -34,6 +34,7 @@ import { publicBenchHtml } from "./public-bench.mjs";
 import { readPosts, blogFiles } from "./blog.mjs";
 import { benchmarkHtml, benchmarkMarkdown, benchmarkViews, cardFor, fieldTools, hubHtml, hubMarkdown } from "./benchmarks.mjs";
 import { cardRows, failedChecks, rowTag } from "./check/card.js";
+import { researchEntries, researchHtml, researchMarkdown } from "./research.mjs";
 
 const SITE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(SITE, "..");
@@ -586,6 +587,10 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
       writeFileSync(join(OUT, "benchmarks", `${v.c.slug}.md`), benchmarkMarkdown(v.key, pub, { origin: ORIGIN }));
     }
   }
+  // /research: every study, result, case study and post, newest first (site/research.mjs).
+  const research = researchEntries({ root: ROOT, pub, posts: posts.published });
+  writeFileSync(join(OUT, "research.html"), researchHtml(research, { origin: ORIGIN, pub, styles, blog }));
+  writeFileSync(join(OUT, "research.md"), researchMarkdown(research, { origin: ORIGIN, pub }));
   for (const [f, text] of Object.entries(blogFiles(posts, { origin: ORIGIN, styles, drafts }))) {
     mkdirSync(dirname(join(OUT, f)), { recursive: true });
     writeFileSync(join(OUT, f), text);
@@ -593,7 +598,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   // For agents and crawlers: llms.txt (the same placeholders, so its pins
   // match the page), the docs as Markdown, the sitemap, robots.txt and
   // security.txt. All from the repo, at the package's homepage.
-  for (const [f, text] of Object.entries(agentFiles({ root: ROOT, site: SITE, version: siteVersion(version), origin: ORIGIN, values, pub, posts: posts.published }))) {
+  for (const [f, text] of Object.entries(agentFiles({ root: ROOT, site: SITE, version: siteVersion(version), origin: ORIGIN, values, pub, posts: posts.published, research }))) {
     mkdirSync(dirname(join(OUT, f)), { recursive: true });
     writeFileSync(join(OUT, f), text);
   }

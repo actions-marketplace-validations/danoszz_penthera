@@ -1139,6 +1139,76 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .blog-meta, .blog-src { margin-top: 16px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
 .blog-draft { display: inline-block; margin-bottom: 16px; padding: 6px 10px; font-family: var(--px); font-size: 13px; background: var(--accent); color: var(--on-accent); }
 
+/* Research (/research, site/research.mjs): the benchmark frame. One statement,
+ * the public benchmark on a blue plate, then a dated list held apart by space,
+ * never by rules. */
+.rs .rs-purpose { margin-top: 28px; max-width: 30ch; font-family: var(--display); font-size: clamp(24px, 3.4vw, 42px); line-height: 1.12; letter-spacing: -0.025em; color: var(--text-1); text-wrap: balance; }
+.rs .rs-tally { margin-top: 20px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
+.rs .land-foot { border-top: 0; padding-top: 0; }
+
+.rs .rs-feature {
+  position: relative; isolation: isolate; margin-top: 48px; padding: clamp(24px, 4vw, 48px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1px 0 rgba(0, 0, 0, 0.3), 0 24px 60px -30px rgba(0, 0, 237, 0.7);
+}
+.rs .rs-feature::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 3px);
+}
+.rs .rs-feature-k { display: flex; flex-wrap: wrap; gap: 8px; font-family: var(--px); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-2); }
+.rs .rs-feature-k > * { padding: 3px 8px; background: rgba(255, 255, 255, 0.12); }
+.rs .rs-feature-k > :first-child { background: #ffffff; color: #0000ed; }
+.rs .rs-feature h2 { margin-top: 20px; max-width: 22ch; font-size: clamp(28px, 4vw, 52px); line-height: 1; letter-spacing: -0.035em; }
+.rs .rs-feature h2 a { color: var(--text-1); text-decoration: none; }
+.rs .rs-feature h2 a:hover { background: none; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; }
+.rs .rs-feature-lede { margin-top: 16px; max-width: 62ch; color: var(--text-2); }
+.rs .rs-ranks { list-style: none; margin: 28px 0 0; padding: 0; display: grid; gap: 12px; }
+.rs .rs-ranks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 559px) { .rs .rs-feature { padding: 22px 18px 26px; } .rs .rs-ranks { gap: 8px; } .rs .rs-rank-row { padding: 14px 12px 16px; } .rs .rs-rank, .rs .rs-rank-v { font-size: 12px; } }
+@media (min-width: 960px) { .rs .rs-ranks { grid-template-columns: repeat(4, minmax(0, 1fr)); } .rs .rs-rank-k { min-height: 60px; } }
+.rs .rs-ranks li + li { margin-top: 0; }
+.rs .rs-rank-row {
+  display: grid; align-content: start; gap: 10px; padding: 18px 18px 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04) 55%, rgba(0, 0, 40, 0.25));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+}
+.rs .rs-rank-row p { margin: 0; }
+.rs .rs-rank-k { font-family: var(--display); font-size: 16px; font-weight: 500; line-height: 1.2; color: var(--text-1); }
+.rs .rs-rank-k span { display: block; margin-top: 4px; font-family: var(--px); font-size: 12px; font-weight: 400; color: var(--text-2); }
+.rs .rs-rank { font-family: var(--px); font-size: 13px; line-height: 1.4; color: var(--text-1); }
+.rs .rs-place {
+  display: block; margin-bottom: 6px; font-family: var(--display); font-size: clamp(40px, 5vw, 68px); font-weight: 500; line-height: 0.9; letter-spacing: -0.045em;
+  background: linear-gradient(180deg, #ffffff 40%, #c9cfff 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.rs .rs-rank-v { font-family: var(--px); font-size: 12px; color: var(--text-2); }
+.rs .rs-feature-note { margin-top: 18px; font-family: var(--px); font-size: 12px; color: var(--text-2); max-width: 72ch; }
+.rs .rs-feature-cta { margin-top: 24px; }
+.rs .rs-feature-cta .btn-steel { max-width: 100%; padding: 12px 24px; justify-content: center; text-align: center; line-height: 1.3; }
+@media (max-width: 479px) { .rs .rs-feature-cta .btn-steel { display: flex; width: 100%; font-size: 15px; } }
+.rs .rs-feature-cta .btn-steel:hover { background: linear-gradient(180deg, #ffffff 0%, #d3d9e0 45%, #8f98a6 55%, #e3e8ee 100%); color: #0a0a0a; }
+
+.rs h2.rs-list-title { margin-top: 80px; max-width: 20ch; font-size: clamp(26px, 3.4vw, 40px); line-height: 1.05; letter-spacing: -0.03em; }
+.rs .rs-list { list-style: none; margin: 32px 0 0; padding: 0; display: grid; gap: 36px; }
+.rs .rs-list li + li { margin-top: 0; }
+.rs .rs-item { display: grid; gap: 8px 32px; }
+@media (min-width: 760px) { .rs .rs-item { grid-template-columns: 112px minmax(0, 1fr); align-items: start; } }
+.rs .rs-date { margin: 0; padding-top: 3px; font-family: var(--px); font-size: 13px; color: var(--text-3); white-space: nowrap; }
+.rs .rs-body { min-width: 0; }
+.rs .rs-tags { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-family: var(--px); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
+.rs .rs-type { color: var(--text-3); }
+.rs .rs-id { text-transform: none; }
+.rs .rs-status { padding: 2px 8px; }
+.rs .rs-status.is-result { background: var(--accent); color: var(--on-accent); }
+.rs .rs-status.is-registered { background: var(--frame); color: var(--ground); }
+.rs .rs-status.is-running { box-shadow: inset 0 0 0 1px var(--frame); color: var(--text-1); }
+.rs .rs-status.is-draft { box-shadow: inset 0 0 0 1px rgba(var(--ink-rgb), 0.45); color: var(--text-2); }
+.rs .rs-body h3 { margin-top: 10px; max-width: 46ch; font-size: clamp(19px, 2.1vw, 24px); line-height: 1.2; letter-spacing: -0.015em; text-wrap: balance; }
+.rs .rs-body h3 a { color: var(--text-1); text-decoration: none; }
+.rs .rs-body h3 a:hover { background: none; color: var(--accent-ink); text-decoration: underline; }
+.rs .rs-sub { margin-top: 6px; font-family: var(--px); font-size: 12px; color: var(--text-3); }
+.rs .rs-sum { margin-top: 8px; max-width: 70ch; font-size: 15px; line-height: 1.5; color: var(--text-2); }
+.rs .rs-more { margin-left: 4px; font-family: var(--px); font-size: 12px; white-space: nowrap; }
+.rs .rs-how { margin-top: 64px; max-width: 72ch; font-size: 14px; color: var(--text-3); }
+
 /* Consent before a check: a heavy blur over the page, the terms in plain
  * words, and slide to scan, after the first iPhone's slide to unlock. The
  * track is a brushed plate; the thumb a square key; the label shimmers. */

@@ -502,12 +502,11 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   for (const f of ["favicon.svg", "logo.svg"]) cpSync(join(UI, f), join(OUT, f));
   mkdirSync(join(OUT, "fonts"), { recursive: true });
   for (const f of ["DepartureMono-Regular.woff2", "DepartureMono-LICENSE.txt"]) cpSync(join(UI, "fonts", f), join(OUT, "fonts", f));
+  // The walkthrough is no longer on the page; it stays at its URL for links shared before.
   cpSync(join(ROOT, "assets", "walkthrough.mp4"), join(OUT, "media", "walkthrough.mp4"));
   cpSync(join(ROOT, "assets", "walkthrough-poster.jpg"), join(OUT, "media", "walkthrough.jpg"));
   cpSync(join(ROOT, "assets", "walkthrough.vtt"), join(OUT, "media", "walkthrough.vtt"));
-  // The tour's dashboard shots: the same files the docs show.
-  mkdirSync(join(OUT, "media", "tour"), { recursive: true });
-  for (const f of ["ui-dark.jpg", "ui-light.jpg", "ui-run.jpg"]) cpSync(join(ROOT, "assets", "dashboard", f), join(OUT, "media", "tour", f));
+  // The tour's three dashboard shots live in site/media/tour/ (site/tools/tour-shots.mjs).
 
   // The page: version-stamp the assets it loads and fill in measured numbers.
   const packs = activePacks();

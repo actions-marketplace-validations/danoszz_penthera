@@ -294,7 +294,8 @@ export const APP_PAGE = Object.freeze({ requests: 4, budgetMs: 6000, maxRedirect
 // B grades only the response of the linked page, with the homepage's header checks.
 export const APP_CHECKS = Object.freeze(["https", "hsts", "csp", "framing", "nosniff", "referrer", "permissions", "cookies", "csp-scripts", "cors", "disclosure", "tls", "cert"]);
 
-const decode = (t) => t.replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").replace(/&#39;|&apos;/gi, "'").replace(/&quot;/gi, '"');
+// &amp; last, so "&amp;quot;" stays "&quot;" instead of being unescaped twice.
+const decode = (t) => t.replace(/&nbsp;/gi, " ").replace(/&#39;|&apos;/gi, "'").replace(/&quot;/gi, '"').replace(/&amp;/gi, "&");
 
 /**
  * The first link on the homepage that names a login or app page: its text,
@@ -306,7 +307,7 @@ const decode = (t) => t.replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").replace
 export function findAppLink(html, pageUrl) {
   const page = new URL(pageUrl);
   const site = registrableDomain(page.hostname);
-  const markup = String(html || "").replace(/<!--[\s\S]*?-->/g, " ").replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, " ");
+  const markup = String(html || "").replace(/<!--[\s\S]*?-->/g, " ").replace(/<script\b[^>]*>[\s\S]*?<\/script\b[^>]*>/gi, " ");
   for (const m of markup.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a\s*>/gi)) {
     const href = /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"']+))/i.exec(m[1]);
     const raw = href ? (href[1] ?? href[2] ?? href[3] ?? "").trim() : "";

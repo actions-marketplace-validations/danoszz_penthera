@@ -14,7 +14,7 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { RESULTS, ROOT, wilson } from "./common.mjs";
-import { rankIntervalLine, readmeSummary } from "./summary.mjs";
+import { malwareTableLines, rankIntervalLine, readmeSummary } from "./summary.mjs";
 
 const argv = process.argv.slice(2);
 const opt = (k) => (argv.includes(k) ? argv[argv.indexOf(k) + 1] : null);
@@ -176,8 +176,7 @@ for (const r of [...S.rows].sort((a, b) => (!!a.excluded - !!b.excluded) || ((b.
 L.push(`| | Free tools, mean / median | ${pct(S.others.p.mean)} / ${pct(S.others.p.median)} | ${pct(S.others.r.mean)} / ${pct(S.others.r.median)} | ${pct(S.others.f1.mean)} / ${pct(S.others.f1.median)} |`, "");
 for (const key of ["npm", "pypi"]) {
   const M = published.benchmarks[key];
-  L.push(`### ${M.title}`, "", "| Rank | Tool | Caught | False alarms on benign packages | Caught minus false alarms |", "|---:|---|---|---|---|");
-  for (const r of [...M.rows].sort((a, b) => (!!a.excluded - !!b.excluded) || ((b.score ?? -1) - (a.score ?? -1)))) L.push(`| ${r.rank ?? "–"} | ${name(r)}${r.caveat ? (r.kind === "lookup" ? " ³" : " ²") : ""} | ${pct(r.r)}${civ(r.detectCI)} (${kn(r.detect)}) | ${pct(r.fa)}${civ(r.benignCI)} (${kn(r.benign)}) | ${pct(r.j)} |`);
+  L.push(`### ${M.title}`, "", ...malwareTableLines(M, key));
   L.push("");
 }
 const B = published.benchmarks.library;

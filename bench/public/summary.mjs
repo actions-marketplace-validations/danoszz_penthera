@@ -73,3 +73,24 @@ export function readmeSummary(published, label) {
   if (flags.length) out.push("", `If 1 package in ${(1 / PREVALENCE).toLocaleString("en-US")} were malicious, the share of Penthera's malware flags that would be right: ${flags.join("; ")}. Exploratory, like the rank intervals.`);
   return out;
 }
+
+/**
+ * The full malware table for one ecosystem, as PUBLISHED.md and RESULTS.md
+ * print it. npm also shows the rate over every `malicious_intent` package
+ * next to the registered payload row (E11b § 7; added 29 Oct 2026).
+ */
+export function malwareTableLines(M, key) {
+  const kn = (a) => (a ? `${a[0]}/${a[1]}` : "n/a");
+  const civ = (c) => (c ? ` [${c[0].toFixed(2)}, ${c[1].toFixed(2)}]` : "");
+  const name = (r) => (r.kind === "penthera" ? `**${r.tool}**` : r.tool) + (r.version ? ` ${r.version}` : "");
+  const all = key === "npm";
+  const L = [all
+    ? "| Rank | Tool | Caught, with a payload | Caught, all `malicious_intent` | False alarms on benign packages | Caught minus false alarms |"
+    : "| Rank | Tool | Caught | False alarms on benign packages | Caught minus false alarms |",
+  all ? "|---:|---|---|---|---|---|" : "|---:|---|---|---|---|"];
+  for (const r of [...M.rows].sort((a, b) => (!!a.excluded - !!b.excluded) || ((b.score ?? -1) - (a.score ?? -1)))) {
+    const allCell = all ? ` ${r.all ? `${pct(r.all[0] / r.all[1])} (${kn(r.all)})` : "n/a"} |` : "";
+    L.push(`| ${r.rank ?? "–"} | ${name(r)}${r.caveat ? (r.kind === "lookup" ? " ³" : " ²") : ""} | ${pct(r.r)}${civ(r.detectCI)} (${kn(r.detect)}) |${allCell} ${pct(r.fa)}${civ(r.benignCI)} (${kn(r.benign)}) | ${pct(r.j)} |`);
+  }
+  return L;
+}

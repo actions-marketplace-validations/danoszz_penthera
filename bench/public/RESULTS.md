@@ -442,10 +442,10 @@ scanner on the test half. Grey hollow: not ranked. Data:
 
 **npm malware.** The registered row counts the 112 `malicious_intent`
 packages that carry a payload (decided before the test half was read). E11b
-§ 7 asks for the rate over all 150 `malicious_intent` packages next to it;
-[published.json](published.json) holds it (`all`), but the E11b table below
-does not show it. The last columns add the 25 compromised releases, which
-E11b left out of both.
+§ 7 asks for the rate over all 150 `malicious_intent` packages next to it.
+[published.json](published.json) always held it (`all`); the E11b table
+below shows it since 29 Oct 2026. The last columns add the 25 compromised
+releases, which E11b left out of both.
 
 | Tool | Caught, payload (registered) | Caught, all `malicious_intent` | Caught, all 175 malicious npm | Benign flagged | J, all 175 |
 |---|---|---|---|---|---:|
@@ -539,14 +539,16 @@ What the repository shows:
   `9d67c4c`, `8099271`) that report no change in detection.
 - Command injection in library mode got four passes over two rounds (D1 and
   D2, then passes 1, 2 and 2b). E11b § 8 allows at most three passes per
-  gap; it does not say whether a new round starts the count again.
+  gap; it does not say whether a new round starts the count again. Logged
+  as a deviation in E11b § 11 on 29 Oct 2026.
 - One fix landed before the seal and was not part of the dev tuning:
   `172f741` (IOC hosts match whole hostnames only), committed 15 minutes
   before `72d3149`. It fixed a false alarm E11 saw on the benign
   `litellm` 1.106.3 over all data. The split later put that package in the
   benign PyPI test half. The fix is general, and 2.0.0 does not flag the
   package, so it may account for 1 of the 6 fewer PyPI false alarms from
-  1.9.0 to 2.0.0 on the test half. The leakage audit did not list it.
+  1.9.0 to 2.0.0 on the test half. The leakage audit did not list it; it
+  is disclosed there, in E11b § 11, since 29 Oct 2026.
 - After 2.0.0, one secret-rule change (`c93b270`, translation files) came
   from ten real apps, not from either half. It left CredData dev unchanged,
   and E14 shows the test half unchanged.
@@ -853,16 +855,20 @@ marks are not ranked. n = 2,220 in-scope true rows. Data:
 
 #### Malicious npm packages (DataDog)
 
-| Rank | Tool | Caught | False alarms on benign packages | Caught minus false alarms |
-|---:|---|---|---|---|
-| 1 | **Penthera** 2.0.0 | 0.71 [0.62, 0.78] (79/112) | 0.00 [0.00, 0.02] (0/150) | 0.71 |
-| 2 | malcontent 1.27.1 (bf280ad6), yara-x 1.21.0 | 0.68 [0.59, 0.76] (76/112) | 0.05 [0.03, 0.10] (8/150) | 0.63 |
-| 3 | GuardDog 3.2.0 ² | 0.62 [0.52, 0.70] (69/112) | 0.03 [0.01, 0.07] (4/150) | 0.59 |
-| 4 | ossgadget 0.2.20 (414b6a59) | 0.94 [0.88, 0.97] (105/112) | 0.89 [0.83, 0.93] (133/150) | 0.05 |
-| 5 | clamav 1.5.4 | 0.01 [0.00, 0.05] (1/112) | 0.00 [0.00, 0.02] (0/150) | 0.01 |
-| 6 | yara yara-python 4.5.4 (YARA 4.5), YARA-Forge core 20261004 | 0.00 [0.00, 0.03] (0/112) | 0.00 [0.00, 0.02] (0/150) | 0.00 |
-| – | osv-scanner 2.6.0 ³ | 0.90 [0.83, 0.94] (101/112) | 0.01 [0.00, 0.04] (1/150) | 0.90 |
-| – | Penthera 1.9.0 | 0.57 [0.48, 0.66] (64/112) | 0.00 [0.00, 0.02] (0/150) | 0.57 |
+| Rank | Tool | Caught, with a payload | Caught, all `malicious_intent` | False alarms on benign packages | Caught minus false alarms |
+|---:|---|---|---|---|---|
+| 1 | **Penthera** 2.0.0 | 0.71 [0.62, 0.78] (79/112) | 0.53 (79/150) | 0.00 [0.00, 0.02] (0/150) | 0.71 |
+| 2 | malcontent 1.27.1 (bf280ad6), yara-x 1.21.0 | 0.68 [0.59, 0.76] (76/112) | 0.51 (76/150) | 0.05 [0.03, 0.10] (8/150) | 0.63 |
+| 3 | GuardDog 3.2.0 ² | 0.62 [0.52, 0.70] (69/112) | 0.69 (103/150) | 0.03 [0.01, 0.07] (4/150) | 0.59 |
+| 4 | ossgadget 0.2.20 (414b6a59) | 0.94 [0.88, 0.97] (105/112) | 0.91 (137/150) | 0.89 [0.83, 0.93] (133/150) | 0.05 |
+| 5 | clamav 1.5.4 | 0.01 [0.00, 0.05] (1/112) | 0.01 (1/150) | 0.00 [0.00, 0.02] (0/150) | 0.01 |
+| 6 | yara yara-python 4.5.4 (YARA 4.5), YARA-Forge core 20261004 | 0.00 [0.00, 0.03] (0/112) | 0.00 (0/150) | 0.00 [0.00, 0.02] (0/150) | 0.00 |
+| – | osv-scanner 2.6.0 ³ | 0.90 [0.83, 0.94] (101/112) | 0.91 (137/150) | 0.01 [0.00, 0.04] (1/150) | 0.90 |
+| – | Penthera 1.9.0 | 0.57 [0.48, 0.66] (64/112) | 0.43 (64/150) | 0.00 [0.00, 0.02] (0/150) | 0.57 |
+
+The column "Caught, all `malicious_intent`" was added on 29 Oct 2026, as
+E11b § 7 asks. It also counts the 38 packages with no payload. The rank and
+the score still use the payload column, as registered.
 
 #### Malicious PyPI packages (DataDog)
 

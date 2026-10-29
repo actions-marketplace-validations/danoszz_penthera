@@ -236,6 +236,20 @@ Logged so far:
   - The secrets tool step was stopped after the CredData tools and restarted
     as two parallel lanes for speed; nothing was read before it finished.
   A clean measure needs new data: post-freeze malware samples and E1.
+  - Added 29 Oct 2026, not found by the audit: commit `172f741` (IOC hosts
+    match whole hostnames only) landed 15 minutes before the split was
+    sealed in `72d3149`. It is a general fix for a false alarm that E11, run
+    on all data, raised on the benign `litellm` 1.106.3. The split later put
+    that package in the PyPI benign test half. 2.0.0 does not flag it, so the
+    fix may account for 1 of the 6 fewer PyPI false alarms from 1.9.0 to
+    2.0.0 on the test half. No number changes.
+- 2026-10-29, logged after the result: § 8 allows at most three passes per
+  gap. Command injection in library mode had four: D1 and D2 in round 1,
+  then passes 1, 2 and 2b in round 2 (commits `11963eb`, `18ff83c`,
+  `2de5b5d`, `24e0fb0`). § 8 does not say whether a new round starts the
+  count again. The ambiguity is logged, not resolved; no pass is undone and
+  no number changes. The per-pass log is in the exploratory re-analysis in
+  [RESULTS.md](../../../bench/public/RESULTS.md#exploratory-re-analysis-29-oct-2026-after-the-registered-analysis).
 
 ## Notes added after completion, 29 Oct 2026
 

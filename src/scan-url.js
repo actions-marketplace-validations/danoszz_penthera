@@ -14,6 +14,7 @@
  *     8. Framework-specific checks (CVEs)
  *     9. Cookie security audit (HttpOnly, Secure, SameSite)
  *    10. Retire.js, vulnerable JS library detection
+ *    10b. Secrets in client JS bundles (same-origin scripts only)
  *    11. Arjun-style batched HTTP parameter discovery
  *
  *   --recon (passive OSINT, skipped for localhost):
@@ -57,6 +58,7 @@ import { runtimeAdvisoriesForResponse } from "../lib/advisories/index.js";
 import { probeClientSideAuth } from "../lib/blackbox/client-auth.js";
 import { probeJwt } from "../lib/blackbox/jwt.js";
 import { probeEmailDns } from "../lib/blackbox/email-dns.js";
+import { probeBundleSecrets } from "../lib/blackbox/bundle-secrets.js";
 import { resolveAuth } from "./utils/auth.js";
 import { normalizeBaseUrl, isPrivateHost, joinUrl } from "./utils/url.js";
 import { safeFetch, readBody, createEgressContext, runWithEgress, egressSummary, probeErrors } from "./utils/http.js";
@@ -116,6 +118,8 @@ async function scanUrlInContext(target, opts) {
   const local = isPrivateHost(target);
   // Set false when the Retire.js database can't load, so we don't claim the probe ran.
   let retireJsRan = false;
+  // Set true once the bundle secret scan has run, for executedProbes
+  let bundleScanRan = false;
   const hostname = new URL(target).hostname;
   const isIpHost = /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname) || hostname.includes(":");
 
@@ -467,6 +471,16 @@ async function scanUrlInContext(target, opts) {
     } catch { /* non-critical */ }
   }
 
+  // Phase 10b: Secrets in client JS bundles 
+  // same switch as Retire.js: both read the scripts the home page loads
+  if (!opts.skipRetireJs) {
+    progress("Scanning client JS bundles for leaked keys...");
+    try {
+      result.findings.push(...await probeBundleSecrets(target, { timeout }));
+      bundleScanRan = true;
+    } catch { /* non-critical */ }
+  }
+
   // ── Phase 11: Parameter Discovery (Arjun-style) ───────────────────────
   if (!opts.skipParamDiscovery && filtered.length > 0) {
     progress("Discovering hidden parameters (Arjun-style)...");
@@ -642,6 +656,7 @@ async function scanUrlInContext(target, opts) {
     ...(result.fingerprint?.headers ? ["security-headers", "runtime-advisories"] : []),
     ...(auth.bearer ? ["jwt"] : []),
     ...(!opts.skipRetireJs && retireJsRan ? ["retirejs"] : []),
+    ...(bundleScanRan ? ["bundle-scan"] : []),
     ...(!opts.skipParamDiscovery && hadEndpoints ? ["param-discovery"] : []),
     ...(opts.recon && !local && !opts.offline ? ["recon"] : []),
     ...(opts.deep && hadEndpoints ? ["sqli", "ssti", "ssrf", "xss", "cmdi", "open-redirect"] : []),

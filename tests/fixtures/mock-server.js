@@ -23,6 +23,10 @@ const OPENAPI = {
   },
 };
 
+// A fake provider key for the bundle-scan probe, built at runtime so no key-shaped
+// string sits in source (GitHub push protection, Penthera scanning its own repo).
+export const FAKE_BUNDLE_KEY = "sk-" + "ant-api03-" + "aB3dE5fG7h".repeat(10).slice(0, 93);
+
 function json(res, status, body) {
   const payload = JSON.stringify(body);
   res.writeHead(status, {
@@ -81,6 +85,19 @@ function handle(req, res) {
 
   if (pathname === "/api/login" && req.method === "POST") {
     json(res, 401, { error: "invalid credentials" });
+    return;
+  }
+
+  // A page and a bundle with a fake key, for the bundle-scan probe. A page of their
+  // own, so "/" (and every scan of it) stays as it was.
+  if (pathname === "/bundle-demo") {
+    html(res, 200, '<html><body><script src="/bundle-demo/app.js"></script></body></html>');
+    return;
+  }
+
+  if (pathname === "/bundle-demo/app.js") {
+    res.writeHead(200, { "Content-Type": "text/javascript", Server: "penthera-mock/1.0" });
+    res.end(`window.__ENV__ = { AI_KEY: "${FAKE_BUNDLE_KEY}" };`);
     return;
   }
 

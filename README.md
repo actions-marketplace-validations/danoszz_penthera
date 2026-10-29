@@ -10,6 +10,8 @@ The security review you never had time for. Offline, rule-based, and you can ver
 
 **[penthera.org](https://penthera.org)**: check your live site in a few seconds. Passive, nothing stored.
 
+Daily notes from Penthera: **[x.com/penthera_org](https://x.com/penthera_org)**
+
 **132** readable rules · **6** read-only MCP tools · **1** runtime dependency · **0** requests past loopback in the benchmark · **MIT**, no telemetry
 
 <br/>

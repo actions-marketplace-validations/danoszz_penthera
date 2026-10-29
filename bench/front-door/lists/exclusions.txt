@@ -25,3 +25,40 @@ europa.eu government
 int government
 
 # Domains from the Tranco and YC lists, added by hand on registration day:
+
+# Registration day, 29 Oct 2026: read every domain in both target lists once,
+# in order. When unsure, listed.
+
+# Tranco top 1000 (ZJ8PG)
+xhamster.com adult
+stripchat.com adult
+erome.com adult
+onlyfans.com adult
+xvideos.com adult
+pornhub.com adult
+chaturbate.com adult
+eporner.com adult
+xnxx.com adult
+mayoclinic.org health
+gosuslugi.ru government
+crpt.ru government
+un.org government
+unesco.org government
+worldbank.org government
+
+# YC Fall 2026 + Summer 2026
+nxtcure.com health
+saccade.health health
+altair-health.com health
+archangelhealth.ai health
+kairoshealthai.com health
+sunflowerclinic.com health
+wondertx.ai health
+mentlio.com health
+ronanrx.com health
+lumeria.skin health
+caregp.com.au health
+allia.health health
+osseus.ai health
+denta.com health
+tarebio.com health

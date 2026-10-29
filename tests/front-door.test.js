@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 /**
  * E20 runner (bench/front-door/run.mjs): the guard that keeps it on loopback
  * until the protocol is registered, and a loopback-only visit. Every name is
@@ -66,13 +67,16 @@ describe("E20 guard", () => {
     expect(authorize({ loopback: true, rateFlags: ["--delay"], preregText: "" })).toEqual({ mode: "loopback" });
   });
 
-  it("the draft prereg in the repo refuses every non-loopback run", () => {
-    const text = readFileSync(join(__dirname, "..", "docs", "research", "prereg", "E20-front-door.md"), "utf8");
-    expect(isRegistered(text)).toBe(false);
-    expect(recordedHash(text, "tranco")).toBe(null);
-    expect(recordedHash(text, "yc")).toBe(null);
-    expect(recordedHash(text, "exclusions")).toBe(null);
-    expect(() => authorize({ loopback: false, registered: "E20", cohort: "tranco", listHash: HASH, preregText: text })).toThrow(/Refused/);
+  it("the prereg records the hashes of the lists in the repo, and refuses real runs until it says Registered", () => {
+    const root = join(__dirname, "..");
+    const text = readFileSync(join(root, "docs", "research", "prereg", "E20-front-door.md"), "utf8");
+    const sha = (f) => createHash("sha256").update(readFileSync(join(root, "bench", "front-door", "lists", f))).digest("hex");
+    expect(recordedHash(text, "tranco")).toBe(sha("tranco-ZJ8PG-top1000.csv"));
+    expect(recordedHash(text, "yc")).toBe(sha("yc-fall2026-summer2026-2026-10-29.csv"));
+    expect(recordedHash(text, "exclusions")).toBe(sha("exclusions.txt"));
+    if (!isRegistered(text)) {
+      expect(() => authorize({ loopback: false, registered: "E20", cohort: "tranco", listHash: sha("tranco-ZJ8PG-top1000.csv"), preregText: text })).toThrow(/Refused/);
+    }
   });
 });
 

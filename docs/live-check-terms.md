@@ -52,7 +52,7 @@ You are responsible for what you check and for what you do with the results, inc
 
 - penthera.org stores nothing about a check: not the address, not the results, not who ran it. The address travels in the request body, so it does not appear in request logs.
 - To enforce the limits, the server keeps a short-lived count of requests per visitor address and per checked site, in memory only, for at most a day.
-- The site is hosted on Vercel, which processes your IP address to deliver the page and the check. The page counts anonymous page views and load times with Vercel's cookieless analytics; it does not record that you ran a check or what you checked.
+- The site is hosted on Vercel, which processes your IP address to deliver the page and the check. The page counts anonymous page views and load times with Vercel's cookieless analytics. It also counts that a check ran, and whether it returned a report or an error, as an event with no cookie. It never records what you checked: not the URL or host, not the score, not anything you type ([privacy](privacy.md)).
 - The results are shown only in your browser tab. Copying the prompt puts it on your clipboard; nothing is sent anywhere.
 
 ## For site owners

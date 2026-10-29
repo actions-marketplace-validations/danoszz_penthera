@@ -338,9 +338,10 @@ export function printReport(result, opts = {}) {
       const l = a.lock;
       const status = l.status === "pinned" ? c.green(`pinned ${l.entries} entries → ${l.path}`)
         : l.status === "checked" ? (l.changed || l.added ? c.yellow(`${l.changed} changed · ${l.added} new · ${l.removed} removed`) : c.green(`all ${l.entries} entries match`))
-        : l.status === "corrupt" ? c.red("corrupt") : c.dim("none (run with --pin)");
+        : l.status === "corrupt" ? c.red("corrupt") : l.status === "unknown-version" ? c.yellow("unknown version, not compared") : c.dim("none (run with --pin)");
       w(`  Lock       ${status}`);
     }
+    for (const n of a.notChecked || []) w(`  ${c.yellow("Not read")}   ${c.dim(String(n).replace(/[\u0000-\u001f\u007f-\u009f]/g, ""))}`);
     w("");
   }
 

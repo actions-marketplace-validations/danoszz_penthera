@@ -24,6 +24,7 @@ import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 import { startMockServer } from "../../tests/fixtures/mock-server.js";
 import { mdCell } from "../../src/report/md-escape.js";
+import { ACTION_PIN } from "../../src/cli/onboarding.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const AUDIT_DIR = join(ROOT, "audit");
@@ -61,7 +62,12 @@ const BENCH_MAX_DROP = 0.02;
 // ~124 KB unpacked, ~36 KB packed, 17 files, no dependencies; no tool or
 // fixture ships), with the maintainer's OK (2026-10-26): it put the package at ~898 KB
 // packed / ~2,435 KB unpacked / 253 files; was 900_000 / 2_400_000 / 260.
-const PACK_BUDGET = { packedBytes: 950_000, unpackedBytes: 2_550_000, files: 280 };
+// Raised for the ADR 0002 agent rules (lib/agents/rules.js and friends, ~25 KB
+// unpacked), with the maintainer's OK (2026-10-28): it put the package at
+// ~2,565 KB unpacked; was 2_550_000. The trim pass that followed dropped
+// CHANGELOG.md from the tarball (not read at run time): ~2,445 KB unpacked,
+// ~896 KB packed, 256 files.
+const PACK_BUDGET = { packedBytes: 950_000, unpackedBytes: 2_600_000, files: 280 };
 
 /** Paths the npm package may contain. Anything else fails the packaging gate. */
 const PACK_ALLOW = [
@@ -706,8 +712,13 @@ async function gateVersionsDocs() {
     "gemini-extension.json": readJson(join(ROOT, "gemini-extension.json")).version,
     "gemini-extension.json (pin)": readJson(join(ROOT, "gemini-extension.json")).mcpServers?.penthera?.args?.find((x) => x.startsWith("penthera@"))?.slice("penthera@".length),
   };
+  // The plugin and repo MCP launch lines pin a stable release, so during a
+  // release candidate they may stay on the newest stable one (ACTION_PIN).
+  const stable = /-/.test(v) ? ACTION_PIN.tag.slice(1) : v;
+  const stablePins = new Set(["plugin/.mcp.json (pin)", ".mcp.json (pin)"]);
   for (const [file, got] of Object.entries(found)) {
-    if (got !== v) notes.push(`Version drift: ${file} has ${got ?? "none"}, package.json has ${v}`);
+    if (got === v || (stablePins.has(file) && got === stable)) continue;
+    notes.push(`Version drift: ${file} has ${got ?? "none"}, package.json has ${v}${stablePins.has(file) && stable !== v ? ` (or the stable ${stable})` : ""}`);
   }
   const cli = await penthera(["--version"], { log: false });
   if (!cli.stdout.includes(v)) notes.push(`penthera --version prints "${cli.stdout.trim()}", expected ${v}`);

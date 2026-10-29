@@ -56,7 +56,8 @@ const DEPS_LIMITS = [
 ];
 const AGENTS_LIMITS = [
   "Project-level agent config only (.mcp.json, .claude/, .cursor/, .vscode/mcp.json, skills, AGENTS.md, CLAUDE.md). The user's home config (--home) is outside the workspace and is not read.",
-  "Codex config.toml and Windsurf mcp_config.json are not read yet.",
+  "Codex config.toml and Windsurf mcp_config.json are not read yet; the result's Not checked list names any such file it saw.",
+  "MCP servers are never started, so tool descriptions (tools/list) and tool-description poisoning are not checked.",
   "No penthera.lock is written; rug-pull detection compares against an existing lock only.",
 ];
 const ADVISORY_LIMITS = [

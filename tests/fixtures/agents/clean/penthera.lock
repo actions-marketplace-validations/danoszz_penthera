@@ -1,7 +1,7 @@
 {
-  "lockfileVersion": 1,
+  "lockfileVersion": 2,
   "generator": "penthera agents --pin",
-  "note": "SHA-256 pins for agent skills, MCP servers, hooks and plugins. Review changes before re-pinning.",
+  "note": "SHA-256 pins for agent skills, MCP servers, hooks and plugins. Review changes before re-pinning. Version 2 pins every file in a skill except node_modules and .git; re-pin a version 1 file after upgrading.",
   "entries": {
     "hook:.claude/settings.json#PostToolUse[Edit|Write]/0.0": {
       "kind": "hook",

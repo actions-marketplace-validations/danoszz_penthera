@@ -127,6 +127,10 @@ These run in the browser and only accept MCP servers by URL. Penthera's server r
 
 Once the code is on GitHub, the Action checks every pull request: dependencies, AI-tool config and the code. See [the Action](commands/action.md) and [a ready workflow](https://github.com/danoszz/penthera/blob/main/docs/examples/pr-dependency-review.yml).
 
+After the GitHub sync, one file checks the agent config (skills, MCP servers, hooks) on every pull request and reports to Code scanning: copy [`github-actions-agents.yml`](https://github.com/danoszz/penthera/blob/main/docs/examples/github-actions-agents.yml) into `.github/workflows/`, or let `penthera init` write it.
+
+Most of these builders also scan before publish. [Before you publish](before-you-publish.md) lists what each one checks and where Penthera adds a second check.
+
 Mobile builders (Rork and similar) usually have no web URL. Sync to GitHub and scan the repository.
 
 ## Limits

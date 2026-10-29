@@ -204,7 +204,7 @@ export function buildBrief(results, { reports = [], notRunCommand = (n) => Strin
     .map((g) => noiseGroup(g, noiseReason.get(g[0])));
 
   const notChecked = [];
-  for (const r of list) notChecked.push(...coverageLines(r.coverage));
+  for (const r of list) notChecked.push(...coverageLines(r.coverage), ...(r.agents?.notChecked || []).map((l) => text(l, 300)));
   const next = [];
   for (const f of by.info) {
     const cmd = commandIn(f);

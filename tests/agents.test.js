@@ -531,6 +531,8 @@ describe("fixtures", () => {
     expect(r.findings.filter((f) => f.severity !== "info")).toEqual([]);
     expect(r.agents.grade).toBe("A");
     expect(r.agents.lock.status).toBe("checked");
+    // The lock is version 2, so it gives no lock-outdated info either.
+    expect(r.findings).toEqual([]);
   });
 
   it("every rule has an OWASP mapping entry with known ids", () => {

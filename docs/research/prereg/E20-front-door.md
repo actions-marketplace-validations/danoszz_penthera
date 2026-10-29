@@ -845,25 +845,32 @@ If a site owner complains, reports abuse to our host, or asks what happened:
   directory) and are committed with the protocol, so anyone can re-run the
   study (§ 14).
 
-### 8.8 E20b: optional founder notes
+### 8.8 E20b: founder notes (decided 29 Oct 2026)
 
-Separate from the study, never part of the publication, and only if the
-maintainer decides to:
+Separate from the study and never part of the publication. The maintainer
+chose disclosure-first notes:
 
-- **By hand only.** The maintainer writes each note himself; nothing is sent
-  automatically or in bulk.
+- **Only where there is one concrete, fixable issue that anyone can see from
+  outside**: a missing or non-enforcing DMARC record, missing SPF, no HTTPS
+  redirect or HSTS, a missing Content-Security-Policy or framing protection.
+  These are public by design (DNS answers and response headers), so stating
+  one reveals nothing a visitor could not see.
 - **Only to a published security contact**: the site's security.txt
-  `Contact:`, or `security@` its domain. Never a founder's personal email,
-  never social media, never a public reply.
-- **Opt-in tone.** One short note: we ran a passive study, your homepage was
-  one of many, would you like a private report of your own front door? No
-  finding is stated in the note itself, and nothing is attached.
-- **Only to someone who shows they control the domain** does a report go:
-  a DNS TXT record or a file on the site, as the live check's own process
-  asks.
-- **Once, with no follow-up**, and never to the Tranco cohort.
-- **Never public.** A site's result is never revealed outside that private
-  report, and a reply does not change the aggregates.
+  `Contact:`, or `security@` its domain. Never a founder's personal address,
+  never social media, never a public reply. Never the Tranco cohort.
+- **Drafted, then sent by hand.** Drafts are prepared from the study's own
+  evidence as Gmail drafts; the maintainer reads each one and sends it
+  personally. Nothing is sent automatically or in bulk, and at most 50 notes
+  go out a day.
+- **What a note says:** what was checked (passive, homepage only, once),
+  the one issue, how to verify it themselves for free (a `dig` or `curl`
+  command, or the live check), and the fix. No score, no ranking, no
+  "you are insecure". One line about Penthera with the link, and one line
+  to opt out.
+- **Once, no follow-up** unless they reply. A reply never changes the
+  aggregates, and a site's result is never revealed anywhere else.
+- **Logged privately:** domain, date sent, issue named, reply yes/no. The log
+  is deleted with the raw data after 12 months.
 
 A draft note is in Appendix A.
 
@@ -1146,22 +1153,28 @@ Any change after registration is listed here with its date and reason.
   limit (§ 12). Timeline: registration 31 Oct, runs 1 Nov, publication
   planned around 11 Nov after the maintainer's own check.
 
-## Appendix A. E20b founder note (draft, only if § 10.2 point 4 says yes)
+## Appendix A. E20b founder note (draft)
 
 Sent by hand, once, to the site's security.txt contact or `security@` its
-domain.
+domain, only where § 8.8 applies. The bracketed parts are filled from the
+study's evidence for that one domain.
 
-> Subject: Penthera-Research/E20: a private report for your homepage, if you want one
+> Subject: [domain]: [issue in a few words], from a passive study
 >
-> Hello,
+> Hi,
 >
-> On [date], your homepage was one of about 1,300 sites in a passive study
-> of web front doors (https://penthera.org/research/e20). It loaded your
-> homepage, robots.txt and security.txt once, and read public DNS. We
-> publish totals only, and never name a site.
+> On [date] your homepage was one of about 1,300 sites in a passive study of
+> web front doors (https://penthera.org/research/e20). It loaded your
+> homepage, robots.txt and security.txt once and read public DNS. We publish
+> totals only and never name a site.
 >
-> If you would like a private copy of the checks for your own domain, reply
-> to this email, and we will ask you to confirm you control the domain
-> first. If not, no reply is needed, and you will not hear from us again.
+> One thing stood out that anyone can see from outside: [issue, one
+> sentence]. You can check it yourself with `[command]`. The usual fix is
+> [fix, one sentence].
 >
-> Daan van der Zwaag, Penthera
+> If it helps, Penthera is a free, offline, open-source security agent:
+> https://github.com/danoszz/penthera. No reply needed, and you won't hear
+> from us again unless you write back.
+>
+> Go get 'em,
+> Daan, Penthera (@penthera_org)

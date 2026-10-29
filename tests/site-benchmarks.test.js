@@ -9,7 +9,7 @@ import { mkdtempSync, rmSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { buildSite } from "../site/build.mjs";
-import { BENCHMARKS, benchmarkViews, betterThanUs, fieldTools, n2, ord, pubHash } from "../site/benchmarks.mjs";
+import { BENCHMARKS, benchmarkViews, betterThanUs, fieldTools, n2, ord, pubHash, tiedPhrase } from "../site/benchmarks.mjs";
 
 const ROOT = join(import.meta.dirname, "..");
 const ORIGIN = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).homepage.replace(/\/+$/, "");
@@ -100,6 +100,9 @@ describe("benchmark pages", () => {
       expect(body, v.key).toContain(`Penthera ${v.us.version} ranked ${ord(v.us.rank)} of ${v.b.of} free tools`);
       for (const r of v.ranked.filter((x) => x.rank < v.us.rank)) expect(body, v.key).toContain(`${r.tool} ranked 1st`);
       if (v.close) expect(body, v.key).toContain(`within the margin of error`);
+      // A point rank goes out with its rank interval (bench/public/rank-intervals.json) when that spans more than one place.
+      if (v.iv && v.iv.rank[0] !== v.iv.rank[1]) expect(body, v.key).toContain(`ranked ${ord(v.us.rank)} of ${v.b.of} free tools${tiedPhrase(v.iv)}`);
+      if (v.iv) expect(body, v.key).toContain("How sure the rank is:");
       for (const [a, z] of v.ties) expect(body, v.key).toContain(`${a.tool} and ${z.tool} have the same score`);
       for (const x of betterThanUs(v)) expect(body, v.key).toContain(`${x.measure}: ${x.tool.tool} ${n2(x.theirs)}, Penthera ${n2(x.ours)}`);
       // Rows that were not ranked are shown with the reason, never hidden.

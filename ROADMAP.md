@@ -108,7 +108,7 @@ to report stays deterministic.
 |---|---|---|---|
 | Secrets | F1 0.74 on CredData, ahead of gitleaks (0.52) and trufflehog (0.10) | gitleaks, trufflehog (verifies keys only with your opt-in, since it contacts the provider) | Planned |
 | Code | JS/TS injection: 0.70 on SecBench.js, ahead of CodeQL (0.64) and Semgrep (0.38) | Semgrep with local rules, for other languages; CodeQL only where its terms allow (open-source code, or your own licence) | Planned |
-| Dependencies | Capabilities, malware (1st on npm and PyPI), licences, typosquats | osv-scanner, pip-audit, for known CVEs in your lockfiles | Planned |
+| Dependencies | Capabilities, malware (1st on npm and PyPI, tied 1st to 3rd once the uncertainty is counted), licences, typosquats | osv-scanner, pip-audit, for known CVEs in your lockfiles | Planned |
 | Infrastructure | Runtime versions pinned in Dockerfiles and version files | trivy (container images, IaC), checkov (Terraform, Kubernetes, CI config) | Planned |
 | Live app | Passive checks, Nuclei-compatible templates, `--deep` injection probes | nuclei, the ZAP baseline scan | Planned |
 | E14: the combination against each tool alone | "Is the combined report better, or only longer?" | Same protocol as E11b on the same public benchmarks. Combined precision may not drop by more than 0.02 | Pre-registered ([E14](docs/research/prereg/E14-giants-combination.md)); [spec](docs/research/spec-giants.md) approved. Next: the build, then the dev-half rerun |

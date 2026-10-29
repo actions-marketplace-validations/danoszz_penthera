@@ -118,9 +118,13 @@ down before that run ([protocol](docs/research/prereg/E11b-improvement-study.md)
 | Benchmark | Score | Penthera 1.9.0 | **Penthera 2.0.0** | Rank among free tools | Best other free tool |
 |---|---|---|---|---|---|
 | [Leaked secrets (Samsung CredData)](https://penthera.org/benchmarks/secrets) | F1 | 0.18 | **0.74** | **2nd of 10** | deepsecrets 0.78 |
-| [Malicious npm packages (DataDog)](https://penthera.org/benchmarks/npm-malware) | caught minus false alarms | 0.57 | **0.71** | **1st of 6** | malcontent 0.63 |
-| [Malicious PyPI packages (DataDog)](https://penthera.org/benchmarks/pypi-malware) | caught minus false alarms | 0.74 | **0.82** | **1st of 8** | GuardDog 0.74 |
-| [Injection bugs in JS libraries (SecBench.js)](https://penthera.org/benchmarks/js-injection) | found in the right file | 0.16 | **0.70** | **1st of 8**, within the margin | odgen 0.68 |
+| [Malicious npm packages (DataDog)](https://penthera.org/benchmarks/npm-malware) | caught minus false alarms | 0.57 | **0.71** | **1st of 6, tied 1st to 3rd** ⁴ | malcontent 0.63 |
+| [Malicious PyPI packages (DataDog)](https://penthera.org/benchmarks/pypi-malware) | caught minus false alarms | 0.74 | **0.82** | **1st of 8, tied 1st to 3rd** ⁴ | GuardDog 0.74 |
+| [Injection bugs in JS libraries (SecBench.js)](https://penthera.org/benchmarks/js-injection) | found in the right file | 0.16 | **0.70** | **1st of 8, tied 1st to 4th** ⁴ | odgen 0.68 |
+
+⁴ A tied range is a rank interval: the range Penthera's rank fell in, in 95% of 10,000 bootstrap redraws of each tool's counts (on SecBench.js, of its 64 test bugs). Penthera alone came out first in 76% of the redraws on npm, 82% on PyPI and 60% on SecBench.js. Exploratory: computed after the registered ranking.
+
+Leaked secrets: 2nd by F1, the registered score; 1st by F0.5, which weighs precision more (0.82 against deepsecrets 0.80); 2nd by F2, which weighs recall more (0.68 against deepsecrets 0.77).
 
 <details><summary>Every tool, every number (95% intervals)</summary>
 
@@ -185,7 +189,7 @@ down before that run ([protocol](docs/research/prereg/E11b-improvement-study.md)
 | – | semgrep, every file 1.180.0 (another setting of semgrep, not ranked) | 16/47 | 9/17 | 0.39 [0.28, 0.51] |
 | – | Penthera 1.9.0 | 0/47 | 10/17 | 0.16 [0.09, 0.26] |
 
-A rank is shown only where at least 5 other free tools were measured; otherwise "–".
+A rank is shown only where at least 5 other free tools were measured; otherwise "–". The rank column orders tools by score, and close scores can swap places. Penthera's 95% rank interval (bootstrap, exploratory): 2nd on CredData, 1st to 3rd on npm, 1st to 3rd on PyPI, 1st to 4th on SecBench.js.
 
 Paid tools (GitGuardian, Socket, Snyk, Phylum, Semgrep Pro) publish no results on these benchmarks, so they are not in the tables.
 

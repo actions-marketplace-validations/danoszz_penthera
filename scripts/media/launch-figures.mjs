@@ -120,9 +120,9 @@ function hero(w, h) {
   const square = w / h < 1.4;
   const px = (v) => `${Math.round(v * s)}px`;
   const tiles = [
-    ["npm", "1st", "of 6", "Malicious npm packages", `${pct(us(B.npm).r)} caught, ${us(B.npm).benign[0]} false alarms in ${us(B.npm).benign[1]}`],
-    ["pypi", "1st", "of 8", "Malicious PyPI packages", `${pct(us(B.pypi).r)} caught, ${pct(us(B.pypi).fa)} false alarms`],
-    ["library", "1st", "of 8, tied", "Injection bugs in JS libraries", `${us(B.library).command[0]} of ${us(B.library).command[1]} command injections found`],
+    ["npm", "1st", "of 6, tied 1st to 3rd", "Malicious npm packages", `${pct(us(B.npm).r)} caught, ${us(B.npm).benign[0]} false alarms in ${us(B.npm).benign[1]}`],
+    ["pypi", "1st", "of 8, tied 1st to 3rd", "Malicious PyPI packages", `${pct(us(B.pypi).r)} caught, ${pct(us(B.pypi).fa)} false alarms`],
+    ["library", "1st", "of 8, tied 1st to 4th", "Injection bugs in JS libraries", `${us(B.library).command[0]} of ${us(B.library).command[1]} command injections found`],
     ["secrets", "2nd", "of 10", "Leaked secrets", `${pct(us(B.secrets).p)} of warnings real, ${pct(us(B.secrets).r)} found`],
   ];
   // Every ranked tool on that benchmark, best first; bars start at 0 (a negative J draws none).

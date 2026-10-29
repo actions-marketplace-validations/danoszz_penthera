@@ -439,6 +439,7 @@ export function optedOut(robots, tokens = [TOKEN]) {
 /**
  * GET /robots.txt through the guard (4 s, 64 KB, in the request budget) and
  * refuse when the owner opted out. No file, or any fetch error, means go on.
+ * `optOutAll` (the E20 study only) also refuses on a `*` group with Disallow: /.
  */
 export async function checkOptOut(origin, budget, opts = {}) {
   let res;
@@ -451,5 +452,12 @@ export async function checkOptOut(origin, budget, opts = {}) {
   }
   if (res.status === 200 && optedOut(res.body, opts.optOutTokens)) {
     throw new CheckError("opted_out", "This site's owner opted out of Penthera's online check.", 403, "Ask the owner, or, if it's your site, run npx penthera on your own machine.");
+  }
+  // The E20 study (bench/front-door) also honors `User-agent: *` with
+  // `Disallow: /`, because a survey is closer to a crawler. The live check
+  // never sets optOutAll, so the API never sends this. Same code, marked
+  // `all`, so the study can count it apart from an opt-out naming us.
+  if (res.status === 200 && opts.optOutAll && optedOut(res.body, ["*"])) {
+    throw Object.assign(new CheckError("opted_out", "This site's robots.txt disallows every user agent.", 403, ""), { all: true });
   }
 }

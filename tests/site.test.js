@@ -546,8 +546,9 @@ describe("site landing pages", () => {
   const read = (f) => readFileSync(join(out, f), "utf8");
   const pages = landingPages(join(ROOT, "site"));
   // Live-check pages answer a search question with the live check; the
-  // waitlist page (cta: waitlist, site/pages/pro.md) shares the frame only.
-  const checkPages = pages.filter((p) => p.cta !== "waitlist");
+  // waitlist page (cta: waitlist, site/pages/pro.md) and the study page
+  // (cta: contact, site/pages/research-e20.md) share the frame only.
+  const checkPages = pages.filter((p) => !p.cta);
 
   it("has the two search questions, each with a title and a description for search", () => {
     expect(pages.map((p) => p.slug)).toEqual(expect.arrayContaining(["lovable-bolt-app-security", "website-security-check"]));
@@ -578,7 +579,7 @@ describe("site landing pages", () => {
       const md = readFileSync(join(ROOT, "site", "pages", `${p.slug}.md`), "utf8");
       expect(md, p.slug).not.toContain("\u2014");
       expect(md, p.slug).not.toMatch(/\b(the best|perfect|seamless|robust|powerful|cutting-edge|game-changing|comprehensive|bulletproof|100% secure)\b/i);
-      if (p.cta === "waitlist") { expect(md, p.slug).toContain("## What it is not"); continue; }
+      if (p.cta) { expect(md, p.slug).toContain("## What it is not"); continue; }
       expect(md, p.slug).toContain("## What it cannot see");
       expect(md, p.slug).toMatch(/not a guarantee/);
     }
@@ -600,10 +601,21 @@ describe("site landing pages", () => {
       expect(locs, p.slug).toContain(`${ORIGIN}/${p.slug}`);
       expect(read("llms.txt"), p.slug).toContain(`(${ORIGIN}/${p.slug}.md)`);
       expect(read(`${p.slug}.md`), p.slug).not.toMatch(/\]\(\/(?!\/)/);
-      if (p.cta === "waitlist") continue;
+      if (p.cta) continue;
       expect(read(`${p.slug}.md`), p.slug).toContain(`(${ORIGIN}/#scan)`);
       expect(read("index.html"), p.slug).toContain(`<a href="/${p.slug}">`);
     }
+  });
+
+  it("serves the E20 study page at the User-Agent's URL, with the opt-out and a contact", async () => {
+    const { USER_AGENT } = await import("../bench/front-door/run.mjs");
+    const vercel = JSON.parse(readFileSync(join(ROOT, "vercel.json"), "utf8"));
+    const path = new URL(/\+(https:\/\/[^;)]+)/.exec(USER_AGENT)[1]).pathname;
+    expect(vercel.redirects).toContainEqual({ source: path, destination: "/research-e20", permanent: true });
+    const h = read("research-e20.html");
+    expect(h).toContain(USER_AGENT);
+    expect(h).toContain("User-agent: Penthera-Research\nDisallow: /");
+    expect(h).toContain('href="mailto:daan@penthera.org?subject=Penthera-Research%2FE20"');
   });
 
   it("names one host in the sitemap, robots.txt and /terms", () => {

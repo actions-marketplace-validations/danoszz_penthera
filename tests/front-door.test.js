@@ -9,20 +9,23 @@ import { mkdtempSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  authorize, recordedHash, isRegistered, readList, wilson, newcombe, aggregate, runStudy, selfTest, visit,
-  USER_AGENT, sha256,
+  authorize, recordedHash, isRegistered, readList, readExclusions, exclusionFor, wilson, newcombe, aggregate, runStudy, selfTest, visit,
+  USER_AGENT, LIMITS, sha256,
 } from "../bench/front-door/run.mjs";
 import { optedOut } from "../api/_lib/page.mjs";
 
 const HASH = sha256("1,example.com\n");
+const EX = sha256("gov government\n");
 const OTHER = "0".repeat(64);
-const prereg = ({ status = "**Registered.** Accepted", tranco = HASH, yc = "pending" } = {}) => `
+const prereg = ({ status = "**Registered.** Accepted", tranco = HASH, yc = "pending", ex = EX } = {}) => `
 | | |
 |---|---|
 | Status | ${status} |
 | Tranco list SHA-256 | \`${tranco}\` |
 | YC list SHA-256 | \`${yc}\` |
+| Exclusion list SHA-256 | \`${ex}\` |
 `;
+const reg = (o = {}) => ({ loopback: false, registered: "E20", cohort: "tranco", listHash: HASH, excludeHash: EX, preregText: prereg(), ...o });
 
 describe("E20 guard", () => {
   it("allows a loopback run without registration", () => {
@@ -43,8 +46,22 @@ describe("E20 guard", () => {
     expect(() => authorize({ loopback: false, registered: "E20", cohort: "yc", listHash: HASH, preregText: prereg() })).toThrow(/no YC list SHA-256/);
   });
 
-  it("allows a registered run only when flag, status and hash all match", () => {
-    expect(authorize({ loopback: false, registered: "E20", cohort: "tranco", listHash: HASH, preregText: prereg() })).toEqual({ mode: "registered" });
+  it("allows a registered run only when flag, status and both hashes match", () => {
+    expect(authorize(reg())).toEqual({ mode: "registered" });
+  });
+
+  it("refuses a registered run without the exclusion list, or with one that differs from the prereg", () => {
+    expect(() => authorize(reg({ excludeHash: undefined }))).toThrow(/needs --exclude/);
+    expect(() => authorize(reg({ excludeHash: OTHER }))).toThrow(/exclusion list's SHA-256/);
+    expect(() => authorize(reg({ preregText: prereg({ ex: "pending" }) }))).toThrow(/no Exclusion list SHA-256/);
+  });
+
+  it("fixes the rate on a registered run: 4 at a time, 1 s per worker, no rate flags", () => {
+    expect(LIMITS.concurrency).toBe(4);
+    expect(LIMITS.delayMs).toBe(1000);
+    expect(() => authorize(reg({ rateFlags: ["--concurrency"] }))).toThrow(/cannot be set on a registered run/);
+    expect(() => authorize(reg({ rateFlags: ["--delay", "--limit"] }))).toThrow(/--delay, --limit/);
+    expect(authorize({ loopback: true, rateFlags: ["--delay"], preregText: "" })).toEqual({ mode: "loopback" });
   });
 
   it("the draft prereg in the repo refuses every non-loopback run", () => {
@@ -52,6 +69,7 @@ describe("E20 guard", () => {
     expect(isRegistered(text)).toBe(false);
     expect(recordedHash(text, "tranco")).toBe(null);
     expect(recordedHash(text, "yc")).toBe(null);
+    expect(recordedHash(text, "exclusions")).toBe(null);
     expect(() => authorize({ loopback: false, registered: "E20", cohort: "tranco", listHash: HASH, preregText: text })).toThrow(/Refused/);
   });
 });
@@ -66,6 +84,23 @@ describe("E20 list and statistics", () => {
       { rank: 1, host: "acme.ai", group: "F26" },
       { rank: 2, host: "beta.dev", group: "S26" },
     ]);
+  });
+
+  it("reads the exclusion list and matches a listed domain and its subdomains", () => {
+    const ex = readExclusions("# comment\ngov government\nExample-Casino.com gambling  # note\n\nclinic.example health\n");
+    expect([...ex]).toEqual([["gov", "government"], ["example-casino.com", "gambling"], ["clinic.example", "health"]]);
+    expect(exclusionFor("ministry.example.gov", ex)).toBe("government");
+    expect(exclusionFor("www.example-casino.com", ex)).toBe("gambling");
+    expect(exclusionFor("example-casino.com.evil.net", ex)).toBe(null);
+    expect(exclusionFor("notgov", ex)).toBe(null);
+    expect(() => readExclusions("example.com shopping\n")).toThrow(/category must be one of/);
+    expect(() => readExclusions("example.com\n")).toThrow(/category must be one of/);
+    expect(() => readExclusions("https://example.com/ adult\n")).toThrow(/expected/);
+  });
+
+  it("the exclusion list in the repo parses", () => {
+    const f = join(__dirname, "..", "bench", "front-door", "lists", "exclusions.txt");
+    expect(() => readExclusions(readFileSync(f, "utf8"))).not.toThrow();
   });
 
   it("computes Wilson and Newcombe intervals", () => {
@@ -104,6 +139,14 @@ describe("E20 visit, loopback only", () => {
         res.writeHead(200, { "Content-Type": "text/plain" });
         return res.end("User-agent: Penthera-Research\nDisallow: /\n");
       }
+      if (req.url === "/robots.txt" && host === "nobots.e20-test.example.com") {
+        res.writeHead(200, { "Content-Type": "text/plain" });
+        return res.end("User-agent: *\nDisallow: /\n");
+      }
+      if (req.url === "/robots.txt" && host === "partial.e20-test.example.com") {
+        res.writeHead(200, { "Content-Type": "text/plain" });
+        return res.end("User-agent: *\nDisallow: /private/\n");
+      }
       if (req.url === "/") {
         res.writeHead(200, { "Content-Type": "text/html", "Strict-Transport-Security": "max-age=63072000" });
         return res.end('<!doctype html><script src="/app.js"></script>');
@@ -135,6 +178,23 @@ describe("E20 visit, loopback only", () => {
     expect(ok.checks.some((c) => c.id === "secrets")).toBe(false);
   });
 
+  it("treats User-agent: * with Disallow: / as an opt-out, counted as excluded, and stops at robots.txt", async () => {
+    seen.length = 0;
+    const out = await visit({ rank: 3, host: "nobots.e20-test.example.com", group: "com" }, { loopbackPort: port });
+    expect(out).toMatchObject({ status: "excluded", reason: "robots_disallow_all" });
+    expect(seen.map((s) => s.url)).toEqual(["/robots.txt"]);
+    const agg = aggregate([out]);
+    expect(agg.sites).toMatchObject({ listed: 1, visited: 0, "excluded:robots_disallow_all": 1 });
+
+    seen.length = 0;
+    const partial = await visit({ rank: 4, host: "partial.e20-test.example.com", group: "com" }, { loopbackPort: port });
+    expect(partial.status).toBe("ok");
+  });
+
+  it("leaves the live check alone: it still ignores the * group", () => {
+    expect(optedOut("User-agent: *\nDisallow: /\n")).toBe(false);
+  });
+
   it("runs the self-test against the mock server and writes results outside git", async () => {
     const dir = mkdtempSync(join(tmpdir(), "e20-"));
     const r = await selfTest({ out: dir });
@@ -147,8 +207,11 @@ describe("E20 visit, loopback only", () => {
     seen.length = 0;
     const dir = mkdtempSync(join(tmpdir(), "e20-"));
     const rows = readList("1,a.e20-test.example.com\n2,a.e20-test.example.com\n3,b.e20-test.example.com\n", "tranco");
-    const { records, aggregate: agg } = await runStudy(rows, { cohort: "tranco", out: dir, loopbackPort: port, concurrency: 50, delayMs: 0, exclude: new Set(["b.e20-test.example.com"]) });
+    const { records, aggregate: agg } = await runStudy(rows, { cohort: "tranco", out: dir, loopbackPort: port, concurrency: 50, delayMs: 0, exclude: readExclusions("b.e20-test.example.com adult\n") });
     expect(records.map((r) => r.status)).toEqual(["ok", "excluded"]);
+    expect(agg.sites["excluded:exclusion_list"]).toBe(1);
+    expect(agg.exclusionCategories).toEqual({ adult: 1 });
+    expect(JSON.stringify(agg)).not.toContain("b.e20-test");
     expect(seen.filter((s) => s.url === "/").length).toBe(1);
     expect(agg.concurrency).toBe(8);
   });

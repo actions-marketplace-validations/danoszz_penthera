@@ -9,20 +9,24 @@
  *   node bench/front-door/run.mjs --list <file> --loopback <port> [--cohort tranco|yc]
  *       Loopback only: every name resolves to 127.0.0.1:<port>, DNS records
  *       come from a stub. Nothing leaves the machine.
- *   node bench/front-door/run.mjs --list <file> --cohort tranco|yc --registered E20
- *       The registered run. Refused unless the prereg says Registered and the
- *       list file's SHA-256 matches the hash recorded there for the cohort.
+ *   node bench/front-door/run.mjs --list <file> --cohort tranco|yc --exclude <file> --registered E20
+ *       The registered run. Refused unless the prereg says Registered, and the
+ *       list file's and the exclusion list's SHA-256 match the hashes recorded
+ *       there. Rate, concurrency and limit are fixed (§ 4): passing
+ *       --concurrency, --delay or --limit is refused.
  *   node bench/front-door/run.mjs --compare <a/aggregate.json> <b/aggregate.json>
  *       The difference per check between two cohorts, offline.
  *
- * Options: --limit N (default 1000 tranco, 100 yc), --concurrency N (default
- * 4, at most 8), --delay MS (default 1000, at least 250, per worker between
- * sites), --exclude <file> (domains, one per line, never visited),
- * --out <dir> (default bench/front-door/results/<cohort>-<time>, git-ignored).
+ * Options: --exclude <file> (the exclusion list, § 5: "<domain> <category>"
+ * per line; a domain also covers its subdomains; never visited), --out <dir>
+ * (default bench/front-door/results/<cohort>-<time>, git-ignored).
+ * Loopback runs only: --limit N (default 1000 tranco, 400 yc), --concurrency N
+ * (default 4, at most 8), --delay MS (default 1000, per worker between sites).
  *
  * Per site, through the live check's passiveReport (api/_lib/tier1.mjs) with
  * assets: false and secrets: false: GET /robots.txt (a group naming
- * Penthera-Research or Penthera-QuickCheck with Disallow: / stops the visit),
+ * Penthera-Research or Penthera-QuickCheck, or the * group, with Disallow: /
+ * stops the visit),
  * GET / with at most 4 redirects, GET /.well-known/security.txt, and public
  * DNS lookups for SPF, DMARC and CAA. One visit per site, no retries, no
  * scripts or stylesheets fetched, no paths guessed, no payloads.
@@ -41,21 +45,24 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 export const PREREG = join(ROOT, "docs", "research", "prereg", "E20-front-door.md");
 
 // § 4 of the protocol. Changing any of these after registration is a deviation.
-export const USER_AGENT = "Penthera-Research/E20 (+https://penthera.org/research/e20; one passive homepage visit for an aggregate study; opt out: robots.txt User-agent: Penthera-Research Disallow: /)";
+export const USER_AGENT = "Penthera-Research/E20 (+https://penthera.org/research/e20; opt out: robots.txt User-agent: Penthera-Research)";
 export const OPT_OUT_TOKENS = ["penthera-research", "penthera-quickcheck"];
 export const LIMITS = Object.freeze({
   concurrency: 4, maxConcurrency: 8,
-  delayMs: 1000, minDelayMs: 250,
+  delayMs: 1000,
   siteBudgetMs: 8000, siteHardCapMs: 20_000,
   maxSites: 1000,
 });
 export const COHORTS = Object.freeze({
   tranco: { label: "Tranco list", defaultLimit: 1000 },
-  yc: { label: "YC list", defaultLimit: 100 },
+  yc: { label: "YC list", defaultLimit: 400 },
 });
 // E20b scope: the public homepage only. A host that names a logged-in app, an
 // API or a payment flow is not a homepage, so it is excluded, never visited.
 const NOT_A_HOMEPAGE = /^(app|apps|dashboard|console|portal|admin|login|signin|auth|account|accounts|my|api|checkout|pay|payments|billing|shop|store)\./i;
+// § 5: the categories an exclusion list line may name.
+export const EXCLUSION_CATEGORIES = Object.freeze(["adult", "gambling", "health", "government", "at-risk"]);
+export const EXCLUSION_LABEL = "Exclusion list";
 // Groups smaller than this are not reported (no group that small can stay anonymous).
 export const MIN_GROUP = 20;
 
@@ -63,9 +70,9 @@ export const MIN_GROUP = 20;
 
 export const sha256 = (buf) => createHash("sha256").update(buf).digest("hex");
 
-/** The hash the prereg records for a cohort, or null while it says `pending`. */
+/** The hash the prereg records for a cohort (or "exclusions"), or null while it says `pending`. */
 export function recordedHash(preregText, cohort) {
-  const label = COHORTS[cohort]?.label;
+  const label = cohort === "exclusions" ? EXCLUSION_LABEL : COHORTS[cohort]?.label;
   if (!label) return null;
   const m = new RegExp(`\\|\\s*${label} SHA-256\\s*\\|\\s*\`([0-9a-f]{64})\``).exec(preregText);
   return m ? m[1] : null;
@@ -76,10 +83,11 @@ export const isRegistered = (preregText) => /^\|\s*Status\s*\|\s*\*\*Registered\
 /**
  * Throws unless this run may send anything. Loopback runs (every name pinned
  * to 127.0.0.1, DNS stubbed) always may. Anything else needs all of:
- * --registered E20, a prereg whose status is Registered, and a list file
- * whose SHA-256 equals the one the prereg records for the cohort.
+ * --registered E20, a prereg whose status is Registered, a list file whose
+ * SHA-256 equals the one the prereg records for the cohort, an exclusion
+ * list whose SHA-256 equals the one recorded for it, and no rate flags.
  */
-export function authorize({ loopback, registered, cohort, listHash, preregText }) {
+export function authorize({ loopback, registered, cohort, listHash, excludeHash, rateFlags = [], preregText }) {
   if (loopback) return { mode: "loopback" };
   if (registered !== "E20") {
     throw new Error("Refused: this run would reach hosts other than loopback. It needs --registered E20, and only after Daan accepted the protocol (AGENTS.md rule 6).");
@@ -89,6 +97,11 @@ export function authorize({ loopback, registered, cohort, listHash, preregText }
   const recorded = recordedHash(preregText, cohort);
   if (!recorded) throw new Error(`Refused: the prereg records no ${COHORTS[cohort].label} SHA-256 yet.`);
   if (recorded !== listHash) throw new Error(`Refused: the list file's SHA-256 (${listHash}) does not match the one in the prereg (${recorded}).`);
+  const recordedEx = recordedHash(preregText, "exclusions");
+  if (!recordedEx) throw new Error(`Refused: the prereg records no ${EXCLUSION_LABEL} SHA-256 yet.`);
+  if (!excludeHash) throw new Error("Refused: a registered run needs --exclude <the exclusion list>.");
+  if (recordedEx !== excludeHash) throw new Error(`Refused: the exclusion list's SHA-256 (${excludeHash}) does not match the one in the prereg (${recordedEx}).`);
+  if (rateFlags.length) throw new Error(`Refused: ${rateFlags.join(", ")} cannot be set on a registered run; rate, concurrency and limit are fixed by the prereg (§ 4).`);
   return { mode: "registered" };
 }
 
@@ -130,6 +143,35 @@ export function readList(text, cohort) {
   return rows;
 }
 
+/**
+ * The exclusion list (§ 5): one "<domain> <category>" per line, # comments.
+ * Returns Map(domain → category). Throws on an unknown category or a bad
+ * domain, so a typo cannot silently let a site through.
+ */
+export function readExclusions(text) {
+  const out = new Map();
+  for (const [i, raw] of String(text).split(/\r?\n/).entries()) {
+    const line = raw.replace(/#.*/, "").trim();
+    if (!line) continue;
+    const [cell, category, ...rest] = line.split(/\s+/);
+    const host = /^[a-z0-9.-]+$/i.test(cell) ? cell.toLowerCase().replace(/^\.+|\.$/g, "") : "";
+    if (!host || rest.length) throw new Error(`exclusion list line ${i + 1}: expected "<domain> <category>", got "${raw.trim()}"`);
+    if (!EXCLUSION_CATEGORIES.includes(category)) throw new Error(`exclusion list line ${i + 1}: category must be one of ${EXCLUSION_CATEGORIES.join(", ")}, got "${category ?? ""}"`);
+    out.set(host, category);
+  }
+  return out;
+}
+
+/** The category that excludes a host: the host itself or any parent domain is listed ("gov" covers every .gov host). */
+export function exclusionFor(host, exclusions) {
+  const labels = String(host).toLowerCase().split(".");
+  for (let i = 0; i < labels.length; i++) {
+    const c = exclusions.get(labels.slice(i).join("."));
+    if (c) return c;
+  }
+  return null;
+}
+
 // ── One visit ──────────────────────────────────────────────────────────────
 
 const loopbackLookup = async () => [{ address: "127.0.0.1", family: 4 }];
@@ -147,7 +189,7 @@ const slim = (c) => ({ id: c.id, passed: c.passed, severity: c.severity, weight:
  */
 export async function visit(row, { loopbackPort, now } = {}) {
   const base = {
-    userAgent: USER_AGENT, optOutTokens: OPT_OUT_TOKENS, assets: false, secrets: false,
+    userAgent: USER_AGENT, optOutTokens: OPT_OUT_TOKENS, optOutAll: true, assets: false, secrets: false,
     budgetMs: LIMITS.siteBudgetMs, now,
   };
   const opts = loopbackPort
@@ -179,6 +221,8 @@ export async function visit(row, { loopbackPort, now } = {}) {
       score: report.score, checks: report.checks.map(slim),
     };
   } catch (e) {
+    // § 5, decided 29 Oct: a `*` group with Disallow: / is an opt-out for E20, counted as excluded.
+    if (e instanceof CheckError && e.code === "opted_out" && e.all) return { ...row, at, status: "excluded", reason: "robots_disallow_all" };
     if (e instanceof CheckError && e.code === "opted_out") return { ...row, at, status: "opted_out" };
     return { ...row, at, status: "error", error: e instanceof CheckError ? e.code : "internal" };
   }
@@ -240,6 +284,8 @@ export function aggregate(records, meta = {}) {
   const scores = ok.map((r) => r.score).sort((a, b) => a - b);
   const histogram = Array.from({ length: 10 }, (_, i) => ({ from: i * 10, to: i === 9 ? 100 : i * 10 + 9, sites: 0 }));
   for (const s of scores) histogram[Math.min(9, Math.floor(s / 10))].sites++;
+  const exclusionCategories = {};
+  for (const r of records.filter((x) => x.reason === "exclusion_list")) exclusionCategories[r.category || "unknown"] = (exclusionCategories[r.category || "unknown"] || 0) + 1;
   const groups = {};
   for (const r of ok) (groups[r.group] ||= []).push(r);
   const byGroup = Object.fromEntries(Object.entries(groups)
@@ -249,6 +295,7 @@ export function aggregate(records, meta = {}) {
   return {
     experiment: "E20", ...meta,
     sites: { listed: records.length, visited: ok.length, ...status },
+    exclusionCategories,
     checks: prevalence(ok),
     score: {
       n: scores.length,
@@ -289,12 +336,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
  * Visits every row, `concurrency` at a time, each worker waiting `delayMs`
- * between sites. Appends each record to raw.jsonl as it lands, then writes
+ * between sites (both fixed to § 4 unless on loopback). `exclude` is the
+ * exclusion list (readExclusions); a listed host is never visited. Appends each record to raw.jsonl as it lands, then writes
  * aggregate.json. Returns { records, aggregate }.
  */
-export async function runStudy(rows, { cohort, out, loopbackPort, concurrency = LIMITS.concurrency, delayMs = LIMITS.delayMs, exclude = new Set(), meta = {}, onRecord } = {}) {
+export async function runStudy(rows, { cohort, out, loopbackPort, concurrency = LIMITS.concurrency, delayMs = LIMITS.delayMs, exclude = new Map(), meta = {}, onRecord } = {}) {
+  // § 4, decided 29 Oct: a run that leaves loopback uses the registered rate, whatever was passed.
+  if (!loopbackPort) { concurrency = LIMITS.concurrency; delayMs = LIMITS.delayMs; }
   concurrency = Math.max(1, Math.min(LIMITS.maxConcurrency, Math.floor(concurrency)));
-  delayMs = Math.max(loopbackPort ? 0 : LIMITS.minDelayMs, Math.floor(delayMs));
+  delayMs = Math.max(0, Math.floor(delayMs));
   mkdirSync(out, { recursive: true });
   // Belt and braces: the raw results never enter git, wherever --out points.
   writeFileSync(join(out, ".gitignore"), "*\n");
@@ -306,8 +356,9 @@ export async function runStudy(rows, { cohort, out, loopbackPort, concurrency = 
     while (next < rows.length) {
       const k = next++;
       const row = rows[k];
-      records[k] = exclude.has(row.host)
-        ? { ...row, at: new Date().toISOString(), status: "excluded", reason: "exclusion_list" }
+      const category = exclusionFor(row.host, exclude);
+      records[k] = category
+        ? { ...row, at: new Date().toISOString(), status: "excluded", reason: "exclusion_list", category }
         : await visit(row, { loopbackPort });
       appendFileSync(raw, JSON.stringify({ cohort, ...records[k] }) + "\n");
       onRecord?.(records[k], k);
@@ -320,24 +371,26 @@ export async function runStudy(rows, { cohort, out, loopbackPort, concurrency = 
 }
 
 /**
- * Loopback self-test: three names, all pinned to the mock server on
- * 127.0.0.1. Checks that each site got exactly /robots.txt, / and
+ * Loopback self-test: four names, all pinned to the mock server on
+ * 127.0.0.1 (one is an app. host, one is on the exclusion list). Checks that each site got exactly /robots.txt, / and
  * /.well-known/security.txt, once each, and that aggregates came out.
  */
 export async function selfTest({ out } = {}) {
   const { startMockServer } = await import(pathToFileURL(join(ROOT, "tests", "fixtures", "mock-server.js")).href);
   const mock = await startMockServer(0);
   try {
-    const rows = readList("1,site-1.e20-selftest.example.com\n2,site-2.e20-selftest.example.com\n3,app.e20-selftest.example.com\n2,site-2.e20-selftest.example.com\n", "tranco");
+    const rows = readList("1,site-1.e20-selftest.example.com\n2,site-2.e20-selftest.example.com\n3,app.e20-selftest.example.com\n2,site-2.e20-selftest.example.com\n4,ministry.e20-selftest.gov\n", "tranco");
+    const exclude = readExclusions("# self-test\ngov government\n");
     const dir = out || join(ROOT, "bench", "front-door", "results", `selftest-${Date.now()}`);
-    const { records, aggregate: agg } = await runStudy(rows, { cohort: "tranco", out: dir, loopbackPort: mock.port, delayMs: 0, meta: { selfTest: true } });
+    const { records, aggregate: agg } = await runStudy(rows, { cohort: "tranco", out: dir, loopbackPort: mock.port, delayMs: 0, exclude, meta: { selfTest: true } });
     const paths = mock.requests.map((r) => `${r.method} ${r.url}`).sort();
     const expected = ["GET /", "GET /", "GET /.well-known/security.txt", "GET /.well-known/security.txt", "GET /robots.txt", "GET /robots.txt"];
     const problems = [];
-    if (rows.length !== 3) problems.push(`expected 3 unique rows, got ${rows.length}`);
+    if (rows.length !== 4) problems.push(`expected 4 unique rows, got ${rows.length}`);
     if (JSON.stringify(paths) !== JSON.stringify(expected)) problems.push(`unexpected requests: ${paths.join(", ")}`);
     if (records.filter((r) => r.status === "ok").length !== 2) problems.push("expected 2 visited sites");
     if (records.find((r) => r.host.startsWith("app."))?.status !== "excluded") problems.push("app. host was not excluded");
+    if (records.find((r) => r.host.endsWith(".gov"))?.category !== "government" || agg.exclusionCategories.government !== 1) problems.push("exclusion-list host was not excluded");
     if (agg.sites.visited !== 2 || !agg.checks.https) problems.push("aggregate is incomplete");
     if (JSON.stringify(agg).includes("e20-selftest")) problems.push("aggregate names a site");
     return { ok: problems.length === 0, problems, requests: paths, out: dir, aggregate: agg };
@@ -376,21 +429,25 @@ async function main(args) {
   if (loopbackPort !== undefined && !(loopbackPort > 0 && loopbackPort < 65536)) { console.error("--loopback needs a port"); return 2; }
   const bytes = readFileSync(listFile);
   const listHash = sha256(bytes);
+  const excludeBytes = flag(args, "--exclude") ? readFileSync(flag(args, "--exclude")) : null;
+  const excludeHash = excludeBytes ? sha256(excludeBytes) : undefined;
+  const rateFlags = ["--concurrency", "--delay", "--limit"].filter((f) => args.includes(f));
+  let exclude;
   try {
-    authorize({ loopback: Boolean(loopbackPort), registered: flag(args, "--registered"), cohort, listHash, preregText: existsSync(PREREG) ? readFileSync(PREREG, "utf8") : "" });
+    authorize({ loopback: Boolean(loopbackPort), registered: flag(args, "--registered"), cohort, listHash, excludeHash, rateFlags, preregText: existsSync(PREREG) ? readFileSync(PREREG, "utf8") : "" });
+    exclude = excludeBytes ? readExclusions(excludeBytes.toString("utf8")) : new Map();
   } catch (e) {
     console.error(e.message);
     return 3;
   }
-  const limit = Math.min(LIMITS.maxSites, Number(flag(args, "--limit") || COHORTS[cohort].defaultLimit));
+  const limit = Math.min(LIMITS.maxSites, Number((loopbackPort && flag(args, "--limit")) || COHORTS[cohort].defaultLimit));
   const rows = readList(bytes.toString("utf8"), cohort).slice(0, limit);
-  const exclude = new Set(flag(args, "--exclude") ? readFileSync(flag(args, "--exclude"), "utf8").split(/\r?\n/).map(hostOf).filter(Boolean) : []);
   const out = resolve(flag(args, "--out") || join(ROOT, "bench", "front-door", "results", `${cohort}-${new Date().toISOString().replace(/[:.]/g, "-")}`));
   const { aggregate: agg } = await runStudy(rows, {
     cohort, out, loopbackPort, exclude,
     concurrency: Number(flag(args, "--concurrency") || LIMITS.concurrency),
     delayMs: Number(flag(args, "--delay") ?? LIMITS.delayMs),
-    meta: { listSha256: listHash, loopback: Boolean(loopbackPort), startedFrom: process.version },
+    meta: { listSha256: listHash, exclusionSha256: excludeHash ?? null, loopback: Boolean(loopbackPort), startedFrom: process.version },
     onRecord: (r, k) => process.stderr.write(`\r${k + 1}/${rows.length} ${r.status.padEnd(9)}`),
   });
   process.stderr.write("\n");

@@ -9,12 +9,15 @@
 | Authors | Daan van der Zwaag (PI). Drafted with Claude (AI-assisted) |
 | Approach approved | 29 Oct 2026, by the maintainer: a passive check of the Tranco top 1000, aggregates only. E20b added the same day |
 | Data collected before registration | None. The runner was tested on loopback only (§ 9) |
-| Tranco list ID | `pending` (§ 3.1) |
+| Decisions | Taken 29 Oct 2026 by the maintainer (§ 10) |
+| Tranco list ID | `pending` (fetched and hashed on registration day, § 3.1) |
 | Tranco list date | `pending` |
 | Tranco list SHA-256 | `pending` |
 | YC list source | `pending` (§ 3.2) |
 | YC list batches and date | `pending` |
 | YC list SHA-256 | `pending` |
+| Exclusion list SHA-256 | `pending` (§ 5.1) |
+| Study page live | `pending`: https://penthera.org/research/e20 must answer before any run (§ 4) |
 | Cost | $0. One laptop or one small server, about 30 minutes per cohort |
 
 ## 1. Why
@@ -63,30 +66,59 @@ so Q1 uses HTTPS with HSTS. The limit is stated next to every Q1 number.
 
 ### 3.1 E20: Tranco top 1000
 
-- **Source.** The Tranco list (Le Pochat et al., NDSS 2019), standard
-  configuration, without subdomains. The list ID and its date go in the table
-  above before registration.
-- **Who fetches it.** The maintainer downloads the published list file from
-  tranco-list.eu, by its permanent list ID. The runner never downloads a list.
-- **Stored before the run.** The first 1000 rows, unchanged, as
-  `bench/front-door/lists/tranco-<ID>-top1000.csv`. Its SHA-256 goes in the
-  table above. The runner refuses to run when the file's hash differs.
-- **Rows.** `rank,domain`. One visit per domain. Duplicates are dropped.
+- **Source.** The Tranco list (Le Pochat et al., NDSS 2019): the **default
+  daily list** that tranco-list.eu publishes, not a custom list. Its default
+  configuration combines several providers' rankings over 30 days and holds
+  registrable (pay-level) domains, without subdomains. No custom list is
+  generated, so no choice of providers or filters is ours.
+- **Who fetches it, and when.** The maintainer, by hand, on registration day.
+  The runner never downloads a list.
+- **Procedure.**
+  1. Open `https://tranco-list.eu/` and follow the link to the latest list.
+     Note the **list ID** the page shows (a short code; the list's permanent
+     page is `https://tranco-list.eu/list/<ID>`), the **date** it was
+     generated and the date range it covers, exactly as the page states them.
+  2. Download the full list as CSV from that list page (the page's own
+     download link for that ID, so the file is the one the ID names). Record
+     the exact download URL used.
+  3. Keep the first 1000 rows unchanged, line endings included:
+     `head -n 1000 <download>.csv > bench/front-door/lists/tranco-<ID>-top1000.csv`.
+  4. `shasum -a 256 bench/front-door/lists/tranco-<ID>-top1000.csv`.
+  5. In the table above, replace `pending` with the list ID, the date and
+     date range from step 1, and the SHA-256 from step 4.
+- **Rows.** `rank,domain`, no header. One visit per domain. Duplicates are
+  dropped. The runner refuses to run when the file's hash differs from the
+  table.
 
 ### 3.2 E20b: recent startups
 
-- **Source.** The public websites of about 100 companies from the most recent
-  Y Combinator batches, taken from YC's public company directory
-  (`https://www.ycombinator.com/companies`). The source URL, the batch names
-  and the date the list was taken go in the table above.
-- **Who builds it.** The maintainer, by hand or with a script run once. The
-  runner never reads the directory.
-- **Stored before the run.** `bench/front-door/lists/yc-<batches>-<date>.csv`
-  with the header `batch,company,domain`, hashed like the Tranco list.
-- **Selection.** All companies in the named batches that list a website, in
-  directory order, up to 100. If the batches hold more than 100, the
-  maintainer names the batches so the total is about 100 and records them. No
-  company is added or dropped by hand after the hash is recorded.
+- **Source.** The public websites of the companies in the **two most recent
+  Y Combinator batches**, from YC's public company directory,
+  `https://www.ycombinator.com/companies`. "Most recent" means the two newest
+  batches the directory's Batch filter offers on registration day (at the
+  time of writing, likely Fall 2026 and Summer 2026; the day decides).
+- **Who builds it, and when.** The maintainer, by hand, on registration day,
+  from the directory pages in a browser. The runner never reads the
+  directory.
+- **Procedure.**
+  1. Open the directory, and in its Batch filter select the newest batch,
+     then the second newest. Record the two batch names as the directory
+     writes them, the URL from the address bar with both filters applied, and
+     the company count it shows.
+  2. For each company in the filtered list, in the order shown, open its
+     company page and copy the website it lists. Skip companies that list
+     none, and record how many were skipped.
+  3. Write `bench/front-door/lists/yc-<batch1>-<batch2>-<YYYY-MM-DD>.csv`
+     with the header `batch,company,domain`, one row per company. Keep the
+     URL as listed; the runner keeps only its hostname. The file is plain
+     comma-separated with no quoting, so drop any comma from a company name.
+  4. `shasum -a 256` the file, and fill in the source URL, the batches, the
+     date and the hash in the table above.
+- **Selection.** Every company in the two batches that lists a website. There
+  is no sampling and no cap below 400 (the runner's limit for this cohort,
+  well above two batches). No company is added or dropped by hand after the
+  hash is recorded; the exclusion list (§ 5.1) is the only way a listed
+  company is not visited.
 
 **Out of scope for E20b, by design.** Logged-in apps, app subdomains behind a
 login, checkout and payment pages or flows, APIs, mobile apps, and anything
@@ -120,13 +152,19 @@ disclosure process this study does not have.
 - **One visit per site.** One pass through the steps above, no retries.
 - **Budget.** At most 20 requests and 8 seconds per site, as the live check;
   a hard stop at 20 seconds.
-- **Rate.** 4 sites at a time (the runner caps it at 8), and each worker
-  waits 1 second between sites. That is at most about 4 sites a second
-  overall and never more than one visit to any site.
+- **Rate, fixed.** 4 sites at a time, and each worker waits 1 second
+  between sites. That is at most about 4 sites a second overall and never
+  more than one visit to any site. A registered run cannot change this: the
+  runner refuses `--concurrency`, `--delay` and `--limit` with
+  `--registered E20`, and uses the fixed values whenever it leaves loopback.
 - **User-Agent.** `Penthera-Research/E20 (+https://penthera.org/research/e20;
-  one passive homepage visit for an aggregate study; opt out: robots.txt
-  User-agent: Penthera-Research Disallow: /)`. The page at that URL must be
-  live before the run and say what E20 is, what it sends and how to opt out.
+  opt out: robots.txt User-agent: Penthera-Research)`.
+- **Study page.** `https://penthera.org/research/e20` (source:
+  `site/pages/research-e20.md`, served at `/research-e20`, with a redirect
+  from `/research/e20` in `vercel.json`). It says what E20 is, what it
+  requests, how to opt out, what is kept, and who to contact. **It must be
+  live before any run.** The maintainer opens the URL on registration day and
+  records the date in the table above.
 - **Source address.** One fixed address, written in the results, so a site
   owner can match it to their logs.
 
@@ -134,14 +172,48 @@ disclosure process this study does not have.
 
 | Reason | Rule | Reported as |
 |---|---|---|
-| Opt-out | The live check's rule (`optedOut` in `api/_lib/page.mjs`): a robots.txt group naming `Penthera-Research` or `Penthera-QuickCheck` with `Disallow: /`. A `*` group does not count (see § 10, decision 4) | `opted_out` |
+| Opt-out | The live check's rule (`optedOut` in `api/_lib/page.mjs`): a robots.txt group naming `Penthera-Research` or `Penthera-QuickCheck` with `Disallow: /` | `opted_out` |
+| Opt-out for everyone | A robots.txt `User-agent: *` group with `Disallow: /` (§ 10, decision 4). E20 only: the passive report's `optOutAll` option, which the live check never sets. The visit stops after robots.txt. It counts even when a later group names us, the cautious reading | `excluded:robots_disallow_all` |
 | Not a homepage | Host starts with `app.`, `api.`, `checkout.` and the others in § 3.2 | `excluded:not_a_homepage` |
-| Exclusion list | Domains on a list the maintainer writes before the run (§ 10, decision 5), hashed with the target list | `excluded:exclusion_list` |
+| Exclusion list | A host on the exclusion list (§ 5.1), or a subdomain of one | `excluded:exclusion_list`, and a count per category in `exclusionCategories` |
 | Error | No address, no connection, invalid certificate, timeout, too many redirects | `error:<code>` |
 
 Every count goes in the results. Errors are not retried, and they are
 described, not imputed. Many Tranco entries are not websites (CDN and API
 domains); the error count shows how many.
+
+### 5.1 The exclusion list
+
+`bench/front-door/lists/exclusions.txt`, one list for both cohorts, written by
+hand by the maintainer and hashed on registration day with the target lists.
+A registered run needs it (`--exclude`), and the runner refuses it when its
+SHA-256 differs from the table above.
+
+- **Format.** One `<domain> <category>` per line, `#` comments. A domain also
+  covers its subdomains, so `gov` excludes every `.gov` host. The runner
+  refuses an unknown category or a malformed line.
+- **Categories.** `adult` (pornography and sexual services), `gambling`
+  (betting, casinos, lotteries), `health` (hospitals, clinics, pharmacies,
+  telehealth, health information and mental-health services; a startup
+  whose users are patients counts, a B2B tool for clinics does not unless
+  unsure), `government` (public bodies of any country and intergovernmental
+  organizations), `at-risk` (sites whose visitors or owners could be harmed
+  by being studied: domestic-violence and abuse support, LGBTQ+ support,
+  refugee and migrant aid, human-rights, press-freedom and whistleblowing
+  sites).
+- **How it is built.** Before the target lists were read, the government
+  section was written as public-sector suffixes (`gov`, `mil`, `gov.uk`,
+  `gouv.fr` and the others in the file). On registration day, after both
+  target lists are stored, the maintainer reads every domain in both files
+  once, in order, and adds each one that falls in a category. Where the name
+  alone does not say, the maintainer may open the site's homepage in a normal
+  browser, which is a visit any reader could make. **When unsure, the domain
+  is listed.** No free category source is used: none was found that is
+  public, free and stable enough to hash.
+- **Frozen.** After the hash is recorded, the file does not change. A site
+  that should have been listed and was not is reported as a deviation (§ 12),
+  and its record is removed from the raw data before the aggregate is
+  computed.
 
 ## 6. Analysis (fixed before any run)
 
@@ -167,8 +239,8 @@ differs from what penthera.org shows. Reported: mean, minimum, 10th, 25th,
 - E20: per country-code TLD, from the domain. Groups with fewer than 20
   visited sites are not reported, and their count is.
 - E20b: per batch, under the same rule.
-- Per category only if a public, free category source is chosen before
-  registration (§ 10, decision 5). Otherwise none.
+- No per-category groups: no category source was chosen (§ 5.1). Excluded
+  sites are counted per exclusion category.
 
 ### 6.4 Startups against the top 1000 (Q8)
 
@@ -223,8 +295,12 @@ not measure.
 - **Opt-out honored before the visit,** and on request after it: a site owner
   who asks is removed from the raw data and the aggregates are recomputed if
   they are not yet published.
-- **Identified traffic.** An honest User-Agent with a contact URL, and one
-  fixed source address.
+- **Identified traffic.** An honest User-Agent with a contact URL, a study page
+  at that URL that is live before the run (§ 4), and one fixed source
+  address.
+- **Sensitive sites are not visited.** Adult, gambling, health, government
+  and at-risk sites are on the exclusion list (§ 5.1), and a robots.txt that
+  disallows every user agent is honored (§ 5).
 - **Data.** Raw per-site results (`raw.jsonl`) stay private: written to a
   git-ignored folder, never committed, never shared, deleted 12 months after
   publication. Raw records hold check outcomes and short evidence (header
@@ -246,30 +322,59 @@ not measure.
 ## 9. Pilot
 
 Loopback only. `node bench/front-door/run.mjs --self-test` starts
-`tests/fixtures/mock-server.js` on 127.0.0.1 and visits three names that all
-resolve to it, with DNS stubbed. It checks that each site got exactly
-`/robots.txt`, `/` and `/.well-known/security.txt`, once, and that the
-aggregate names no site. `tests/front-door.test.js` tests the guard, the
-opt-out, the User-Agent and the statistics. No third-party host was contacted
-before registration.
+`tests/fixtures/mock-server.js` on 127.0.0.1 and lists four names that all
+resolve to it, with DNS stubbed: two to visit, one `app.` host and one on an
+exclusion list. It checks that each visited site got exactly `/robots.txt`,
+`/` and `/.well-known/security.txt`, once, that the other two got nothing,
+and that the aggregate names no site. `tests/front-door.test.js` tests the
+guard (both hashes, the fixed rate), the opt-outs (including `User-agent: *`),
+the exclusion list, the User-Agent and the statistics. No third-party host was
+contacted before registration.
 
-## 10. Open decisions, for registration
+## 10. Decisions (decided 29 Oct 2026)
 
-1. **List source and date.** The Tranco list ID and date, and the YC batches
-   and date. The hashes follow from them.
-2. **User-Agent and its page.** The string in § 4, and a live page at
-   `https://penthera.org/research/e20` before the run.
-3. **Rate.** 4 at a time with a 1 s pause per worker, or slower.
-4. **The `*` group in robots.txt.** The live check ignores `User-agent: *` with
-   `Disallow: /`, because it is not a crawler. A survey of 1100 sites is
-   closer to one. Honoring it too is the cautious choice and costs some
-   sample.
-5. **Categories to exclude.** Tranco has no categories. Options: no
-   exclusions; a hand-written exclusion list (adult, gambling, health,
-   government, sites of people at risk); or a free public category source.
-   The list is hashed with the target list.
-6. **security.txt.** Keep step 3 (one more request per site, and a useful
-   number), or drop it for a strict "homepage only".
+The maintainer decided the six open questions on 29 Oct 2026.
+
+1. **List source and date.** Both target lists are fetched on registration
+   day and hashed then: the Tranco default daily list, top 1000 rows (§ 3.1),
+   and the two most recent YC batches from the public directory (§ 3.2). The
+   hash rows stay `pending` until that day.
+2. **User-Agent and its page.** `Penthera-Research/E20
+   (+https://penthera.org/research/e20; opt out: robots.txt User-agent:
+   Penthera-Research)`. The page (`site/pages/research-e20.md`) must be live
+   before any run (§ 4).
+3. **Rate.** 4 at a time, a 1 s pause per worker, one visit, no retries. Fixed
+   for registered runs: the runner refuses flags that would change them (§ 4).
+4. **The `*` group in robots.txt.** Honored for E20: `User-agent: *` with
+   `Disallow: /` stops the visit, and the site is counted as
+   `excluded:robots_disallow_all` (§ 5). The live check is unchanged: it still
+   ignores the `*` group.
+5. **Categories to exclude.** A hand-written exclusion list (adult, gambling,
+   health, government, sites of people at risk), hashed with the target lists
+   (§ 5.1). The runner skips listed hosts and their subdomains.
+6. **security.txt.** Kept (step 3 in § 4).
+
+### 10.1 Registration day
+
+In this order. Nothing is sent to a study site before step 9.
+
+1. Merge the accepted protocol and the study page to `main`, and check that
+   `https://penthera.org/research/e20` answers with the study page. Record
+   the date in the table above.
+2. Fetch the Tranco list and store the top 1000 (§ 3.1).
+3. Build the YC list (§ 3.2).
+4. Complete `bench/front-door/lists/exclusions.txt` by reading both lists
+   (§ 5.1).
+5. `shasum -a 256` the three files and fill in every `pending` row above.
+6. Change the status line to `**Registered.**` with the date, and commit the
+   three files and this prereg together. That commit, merged to `main`, is the
+   registration.
+7. Run `npm test` and `node bench/front-door/run.mjs --self-test` on the
+   registered commit.
+8. Write down the machine's public source address for the results.
+9. Run each cohort once:
+   `node bench/front-door/run.mjs --registered E20 --cohort tranco --list bench/front-door/lists/tranco-<ID>-top1000.csv --exclude bench/front-door/lists/exclusions.txt`,
+   then the same with `--cohort yc` and the YC file.
 
 ## 11. What the result decides
 

@@ -9,7 +9,8 @@
   "trailingSlash": false,
   "redirects": [
     {"source": "/upkeep", "destination": "/pro", "permanent": true},
-    {"source": "/upkeep.md", "destination": "/pro.md", "permanent": true}
+    {"source": "/upkeep.md", "destination": "/pro.md", "permanent": true},
+    {"source": "/research/e20", "destination": "/research-e20", "permanent": true}
   ],
   "rewrites": [
     {"source": "/(.*)", "has": [{"type": "header", "key": "accept", "value": "(.*)text/markdown(.*)"}], "destination": "/api/not-found"}

@@ -32,15 +32,16 @@ export const SCOPE = "Only what a browser loads: /robots.txt first (a site can o
  * @param {URL} target
  * @param {{typed?: string, now?: number, lookup?: Function, allowPrivate?: boolean, anyPort?: boolean,
  *   timeout?: number, dns?: object, dnsTimeout?: number, budgetMs?: number, retireDb?: object,
- *   assets?: boolean, secrets?: boolean, userAgent?: string, optOutTokens?: string[]}} opts
+ *   assets?: boolean, secrets?: boolean, userAgent?: string, optOutTokens?: string[], optOutAll?: boolean}} opts
  *   lookup, allowPrivate, anyPort, dns and retireDb are for tests. The E20
  *   study (bench/front-door/run.mjs) sets the rest: assets: false skips the
  *   referenced scripts and stylesheets, secrets: false the secret rules, and
- *   userAgent and optOutTokens name the study instead of the live check.
+ *   userAgent and optOutTokens name the study instead of the live check, and
+ *   optOutAll also honors a robots.txt `*` group with Disallow: /.
  */
 export async function passiveReport(target, opts = {}) {
   const budget = makeBudget({ budgetMs: opts.budgetMs ?? LIMITS.budgetMs });
-  const guard = { lookup: opts.lookup, allowPrivate: opts.allowPrivate, anyPort: opts.anyPort, userAgent: opts.userAgent, optOutTokens: opts.optOutTokens };
+  const guard = { lookup: opts.lookup, allowPrivate: opts.allowPrivate, anyPort: opts.anyPort, userAgent: opts.userAgent, optOutTokens: opts.optOutTokens, optOutAll: opts.optOutAll };
   const pageOpts = { ...guard, timeout: Math.min(opts.timeout ?? 6000, 6000), maxBytes: LIMITS.pageBytes, onHop: () => budget.hop() };
 
   let result;

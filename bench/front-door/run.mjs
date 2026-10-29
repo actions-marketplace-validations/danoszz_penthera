@@ -64,7 +64,7 @@ export const LIMITS = Object.freeze({
 });
 export const COHORTS = Object.freeze({
   tranco: { label: "Tranco list", defaultLimit: 1000 },
-  yc: { label: "YC list", defaultLimit: 400 },
+  yc: { label: "YC list", defaultLimit: 420 },
 });
 // E20b scope: the public homepage only. A host that names a logged-in app, an
 // API or a payment flow is not a homepage, so it is excluded, never visited.

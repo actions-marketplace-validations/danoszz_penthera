@@ -4,7 +4,7 @@
 |---|---|
 | Experiment | E20, with a second cohort E20b (recent startups) |
 | Related | [E17](E17-offline-and-determinism.md) (format), the live check's passive report (`api/_lib/tier1.mjs`), [live check terms](../../live-check-terms.md), [results-file checklist](../results-checklist.md) |
-| Status | **Draft, not registered.** Registration is the maintainer's written acceptance of this protocol plus the commit that merges the accepted version to `main`. Until then the runner refuses every non-loopback target |
+| Status | **Registered.** 29 Oct 2026: accepted in writing by the maintainer (exclusions approved, self-review in § 13 confirmed in full), and registered by the commit that merges this version to `main`. The runs start no earlier than the morning of 30 Oct 2026 |
 | Date written | 2026-10-29 (first draft and revision 2, same day; § 17) |
 | Authors | Daan van der Zwaag (PI). Drafted with Claude (AI-assisted) |
 | Approach approved | 29 Oct 2026, by the maintainer: a passive check of the Tranco top 1000, aggregates only. E20b added the same day |
@@ -12,15 +12,15 @@
 | Decisions | Taken 29 Oct 2026 by the maintainer (§ 10). Open ones are in § 10.2 |
 | Sub-measure B (app page) | **Adopted** for both cohorts, 29 Oct 2026, by the maintainer (§ 4.2) |
 | Independent review | **None.** Decided by the maintainer on 29 Oct 2026: no outside review. A self-review checklist is worked through on registration day instead (§ 13) |
-| Timeline | Registration Sat 31 Oct 2026; runs Sun 1 Nov 2026; results internal until the maintainer's own check, publication planned around 11 Nov 2026 |
-| Tranco list ID | `pending` (fetched and hashed on registration day, § 3.1) |
-| Tranco list date | `pending` |
-| Tranco list SHA-256 | `pending` |
-| YC list source | `pending` (§ 3.2) |
-| YC list batches and date | `pending` |
-| YC list SHA-256 | `pending` |
-| Exclusion list SHA-256 | `pending` (§ 5.1) |
-| Study page live | `pending`: https://penthera.org/research/e20 must answer before any run (§ 4) |
+| Timeline | Registered 29 Oct 2026; runs from the morning of 30 Oct 2026, so the study page has been live at least 12 hours; results internal until the maintainer's own check, publication planned around 11 Nov 2026 |
+| Tranco list ID | `ZJ8PG` (https://tranco-list.eu/list/ZJ8PG), downloaded from https://tranco-list.eu/download/ZJ8PG/full on 29 Oct 2026 |
+| Tranco list date | Generated 28 October 2026; covers 29 September 2026 to 28 October 2026 (30 days); pay-level domains only, as the list page states |
+| Tranco list SHA-256 | `d670a3c1910fe7baa4883dcb8320b1ec99d7d29f9d22954b9288ae678540674e` (`bench/front-door/lists/tranco-ZJ8PG-top1000.csv`) |
+| YC list source | yc-oss/api, a public daily mirror of YC's company directory, at commit `5a217b81de16262f104ecfd121fa866c6917e15d` (29 Oct 2026 03:35 UTC): `batches/fall-2026.json` and `batches/summer-2026.json` (§ 3.2) |
+| YC list batches and date | Fall 2026 (189 companies, 187 with a website, 2 skipped) and Summer 2026 (229, all with a website); 416 rows; built 29 Oct 2026 |
+| YC list SHA-256 | `13df01eb681993205e89c00322db972e5137d3c4a95ec982d40a2552f415dd7f` (`bench/front-door/lists/yc-fall2026-summer2026-2026-10-29.csv`) |
+| Exclusion list SHA-256 | `8864d275cc116af77807c3c07021fe2767f035c40339318705464b1927995215` (§ 5.1) |
+| Study page live | Since 29 Oct 2026, about 16:00 CET; updated the same evening (no source address, app page listed). Checked: https://penthera.org/research/e20 redirects to the page (§ 4) |
 | Source address | **Not published**, decided 29 Oct 2026 by the maintainer for privacy (§ 4). Confirmed privately on request |
 | Cost | $0. One laptop or one small server, about 30 minutes per cohort |
 
@@ -35,7 +35,7 @@ security.txt, and the DNS records SPF, DMARC and CAA?
 source address. Each site gets robots.txt, one homepage request, one
 security.txt request and public DNS lookups, at a fixed low rate, with an
 honest User-Agent and opt-outs honored. The Tranco top 1000 (E20) and every
-company with a website in the two newest YC batches, at most 400 (E20b).
+company with a website in the two newest YC batches with at least 100 companies, at most 420 (E20b).
 Shares with 95% Wilson intervals; cohort differences with Newcombe
 intervals; 11 confirmatory claims decided on Bonferroni-adjusted intervals.
 
@@ -177,30 +177,32 @@ contacted, after reading the prior work in § 7:
 
 ### 3.2 E20b: recent startups
 
-- **Source.** The public websites of the companies in the **two most recent
-  Y Combinator batches**, from YC's public company directory,
-  `https://www.ycombinator.com/companies`. "Most recent" means the two newest
-  batches the directory's Batch filter offers on registration day (at the
-  time of writing, likely Fall 2026 and Summer 2026; the day decides).
-- **Who builds it, and when.** The maintainer, by hand, on registration day,
-  from the directory pages in a browser. The runner never reads the
-  directory.
+- **Source.** The public websites of the companies in the **two newest
+  Y Combinator batches with at least 100 companies each**, as YC's public
+  company directory lists them. YC lists a few companies in a batch months
+  before it starts (on 29 Oct 2026, Summer 2027 had 1 and Winter 2027 had 6),
+  so "newest" alone would give a handful of sites; the 100-company rule
+  picks the newest real cohorts. On registration day these were **Fall 2026**
+  and **Summer 2026**.
+- **How it is read.** YC's directory loads its companies with JavaScript,
+  and the study's browser could not open it. The list is read from
+  **yc-oss/api** (https://github.com/yc-oss/api), a public mirror of the same
+  directory that is updated daily, at the commit recorded in the table above.
+  Pinning a commit makes the list exactly reproducible by anyone. The mirror
+  is not YC's own publication; a difference between the mirror and the live
+  directory on that day is a limit (§ 12).
 - **Procedure.**
-  1. Open the directory, and in its Batch filter select the newest batch,
-     then the second newest. Record the two batch names as the directory
-     writes them, the URL from the address bar with both filters applied, and
-     the company count it shows.
-  2. For each company in the filtered list, in the order shown, open its
-     company page and copy the website it lists. Skip companies that list
-     none, and record how many were skipped.
-  3. Write `bench/front-door/lists/yc-<batch1>-<batch2>-<YYYY-MM-DD>.csv`
-     with the header `batch,company,domain`, one row per company. Keep the
-     URL as listed; the runner keeps only its hostname. The file is plain
-     comma-separated with no quoting, so drop any comma from a company name.
-  4. `shasum -a 256` the file, and fill in the source URL, the batches, the
-     date and the hash in the table above.
+  1. Read `batches/fall-2026.json` and `batches/summer-2026.json` at the
+     pinned commit.
+  2. For each company, in file order, keep the `website` field. Skip
+     companies without one, and record how many were skipped.
+  3. Write `bench/front-door/lists/yc-fall2026-summer2026-2026-10-29.csv`
+     with the header `batch,company,domain`, one row per company. Commas are
+     dropped from company names. The runner keeps only the hostname.
+  4. `shasum -a 256` the file, and record the source, batches, counts, date
+     and hash in the table above.
 - **Selection.** Every company in the two batches that lists a website. There
-  is no sampling and no cap below 400 (the runner's limit for this cohort,
+  is no sampling and no cap below 420 (the runner's limit for this cohort,
   well above two batches). No company is added or dropped by hand after the
   hash is recorded; the exclusion list (§ 5.1) is the only way a listed
   company is not visited.
@@ -678,7 +680,7 @@ its own score.
 | Recent startups against the established web, same instrument, same week | **Yes, as far as we found** | No peer-reviewed comparison found (§ 7.6) |
 | Hosting-platform defaults as an explanation (§ 6.7) | **Partly** | The Almanac breaks down by technology for some metrics; not for this startup comparison |
 | A preregistered, fixed, released instrument with a guard, hashed inputs and coded decision rules | **Method, not finding** | Reproducibility is the contribution; anyone can re-run it on the same lists (§ 14) |
-| The app page against the homepage of the same site (B, pending) | **Yes, as far as we found** | A paired, passive view of how far the front door reflects the product |
+| The app page against the homepage of the same site (B, adopted) | **Yes, as far as we found** | A paired, passive view of how far the front door reflects the product |
 | A claim about AI-built apps | **No** | E20 does not know how a site was built. "Recent startups" is not "AI-built", and no result will say otherwise |
 
 E20 is a small, careful study. Its value is the startup comparison and the
@@ -1062,25 +1064,27 @@ Instead, the maintainer works through this self-review on registration day,
 before step 2 of § 10.3, and records the date and any change in § 17. Each
 item is answered yes, or fixed, or written down as a known gap:
 
-- [ ] The cohorts answer the question, and the selection rules leave us no
+- [x] The cohorts answer the question, and the selection rules leave us no
       choice after the lists are hashed.
-- [ ] The requests in § 4 are the least that answers the questions.
-- [ ] The opt-out, exclusion and incident rules are enough, and § 8.5 misses
+- [x] The requests in § 4 are the least that answers the questions.
+- [x] The opt-out, exclusion and incident rules are enough, and § 8.5 misses
       no harm I can think of.
-- [ ] Each hypothesis has a clear way to fail (§ 2.2), and the decision
+- [x] Each hypothesis has a clear way to fail (§ 2.2), and the decision
       rules and correction are applied by the code, not by hand.
-- [ ] The power statement (§ 3.3) is honest, and the 10-point threshold is
+- [x] The power statement (§ 3.3) is honest, and the 10-point threshold is
       one I would defend to a founder.
-- [ ] § 7 is fair to prior work, and § 7.7 does not overclaim.
-- [ ] Sub-measure B (§ 4.2) is decided: adopted, adopted for E20b only, or
+- [x] § 7 is fair to prior work, and § 7.7 does not overclaim.
+- [x] Sub-measure B (§ 4.2) is decided: adopted, adopted for E20b only, or
       removed.
-- [ ] The limits (§ 12) are complete enough to sit next to every number.
-- [ ] The study page is live, publishes nothing that identifies a maintainer's location, network or machine, and matches § 4.
-- [ ] Nothing here would make me uncomfortable if my own site were in the
+- [x] The limits (§ 12) are complete enough to sit next to every number.
+- [x] The study page is live, publishes nothing that identifies a maintainer's location, network or machine, and matches § 4.
+- [x] Nothing here would make me uncomfortable if my own site were in the
       list.
 
 Anyone may still send comments after registration, to the contact on the
 study page. A comment that changes the protocol is a deviation (§ 16).
+
+Confirmed in full by the maintainer on 29 Oct 2026, before registration.
 
 ## 14. Reproduce and open science
 

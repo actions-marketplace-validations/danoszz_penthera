@@ -15,6 +15,9 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, rmSync
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+// § 6, as amended on 29 Oct 2026 (§ 9): an exact list of volatile key paths.
+// The registered regex is still applied and reported next to it.
+import { normalize, replaceTokens, diffPaths } from "./normalize.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const BIN = join(ROOT, "bin", "penthera.js");
@@ -23,9 +26,6 @@ const CHILD_LOG = join(ROOT, "bench", "offline", "child-log.cjs");
 const args = process.argv.slice(2);
 const OUT = args.includes("--out") ? args[args.indexOf("--out") + 1] : join(ROOT, "bench", "offline", "results");
 const PILOT = args.includes("--pilot");
-
-// § 6: fixed before any run.
-const VOLATILE = /(At|Ms|_at|_ms|time|timestamp|date|duration|elapsed|generated)$/i;
 
 const TARGETS = {
   T1: join(ROOT, "tests", "fixtures", "repo-scan", "express-routes"),
@@ -49,37 +49,6 @@ const COMMANDS = {
   C5: { evidence: true },
   C6: { brief: true },
 };
-
-function normalize(value, tokens) {
-  if (Array.isArray(value)) return value.map((v) => normalize(v, tokens));
-  if (value && typeof value === "object") {
-    const out = {};
-    for (const k of Object.keys(value).sort()) {
-      if (VOLATILE.test(k)) continue;
-      out[k] = normalize(value[k], tokens);
-    }
-    return out;
-  }
-  return typeof value === "string" ? replaceTokens(value, tokens) : value;
-}
-
-function replaceTokens(s, tokens) {
-  let r = s;
-  for (const [from, to] of tokens) if (from) r = r.split(from).join(to);
-  return r;
-}
-
-function diffPaths(a, b, path = "$", out = []) {
-  if (out.length > 50) return out;
-  if (typeof a !== typeof b || Array.isArray(a) !== Array.isArray(b)) { out.push(path); return out; }
-  if (a && typeof a === "object") {
-    const keys = new Set([...Object.keys(a), ...Object.keys(b || {})]);
-    for (const k of keys) diffPaths(a[k], b?.[k], `${path}.${k}`, out);
-    return out;
-  }
-  if (a !== b) out.push(path);
-  return out;
-}
 
 function run(argv, { guard }) {
   const home = mkdtempSync(join(tmpdir(), "e17-home-"));
@@ -110,11 +79,16 @@ function hostsOf(guardLog) {
 function compare(cmd, a, b) {
   const tok = (r) => [[r.cwd, "<CWD>"], [r.home, "<HOME>"], [T4_DIR, "<T4>"], [ROOT, "<ROOT>"]];
   if (cmd.json) {
-    let ja, jb;
-    try { ja = normalize(JSON.parse(a.stdout), tok(a)); jb = normalize(JSON.parse(b.stdout), tok(b)); }
+    let pa, pb;
+    try { pa = JSON.parse(a.stdout); pb = JSON.parse(b.stdout); }
     catch (e) { return { ok: false, paths: [`unparseable JSON: ${e.message}`] }; }
-    const paths = diffPaths(ja, jb);
-    return { ok: paths.length === 0 && a.code === b.code, paths, codes: [a.code, b.code] };
+    const paths = diffPaths(normalize(pa, tok(a)), normalize(pb, tok(b)));
+    // § 6 asks for the result under the registered pattern next to the fix.
+    const regPaths = diffPaths(normalize(pa, tok(a), "registered"), normalize(pb, tok(b), "registered"));
+    return {
+      ok: paths.length === 0 && a.code === b.code, paths, codes: [a.code, b.code],
+      registered: { ok: regPaths.length === 0 && a.code === b.code, paths: regPaths },
+    };
   }
   let sa = replaceTokens(a.stdout, tok(a)), sb = replaceTokens(b.stdout, tok(b));
   // § 9.2: the verify comparison leaves out the `Generated` line; the strict
@@ -181,6 +155,7 @@ for (const id of Object.keys(COMMANDS)) {
       command: id, target: tid, codes: { A: A.code, B: B.code, C: C.code },
       H1: { pass: !A.guardLog && !B.guardLog, hosts: hostsOf(A.guardLog + B.guardLog) },
       H2: { pass: h2.ok, paths: h2.paths }, H3: { pass: h3.ok, paths: h3.paths },
+      ...(h2.registered && { registeredPattern: { H2: h2.registered, H3: h3.registered } }),
       children: childrenOf(A, B),
     };
     if (id === "C5") { row.H2.strict = h2.strict; row.H3.strict = h3.strict; }
@@ -206,6 +181,7 @@ await withMockServer(async (port) => {
       command: id, target: "mock", codes: { A: A.code, B: B.code, C: C.code },
       H1: { pass: !A.guardLog && !B.guardLog, hosts: hostsOf(A.guardLog + B.guardLog) },
       H2: { pass: h2.ok, paths: h2.paths }, H3: { pass: h3.ok, paths: h3.paths },
+      ...(h2.registered && { registeredPattern: { H2: h2.registered, H3: h3.registered } }),
       children: childrenOf(A, B),
     };
     summary.rows.push(row);

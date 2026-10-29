@@ -28,7 +28,10 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { renderMarkdown } from "./terms.mjs";
-import { fieldTools, n2, ord } from "./benchmarks.mjs";
+import { RANK_INTERVALS, fieldTools, n2, ord } from "./benchmarks.mjs";
+
+/** F-beta: beta below 1 weighs precision more, above 1 recall. */
+const fBeta = (p, r, beta) => (p && r ? ((1 + beta * beta) * p * r) / (beta * beta * p + r) : 0);
 import { ldScript, siteFoot } from "./frame.mjs";
 
 const REPO = "https://github.com/danoszz/penthera";
@@ -52,7 +55,8 @@ const fmt = (v) => {
 /**
  * Every fact a post may quote, by path: `date`, `tools`, `paid`,
  * `<benchmark>.of|field|n`, `<benchmark>.median.<measure>` and
- * `<benchmark>.<row>.<field>` (score, rank, place, p, r, f1, precisionCI, detect, ...).
+ * `<benchmark>.<row>.<field>` (score, rank, place, p, r, f1, precisionCI, detect, ...),
+ * `secrets.<row>.f05|f2`, and `<benchmark>.penthera.interval|first` (the rank interval).
  * A pair of counts prints as k/n, an interval as "a to b", a rate with two decimals.
  */
 export function facts(pub) {
@@ -66,6 +70,17 @@ export function facts(pub) {
         if (s != null) f[`${b}.${rowId(r)}.${k}`] = s;
       }
       if (r.rank != null) f[`${b}.${rowId(r)}.place`] = ord(r.rank);
+      // F0.5 leans on precision and F2 on recall: how much a rank depends on the weight.
+      if (b === "secrets" && r.p != null && r.r != null) {
+        f[`${b}.${rowId(r)}.f05`] = n2(fBeta(r.p, r.r, 0.5));
+        f[`${b}.${rowId(r)}.f2`] = n2(fBeta(r.p, r.r, 2));
+      }
+    }
+    // Penthera's rank interval (bench/public/rank-intervals.json): "1st to 3rd", and the share of draws it was first.
+    const iv = RANK_INTERVALS.penthera[b];
+    if (iv) {
+      f[`${b}.penthera.interval`] = `${ord(iv.rank[0])} to ${ord(iv.rank[1])}`;
+      f[`${b}.penthera.first`] = `${Math.round(iv.first * 100)}%`;
     }
   }
   return f;

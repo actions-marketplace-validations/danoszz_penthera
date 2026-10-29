@@ -59,7 +59,7 @@
 | – | semgrep, every file 1.180.0 (another setting of semgrep, not ranked) | 16/47 | 9/17 | 0.39 [0.28, 0.51] |
 | – | Penthera 1.9.0 | 0/47 | 10/17 | 0.16 [0.09, 0.26] |
 
-A rank is shown only where at least 5 other free tools were measured; otherwise "–".
+A rank is shown only where at least 5 other free tools were measured; otherwise "–". The rank column orders tools by score, and close scores can swap places. Penthera's 95% rank interval (bootstrap, exploratory): 2nd on CredData, 1st to 3rd on npm, 1st to 3rd on PyPI, 1st to 4th on SecBench.js.
 
 Paid tools (GitGuardian, Socket, Snyk, Phylum, Semgrep Pro) publish no results on these benchmarks, so they are not in the tables.
 

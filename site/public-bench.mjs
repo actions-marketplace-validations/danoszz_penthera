@@ -3,7 +3,7 @@
  * Built from bench/public/published.json (bench/public/publish.mjs), so the
  * site shows exactly the numbers the README shows. No file, no block.
  */
-import { BENCHMARKS } from "./benchmarks.mjs";
+import { BENCHMARKS, RANK_INTERVALS, tiedPhrase } from "./benchmarks.mjs";
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const n2 = (x) => (x == null ? "n/a" : x.toFixed(2));
@@ -32,7 +32,9 @@ function card(key, b) {
   const wasRank = b.ranked ? wouldRank(was, ranked) : null;
   // A lead of under 0.05 sits inside the 95% intervals here: say it is close.
   const next = ranked.find((r) => r !== us);
-  const close = b.ranked && us.rank === 1 && next && us.score - next.score < 0.05 ? `Within the margin of error of ${next.tool}.` : "";
+  // The rank interval (bench/public/rank-intervals.json) says how sure the place is.
+  const tied = b.ranked ? tiedPhrase(RANK_INTERVALS.penthera[key]).slice(2) : "";
+  const close = tied ? `${tied[0].toUpperCase()}${tied.slice(1)}, once the uncertainty is counted.` : b.ranked && us.rank === 1 && next && us.score - next.score < 0.05 ? `Within the margin of error of ${next.tool}.` : "";
   // Bars are SVG (the site's CSP blocks inline styles). Ranked: relative to the best score, every tool. A small field: a
   // fixed 0-100% meter per tool, so one or two rows still read as a scale.
   const max = b.ranked ? Math.max(...ranked.map((r) => r.score), 0.01) : 1;

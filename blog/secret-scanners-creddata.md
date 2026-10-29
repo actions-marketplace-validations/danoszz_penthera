@@ -26,6 +26,8 @@ The median F1 of the other free tools was {{fact:secrets.median.f1}}.
 
 deepsecrets finds more. Its recall is {{fact:secrets.deepsecrets.r}} against Penthera's {{fact:secrets.penthera.r}}, and the intervals do not overlap. Penthera reports fewer false hits: precision {{fact:secrets.penthera.p}} against {{fact:secrets.deepsecrets.p}}. If missing a secret costs you more than reading a false alarm, that trade goes the wrong way for you.
 
+So the rank depends on how you weigh the two. F1 weighs them equally. F0.5 weighs precision more: there Penthera scores {{fact:secrets.penthera.f05}} and deepsecrets {{fact:secrets.deepsecrets.f05}}, so Penthera would rank first of the ranked tools. F2 weighs recall more: deepsecrets scores {{fact:secrets.deepsecrets.f2}} and Penthera {{fact:secrets.penthera.f2}}, so Penthera stays second. The registered score is F1.
+
 kingfisher has the highest precision of the ranked tools, {{fact:secrets.kingfisher.p}}, at a recall of {{fact:secrets.kingfisher.r}}.
 
 ## gitleaks and trufflehog

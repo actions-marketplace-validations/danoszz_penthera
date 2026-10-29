@@ -8,7 +8,9 @@ keywords: preregistered benchmark, security tool benchmark, benchmark leakage, s
 ---
 > How do you benchmark your own security tool against other tools without fooling yourself?
 
-On {{fact:date}} we published four rankings. Each puts Penthera next to every free, open-source tool we could run offline on one public dataset, scored the same way, on a half of the dataset we sealed before any tuning. Penthera ranked {{fact:npm.penthera.place}} of {{fact:npm.of}} on malicious npm packages and {{fact:pypi.penthera.place}} of {{fact:pypi.of}} on malicious PyPI packages. On injection bugs in JavaScript libraries it ranked {{fact:library.penthera.place}} of {{fact:library.of}}, within the margin of error of ODGen. On leaked secrets it ranked {{fact:secrets.penthera.place}} of {{fact:secrets.of}}, behind deepsecrets.
+On {{fact:date}} we published four rankings. Each puts Penthera next to every free, open-source tool we could run offline on one public dataset, scored the same way, on a half of the dataset we sealed before any tuning. Penthera ranked {{fact:npm.penthera.place}} of {{fact:npm.of}} on malicious npm packages (tied {{fact:npm.penthera.interval}}) and {{fact:pypi.penthera.place}} of {{fact:pypi.of}} on malicious PyPI packages (tied {{fact:pypi.penthera.interval}}). On injection bugs in JavaScript libraries it ranked {{fact:library.penthera.place}} of {{fact:library.of}}, tied {{fact:library.penthera.interval}}, within the margin of error of ODGen. On leaked secrets it ranked {{fact:secrets.penthera.place}} of {{fact:secrets.of}}, behind deepsecrets.
+
+A tied range is a rank interval. We redrew each tool's results 10,000 times from its counts (on SecBench.js, by resampling the bugs) and kept the middle 95% of the ranks Penthera got. On npm it alone came out first in {{fact:npm.penthera.first}} of the draws, on PyPI in {{fact:pypi.penthera.first}}, on SecBench.js in {{fact:library.penthera.first}}. We did this after the registered ranking, so it is exploratory.
 
 This post is about how we got those numbers and how far you should trust them. Every tool, interval and limit is on [the benchmark pages](/benchmarks).
 

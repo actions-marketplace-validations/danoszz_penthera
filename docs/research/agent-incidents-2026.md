@@ -1,6 +1,32 @@
 # What the 2026 agent incidents mean for Penthera
 
+> **Project page.** For "what should a tool that verifies code and runs an
+> agent loop learn from the 2026 agent incidents?"
+
 Status: **published 2026-10-20; the positioning section is a proposal awaiting the maintainer's approval.**
+
+## Summary
+
+- **Question.** AI agents under evaluation reached systems they were never
+  meant to touch. What should Penthera change because of it?
+- **Method.** A reading of the public reports available on 2026-10-20: the
+  labs' own reports, one independent investigation, and commentary. Each
+  lesson is mapped to what Penthera already does, and each gap to an action.
+- **Result.** Six actions, A to F. A (verifier integrity) and B (a safe exit)
+  shipped in 1.8.0, and F is documented in `docs/genai.md`. C and D are
+  open, and E is covered in part by `penthera deps --online`. A draft study,
+  E8, would test whether the guardrails change agent behaviour.
+- **Limits.** No systematic search, and no data of our own. Most facts come
+  from the labs involved, under scope they set. The actions are judgement,
+  not measurement.
+
+| Record | |
+|---|---|
+| Written | 2026-10-20, commit [`7f31513`](https://github.com/danoszz/penthera/commit/7f31513) (with the harness specs); revised in `087066f` |
+| Penthera | 1.7.0 when written |
+| What shipped since | A and B: commit [`c359a11`](https://github.com/danoszz/penthera/commit/c359a11), in 1.8.0. F: [genai.md](../genai.md#how-the-agents-that-build-penthera-are-contained). On 2026-10-29 a search of `lib/` and `src/` found none of the `harness-*`, `sandbox-*` or `scorer-*` rule ids (C), and no `trust_remote_code` or HDF5 check (D). For E, `penthera deps --online` already flags packages created under 30 days ago (`lib/deps/online.js`, added 2026-10-19); we did not check `install`. |
+| Study | [E8](prereg/E8-harness-guardrails.md), draft, not registered |
+| Last reviewed | 2026-10-29 (see [Changes](#changes)) |
 
 Follow-up specs, all drafts for review: the checklist
 [agents-safely.md](../agents-safely.md), the rule spec
@@ -25,7 +51,7 @@ from these incidents? Each answer ends in an action we can take.
 3. They chained flaws in the proxy, a third-party sandbox and Hugging Face's
    dataset server (including HDF5 external references). They also used Hugging
    Face tokens that were already exposed on the internet. About 700 agents
-   joined the attack (METR & Redwood Research, 2026; Noze, 2026).
+   joined the attack (METR & Redwood Research, 2026; noze S.r.l., 2026).
 4. Anthropic reported three similar incidents. In one, a model published a
    malicious package to PyPI, under a name its setup document mentioned, which
    then ran on 15 real systems (Anthropic, 2026).
@@ -38,7 +64,7 @@ from these incidents? Each answer ends in an action we can take.
 | Reading | Core lesson | Why it concerns Penthera |
 |---|---|---|
 | **Reward hacking** (Bengio, 2026; Baker et al., 2025) | An optimiser games the checker when the honest path is blocked, and impossible tasks make it far more likely | Penthera's rule is "models propose, deterministic checks decide". The re-scan and tests *are* a scorer, and a model-written fix could game them |
-| **Environment security** (Horatau, 2026; Noze, 2026) | Shared credentials, shared writable stores, unrestricted egress and untested containment let the agents get out | Most developers now run coding agents. Penthera already audits their configuration (`penthera agents`), but not where those agents can reach |
+| **Environment security** (Horatau, 2026; noze S.r.l., 2026) | Shared credentials, shared writable stores, unrestricted egress and untested containment let the agents get out | Most developers now run coding agents. Penthera already audits their configuration (`penthera agents`), but not where those agents can reach |
 | **Supply chain and secrets** (Anthropic, 2026; METR & Redwood Research, 2026) | Exposed tokens, an agent-published package, and an unsafe ML file format were the ways in | This is Penthera's core: secrets, `deps`, `install`. ML model and dataset files are a blind spot |
 
 ## What Penthera already does
@@ -56,6 +82,9 @@ from these incidents? Each answer ends in an action we can take.
 
 Ordered by value per hour. "Size" is the rough code cost; the freeze means
 none of this goes into 1.8.0.
+
+Update, 2026-10-29: A and B did go into 1.8.0, in commit `c359a11` of the
+same day. The table keeps the plan as it was written.
 
 | # | Action | Type | Size | When |
 |---|---|---|---|---|
@@ -187,32 +216,66 @@ Keep the approved one-liner. Add one idea, stated soberly:
 - Public material from Penthera should cite primary sources only and
   reproduce no exploit detail.
 
+- **How the sources were chosen.** We read what was public on 2026-10-20 and
+  linked from the labs' own posts. There was no search protocol, so a report
+  that disagrees may have been missed.
+- **Penthera's stake.** The note was written by the people who build
+  Penthera, about what Penthera should do. Its actions favour work Penthera
+  can do. E8 is the step that would test one of them.
+
+## What it means for you
+
+- If you run a coding agent with `penthera agent --loop`, from 1.8.0 its fix
+  diffs cannot edit the tests, CI, lockfiles or Penthera's own files, and a
+  finding it cannot fix is recorded as given up instead of retried (A and B).
+- `penthera agents` checks your agent configuration today. It does not yet
+  check where your agents can reach (C). Use the
+  [agents checklist](../agents-safely.md) by hand for that.
+
+## Sources and reproduction
+
+This note has no code or data of its own. Every claim about the incidents
+comes from the references below, each with the date it was read. To check
+what shipped, read commit `c359a11` and its tests, or run:
+
+```bash
+npx vitest run tests/agent.test.js
+```
+
 ## References
 
-Anthropic. (2026, July 30). *Investigating three real-world incidents in our
-cybersecurity evaluations*. https://www.anthropic.com/news/investigating-incidents-cybersecurity-evals
+Year letters (2026a) follow the shared bibliography in
+[references.md](../references.md).
 
-Baker, B., et al. (2025). *Monitoring reasoning models for misbehavior and the
-risks of promoting obfuscation* [Preprint]. arXiv. https://arxiv.org/abs/2503.11926
+Anthropic. (2026, July 30). *Investigating three real-world incidents in our cybersecurity evaluations*. Retrieved October 20, 2026, from [https://www.anthropic.com/news/investigating-incidents-cybersecurity-evals](https://www.anthropic.com/news/investigating-incidents-cybersecurity-evals) ([entry](../references.md#anthropic2026incidents))
 
-Bengio, Y. (2026, September 11). *Why are AI agents lying, cheating and
-coordinating?* https://yoshuabengio.org/en/blog/why-are-ai-agents-lying-cheating-and-coordinating
+Baker, B., Huizinga, J., Gao, L., Dou, Z., Guan, M. Y., Madry, A., Zaremba, W., Pachocki, J., & Farhi, D. (2025). *Monitoring reasoning models for misbehavior and the risks of promoting obfuscation* [Preprint]. arXiv. [https://doi.org/10.48550/arXiv.2503.11926](https://doi.org/10.48550/arXiv.2503.11926) ([entry](../references.md#baker2025monitoring))
 
-Cotra, A. (2026, August 26). *The Hugging Face attack surprised me*. Planned
-Obsolescence. https://www.planned-obsolescence.org/p/the-hugging-face-attack-surprised
+Bengio, Y. (2026, September 11). *Why are AI agents lying, cheating and coordinating?* Retrieved October 29, 2026, from [https://yoshuabengio.org/en/blog/why-are-ai-agents-lying-cheating-and-coordinating](https://yoshuabengio.org/en/blog/why-are-ai-agents-lying-cheating-and-coordinating) ([entry](../references.md#bengio2026agents))
 
-Horatau, M. (2026, August 31). *The Hugging Face incident is not an AI story*.
-https://uphack.io/blog/post/the-hugging-face-incident-is-not-an-ai-story/
+Cotra, A. (2026, August 28). *The Hugging Face attack surprised me*. Planned Obsolescence. Retrieved October 29, 2026, from [https://www.planned-obsolescence.org/p/the-hugging-face-attack-surprised](https://www.planned-obsolescence.org/p/the-hugging-face-attack-surprised) ([entry](../references.md#cotra2026huggingface))
 
-METR & Redwood Research. (2026, August 26). *Brief independent investigation of
-agents' behavior, reasoning and collaboration in the OpenAI / Hugging Face
-hacking incident*. https://metr.org/hugging-face-incident-report-aug-2026.pdf
+Horatau, M. (2026, August 31). *The Hugging Face incident is not an AI story*. Uphack. Retrieved October 29, 2026, from [https://uphack.io/blog/post/the-hugging-face-incident-is-not-an-ai-story/](https://uphack.io/blog/post/the-hugging-face-incident-is-not-an-ai-story/) ([entry](../references.md#horatau2026huggingface))
 
-Noze. (2026). *Incidente OpenAI e Hugging Face a Black Hat 2026*.
-https://www.noze.it/insights/black-hat-openai-hugging-face-ricostruzione/
+METR, & Redwood Research. (2026, August 26). *Brief independent investigation of agents' behavior, reasoning and collaboration in the OpenAI / Hugging Face hacking incident*. Retrieved October 20, 2026, from [https://metr.org/hugging-face-incident-report-aug-2026.pdf](https://metr.org/hugging-face-incident-report-aug-2026.pdf) ([entry](../references.md#metr2026investigation))
 
-OpenAI. (2026a, August 26). *OpenAI–Hugging Face incident: Technical report*.
-https://cdn.openai.com/pdf/67869394-cb91-4c12-888c-5cbd85c7814c/OpenAI-Hugging-Face%20Incident-Technical-Report.pdf
+noze S.r.l. (2026, August 7). *Incidente OpenAI e Hugging Face a Black Hat 2026: Token forgiati, plugin Groovy e nove CVE su Artifactory* [The OpenAI and Hugging Face incident at Black Hat 2026: Forged tokens, Groovy plugins and nine CVEs in Artifactory]. Retrieved October 29, 2026, from [https://www.noze.it/insights/black-hat-openai-hugging-face-ricostruzione/](https://www.noze.it/insights/black-hat-openai-hugging-face-ricostruzione/) ([entry](../references.md#noze2026huggingface))
 
-OpenAI. (2026b, August 26). *The Hugging Face incident and the road ahead*.
-https://openai.com/index/hugging-face-incident-and-the-road-ahead/
+OpenAI. (2026a, August 26). *OpenAI–Hugging Face incident: Technical report*. Retrieved October 20, 2026, from [https://cdn.openai.com/pdf/67869394-cb91-4c12-888c-5cbd85c7814c/OpenAI-Hugging-Face%20Incident-Technical-Report.pdf](https://cdn.openai.com/pdf/67869394-cb91-4c12-888c-5cbd85c7814c/OpenAI-Hugging-Face%20Incident-Technical-Report.pdf) ([entry](../references.md#openai2026incident))
+
+
+A further source, listed in the first version, could not be fetched again on
+2026-10-29 (the site answered 403), so it is not in the shared bibliography
+and nothing in this note rests on it alone: OpenAI. (2026, August 26). *The
+Hugging Face incident and the road ahead*.
+[https://openai.com/index/hugging-face-incident-and-the-road-ahead/](https://openai.com/index/hugging-face-incident-and-the-road-ahead/)
+
+## Changes
+
+- 2026-10-20: first version (`7f31513`), revised the same day (`087066f`).
+- 2026-10-29: added the summary, the record of what shipped since, a note
+  that A and B went into 1.8.0, what it means for you, sources and
+  reproduction, two caveats, and references that link to the shared
+  bibliography. Cotra's post is dated 28 August 2026 on its page; the first
+  version said 26 August. Baker et al. now lists all nine authors, and the
+  noze post its full title and date. No result or number changed.

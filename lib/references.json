@@ -716,6 +716,101 @@
       "cite": "NOS liveblog (2026-10-21)",
       "title": "Websites kwetsbaar voor softwarelek: RTL Nieuws, DigiD en MijnOverheid uit de lucht",
       "url": "https://nos.nl/liveblog/2636066-websites-kwetsbaar-voor-softwarelek-digid-en-mijnoverheid-uit-de-lucht"
+    },
+    "jackson2026emudhra": {
+      "cite": "Mozilla bug 2083449",
+      "title": "eMudhra: Private Key Compromise of Intermediate Certificates",
+      "url": "https://bugzilla.mozilla.org/show_bug.cgi?id=2083449"
+    },
+    "heninger2012mining": {
+      "cite": "Heninger et al. 2012",
+      "title": "Mining Your Ps and Qs: Detection of Widespread Weak Keys in Network Devices",
+      "url": "https://www.usenix.org/conference/usenixsecurity12/technical-sessions/presentation/heninger"
+    },
+    "nemec2017roca": {
+      "cite": "Nemec et al. 2017",
+      "title": "The Return of Coppersmith's Attack: Practical Factorization of Widely Used RSA Moduli",
+      "url": "https://doi.org/10.1145/3133956.3133969"
+    },
+    "gitlab2026patch": {
+      "cite": "GitLab 19.5.1 patch release",
+      "title": "GitLab Critical Patch Release: 19.5.1, 19.4.3, 19.3.6, 19.2.9, 19.1.9, 19.0.10, 18.11.13",
+      "url": "https://docs.gitlab.com/releases/patches/patch-release-gitlab-19-5-1-released/"
+    },
+    "gitlab2024cve9596": {
+      "cite": "CVE-2024-9596",
+      "title": "CVE-2024-9596",
+      "url": "https://www.cve.org/CVERecord?id=CVE-2024-9596"
+    },
+    "openai2026php2shell": {
+      "cite": "OpenAI 2026",
+      "title": "php2shell-checker",
+      "url": "https://github.com/openai/php2shell-checker/tree/40a4746ec4925d4d7510b99f9e134277918b1ac3"
+    },
+    "bengio2026agents": {
+      "cite": "Bengio 2026",
+      "title": "Why Are AI Agents Lying, Cheating and Coordinating?",
+      "url": "https://yoshuabengio.org/en/blog/why-are-ai-agents-lying-cheating-and-coordinating"
+    },
+    "cotra2026huggingface": {
+      "cite": "Cotra 2026",
+      "title": "The Hugging Face Attack Surprised Me",
+      "url": "https://www.planned-obsolescence.org/p/the-hugging-face-attack-surprised"
+    },
+    "horatau2026huggingface": {
+      "cite": "Horatau 2026",
+      "title": "The Hugging Face Incident Is Not an AI Story",
+      "url": "https://uphack.io/blog/post/the-hugging-face-incident-is-not-an-ai-story/"
+    },
+    "noze2026huggingface": {
+      "cite": "noze S.r.l. 2026",
+      "title": "Incidente OpenAI e Hugging Face a Black Hat 2026: Token forgiati, plugin Groovy e nove CVE su Artifactory",
+      "url": "https://www.noze.it/insights/black-hat-openai-hugging-face-ricostruzione/"
+    },
+    "yun2021creddata": {
+      "cite": "Yun et al. 2021",
+      "title": "Project CredData: A Dataset of Credentials for Research",
+      "url": "https://github.com/Samsung/CredData"
+    },
+    "bhuiyan2023secbench": {
+      "cite": "Bhuiyan et al. 2023",
+      "title": "SecBench.js: An Executable Security Benchmark Suite for Server-Side JavaScript",
+      "url": "https://doi.org/10.1109/ICSE48619.2023.00096"
+    },
+    "li2022odgen": {
+      "cite": "Li et al. 2022",
+      "title": "Mining Node.js Vulnerabilities via Object Dependence Graph and Query",
+      "url": "https://www.usenix.org/conference/usenixsecurity22/presentation/li-song"
+    },
+    "datadog2023malicious": {
+      "cite": "Datadog Security Labs 2023",
+      "title": "Open-Source Dataset of Malicious Software Packages",
+      "url": "https://github.com/datadog/malicious-software-packages-dataset"
+    },
+    "wilson1927probable": {
+      "cite": "Wilson 1927",
+      "title": "Probable Inference, the Law of Succession, and Statistical Inference",
+      "url": "https://doi.org/10.1080/01621459.1927.10502953"
+    },
+    "efron1979bootstrap": {
+      "cite": "Efron 1979",
+      "title": "Bootstrap Methods: Another Look at the Jackknife",
+      "url": "https://doi.org/10.1214/aos/1176344552"
+    },
+    "youden1950index": {
+      "cite": "Youden 1950",
+      "title": "Index for Rating Diagnostic Tests",
+      "url": "https://doi.org/10.1002/1097-0142(1950)3:1%3C32::AID-CNCR2820030106%3E3.0.CO;2-3"
+    },
+    "kapoor2023leakage": {
+      "cite": "Kapoor & Narayanan 2023",
+      "title": "Leakage and the Reproducibility Crisis in Machine-Learning-Based Science",
+      "url": "https://doi.org/10.1016/j.patter.2023.100804"
+    },
+    "nosek2018preregistration": {
+      "cite": "Nosek et al. 2018",
+      "title": "The Preregistration Revolution",
+      "url": "https://doi.org/10.1073/pnas.1708274114"
     }
   }
 }

@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 426" width="640" height="426" role="img" aria-labelledby="t d" font-family="Helvetica, Arial, sans-serif">
+<title id="t">Runtime strings: engine against label, per category</title>
+<desc id="d">Stacked bars of 274 labelled version strings in 10 categories. 258 match their label exactly, 2 match what the report shows but not the evidence kind, and 14 are misses. distro-unmarked: 0 of 14 exact, 13 misses; docker-floating: 50 of 52 exact, 1 misses. Every other category matches in full.</desc>
+<rect width="640" height="426" fill="#ffffff"/>
+<text x="12" y="22" font-size="16" font-weight="bold" fill="#000000">274 labelled version strings, per category</text>
+<rect x="12" y="34" width="12" height="12" fill="#0000ED"/><text x="28" y="45" font-size="13" fill="#4d4d4d">exact match</text>
+<rect x="120.8" y="34" width="12" height="12" fill="#7A7AFF"/><text x="136.8" y="45" font-size="13" fill="#4d4d4d">report right, kind wrong</text>
+<rect x="318" y="34" width="12" height="12" fill="#ED7A00"/><text x="334" y="45" font-size="13" fill="#4d4d4d">miss</text>
+<line x1="150" y1="60" x2="150" y2="371" stroke="#ebebeb"/>
+<text x="150" y="388" font-size="13" fill="#4d4d4d" text-anchor="middle">0</text>
+<line x1="199" y1="60" x2="199" y2="371" stroke="#ebebeb"/>
+<text x="199" y="388" font-size="13" fill="#4d4d4d" text-anchor="middle">10</text>
+<line x1="248" y1="60" x2="248" y2="371" stroke="#ebebeb"/>
+<text x="248" y="388" font-size="13" fill="#4d4d4d" text-anchor="middle">20</text>
+<line x1="297" y1="60" x2="297" y2="371" stroke="#ebebeb"/>
+<text x="297" y="388" font-size="13" fill="#4d4d4d" text-anchor="middle">30</text>
+<line x1="346" y1="60" x2="346" y2="371" stroke="#ebebeb"/>
+<text x="346" y="388" font-size="13" fill="#4d4d4d" text-anchor="middle">40</text>
+<line x1="395" y1="60" x2="395" y2="371" stroke="#ebebeb"/>
+<text x="395" y="388" font-size="13" fill="#4d4d4d" text-anchor="middle">50</text>
+<line x1="444" y1="60" x2="444" y2="371" stroke="#ebebeb"/>
+<text x="444" y="388" font-size="13" fill="#4d4d4d" text-anchor="middle">60</text>
+<rect x="150" y="60" width="294" height="311" fill="none" stroke="#bfbfbf"/>
+<text x="297" y="407" font-size="14" fill="#4d4d4d" text-anchor="middle">Strings in the category (count)</text>
+<text x="142" y="81" font-size="14" fill="#000000" text-anchor="end">distro-backport</text>
+<rect x="150.0" y="66" width="209.7" height="20" fill="#0000ED"/>
+<text x="366.7" y="81" font-size="12" fill="#737373">43/43</text>
+<text x="142" y="112" font-size="14" fill="#000000" text-anchor="end">distro-unmarked</text>
+<rect x="150.0" y="97" width="3.9" height="20" fill="#7A7AFF"/>
+<rect x="154.9" y="97" width="62.7" height="20" fill="#ED7A00"/>
+<text x="224.6" y="112" font-size="12" fill="#000000">0/14, 1 kind only, 13 misses (L1)</text>
+<text x="142" y="143" font-size="14" fill="#000000" text-anchor="end">docker-floating</text>
+<rect x="150.0" y="128" width="244.0" height="20" fill="#0000ED"/>
+<rect x="395.0" y="128" width="3.9" height="20" fill="#7A7AFF"/>
+<rect x="399.9" y="128" width="3.9" height="20" fill="#ED7A00"/>
+<text x="410.8" y="143" font-size="12" fill="#000000">50/52, 1 kind only, 1 miss (G1)</text>
+<text x="142" y="174" font-size="14" fill="#000000" text-anchor="end">docker-pinned</text>
+<rect x="150.0" y="159" width="136.2" height="20" fill="#0000ED"/>
+<text x="293.2" y="174" font-size="12" fill="#737373">28/28</text>
+<text x="142" y="205" font-size="14" fill="#000000" text-anchor="end">end-of-life</text>
+<rect x="150.0" y="190" width="131.3" height="20" fill="#0000ED"/>
+<text x="288.3" y="205" font-size="12" fill="#737373">27/27</text>
+<text x="142" y="236" font-size="14" fill="#000000" text-anchor="end">exact-upstream</text>
+<rect x="150.0" y="221" width="199.9" height="20" fill="#0000ED"/>
+<text x="356.9" y="236" font-size="12" fill="#737373">41/41</text>
+<text x="142" y="267" font-size="14" fill="#000000" text-anchor="end">hidden-partial</text>
+<rect x="150.0" y="252" width="67.6" height="20" fill="#0000ED"/>
+<text x="224.6" y="267" font-size="12" fill="#737373">14/14</text>
+<text x="142" y="298" font-size="14" fill="#000000" text-anchor="end">lookalike</text>
+<rect x="150.0" y="283" width="92.1" height="20" fill="#0000ED"/>
+<text x="249.1" y="298" font-size="12" fill="#737373">19/19</text>
+<text x="142" y="329" font-size="14" fill="#000000" text-anchor="end">prerelease-suffix</text>
+<rect x="150.0" y="314" width="57.8" height="20" fill="#0000ED"/>
+<text x="214.8" y="329" font-size="12" fill="#737373">12/12</text>
+<text x="142" y="360" font-size="14" fill="#000000" text-anchor="end">version-file</text>
+<rect x="150.0" y="345" width="116.6" height="20" fill="#0000ED"/>
+<text x="273.6" y="360" font-size="12" fill="#737373">24/24</text>
+</svg>

@@ -3,7 +3,7 @@ title: We benchmarked {{fact:secrets.of}} free secret scanners on {{fact:secrets
 description: gitleaks, trufflehog, deepsecrets, Nosey Parker and five more on Samsung CredData's sealed half, with intervals, the limits, and where Penthera loses.
 date: 2026-10-28
 approved: 2026-10-28
-sources: bench/public/published.json, bench/public/RESULTS.md, docs/research/prereg/E11b-improvement-study.md
+sources: bench/public/published.json, bench/public/RESULTS.md, docs/research/prereg/E11b-improvement-study.md, bench/public/README.md, docs/references.md
 keywords: secret scanner benchmark, gitleaks vs trufflehog, open source secret scanner, CredData
 ---
 > Which free secret scanner finds the most leaked secrets, on data none of them wrote?
@@ -51,8 +51,32 @@ CredSweeper scored F1 {{fact:secrets.credsweeper.score}}. It is made by the Cred
 - Paid scanners ({{fact:paid}}) publish no results on CredData, and we cannot measure them.
 - CredData is not your code.
 
+## Method and sources
+
+- **Dataset.** Samsung CredData, a set of files from open-source projects with hand-reviewed credential labels (Yun et al., 2021). Only its sealed test half was scored, once, as the [method post](/blog/sealed-half-benchmark) describes.
+- **Intervals.** Precision and recall carry 95% Wilson intervals (Wilson, 1927). F1, F0.5 and F2 are computed from the two rates and have no interval of their own here.
+- **Figure.** [Precision against recall for every tool](https://github.com/danoszz/penthera/blob/main/blog/figures/secrets-precision-recall.svg), with the intervals as whiskers and curves of equal F1. It is drawn by `blog/figures/make.mjs` from published.json.
+- **Other work.** Meli et al. (2019) measured how secrets leak on GitHub at scale. SecretBench is another labelled set of real secrets (Basak et al., 2023). Numbers on those sets are not comparable with these.
+
 ## Check it yourself
 
 - Every number: [published.json](https://github.com/danoszz/penthera/blob/main/bench/public/published.json) and [the secrets page](/benchmarks/secrets).
 - The method and the protocol: [how we benchmarked against the free tools](/blog/sealed-half-benchmark), and [E11b](https://github.com/danoszz/penthera/blob/main/docs/research/prereg/E11b-improvement-study.md).
 - Scan your own repo for secrets: `npx penthera@{{fact:secrets.penthera.version}} --repo .`
+- Rerun the secrets benchmark: `npm run bench:public -- --only creddata`, with the requirements in [bench/public/README.md](https://github.com/danoszz/penthera/blob/main/bench/public/README.md#reproduce). The test half needs `--split test --final`.
+
+## References
+
+
+Basak, S. K., Neil, L., Reaves, B., & Williams, L. (2023). SecretBench: A dataset of software secrets. In *2023 IEEE/ACM 20th International Conference on Mining Software Repositories (MSR)* (pp. 347–351). IEEE. [https://doi.org/10.1109/MSR59073.2023.00053](https://doi.org/10.1109/MSR59073.2023.00053) ([entry](https://github.com/danoszz/penthera/blob/main/docs/references.md#basak2023secretbench))
+
+Meli, M., McNiece, M. R., & Reaves, B. (2019). How bad can it Git? Characterizing secret leakage in public GitHub repositories. In *Proceedings 2019 Network and Distributed System Security Symposium*. Internet Society. [https://doi.org/10.14722/ndss.2019.23418](https://doi.org/10.14722/ndss.2019.23418) ([entry](https://github.com/danoszz/penthera/blob/main/docs/references.md#meli2019bad))
+
+Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. *Journal of the American Statistical Association*, *22*(158), 209–212. [https://doi.org/10.1080/01621459.1927.10502953](https://doi.org/10.1080/01621459.1927.10502953) ([entry](https://github.com/danoszz/penthera/blob/main/docs/references.md#wilson1927probable))
+
+Yun, J., Choi, S., Lee, Y., Sokol, O., Shim, W., Melkonyan, A., & Kuzmenko, D. (2021). *Project CredData: A dataset of credentials for research*. GitHub. Retrieved October 29, 2026, from [https://github.com/Samsung/CredData](https://github.com/Samsung/CredData) ([entry](https://github.com/danoszz/penthera/blob/main/docs/references.md#yun2021creddata))
+
+## Changes
+
+- 2026-10-28: published.
+- 2026-10-29: added the method and sources, the figure link, the rerun link and the references. No claim or number changed.

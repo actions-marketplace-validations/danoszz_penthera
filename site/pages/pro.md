@@ -1,4 +1,5 @@
 ---
+nav: Pro
 title: Penthera Pro: rules decide, Pro keeps the record
 description: Pro is an experiment, not a sale. Penthera stays free; this asks whether teams need more, such as daily checks of what they shipped and signed reports.
 eyebrow: Pro

@@ -1,5 +1,9 @@
 # E1: Penthera's accuracy on real code (pre-registration)
 
+> **Project page.** For researchers asking "how accurate is Penthera on real
+> code its authors did not write?" (This line was added on 29 Oct 2026,
+> after registration.)
+
 | | |
 |---|---|
 | Experiment | E1 in [vision-2.0.md](../../vision-2.0.md#experiments) |
@@ -9,6 +13,29 @@
 | Authors | Daan van der Zwaag (PI, labeller A); labeller B named in an amendment before calibration starts |
 | Data collected before registration | None. No corpus frame has been built, no corpus repository has been cloned or scanned. The 10-project pilot runs after registration on projects excluded from the frame (§ 6.4). |
 | Structure | The AsPredicted questions (§ 1 to § 9 map onto them), plus the OSF Preregistration sections AsPredicted lacks: sampling frame, stopping rule, blinding, deviations |
+
+## Abstract (added 29 Oct 2026, after registration)
+
+> Added after registration. It summarizes the protocol and changes nothing
+> in it. The registered text is the version merged to `main` in `d8d50c5`
+> (20 Oct 2026). `git diff d8d50c5 -- docs/research/prereg/E1-real-world-accuracy.md`
+> shows every later change, and the [notes at the end](#notes-added-after-registration-29-oct-2026)
+> hold the rest.
+
+**Question.** How accurate is Penthera's static analysis on public web apps
+and agent setups that its authors did not write?
+**Method.** A stratified random sample of 200 projects from a frozen GitHub
+frame (Next.js, Express, Fastify, Hono, FastAPI and agent setups), scanned
+offline by one frozen release. Two blinded labellers, with a κ gate before
+labelling. Recall comes from a labelled sample of units Penthera did not
+flag, and from 50 seeded issues as a secondary check.
+**Outcomes.** Precision and recall, overall and per category, with 95%
+intervals. Three hypotheses, each able to fail (§ 1).
+**Result.** None yet. On 29 Oct 2026 no frame has been built and no project
+has been scanned.
+**Limits.** Five frameworks and repositories with 10 or more stars only. No
+route analysis for FastAPI. Recall is an upper bound, because labellers can
+miss issues too.
 
 ## 1. Research questions and hypotheses
 
@@ -457,4 +484,98 @@ deviation.
 
 ## Amendments
 
-None yet.
+1. **29 Oct 2026, approved by the maintainer, before any data was collected.**
+   - **Version under test (§ 6.3):** the frozen version is now Penthera
+     2.1.0, the first stable release of the 2.x line, instead of 1.7.0. The
+     reason: 1.7.0 is no longer what users install, so its accuracy would not
+     tell them anything. The rest of § 6.3 holds for 2.1.0: it is frozen at
+     its release tag before the frame is built, and no rule changes during
+     the study. If 2.1.0 is not released before the frame is built, the study
+     waits.
+   - **Data license:** the published manifest and labels are released under
+     CC BY 4.0. Scanned projects keep their own licenses, and their source
+     is not redistributed.
+   - The registered text above is unchanged.
+
+## Notes added after registration, 29 Oct 2026
+
+These notes add references, reproduction details, a status log and open
+questions. They change no part of the registered protocol above. If a note
+and the protocol disagree, the protocol holds until a dated amendment says
+otherwise.
+
+### References for the methods named above
+
+The protocol names its methods without citations. In APA 7, linked to
+[references.md](../../references.md):
+
+- Wilson interval for a proportion (§ 4.1, § 8.1): [Wilson (1927)](../../references.md#wilson1927probable).
+- Newcombe's hybrid score interval for a difference of proportions, method 10 (H2):
+  [Newcombe (1998)](../../references.md#newcombe1998interval).
+- Cohen's κ (§ 6.2, § 8.4): [Cohen (1960)](../../references.md#cohen1960coefficient);
+  its standard error: [Fleiss et al. (1969)](../../references.md#fleiss1969large);
+  why κ is low at extreme prevalence even when agreement is high:
+  [Feinstein and Cicchetti (1990)](../../references.md#feinstein1990paradoxes).
+- Cluster bootstrap intervals (§ 7, § 8.3): [Efron (1979)](../../references.md#efron1979bootstrap).
+- Recall estimated from a labelled sample (§ 7): [Webber (2013)](../../references.md#webber2013recall).
+- Capture-recapture and why two pattern scanners break its independence
+  assumption (§ 7): [Petersson et al. (2004)](../../references.md#petersson2004capture).
+- Pre-registration as practised here: [Nosek et al. (2018)](../../references.md#nosek2018preregistration).
+
+Holm's step-down procedure (Holm, 1979, *Scandinavian Journal of
+Statistics*) and Kish's effective sample size (Kish, 1965, *Survey
+Sampling*) are named but not added to the bibliography: neither could be
+checked against a publisher page on 29 Oct 2026.
+
+### Open science: what will be shared, and how to repeat it
+
+| What | Where | License | Shared? |
+|---|---|---|---|
+| This protocol | this file, registered in `d8d50c5` | MIT, as the repository | Yes |
+| Runner and statistics | `bench/real-world/` (planned; not in the repository yet) | MIT | Yes, with unit tests (§ 8.6) |
+| Frame snapshot, queries, manifest | `bench/real-world/` (planned) | Not stated in the protocol | Yes: URLs, commits, licenses and strata only |
+| Codebook, adjudicated labels | `bench/real-world/` (planned) | Not stated in the protocol | Yes, without secret values or code excerpts |
+| Third-party source code | Cache outside the repository | Each project's own | No: § 9 keeps third-party code out of the repository |
+| Disclosure log | Outside the public repository | | No: it can name live, unfixed issues (§ 9) |
+
+The scanner under test is `penthera@1.7.0` from npm (§ 6.3). The commands
+are in § 6.1, step 3. The results file will record every hash § 8.6 lists.
+
+### What the result will mean for users and for the tool
+
+- **If H1 holds,** a reader can quote precision on third-party code, with its
+  interval and the five frameworks named. Nothing broader.
+- **If H1 fails,** the published precision stays the number from code we
+  wrote ourselves (0.86 in § 1), always labelled that way.
+- **Recall** on real code gets a number with an interval. It is an upper
+  bound (§ 7), so docs must say so next to it.
+- **The tool.** No rule changes during the study (§ 6.3). Rule ideas from the
+  labels ship in a later release and are measured on a fresh sample.
+
+### Threats to validity, collected
+
+The protocol spreads these across sections. For a reader who wants them in
+one place:
+
+- **External:** 10 or more stars, permissive licenses and five frameworks
+  (§ 3.2). The frame says nothing about private code or other stacks.
+- **Construct:** a label is a labeller's judgment (§ 2). κ and adjudication
+  (§ 6.2) bound this; they do not remove it.
+- **Recall:** labellers miss issues, so recall is an upper bound (§ 7, limit 3).
+  Seeded issues are written knowing the rules, so they are optimistic (§ 6.5).
+- **Clustering:** findings within a project are correlated (§ 4.2, § 8.3).
+- **Coverage:** FastAPI routes and large dependencies are not covered (§ 5).
+
+### Status, version and log
+
+| Date | Event | Commit |
+|---|---|---|
+| 2026-10-20 | Protocol written; two pre-registration fixes (dependency units, Python wheels) | `bb0d568`, `5bc0799`, `356b92e` |
+| 2026-10-20 | Registered by merge to `main` | `d8d50c5` |
+| 2026-10-29 | Abstract and these notes added; registered text unchanged | this commit |
+
+Deviations so far: none. Amendment 1 (29 Oct 2026) sets the version under test to 2.1.0 and the data license to CC BY 4.0, before any data. No data has been collected.
+
+**Still open for the maintainer:** the names of labeller B and the third person.
+
+No figure: there are no data yet.

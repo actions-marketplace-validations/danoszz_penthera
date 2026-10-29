@@ -5,7 +5,7 @@
  * sources; the BlogPosting JSON-LD parses.
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { mkdtempSync, rmSync, readFileSync, readdirSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync, readdirSync, writeFileSync, mkdirSync, existsSync, cpSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { buildSite } from "../site/build.mjs";
@@ -37,6 +37,7 @@ function fixture(name, approve) {
     const md = readFileSync(join(BLOG, f), "utf8");
     writeFileSync(join(d, f), md.replace(/^approved: .*$/m, approve.includes(f) ? "approved: 2026-11-02" : "approved: false"));
   }
+  cpSync(join(BLOG, "figures"), join(d, "figures"), { recursive: true });
   return d;
 }
 
@@ -134,6 +135,45 @@ describe("blog, published", () => {
     const [index] = ld(o("blog.html"));
     expect(index["@graph"][0].blogPost).toEqual([{ "@id": `${ORIGIN}/blog/sealed-half-benchmark#post` }]);
     expect(o("blog/index.html")).toBe(o("blog.html"));
+  });
+
+  it("shows each post's figures inline: the SVG is served, with alt text, a size and a caption", () => {
+    const o = builds.one;
+    const html = o("blog/sealed-half-benchmark.html");
+    const figs = [...html.matchAll(/<figure class="md-fig"><img src="\/blog\/figures\/([\w-]+\.svg)" width="(\d+)" height="(\d+)" alt="([^"]*)" loading="lazy"><figcaption>([\s\S]*?)<\/figcaption><\/figure>/g)];
+    expect(figs.length).toBeGreaterThan(0);
+    expect(html.match(/<img /g)).toHaveLength(figs.length);
+    for (const [, name, w, h, alt, cap] of figs) {
+      expect(o.has(`blog/figures/${name}`), name).toBe(true);
+      expect(o(`blog/figures/${name}`)).toMatch(new RegExp(`<svg[^>]* width="${w}" height="${h}"`));
+      expect(alt.length, name).toBeGreaterThan(40);
+      expect(cap.trim().length, name).toBeGreaterThan(20);
+    }
+    // The Markdown copy and the feed point at the served file.
+    expect(o("blog/sealed-half-benchmark.md")).toContain(`](${ORIGIN}/blog/figures/dev-to-test.svg)`);
+    expect(builds.one("blog/feed.xml")).toContain(`${ORIGIN}/blog/figures/dev-to-test.svg`);
+    // A draft's figures are not shipped.
+    expect(o.has("blog/figures/secrets-precision-recall.svg")).toBe(false);
+  });
+
+  it("every figure in the repo's posts exists in blog/figures/ and has alt text", () => {
+    for (const f of files) {
+      const md = readFileSync(join(BLOG, f), "utf8");
+      for (const [, alt, name] of md.matchAll(/!\[([^\]]*)\]\(figures\/([^)\s]+)\)/g)) {
+        expect(existsSync(join(BLOG, "figures", name)), `${f}: ${name}`).toBe(true);
+        expect(alt.trim().length, `${f}: ${name}`).toBeGreaterThan(40);
+      }
+    }
+  });
+
+  it("refuses a figure that is missing or has no alt text", () => {
+    const d = fixture("blog-fig", ["sealed-half-benchmark.md"]);
+    const post = join(d, "sealed-half-benchmark.md");
+    const md = readFileSync(post, "utf8");
+    writeFileSync(post, md.replace("(figures/dev-to-test.svg)", "(figures/nope.svg)"));
+    expect(() => readPosts(d, pub)).toThrow(/figure nope\.svg is not in blog\/figures/);
+    writeFileSync(post, md.replace(/!\[[^\]]*\]\(figures\/dev-to-test\.svg\)/, "![](figures/dev-to-test.svg)"));
+    expect(() => readPosts(d, pub)).toThrow(/needs alt text/);
   });
 
   it("serves an Atom feed of the approved posts", () => {

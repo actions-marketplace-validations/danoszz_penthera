@@ -1,5 +1,28 @@
 # E10: Penthera on known-vulnerable apps (pre-registration draft)
 
+> **Project page.** For researchers asking "do Penthera's numbers on its own
+> labs hold on deliberately vulnerable apps that other people documented?"
+
+## Abstract
+
+**Question.** On six deliberately vulnerable web apps whose authors
+document their own flaws, what share of Penthera's findings are correct,
+and what share of the documented flaws in classes it claims does it find?
+**Method.** Answer keys written from each app's documentation and frozen
+before any scan. Each app runs in Docker on an internal network, scanned
+from loopback with `--repo` and `--offline`, in a standard and a deep run.
+Two blinded labellers for findings outside the key. Wilson 95% intervals.
+**Outcomes.** Precision (H1, threshold 0.70), recall over root causes (H2,
+threshold 0.50), and whether these apps give lower precision than
+Penthera's own labs (H3).
+**Result.** None registered. A two-app pilot (Juice Shop, DVNA, 22 Oct 2026,
+Penthera 1.8.0) checked the pipeline: precision 0.87 [0.77, 0.93] on 62
+findings, but recall 1 of 14 root causes in the standard run, with one
+unblinded, AI-assisted labeller (§ 12). It is not evidence for H1 to H3.
+**Limits.** Code written to be vulnerable is not representative. The apps
+and their solutions are public and old. The answer keys are ours. The
+recall denominator is small (32 to 68 root causes).
+
 | | |
 |---|---|
 | Experiment | E10. Not yet listed in [vision-2.0.md](../../vision-2.0.md#experiments); adding it there is an open decision (§ 13) |
@@ -400,6 +423,57 @@ What the pilot changed, before registration:
 5. Whether the pilot numbers are published on the site, or stay in the
    repository as a pilot.
 6. Adding E10 to `vision-2.0.md`.
+
+## 14. Related work
+
+Running scanners against deliberately vulnerable apps with a known answer
+key is an established method, and so are its limits: black-box scanners
+miss whole classes of flaws and depend on how much of the app they crawl
+([Bau et al., 2010](../../references.md#bau2010state);
+[Doupé et al., 2010](../../references.md#doupe2010johnny)). Benchmarking
+detection tools against a fixed set of known flaws, and reporting both
+precision and coverage, follows
+[Antunes and Vieira (2015)](../../references.md#antunes2015assessing) and the
+[OWASP Benchmark project](../../references.md#owaspbenchmark). Intervals:
+[Wilson (1927)](../../references.md#wilson1927probable); agreement:
+[Cohen (1960)](../../references.md#cohen1960coefficient), with
+[Feinstein and Cicchetti (1990)](../../references.md#feinstein1990paradoxes)
+on why κ needs the prevalence beside it.
+
+## 15. What the result will mean
+
+- **For users.** If H1 holds, precision on code other people wrote gets a
+  second number next to the labs' 0.875, named by app. If H3 holds, the
+  labs overstate precision, and docs that quote them must say so.
+- **For the tool.** Misses with a visible cause become follow-up pull
+  requests, measured on a fresh run (§ 7, frozen scanner). The pilot
+  already listed four: undiscovered served listings, `.tf` files, Express
+  `routes/` folders read as Next.js, and a session-secret pattern.
+- **Not claimed.** Recall here does not transfer to real applications (§ 9).
+
+## 16. Open science and reproduction
+
+| What | Where | License |
+|---|---|---|
+| Runner, scorer, tests | `bench/known-vuln/` (`npm run bench:known`), `tests/bench-known-vuln.test.js` | MIT |
+| Answer keys and labels | `bench/known-vuln/<app>/truth.json`, `labels.json` | MIT for our text; Juice Shop quotes keep Juice Shop's MIT credit (§ 3.3) |
+| Pilot results | [bench/known-vuln/RESULTS.md](../../../bench/known-vuln/RESULTS.md): Penthera 1.8.0, commit `403c4bd539`, 22 Oct 2026 | MIT |
+| App source and images | their own repositories and registries, pinned by commit and digest (§ 3.2) | each app's own |
+
+**Not shared, and why.** No application code (§ 3.3): GPL apps are linked,
+never quoted, so the repository stays MIT.
+
+## 17. Revision log
+
+| Date | Change | Commit |
+|---|---|---|
+| 2026-10-22 | Draft and answer keys | `c88a7c1`, `77dc24b`, `1163b0e` |
+| 2026-10-22 | Pilot on Juice Shop and DVNA | `c3ca7d8` |
+| 2026-10-29 | Abstract, §§ 14 to 17 | this commit |
+
+Still a draft: § 13's decisions are open, and no registered run exists.
+No figure: the pilot is a pipeline check, and its numbers must not be
+quoted as Penthera's accuracy.
 
 ## Amendments
 

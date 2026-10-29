@@ -6,6 +6,7 @@
  *   ---
  *   title: Free website security check: headers, TLS, cookies and leaked keys
  *   description: One or two sentences, under 160 characters.
+ *   nav: Website security check   (optional: the footer's label; else the H1)
  *   ---
  *   # The question, as the reader asks it
  *
@@ -17,7 +18,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { renderMarkdown } from "./terms.mjs";
 import { fill } from "./agents.mjs";
-import { ldScript, siteFoot } from "./frame.mjs";
+import { ldScript, siteFooter } from "./frame.mjs";
 import { proMain, waitlistHref } from "./pro.mjs";
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -26,7 +27,11 @@ const CTA_HTML = '<p class="land-cta"><a class="btn" data-variant="default" href
 const WAITLIST_MAIL = "daan@penthera.org";
 const WAITLIST_HREF = waitlistHref();
 const WAITLIST_HTML = `<p class="land-cta"><a class="btn" data-variant="default" data-track="pro-waitlist" href="${WAITLIST_HREF.replace(/&/g, "&amp;")}">Join the waitlist</a><span>Opens an email to ${WAITLIST_MAIL}. Nothing is stored on penthera.org.</span></p>`;
-const ctaHtml = (p) => (p.cta === "waitlist" ? WAITLIST_HTML : CTA_HTML);
+// `cta: contact` in the front matter: a mailto about a study (site/pages/research-e20.md).
+const CONTACT_MAIL = "daan@penthera.org";
+export const contactHref = (p) => `mailto:${CONTACT_MAIL}?subject=${encodeURIComponent(p.subject || p.h1)}`;
+const contactHtml = (p) => `<p class="land-cta"><a class="btn" data-variant="default" href="${esc(contactHref(p))}">Email the study</a><span>Opens an email to ${CONTACT_MAIL}. Nothing is stored on penthera.org.</span></p>`;
+const ctaHtml = (p) => (p.cta === "waitlist" ? WAITLIST_HTML : p.cta === "contact" ? contactHtml(p) : CTA_HTML);
 
 /** Parse one page: front matter, the H1 and the body. Throws on a missing field. */
 export function parsePage(md, file) {
@@ -54,14 +59,16 @@ export function landingPages(site) {
 
 /** One page as Markdown, for agents: the CTA as a link, numbers filled in. */
 export function landingMarkdown(p, { origin, values }) {
-  const cta = p.cta === "waitlist" ? `[Join the waitlist](${WAITLIST_HREF})` : `[Check your site on penthera.org](${origin}/#scan)`;
+  const cta = p.cta === "waitlist" ? `[Join the waitlist](${WAITLIST_HREF})`
+    : p.cta === "contact" ? `[Email the study](${contactHref(p)})`
+    : `[Check your site on penthera.org](${origin}/#scan)`;
   const body = p.body.replaceAll("{{CTA}}", cta)
     .replace(/\]\(\/(?!\/)/g, `](${origin}/`);
   return `${fill(body, values, `site/pages/${p.slug}.md`).trimEnd()}\n`;
 }
 
 /** One page as HTML, in the site's own frame (the frame /terms uses). */
-export function landingHtml(p, { origin, values, styles = "/styles.css", theme = "/theme.js", blog = false, pub = null }) {
+export function landingHtml(p, { origin, values, styles = "/styles.css", theme = "/theme.js", foot = siteFooter(), pub = null }) {
   const md = fill(p.body.replace(/^# .+\n/m, "").replaceAll("{{CTA}}", "\u0000CTA\u0000"), values, `site/pages/${p.slug}.md`);
   const body = renderMarkdown(md).replace(/<p>\u0000CTA\u0000<\/p>/g, ctaHtml(p));
   const url = `${origin}/${p.slug}`;
@@ -99,12 +106,13 @@ export function landingHtml(p, { origin, values, styles = "/styles.css", theme =
 </head>
 <body>
 ${p.layout === "pro" ? `  <main class="pro" id="main">${proMain({ version: values.VERSION, pub })}
-  </main>` : `  <main class="terms land" id="main">
+  </main>
+  ${foot}` : `  <main class="terms land" id="main">
     <p class="eyebrow"><a href="/">Penthera</a> · ${esc(p.eyebrow || "Live check")}</p>
     <h1>${esc(p.h1)}</h1>
 ${body}
-    ${siteFoot({ blog })}
-  </main>`}
+  </main>
+  ${foot}`}
 </body>
 </html>
 `;

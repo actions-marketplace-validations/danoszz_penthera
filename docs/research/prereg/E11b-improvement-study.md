@@ -10,6 +10,31 @@
 | Authors | Daan van der Zwaag (PI, decides every rule change). Drafted with Claude (AI-assisted) |
 | Seen before this amendment | E11's aggregate results on all data and the handful of named cases in its `RESULTS.md`. No per-item error lists. After the split was sealed (commit `72d3149`), the dev half was scored for the baseline in § 4 and the reference tools in § 5. The test half has not been scored |
 
+## Abstract (added 29 Oct 2026, after the study was completed)
+
+> Added after completion. It summarizes the amendment and its result and
+> changes nothing in either. The last change before this note is `a514989`
+> (25 Oct 2026); `git diff a514989 -- docs/research/prereg/E11b-improvement-study.md`
+> shows what was added since.
+
+**Question.** Can Penthera be improved on E11's benchmarks without the
+"after" numbers flattering it?
+**Method.** Each benchmark was split 50/50 with a fixed seed and the test
+half sealed by hash (§ 2). Rules were tuned on the dev half only, under
+fixed guards (§ 6), and the test half was scored once (§ 10). The free
+tools that run offline were measured on the same test half and ranked by
+rules registered before the test run (§ 7).
+**Result.** On the sealed test half, Penthera 2.0.0 against 1.9.0: secrets
+F1 0.74 against 0.18 (rank 2 of 10 free tools); npm malware caught minus
+false alarms 0.71 against 0.57 (rank 1 of 6); PyPI 0.82 against 0.74 (rank
+1 of 8); SecBench.js injection found 0.70 against 0.16 (rank 1 of 8). The
+PyPI false-alarm target (0.03) was missed at 0.05. Results:
+[RESULTS.md](../../../bench/public/RESULTS.md#e11b-final-the-sealed-test-half-scored-once-2026-10-25).
+**Limits.** Dev scores were higher than test scores on every benchmark.
+The split leaked: CredData is split by file, not by repository, and four
+SecBench.js packages sat on both halves (§ 11). The free tools ran on their
+defaults; Penthera was tuned. A clean check needs new data.
+
 ## 1. Why an amendment
 
 E11 measured Penthera once, on whole datasets. Tuning rules on the same data
@@ -211,3 +236,104 @@ Logged so far:
   - The secrets tool step was stopped after the CredData tools and restarted
     as two parallel lanes for speed; nothing was read before it finished.
   A clean measure needs new data: post-freeze malware samples and E1.
+  - Added 29 Oct 2026, not found by the audit: commit `172f741` (IOC hosts
+    match whole hostnames only) landed 15 minutes before the split was
+    sealed in `72d3149`. It is a general fix for a false alarm that E11, run
+    on all data, raised on the benign `litellm` 1.106.3. The split later put
+    that package in the PyPI benign test half. 2.0.0 does not flag it, so the
+    fix may account for 1 of the 6 fewer PyPI false alarms from 1.9.0 to
+    2.0.0 on the test half. No number changes.
+- 2026-10-29, logged after the result: § 8 allows at most three passes per
+  gap. Command injection in library mode had four: D1 and D2 in round 1,
+  then passes 1, 2 and 2b in round 2 (commits `11963eb`, `18ff83c`,
+  `2de5b5d`, `24e0fb0`). § 8 does not say whether a new round starts the
+  count again. The ambiguity is logged, not resolved; no pass is undone and
+  no number changes. The per-pass log is in the exploratory re-analysis in
+  [RESULTS.md](../../../bench/public/RESULTS.md#exploratory-re-analysis-29-oct-2026-after-the-registered-analysis).
+
+## Notes added after completion, 29 Oct 2026
+
+These notes add references, figures, reproduction details and what the
+result means. They change no part of the amendment above.
+
+### References
+
+In APA 7, linked to [references.md](../../references.md):
+
+- Datasets, as in E11: [Yun et al. (2021)](../../references.md#yun2021creddata),
+  [Bhuiyan et al. (2023)](../../references.md#bhuiyan2023secbenchjs),
+  [Datadog Security Labs (2023)](../../references.md#datadog2023malicious).
+- The malware ranking score, caught minus false alarms (§ 7), is Youden's J:
+  [Youden (1950)](../../references.md#youden1950index).
+- Wilson intervals: [Wilson (1927)](../../references.md#wilson1927probable).
+  The exploratory rank intervals use a parametric bootstrap:
+  [Efron (1979)](../../references.md#efron1979bootstrap).
+- A dev/test split sealed before tuning is the holdout logic of
+  pre-registration: [Nosek et al. (2018)](../../references.md#nosek2018preregistration).
+
+### Figures
+
+![Scatter plot of strict precision against in-scope recall for the secret scanners on the CredData test half. Penthera 2.0.0 sits at precision 0.89 and recall 0.64; deepsecrets at 0.80 and 0.77 has the highest F1 among ranked tools; Penthera 1.9.0 sits at 0.56 and 0.10.](../../../bench/public/figures/e11b-secrets-precision-recall.svg)
+
+*Figure 1. Secret scanners on the CredData test half, 25 Oct 2026. Each
+mark is one tool with Wilson 95% whiskers; dashed curves are equal F1.
+Hollow marks are not ranked (CredSweeper was trained on CredData). n = 2,220
+in-scope true rows. Data: [published.json](../../../bench/public/published.json).*
+
+![Two scatter plots, npm and PyPI, of the share of malicious packages caught against the share of benign packages flagged. On npm, Penthera 2.0.0 catches 0.71 and flags none of 150 benign packages. On PyPI it catches 0.87 and flags 0.05. ossgadget, aura and bandit4mal flag most benign packages.](../../../bench/public/figures/e11b-malware-caught-vs-false-alarms.svg)
+
+*Figure 2. Malicious-package detectors on the DataDog test half, 25 Oct 2026.
+The dashed diagonal is chance; the vertical distance above it is Youden's J,
+the registered ranking score. Whiskers are Wilson 95%. n = 112 npm packages
+with a payload, 150 PyPI packages, and 150 benign packages per ecosystem
+(fewer for tools that failed on some). Hollow marks are not ranked or
+inflated by construction (osv-scanner, GuardDog). Data:
+[published.json](../../../bench/public/published.json).*
+
+Both figures are drawn by `node bench/public/figures.mjs` from the
+committed data file.
+
+### Reproduce
+
+| What | Value |
+|---|---|
+| Split manifests | `bench/public/split/*.json`, hashes in § 2, sealed in `72d3149` |
+| Final run | main `219b73a` (Penthera 2.0.0), 25 Oct 2026 |
+| Penthera commands | `npm run bench:public -- --split test --final`; `--split dev` for the dev half |
+| Other tools | `npm run bench:public -- --competitors --split test --final`; pins and flags in `bench/public/competitors.mjs` |
+| Published numbers | [published.json](../../../bench/public/published.json), built by `bench/public/publish.mjs` |
+| Sealed round-1 archive | SHA-256 `7fc41259…` (full hash in § 11) |
+
+**Not shared, and why.** Malware samples (safety, E11 § 10); CredData's
+materialized files (each keeps its source project's license); the per-item
+outputs of the other tools (E14 notes that E11b kept only their
+aggregates); the lab notebook of per-pass review sheets, which quotes
+dataset lines.
+
+### What the result means
+
+- **For users.** On these three public datasets, the 2.0.0 rules found more
+  than 1.9.0 at about the same or lower false-alarm rates. These are rates
+  on public benchmarks, not accuracy on your code; that is E1's question.
+- **For the tool.** Library mode for the sink check (D0) and the wider
+  secret-file coverage shipped in 2.0.0. PyPI install-script false alarms
+  (0.05) stay above the 0.03 target and remain open work.
+- **How far to trust it.** Dev scores were higher than test on all four
+  benchmarks (secrets F1 0.81 to 0.74, SecBench.js 0.88 to 0.70, npm 0.83 to
+  0.71, PyPI 0.92 to 0.82). The test numbers are the result.
+
+### Limits (added 29 Oct 2026)
+
+CredData is split by file, not by repository, and SecBench.js had four
+packages on both halves (§ 11). The free tools ran on their defaults while
+Penthera was tuned on the dev half. The rest is under "How far to trust
+these numbers" in [RESULTS.md](../../../bench/public/RESULTS.md). An
+exploratory re-analysis there shows the intervals by repository, recall
+without the scope filter, and a log of each tuning pass. What every results
+file reports is in the [results-file checklist](../results-checklist.md).
+
+### Status and log
+
+The status row above and § 11 already log dates, commits and deviations.
+Added on 29 Oct 2026: this abstract, these notes and two figures. Nothing
+in the amendment changed.

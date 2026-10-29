@@ -1,4 +1,5 @@
 ---
+nav: Website security check
 title: Free website security check: headers, TLS, cookies and leaked keys
 description: Check your own site's security headers, TLS, cookies, keys in its JavaScript, vulnerable libraries, SPF, DMARC and security.txt. Free, passive, nothing stored.
 ---

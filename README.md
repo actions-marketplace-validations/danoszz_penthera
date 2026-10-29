@@ -126,6 +126,10 @@ down before that run ([protocol](docs/research/prereg/E11b-improvement-study.md)
 
 Leaked secrets: 2nd by F1, the registered score; 1st by F0.5, which weighs precision more (0.82 against deepsecrets 0.80); 2nd by F2, which weighs recall more (0.68 against deepsecrets 0.77).
 
+Some ranked tools are barely in the contest. Other ranked tools scoring below 0.10: 1 of 9 on CredData (trufflehog); 3 of 5 on npm (clamav, yara, ossgadget); 4 of 7 on PyPI (clamav, ossgadget, bandit4mal, aura); 1 of 7 on SecBench.js (njsscan).
+
+If 1 package in 1,000 were malicious, the share of Penthera's malware flags that would be right: npm, about 2.7% at the top of the false-alarm interval (it raised no false alarm on that sample); PyPI, about 1.6% at the measured false-alarm rate, 0.9% at the top of its interval. Exploratory, like the rank intervals.
+
 <details><summary>Every tool, every number (95% intervals)</summary>
 
 #### Leaked secrets (Samsung CredData)

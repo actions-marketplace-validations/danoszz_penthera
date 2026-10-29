@@ -58,8 +58,8 @@ assertion; sections that repeated each other were merged.
    do, what ROADMAP.md plans for each limit, and the planned integrations
    (AI app builders such as Base44, preview deployments), each marked
    planned. Links to the methodology, the FAQ and the roadmap.
-6. The tour, numbered 01 to 04: the CLI (the walkthrough), the dashboard,
-   the MCP server, the fix loop.
+6. The tour: three steps in the dashboard, side by side (since 2026-10-29;
+   before that, the walkthrough video and two stills).
 7. How it compares: where each tool goes further, in one line each; the
    full sourced table folds out below it.
 8. Get started: the CLI, the Agent Skill and the MCP server, each with a copy
@@ -102,6 +102,47 @@ the fold (Prompt to fix, `npx penthera <url>`, `npx penthera --repo .` and
 Star on GitHub). The problem line, the pills, the lede and the loop follow
 below the first screen. The dots sit behind the card, never behind the
 headline.
+
+Decided with the maintainer, 2026-10-29, later (home polish): the problem
+gets a section of its own after the poster, on a flat grey (`--slab`,
+`#e6e6e1` in light and `#1f1f1f` in dark, both measured in `styles.css`),
+with section padding above and below. This is the one flat grey on the page;
+the limits band stays dithered. The problem line is display type at the h2
+scale (40 to 88 px, line-height 1, tracking -0.04em, balanced) and keeps its
+marker strokes, now 0.88em bands inside a 1em line, so the lines sit tight.
+One order, spaced on the 8 px scale: problem, 40, pills, 24, lede, 40, the
+two ways in, then the loop a section step below. The note under the
+buttons was dropped on review: the poster already offers the code scan. "See it work"
+drops the walkthrough video (the loop is enough) for three light-theme shots
+of `penthera ui` side by side, numbered 1 to 3: start a check, see what to
+fix first, approve a fix. They are made from the real dashboard with demo
+data by `site/tools/tour-shots.mjs` and show light in both themes. After
+review each is cropped to its key area (the Check my app window, the verdict
+with the first problem, the fix dialog with its diff) at device scale 2, so
+it reads at a third of the page; no lightbox.
+
+Decided with the maintainer, 2026-10-29 (footer and Pro): no divider lines
+anywhere on the site. Space, grounds and shared heights separate things; the
+rule under the Pro kickers, the lines between Pro panels and the line above
+the footer are gone, and Pro's progress bar fades out at the end of the row.
+Every page, the homepage included, now has the same footer
+(`site/frame.mjs`), a map of the whole site built from what the build
+renders, so new pages show up in it by themselves and a test fails if a
+built page is missing:
+
+- a status line with a breathing blue LED ("Built from Penthera <version>.
+  Runs offline. Rules decide.") beside the bar's three controls (theme,
+  Star with its count, Download);
+- four groups under numbered Departure Mono labels: Product, Research (with
+  each benchmark and each approved post set in, in mono), Trust, Elsewhere;
+- a 1-bit ramp, from a blue gradient cell through ordered dither to empty
+  paper, on a row of its own: the footer's only dither, never behind text;
+- the wordmark as a plate across the whole measure, polished steel (chrome on
+  black, gunmetal on paper) with blue light under it, linking to the top;
+- the facts in mono: MIT, scan only what you own, no cookies or third-party
+  requests.
+
+The bottom veil still switches off over the footer.
 
 ## Anti-references
 

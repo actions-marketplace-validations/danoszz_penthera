@@ -9,7 +9,8 @@ of life with no fix, check on server, or has the fix (see
 
 1. A hidden or partial version is never reported as safe.
 2. A distribution build is never reported as affected, because distributions
-   backport fixes under the old upstream number.
+   backport fixes under the old upstream number (Debian Project, n.d.; Red
+   Hat, n.d.; Ubuntu Security Team, n.d.).
 
 This set tests both promises on 274 real-world strings for PHP, Apache httpd,
 nginx, Node.js, Python, OpenSSL and, since 1.8.1, MongoDB. The first 253
@@ -36,6 +37,17 @@ also found four small engine bugs. All four are fixed and released in 1.8.1
 ([#114](https://github.com/danoszz/penthera/pull/114)) lowers those banner
 findings to `potential`, with a check-on-server note.
 
+**Limits.** One person wrote the rows and the labeller, the set leans on PHP,
+and it holds strings from primary sources, not a sample of real servers. See
+[threats to validity](#threats-to-validity) below.
+
+| Record | |
+|---|---|
+| Built | 2026-10-22, commit [`29808bd`](https://github.com/danoszz/penthera/commit/29808bd) (253 strings, Penthera 1.8.0) |
+| Data as measured | `strings.json` at commit [`6e8afff`](https://github.com/danoszz/penthera/commit/6e8afff) (274 strings, Penthera 1.8.1) |
+| Status | Part of `npm test`, so every change to the engine or the pack runs it |
+| Last reviewed | 2026-10-29 (see [Changes](#changes)) |
+
 ## Results
 
 The test prints this table on every run. "Label" means the engine matched the
@@ -56,6 +68,17 @@ the right findings for the wrong reason.
 | prerelease-suffix | 12 | 0.0% | 58.3% | 12 | 100.0% | 100.0% |
 | version-file | 22 | 90.9% | 90.9% | 24 | 100.0% | 100.0% |
 | **total** | **253** | **84.6%** | **88.5%** | **274** | **94.2%** | **94.9%** |
+
+![Stacked bars per category. Every category matches in full except distro-unmarked, where all 14 strings are misses or kind-only matches (L1), and docker-floating, where 2 of 52 differ (G1).](figures/runtime-strings-categories.svg)
+
+*Figure 1. The 1.8.1 columns as counts: per category, strings whose label
+the engine matches exactly (blue), whose report is right but evidence kind
+is not (light blue), and misses (orange). n = 274 strings, from
+[`bench/runtime-strings/strings.json`](../../bench/runtime-strings/strings.json)
+as of 2026-10-22. The counts cover a fixed set, not a sample, so the figure
+has no intervals. Drawn by
+[`figures/runtime-strings.mjs`](figures/runtime-strings.mjs), which fails if
+its totals differ from the table.*
 
 The 1.8.0 columns are the engine and pack as released in 1.8.0, on the
 original 253 strings. The 1.8.1 columns are main after #101, #102, #103, #106,
@@ -332,12 +355,30 @@ verdicts to every Node.js entry.
 - The Debian and Ubuntu 24.04 PHP behaviour comes from their packaging source
   (debian/rules); it was not observed on a running server.
 
-**Threats to validity.** The same person wrote the rows and the labeller, so
+## Threats to validity
+
+The same person wrote the rows and the labeller, so
 a misreading of an advisory would appear in both. The cross-check against
 OpenAI's php2shell-checker in
 [the case study](case-study-php-2026-10.md#an-independent-cross-check) covers
 the PHP 2026 rules independently. The set is weighted towards PHP (88 of 274)
 because PHP has four of the five bundled advisories.
+
+The strings were chosen from primary sources to cover each kind of evidence.
+They are not a sample of what real servers send, so the percentages describe
+this set and say nothing about how often each case occurs in the wild. The
+labels are relative to the pack of 21 Oct 2026 (see above), so a later pack
+changes them.
+
+## What it means for you
+
+- A banner the scan cannot place is reported as "check on server", never as
+  safe. That held on every string.
+- A plain banner such as `PHP/8.3.6` may come from a patched distribution
+  package. From 1.8.1 such findings are `potential` and say so. Check the
+  version on the server before you act on them.
+- An image from outside the official library, such as
+  `nginxinc/nginx-unprivileged`, gives no evidence today (G1).
 
 ## License
 
@@ -346,3 +387,44 @@ The set (`strings.json`, `rows.mjs`, `label.mjs`, this page) is licensed
 factual version identifiers quoted from the cited sources. None of those
 sources restricts quoting a version number or a header value. The source
 code cited is under its own license and is linked, not copied.
+
+## Reproduce
+
+The set needs no network. From a checkout of the repository:
+
+```bash
+npm ci
+npx vitest run tests/runtime-strings.test.js     # prints the per-category table
+node bench/runtime-strings/label.mjs --check     # strings.json matches rows.mjs
+node docs/research/figures/runtime-strings.mjs   # redraws Figure 1
+```
+
+- The 1.8.0 columns come from the same test at commit `29808bd` (package
+  version 1.8.0, 253 strings). Its commit message records 214 of 253 labels
+  and 224 of 253 reports matched.
+- Not shared: nothing is held back. The set, the labeller, the test and the
+  figure script are all in the repository.
+
+## References
+
+Debian Project. (n.d.). *Debian security FAQ*. Retrieved October 21, 2026, from [https://www.debian.org/security/faq](https://www.debian.org/security/faq) ([entry](../references.md#debiansecurityfaq))
+
+MongoDB, Inc. (n.d.). *Software lifecycle schedules*. MongoDB. Retrieved October 22, 2026, from [https://www.mongodb.com/legal/support-policy/lifecycles](https://www.mongodb.com/legal/support-policy/lifecycles) ([entry](../references.md#mongodblifecycles))
+
+Red Hat. (n.d.). *Security backporting practice*. Red Hat Customer Portal. Retrieved October 21, 2026, from [https://access.redhat.com/security/updates/backporting](https://access.redhat.com/security/updates/backporting) ([entry](../references.md#redhatbackporting))
+
+Ubuntu Security Team. (n.d.). *Security/FAQ*. Ubuntu Wiki. Retrieved October 21, 2026, from [https://wiki.ubuntu.com/SecurityTeam/FAQ](https://wiki.ubuntu.com/SecurityTeam/FAQ) ([entry](../references.md#ubuntusecurityfaq))
+
+The distribution packaging sources, image tags and vendor pages that each
+string rests on are linked in the text and, per string, in the `source`
+field of `strings.json`.
+
+## Changes
+
+- 2026-10-22: the set of 253 strings (`29808bd`); the L1 options and
+  decision (`ef92377`, `350e67c`); B1 to B3 fixed (`4a836b2`, `6b89211`);
+  relabelled for 1.8.1 (`9172f9a`); 21 MongoDB strings (`6e8afff`).
+- 2026-10-29: added the limits line, the record, Figure 1, what it means
+  for you, reproduction steps, references that link to the shared
+  bibliography, and a note that the set is not a sample. Threats to validity
+  became its own section. No result or number changed.

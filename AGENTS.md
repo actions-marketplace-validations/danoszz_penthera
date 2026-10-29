@@ -38,12 +38,11 @@ site/         penthera.org
 
 1. **Add a changelog fragment** in `changelog.d/` with a `section:` line
    ([format](changelog.d/README.md)). Do not edit `CHANGELOG.md`.
-2. **Add the trailers** to every commit you write. CI rejects a commit that has
-   one without the other (`scripts/ci/provenance.mjs`):
+2. **Add the AI-Assisted trailer** to every commit you write. Do not add a
+   `Co-Authored-By:` line. CI checks it (`scripts/ci/provenance.mjs`):
 
    ```
    AI-Assisted: <tool> with <model and version>; <what it did, in one line>
-   Co-Authored-By: <model and version> <vendor noreply address>
    ```
 
 3. **No version bumps or tags.** Only the maintainer starts a release.

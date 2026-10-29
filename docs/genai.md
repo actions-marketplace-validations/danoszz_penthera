@@ -24,7 +24,9 @@ Last updated 2026-10-20.
   Since v1.7.0, all 57 non-merge commits up to 2026-10-20 name Claude as
   co-author; 12 of them lack the `AI-Assisted` summary line, 6 of those
   written before that rule existed. Commit history is not rewritten; CI now
-  enforces the rule on every pull request (see below).
+  enforces the rule on every pull request (see below). From 29 October 2026,
+  commits carry only the `AI-Assisted` line, which names the tool and model;
+  the `Co-Authored-By` line is no longer used.
 - **What the maintainer did.** Set the direction and requirements, made the
   design and security decisions, reviewed and approved changes, handled
   everything that needs a human account (npm 2FA approvals, signing keys,

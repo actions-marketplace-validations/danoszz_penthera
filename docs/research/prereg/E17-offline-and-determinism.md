@@ -146,6 +146,6 @@ Any change after registration is listed here with its date and reason.
    (`attackSurface[]`, `boundaries.public[]`) and `deps.format`, which are
    analysis output. The runner now removes only `timestamp`, `duration`,
    `findings[].collected_at` and `fingerprint.headers.date`, and reports the
-   old pattern's result next to it. Re-run on macOS at commit `0a69642`: the
-   verdict is unchanged under both. The § 6 text above stays as registered.
+   old pattern's result next to it. Re-run on macOS at commit `0a69642` and on
+   Ubuntu in CI: the verdict is unchanged under both. The § 6 text above stays as registered.
    Old and new results side by side: [E17 results](../../../bench/offline/RESULTS.md#deviation-the-normaliser-29-oct-2026).

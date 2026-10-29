@@ -35,7 +35,10 @@ next to the new one in each row (`registeredPattern`), as § 6 requires.
 
 **Re-run.** macOS only, Node 26.0.0, commit `0a69642` (the fix), on the same
 targets. Raw summary: [rerun-2026-10-29/macos.json](rerun-2026-10-29/macos.json).
-The Ubuntu run in CI has not been repeated yet.
+Ubuntu (GitHub Actions, Node 22, workflow `bench-offline.yml` on the fix
+branch, [run 40863017940](https://github.com/danoszz/penthera/actions/runs/40863017940)):
+the same result. H1, H2 and H3 pass on every command and target; the control
+logs both outside hosts and fails H3, with `retireDb.snapshotDate` listed.
 
 | | Registered run, old pattern (28 Oct) | Re-run, old pattern (29 Oct) | Re-run, exact paths (29 Oct) |
 |---|---|---|---|
@@ -173,7 +176,6 @@ result with the network blocked as with it allowed.
 - **Non-Node child processes are not guarded.** The protocol says the runner
   records them; this runner does not yet. Repo scans call `git`, which runs
   locally here, but that is not proven by the guard.
-- **One platform.** Ubuntu in CI comes with the registered run.
 - `install`, `--giants`, `--recon` and AI mode are out of scope by design.
 
 ### What may be claimed after the pilot

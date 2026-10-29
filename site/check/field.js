@@ -14,6 +14,13 @@
  *
  * Runs only when motion is welcome, and only while the hero is on screen.
  * Without JS, or with reduced motion, the static field.png stays.
+ *
+ * Frame budget (2026-10-29): a frame is a full pass over every cell on the
+ * main thread, so the loop is capped instead of running at the display's
+ * rate (120 Hz on ProMotion screens). Up to 60 fps while the pointer moves
+ * or a shockwave runs; 20 fps while the cloud only drifts, which moves it
+ * less than a cell per frame. Easing is per millisecond, so the lens moves
+ * the same at any rate.
  */
 
 const CELL = 4;                 // CSS px per dither cell
@@ -24,6 +31,8 @@ const WAVE_LIFE = 1.8;          // s a shockwave lasts
 const WAVE_REACH = 0.95;        // how far it travels, as a share of the width
 const WAVE_FRONT = 0.035;       // thickness of the ring
 const MAX_WAVES = 4;
+const ACTIVE_MS = 1000 / 60;    // frame interval while the pointer or a wave is live
+const IDLE_MS = 1000 / 20;      // frame interval while the cloud only drifts
 
 // 8×8 Bayer matrix, as thresholds in (0, 1).
 const BAYER = Float32Array.from([
@@ -77,10 +86,10 @@ export function liveField(img) {
   const ctx = canvas.getContext("2d", { alpha: true });
   const hero = img.closest(".hero");
 
-  let cols = 0, rows = 0, image, pixels, ink = 0, accent = 0, wake = 0;
+  let cols = 0, rows = 0, skip = 0, image, pixels, ink = 0, accent = 0, wake = 0;
   const waves = [];
   const lens = { x: 0.62, y: 0.32, tx: 0.62, ty: 0.32, last: -Infinity, inside: false };
-  let raf = 0, visible = true, t0 = performance.now();
+  let raf = 0, visible = true, t0 = performance.now(), drawn = -Infinity, timer = 0;
 
   function colours() {
     const cs = getComputedStyle(document.documentElement);
@@ -97,20 +106,31 @@ export function liveField(img) {
     rows = Math.max(1, Math.ceil(r.height / CELL));
     canvas.width = cols;
     canvas.height = rows;
+    // Columns the CSS mask hides completely (--field-from, a share of the
+    // width; styles.css keeps it with the mask) are never drawn.
+    skip = Math.floor(cols * Math.min(1, Math.max(0, parseFloat(getComputedStyle(canvas).getPropertyValue("--field-from")) || 0)));
     image = ctx.createImageData(cols, rows);
     pixels = new Uint32Array(image.data.buffer);
   }
 
   function frame(now) {
     raf = 0;
+    const idle = now - lens.last > IDLE_AFTER && !waves.length;
+    // Skip display frames until this one's interval is up (1 ms of slack for vsync jitter).
+    const wait = (idle ? IDLE_MS : ACTIVE_MS) - 1 - (now - drawn);
+    if (wait > 0) { schedule(idle ? wait : 0); return; }
+    const dt = Math.min(100, now - drawn);
+    drawn = now;
     const t = (now - t0) / 1000;
     // Idle: the lens drifts on a slow Lissajous path until the pointer returns.
     if (now - lens.last > IDLE_AFTER) {
       lens.tx = 0.55 + 0.28 * Math.sin(t * 0.11);
       lens.ty = 0.3 + 0.14 * Math.sin(t * 0.17 + 1.3);
     }
-    lens.x += (lens.tx - lens.x) * FOLLOW;
-    lens.y += (lens.ty - lens.y) * FOLLOW;
+    // FOLLOW is the catch-up per 60 Hz frame; scale it to the time since the last one.
+    const follow = 1 - Math.pow(1 - FOLLOW, dt / (1000 / 60));
+    lens.x += (lens.tx - lens.x) * follow;
+    lens.y += (lens.ty - lens.y) * follow;
 
     const aspect = rows / cols;            // y units per x unit
     const drift = t * 0.035;
@@ -126,6 +146,7 @@ export function liveField(img) {
     const flinch = newest ? 1 - 0.5 * Math.exp(-((now - newest.t0) / 1000) * 5) : 1;
     const lensR = LENS * flinch;
     const r2 = 2 * lensR * lensR;
+    const far = r2 * 14;                   // past this squared distance the lens weighs < 1e-6
 
     pixels.fill(0);
     for (let j = 0; j < rows; j++) {
@@ -137,15 +158,17 @@ export function liveField(img) {
       const vy = v * aspect;
       const dy = vy - lens.y * aspect;
       const row = j * cols, brow = (j & 7) * 8, brow2 = ((j + 4) & 7) * 8;
-      for (let i = 0; i < cols; i++) {
+      for (let i = skip; i < cols; i++) {
         const u = i / cols;
         const dx = u - lens.x;
-        const k = Math.exp(-(dx * dx + dy * dy) / r2);   // 1 at the lens centre, 0 far away
+        const d2 = dx * dx + dy * dy;
+        const k = d2 > far ? 0 : Math.exp(-d2 / r2);     // 1 at the lens centre, 0 far away
         // The lens parts the cloud: sample the noise pushed out from its centre.
         let sx = u * 3.8 - dx * k * 0.9 + drift;
         let sy = v * 3.8 * aspect - dy * k * 0.9 + drift * 0.6;
         let front = 0, crater = 0, trail = 0;
-        for (const w of live) {
+        for (let q = 0; q < live.length; q++) {
+          const w = live[q];
           const wx = u - w.x, wy = vy - w.y;
           const dist = Math.sqrt(wx * wx + wy * wy) + 1e-6;
           const d = dist - w.r;
@@ -175,10 +198,22 @@ export function liveField(img) {
     }
     ctx.putImageData(image, 0, 0);
     if (!hero.classList.contains("live")) hero.classList.add("live");
-    schedule();
+    // While idle, sleep on a timer between frames instead of waking every vsync.
+    schedule(idle ? IDLE_MS - (performance.now() - now) - 2 : 0);
   }
 
-  const schedule = () => { if (!raf && visible && !document.hidden) raf = requestAnimationFrame(frame); };
+  // The next frame: at the next vsync, or after `delay` ms. A call without a
+  // delay (pointer, click, visibility) cuts a pending sleep short.
+  function schedule(delay = 0) {
+    if (raf || !visible || document.hidden) return;
+    if (delay > 0) {
+      if (!timer) timer = setTimeout(() => { timer = 0; schedule(); }, delay);
+      return;
+    }
+    clearTimeout(timer);
+    timer = 0;
+    raf = requestAnimationFrame(frame);
+  }
 
   function onPointer(e) {
     const r = canvas.getBoundingClientRect();
@@ -187,6 +222,7 @@ export function liveField(img) {
     lens.tx = Math.min(1.05, Math.max(-0.05, x));
     lens.ty = Math.min(1.05, Math.max(-0.05, y));
     lens.last = performance.now();
+    schedule();
   }
 
   function onPress(e) {
@@ -219,6 +255,7 @@ export function liveField(img) {
 
   function stop() {
     cancelAnimationFrame(raf);
+    clearTimeout(timer);
     io.disconnect();
     themeWatch.disconnect();
     removeEventListener("pointermove", onPointer);

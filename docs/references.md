@@ -82,6 +82,8 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 ## Web application security
 
+<a id="amann2017mission"></a>† Amann, J., Gasser, O., Scheitle, Q., Brent, L., Carle, G., & Holz, R. (2017). Mission accomplished? HTTPS security after DigiNotar. In *Proceedings of the 2017 Internet Measurement Conference (IMC '17)* (pp. 325–340). ACM. [https://doi.org/10.1145/3131365.3131401](https://doi.org/10.1145/3131365.3131401)
+
 <a id="barth2008robust"></a>Barth, A., Jackson, C., & Mitchell, J. C. (2008). Robust defenses for cross-site request forgery. In *Proceedings of the 15th ACM Conference on Computer and Communications Security (CCS '08)* (pp. 75–88). ACM. [https://doi.org/10.1145/1455770.1455782](https://doi.org/10.1145/1455770.1455782)
 
 <a id="bhuiyan2023secbenchjs"></a>† Bhuiyan, M. H. M., Parthasarathy, A. S., Vasilakis, N., Pradel, M., & Staicu, C.-A. (2023). SecBench.js: An executable security benchmark suite for server-side JavaScript. In *2023 IEEE/ACM 45th International Conference on Software Engineering (ICSE)* (pp. 1059–1070). IEEE. [https://doi.org/10.1109/ICSE48619.2023.00096](https://doi.org/10.1109/ICSE48619.2023.00096)
@@ -90,9 +92,21 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 <a id="crosby2009opportunities"></a>Crosby, S. A., Wallach, D. S., & Riedi, R. H. (2009). Opportunities and limits of remote timing attacks. *ACM Transactions on Information and System Security*, *12*(3), 1–29. [https://doi.org/10.1145/1455526.1455530](https://doi.org/10.1145/1455526.1455530)
 
+<a id="durumeric2015email"></a>† Durumeric, Z., Adrian, D., Mirian, A., Kasten, J., Bursztein, E., Lidzborski, N., Thomas, K., Eranti, V., Bailey, M., & Halderman, J. A. (2015). Neither snow nor rain nor MITM...: An empirical analysis of email delivery security. In *Proceedings of the 2015 Internet Measurement Conference (IMC '15)* (pp. 27–39). ACM. [https://doi.org/10.1145/2815675.2815695](https://doi.org/10.1145/2815675.2815695)
+
+<a id="felt2017measuring"></a>† Felt, A. P., Barnes, R., King, A., Palmer, C., Bentzel, C., & Tabriz, P. (2017). Measuring HTTPS adoption on the web. In *26th USENIX Security Symposium (USENIX Security 17)* (pp. 1323–1338). USENIX Association. [https://www.usenix.org/conference/usenixsecurity17/technical-sessions/presentation/felt](https://www.usenix.org/conference/usenixsecurity17/technical-sessions/presentation/felt)
+
 <a id="fett2016comprehensive"></a>Fett, D., Küsters, R., & Schmitz, G. (2016). A comprehensive formal security analysis of OAuth 2.0. In *Proceedings of the 2016 ACM SIGSAC Conference on Computer and Communications Security (CCS '16)* (pp. 1204–1215). ACM. [https://doi.org/10.1145/2976749.2978385](https://doi.org/10.1145/2976749.2978385)
 
+<a id="findlay2022securitytxt"></a>† Findlay, W., & Abdou, A. (2022). Characterizing the adoption of security.txt files and their applications to vulnerability notification. In *Proceedings 2022 Workshop on Measurements, Attacks, and Defenses for the Web (MADWeb)*. Internet Society. [https://doi.org/10.14722/madweb.2022.23014](https://doi.org/10.14722/madweb.2022.23014)
+
+<a id="almanac2024security"></a>† Franken, G., & Vanderlinden, V. (2024). *Security*. The 2024 Web Almanac, HTTP Archive, chapter 11. Retrieved October 29, 2026, from [https://almanac.httparchive.org/en/2024/security](https://almanac.httparchive.org/en/2024/security)
+
+<a id="helme2022top1m"></a>† Helme, S. (2022). *Top 1 million analysis: June 2022*. Retrieved October 29, 2026, from [https://scotthelme.co.uk/top-1-million-analysis-june-2022/](https://scotthelme.co.uk/top-1-million-analysis-june-2022/)
+
 <a id="heninger2012mining"></a>† Heninger, N., Durumeric, Z., Wustrow, E., & Halderman, J. A. (2012). Mining your Ps and Qs: Detection of widespread weak keys in network devices. In *21st USENIX Security Symposium (USENIX Security 12)* (pp. 205–220). USENIX Association. [https://www.usenix.org/conference/usenixsecurity12/technical-sessions/presentation/heninger](https://www.usenix.org/conference/usenixsecurity12/technical-sessions/presentation/heninger)
+
+<a id="escape2025vibe"></a>† Hinniger-Foray, N., Mognier, G., & Charikova, A. (2025). *Methodology: How we discovered over 2k high-impact vulnerabilities in apps built with vibe coding platforms*. Escape Research blog. Retrieved October 29, 2026, from [https://escape.tech/blog/methodology-how-we-discovered-vulnerabilities-apps-built-with-vibe-coding/](https://escape.tech/blog/methodology-how-we-discovered-vulnerabilities-apps-built-with-vibe-coding/)
 
 <a id="hodges2012rfc6797"></a>Hodges, J., Jackson, C., & Barth, A. (2012). *HTTP strict transport security (HSTS)* (RFC 6797). RFC Editor. [https://doi.org/10.17487/RFC6797](https://doi.org/10.17487/RFC6797)
 
@@ -101,6 +115,8 @@ Entries marked † are further reading: they inform the work but are not cited i
 <a id="kitterman2014rfc7208"></a>Kitterman, S. (2014). *Sender policy framework (SPF) for authorizing use of domains in email, version 1* (RFC 7208). RFC Editor. [https://doi.org/10.17487/RFC7208](https://doi.org/10.17487/RFC7208)
 
 <a id="kocher1996timing"></a>Kocher, P. C. (1996). Timing attacks on implementations of Diffie-Hellman, RSA, DSS, and other systems. In N. Koblitz (Ed.), *Advances in Cryptology – CRYPTO '96* (pp. 104–113). Springer. [https://doi.org/10.1007/3-540-68697-5_9](https://doi.org/10.1007/3-540-68697-5_9)
+
+<a id="kranch2015upgrading"></a>† Kranch, M., & Bonneau, J. (2015). Upgrading HTTPS in mid-air: An empirical study of strict transport security and key pinning. In *Proceedings 2015 Network and Distributed System Security Symposium (NDSS)*. Internet Society. [https://doi.org/10.14722/ndss.2015.23162](https://doi.org/10.14722/ndss.2015.23162)
 
 <a id="kucherawy2015rfc7489"></a>Kucherawy, M., & Zwicky, E. (2015). *Domain-based message authentication, reporting, and conformance (DMARC)* (RFC 7489). RFC Editor. [https://doi.org/10.17487/RFC7489](https://doi.org/10.17487/RFC7489)
 
@@ -122,13 +138,19 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 <a id="phpexposephp"></a>The PHP Group. (n.d.-a). *Description of core php.ini directives: Expose\_php*. PHP Manual. Retrieved October 21, 2026, from [https://www.php.net/manual/en/ini.core.php](https://www.php.net/manual/en/ini.core.php)
 
+<a id="poteat2021securitytxt"></a>† Poteat, T., & Li, F. (2021). Who you gonna call? An empirical evaluation of website security.txt deployment. In *Proceedings of the 21st ACM Internet Measurement Conference (IMC '21)* (pp. 526–532). ACM. [https://doi.org/10.1145/3487552.3487841](https://doi.org/10.1145/3487552.3487841)
+
 <a id="sakimura2015rfc7636"></a>Sakimura, N., Bradley, J., & Agarwal, N. (2015). *Proof key for code exchange by OAuth public clients* (RFC 7636). RFC Editor. [https://doi.org/10.17487/RFC7636](https://doi.org/10.17487/RFC7636)
+
+<a id="scheitle2018caa"></a>† Scheitle, Q., Chung, T., Hiller, J., Gasser, O., Naab, J., van Rijswijk-Deij, R., Hohlfeld, O., Holz, R., Choffnes, D., Mislove, A., & Carle, G. (2018). A first look at certification authority authorization (CAA). *ACM SIGCOMM Computer Communication Review*, *48*(2), 10–23. [https://doi.org/10.1145/3213232.3213235](https://doi.org/10.1145/3213232.3213235)
 
 <a id="sheffer2020rfc8725"></a>Sheffer, Y., Hardt, D., & Jones, M. (2020). *JSON web token best current practices* (RFC 8725, BCP 225). RFC Editor. [https://doi.org/10.17487/RFC8725](https://doi.org/10.17487/RFC8725)
 
 <a id="stock2014precise"></a>Stock, B., Lekies, S., Mueller, T., Spiegel, P., & Johns, M. (2014). Precise client-side protection against DOM-based cross-site scripting. In *23rd USENIX Security Symposium (USENIX Security 14)* (pp. 655–670). USENIX Association. [https://www.usenix.org/conference/usenixsecurity14/technical-sessions/presentation/stock](https://www.usenix.org/conference/usenixsecurity14/technical-sessions/presentation/stock)
 
 <a id="stock2016hey"></a>Stock, B., Pellegrino, G., Rossow, C., Johns, M., & Backes, M. (2016). Hey, you have a problem: On the feasibility of Large-Scale web vulnerability notification. In *25th USENIX Security Symposium (USENIX Security 16)* (pp. 1015–1032). USENIX Association. [https://www.usenix.org/conference/usenixsecurity16/technical-sessions/presentation/stock](https://www.usenix.org/conference/usenixsecurity16/technical-sessions/presentation/stock)
+
+<a id="almanac2025security"></a>† Vanderlinden, V., & Franken, G. (2026). *Security*. The 2025 Web Almanac, HTTP Archive, chapter 9. Retrieved October 29, 2026, from [https://almanac.httparchive.org/en/2025/security](https://almanac.httparchive.org/en/2025/security)
 
 <a id="weichselbaum2016csp"></a>Weichselbaum, L., Spagnuolo, M., Lekies, S., & Janc, A. (2016). CSP is dead, long live CSP! On the insecurity of whitelists and the future of Content Security Policy. In *Proceedings of the 2016 ACM SIGSAC Conference on Computer and Communications Security (CCS '16)* (pp. 1376–1387). ACM. [https://doi.org/10.1145/2976749.2978363](https://doi.org/10.1145/2976749.2978363)
 
@@ -184,11 +206,23 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 ## Standards and regulation
 
+<a id="cjeu2016breyer"></a>† Court of Justice of the European Union. (2016). *Judgment of 19 October 2016, Patrick Breyer v Bundesrepublik Deutschland, case C-582/14*. Retrieved October 29, 2026, from [https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:62014CJ0582](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:62014CJ0582)
+
+<a id="eu2016gdpr"></a>† European Parliament and Council of the European Union. (2016). *Regulation (EU) 2016/679 of the European Parliament and of the Council of 27 April 2016 on the protection of natural persons with regard to the processing of personal data and on the free movement of such data (General Data Protection Regulation)*. Official Journal of the European Union, L 119, 4.5.2016, p. 1. Retrieved October 29, 2026, from [https://eur-lex.europa.eu/eli/reg/2016/679/oj](https://eur-lex.europa.eu/eli/reg/2016/679/oj)
+
 <a id="eu2022nis2"></a>European Parliament and Council of the European Union. (2022). *Directive (EU) 2022/2555 of the European Parliament and of the Council of 14 December 2022 on measures for a high common level of cybersecurity across the Union, amending Regulation (EU) No 910/2014 and Directive (EU) 2018/1972, and repealing Directive (EU) 2016/1148 (NIS 2 Directive)*. Official Journal of the European Union, L 333, 27.12.2022, p. 80. Retrieved October 19, 2026, from [https://eur-lex.europa.eu/eli/dir/2022/2555/oj](https://eur-lex.europa.eu/eli/dir/2022/2555/oj)
 
 <a id="oasis2023sarif"></a>Fanning, M. C., & Golding, L. J. (2023, August 28). *Static Analysis Results Interchange Format (SARIF) version 2.1.0 plus errata 01* [OASIS Standard incorporating Approved Errata]. OASIS. Retrieved October 19, 2026, from [https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/sarif-v2.1.0-errata01-os-complete.html](https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/sarif-v2.1.0-errata01-os-complete.html)
 
 <a id="first2023cvss4"></a>FIRST. (2023, November 1). *Common vulnerability scoring system version 4.0: Specification document* (Version 1.2). Retrieved October 21, 2026, from [https://www.first.org/cvss/v4.0/specification-document](https://www.first.org/cvss/v4.0/specification-document)
+
+<a id="foudil2022rfc9116"></a>† Foudil, E., & Shafranovich, Y. (2022). *A file format to aid in security vulnerability disclosure* (RFC 9116). RFC Editor. [https://doi.org/10.17487/RFC9116](https://doi.org/10.17487/RFC9116)
+
+<a id="hallambaker2019rfc8659"></a>† Hallam-Baker, P., Stradling, R., & Hoffman-Andrews, J. (2019). *DNS certification authority authorization (CAA) resource record* (RFC 8659). RFC Editor. [https://doi.org/10.17487/RFC8659](https://doi.org/10.17487/RFC8659)
+
+<a id="nl2026sr138ab"></a>† Kingdom of the Netherlands. (2026). *Wetboek van Strafrecht, artikel 138ab (computervredebreuk)*. wetten.overheid.nl, BWBR0001854, version in force from 1 July 2026. Retrieved October 29, 2026, from [https://wetten.overheid.nl/jci1.3:c:BWBR0001854&boek=Tweede&titeldeel=V&artikel=138ab](https://wetten.overheid.nl/jci1.3:c:BWBR0001854&boek=Tweede&titeldeel=V&artikel=138ab)
+
+<a id="koster2022rfc9309"></a>† Koster, M., Illyes, G., Zeller, H., & Sassman, L. (2022). *Robots exclusion protocol* (RFC 9309). RFC Editor. [https://doi.org/10.17487/RFC9309](https://doi.org/10.17487/RFC9309)
 
 <a id="mitrecwe"></a>The MITRE Corporation. (n.d.-a). *CWE: Common Weakness Enumeration*. Retrieved October 19, 2026, from [https://cwe.mitre.org/](https://cwe.mitre.org/)
 
@@ -202,7 +236,11 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 <a id="spdxlicenselist"></a>SPDX Workgroup, The Linux Foundation. (n.d.). *SPDX License List*. Retrieved October 19, 2026, from [https://spdx.org/licenses/](https://spdx.org/licenses/)
 
+<a id="scotus2021vanburen"></a>† Supreme Court of the United States. (2021). *Van Buren v. United States, No. 19-783 (decided June 3, 2021)*. Retrieved October 29, 2026, from [https://www.supremecourt.gov/opinions/20pdf/19-783_k53l.pdf](https://www.supremecourt.gov/opinions/20pdf/19-783_k53l.pdf)
+
 <a id="tabassi2023airmf"></a>† Tabassi, E. (2023). *Artificial intelligence risk management framework (AI RMF 1.0)* (NIST AI 100-1). National Institute of Standards and Technology. [https://doi.org/10.6028/NIST.AI.100-1](https://doi.org/10.6028/NIST.AI.100-1)
+
+<a id="ninthcir2022hiq"></a>† United States Court of Appeals for the Ninth Circuit. (2022). *hiQ Labs, Inc. v. LinkedIn Corporation, No. 17-16783 (opinion on remand, filed April 18, 2022)*. Retrieved October 29, 2026, from [https://cdn.ca9.uscourts.gov/datastore/opinions/2022/04/18/17-16783.pdf](https://cdn.ca9.uscourts.gov/datastore/opinions/2022/04/18/17-16783.pdf)
 
 ## Vulnerability advisories and version data
 
@@ -266,9 +304,17 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 <a id="sigsoft2026registered"></a>† ACM SIGSOFT Empirical Standards. (n.d.-c). *Registered reports*. Retrieved October 29, 2026, from [https://github.com/acmsigsoft/EmpiricalStandards/blob/master/docs/supplements/RegisteredReports.md](https://github.com/acmsigsoft/EmpiricalStandards/blob/master/docs/supplements/RegisteredReports.md)
 
+<a id="bailey2012menlo"></a>† Bailey, M., Dittrich, D., Kenneally, E., & Maughan, D. (2012). The Menlo report. *IEEE Security & Privacy*, *10*(2), 71–75. [https://doi.org/10.1109/MSP.2012.52](https://doi.org/10.1109/MSP.2012.52)
+
+<a id="benjamini1995fdr"></a>† Benjamini, Y., & Hochberg, Y. (1995). Controlling the false discovery rate: A practical and powerful approach to multiple testing. *Journal of the Royal Statistical Society Series B: Statistical Methodology*, *57*(1), 289–300. [https://doi.org/10.1111/j.2517-6161.1995.tb02031.x](https://doi.org/10.1111/j.2517-6161.1995.tb02031.x)
+
 <a id="bossuyt2015stard"></a>† Bossuyt, P. M., Reitsma, J. B., Bruns, D. E., Gatsonis, C. A., Glasziou, P. P., Irwig, L., Lijmer, J. G., Moher, D., Rennie, D., de Vet, H. C. W., Kressel, H. Y., Rifai, N., Golub, R. M., Altman, D. G., Hooft, L., Korevaar, D. A., & Cohen, J. F. (2015). STARD 2015: An updated list of essential items for reporting diagnostic accuracy studies. *BMJ*, Article h5527. [https://doi.org/10.1136/bmj.h5527](https://doi.org/10.1136/bmj.h5527)
 
 <a id="cohen1960coefficient"></a>† Cohen, J. (1960). A coefficient of agreement for nominal scales. *Educational and Psychological Measurement*, *20*(1), 37–46. [https://doi.org/10.1177/001316446002000104](https://doi.org/10.1177/001316446002000104)
+
+<a id="dittrich2012menlo"></a>† Dittrich, D., & Kenneally, E. (2012). *The Menlo report: Ethical principles guiding information and communication technology research*. U.S. Department of Homeland Security, Science and Technology Directorate; posted on SSRN. [https://doi.org/10.2139/ssrn.2445102](https://doi.org/10.2139/ssrn.2445102)
+
+<a id="durumeric2013zmap"></a>† Durumeric, Z., Wustrow, E., & Halderman, J. A. (2013). ZMap: Fast internet-wide scanning and its security applications. In *22nd USENIX Security Symposium (USENIX Security 13)* (pp. 605–620). USENIX Association. [https://www.usenix.org/conference/usenixsecurity13/technical-sessions/paper/durumeric](https://www.usenix.org/conference/usenixsecurity13/technical-sessions/paper/durumeric)
 
 <a id="efron1979bootstrap"></a>† Efron, B. (1979). Bootstrap methods: Another look at the jackknife. *The Annals of Statistics*, *7*(1), 1–26. [https://doi.org/10.1214/aos/1176344552](https://doi.org/10.1214/aos/1176344552)
 
@@ -278,15 +324,21 @@ Entries marked † are further reading: they inform the work but are not cited i
 
 <a id="fleiss1969large"></a>† Fleiss, J. L., Cohen, J., & Everitt, B. S. (1969). Large sample standard errors of kappa and weighted kappa. *Psychological Bulletin*, *72*(5), 323–327. [https://doi.org/10.1037/h0028106](https://doi.org/10.1037/h0028106)
 
+<a id="lepochat2019tranco"></a>† Le Pochat, V., Van Goethem, T., Tajalizadehkhoob, S., Korczyński, M., & Joosen, W. (2019). Tranco: A research-oriented top sites ranking hardened against manipulation. In *Proceedings 2019 Network and Distributed System Security Symposium (NDSS)*. Internet Society. [https://doi.org/10.14722/ndss.2019.23386](https://doi.org/10.14722/ndss.2019.23386)
+
 <a id="mcnemar1947note"></a>† McNemar, Q. (1947). Note on the sampling error of the difference between correlated proportions or percentages. *Psychometrika*, *12*(2), 153–157. [https://doi.org/10.1007/BF02295996](https://doi.org/10.1007/BF02295996)
 
 <a id="newcombe1998interval"></a>† Newcombe, R. G. (1998). Interval estimation for the difference between independent proportions: Comparison of eleven methods. *Statistics in Medicine*, *17*(8), 873–890. [https://doi.org/10.1002/(SICI)1097-0258(19980430)17:8<873::AID-SIM779>3.0.CO;2-I](https://doi.org/10.1002/(SICI)1097-0258(19980430)17:8<873::AID-SIM779>3.0.CO;2-I)
 
 <a id="nosek2018preregistration"></a>† Nosek, B. A., Ebersole, C. R., DeHaven, A. C., & Mellor, D. T. (2018). The preregistration revolution. *Proceedings of the National Academy of Sciences*, *115*(11), 2600–2606. [https://doi.org/10.1073/pnas.1708274114](https://doi.org/10.1073/pnas.1708274114)
 
+<a id="partridge2016ethical"></a>† Partridge, C., & Allman, M. (2016). Ethical considerations in network measurement papers. *Communications of the ACM*, *59*(10), 58–64. [https://doi.org/10.1145/2896816](https://doi.org/10.1145/2896816)
+
 <a id="petersson2004capture"></a>† Petersson, H., Thelin, T., Runeson, P., & Wohlin, C. (2004). Capture–recapture in software inspections after 10 years research: Theory, evaluation and application. *Journal of Systems and Software*, *72*(2), 249–264. [https://doi.org/10.1016/S0164-1212(03)00090-6](https://doi.org/10.1016/S0164-1212(03)00090-6)
 
 <a id="ralph2021empirical"></a>† Ralph, P., bin Ali, N., Baltes, S., Bianculli, D., Diaz, J., Dittrich, Y., Ernst, N., Felderer, M., Feldt, R., Filieri, A., de França, B. B. N., Furia, C. A., Gay, G., Gold, N., Graziotin, D., He, P., Hoda, R., Juristo, N., Kitchenham, B., . . . Vegas, S. (2021). *Empirical standards for software engineering research* [Preprint]. arXiv. [https://doi.org/10.48550/arXiv.2010.03525](https://doi.org/10.48550/arXiv.2010.03525)
+
+<a id="ruth2022toppling"></a>† Ruth, K., Kumar, D., Wang, B., Valenta, L., & Durumeric, Z. (2022). Toppling top lists: Evaluating the accuracy of popular website lists. In *Proceedings of the 22nd ACM Internet Measurement Conference (IMC '22)* (pp. 374–387). ACM. [https://doi.org/10.1145/3517745.3561444](https://doi.org/10.1145/3517745.3561444)
 
 <a id="webber2013recall"></a>† Webber, W. (2013). Approximate recall confidence intervals. *ACM Transactions on Information Systems*, *31*(1), 1–33. [https://doi.org/10.1145/2414782.2414784](https://doi.org/10.1145/2414782.2414784)
 

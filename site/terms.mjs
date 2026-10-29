@@ -1,8 +1,8 @@
 /**
  * /terms: docs/live-check-terms.md as a page, so the repository holds the one
  * source and the site shows it. A small Markdown renderer for the subset that
- * file uses (headings, paragraphs, lists, fenced code, links, code, bold), with
- * every piece of text escaped. No dependency.
+ * file uses (headings, paragraphs, lists, fenced code, links, code, bold, and
+ * figures for the blog), with every piece of text escaped. No dependency.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -35,12 +35,27 @@ export function frontMatterToHeading(md) {
   return `${title ? `# ${title}\n\n` : ""}${md.slice(m[0].length)}`;
 }
 
-/** Markdown (the subset above) to HTML. */
+// An image alone on the first line of a paragraph: ![alt](src). Its src is a
+// site path or an https URL; the lines after it are the caption.
+const FIGURE = /^!\[([^\]]+)\]\(((?:\/(?!\/)|https:\/\/)[^)\s]+)\)$/;
+
+/**
+ * Markdown (the subset above) to HTML. A paragraph that starts with an image
+ * line becomes a <figure>: the image with its alt text, and the rest of the
+ * paragraph as the <figcaption>.
+ */
 export function renderMarkdown(md) {
   const out = [];
   const lines = md.replace(/\r\n/g, "\n").split("\n");
   let para = [], list = null, code = null;
-  const flushPara = () => { if (para.length) out.push(`<p>${inline(para.join(" "))}</p>`); para = []; };
+  const flushPara = () => {
+    const fig = para.length ? FIGURE.exec(para[0]) : null;
+    if (fig) {
+      const cap = para.slice(1).join(" ");
+      out.push(`<figure class="md-fig"><img src="${esc(fig[2])}" alt="${esc(fig[1])}" loading="lazy">${cap ? `<figcaption>${inline(cap)}</figcaption>` : ""}</figure>`);
+    } else if (para.length) out.push(`<p>${inline(para.join(" "))}</p>`);
+    para = [];
+  };
   const flushList = () => { if (list) out.push(`<${list.tag}>${list.items.map((i) => `<li>${i}</li>`).join("")}</${list.tag}>`); list = null; };
   for (const line of lines) {
     if (code) {

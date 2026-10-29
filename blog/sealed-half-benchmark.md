@@ -47,6 +47,9 @@ For scale: Penthera 1.9.0, before the study, scored {{fact:secrets.penthera-befo
 
 On the dev half, after tuning, Penthera scored higher on every benchmark than it then did on the sealed half: secrets F1 0.81 to 0.74, SecBench.js 0.88 to 0.70, npm 0.83 to 0.71, PyPI 0.92 to 0.82. That gap is what tuning on the data you score looks like. It is the reason for the split.
 
+![Dot plot of Penthera's score on four benchmarks, secrets, JS injection, npm malware and PyPI malware, each row with the dev half after tuning and the sealed test half in both final runs. Every test score sits to the left of its dev score.](figures/dev-to-test.svg)
+Penthera on the dev half it was tuned on and on the sealed half, one row per benchmark, with both test runs. The axis starts at 0.5. Drawn by `blog/figures/make.mjs` from RESULTS.md.
+
 ## Two test runs, both reported
 
 The first final run was stopped before anyone read it, when we decided on one more round of tuning. Its outputs were packed into one archive, its hash recorded and every readable copy deleted. After round two we opened it and published both runs, so neither was picked after the fact. Secrets and npm scored the same in both. PyPI went from 0.75 to 0.82 and SecBench.js from 0.63 to 0.70. Penthera 1.9.0 scored the same in both runs, so the harness is deterministic.
@@ -73,7 +76,7 @@ A clean measure needs new data: malware samples published after the freeze, and 
 - **Datasets.** Leaked secrets: Samsung CredData (Yun et al., 2021). Injection bugs: SecBench.js (Bhuiyan et al., 2023). Malicious packages: Datadog's dataset of malicious npm and PyPI packages (Datadog Security Labs, 2023). ODGen is the tool of Li et al. (2022).
 - **Scores.** Youden's J comes from the evaluation of diagnostic tests (Youden, 1950). Intervals on a single rate are 95% Wilson intervals (Wilson, 1927). The rank intervals come from a parametric bootstrap (Efron, 1979), run after the registered analysis.
 - **Why a split.** Scoring a tool on the data it was tuned on is a form of leakage, and leakage inflates results (Kapoor & Narayanan, 2023). Writing the ranking rules down before the test half is read follows the logic of preregistration (Nosek et al., 2018).
-- **Figure.** [Penthera on the dev half and on the sealed half](https://github.com/danoszz/penthera/blob/main/blog/figures/dev-to-test.svg), one row per benchmark, with both test runs. It is drawn by `blog/figures/make.mjs` from RESULTS.md.
+- **Figure.** The plot under "The drop from dev to test" is drawn by `blog/figures/make.mjs` from RESULTS.md ([the SVG](https://github.com/danoszz/penthera/blob/main/blog/figures/dev-to-test.svg)).
 
 ## Check it yourself
 

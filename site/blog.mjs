@@ -24,6 +24,15 @@
  *
  * Each published post is /blog/<slug> (BlogPosting JSON-LD) and
  * /blog/<slug>.md; the index is /blog, the Atom feed /blog/feed.xml.
+ *
+ * Figures. An SVG in blog/figures/ shows inline as a paragraph that starts
+ * with an image line, the caption on the lines after it:
+ *
+ *   ![Alt text: what the figure shows](figures/dev-to-test.svg)
+ *   What to read in it, and where it comes from.
+ *
+ * The path works on GitHub as it is; the build serves the file at
+ * /blog/figures/ and refuses a figure that is missing or has no alt text.
  */
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -129,7 +138,8 @@ export function readPosts(dir, pub) {
   const posts = readdirSync(dir).filter((n) => n.endsWith(".md") && n !== "README.md").sort().map((n) => {
     const file = `blog/${n}`;
     const p = parsePost(readFileSync(join(dir, n), "utf8"), file);
-    const post = { slug: n.slice(0, -3), ...p, title: fillFacts(p.title, f, file), description: fillFacts(p.description, f, file), md: fillFacts(p.body, f, file) };
+    const md = fillFacts(p.body, f, file).replace(/(!\[[^\]]*\]\()figures\//g, "$1/blog/figures/");
+    const post = { slug: n.slice(0, -3), ...p, title: fillFacts(p.title, f, file), description: fillFacts(p.description, f, file), md, figures: postFigures(md, dir, file) };
     if (post.description.length > 160) throw new Error(`${file}: description is ${post.description.length} characters; search engines cut it at about 160`);
     return post;
   }).sort((a, z) => z.date.localeCompare(a.date) || a.slug.localeCompare(z.slug));
@@ -141,6 +151,29 @@ export function readPosts(dir, pub) {
   }
   return { published, drafts: posts.filter((p) => !p.approved) };
 }
+
+/**
+ * The figures a post shows, by file name: where the SVG is and its size. A
+ * missing file, a figure without alt text or an SVG without a size is a build error.
+ */
+export function postFigures(md, dir, file) {
+  const out = {};
+  for (const m of md.matchAll(/!\[([^\]]*)\]\(\/blog\/figures\/([^)\s]+)\)/g)) {
+    const [, alt, name] = m;
+    if (!/^[\w-]+\.svg$/.test(name)) throw new Error(`${file}: figure ${name} must be an .svg in blog/figures/`);
+    if (alt.trim().length < 20) throw new Error(`${file}: figure ${name} needs alt text that says what it shows`);
+    const path = join(dir, "figures", name);
+    if (!existsSync(path)) throw new Error(`${file}: figure ${name} is not in blog/figures/`);
+    const svg = readFileSync(path, "utf8");
+    const width = /<svg[^>]*\swidth="(\d+)"/.exec(svg)?.[1], height = /<svg[^>]*\sheight="(\d+)"/.exec(svg)?.[1];
+    if (!width || !height) throw new Error(`${file}: figure ${name} has no width and height`);
+    out[name] = { path, width: Number(width), height: Number(height) };
+  }
+  return out;
+}
+
+/** Give each figure its size, so the page does not jump as it loads. */
+const sized = (html, figures) => html.replace(/<img src="\/blog\/figures\/([^"]+)"/g, (m, name) => (figures?.[name] ? `${m} width="${figures[name].width}" height="${figures[name].height}"` : m));
 
 // ── HTML, Markdown, Atom ────────────────────────────────────────────────────
 
@@ -208,7 +241,7 @@ export function postHtml(p, { origin, styles = "/styles.css", theme = "/theme.js
   const path = `/blog/${p.slug}`;
   const url = `${origin}${path}`;
   const body = `    <p class="blog-meta"><time datetime="${p.date}">${longDate(p.date)}</time> · ${esc(AUTHOR.name)}</p>
-${renderMarkdown(p.md)}
+${sized(renderMarkdown(p.md), p.figures)}
     <p class="blog-src">Sources: ${sourceLinks(p)}.</p>`;
   const ld = ldScript([postLd(p, origin), {
     "@type": "BreadcrumbList",

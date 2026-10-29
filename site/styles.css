@@ -40,6 +40,8 @@
  * Blue band, measured: white 9.45 · text-2 (white .85) 6.9 · text-3 (white .72) 5.1
  * Grey band, measured on its lighter pixel (#575757): white 7.2 · text-2
  *   (white .85) 5.8 · text-3 (white .78) 5.2. Links are white, underlined.
+ * --slab is the one flat grey (2026-10-29): the problem section's ground, a
+ *   step off the page's own, with the theme's ink. Measured in each palette.
  */
 :root,
 :root[data-theme="dark"],
@@ -59,6 +61,7 @@
   --on-accent: #ffffff;
   --focus: #7a7aff;
   --field-filter: none;              /* field.png is white ink */
+  --slab: #1f1f1f;                   /* the problem slab, flat: text-1 16.5 · text-3 6.7 */
 }
 
 :root[data-theme="light"],
@@ -78,6 +81,7 @@
   --on-accent: #ffffff;
   --focus: #0000ed;
   --field-filter: invert(1);
+  --slab: #e6e6e1;                   /* the problem slab, flat: text-1 15.8 · text-3 4.9 */
 }
 
 :root .band-blue,
@@ -439,29 +443,36 @@ main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
  * skips the light theme's invert; the static PNG stays until its first frame. */
 .field-live { filter: none; }
 .hero.live img.field { visibility: hidden; }
-/* Below the poster: the problem, the pills, the lede and the two ways in. */
+/* The problem slab (2026-10-29): after the poster, the problem gets a section
+ * of its own on a flat grey, with section padding above and below. One
+ * hierarchy, top to bottom: the problem in display type, the pills, the
+ * lede, the two ways in, the note, then the loop. Spacing on the 8 px scale:
+ * 40 · 24 · 40 · 16, and the loop a section step below. */
+main > .slab { margin-top: var(--section); padding-bottom: var(--section); background: var(--slab); }
 .hero-text {
   position: relative; z-index: 1;
-  max-width: var(--measure); margin: clamp(56px, 8vw, 112px) auto 0;
+  max-width: var(--measure); margin: 0 auto;
   display: flex; flex-direction: column; align-items: flex-start;
 }
-/* The problem, said before the answer: one line in display type, on a
- * ground-coloured strip so it reads over the field. */
 /* Marked line by line: each line gets its own stroke of ground, as long as
- * its words, with the field showing between the lines. */
+ * its words. The stroke is a background band 0.88em tall inside a line box
+ * of 1em, so the lines sit tight and a thin line of grey shows between the
+ * strokes, never a gap the size of a line. */
 .problem {
-  margin: 0 0 24px; max-width: 30ch;
-  font-family: var(--display); font-size: clamp(22px, 3vw, 36px); font-weight: 500;
-  line-height: 1.62; letter-spacing: -0.02em; color: var(--text-1);
+  margin: 0; max-width: 17ch;
+  font-family: var(--display); font-size: clamp(40px, 6.4vw, 88px); font-weight: 500;
+  line-height: 1; letter-spacing: -0.04em; color: var(--text-1);
   text-wrap: balance;
 }
 .problem span {
-  padding: 2px 10px 4px; margin-left: -10px; background: var(--ground);
+  padding: 0 0.14em; margin-left: -0.14em;
+  background: linear-gradient(var(--ground), var(--ground)) 0 56% / 100% 0.88em no-repeat;
   -webkit-box-decoration-break: clone; box-decoration-break: clone;
 }
-/* Three separate labels in blue highlighter: a solid #0000ed stroke with
- * stepped, pixel-cut ends and a slight tilt each, so they read as marked by
- * hand. White on #0000ed is 9.45:1 in both themes. */
+.slab .pills { margin: 40px 0 0; }
+.slab .lede { margin-top: 24px; }
+.slab .hero-actions { margin-top: 40px; }
+.slab .note { margin-top: 16px; max-width: 64ch; }
 .pills { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 20px; padding: 0 0 0 4px; list-style: none; }
 .pills li {
   padding: 5px 12px 4px; color: #fff; background: #0000ed;
@@ -483,7 +494,7 @@ h1 {
 .hero-actions { display: flex; flex-wrap: wrap; align-items: stretch; gap: 12px; margin-top: 36px; }
 .btn-prompt { min-height: var(--target); max-width: 100%; gap: 10px; padding: 8px 16px; white-space: normal; text-align: left; }
 .btn-prompt .tool-icon { width: 14px; height: 14px; margin: 0; }
-.loop { position: relative; z-index: 1; max-width: var(--measure); margin: clamp(64px, 10vw, 128px) auto 0; }
+.loop { position: relative; z-index: 1; max-width: var(--measure); margin: var(--section) auto 0; }
 .loop video, .walk video { display: block; width: 100%; height: auto; border: 1px solid var(--frame); background: var(--ground); }
 figcaption { margin-top: 10px; color: var(--text-3); }
 /* A link in a caption gets a 44 px hit area without moving the text. */
@@ -1087,13 +1098,15 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .limits .road-title { margin-top: 0; }
 .limits-one { margin-top: 16px; max-width: 64ch; font-size: clamp(17px, 1.6vw, 20px); color: var(--text-1); }
 .limits .road + .limits-one { margin-top: 20px; font-size: 17px; color: var(--text-2); }
-.tour-video { margin: 40px 0 0; }
-.tour-video video { display: block; width: 100%; height: auto; border: 1px solid var(--frame); background: var(--ground); box-shadow: 6px 6px 0 var(--frame); }
-.tour-video figcaption, .tour-shots figcaption { margin-top: 10px; }
-.tour-shots { margin-top: 32px; display: grid; gap: 24px; }
-@media (min-width: 860px) { .tour-shots { grid-template-columns: 1fr 1fr; } }
-.tour-shots figure { margin: 0; }
-.tour-shots img { display: block; width: 100%; height: auto; border: 1px solid var(--frame); }
+/* 03 · See it work: three steps of the dashboard, side by side on wide
+ * screens, stacked on a phone. Light shots in both themes. */
+.tour-steps { list-style: none; margin: 48px 0 0; padding: 0; display: grid; gap: 48px; }
+@media (min-width: 900px) { .tour-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; } }
+.tour-steps li { min-width: 0; }
+.tour-steps .step-n { margin-bottom: 16px; }
+.tour-steps figure { margin: 0; }
+.tour-steps img { display: block; width: 100%; height: auto; border: 1px solid var(--frame); }
+.tour-steps figcaption { margin-top: 16px; max-width: 40ch; }
 .about-text + .about-text { margin-top: 20px; }
 .about { padding-bottom: clamp(96px, 12vw, 160px); }
 .about-text { margin-top: 28px; max-width: 60ch; font-family: var(--display); font-size: clamp(21px, 2.3vw, 28px); line-height: 1.35; letter-spacing: -0.01em; color: var(--text-1); }
@@ -1315,7 +1328,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
  * every other control is white (the ink colour, so black in the light
  * theme), so the eye lands on blue. */
 /* --fix-top: where the header ends, measured by ui.js (the logotype scales with the viewport). */
-.hero[data-mode="fix"] :is(.poster, .hero-text, .loop) { display: none; }
+.hero[data-mode="fix"] :is(.poster, .hero-text, .loop), .hero[data-mode="fix"] + .slab { display: none; }
 .report-back {
   display: inline-flex; align-items: center; gap: 10px; min-height: var(--target); padding: 0 14px 0 10px;
   font: 14px / 1 var(--px); color: var(--text-1); background: none; border: 1px solid var(--hair); cursor: pointer;

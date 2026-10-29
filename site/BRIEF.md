@@ -58,8 +58,8 @@ assertion; sections that repeated each other were merged.
    do, what ROADMAP.md plans for each limit, and the planned integrations
    (AI app builders such as Base44, preview deployments), each marked
    planned. Links to the methodology, the FAQ and the roadmap.
-6. The tour, numbered 01 to 04: the CLI (the walkthrough), the dashboard,
-   the MCP server, the fix loop.
+6. The tour: three steps in the dashboard, side by side (since 2026-10-29;
+   before that, the walkthrough video and two stills).
 7. How it compares: where each tool goes further, in one line each; the
    full sourced table folds out below it.
 8. Get started: the CLI, the Agent Skill and the MCP server, each with a copy
@@ -102,6 +102,20 @@ the fold (Prompt to fix, `npx penthera <url>`, `npx penthera --repo .` and
 Star on GitHub). The problem line, the pills, the lede and the loop follow
 below the first screen. The dots sit behind the card, never behind the
 headline.
+
+Decided with the maintainer, 2026-10-29, later (home polish): the problem
+gets a section of its own after the poster, on a flat grey (`--slab`,
+`#e6e6e1` in light and `#1f1f1f` in dark, both measured in `styles.css`),
+with section padding above and below. This is the one flat grey on the page;
+the limits band stays dithered. The problem line is display type at the h2
+scale (40 to 88 px, line-height 1, tracking -0.04em, balanced) and keeps its
+marker strokes, now 0.88em bands inside a 1em line, so the lines sit tight.
+One order, spaced on the 8 px scale: problem, 40, pills, 24, lede, 40, the
+two ways in, 16, the note, then the loop a section step below. "See it work"
+drops the walkthrough video (the loop is enough) for three light-theme shots
+of `penthera ui` side by side, numbered 1 to 3: start a check, see what to
+fix first, approve a fix. They are made from the real dashboard with demo
+data by `site/tools/tour-shots.mjs` and show light in both themes.
 
 ## Anti-references
 

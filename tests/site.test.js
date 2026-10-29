@@ -391,6 +391,18 @@ describe("site story", () => {
     for (const q of ["What is Penthera, and why does it exist?", "What can't it do?"]) expect(h, q).not.toContain(q);
   });
 
+  it("gives the problem its own grey section after the poster, hidden with the poster in fix mode", () => {
+    const h = html();
+    expect(h).toMatch(/<\/section>\s*(<!--[\s\S]*?-->\s*)?<section class="slab" aria-label="The problem">\s*<div class="hero-text">\s*<p class="problem">/);
+    const slab = h.slice(h.indexOf('class="slab"'), h.indexOf('id="answer"'));
+    const at = ['class="problem"', 'class="pills"', 'class="lede"', 'class="hero-actions"', 'class="note"', 'class="loop"'].map((m) => slab.indexOf(m));
+    expect(at.every((n) => n > 0)).toBe(true);
+    expect([...at].sort((a, b) => a - b)).toEqual(at);
+    const css = readFileSync(join(out, "styles.css"), "utf8");
+    expect(css).toContain('.hero[data-mode="fix"] + .slab');
+    expect(css).toMatch(/main > \.slab \{[^}]*background: var\(--slab\)/);
+  });
+
   it("ends with who builds it and why, how to reach him, and the signature", () => {
     const about = html().slice(html().indexOf('id="about"'));
     expect(about).toContain("I build Penthera in the open, at night, alongside my PhD in AI and architecture.");
@@ -462,7 +474,7 @@ describe("site story", () => {
     expect(terms).toContain("counts that a check ran");
   });
 
-  it("shows the four areas with counts from the rules, and the tour as one walkthrough", () => {
+  it("shows the four areas with counts from the rules, and the tour as three dashboard steps", () => {
     const h = html();
     const map = h.slice(h.indexOf('id="checks"'), h.indexOf('id="trust"'));
     for (const [n, what] of [[COUNTS.secretPatterns, "secret and AI-key patterns"], [COUNTS.agentRules, "AI-tooling rules"], [COUNTS.urlTemplates, "URL scan templates"], [(COUNTS.popularNpm + COUNTS.popularPypi).toLocaleString("en-US"), "package names"]]) {
@@ -471,12 +483,13 @@ describe("site story", () => {
     expect(map.match(/<li class="map-cell /g)).toHaveLength(4);
     expect(map.match(/<p class="map-one"><strong>[^<]+\.<\/strong>/g)).toHaveLength(4);
     const tour = h.slice(h.indexOf('id="tour"'), h.indexOf('id="compare"'));
-    // One walkthrough and two stills: the dashboard and the fix loop.
-    expect(tour.match(/<video /g)).toHaveLength(1);
-    expect(tour.match(/<figure class="shot">/g)).toHaveLength(2);
-    for (const f of ["media/tour/ui-dark.jpg", "media/tour/ui-light.jpg", "media/tour/ui-run.jpg", "media/walkthrough.mp4"]) {
+    // No video: three numbered stills of the light dashboard, each with alt text.
+    expect(tour).not.toContain("<video");
+    expect(tour.match(/<p class="step-n"><span>[123]<\/span> /g)).toHaveLength(3);
+    expect(tour.match(/<figure class="shot">/g)).toHaveLength(3);
+    for (const f of ["media/tour/tour-1-scan.jpg", "media/tour/tour-2-verdict.jpg", "media/tour/tour-3-fix.jpg"]) {
       expect(existsSync(join(out, f)), f).toBe(true);
-      expect(tour).toContain(`/${f}`);
+      expect(tour).toMatch(new RegExp(`<img src="/${f}" width="800" height="500" loading="lazy" alt="[^"]{40,}">`));
     }
   });
 

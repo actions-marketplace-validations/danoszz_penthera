@@ -3,7 +3,7 @@ title: How we benchmarked Penthera against {{fact:tools}} free tools, losses inc
 description: We tuned on one half of four public datasets and scored once on the other, sealed half. What that method is, what it found, and how far to trust it.
 date: 2026-10-28
 approved: 2026-10-28
-sources: bench/public/published.json, bench/public/RESULTS.md, docs/research/prereg/E11b-improvement-study.md
+sources: bench/public/published.json, bench/public/RESULTS.md, docs/research/prereg/E11b-improvement-study.md, bench/public/README.md, docs/references.md
 keywords: preregistered benchmark, security tool benchmark, benchmark leakage, sealed test set
 ---
 > How do you benchmark your own security tool against other tools without fooling yourself?
@@ -68,8 +68,43 @@ A clean measure needs new data: malware samples published after the freeze, and 
 - Paid tools ({{fact:paid}}) publish no results on these datasets, and we cannot measure them.
 - A benchmark is not your code. Accuracy on real projects is experiment E1, pre-registered and not yet run.
 
+## Method and sources
+
+- **Datasets.** Leaked secrets: Samsung CredData (Yun et al., 2021). Injection bugs: SecBench.js (Bhuiyan et al., 2023). Malicious packages: Datadog's dataset of malicious npm and PyPI packages (Datadog Security Labs, 2023). ODGen is the tool of Li et al. (2022).
+- **Scores.** Youden's J comes from the evaluation of diagnostic tests (Youden, 1950). Intervals on a single rate are 95% Wilson intervals (Wilson, 1927). The rank intervals come from a parametric bootstrap (Efron, 1979), run after the registered analysis.
+- **Why a split.** Scoring a tool on the data it was tuned on is a form of leakage, and leakage inflates results (Kapoor & Narayanan, 2023). Writing the ranking rules down before the test half is read follows the logic of preregistration (Nosek et al., 2018).
+- **Figure.** [Penthera on the dev half and on the sealed half](https://github.com/danoszz/penthera/blob/main/blog/figures/dev-to-test.svg), one row per benchmark, with both test runs. It is drawn by `blog/figures/make.mjs` from RESULTS.md.
+
 ## Check it yourself
 
 - Every number: [published.json](https://github.com/danoszz/penthera/blob/main/bench/public/published.json), shown with every tool on [penthera.org/benchmarks](/benchmarks).
 - The protocol, written before the run: [E11b](https://github.com/danoszz/penthera/blob/main/docs/research/prereg/E11b-improvement-study.md).
 - Try it on your own repo: `npx penthera@{{fact:secrets.penthera.version}} --repo .`
+- Rerun the benchmark: the commands, requirements and dataset versions are in [bench/public/README.md](https://github.com/danoszz/penthera/blob/main/bench/public/README.md#reproduce). The protocol was approved at commit `262745c`, and the final run was on `219b73a`.
+
+## References
+
+
+Bhuiyan, M. H. M., Parthasarathy, A. S., Vasilakis, N., Pradel, M., & Staicu, C.-A. (2023). SecBench.js: An executable security benchmark suite for server-side JavaScript. In *2023 IEEE/ACM 45th International Conference on Software Engineering (ICSE)* (pp. 1059–1070). IEEE. [https://doi.org/10.1109/ICSE48619.2023.00096](https://doi.org/10.1109/ICSE48619.2023.00096) ([entry](https://github.com/danoszz/penthera/blob/main/docs/references.md#bhuiyan2023secbenchjs))
+
+Datadog Security Labs. (2023, March 20). *Open-source dataset of malicious software packages*. GitHub. Retrieved October 29, 2026, from [https://github.com/datadog/malicious-software-packages-dataset](https://github.com/datadog/malicious-software-packages-dataset) ([entry](https://github.com/danoszz/penthera/blob/main/docs/references.md#datadog2023malicious))
+
+Efron, B. (1979). Bootstrap methods: Another look at the jackknife. *The Annals of Statistics*, *7*(1), 1–26. [https://doi.org/10.1214/aos/1176344552](https://doi.org/10.1214/aos/1176344552) ([entry](https://github.com/danoszz/penthera/blob/main/docs/references.md#efron1979bootstrap))
+
+Kapoor, S., & Narayanan, A. (2023). Leakage and the reproducibility crisis in machine-learning-based science. *Patterns*, *4*(9), Article 100804. [https://doi.org/10.1016/j.patter.2023.100804](https://doi.org/10.1016/j.patter.2023.100804) ([entry](https://github.com/danoszz/penthera/blob/main/docs/references.md#kapoor2023leakage))
+
+Li, S., Kang, M., Hou, J., & Cao, Y. (2022). Mining Node.js vulnerabilities via object dependence graph and query. In *31st USENIX Security Symposium (USENIX Security 22)* (pp. 143–160). USENIX Association. [https://www.usenix.org/conference/usenixsecurity22/presentation/li-song](https://www.usenix.org/conference/usenixsecurity22/presentation/li-song) ([entry](https://github.com/danoszz/penthera/blob/main/docs/references.md#li2022odgen))
+
+Nosek, B. A., Ebersole, C. R., DeHaven, A. C., & Mellor, D. T. (2018). The preregistration revolution. *Proceedings of the National Academy of Sciences*, *115*(11), 2600–2606. [https://doi.org/10.1073/pnas.1708274114](https://doi.org/10.1073/pnas.1708274114) ([entry](https://github.com/danoszz/penthera/blob/main/docs/references.md#nosek2018preregistration))
+
+Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. *Journal of the American Statistical Association*, *22*(158), 209–212. [https://doi.org/10.1080/01621459.1927.10502953](https://doi.org/10.1080/01621459.1927.10502953) ([entry](https://github.com/danoszz/penthera/blob/main/docs/references.md#wilson1927probable))
+
+Youden, W. J. (1950). Index for rating diagnostic tests. *Cancer*, *3*(1), 32–35. [https://doi.org/10.1002/1097-0142(1950)3:1%3C32::AID-CNCR2820030106%3E3.0.CO;2-3](https://doi.org/10.1002/1097-0142(1950)3:1%3C32::AID-CNCR2820030106%3E3.0.CO;2-3) ([entry](https://github.com/danoszz/penthera/blob/main/docs/references.md#youden1950index))
+
+Yun, J., Choi, S., Lee, Y., Sokol, O., Shim, W., Melkonyan, A., & Kuzmenko, D. (2021). *Project CredData: A dataset of credentials for research*. GitHub. Retrieved October 29, 2026, from [https://github.com/Samsung/CredData](https://github.com/Samsung/CredData) ([entry](https://github.com/danoszz/penthera/blob/main/docs/references.md#yun2021creddata))
+
+
+## Changes
+
+- 2026-10-28: published.
+- 2026-10-29: added the method and sources, the figure link, the rerun link and the references. No claim or number changed.

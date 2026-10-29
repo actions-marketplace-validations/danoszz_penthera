@@ -1232,26 +1232,165 @@
 }
 
 @inproceedings{bhuiyan2023secbenchjs,
-  author    = {Bhuiyan, Masudul Hasan Masud and Parthasarathy, Adithya Srinivas and Vasilakis, Nikos and Pradel, Michael and Staicu, Cristian-Alexandru},
-  title     = {{SecBench.js}: An Executable Security Benchmark Suite for Server-Side {JavaScript}},
-  booktitle = {2023 IEEE/ACM 45th International Conference on Software Engineering (ICSE)},
-  publisher = {IEEE},
-  year      = {2023},
-  pages     = {1059--1070},
-  doi       = {10.1109/ICSE48619.2023.00096},
+% ---------------------------------------------------------------- research notes and posts
+% Added 2026-10-29 for the research notes in docs/research/ and the posts in blog/.
+% Each entry was checked that day against the publisher (Crossref DOI metadata,
+% USENIX), the vendor page, the CVE record, GitHub or the author's own page.
+
+@misc{jackson2026emudhra,
+  shorthand    = {Mozilla bug 2083449},
+  author       = {Jackson, Dennis},
+  title        = {{eMudhra}: Private Key Compromise of Intermediate Certificates},
+  titleaddon   = {Bug 2083449},
+  organization = {Bugzilla@Mozilla, CA Program :: CA Certificate Compliance},
+  year         = {2026},
+  month        = oct,
+  day          = {18},
+  url          = {https://bugzilla.mozilla.org/show_bug.cgi?id=2083449},
+  urldate      = {2026-10-29},
+  keywords     = {further-reading},
+  note         = {advisories}
+}
+
+@inproceedings{heninger2012mining,
+  author    = {Heninger, Nadia and Durumeric, Zakir and Wustrow, Eric and Halderman, J. Alex},
+  title     = {Mining Your {Ps} and {Qs}: Detection of Widespread Weak Keys in Network Devices},
+  booktitle = {21st USENIX Security Symposium (USENIX Security 12)},
+  publisher = {USENIX Association},
+  year      = {2012},
+  pages     = {205--220},
+  url       = {https://www.usenix.org/conference/usenixsecurity12/technical-sessions/presentation/heninger},
   keywords  = {further-reading},
   note      = {web}
+}
+
+@inproceedings{nemec2017roca,
+  author    = {Nemec, Matus and Sys, Marek and Svenda, Petr and Klinec, Dusan and Matyas, Vashek},
+  title     = {The Return of {Coppersmith's} Attack: Practical Factorization of Widely Used {RSA} Moduli},
+  booktitle = {Proceedings of the 2017 ACM SIGSAC Conference on Computer and Communications Security},
+  publisher = {ACM},
+  year      = {2017},
+  pages     = {1631--1648},
+  doi       = {10.1145/3133956.3133969},
+  keywords  = {further-reading},
+  note      = {web}
+}
+
+}
+
+@misc{gitlab2026patch,
+  shorthand    = {GitLab 19.5.1 patch release},
+  author       = {{GitLab}},
+  title        = {{GitLab} Critical Patch Release: 19.5.1, 19.4.3, 19.3.6, 19.2.9, 19.1.9, 19.0.10, 18.11.13},
+  organization = {GitLab Docs},
+  year         = {2026},
+  month        = oct,
+  day          = {21},
+  url          = {https://docs.gitlab.com/releases/patches/patch-release-gitlab-19-5-1-released/},
+  urldate      = {2026-10-29},
+  keywords     = {further-reading},
+  note         = {advisories}
+}
+
+@misc{gitlab2024cve9596,
+  shorthand    = {CVE-2024-9596},
+  author       = {{GitLab}},
+  title        = {{CVE-2024-9596}},
+  titleaddon   = {Unauthenticated disclosure of the GitLab version number},
+  organization = {CVE Program},
+  year         = {2024},
+  month        = oct,
+  day          = {10},
+  url          = {https://www.cve.org/CVERecord?id=CVE-2024-9596},
+  urldate      = {2026-10-29},
+  keywords     = {further-reading},
+  note         = {advisories}
+}
+
+@misc{openai2026php2shell,
+  author       = {{OpenAI}},
+  title        = {{php2shell-checker}},
+  annote       = {Apache-2.0; repository created 2026-10-21; commit 40a4746 cited in the PHP case study},
+  organization = {GitHub},
+  year         = {2026},
+  url          = {https://github.com/openai/php2shell-checker/tree/40a4746ec4925d4d7510b99f9e134277918b1ac3},
+  urldate      = {2026-10-29},
+  keywords     = {further-reading},
+  note         = {advisories}
+}
+
+@misc{bengio2026agents,
+  author       = {Bengio, Yoshua},
+  title        = {Why Are {AI} Agents Lying, Cheating and Coordinating?},
+  year         = {2026},
+  month        = sep,
+  day          = {11},
+  url          = {https://yoshuabengio.org/en/blog/why-are-ai-agents-lying-cheating-and-coordinating},
+  urldate      = {2026-10-29},
+  keywords     = {further-reading},
+  note         = {llm}
+}
+
+@misc{cotra2026huggingface,
+  author       = {Cotra, Ajeya},
+  title        = {The {Hugging Face} Attack Surprised Me},
+  organization = {Planned Obsolescence},
+  year         = {2026},
+  month        = aug,
+  day          = {28},
+  url          = {https://www.planned-obsolescence.org/p/the-hugging-face-attack-surprised},
+  urldate      = {2026-10-29},
+  keywords     = {further-reading},
+  note         = {llm}
+}
+
+@misc{horatau2026huggingface,
+  author       = {Horatau, Marius},
+  title        = {The {Hugging Face} Incident Is Not an {AI} Story},
+  organization = {Uphack},
+  year         = {2026},
+  month        = aug,
+  day          = {31},
+  url          = {https://uphack.io/blog/post/the-hugging-face-incident-is-not-an-ai-story/},
+  urldate      = {2026-10-29},
+  keywords     = {further-reading},
+  note         = {llm}
+}
+
+@misc{noze2026huggingface,
+  author       = {{noze S.r.l.}},
+  title        = {Incidente {OpenAI} e {Hugging Face} a {Black Hat} 2026: Token forgiati, plugin {Groovy} e nove {CVE} su {Artifactory}},
+  titleaddon   = {The OpenAI and Hugging Face incident at Black Hat 2026: Forged tokens, Groovy plugins and nine CVEs in Artifactory},
+  year         = {2026},
+  month        = aug,
+  day          = {7},
+  url          = {https://www.noze.it/insights/black-hat-openai-hugging-face-ricostruzione/},
+  urldate      = {2026-10-29},
+  keywords     = {further-reading},
+  note         = {llm}
 }
 
 @misc{yun2021creddata,
   author       = {Yun, JaeKu and Choi, ShinHyung and Lee, YuJeong and Sokol, Oleksandra and Shim, WooChul and Melkonyan, Arkadiy and Kuzmenko, Dmytro},
   title        = {Project {CredData}: A Dataset of Credentials for Research},
-  howpublished = {Samsung},
+  organization = {GitHub},
   year         = {2021},
   url          = {https://github.com/Samsung/CredData},
   urldate      = {2026-10-29},
   keywords     = {further-reading},
   note         = {secrets}
+}
+
+@inproceedings{li2022odgen,
+  author    = {Li, Song and Kang, Mingqing and Hou, Jianwei and Cao, Yinzhi},
+  title     = {Mining {Node.js} Vulnerabilities via Object Dependence Graph and Query},
+  booktitle = {31st USENIX Security Symposium (USENIX Security 22)},
+  publisher = {USENIX Association},
+  year      = {2022},
+  pages     = {143--160},
+  url       = {https://www.usenix.org/conference/usenixsecurity22/presentation/li-song},
+  keywords  = {further-reading},
+  note      = {blackbox}
 }
 
 @misc{datadog2023malicious,
@@ -1261,6 +1400,11 @@
   month        = mar,
   day          = {20},
   url          = {https://github.com/DataDog/malicious-software-packages-dataset},
+  organization = {GitHub},
+  year         = {2023},
+  month        = mar,
+  day          = {20},
+  url          = {https://github.com/datadog/malicious-software-packages-dataset},
   urldate      = {2026-10-29},
   keywords     = {further-reading},
   note         = {supplychain}
@@ -1322,4 +1466,16 @@
   doi           = {10.48550/arXiv.2506.02548},
   keywords      = {further-reading},
   note          = {llm}
+@article{kapoor2023leakage,
+  author   = {Kapoor, Sayash and Narayanan, Arvind},
+  title    = {Leakage and the Reproducibility Crisis in Machine-Learning-Based Science},
+  journal  = {Patterns},
+  volume   = {4},
+  number   = {9},
+  year     = {2023},
+  pages    = {Article 100804},
+  doi      = {10.1016/j.patter.2023.100804},
+  keywords = {further-reading},
+  note     = {blackbox}
 }
+

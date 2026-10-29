@@ -32,6 +32,7 @@ import { landingPages, landingHtml, landingMarkdown } from "./landing.mjs";
 import { termsPage, docPage } from "./terms.mjs";
 import { publicBenchHtml } from "./public-bench.mjs";
 import { readPosts, blogFiles } from "./blog.mjs";
+import { siteFooter, footGroups } from "./frame.mjs";
 import { benchmarkHtml, benchmarkMarkdown, benchmarkViews, cardFor, fieldTools, hubHtml, hubMarkdown } from "./benchmarks.mjs";
 import { cardRows, failedChecks, rowTag } from "./check/card.js";
 import { researchEntries, researchHtml, researchMarkdown } from "./research.mjs";
@@ -549,8 +550,16 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   values.BENCH_TOOLS = pub ? String(fieldTools(pub)) : "other";
   // The blog (site/blog.mjs): approved posts only; no approved post, no /blog and no link to it.
   const posts = readPosts(blogDir, pub);
-  const blog = posts.published.length > 0;
-  values.BLOG_FOOT = blog ? ' · <a href="/blog">Blog</a>' : "";
+  // The footer of every page: a map of what this build renders, so a new
+  // landing page, benchmark or approved post shows up in it by itself.
+  const groups = footGroups({
+    pages: landingPages(SITE),
+    benchmarks: pub ? benchmarkViews(pub).map((v) => ({ slug: v.c.slug, label: v.c.label })) : [],
+    posts: posts.published,
+  });
+  const footer = (home = false) => siteFooter({ groups, version: values.VERSION, stars: values.STARS, home });
+  const foot = footer();
+  values.FOOTER = footer(true);
   const cmp = readCompare();
   values.COMPARE = compareTable(cmp, values);
   values.COMPARE_SUMMARY = compareSummary(cmp, values);
@@ -559,15 +568,15 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   writeFileSync(join(OUT, "index.html"), html);
   // /terms: the live check's terms, rendered from docs/live-check-terms.md.
   const styles = `/styles.css?v=${hash(readFileSync(join(OUT, "styles.css")))}`;
-  writeFileSync(join(OUT, "terms.html"), termsPage(ROOT, { styles }));
+  writeFileSync(join(OUT, "terms.html"), termsPage(ROOT, { styles, foot }));
   // /trust: how Penthera itself is built and released, from docs/trust.md.
   writeFileSync(join(OUT, "trust.html"), docPage(ROOT, {
-    file: "trust.md", slug: "trust", eyebrow: "Trust", styles,
+    file: "trust.md", slug: "trust", eyebrow: "Trust", styles, foot,
     description: "How Penthera is built, released and run: npm provenance, one dependency, public checks, no telemetry. Links you can verify.",
   }));
   // Landing pages, one search question each (site/pages/, site/landing.mjs).
   for (const p of landingPages(SITE)) {
-    writeFileSync(join(OUT, `${p.slug}.html`), landingHtml(p, { origin: ORIGIN, values, styles, blog, pub }));
+    writeFileSync(join(OUT, `${p.slug}.html`), landingHtml(p, { origin: ORIGIN, values, styles, foot, pub }));
     writeFileSync(join(OUT, `${p.slug}.md`), landingMarkdown(p, { origin: ORIGIN, values }));
   }
   // The benchmark pages, from the same published.json: /benchmarks and one
@@ -577,19 +586,19 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   if (pub) {
     const image = (slug) => { const f = cardFor(SITE, pubText, slug); return f ? `${ORIGIN}/${f}?v=${hash(readFileSync(join(SITE, f)))}` : undefined; };
     mkdirSync(join(OUT, "benchmarks"), { recursive: true });
-    const hub = hubHtml(pub, { origin: ORIGIN, styles, image: image("hub"), blog });
+    const hub = hubHtml(pub, { origin: ORIGIN, styles, image: image("hub"), foot });
     writeFileSync(join(OUT, "benchmarks.html"), hub);
     writeFileSync(join(OUT, "benchmarks", "index.html"), hub);
     writeFileSync(join(OUT, "benchmarks.md"), hubMarkdown(pub, { origin: ORIGIN }));
     for (const v of benchmarkViews(pub)) {
-      writeFileSync(join(OUT, "benchmarks", `${v.c.slug}.html`), benchmarkHtml(v.key, pub, { origin: ORIGIN, styles, image: image(v.c.slug), blog }));
+      writeFileSync(join(OUT, "benchmarks", `${v.c.slug}.html`), benchmarkHtml(v.key, pub, { origin: ORIGIN, styles, image: image(v.c.slug), foot }));
       writeFileSync(join(OUT, "benchmarks", `${v.c.slug}.md`), benchmarkMarkdown(v.key, pub, { origin: ORIGIN }));
     }
   }
   // /research: every study, result, case study and post, newest first (site/research.mjs).
   const research = researchEntries({ root: ROOT, pub, posts: posts.published });
   const script = `/research.js?v=${hash(readFileSync(join(OUT, "research.js")))}`;
-  writeFileSync(join(OUT, "research.html"), researchHtml(research, { origin: ORIGIN, pub, styles, script, blog }));
+  writeFileSync(join(OUT, "research.html"), researchHtml(research, { origin: ORIGIN, pub, styles, script, foot }));
   writeFileSync(join(OUT, "research.md"), researchMarkdown(research, { origin: ORIGIN, pub }));
   // The figures of every post the build renders, at /blog/figures/.
   for (const p of [...posts.published, ...(drafts ? posts.drafts : [])]) {
@@ -598,7 +607,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
       cpSync(fig.path, join(OUT, "blog", "figures", name));
     }
   }
-  for (const [f, text] of Object.entries(blogFiles(posts, { origin: ORIGIN, styles, drafts }))) {
+  for (const [f, text] of Object.entries(blogFiles(posts, { origin: ORIGIN, styles, drafts, foot }))) {
     mkdirSync(dirname(join(OUT, f)), { recursive: true });
     writeFileSync(join(OUT, f), text);
   }

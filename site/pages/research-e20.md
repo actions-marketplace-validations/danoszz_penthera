@@ -1,4 +1,5 @@
 ---
+nav: E20 study
 title: Penthera-Research/E20: what it requested from your site, and how to opt out
 description: E20 is a one-time passive study of public homepages, published as aggregates only. What it requests, how to opt out with robots.txt, and who to contact.
 eyebrow: Research

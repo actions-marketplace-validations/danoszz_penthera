@@ -889,26 +889,86 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 
 /* ── Footer ───────────────────────────────────────────────────────────── */
 
-/* The footer: one quiet strip. The veil switches off over it (check/ui.js). */
+/* The footer (2026-10-29): one piece on every page, built by site/frame.mjs.
+ * A status line and the bar's three controls, a site map in four groups
+ * under Departure Mono labels, a 1-bit dither ramp on a row of its own, then
+ * the wordmark as a big steel plate with a blue glow, and the facts. No
+ * rules: space separates the parts. No dither behind the wordmark or any
+ * text. The veil switches off over it (check/ui.js). */
 .foot {
-  padding: 16px var(--gutter) 20px;
-  border-top: 1px solid var(--frame);
-  color: var(--text-3);
-  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px 32px;
+  --foot-pad: max(var(--gutter), calc((100vw - var(--measure)) / 2));
+  position: relative; isolation: isolate;
+  display: grid; gap: clamp(48px, 6vw, 80px);
+  padding: clamp(72px, 10vw, 136px) var(--foot-pad) 28px;
+  background: var(--ground); color: var(--text-3);
   font-size: 12px;
 }
-.foot-main { display: grid; gap: 6px; flex: 1 1 420px; }
-.nowrap { white-space: nowrap; }
-/* The mark again, on the right, closing the page; it links back to the top. */
-.foot-mark {
-  --logo-w: clamp(120px, 18vw, 220px); --logo-h: calc(var(--logo-w) * 63 / 279);
-  display: inline-flex; align-items: center; min-height: var(--target); margin-left: auto;
+.foot-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 20px 32px; }
+.foot-status {
+  display: inline-flex; align-items: center; gap: 12px;
+  font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2);
+}
+/* The one light on the footer: a square LED in Penthera blue, breathing. */
+.foot-led {
+  flex: none; width: 8px; height: 8px;
+  background: linear-gradient(180deg, #8a8aff, #0000ed 60%, #0000b8);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35) inset, 0 0 10px 2px rgba(0, 0, 237, 0.7), 0 0 28px 6px rgba(0, 0, 237, 0.35);
+  animation: foot-led 2.8s ease-in-out infinite;
+}
+@keyframes foot-led { 50% { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35) inset, 0 0 4px 1px rgba(0, 0, 237, 0.5), 0 0 12px 2px rgba(0, 0, 237, 0.2); } }
+.foot-ctas { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* The map: four groups, each under a numbered mono label. */
+.foot-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 48px 32px; }
+.foot-k { display: flex; align-items: baseline; gap: 10px; margin-bottom: 18px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
+.foot-k span { color: var(--accent-ink); font-variant-numeric: tabular-nums; }
+.foot-nav ul { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.foot-nav a {
+  display: inline-flex; align-items: center; min-height: 32px; padding: 2px 0;
+  font-family: var(--display); font-size: 17px; line-height: 1.2; letter-spacing: -0.01em;
   color: var(--text-1); text-decoration: none;
 }
-.foot-mark:hover { background: none; color: var(--accent-ink); }
-.foot p a { display: inline-block; padding: 12px 0; margin: -12px 0; }
-/* The bar's three controls again, so the end of the page has the same ways out. */
-.foot-ctas { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+/* Pages under a page (each benchmark, each post): mono, smaller, set in. */
+.foot-sub a { min-height: 28px; padding-left: 14px; font-family: var(--px); font-size: 12px; letter-spacing: 0.01em; color: var(--text-2); }
+@media (pointer: coarse) { .foot-nav a, .foot-sub a { min-height: var(--target); } }
+@media (max-width: 1000px) { .foot-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .foot-nav { grid-template-columns: minmax(0, 1fr); gap: 40px; } }
+
+/* A 1-bit ramp, blue to empty paper: the only dither in the footer, on a row
+ * with nothing else in it. */
+.foot-field { display: grid; grid-template-columns: repeat(8, 1fr); height: clamp(20px, 3vw, 36px); }
+.foot-field { --dot: conic-gradient(from 270deg at 1px 1px, var(--frame) 25%, transparent 0); }
+.foot-field > i:nth-child(1) { background: linear-gradient(180deg, #5a5aff, #0000ed 55%, #0000b8); box-shadow: 0 8px 28px -6px rgba(0, 0, 237, 0.7); }
+.foot-field > i:nth-child(2) { background: var(--pt-half); }
+.foot-field > i:nth-child(3) { background: var(--dot) 0 0 / 2px 2px; }
+.foot-field > i:nth-child(4) { background: var(--dot) 0 0 / 3px 3px; }
+.foot-field > i:nth-child(5) { background: var(--dot) 0 0 / 4px 4px; }
+.foot-field > i:nth-child(6) { background: var(--dot) 0 0 / 6px 6px; }
+.foot-field > i:nth-child(7) { background: var(--dot) 0 0 / 8px 8px; }
+.foot-field > i:nth-child(8) { background: var(--dot) 0 0 / 12px 12px; }
+
+/* The wordmark as a plate across the whole measure: polished steel (chrome
+ * on black, gunmetal on paper) with blue light under it. It links back to the
+ * top. Nothing sits behind it. */
+.foot-mark {
+  display: block; padding: 0; color: var(--text-1); text-decoration: none;
+  filter: drop-shadow(0 22px 44px rgba(0, 0, 237, 0.42));
+  transition: filter 240ms var(--out);
+}
+.foot-word {
+  display: block; width: 100%; aspect-ratio: 279 / 63;
+  background: linear-gradient(180deg, #ffffff 0%, #d3d9e0 34%, #7f8896 50%, #f4f6f8 64%, #9aa3b0 100%);
+  -webkit-mask: url("/logo.svg") left center / contain no-repeat;
+  mask: url("/logo.svg") left center / contain no-repeat;
+}
+:root[data-theme="light"] .foot-mark { filter: drop-shadow(0 22px 40px rgba(0, 0, 237, 0.22)); }
+:root[data-theme="light"] .foot-word { background: linear-gradient(180deg, #4a515c 0%, #1b1e23 40%, #000000 52%, #5d6572 70%, #15171b 100%); }
+.foot-mark:hover, :root[data-theme="light"] .foot-mark:hover { background: none; filter: drop-shadow(0 22px 52px rgba(0, 0, 237, 0.6)); }
+.foot-mark:hover .foot-word { background: linear-gradient(180deg, #8a8aff 0%, #2a2aff 45%, #0000ed 60%, #0000b8 100%); }
+
+.foot-facts { display: flex; flex-wrap: wrap; gap: 6px 28px; margin-top: calc(-1 * clamp(16px, 3vw, 40px)); font-size: 12px; color: var(--text-3); }
+@media (prefers-reduced-motion: reduce) { .foot-led { animation: none; } }
+.nowrap { white-space: nowrap; }
 /* The maker, at the end of Open R&D. */
 .by {
   justify-self: start;
@@ -1124,7 +1184,6 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .land-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin: 28px 0 8px; }
 .land-cta .btn { text-decoration: none; }
 .land-cta span { font-family: var(--px); font-size: 13px; color: var(--text-3); }
-.land-foot { margin-top: 64px; padding-top: 16px; border-top: 1px solid var(--hair); font-family: var(--px); font-size: 13px; color: var(--text-3); }
 
 /* Benchmark pages (/benchmarks, site/benchmarks.mjs): the landing frame, wider for the tables. */
 .terms.bm { max-width: 1040px; }
@@ -1148,6 +1207,8 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .pb-link { font-family: var(--px); font-size: 12px; }
 
 /* Blog (site/blog.mjs): the landing frame. */
+/* Long bare URLs in a post break instead of widening the page at 390 px. */
+.blog a { overflow-wrap: anywhere; }
 .blog-meta, .blog-src { margin-top: 16px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
 /* Blog figures: white paper plates (blog/figures/*.svg) in both themes, framed
  * so the plate reads as a figure on the black ground too. */
@@ -1161,7 +1222,6 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
  * never by rules. */
 .rs .rs-purpose { margin-top: 28px; max-width: 30ch; font-family: var(--display); font-size: clamp(24px, 3.4vw, 42px); line-height: 1.12; letter-spacing: -0.025em; color: var(--text-1); text-wrap: balance; }
 .rs .rs-tally { margin-top: 20px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
-.rs .land-foot { border-top: 0; padding-top: 0; }
 
 .rs .rs-feature {
   position: relative; isolation: isolate; margin-top: 48px; padding: clamp(24px, 4vw, 48px);
@@ -1433,27 +1493,24 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
   padding: clamp(56px, 9vh, 112px) clamp(24px, 6vw, 96px);
 }
 /* One grid for every panel after the hero: the same width, the kicker
- * (label or number) and the heading at the same height, a hairline under the
- * kicker row that runs across all panels, and short panels' body text at the
- * foot, so each panel uses the full height. */
+ * (label or number) and the heading at the same height on every panel, and
+ * short panels' body text at the foot, so each panel uses the full height.
+ * No rules: the shared heights and the panels' own grounds carry the grid
+ * (2026-10-29, no divider lines on the site). */
 .pro { --kick: clamp(80px, 12vh, 150px); --row: 40px; }
 @media (min-width: 900px) {
   .pro-h.is-h .pro-panel:not(.pro-hero) { width: min(100vw, 880px); }
 }
 .pro-h.is-h .pro-panel:not(.pro-hero) { justify-content: flex-start; padding-top: var(--kick); padding-bottom: clamp(48px, 9vh, 96px); }
-.pro-h.is-h .pro-panel:not(.pro-hero)::before {
-  content: ""; position: absolute; left: 0; right: 0; top: calc(var(--kick) + 30px);
-  border-top: 1px solid rgba(var(--ink-rgb), 0.16); pointer-events: none;
-}
 .pro-h.is-h .pro-panel:not(.pro-hero) > .label,
-.pro-h.is-h .pro-panel:not(.pro-hero) > .pro-num { height: 20px; margin: 0 0 var(--row); line-height: 20px; }
-.pro-h.is-h .pro-panel:not(.pro-hero) > h2 { margin-top: 12px; }
+.pro-h.is-h .pro-panel:not(.pro-hero) > .pro-num { height: 20px; margin: 0 0 calc(var(--row) * 0.7); line-height: 20px; }
+.pro-h.is-h .pro-panel:not(.pro-hero) > h2 { margin-top: 0; }
 .pro-h.is-h .pro-panel > :not(.pro-visual-wrap) { flex-shrink: 0; }
 .pro-h.is-h :is(.pro-stack, .pro-card-panel) > .pro-big { margin-top: auto; padding-top: var(--row); }
 .pro-h.is-h :is(.pro-calc, .pro-join) { padding-bottom: 32px; }
-.pro-h.is-h .pro-panel + .pro-panel, .pro-h.is-h .pro-form > .pro-panel { border-left: 1px solid rgba(var(--ink-rgb), 0.14); }
 .pro-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(127, 136, 150, 0.25); display: none; }
-.pro-h.is-h .pro-progress { display: block; }
+.pro-h.is-h .pro-progress { display: block; transition: opacity 240ms var(--out); }
+.pro-h.is-h .pro-progress[data-done] { opacity: 0; }
 .pro-progress span {
   display: block; height: 100%; transform-origin: 0 50%; transform: scaleX(0);
   background: linear-gradient(90deg, #f4f6f8, #8f98a6 40%, #0000ed);
@@ -1549,7 +1606,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
 }
 .pro-range input[type="range"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-.pro-result { margin-top: 24px; max-width: 46ch; padding-top: 20px; border-top: 1px solid var(--hair); color: var(--text-2); }
+.pro-result { margin-top: 36px; max-width: 46ch; color: var(--text-2); }
 .pro-result-n { font-family: var(--display); font-size: clamp(32px, 4vw, 48px); letter-spacing: -0.03em; color: var(--text-1); font-variant-numeric: tabular-nums; }
 .pro-budget { margin-top: 24px; }
 

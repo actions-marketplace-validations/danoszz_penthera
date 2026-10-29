@@ -16,7 +16,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { ldScript, siteFoot } from "./frame.mjs";
+import { ldScript, siteFooter } from "./frame.mjs";
 
 const REPO = "https://github.com/danoszz/penthera";
 const BLOB = `${REPO}/blob/main`;
@@ -319,7 +319,7 @@ const crumbs = (origin, items) => ({
 
 
 /** The <head> and frame every benchmark page shares (the landing-page frame). */
-function frame({ title, description, path, h1, crumb, ld, body, origin, styles, theme, image, blog }) {
+function frame({ title, description, path, h1, crumb, ld, body, origin, styles, theme, image, foot }) {
   const url = `${origin}${path}`;
   return `<!doctype html>
 <html lang="en">
@@ -351,8 +351,8 @@ function frame({ title, description, path, h1, crumb, ld, body, origin, styles, 
     <nav class="eyebrow" aria-label="Breadcrumb">${crumb}</nav>
     <h1>${esc(h1)}</h1>
 ${body}
-    ${siteFoot({ blog })}
   </main>
+  ${foot}
 </body>
 </html>
 `;
@@ -361,7 +361,7 @@ ${body}
 const description = (v) => `${v.c.label}: Penthera ranked ${ord(v.us.rank)} of ${v.b.of} free tools${tiedPhrase(v.iv)} on ${v.c.dataset.short}${v.close && !tiedPhrase(v.iv) ? ", within the margin of error" : ""}. Every score, interval and limit.`;
 
 /** One benchmark page. */
-export function benchmarkHtml(key, pub, { origin, styles = "/styles.css", theme = "/theme.js", image, blog = false }) {
+export function benchmarkHtml(key, pub, { origin, styles = "/styles.css", theme = "/theme.js", image, foot = siteFooter() }) {
   const v = view(key, pub.benchmarks[key]);
   const path = `/benchmarks/${v.c.slug}`;
   const better = betterThanUs(v);
@@ -412,7 +412,7 @@ ${v.b.context.map((c) => `      <li><a href="${esc(c.url)}">${esc(c.title)}</a><
     <p>Measured on <time datetime="${pub.date}">${longDate(pub.date)}</time>. ${esc(pub.note)} <a href="/benchmarks">All four benchmarks</a>.</p>`;
   const ld = ldScript([datasetLd(v, pub, origin), crumbs(origin, [["Penthera", "/"], ["Benchmarks", "/benchmarks"], [v.c.label, path]])]);
   return frame({
-    title: v.c.title(v.b), description: description(v), path, h1: v.c.h1(v.b), origin, styles, theme, ld, body, blog,
+    title: v.c.title(v.b), description: description(v), path, h1: v.c.h1(v.b), origin, styles, theme, ld, body, foot,
     image: image || `${origin}/media/social/og.png`,
     crumb: `<a href="/">Penthera</a> · <a href="/benchmarks">Benchmarks</a> · ${esc(v.c.label)}`,
   });
@@ -424,7 +424,7 @@ export function benchmarkViews(pub) {
 }
 
 /** The hub, /benchmarks. */
-export function hubHtml(pub, { origin, styles = "/styles.css", theme = "/theme.js", image, blog = false }) {
+export function hubHtml(pub, { origin, styles = "/styles.css", theme = "/theme.js", image, foot = siteFooter() }) {
   const views = benchmarkViews(pub);
   const n = fieldTools(pub);
   const rows = views.map((v) => `<tr><th scope="row"><a href="/benchmarks/${v.c.slug}">${esc(v.c.label)}</a> <span class="bm-ver">${esc(v.c.dataset.short)}</span></th><td>${ord(v.us.rank)} of ${v.b.of}${tiedPhrase(v.iv) || (v.close ? ", within the margin of error" : "")}</td><td>${n2(v.us.score)}</td><td>${esc(said(v.top === v.us ? v.ranked[1] : v.top))} ${n2((v.top === v.us ? v.ranked[1] : v.top).score)}</td><td>${esc(v.c.scoreName)}</td></tr>`).join("\n");
@@ -454,7 +454,7 @@ ${views.map((v) => `      <li><a href="/benchmarks/${v.c.slug}">${esc(v.c.h1(v.b
   return frame({
     title: `Security tool benchmarks: Penthera and ${n} free tools on four public datasets`,
     description: `Penthera and ${n} free security tools on four public datasets: secrets, npm and PyPI malware, JavaScript injection. Every score, interval, loss and limit.`,
-    path: "/benchmarks", h1: `Penthera and ${n} free security tools, on four public benchmarks`, origin, styles, theme, ld, body, blog,
+    path: "/benchmarks", h1: `Penthera and ${n} free security tools, on four public benchmarks`, origin, styles, theme, ld, body, foot,
     image: image || `${origin}/media/social/og.png`,
     crumb: `<a href="/">Penthera</a> · Benchmarks`,
   });

@@ -7,5 +7,6 @@ section: Site
   plates' pointer light no longer forces a style pass per plate and only
   touches the plates it can reach. The bottom blur gives each of its six
   layers only the strip its mask shows, and is hidden once faded out. The
-  12-second loop and the Go Pro plate's glow pause off screen. On the hero,
+  12-second loop, the Go Pro plate's glow and the footer's LED pause off
+  screen, and the LED breathes by opacity instead of repainting its glow. On the hero,
   main-thread time while idle drops from about 45% to about 6%.

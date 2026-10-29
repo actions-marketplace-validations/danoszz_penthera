@@ -908,14 +908,21 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
   display: inline-flex; align-items: center; gap: 12px;
   font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2);
 }
-/* The one light on the footer: a square LED in Penthera blue, breathing. */
+/* The one light on the footer: a square LED in Penthera blue, breathing.
+ * The breath crossfades two fixed glows (bright on ::after, dim on ::before)
+ * by opacity, so it runs on the compositor; animating the box-shadow itself
+ * would repaint every frame. Off screen it waits (theme.js sets data-rest). */
 .foot-led {
-  flex: none; width: 8px; height: 8px;
+  position: relative; flex: none; width: 8px; height: 8px;
   background: linear-gradient(180deg, #8a8aff, #0000ed 60%, #0000b8);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35) inset, 0 0 10px 2px rgba(0, 0, 237, 0.7), 0 0 28px 6px rgba(0, 0, 237, 0.35);
-  animation: foot-led 2.8s ease-in-out infinite;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35) inset;
 }
-@keyframes foot-led { 50% { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35) inset, 0 0 4px 1px rgba(0, 0, 237, 0.5), 0 0 12px 2px rgba(0, 0, 237, 0.2); } }
+.foot-led::before, .foot-led::after { content: ""; position: absolute; inset: 0; pointer-events: none; will-change: opacity; }
+.foot-led::before { box-shadow: 0 0 4px 1px rgba(0, 0, 237, 0.5), 0 0 12px 2px rgba(0, 0, 237, 0.2); opacity: 0; animation: foot-led-dim 2.8s ease-in-out infinite; }
+.foot-led::after { box-shadow: 0 0 10px 2px rgba(0, 0, 237, 0.7), 0 0 28px 6px rgba(0, 0, 237, 0.35); animation: foot-led 2.8s ease-in-out infinite; }
+.foot-led[data-rest]::before, .foot-led[data-rest]::after { animation-play-state: paused; }
+@keyframes foot-led { 50% { opacity: 0; } }
+@keyframes foot-led-dim { 50% { opacity: 1; } }
 .foot-ctas { display: flex; flex-wrap: wrap; gap: 8px; }
 
 /* The map: four groups, each under a numbered mono label. */
@@ -967,7 +974,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .foot-mark:hover .foot-word { background: linear-gradient(180deg, #8a8aff 0%, #2a2aff 45%, #0000ed 60%, #0000b8 100%); }
 
 .foot-facts { display: flex; flex-wrap: wrap; gap: 6px 28px; margin-top: calc(-1 * clamp(16px, 3vw, 40px)); font-size: 12px; color: var(--text-3); }
-@media (prefers-reduced-motion: reduce) { .foot-led { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .foot-led::before, .foot-led::after { animation: none; } }
 .nowrap { white-space: nowrap; }
 /* The maker, at the end of Open R&D. */
 .by {

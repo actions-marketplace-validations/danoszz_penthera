@@ -494,7 +494,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   if (engine) await bundle(join(SITE, "check", "engine.js"), resolve(engine), { minify: false });
 
   // Static files, as they are.
-  for (const f of ["styles.css", "theme.js", "track.js", "pro.js", "gopro.js"]) cpSync(join(SITE, f), join(OUT, f));
+  for (const f of ["styles.css", "theme.js", "track.js", "pro.js", "gopro.js", "research.js"]) cpSync(join(SITE, f), join(OUT, f));
   // The IndexNow key file, served at /<key>.txt (scripts/indexnow.mjs).
   for (const f of readdirSync(SITE).filter((n) => /^[0-9a-f]{32}\.txt$/.test(n))) cpSync(join(SITE, f), join(OUT, f));
   cpSync(join(SITE, "media"), join(OUT, "media"), { recursive: true });
@@ -589,7 +589,8 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   }
   // /research: every study, result, case study and post, newest first (site/research.mjs).
   const research = researchEntries({ root: ROOT, pub, posts: posts.published });
-  writeFileSync(join(OUT, "research.html"), researchHtml(research, { origin: ORIGIN, pub, styles, blog }));
+  const script = `/research.js?v=${hash(readFileSync(join(OUT, "research.js")))}`;
+  writeFileSync(join(OUT, "research.html"), researchHtml(research, { origin: ORIGIN, pub, styles, script, blog }));
   writeFileSync(join(OUT, "research.md"), researchMarkdown(research, { origin: ORIGIN, pub }));
   for (const [f, text] of Object.entries(blogFiles(posts, { origin: ORIGIN, styles, drafts }))) {
     mkdirSync(dirname(join(OUT, f)), { recursive: true });

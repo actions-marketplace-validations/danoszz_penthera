@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { buildSite } from "../site/build.mjs";
 import { benchmarkViews, ord, tiedPhrase } from "../site/benchmarks.mjs";
 import { readPosts } from "../site/blog.mjs";
-import { PURPOSE, STATUSES, TYPES, parsePrereg, researchEntries, studyStatus } from "../site/research.mjs";
+import { FILTERS, FIRST, PURPOSE, STATUSES, TYPES, e11bHeadline, inFilter, parsePrereg, researchEntries, studyStatus } from "../site/research.mjs";
 
 const ROOT = join(import.meta.dirname, "..");
 const ORIGIN = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).homepage.replace(/\/+$/, "");
@@ -55,12 +55,92 @@ describe("/research", () => {
     expect(read("sitemap.xml")).toContain(`<loc>${ORIGIN}/research</loc>`);
     expect(read("llms.txt")).toContain(`(${ORIGIN}/research.md)`);
     for (const f of ["index.html", "benchmarks.html", "research.html"]) expect(read(f), f).toContain('<a href="/research">Research</a>');
-    // No script but the theme, no inline style, no tracking.
+    // The theme and the page's own script, both files; no inline style, no tracking.
     expect(html).not.toMatch(/\{\{| style=|track\.js|insights/);
     const scripts = [...html.matchAll(/<script(?![^>]*type="application\/ld\+json")[^>]*>/g)].map((m) => m[0]);
-    expect(scripts).toEqual(['<script src="/theme.js">']);
+    expect(scripts).toHaveLength(2);
+    expect(scripts[0]).toBe('<script src="/theme.js">');
+    expect(scripts[1]).toMatch(/^<script src="\/research\.js\?v=[\w-]+" defer>$/);
+    expect(html).not.toMatch(/<script>[^<]|\son[a-z]+="/);
     const d = unesc(html.match(/<meta name="description" content="([^"]+)">/)[1]);
     expect(d.length).toBeLessThanOrEqual(160);
+  });
+
+  it("puts the whole list in the HTML; only the script hides entries, and it is a file with no dependencies", () => {
+    const html = read("research.html");
+    const lis = items(html);
+    expect(lis).toHaveLength(entries.length);
+    expect(entries.length).toBeGreaterThan(FIRST);
+    // No entry is hidden in the HTML; the controls are hidden until a script runs.
+    for (const li of lis) expect(li).not.toMatch(/<[^>]*\shidden[\s>=]/);
+    expect(html).toMatch(/<div class="rs-tools" id="rs-tools" data-js /);
+    expect(html).toMatch(/<p class="rs-all" data-js hidden><button[^>]*>Show all \d+<\/button>/);
+    expect(read("styles.css")).toContain("html:not(.js) [data-js] { display: none !important; }");
+    // Every dated entry also reaches the Markdown that agents read.
+    expect(read("research.md").split("\n").filter((l) => l.startsWith("- 20"))).toHaveLength(entries.filter((e) => e.date).length);
+    const js = read("research.js");
+    expect(js).toBe(readFileSync(join(ROOT, "site", "research.js"), "utf8"));
+    expect(js).not.toMatch(/\bimport\b|require\(|fetch\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage|document\.cookie/);
+    // Accessible controls: a labelled search, pressed state on chips, a live count.
+    expect(html).toMatch(/<label for="rs-q">[^<]+<\/label>/);
+    expect(html).toMatch(/<input id="rs-q"[^>]*type="search"/);
+    expect(html).toMatch(/<p class="rs-count" id="rs-count" aria-live="polite">/);
+    for (const b of html.match(/<button type="button" class="rs-chip"[^>]*>/g)) expect(b).toMatch(/aria-pressed="(true|false)"/);
+  });
+
+  it("offers a filter for every entry type, with counts that match the list", () => {
+    const html = read("research.html");
+    const chips = [...html.matchAll(/data-filter="([^"]*)" aria-pressed="\w+">([^<]+)<span class="rs-n">(\d+)<\/span>/g)].map((m) => ({ key: m[1], label: m[2].trim(), n: Number(m[3]) }));
+    expect(chips[0]).toEqual({ key: "", label: "All", n: entries.length });
+    expect(FILTERS.map((f) => f.type).sort()).toEqual([...TYPES].sort());
+    for (const f of FILTERS) {
+      const c = chips.find((x) => x.key === f.key);
+      const n = entries.filter((e) => inFilter(e, f)).length;
+      if (!n) { expect(c, f.key).toBeUndefined(); continue; }
+      expect(c, f.key).toBeTruthy();
+      expect(c.label).toBe(f.label);
+      expect(c.n, f.key).toBe(n);
+    }
+    // Each entry carries the filters it is in, the keys the chips use.
+    for (const li of items(html)) {
+      const keys = li.match(/data-filters="([^"]*)"/)[1].split(" ").filter(Boolean);
+      expect(keys.length).toBeGreaterThan(0);
+      for (const k of keys) expect(chips.map((c) => c.key)).toContain(k);
+    }
+    // Status chips, studies only, with their counts.
+    const st = [...html.matchAll(/data-status="([a-z]+)" aria-pressed="\w+">(\w+) <span class="rs-n">(\d+)/g)];
+    expect(st.length).toBeGreaterThan(0);
+    for (const [, key, label, n] of st) {
+      expect(STATUSES).toContain(label);
+      expect(key).toBe(label.toLowerCase());
+      expect(Number(n)).toBe(entries.filter((e) => e.type === "Study" && e.status === label).length);
+    }
+  });
+
+  it("lists each study once: E17 is one entry, with its re-run as a note", () => {
+    const html = read("research.html");
+    const e17 = entries.filter((e) => e.id === "E17");
+    expect(e17).toHaveLength(1);
+    expect(e17[0]).toMatchObject({ type: "Study", status: "Result" });
+    expect(e17[0].headline).toMatch(/macOS and Ubuntu/);
+    expect(e17[0].notes.map((n) => n.text).join(" ")).toMatch(/Re-run 29 Oct.*verdict unchanged/);
+    const li = items(html).filter((l) => l.includes(">E17<"));
+    expect(li).toHaveLength(1);
+    expect(li[0]).toContain("#registered-run-28-oct-2026");
+    expect(li[0]).toContain("#deviation-the-normaliser-29-oct-2026");
+    // Every study id appears once.
+    const ids = entries.filter((e) => e.type === "Study").map((e) => e.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("says the E11b ranks briefly, in the interval wording", () => {
+    const h = e11bHeadline(pub);
+    expect(h.length).toBeLessThan(110);
+    for (const v of benchmarkViews(pub)) {
+      const t = tiedPhrase(v.iv);
+      expect(h, v.key).toContain(t ? t.replace(/^, /, "") : ord(v.us.rank));
+    }
+    expect(h).not.toMatch(/;/);
   });
 
   it("lists every entry newest first, each with a known type, and a status only on studies", () => {
@@ -74,7 +154,8 @@ describe("/research", () => {
       else expect(e.status, e.title).toBeUndefined();
       expect(e.summary.length, e.title).toBeGreaterThan(0);
     }
-    for (const t of ["Study", "Result", "Case study", "Post"]) expect(entries.some((e) => e.type === t), t).toBe(true);
+    // Every filter has entries: "Results" holds the studies with a result.
+    for (const f of FILTERS) expect(entries.some((e) => inFilter(e, f)), f.label).toBe(true);
   });
 
   it("links every entry to a page that exists: a built page, or a file (and heading) in the repo", () => {

@@ -17,7 +17,10 @@
  *   /research       the page
  *   /research.md    the same list as Markdown, for agents
  *
- * No script, no tracking: the page is HTML and the site's stylesheet.
+ * The whole list is in the HTML. One small script (site/research.js) adds the
+ * search, the type and status filters and "Show all": it hides entries only
+ * after it runs, so crawlers, agents and readers without JavaScript see every
+ * entry. No tracking, no storage; a filtered view lives in the URL query.
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
@@ -39,6 +42,22 @@ export const PURPOSE = "Rules decide. Every study is registered before it runs, 
 /** The entry types and study statuses, in the words the page uses. */
 export const TYPES = ["Study", "Result", "Case study", "Post"];
 export const STATUSES = ["Registered", "Running", "Result", "Draft"];
+
+/** The filter chips: label, the entry type it matches, its URL value. */
+export const FILTERS = [
+  { label: "Studies", type: "Study", key: "study" },
+  { label: "Results", type: "Result", key: "result" },
+  { label: "Case studies", type: "Case study", key: "case-study" },
+  { label: "Posts", type: "Post", key: "post" },
+];
+/**
+ * Whether an entry is in a filter. "Results" holds every entry with a result:
+ * a result published on its own, and a study whose status is Result.
+ */
+export const inFilter = (e, f) => e.type === f.type || (f.type === "Result" && e.status === "Result");
+
+/** How many entries the page shows before "Show all" (the script applies it). */
+export const FIRST = 6;
 
 /**
  * A study's status from its Status text. Draft wins: a study that says it is
@@ -115,29 +134,27 @@ const RESULTS = {
     evidence: ["H1 holds; H2 fails, with the whole interval below −0.02.", "`--giants` keeps Penthera-first as its default."],
   },
   E17: {
-    headline: "E17: no network calls and the same answer twice, on macOS and Ubuntu",
-    href: "bench/offline/RESULTS.md",
-    evidence: ["no network at run time, and the same result every time, also with the network unplugged. Tested on macOS and Ubuntu (E17)."],
+    headline: "E17: the registered run on macOS and Ubuntu made no outside connection and gave the same result, for every command in scope",
+    summary: "URL scans are covered only with --offline: without it, a URL scan downloads the Retire.js database. git runs outside the guard.",
+    href: "bench/offline/RESULTS.md#registered-run-28-oct-2026",
+    evidence: ["H1 holds for every command in scope", "on either platform", "URL scans are covered only with `--offline`.", "`git` is not guarded.", "no network at run time, and the same result every time, also with the network unplugged. Tested on macOS and Ubuntu (E17)."],
+    // A later run of the same study: a dated note on the study, not an entry of its own.
+    notes: [
+      {
+        date: "2026-10-29", text: "Re-run 29 Oct with the exact-path normaliser: verdict unchanged.",
+        href: "bench/offline/RESULTS.md#deviation-the-normaliser-29-oct-2026",
+        evidence: ["The verdict did not change.", "the pattern removed three fields that are analysis output", "Ubuntu (GitHub Actions, Node 22", "the same result."],
+      },
+    ],
   },
 };
 
-/** Results published on their own date: each run and each logged deviation. */
-const RESULT_ENTRIES = [
-  {
-    date: "2026-10-28", study: "E17",
-    headline: "E17 registered run: no outside connection and the same result, for every command in scope, on macOS and Ubuntu",
-    summary: "URL scans are covered only with --offline: without it, a URL scan downloads the Retire.js database. git runs outside the guard.",
-    href: "bench/offline/RESULTS.md#registered-run-28-oct-2026",
-    evidence: ["H1 holds for every command in scope", "on either platform", "URL scans are covered only with `--offline`.", "`git` is not guarded."],
-  },
-  {
-    date: "2026-10-29", study: "E17",
-    headline: "E17 re-run with the exact-path normaliser: the verdict did not change",
-    summary: "The registered pattern also removed three analysis fields. The fix compares everything except four exact timestamp paths, and macOS and Ubuntu agree. Logged as a deviation.",
-    href: "bench/offline/RESULTS.md#deviation-the-normaliser-29-oct-2026",
-    evidence: ["The verdict did not change.", "the pattern removed three fields that are analysis output", "Ubuntu (GitHub Actions, Node 22", "the same result."],
-  },
-];
+/**
+ * Results published on their own date, apart from a study (a run of a study
+ * goes in its RESULTS notes instead, so each study appears once).
+ * @type {{ date: string, study: string, headline: string, summary: string, href: string, evidence: string[] }[]}
+ */
+const RESULT_ENTRIES = [];
 
 /** Case studies in docs/research/: dated, with the sentences each headline rests on. */
 const CASE_STUDIES = [
@@ -181,10 +198,31 @@ export const rankText = (v) => `${ord(v.us.rank)} of ${v.b.of}${tiedPhrase(v.iv)
 /** Short names for the four benchmarks, for headlines. */
 const SHORT = { secrets: "secrets", npm: "npm malware", pypi: "PyPI malware", library: "JS injection" };
 
-/** The E11b headline, from published.json: every rank with its interval. */
+/** "a", "a and b", "a, b and c". */
+const andList = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
+
+/**
+ * The E11b headline, from published.json, short: each rank as its interval
+ * ("tied 1st to 3rd", the words of tiedPhrase) or, when the interval is one
+ * place, the rank itself. Benchmarks with the same wording share it, and a
+ * shared last word is said once: "tied 1st to 3rd on npm and PyPI malware".
+ * The full "2nd of 10" ranks are on the featured card and /benchmarks.
+ */
 export function e11bHeadline(pub) {
-  const views = benchmarkViews(pub);
-  return `E11b: ${views.map((v) => `${rankText(v)}${tiedPhrase(v.iv) ? "," : ""} on ${SHORT[v.key] || v.c.label.toLowerCase()}`).join("; ")}`;
+  const groups = [];
+  for (const v of benchmarkViews(pub)) {
+    const rank = tiedPhrase(v.iv).replace(/^, /, "") || ord(v.us.rank);
+    const name = SHORT[v.key] || v.c.label.toLowerCase();
+    const last = groups.at(-1);
+    if (last?.rank === rank) last.names.push(name);
+    else groups.push({ rank, names: [name] });
+  }
+  const said = groups.map(({ rank, names }) => {
+    const tail = names[0].split(" ").at(-1);
+    const shared = names.length > 1 && names.every((n) => n.includes(" ") && n.endsWith(` ${tail}`));
+    return `${rank} on ${shared ? `${andList(names.map((n) => n.slice(0, -tail.length - 1)))} ${tail}` : andList(names)}`;
+  });
+  return `E11b: ${said.join(", ")}`;
 }
 
 /**
@@ -202,6 +240,7 @@ export function researchEntries({ root, pub = null, posts = [], preregDir = join
     let r = RESULTS[p.id];
     if (p.id === "E11b" && pub?.benchmarks) r = { headline: e11bHeadline(pub), href: "/benchmarks" };
     if (r?.evidence) backed(root, r.href, r.evidence);
+    for (const n of r?.notes || []) backed(root, n.href, n.evidence);
     const status = studyStatus(p.status, Boolean(r));
     out.push({
       date: p.written || lastChanged(root, rel),
@@ -210,8 +249,12 @@ export function researchEntries({ root, pub = null, posts = [], preregDir = join
       id: p.id,
       title: p.title,
       // A headline only for a result; a draft never shows one.
-      ...(status === "Result" ? { headline: r.headline, result: r.href.startsWith("/") ? r.href : `${BLOB}/${r.href}` } : {}),
-      summary: SUMMARIES[p.id] || p.title,
+      ...(status === "Result" ? {
+        headline: r.headline,
+        result: r.href.startsWith("/") ? r.href : `${BLOB}/${r.href}`,
+        ...(r.notes ? { notes: r.notes.map((n) => ({ date: n.date, text: n.text, href: `${BLOB}/${n.href}` })) } : {}),
+      } : {}),
+      summary: (status === "Result" && r.summary) || SUMMARIES[p.id] || p.title,
       href: `${BLOB}/${rel}`,
       source: rel,
     });
@@ -267,18 +310,49 @@ function item(e) {
   const head = e.headline || e.title;
   const more = e.type === "Study" && e.result ? ` <a class="rs-more" href="${esc(e.result)}">Read the result</a>` : "";
   const sub = e.type === "Study" && e.headline ? `<p class="rs-sub">${esc(e.title)}</p>` : "";
-  return `      <li class="rs-item" data-type="${esc(e.type)}"${e.status ? ` data-status="${esc(e.status)}"` : ""}>
+  const notes = (e.notes || []).map((n) => `<p class="rs-note">${esc(n.text)} <a class="rs-more" href="${esc(n.href)}">Read the re-run</a></p>`).join("");
+  const filters = FILTERS.filter((f) => inFilter(e, f)).map((f) => f.key).join(" ");
+  return `      <li class="rs-item" data-type="${esc(e.type)}" data-filters="${filters}"${e.status ? ` data-status="${esc(e.status)}"` : ""}>
         <p class="rs-date">${e.date ? `<time datetime="${e.date}">${shortDate(e.date)}</time>` : "Undated"}</p>
         <div class="rs-body">
           <p class="rs-tags">${tags}</p>
           <h3><a href="${esc(e.href)}">${text(head)}</a></h3>
-          ${sub}<p class="rs-sum">${text(e.summary)}${more}</p>
+          ${sub}<p class="rs-sum">${text(e.summary)}${more}</p>${notes}
         </div>
       </li>`;
 }
 
 /** /research as HTML. */
-export function researchHtml(entries, { origin, pub = null, styles = "/styles.css", theme = "/theme.js", blog = false }) {
+/**
+ * The search, the filter chips and the result count. Marked data-js, so the
+ * stylesheet hides them until a script runs; the list itself never depends on
+ * them.
+ */
+function tools(entries) {
+  const chip = (attr, value, label, n, on = false) => `<button type="button" class="rs-chip" ${attr}="${value}" aria-pressed="${on}">${esc(label)} <span class="rs-n">${n}</span></button>`;
+  const types = FILTERS.map((f) => [f, entries.filter((e) => inFilter(e, f)).length]).filter(([, n]) => n);
+  const studies = entries.filter((e) => e.type === "Study");
+  const statuses = STATUSES.map((s) => [s, studies.filter((e) => e.status === s).length]).filter(([, n]) => n);
+  return `    <div class="rs-tools" id="rs-tools" data-js data-first="${FIRST}">
+      <form class="rs-search" role="search" action="/research" method="get">
+        <label for="rs-q">Search titles, summaries and study IDs</label>
+        <div class="rs-field">
+          <input id="rs-q" name="q" type="search" autocomplete="off" spellcheck="false" placeholder="E17, secrets, malware" aria-describedby="rs-count">
+          <button type="button" class="rs-clear" hidden>Clear</button>
+        </div>
+      </form>
+      <div class="rs-chips" role="group" aria-label="Filter by type">
+        ${[chip("data-filter", "", "All", entries.length, true), ...types.map(([f, n]) => chip("data-filter", f.key, f.label, n))].join("\n        ")}
+      </div>
+      <div class="rs-chips rs-chips-status" role="group" aria-label="Filter studies by status" hidden>
+        <span class="rs-chips-k" aria-hidden="true">Status</span>
+        ${[chip("data-status", "", "Any status", studies.length, true), ...statuses.map(([s, n]) => chip("data-status", s.toLowerCase(), s, n))].join("\n        ")}
+      </div>
+      <p class="rs-count" id="rs-count" aria-live="polite"></p>
+    </div>`;
+}
+
+export function researchHtml(entries, { origin, pub = null, styles = "/styles.css", theme = "/theme.js", script = "/research.js", blog = false }) {
   const url = `${origin}/research`;
   const count = (t) => entries.filter((e) => e.type === t).length;
   const tally = TYPES.map((t) => [t, count(t)]).filter(([, n]) => n).map(([t, n]) => `${n} ${({ Study: ["study", "studies"], Result: ["result", "results"], "Case study": ["case study", "case studies"], Post: ["post", "posts"] })[t][n === 1 ? 0 : 1]}`).join(" · ");
@@ -314,6 +388,7 @@ export function researchHtml(entries, { origin, pub = null, styles = "/styles.cs
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="${styles}">
   <script src="${theme}"></script>
+  <script src="${script}" defer></script>
   ${ld}
 </head>
 <body>
@@ -324,9 +399,12 @@ export function researchHtml(entries, { origin, pub = null, styles = "/styles.cs
     <p class="rs-tally">${esc(tally)}. Statuses: Registered, Running, Result, Draft. A draft is not registered.</p>
 ${featured(pub)}
     <h2 class="rs-list-title" id="rs-list">Every study, result and note, newest first</h2>
-    <ol class="rs-list" aria-labelledby="rs-list">
+${tools(entries)}
+    <ol class="rs-list" id="rs-items" aria-labelledby="rs-list">
 ${entries.map(item).join("\n")}
     </ol>
+    <p class="rs-none" hidden>Nothing matches. <button type="button" class="rs-reset">Clear the search and filters</button></p>
+    <p class="rs-all" data-js hidden><button type="button" class="btn-steel" aria-controls="rs-items">Show all ${entries.length}</button></p>
     <p class="rs-how">A study is registered by the commit that merges its protocol, and the protocol lists any data seen before that. Changes after that are logged in its deviations section, with the date and the reason. Everything here is read from <a href="${REPO}/tree/main/docs/research">docs/research</a>, <a href="${REPO}/tree/main/bench">bench</a> and the blog when the site is built.</p>
     ${siteFoot({ blog })}
   </main>
@@ -341,7 +419,8 @@ export function researchMarkdown(entries, { origin, pub = null }) {
   const bench = pub?.benchmarks
     ? `## Featured: the public benchmark (${pub.date})\n\nPenthera and ${fieldTools(pub)} free security tools, scored once on the sealed half of four public datasets ([all four](${origin}/benchmarks.md)):\n\n${benchmarkViews(pub).map((v) => `- ${v.c.label}, ${v.c.dataset.short}: ${rankText(v)}, ${v.c.scoreName} ${n2(v.us.score)}`).join("\n")}\n\nWhere a range follows the rank, Penthera's rank fell in that range in 95% of bootstrap redraws.\n\n`
     : "";
-  const line = (e) => `- ${e.date || "Undated"} · ${e.type}${e.id ? ` ${e.id}` : ""}${e.status ? ` · ${e.status}` : ""}: [${e.headline || e.title}](${abs(e.href)}). ${e.summary}`;
+  const extra = (e) => `${e.result ? ` [Result](${abs(e.result)}).` : ""}${(e.notes || []).map((n) => ` ${n.text} [Re-run](${n.href}).`).join("")}`;
+  const line = (e) => `- ${e.date || "Undated"} · ${e.type}${e.id ? ` ${e.id}` : ""}${e.status ? ` · ${e.status}` : ""}: [${e.headline || e.title}](${abs(e.href)}). ${e.summary}${extra(e)}`;
   return `# Penthera research
 
 > ${PURPOSE}

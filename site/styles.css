@@ -1209,6 +1209,51 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .rs .rs-more { margin-left: 4px; font-family: var(--px); font-size: 12px; white-space: nowrap; }
 .rs .rs-how { margin-top: 64px; max-width: 72ch; font-size: 14px; color: var(--text-3); }
 
+/* /research: search, filter chips and "Show all" (site/research.js). Hidden
+ * until the script runs (data-js), so the list alone is the page without it. */
+.rs .rs-tools { margin-top: 28px; display: grid; gap: 14px; max-width: 760px; }
+.rs .rs-search { margin: 0; display: grid; gap: 8px; }
+.rs .rs-search label { font-family: var(--px); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-3); }
+.rs .rs-field { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.rs .rs-field input {
+  min-height: 52px; min-width: 0; padding: 0 16px; margin: 0;
+  font: 16px / 1 var(--px); letter-spacing: 0.02em; color: var(--text-1);
+  background: var(--ground); border: 1px solid var(--frame); border-radius: 0;
+  -webkit-appearance: none; appearance: none;
+}
+.rs .rs-field input::placeholder { color: var(--text-3); }
+.rs .rs-field input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.rs .rs-field input:focus-visible { outline: 2px solid var(--focus); outline-offset: 0; }
+.rs .rs-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.rs .rs-chip, .rs .rs-clear, .rs .rs-reset {
+  display: inline-flex; align-items: center; gap: 8px; min-height: var(--target); margin: 0; padding: 0 14px; cursor: pointer;
+  border: 1px solid rgba(var(--ink-rgb), 0.26); border-radius: 0;
+  font-family: var(--sans); font-size: 15px; line-height: 1.1; color: var(--text-1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, calc(var(--lit) * 1.6)), rgba(var(--ink-rgb), 0.04) 52%, rgba(0, 0, 0, var(--shade)));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, calc(var(--lit) * 3)), 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition: border-color 120ms, transform var(--press) var(--out);
+}
+.rs .rs-clear { min-height: 52px; padding: 0 18px; font-family: var(--px); font-size: 14px; }
+.rs .rs-chip:hover, .rs .rs-clear:hover, .rs .rs-reset:hover { border-color: var(--frame); }
+.rs .rs-chip:active, .rs .rs-clear:active, .rs .rs-reset:active { transform: scale(0.97); }
+.rs .rs-chip[aria-pressed="true"] {
+  border-color: rgba(255, 255, 255, 0.4); color: #fff;
+  background: linear-gradient(180deg, #5a5aff 0%, #0000ed 55%, #0000b8 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 6px 18px -8px rgba(0, 0, 237, 0.8);
+}
+.rs .rs-n { font-family: var(--px); font-size: 12px; opacity: 0.72; }
+.rs .rs-chips-status { align-items: center; }
+.rs .rs-chips-k { margin-right: 4px; font-family: var(--px); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-3); }
+.rs .rs-chips-status .rs-chip { min-height: 38px; padding: 0 12px; font-size: 14px; }
+.rs .rs-count { margin: 0; font-family: var(--px); font-size: 13px; color: var(--text-3); }
+.rs .rs-note { margin-top: 8px; font-family: var(--px); font-size: 12px; line-height: 1.5; color: var(--text-2); }
+.rs .rs-none { margin-top: 0; max-width: 30ch; font-family: var(--display); font-size: clamp(22px, 2.6vw, 30px); line-height: 1.15; letter-spacing: -0.02em; color: var(--text-1); }
+.rs .rs-none .rs-reset { margin-top: 16px; display: flex; letter-spacing: 0; }
+.rs .rs-all { margin-top: 40px; }
+.rs .rs-all .btn-steel { border: 0; border-radius: 0; cursor: pointer; color: #0a0a0a; }
+@media (max-width: 479px) { .rs .rs-all .btn-steel { display: flex; width: 100%; justify-content: center; } }
+@media (prefers-reduced-motion: reduce) { .rs .rs-chip, .rs .rs-clear, .rs .rs-reset { transition: none; } }
+
 /* Consent before a check: a heavy blur over the page, the terms in plain
  * words, and slide to scan, after the first iPhone's slide to unlock. The
  * track is a brushed plate; the thumb a square key; the label shimmers. */

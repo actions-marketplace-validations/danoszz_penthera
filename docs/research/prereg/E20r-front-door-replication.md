@@ -9,13 +9,13 @@
 | Conflict of interest | The PI maintains Penthera, and the instrument is its live check. The study serves Penthera's interest in showing why such checks matter. See § 8 |
 | Data collected before registration | The E20 results of 30 Oct 2026 are known, and every prediction below was written after seeing them. The new cohorts are unseen. The new instrument is tested on loopback only |
 | Independent review | AI review of the E20 draft (figures, statistics), 30 Oct 2026. No human review |
-| Vantage point | Rented server: Hetzner Cloud, Falkenstein, `research.penthera.org`, 2.31.141.178, IPv4 only. The address is published. The maintainer's home connection is not used |
+| Vantage point | Pass 1: rented server: Hetzner Cloud, Falkenstein, `research.penthera.org`, 2.31.141.178, IPv4 only. Pass 2: the Source address row, Amendment 2. The address is published. The maintainer's home connection is not used |
 | Runs | Pass 1 no earlier than 12 hours after the updated study page is live, pass 2 seven days later |
 | Amendment | **One pass only.** Amendment 1 (30 Oct 2026, before any data) replaces every mention of pass 2 below. See the end of this file |
 | Amendment 2 | **Draft.** Not adopted. E20-R2, a corrected replication after the pass 1 data was seen. See the end of this file. The runner refuses a pilot or pass 2 until this row says Adopted |
 | Source address | `178.104.243.225` |
 | Prior opt-outs SHA-256 | `e25d88b24aa1d4122cd78e65af9c8febfd9f7309959ae1ae89446ccc90b07126` (`prior-optouts.txt`, 95 sites) |
-| Frozen classifier SHA-256 | `a1d9abe2c964b02caf743d10a4af9dc995cc2471b11aaef9aaeef892af286d85` (`bench/front-door/classify.mjs`) |
+| Frozen classifier SHA-256 | `d7461d44cb678fd1f5a3503f859ab8f39798df47a2df33a6ba64fa454e55f9a8` (`bench/front-door/classify.mjs`) |
 | Public Suffix List SHA-256 | `d3e6243b51695327984abb3e2a5aa7077096867f75121e031e6a5a3840ca8bcd` (commit `9dfbe81931367b3f0af21035c36ae7eeb830dd88`, fetched 30 Oct 2026, private suffixes included) |
 | Registration commit | The commit that merges this file to `main` |
 | T1k list SHA-256 | `d670a3c1910fe7baa4883dcb8320b1ec99d7d29f9d22954b9288ae678540674e` (`tranco-ZJ8PG-top1000.csv`) |
@@ -445,10 +445,12 @@ of a block. Sites that refused in pass 1 are visited once more on that basis.
 4. **Robots at every origin (RFC 9309).** robots.txt is read at each new origin, up to 5
    redirects and 500 KiB, and the path plus search of each hop is checked against it,
    with a matcher that uses no regex. A 2xx is parsed. A 4xx means no rules. A 5xx, or a 429, which the RFC counts as 4xx,
-   stops the visit as `robots_unavailable`. So do a spent budget, a compressed file, a
+   stops the visit as `robots_unavailable`. So do a spent budget, a 3xx with no Location,
+   a compressed file, a
    file cut off at the cap, and a file with NUL bytes or a UTF-16 mark, because none of
-   them can be read as rules. CR, LF and CRLF all end a line, and rules compare in
-   percent-encoded form. A file that can't be reached ends the visit with the outcome the homepage would have given: `not_found`,
+   them can be read as rules. CR, LF and CRLF all end a line, a `User-agent` name ends at a
+   slash or a space, and rule and path compare in one percent-encoded form (RFC 9309
+   § 2.2.2). A malformed escape stays literal, so a path can't dodge a rule by it. A file that can't be reached ends the visit with the outcome the homepage would have given: `not_found`,
    `timeout`, `unreachable`, `tls_invalid` or `not_public`. Pass 1 went on in all these
    cases, and 70 of its graded sites had a 5xx or no robots answer, so some sites drop out,
    and the count is reported.
@@ -456,16 +458,19 @@ of a block. Sites that refused in pass 1 are visited once more on that basis.
    before any request reaches it, for robots.txt redirects too. A redirect to a literal
    IPv6 address stops, so one published IPv4 accounts for every request. A hop back into
    an origin whose robots.txt failed stops, so a failed request isn't repeated. A redirect
-   into another organization that opted out stops as `redirect_opted_out`, and the listed
-   site's DNS is still read. Each record lists the hosts it requested.
-6. **Fallbacks.** A name that doesn't resolve gets one try at `www.`, and a host where
-   HTTPS gets no answer, or fails its certificate, gets one try over HTTP. Unlike pass 1,
-   these run only when nothing from the listed origin has answered. A reset is not a
-   fallback case, because it may be a refusal. § 5's "no retries" meant the same request
-   isn't repeated. Pass 1 also ran both fallbacks, and neither was stated before.
+   into another organization that opted out stops as `redirect_opted_out`, or as
+   `redirect_disallow_path` when its rules cover that path, and the listed site's DNS is
+   still read, and it stays eligible. Each record lists the hosts it requested.
+6. **Fallbacks.** A name that doesn't resolve gets one try at `www.`, and a host where the
+   HTTPS connection is refused or unreachable, or fails its certificate or handshake, gets
+   one try over HTTP. Unlike pass 1, these run only when nothing from the listed origin has
+   answered. A reset is not a fallback case, because it may be a refusal, and neither is a
+   timeout, as in pass 1. § 5's "no retries" meant the same request isn't repeated. Pass 1
+   also ran both fallbacks, and neither was stated before.
 7. **TLS.** `tls_invalid` stays its own outcome, reported apart from other failures, with
-   the reason code, also when plain HTTP then fails. When HTTP answered, the record keeps
-   why HTTPS failed.
+   the reason code, also when plain HTTP then fails. A failed handshake is `tls_handshake`.
+   When HTTP answered, the record keeps why HTTPS failed. Each error keeps the system's
+   code, so a resolver failure can be told from a name that doesn't exist.
 8. **Hosts.** Each record stores listed host, final host, listed organization and final
    organization apart, with a redirect class: none, same organization, other organization. The
    same list decides whether two names are one site: `www.example.com` is `example.com`, and
@@ -482,7 +487,8 @@ of a block. Sites that refused in pass 1 are visited once more on that basis.
    read** for a site on the exclusion list, removed, dropped as a pilot site or an earlier
    opt-out, a `NOT_A_HOMEPAGE` host, or a site whose robots.txt opts out or disallows the
    homepage. **It is read** when the stop was ours or someone else's: `robots_unavailable`,
-   `exclusion_redirect`, `ipv6_literal` and `redirect_opted_out`. Each query keeps its exact
+   `exclusion_redirect`, `ipv6_literal`, `redirect_opted_out` and `redirect_disallow_path`.
+   Each query keeps its exact
    name, type and result, for every CAA ancestor too: an answer, NXDOMAIN, NODATA or a resolver
    failure. A resolver failure is unknown, never a failed check.
 10. **Mail, frozen here.**
@@ -629,7 +635,9 @@ a third adjudicator.** The figures are reported as checked by one person.
 - Pilot sites are dropped for good from pass 2 visits and analyses, and counted.
 - **Stop rules.** The run does not go on while any of these holds, and `pilot-report.mjs` prints
   them: a privacy scrub miss, an internal error, under 90% of 2xx responses with an excerpt, an
-  eligible site without a DNS read, any site over 20 requests, or any hop to an excluded host.
+  eligible site without a DNS read, any site over 20 requests, any hop to a host on any of the
+  four skip lists, under half of eligible sites graded, over 20% of eligible sites with a
+  resolver failure, or no 2xx response at all.
   Also stop on a complaint from a site owner or the provider, or if the source address isn't the
   registered one.
 - **Gate.** After the pilot, `pilot-report.mjs --seal` writes its result, bound to the pilot's manifest
@@ -637,6 +645,11 @@ a third adjudicator.** The figures are reported as checked by one person.
   passed under the code, protocol, suffix list and lists in force, and every round proves its text is
   gone. `npm run e20r:acceptance` injects each stop condition on loopback and shows pass 2 refused.
   Labels come after pass 2, so for them it shows that scoring refuses.
+- **An interrupted pilot.** Its sites count as used, by the list hash its manifest recorded at the
+  start. Its text is deleted, and the next round runs on other sites.
+- **An interrupted pass 2.** It isn't resumed or restarted, because a restart would visit sites
+  twice. What ran is reported as a partial run, with its coverage, and it decides no claim. A
+  new run needs a new registration.
 - **A pilot-driven rule change.** Update this amendment, re-freeze the hashes, and rerun the pilot
   as the next round, on other sites. Those sites leave pass 2 too. `--pilot-dropped` must hold
   exactly the sites of every finished round, checked against each manifest's hash.

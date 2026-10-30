@@ -607,6 +607,8 @@ describe("site story", () => {
     expect(page).toMatch(/In research<\/span> Checks your agents can call and pay for/);
     // The calculator and the budget go into the email, nowhere else.
     const js = readFileSync(join(out, "pro.js"), "utf8");
+    // The dock also carries data-h, so the page must select its own panels.
+    expect(js).toContain('document.querySelector(".pro-h[data-h]")');
     expect(js).not.toMatch(/\bfetch\(|XMLHttpRequest|sendBeacon|localStorage|document\.cookie/);
     expect(js).toContain("Budget a month:");
     const vercel = JSON.parse(readFileSync(join(ROOT, "vercel.json"), "utf8"));

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * E20-R runner: two passes over eleven fixed lists, from one published address.
- * Protocol: docs/research/prereg/E20R-front-door-replication.md.
+ * Protocol: docs/research/prereg/E20r-front-door-replication.md.
  *
  *   node bench/front-door/replicate.mjs --self-test
  *       Loopback only: visits tests/fixtures/mock-server.js.
@@ -31,7 +31,7 @@ import { evidenceOf } from "./classify.mjs";
 import { registrableDomain } from "../../src/utils/url.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-export const PREREG_R = join(ROOT, "docs", "research", "prereg", "E20R-front-door-replication.md");
+export const PREREG_R = join(ROOT, "docs", "research", "prereg", "E20r-front-door-replication.md");
 
 // § 3: cohort, list file, list format, and the label its hash has in the prereg.
 export const R_COHORTS = Object.freeze({

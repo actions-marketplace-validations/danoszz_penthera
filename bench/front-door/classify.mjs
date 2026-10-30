@@ -1,6 +1,6 @@
 /**
  * E20-R response classifier: a fixed, deterministic label for one homepage
- * response. Protocol: docs/research/prereg/E20R-front-door-replication.md § 4.2.
+ * response. Protocol: docs/research/prereg/E20r-front-door-replication.md § 4.2.
  * The signature list is frozen at registration; a change after that is a
  * deviation. No model decides a label (AGENTS.md rule 4).
  *

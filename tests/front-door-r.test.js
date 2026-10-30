@@ -4,11 +4,11 @@
  * synthetic records. Loopback only; nothing leaves the machine.
  */
 import { describe, it, expect } from "vitest";
-import { mkdtempSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { classify, cookieNames, evidenceOf, traitsOf, EXCERPT_BYTES } from "../bench/front-door/classify.mjs";
-import { authorizeR, mergeCohorts, readRemovals, runPass, shuffled, seeded, dnsProviders, selfTestR, aggregateR, R_COHORTS, ipv4Lookup, PREREG_R } from "../bench/front-door/replicate.mjs";
+import { authorizeR, mergeCohorts, readRemovals, recordedHashR, runPass, shuffled, seeded, dnsProviders, selfTestR, aggregateR, R_COHORTS, ipv4Lookup, PREREG_R } from "../bench/front-door/replicate.mjs";
 import { kappa, decide, combine, clusterDiff, pass, claims, traitTable, replicationAsE20, industryTable, CLAIMS_R, LEVEL } from "../bench/front-door/analyze-r.mjs";
 
 const tmp = () => mkdtempSync(join(tmpdir(), "e20r-"));
@@ -33,8 +33,11 @@ describe("E20-R guard", () => {
     expect(() => authorizeR({ ...good, excludeHash: "b".repeat(64) })).toThrow(/exclusion/);
     expect(() => authorizeR({ ...good, homepageOnlyHash: "b".repeat(64) })).toThrow(/homepage-only/);
   });
-  it("has no registered protocol in the repository yet", () => {
-    expect(existsSync(PREREG_R) && /\*\*Registered\./.test(readFileSync(PREREG_R, "utf8"))).toBe(false);
+  it("records a hash for every list in the protocol", () => {
+    const text = readFileSync(PREREG_R, "utf8");
+    for (const c of Object.keys(R_COHORTS)) expect(recordedHashR(text, `${c} list`)).toMatch(/^[0-9a-f]{64}$/);
+    expect(recordedHashR(text, "E20-R exclusion list")).toMatch(/^[0-9a-f]{64}$/);
+    expect(recordedHashR(text, "E20-R homepage-only list")).toMatch(/^[0-9a-f]{64}$/);
   });
   it("resolves IPv4 only", async () => {
     const answers = await ipv4Lookup("localhost", { all: true });

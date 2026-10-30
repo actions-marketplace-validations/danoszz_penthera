@@ -497,6 +497,10 @@ describe("site story", () => {
     expect(html()).toContain('<a href="/terms">Terms</a>');
   });
 
+  it("keeps /terms and /trust free of raw table pipes: their renderer has no tables", () => {
+    for (const page of ["terms.html", "trust.html"]) expect(readFileSync(join(out, page), "utf8"), page).not.toMatch(/<p>\|/);
+  });
+
   it("puts the live check first: a field, a button, a report region and a no-JavaScript route", () => {
     const hero = html().slice(html().indexOf('class="hero"'), html().indexOf('id="answer"'));
     expect(hero).toMatch(/<form class="scan" id="scan" data-scan novalidate>/);

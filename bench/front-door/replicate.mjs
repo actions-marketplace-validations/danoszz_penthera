@@ -1,14 +1,17 @@
 #!/usr/bin/env node
 /**
- * E20-R runner: two passes over nine fixed lists, from one published address.
+ * E20-R runner: two passes over ten fixed lists, from one published address.
  * Protocol: docs/research/prereg/E20R-front-door-replication.md.
  *
  *   node bench/front-door/replicate.mjs --self-test
  *       Loopback only: visits tests/fixtures/mock-server.js.
- *   node bench/front-door/replicate.mjs --pass 1|2 --registered E20R --lists <dir> --exclude <file> [--out <dir>]
+ *   node bench/front-door/replicate.mjs --pass 1|2 --registered E20R --lists <dir> --exclude <file> [--removals <file>] [--out <dir>]
  *       The registered pass. Refused unless the prereg says Registered and
  *       every list and the exclusion list match the hashes recorded there.
  *       Rate, order and sub-measures are fixed; no flag changes them.
+ *       --removals is the one list that may change after registration: a
+ *       domain per line, from owners who asked to be removed. It can only
+ *       take sites out, so it is not hashed.
  *
  * Reuses the E20 visit (run.mjs): the requests and the grader are unchanged.
  * New per site: stored evidence and a response label (classify.mjs), and the
@@ -36,9 +39,10 @@ export const R_COHORTS = Object.freeze({
   "YC-new": { file: "yc-fall2026-summer2026-2026-10-29.csv", format: "yc" },
   "YC-25": { file: "yc-2025.csv", format: "yc" },
   "YC-old": { file: "yc-old.csv", format: "yc" },
+  "YC-scale": { file: "yc-scale.csv", format: "yc" },
   T10k: { file: "tranco-ZJ8PG-1k-10k-sample.csv", format: "tranco" },
   T100k: { file: "tranco-ZJ8PG-10k-100k-sample.csv", format: "tranco" },
-  EU: { file: "eu-indexes.csv", format: "yc" },
+  Europe: { file: "europe-indexes.csv", format: "yc" },
   SP500: { file: "sp500.csv", format: "yc" },
   "NL-Cbw": { file: "nl-cbw.csv", format: "yc", homepageOnly: true },
 });
@@ -126,6 +130,16 @@ export function authorizeR({ loopback, registered, pass, listHashes = {}, exclud
   if (!ex) throw new Error(`Refused: the prereg records no ${R_EXCLUSION_LABEL} SHA-256.`);
   if (ex !== excludeHash) throw new Error("Refused: the exclusion list does not match the prereg.");
   return { mode: "registered" };
+}
+
+/** Owners who asked to be removed: one domain per line, # comments, subdomains included. */
+export function readRemovals(text) {
+  const out = new Map();
+  for (const raw of String(text).split(/\r?\n/)) {
+    const d = raw.split("#")[0].trim().toLowerCase();
+    if (d) out.set(d, "removed");
+  }
+  return out;
 }
 
 /** § 5: IPv4 only, so one published address accounts for every request. */
@@ -238,8 +252,9 @@ async function main(args) {
   const lists = Object.fromEntries(Object.entries(R_COHORTS).map(([c, { format }]) => [c, readList(bytes[c].toString("utf8"), format)]));
   const rows = mergeCohorts(lists);
   const out = resolve(flag(args, "--out") || join(ROOT, "bench", "front-door", "results", `e20r-pass${pass}-${new Date().toISOString().replace(/[:.]/g, "-")}`));
+  const removals = flag(args, "--removals") ? readRemovals(readFileSync(flag(args, "--removals"), "utf8")) : new Map();
   const { aggregate: agg } = await runPass(rows, {
-    pass, out, exclude: readExclusions(excludeBytes.toString("utf8")),
+    pass, out, exclude: new Map([...readExclusions(excludeBytes.toString("utf8")), ...removals]),
     meta: { listSha256: Object.fromEntries(Object.entries(bytes).map(([c, b]) => [c, sha256(b)])), exclusionSha256: sha256(excludeBytes), startedFrom: process.version },
     onRecord: (r, k) => process.stderr.write(`\r${k + 1}/${rows.length} ${r.status.padEnd(9)}`),
   });

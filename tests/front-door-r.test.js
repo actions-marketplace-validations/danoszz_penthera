@@ -8,7 +8,7 @@ import { mkdtempSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { classify, cookieNames, evidenceOf, traitsOf, EXCERPT_BYTES } from "../bench/front-door/classify.mjs";
-import { authorizeR, mergeCohorts, runPass, shuffled, seeded, dnsProviders, selfTestR, aggregateR, R_COHORTS, ipv4Lookup, PREREG_R } from "../bench/front-door/replicate.mjs";
+import { authorizeR, mergeCohorts, readRemovals, runPass, shuffled, seeded, dnsProviders, selfTestR, aggregateR, R_COHORTS, ipv4Lookup, PREREG_R } from "../bench/front-door/replicate.mjs";
 import { kappa, decide, combine, clusterDiff, pass, claims, traitTable, CLAIMS_R, LEVEL } from "../bench/front-door/analyze-r.mjs";
 
 const tmp = () => mkdtempSync(join(tmpdir(), "e20r-"));
@@ -29,7 +29,7 @@ describe("E20-R guard", () => {
   it("refuses a draft protocol, a third pass, a changed list or exclusion list", () => {
     expect(() => authorizeR({ ...good, preregText: prereg("**Draft**") })).toThrow(/not Registered/);
     expect(() => authorizeR({ ...good, pass: 3 })).toThrow(/--pass/);
-    expect(() => authorizeR({ ...good, listHashes: { ...allHashes, EU: "b".repeat(64) } })).toThrow(/EU list/);
+    expect(() => authorizeR({ ...good, listHashes: { ...allHashes, Europe: "b".repeat(64) } })).toThrow(/Europe list/);
     expect(() => authorizeR({ ...good, excludeHash: "b".repeat(64) })).toThrow(/exclusion/);
   });
   it("has no registered protocol in the repository yet", () => {
@@ -107,9 +107,9 @@ describe("E20-R order and cohorts", () => {
     for (let i = 0; i < 100; i++) { const v = a(); expect(v).toBe(b()); expect(v).toBeGreaterThanOrEqual(0); expect(v).toBeLessThan(1); }
   });
   it("visits a host on two lists once and counts it in both", () => {
-    const merged = mergeCohorts({ T1k: [{ host: "x.com", rank: 1, group: "com" }], EU: [{ host: "x.com", rank: 9, group: "DAX" }, { host: "y.de", rank: 2, group: "DAX" }] });
+    const merged = mergeCohorts({ T1k: [{ host: "x.com", rank: 1, group: "com" }], Europe: [{ host: "x.com", rank: 9, group: "DAX" }, { host: "y.de", rank: 2, group: "DAX" }] });
     expect(merged).toHaveLength(2);
-    expect(Object.keys(merged[0].cohorts)).toEqual(["T1k", "EU"]);
+    expect(Object.keys(merged[0].cohorts)).toEqual(["T1k", "Europe"]);
   });
   it("labels MX and NS providers without keeping the hostnames", async () => {
     const p = await dnsProviders("example.com", { mx: async () => [{ exchange: "aspmx.l.google.com." }], ns: async () => ["a.ns.cloudflare.com."] });
@@ -141,6 +141,15 @@ describe("E20-R order and cohorts", () => {
     } finally {
       await new Promise((r) => server.close(r));
     }
+  });
+  it("never visits a site whose owner asked to be removed", async () => {
+    const stub = () => Promise.reject(Object.assign(new Error("x"), { code: "ENODATA" }));
+    const removals = readRemovals("# asked by email\nExample.COM\n\n");
+    expect(removals.get("example.com")).toBe("removed");
+    const rows = mergeCohorts({ T1k: [{ host: "www.example.com", rank: 1, group: "com" }] });
+    const { records, aggregate: agg } = await runPass(rows, { pass: 1, out: tmp(), loopbackPort: 9, delayMs: 0, exclude: removals, dns: { mx: stub, ns: stub } });
+    expect(records[0]).toMatchObject({ status: "excluded", reason: "exclusion_list", category: "removed" });
+    expect(agg.cohorts.T1k.exclusionCategories.removed).toBe(1);
   });
   it("folds small provider groups into other", () => {
     const records = Array.from({ length: 21 }, (_, i) => ({ host: `s${i}.example`, status: "ok", score: 50, checks: [], cohorts: { T1k: { rank: i, group: "example" } }, dnsProviders: { mx: i === 0 ? "rare" : "google", ns: "other" } }));

@@ -1,0 +1,149 @@
+#!/usr/bin/env node
+/**
+ * E20-R analysis: the fifteen claims of the protocol (§ 6, § 7), from the
+ * private raw files of both passes and of E20. Aggregates only; no site is
+ * named in the output.
+ *
+ *   node bench/front-door/analyze-r.mjs --pass1 <raw.jsonl> --pass2 <raw.jsonl> --e20 <tranco/raw.jsonl> <yc/raw.jsonl> [--out analysis.json]
+ *
+ * Intervals are a cluster bootstrap over organizations, by registrable domain
+ * of the final host. HTTP claims must hold on both estimands: S (every graded
+ * site) and R (sites labeled `page`). Otherwise they are view-dependent.
+ */
+import { readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { registrableDomain } from "../../src/utils/url.js";
+import { seeded } from "./replicate.mjs";
+
+export const CLAIMS_R = 15;
+export const LEVEL = 1 - 0.05 / CLAIMS_R;
+export const RESAMPLES = 20_000;
+export const SEED = 2020;
+export const SESOI = 0.10;
+export const KAPPA_CHECKS = Object.freeze(["https+hsts", "csp", "framing", "nosniff", "referrer", "permissions", "spf+dmarc", "caa", "security-txt"]);
+const DNS_CHECKS = new Set(["spf+dmarc", "caa", "spf", "dmarc"]);
+const STRATUM_A = new Set(["cloudflare", "akamai"]);
+
+const get = (r, id) => { const c = (r.checks || []).find((x) => x.id === id); return !c || c.weight === 0 ? undefined : Boolean(c.passed); };
+/** Pass or fail for a check id, undefined when it could not run. */
+export function pass(r, id) {
+  if (id === "https+hsts") { const h = get(r, "https"); return h === undefined ? undefined : h && Boolean(get(r, "hsts")); }
+  if (id === "spf+dmarc") { const a = get(r, "spf"), b = get(r, "dmarc"); return a === undefined || b === undefined ? undefined : a && b; }
+  return get(r, id);
+}
+const share = (rows, id) => { let k = 0, n = 0; for (const r of rows) { const p = pass(r, id); if (p !== undefined) { n++; if (p) k++; } } return n ? k / n : NaN; };
+const org = (r) => registrableDomain(r.finalHost || r.host);
+const pct = (sorted, q) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor(q * sorted.length)))];
+const groups = (rows) => Object.values(rows.reduce((m, r) => ((m[org(r)] ||= []).push(r), m), {}));
+
+/** B minus A with a cluster-bootstrap interval, resampling organizations within each cohort. */
+export function clusterDiff(a, b, id, { level = LEVEL, resamples = RESAMPLES, seed = SEED } = {}) {
+  // Each organization reduced to (passes, judged), so a resample is a sum.
+  const tally = (rows) => groups(rows).map((g) => { let k = 0, n = 0; for (const x of g) { const p = pass(x, id); if (p !== undefined) { n++; if (p) k++; } } return [k, n]; });
+  const ta = tally(a), tb = tally(b), r = seeded(seed), out = new Float64Array(resamples);
+  const draw = (t) => { let k = 0, n = 0; for (let i = 0; i < t.length; i++) { const c = t[Math.floor(r() * t.length)]; k += c[0]; n += c[1]; } return k / n; };
+  for (let i = 0; i < resamples; i++) out[i] = draw(tb) - draw(ta);
+  const sorted = [...out].sort((x, y) => x - y), tail = (1 - level) / 2;
+  return { diff: share(b, id) - share(a, id), ci: [pct(sorted, tail), pct(sorted, 1 - tail)], nA: a.length, nB: b.length };
+}
+
+/** Same rules as E20 § 6.5, with the smallest difference that matters on the interval. */
+export function decide([lo, hi], sign) {
+  if (sign > 0 ? lo > 0 : hi < 0) return "supported";
+  if (sign > 0 ? hi < 0 : lo > 0) return "refuted";
+  if (lo >= -SESOI && hi <= SESOI) return "no meaningful difference";
+  return "inconclusive";
+}
+
+/** § 2: an HTTP claim needs S and R to agree. */
+export function combine(s, r) {
+  if (s === "supported" && r === "supported") return "supported";
+  if (s === "refuted" && r === "refuted") return "refuted";
+  if (s !== r && (s === "supported" || r === "supported" || s === "refuted" || r === "refuted")) return "view-dependent";
+  return s;
+}
+
+/** Cohen's kappa for two paired label arrays. */
+export function kappa(x, y) {
+  const n = x.length;
+  if (!n) return NaN;
+  const labels = [...new Set([...x, ...y])];
+  let agree = 0;
+  for (let i = 0; i < n; i++) if (x[i] === y[i]) agree++;
+  const po = agree / n;
+  const pe = labels.reduce((s, l) => s + (x.filter((v) => v === l).length / n) * (y.filter((v) => v === l).length / n), 0);
+  return pe === 1 ? 1 : (po - pe) / (1 - pe);
+}
+
+/** Bootstrap lower bound for a statistic of paired sites, resampling organizations. */
+function lowerBound(pairs, stat, { level = LEVEL, resamples = 2000, seed = SEED } = {}) {
+  const g = Object.values(pairs.reduce((m, p) => ((m[org(p[0])] ||= []).push(p), m), {})), r = seeded(seed), out = [];
+  for (let i = 0; i < resamples; i++) { const s = []; for (let k = 0; k < g.length; k++) s.push(...g[Math.floor(r() * g.length)]); out.push(stat(s)); }
+  out.sort((a, b) => a - b);
+  return pct(out, (1 - level) / 2);
+}
+
+const median = (a) => { const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const load = (f) => readFileSync(f, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((r) => r.status === "ok");
+const inCohort = (rows, ...names) => rows.filter((r) => names.some((n) => r.cohorts?.[n]));
+const isPage = (r) => r.evidence?.class?.label === "page";
+const isRefused = (r) => ["challenge", "block"].includes(r.evidence?.class?.label);
+
+/** One difference claim, on S alone for a DNS check, on S and R otherwise. */
+export function diffClaim(id, label, a, b, check, sign, opts) {
+  const s = clusterDiff(a, b, check, opts);
+  const sDecision = decide(s.ci, sign);
+  if (DNS_CHECKS.has(check)) return { id, label, check, predicted: sign > 0 ? "higher" : "lower", S: { ...s, decision: sDecision }, decision: sDecision };
+  const r = clusterDiff(a.filter(isPage), b.filter(isPage), check, opts);
+  const rDecision = decide(r.ci, sign);
+  return { id, label, check, predicted: sign > 0 ? "higher" : "lower", S: { ...s, decision: sDecision }, R: { ...r, decision: rDecision }, decision: combine(sDecision, rDecision) };
+}
+
+/** The fifteen claims. `e20` maps host to the E20 record of that site. */
+export function claims(p1, p2, e20, opts) {
+  const T = inCohort(p1, "T1k"), Y = inCohort(p1, "YC-new"), Rc = inCohort(p1, "YC-new", "YC-25"), H = inCohort(p1, "T100k"), O = inCohort(p1, "YC-old");
+  const edge = (rows, a) => rows.filter((r) => STRATUM_A.has(r.platform?.edge) === a);
+  const out = [
+    diffClaim("C1", "YC-new minus T1k", T, Y, "csp", -1, opts),
+    diffClaim("C2", "YC-new minus T1k", T, Y, "spf+dmarc", -1, opts),
+    diffClaim("C3", "YC-new minus T1k, Cloudflare and Akamai", edge(T, true), edge(Y, true), "https+hsts", -1, opts),
+    diffClaim("C4", "YC-new minus T1k, other edges", edge(T, false), edge(Y, false), "https+hsts", +1, opts),
+    diffClaim("C5", "T100k minus T1k", T, H, "csp", -1, opts),
+    diffClaim("C6", "T100k minus T1k", T, H, "spf+dmarc", -1, opts),
+    diffClaim("C7", "YC-recent minus T100k", H, Rc, "spf+dmarc", +1, opts),
+    diffClaim("C8", "YC-recent minus T100k", H, Rc, "https+hsts", +1, opts),
+    diffClaim("C9", "YC-recent minus T100k", H, Rc, "csp", -1, opts),
+    diffClaim("C10", "YC-old minus YC-new", Y, O, "spf+dmarc", +1, opts),
+    diffClaim("C11", "YC-old minus YC-new", Y, O, "csp", +1, opts),
+  ];
+  // C12, C13: paired on sites graded in E20 and in pass 1; E20 stored only the status.
+  for (const [id, cohort] of [["C12", "T1k"], ["C13", "YC-new"]]) {
+    const pairs = inCohort(p1, cohort).filter((r) => e20.has(r.host)).map((r) => [r, e20.get(r.host)]);
+    const stat = (s) => s.filter(([r]) => isRefused(r)).length / s.length - s.filter(([, e]) => e.httpStatus === 403).length / s.length;
+    const lo = pairs.length ? lowerBound(pairs, stat, opts) : NaN;
+    out.push({ id, label: `server refusals minus E20 403s, ${cohort}`, n: pairs.length, diff: pairs.length ? stat(pairs) : NaN, lower: lo, decision: lo > 0 ? "supported" : "inconclusive" });
+  }
+  // C14, C15: agreement between the passes.
+  const byHost = new Map(p2.map((r) => [r.host, r]));
+  const pairs = p1.filter((r) => byHost.has(r.host) && (r.cohorts?.T1k || r.cohorts?.["YC-new"])).map((r) => [r, byHost.get(r.host)]);
+  const checkKappas = (s) => median(KAPPA_CHECKS.map((id) => { const v = s.filter(([a, b]) => pass(a, id) !== undefined && pass(b, id) !== undefined); return kappa(v.map(([a]) => pass(a, id)), v.map(([, b]) => pass(b, id))); }).filter(Number.isFinite));
+  const labelKappa = (s) => kappa(s.map(([a]) => a.evidence?.class?.label), s.map(([, b]) => b.evidence?.class?.label));
+  const lo14 = pairs.length ? lowerBound(pairs, checkKappas, opts) : NaN, lo15 = pairs.length ? lowerBound(pairs, labelKappa, opts) : NaN;
+  out.push({ id: "C14", label: "median kappa between passes", n: pairs.length, kappa: pairs.length ? checkKappas(pairs) : NaN, lower: lo14, threshold: 0.8, decision: lo14 >= 0.8 ? "supported" : "inconclusive" });
+  out.push({ id: "C15", label: "label kappa between passes", n: pairs.length, kappa: pairs.length ? labelKappa(pairs) : NaN, lower: lo15, threshold: 0.6, decision: lo15 >= 0.6 ? "supported" : "inconclusive" });
+  return out;
+}
+
+function main(args) {
+  const at = (n) => args[args.indexOf(n) + 1];
+  if (!args.includes("--pass1")) { console.error("Usage: analyze-r.mjs --pass1 <raw> --pass2 <raw> --e20 <tranco raw> <yc raw> [--out file]"); return 2; }
+  const i = args.indexOf("--e20");
+  const e20 = new Map([...load(args[i + 1]), ...load(args[i + 2])].map((r) => [r.host, r]));
+  const out = { experiment: "E20-R", level: LEVEL, resamples: RESAMPLES, claims: claims(load(at("--pass1")), load(at("--pass2")), e20) };
+  const text = JSON.stringify(out, null, 2) + "\n";
+  if (args.includes("--out")) writeFileSync(at("--out"), text); else process.stdout.write(text);
+  return 0;
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) process.exitCode = main(process.argv.slice(2));

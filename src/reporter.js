@@ -365,9 +365,9 @@ export function printReport(result, opts = {}) {
       const tag = needsReview ? c.dim(` [${f.confidence}]`) : "";
       const ai = f.alsoProposedBy?.length ? c.dim(" [also proposed by AI]") : "";
       const by = foundByText(f) ? c.dim(` [${foundByText(f)}]`) : "";
-      w(`  ${colorFn(label)}  ${f.title}${tag}${ai}${by}${f.fid ? c.dim(`  ${f.fid}`) : ""}`);
-      if (f.url)  w(`  ${" ".repeat(6)} ${c.dim(f.url + (f.line ? `:${f.line}` : "") + (f.lines?.length > 1 ? ` (+${f.lines.length - 1} more)` : ""))}${f.status ? c.dim(` \u2192 ${f.status}`) : ""}`);
-      if (f.description && opts.verbose) w(`  ${" ".repeat(6)} ${c.dim(f.description)}`);
+      w(`  ${colorFn(label)}  ${printable(f.title)}${tag}${ai}${by}${f.fid ? c.dim(`  ${f.fid}`) : ""}`);
+      if (f.url)  w(`  ${" ".repeat(6)} ${c.dim(printable(f.url) + (f.line ? `:${f.line}` : "") + (f.lines?.length > 1 ? ` (+${f.lines.length - 1} more)` : ""))}${f.status ? c.dim(` \u2192 ${f.status}`) : ""}`);
+      if (f.description && opts.verbose) w(`  ${" ".repeat(6)} ${c.dim(printable(f.description))}`);
     }
     w("");
   } else if (result.findings) {
@@ -504,6 +504,9 @@ function printInconclusiveLine(result, w, opts = {}) {
   }
 }
 
+/** File names and skill names reach titles: no terminal escapes from a scanned repo. */
+const printable = (s) => String(s).replace(/[\u0000-\u001f\u007f-\u009f]/g, "");
+
 /** An agents run that read no config has no grade: silence is not a pass. */
 function nothingToAssess(result) {
   return !!result.agents && result.agents.grade == null;
@@ -550,7 +553,7 @@ export function printFindings(findings) {
   });
   for (const f of sorted) {
     const label = (SEV_LABEL[f.severity] || "INFO").trim();
-    console.log(`[${label}] ${f.title}${f.url ? ` (${f.url})` : ""}`);
+    console.log(`[${label}] ${printable(f.title)}${f.url ? ` (${printable(f.url)})` : ""}`);
   }
 }
 
@@ -725,6 +728,8 @@ export function formatSarif(result) {
         executionSuccessful: true,
         startTimeUtc: result.timestamp,
         endTimeUtc: new Date().toISOString(),
+        // No result, so no alert: an empty run must still say it read nothing.
+        ...(nothingToAssess(result) ? { toolExecutionNotifications: [{ level: "warning", message: { text: result.agents.notChecked?.[0] || "Nothing to assess. This is not a clean result." } }] } : {}),
       }],
     }, ...(aiRun ? [aiRun] : []), ...toolRuns],
   };

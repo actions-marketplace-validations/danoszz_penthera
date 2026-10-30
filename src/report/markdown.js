@@ -77,7 +77,10 @@ export function formatMarkdownReport(result, opts = {}) {
   lines.push("");
 
   const total = findings.length;
-  if (total === 0) {
+  if (total === 0 && result.agents && result.agents.grade == null) {
+    lines.push("**Nothing to assess: no agent config was read. This is not a clean result.**");
+    lines.push("");
+  } else if (total === 0) {
     lines.push("**No security findings detected.**");
     lines.push("");
   } else {

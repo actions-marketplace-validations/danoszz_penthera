@@ -53,7 +53,8 @@ function inside(root, real) {
  * Resolve a tool's `path` inside the workspace roots. With `skillFile`, a
  * SKILL.md resolves to its folder. The check runs on the file's real path
  * first, so a link cannot pull a folder outside the roots into the scan.
- * @returns {{ real: string, root: string, display: string }}
+ * `named`: the caller pointed at something other than the root itself.
+ * @returns {{ real: string, root: string, display: string, named: boolean }}
  */
 export function confinePath(path, roots, { skillFile = false } = {}) {
   if (!roots.length) throw new ToolInputError("No workspace root is available. Start the server in your project folder or pass --root <dir>.");
@@ -72,8 +73,9 @@ export function confinePath(path, roots, { skillFile = false } = {}) {
     if (!skillFile) throw new ToolInputError(`${path} is not a directory. Pass the project folder.`);
     if (basename(real).toLowerCase() !== "skill.md") throw new ToolInputError(`${path} is not a directory or a SKILL.md file. Pass the project folder or the skill folder.`);
     real = dirname(real);
+    return { real, root, display: relative(root, real) || ".", named: true };
   }
-  return { real, root, display: relative(root, real) || "." };
+  return { real, root, display: relative(root, real) || ".", named: real !== root };
 }
 
 const IPV4 = /^\d{1,3}(?:\.\d{1,3}){3}$/;

@@ -5,7 +5,7 @@
  */
 import { parseArgs } from "node:util";
 import { resolve, dirname } from "node:path";
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, realpathSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { scanUrl } from "./scan-url.js";
 import { scanRepo } from "./scan-repo.js";
@@ -697,8 +697,11 @@ export async function run() {
         printError(`Not a folder or a SKILL.md file: ${agentsRoot}`);
         process.exit(2);
       }
+      // A folder the user named can be a skill. The working folder is a project
+      // scan, spelled `.` or not (the Action and CI pass $GITHUB_WORKSPACE).
+      const skillTarget = positionals[1] !== undefined && (target !== agentsRoot || realpathSync(target) !== realpathSync(process.cwd()));
       agentsRoot = target;
-      results.push(await scanAgents(agentsRoot, { home: opts.home, pin: opts.pin, onPhase: scanOpts.onPhase }));
+      results.push(await scanAgents(agentsRoot, { home: opts.home, pin: opts.pin, onPhase: scanOpts.onPhase, skillTarget }));
     }
 
     if (opts.machine) {

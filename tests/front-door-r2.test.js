@@ -3,22 +3,27 @@
  * are replaced in this file, so https, redirects and failures run with no socket.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import http from "node:http";
 import https from "node:https";
 import { EventEmitter } from "node:events";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
 import { gzipSync } from "node:zlib";
 import { classify, classifyRegistered, cookieNames, cspEvidence, evidenceOf, pageExcerpt, scrub, scrubMisses, signatureMatches, traitsOf, SOFT_MAX_CHARS } from "../bench/front-door/classify.mjs";
-import { authorize, exclusionFor, globMatch, percentForm, readExclusions, robotsBinary, robotsVerdict, visit } from "../bench/front-door/run.mjs";
+import { authorize, exclusionFor, globMatch, percentForm, platformOf, readExclusions, robotsBinary, robotsVerdict, visit } from "../bench/front-door/run.mjs";
 import { optedOut } from "../api/_lib/page.mjs";
-import { caaTree, dmarcReading, mergeCohorts, normalizeHost, readDomain, readHostList, readRemovals, runPass, unmatchedHosts, V2_LIMITS, visitInWorker } from "../bench/front-door/replicate.mjs";
-import { orgDomain, publicSuffix, PSL_VERSION, pslSha256 } from "../bench/front-door/psl.mjs";
-import { clusterDiff, combine, coverageBounds, decide, dnsCoverage, isEligible, standardizedDiff } from "../bench/front-door/analyze-r.mjs";
+import { caaTree, codeFiles, codeHash, dmarcReading, mergeCohorts, normalizeHost, readDomain, readHostList, readRemovals, runPass, unmatchedHosts, V2_LIMITS, visitInWorker } from "../bench/front-door/replicate.mjs";
+import { orgDomain, publicSuffix, PSL_VERSION, pslSha256, siteKey, siteOrg } from "../bench/front-door/psl.mjs";
+import { claims, clusterDiff, combine, coverageBounds, decide, diffClaim, dnsCoverage, e20Index, fisherExact, intervalOutcomes, isEligible, standardizedDiff, traitsByCohort } from "../bench/front-door/analyze-r.mjs";
 import { pilotReport, stopRules } from "../bench/front-door/pilot-report.mjs";
-import { blindSheet, drawSample, pruneExcerpt, stratumOf, weightedMetrics } from "../bench/front-door/validation-sample.mjs";
+import { blindSheet, drawSample, parseLabels, pruneExcerpt, rewriteRun, scoreLabels, stratumOf, weightedMetrics } from "../bench/front-door/validation-sample.mjs";
+import { runAcceptance } from "../bench/front-door/acceptance.mjs";
+import { passiveReport } from "../api/_lib/tier1.mjs";
+import { scoreOf } from "../api/_lib/grade.mjs";
 
 const realHttp = http.request, realHttps = https.request;
 const realServer = (route) => http.createServer((req, res) => {
@@ -148,6 +153,30 @@ describe("redirects and origins", () => {
     const lookup = async (h) => { if (h === "a.org") throw new Error("ENOTFOUND"); return [{ address: "93.184.216.34", family: 4 }]; };
     expect((await visit({ host: "a.org", cohorts: {} }, { strict: true, exclude, lookup, budgetMs: 200 })).status).not.toBe("ok");
   });
+  it("item 3: the study's visit reads no DNS, and the live check still does", async () => {
+    let asked = 0;
+    const dns = { resolveTxt: async () => { asked++; return []; }, resolveCaa: async () => { asked++; return []; } };
+    web = { "https://a.org/robots.txt": ROBOTS, "https://a.org/": HOME };
+    const target = new URL("https://a.org/");
+    await passiveReport(target, { lookup: look, dns, skipDns: true });
+    expect(asked).toBe(0);
+    await passiveReport(target, { lookup: look, dns });
+    expect(asked).toBeGreaterThan(0);
+    const r = await go({ "https://a.org/robots.txt": ROBOTS, "https://a.org/": HOME });
+    expect(r.checks.some((c) => ["spf", "dmarc", "caa"].includes(c.id))).toBe(false);
+  });
+  it("item 3: the pass adds the DNS checks back, so the score means what it did", async () => {
+    const server = realServer((_h, url) => (url === "/robots.txt" ? ROBOTS : HOME));
+    await new Promise((r) => server.listen(0, "127.0.0.1", r));
+    try {
+      const stub = () => Promise.reject(Object.assign(new Error("x"), { code: "ENODATA" }));
+      const { records } = await runPass(mergeCohorts({ T1k: [{ host: "a.selftest.example.com", rank: 1, group: "x" }] }), { pass: 2, out: mkdtempSync(join(tmpdir(), "e20r2-")), loopbackPort: server.address().port, delayMs: 0, dns: { mx: stub, ns: stub, resolveTxt: stub, resolveCaa: stub } });
+      const ids = records[0].checks.map((c) => c.id);
+      expect(ids).toEqual(expect.arrayContaining(["spf", "dmarc", "caa", "csp"]));
+      expect(records[0].score).toBe(scoreOf(records[0].checks));
+      expect(records[0].dns.listed.registeredChecks).toBeUndefined();
+    } finally { await new Promise((r) => server.close(r)); }
+  });
   it("records each host it requested", async () => {
     const r = await go({ "https://a.org/robots.txt": ROBOTS, "https://a.org/": HOME });
     expect(r.hops).toEqual(["a.org", "a.org", "a.org"]);
@@ -195,6 +224,9 @@ describe("robots.txt reading", () => {
     expect(r).toMatchObject({ status: "excluded", reason: "robots_unavailable" });
     expect(r.robots[0].binary).toBe(true);
     expect(log).not.toContain("https://a.org/");
+  });
+  it("item 11: the longest rule is measured in percent-encoded form", () => {
+    expect(robotsVerdict("User-agent: *\nDisallow: /caf%C3\nAllow: /café\n", "/caf%C3%A9")).toBe("allowed");
   });
   it("17: compares rules in percent-encoded form", async () => {
     expect(percentForm("/café")).toBe("/caf%C3%A9");
@@ -409,6 +441,10 @@ describe("the classifier", () => {
     expect(signatureMatches("error code: 1010").cloudflareCode).toBe("1010");
     expect(evidenceOf({ status: 403, headers: {}, body: "x" }).signatures.softChallenge).toBeDefined();
   });
+  it("item 6: the platform reading knows Akamai as the classifier does", () => {
+    for (const h of [{ server: "AkamaiGHost" }, { "x-akamai-transformed": "9" }, { "akamai-grn": "0.1" }]) expect(platformOf(h, "").edge).toBe("akamai");
+    expect(classify({ status: 403, headers: { "akamai-grn": "0.1" }, body: "" }).vendor).toBe("akamai");
+  });
   it("keeps the registered labels by their old names", () => {
     expect(classifyRegistered({ status: 200, body: "hi" }).label).toBe("page");
     expect(classifyRegistered({ status: 404, body: "" }).label).toBe("origin-error");
@@ -425,6 +461,34 @@ describe("the classifier", () => {
 });
 
 describe("a visit in its own thread", () => {
+  it("item 12: keeps bytes from a response cut off by the hard cap", async () => {
+    const server = realServer((_h, url) => (url === "/robots.txt" ? ROBOTS : null));
+    server.removeAllListeners("request");
+    server.on("request", (req, res) => {
+      if (req.url === "/robots.txt") { res.writeHead(200); res.end("User-agent: *\nAllow: /\n"); return; }
+      res.writeHead(200, { "content-type": "text/html" });
+      const drip = setInterval(() => res.write("x".repeat(2000)), 20);
+      res.on("close", () => clearInterval(drip));
+    });
+    await new Promise((r) => server.listen(0, "127.0.0.1", r));
+    try {
+      const r = await visitInWorker({ host: "a.selftest.example.com", cohorts: {} }, { loopbackPort: server.address().port, budgetMs: 3000, hardCapMs: 500 });
+      expect(r.counters.bytes).toBeGreaterThan(2000);
+    } finally { server.closeAllConnections(); await new Promise((r) => server.close(r)); }
+  });
+  it("item 12: counts redirect and encoded bodies, and keeps neither", async () => {
+    const server = realServer((_h, url) => {
+      if (url === "/robots.txt") return ROBOTS;
+      if (url === "/") return { status: 301, headers: { location: "/b" }, body: "r".repeat(100) };
+      return { status: 200, headers: { "content-encoding": "gzip" }, body: "z".repeat(200) };
+    });
+    await new Promise((r) => server.listen(0, "127.0.0.1", r));
+    try {
+      const r = await visitInWorker({ host: "a.selftest.example.com", cohorts: {} }, { loopbackPort: server.address().port });
+      expect(r.counters.bytes).toBeGreaterThanOrEqual(ROBOTS.body.length + 300);
+      expect(JSON.stringify(r.evidence)).not.toContain("zzzz");
+    } finally { await new Promise((r) => server.close(r)); }
+  });
   it("B2: ends a visit whose thread is stuck, at the hard cap, and keeps the rest of the run going", async () => {
     const started = Date.now();
     let ticks = 0;
@@ -465,6 +529,16 @@ describe("hosts and lists", () => {
     expect(orgDomain("127.0.0.1")).toBe("127.0.0.1");
     expect(orgDomain("[2606:4700::1]")).toBe("2606:4700::1");
     expect(orgDomain("EXAMPLE.unknowntld")).toBe("example.unknowntld");
+  });
+  it("item 8: the list decides which www is a real label, before anything is stripped", () => {
+    expect(siteKey("www.example.com")).toBe("example.com");
+    expect(siteKey("www.example.co.uk")).toBe("example.co.uk");
+    expect(siteKey("www.github.io")).toBe("www.github.io");
+    expect(siteKey("www.co.uk")).toBe("www.co.uk");
+    expect(siteOrg("www.github.io")).toBe("github.io");
+    expect(siteOrg("github.io")).toBe("github.io");
+    const rows = mergeCohorts({ T1k: [{ host: "www.example.com", rank: 1, group: "x" }, { host: "www.co.uk", rank: 2, group: "x" }], "YC-new": [{ host: "example.com", rank: 1, group: "y" }, { host: "co.uk", rank: 2, group: "y" }] });
+    expect(rows.map((r) => r.host).sort()).toEqual(["co.uk", "www.co.uk", "www.example.com"]);
   });
   it("B3: reads a homepage-only line as a URL, and reports an entry that matches no row", () => {
     const entries = readHostList("clinic.example.nl\nhttps://www.hospital.example.nl/?utm_source=yc\n");
@@ -523,6 +597,19 @@ describe("mail and CAA readings", () => {
     const own = async (n) => { if (n === "_dmarc.shop.example.com") return [["v=DMARC1; p=none"]]; return txt(n); };
     expect((await readDomain("shop.example.com", { resolveTxt: own, resolveCaa: () => Promise.reject(none), mx: () => Promise.reject(none), ns: async () => ["a.ns.cloudflare.com."] })).dmarcReading).toMatchObject({ inherited: false, enforcing: false });
   });
+  it("item 4: keeps every query, by exact name, with what came back", async () => {
+    const none = Object.assign(new Error("x"), { code: "ENODATA" }), gone = Object.assign(new Error("x"), { code: "ENOTFOUND" });
+    const d = await readDomain("a.b.example.com", { resolveTxt: async (n) => { if (n === "example.com") return [["v=spf1 -all"]]; throw none; }, resolveCaa: async (n) => { if (n === "com") return [{ issue: "x" }]; throw gone; }, mx: () => Promise.reject(none), ns: async () => ["a.ns.cloudflare.com."] });
+    const of = (type, name) => d.queries.find((q) => q.type === type && q.name === name);
+    expect(of("TXT", "example.com")).toMatchObject({ outcome: "answer", answers: 1 });
+    expect(of("TXT", "_dmarc.a.b.example.com").outcome).toBe("nodata");
+    expect(of("TXT", "_dmarc.example.com").outcome).toBe("nodata");
+    for (const n of ["a.b.example.com", "b.example.com", "example.com"]) expect(of("CAA", n).outcome).toBe("nxdomain");
+    expect(of("CAA", "com").outcome).toBe("answer");
+    expect(of("MX", "example.com").outcome).toBe("nodata");
+    expect(of("NS", "example.com").outcome).toBe("answer");
+    expect(new Set(d.queries.map((q) => `${q.type} ${q.name}`)).size).toBe(d.queries.length);
+  });
   it("item 4: climbs CAA to the parent tree, TLD included, and stops at a failure", async () => {
     const asked = [];
     const nodata = Object.assign(new Error("x"), { code: "ENODATA" });
@@ -546,6 +633,62 @@ describe("the analysis", () => {
     expect(decide(clusterDiff([], [mk("a.example.com", true)], "csp", { resamples: 50 }).ci, 1)).toBe("inconclusive");
     expect(decide([NaN, 1], 1)).toBe("inconclusive");
   });
+  const site = (host, cohort, passes, extra = {}) => ({ host, finalHost: host, status: "ok", cohorts: { [cohort]: { rank: 1, group: "x" } }, score: 50, checks: [{ id: "csp", weight: 14, passed: passes }], evidence: { class: { label: "candidate-page", rule: "status" }, classRegistered: { label: "page" }, traits: { login: true, payments: false, shop: false, securityPage: false } }, ...extra });
+  it("item 7: each E20 file keeps its own record, and apex and www find each other", () => {
+    const t = [site("www.a.example.com", "T1k", true, { httpStatus: 403 })], y = [site("a.example.com", "YC-new", true, { httpStatus: 200 })];
+    const e20 = { T1k: e20Index(t), "YC-new": e20Index(y) };
+    const p = [site("a.example.com", "T1k", true), site("www.a.example.com", "YC-new", true)];
+    const out = claims(p, null, e20, { resamples: 20 });
+    expect(out.find((c) => c.id === "C12")).toMatchObject({ n: 1, diff: -1 });
+    expect(out.find((c) => c.id === "C13")).toMatchObject({ n: 1, diff: 0 });
+  });
+  it("item 10: gives Newcombe, the exact test, and direction apart from equivalence", () => {
+    const a = Array.from({ length: 30 }, (_, i) => site(`a${i}.example${i}.com`, "T1k", i < 15)), b = Array.from({ length: 30 }, (_, i) => site(`b${i}.other${i}.com`, "YC-new", i < 30));
+    const c = diffClaim("C1", "x", a, b, "csp", -1, { resamples: 200 });
+    expect(c.S.newcombe.ci95).toHaveLength(2);
+    expect(c.S.exactP).toBeLessThan(0.01);
+    expect(c.S).toMatchObject({ direction: "above zero", equivalence: "not shown" });
+    expect(intervalOutcomes([-0.05, 0.05])).toEqual({ direction: "includes zero", equivalence: "within the margin" });
+    expect(intervalOutcomes([0.02, 0.05])).toEqual({ direction: "above zero", equivalence: "within the margin" });
+    expect(intervalOutcomes([NaN, 1]).direction).toBe("unknown");
+    expect(fisherExact(1, 9, 11, 3)).toBeCloseTo(0.0028, 3);
+  });
+  it("item 10: an organization on both sides is one draw, which keeps the covariance", () => {
+    const both = (i, p) => [site(`s${i}.example${i}.com`, "T1k", p), site(`s${i}.example${i}.com`, "YC-new", p)];
+    const rows = Array.from({ length: 40 }, (_, i) => both(i, i % 2 === 0));
+    const r = clusterDiff(rows.map((x) => x[0]), rows.map((x) => x[1]), "csp", { resamples: 500, level: 0.95 });
+    expect(r.ci).toEqual([0, 0]);
+    const disjoint = clusterDiff(rows.map((x) => x[0]), rows.map((x, i) => ({ ...x[1], host: `o${i}.elsewhere${i}.org`, finalHost: `o${i}.elsewhere${i}.org` })), "csp", { resamples: 500, level: 0.95 });
+    expect(disjoint.ci[1]).toBeGreaterThan(0.1);
+  });
+  it("item 10: the floor counts organizations, not rows", () => {
+    const many = Array.from({ length: 30 }, (_, i) => site(`s${i}.one.example.com`, "T1k", i % 2 === 0));
+    const orgs = Array.from({ length: 30 }, (_, i) => site(`o${i}.example${i}.com`, "YC-new", i % 2 === 0));
+    expect(diffClaim("C1", "x", many, orgs, "csp", -1, { resamples: 50 }).S.decision).toBe("not estimable");
+    expect(standardizedDiff(many, orgs, "csp", { resamples: 50 }).supported).toEqual([]);
+  });
+  it("item 10: reports traits per cohort", () => {
+    const rows = [...Array.from({ length: 20 }, (_, i) => site(`a${i}.example.com`, "T1k", true)), ...Array.from({ length: 5 }, (_, i) => site(`b${i}.example.com`, "YC-new", true))];
+    const t = traitsByCohort(rows);
+    expect(t.T1k.login.sites).toBe(20);
+    expect(t["YC-new"].login).toMatchObject({ sites: 5, suppressed: true });
+  });
+  it("item 10: bounds and standardization don't need DNS data, and cover C3 and C4", () => {
+    const dir = mkdtempSync(join(tmpdir(), "e20r2-"));
+    const rows = [...Array.from({ length: 25 }, (_, i) => site(`a${i}.example${i}.com`, "T1k", i < 5, { platform: { edge: "cloudflare" } })), ...Array.from({ length: 25 }, (_, i) => site(`b${i}.other${i}.com`, "YC-new", i < 20, { platform: { edge: "cloudflare" } }))];
+    const lines = (r) => r.map((x) => JSON.stringify(x)).join("\n") + "\n";
+    writeFileSync(join(dir, "p.jsonl"), lines(rows));
+    writeFileSync(join(dir, "t.jsonl"), lines(rows.slice(0, 25)));
+    writeFileSync(join(dir, "y.jsonl"), lines(rows.slice(25)));
+    execFileSync(process.execPath, [join(import.meta.dirname, "..", "bench", "front-door", "analyze-r.mjs"), "--pass1", join(dir, "p.jsonl"), "--e20", join(dir, "t.jsonl"), join(dir, "y.jsonl"), "--out", join(dir, "o.json")]);
+    const o = JSON.parse(readFileSync(join(dir, "o.json"), "utf8"));
+    expect(o.bounds.C1.low).toBeDefined();
+    expect(o.bounds).toHaveProperty("C3");
+    expect(o.standardized).toHaveProperty("C3");
+    expect(o.standardized).toHaveProperty("C4");
+    expect(o.traitsByCohort.T1k).toBeDefined();
+    expect(o.dnsBeside).toBeUndefined();
+  }, 60_000);
   it("19: S and R must agree; anything else unequal is inconclusive or view-dependent", () => {
     expect(combine("no meaningful difference", "inconclusive")).toBe("inconclusive");
     expect(combine("inconclusive", "no meaningful difference")).toBe("inconclusive");
@@ -583,26 +726,41 @@ describe("the validation draw", () => {
     records.push(rec(1000, "block", "unrecognized-403"), rec(1001, "block", "body"));
     const a = drawSample(records);
     expect(a.filter((s) => s.stratum === "candidate-page")).toHaveLength(150);
-    expect(a[0].weight).toBeCloseTo(400 / 150);
+    expect(a[0].stratumSize).toBe(400);
     expect(drawSample([...records].reverse())).toEqual(a);
     expect(stratumOf(records.at(-1))).toBe("block-signature");
   });
-  it("23: gives the labeler a blind sheet, and scores weighted metrics", () => {
+  it("23: gives the labeler a blind sheet", () => {
     const records = [rec(1, "candidate-page"), rec(2, "block", "body"), rec(3, "challenge")].map((r) => ({ ...r, evidence: { ...r.evidence, status: 200, headerNames: [], values: {} } }));
     const { sheet, key } = blindSheet(drawSample(records), records);
     expect(sheet).toHaveLength(3);
     expect(JSON.stringify(sheet)).not.toMatch(/example\.com|block|stratum|candidate/);
-    expect(key[0]).toHaveProperty("stratum");
-    const rows = [
-      { stratum: "candidate-page", weight: 10, ruleLabel: "page", human: "page" }, { stratum: "candidate-page", weight: 10, ruleLabel: "page", human: "challenge" },
-      { stratum: "challenge", weight: 1, ruleLabel: "challenge", human: "challenge" }, { stratum: "challenge", weight: 1, ruleLabel: "challenge", human: "unsure" },
-    ];
+    expect(key[0]).toHaveProperty("stratumSize");
+  });
+  const row = (stratum, ruleLabel, human, stratumSize) => ({ stratum, stratumSize, ruleLabel, human });
+  it("item 5: weights over answered rows, and unsure invents no class", () => {
+    const rows = [row("candidate-page", "page", "page", 20), row("candidate-page", "page", "challenge", 20), row("challenge", "challenge", "challenge", 2), row("challenge", "challenge", "unsure", 2)];
     const m = weightedMetrics(rows, { resamples: 200 });
     expect(m).toMatchObject({ rows: 4, unsure: 1 });
     expect(m.metrics.page.precision).toBeCloseTo(0.5);
-    expect(m.metrics.challenge.recall).toBeCloseTo(1 / 11);
+    // The challenge stratum keeps its full size of 2 on its one answered row.
+    expect(m.metrics.challenge.recall).toBeCloseTo(2 / 12);
     expect(m.kappaUnsureAsDisagreement).toBeLessThan(m.kappa);
-    expect(m.metrics.page.precisionCi).toHaveLength(2);
+    const all = [row("candidate-page", "page", "page", 2), row("candidate-page", "page", "unsure", 2), row("challenge", "challenge", "challenge", 1)];
+    // po 2/3, pe (1/3)(2/3)+(1/3)(1/3) = 1/3: a third class would change this.
+    expect(weightedMetrics(all, { resamples: 10 }).kappaUnsureAsDisagreement).toBeCloseTo(0.5);
+  });
+  it("item 5: reads human and model labels, and reports where they differ", () => {
+    const key = [1, 2].map((id) => ({ id, stratum: "challenge", stratumSize: 2, ruleLabel: "challenge" }));
+    const r = scoreLabels(key, "id,label\n1,challenge\n2,page\n", "id,label\n1,challenge\n2,block\n", { resamples: 10 });
+    expect(r.humanVsAgent).toMatchObject({ disagreements: 1, pairs: { "human page, agent block": 1 } });
+  });
+  it("item 5: refuses a missing, duplicate, unknown or invalid label", () => {
+    expect(() => parseLabels("id,label\n1,page\n", [1, 2])).toThrow(/no label/);
+    expect(() => parseLabels("id,label\n1,page\n1,page\n", [1])).toThrow(/duplicate/);
+    expect(() => parseLabels("id,label\n9,page\n", [1])).toThrow(/unknown id/);
+    expect(() => parseLabels("id,label\n1,maybe\n", [1])).toThrow(/invalid label/);
+    expect(() => parseLabels("x,y\n1,page\n", [1])).toThrow(/id,label/);
   });
   it("privacy 6: pruning with no sample removes all page text, for a pilot", () => {
     expect(pruneExcerpt(rec(1, "candidate-page")).evidence.pageExcerpt.title).toBeUndefined();
@@ -613,6 +771,41 @@ describe("the validation draw", () => {
     expect(pruneExcerpt(r, new Set()).evidence.pageExcerpt.text).toBeUndefined();
     expect(pruneExcerpt(r, new Set([r.host])).evidence.pageExcerpt.text).toBe("hello");
   });
+});
+
+describe("what ties a run to its code", () => {
+  it("item 9: the code hash reaches every file the study imports", () => {
+    const files = codeFiles().map((f) => f.split("/penthera/").pop());
+    const has = (end) => files.some((f) => f.endsWith(end));
+    for (const f of ["bench/front-door/visit-worker.mjs", "bench/front-door/psl.mjs", "api/_lib/grade.mjs", "lib/blackbox/headers.js", "lib/advisories/index.js", "src/utils/url.js"]) expect(has(f), f).toBe(true);
+    expect(codeHash()).toMatch(/^[0-9a-f]{64}$/);
+  });
+  it("item 9: a run marks what changed under it", async () => {
+    const out = mkdtempSync(join(tmpdir(), "e20r2-"));
+    await runPass([], { pass: 2, out, loopbackPort: 9, delayMs: 0, manifest: { listSha256: { T1k: "a" } }, recheck: () => ({ listSha256: { T1k: "b" } }) });
+    expect(JSON.parse(readFileSync(join(out, "manifest.json"), "utf8")).immutableAtFinish).toEqual({ ok: false, changed: ["listSha256"] });
+  });
+  it("item 2: pruning leaves the run's manifest alone, and links the old and new raw hash", () => {
+    const dir = mkdtempSync(join(tmpdir(), "e20r2-"));
+    const text = `${JSON.stringify({ host: "a.example.com", evidence: { pageExcerpt: { text: "x" } } })}\n`;
+    writeFileSync(join(dir, "raw.jsonl"), text);
+    const sum = createHash("sha256").update(text).digest("hex");
+    writeFileSync(join(dir, "manifest.json"), JSON.stringify({ rawSha256: sum }));
+    const proof = rewriteRun(dir, [{ host: "a.example.com" }], "pilot");
+    expect(proof.rawSha256Before).toBe(sum);
+    expect(proof.rawSha256After).not.toBe(sum);
+    expect(JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8")).rawSha256).toBe(sum);
+    expect(JSON.parse(readFileSync(join(dir, "prune-manifest.json"), "utf8"))).toMatchObject(proof);
+    expect(() => rewriteRun(dir, [], "pilot")).toThrow(/not the one the manifest hashed/);
+  });
+});
+
+describe("acceptance", () => {
+  it("every stop condition refuses pass 2, for its own reason, and a clean pilot is allowed", async () => {
+    const rows = await runAcceptance();
+    expect(rows.filter((r) => !r.pass)).toEqual([]);
+    expect(rows.length).toBeGreaterThanOrEqual(27);
+  }, 60_000);
 });
 
 describe("limits", () => {

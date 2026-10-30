@@ -1,22 +1,22 @@
 #!/usr/bin/env node
 /**
- * E20-R2 validation (Amendment 2): a stratified sample of pass 2, its inclusion
- * weights, a blind sheet for the labeler, the deletion of page text outside the
- * sample, and the weighted metrics once labels come back.
+ * E20-R2 audit (Amendment 2): a stratified sample of pass 2, a blind sheet, the deletion
+ * of text outside the sample, and scoring. It is a single-human audit with model
+ * comparison, not independent validation.
  *
- *   node bench/front-door/validation-sample.mjs draw <raw.jsonl>
- *       Writes validation-sheet.json (blind) and validation-key.json next to the
- *       raw file, then rewrites raw.jsonl without unsampled page text. That can't
- *       be undone, which is its purpose. Both hashes are printed.
- *   node bench/front-door/validation-sample.mjs prune <raw.jsonl>
- *       Deletes all page text, for a pilot, whose sites are never sampled.
- *   node bench/front-door/validation-sample.mjs score <validation-key.json> <labels.csv>
- *       labels.csv: id,label. Prints weighted precision and recall, kappa and the
- *       unsure count. Rows are sites' evidence: the sheet stays private.
+ *   node bench/front-door/validation-sample.mjs draw <run folder>
+ *       Writes validation-sheet.json (blind) and validation-key.json, deletes unsampled
+ *       page text from raw.jsonl, and writes prune-manifest.json. It can't be undone,
+ *       which is its purpose.
+ *   node bench/front-door/validation-sample.mjs prune <run folder>
+ *       Deletes all text of a pilot and writes prune-manifest.json. Seal first.
+ *   node bench/front-door/validation-sample.mjs score <validation-key.json> <human.csv> <agent.csv>
+ *       Each csv: id,label. Refuses a missing, duplicate, unknown or invalid row. Prints
+ *       weighted precision and recall, kappa, disagreement and the unsure count.
  */
 import { createHash } from "node:crypto";
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PASS_SEED, seeded, shuffled } from "./replicate.mjs";
 
@@ -25,6 +25,7 @@ export const STRATA = Object.freeze({
   "candidate-page": 150, challenge: 50, "block-signature": 50, "block-unrecognized-403": 30, "unrecognized-error-response": 20,
 });
 export const LABELS = Object.freeze(["page", "challenge", "block", "error"]);
+export const ANSWERS = Object.freeze([...LABELS, "unsure"]);
 const RULE_LABEL = Object.freeze({ "candidate-page": "page", challenge: "challenge", block: "block", "unrecognized-error-response": "error" });
 export const BOOTSTRAP = Object.freeze({ resamples: 20_000, seed: PASS_SEED[2] });
 
@@ -35,19 +36,18 @@ export function stratumOf(r) {
   return c.label in STRATA ? c.label : null;
 }
 
-/** Fixed sample per stratum. `weight` is stratum size over rows drawn, for the weighted metrics. */
+/** Fixed sample per stratum, with the stratum's size for the weights. */
 export function drawSample(records, { seed = PASS_SEED[2] } = {}) {
   const graded = records.filter((r) => r.status === "ok");
   return Object.entries(STRATA).flatMap(([stratum, size]) => {
     const all = graded.filter((r) => stratumOf(r) === stratum);
-    const rows = shuffled(all, seed).slice(0, size);
-    return rows.map((r) => ({ host: r.host, stratum, stratumSize: all.length, weight: all.length / rows.length, ruleLabel: RULE_LABEL[r.evidence.class.label] }));
+    return shuffled(all, seed).slice(0, size).map((r) => ({ host: r.host, stratum, stratumSize: all.length, ruleLabel: RULE_LABEL[r.evidence.class.label] }));
   });
 }
 
 /**
- * What the labeler sees, in a seeded order, with an id. No host, label, rule or
- * stratum field. Page text can still name the site: it can't be blinded from that.
+ * What a labeler sees, in a seeded order, with an id. No host, label, rule or stratum
+ * field. Page text can still name the site: it can't be blinded from that.
  */
 export function blindSheet(sample, records, { seed = PASS_SEED[2] } = {}) {
   const byHost = new Map(records.map((r) => [r.host, r]));
@@ -56,15 +56,49 @@ export function blindSheet(sample, records, { seed = PASS_SEED[2] } = {}) {
     const e = byHost.get(s.host).evidence;
     return { id: i + 1, status: e.status, headerNames: e.headerNames, values: e.values, cookieNames: e.cookieNames, excerpt: e.excerpt ?? "", pageExcerpt: e.pageExcerpt ?? null };
   });
-  return { sheet, key: order.map((s, i) => ({ id: i + 1, stratum: s.stratum, weight: s.weight, ruleLabel: s.ruleLabel })) };
+  return { sheet, key: order.map((s, i) => ({ id: i + 1, stratum: s.stratum, stratumSize: s.stratumSize, ruleLabel: s.ruleLabel })) };
 }
 
-/** The record without its 2xx text, unless it was sampled. Counts and flags stay. */
-export function pruneExcerpt(record, sampled = new Set()) {
-  const e = record.evidence?.pageExcerpt;
+/** The record without text, unless it was sampled. Counts and flags stay. `all` also takes error excerpts. */
+export function pruneExcerpt(record, sampled = new Set(), { all = false } = {}) {
+  const e = record.evidence;
   if (!e || sampled.has(record.host)) return record;
-  const { title: _title, text: _text, noscript: _noscript, ...shape } = e;
-  return { ...record, evidence: { ...record.evidence, pageExcerpt: shape } };
+  const out = { ...e };
+  if (e.pageExcerpt) {
+    const { title: _title, text: _text, noscript: _noscript, ...shape } = e.pageExcerpt;
+    out.pageExcerpt = shape;
+  }
+  if (all) {
+    delete out.excerpt;
+    out.others = (e.others ?? []).map(({ excerpt: _excerpt, ...o }) => o);
+  }
+  return { ...record, evidence: out };
+}
+
+/** id,label rows for exactly the key's ids. Throws on anything else, so a bad file can't be scored. */
+export function parseLabels(text, ids, name = "labels") {
+  const want = new Set(ids);
+  const out = new Map();
+  const lines = String(text).trim().split(/\r?\n/);
+  if (!/^id,label(,|$)/i.test(lines[0] ?? "")) throw new Error(`${name}: the first line must be id,label`);
+  for (const line of lines.slice(1)) {
+    const [idCell, labelCell] = line.split(",");
+    const id = Number(idCell), label = (labelCell ?? "").trim();
+    if (!want.has(id)) throw new Error(`${name}: unknown id ${idCell}`);
+    if (out.has(id)) throw new Error(`${name}: duplicate id ${id}`);
+    if (!ANSWERS.includes(label)) throw new Error(`${name}: invalid label "${label}" for id ${id}`);
+    out.set(id, label);
+  }
+  const missing = ids.filter((id) => !out.has(id));
+  if (missing.length) throw new Error(`${name}: ${missing.length} ids have no label`);
+  return out;
+}
+
+/** Stratum size over answered rows, so a stratum keeps its full weight when a row is left out. */
+function reweighted(rows) {
+  const answered = {};
+  for (const r of rows) answered[r.stratum] = (answered[r.stratum] ?? 0) + 1;
+  return rows.map((r) => ({ ...r, weight: r.stratumSize / answered[r.stratum] }));
 }
 
 function point(rows) {
@@ -81,21 +115,23 @@ function point(rows) {
   return out;
 }
 
-/** Unweighted Cohen's kappa over rows the labeler could answer. */
-function kappaOf(rows) {
+/** Unweighted Cohen's kappa between two fields of the rows, over whatever answers they hold. */
+function kappaOf(rows, x, y) {
   const n = rows.length;
   if (!n) return NaN;
-  const po = rows.filter((r) => r.human === r.ruleLabel).length / n;
-  const pe = LABELS.reduce((s, l) => s + (rows.filter((r) => r.human === l).length / n) * (rows.filter((r) => r.ruleLabel === l).length / n), 0);
+  const po = rows.filter((r) => r[x] === r[y]).length / n;
+  const pe = ANSWERS.reduce((s, l) => s + (rows.filter((r) => r[x] === l).length / n) * (rows.filter((r) => r[y] === l).length / n), 0);
   return pe === 1 ? 1 : (po - pe) / (1 - pe);
 }
 
 /**
- * Amendment 2: `unsure` rows are left out and counted, and a sensitivity counts
- * them as disagreement. Intervals resample within each stratum.
+ * Amendment 2. `unsure` rows are left out of precision, recall and kappa, and counted.
+ * The sensitivity keeps them as their own answer, which no rule gives, so each one is
+ * a disagreement and no class is invented. Weights are taken over answered rows.
+ * Intervals resample within each stratum.
  */
 export function weightedMetrics(rows, { resamples = BOOTSTRAP.resamples, seed = BOOTSTRAP.seed } = {}) {
-  const answered = rows.filter((r) => r.human !== "unsure");
+  const answered = reweighted(rows.filter((r) => r.human !== "unsure"));
   const strata = Object.keys(STRATA).map((s) => answered.filter((r) => r.stratum === s)).filter((g) => g.length);
   const next = seeded(seed);
   const draws = Object.fromEntries(LABELS.map((l) => [l, { precision: [], recall: [] }]));
@@ -107,45 +143,68 @@ export function weightedMetrics(rows, { resamples = BOOTSTRAP.resamples, seed = 
   const est = point(answered);
   return {
     rows: rows.length, unsure: rows.length - answered.length,
-    kappa: kappaOf(answered),
-    kappaUnsureAsDisagreement: kappaOf(rows.map((r) => (r.human === "unsure" ? { ...r, human: LABELS.find((l) => l !== r.ruleLabel) } : r))),
+    kappa: kappaOf(answered, "human", "ruleLabel"),
+    kappaUnsureAsDisagreement: kappaOf(rows, "human", "ruleLabel"),
     metrics: Object.fromEntries(LABELS.map((l) => [l, { ...est[l], precisionCi: ci(draws[l].precision), recallCi: ci(draws[l].recall) }])),
+  };
+}
+
+/** Both labelers against the rules and each other. The model is a comparison, never a judge. */
+export function scoreLabels(key, humanText, agentText, opts) {
+  const ids = key.map((k) => k.id);
+  const human = parseLabels(humanText, ids, "human labels");
+  const agent = parseLabels(agentText, ids, "agent labels");
+  const rows = key.map((k) => ({ ...k, human: human.get(k.id), agent: agent.get(k.id) }));
+  const pairs = {};
+  for (const r of rows) if (r.human !== r.agent) pairs[`human ${r.human}, agent ${r.agent}`] = (pairs[`human ${r.human}, agent ${r.agent}`] ?? 0) + 1;
+  return {
+    ...weightedMetrics(rows, opts),
+    humanVsAgent: { kappa: kappaOf(rows, "human", "agent"), disagreements: rows.filter((r) => r.human !== r.agent).length, pairs },
   };
 }
 
 const hash = (b) => createHash("sha256").update(b).digest("hex");
 const readRaw = (file) => readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
 
-function rewrite(file, records) {
-  const before = hash(readFileSync(file));
+/**
+ * Rewrites the raw file and leaves a second manifest. The run's own manifest is not
+ * touched, so its raw hash stays true of what was recorded; this one links the two.
+ */
+export function rewriteRun(dir, records, kind) {
+  const raw = join(dir, "raw.jsonl");
+  const manifestBytes = readFileSync(join(dir, "manifest.json"));
+  const before = hash(readFileSync(raw));
+  if (before !== JSON.parse(manifestBytes).rawSha256) throw new Error("Refused: the raw file is not the one the manifest hashed.");
   const after = records.map((r) => JSON.stringify(r)).join("\n") + "\n";
-  writeFileSync(`${file}.tmp`, after);
-  renameSync(`${file}.tmp`, file);
-  return { rawSha256Before: before, rawSha256After: hash(after) };
+  writeFileSync(`${raw}.tmp`, after);
+  renameSync(`${raw}.tmp`, raw);
+  const proof = { kind, manifestSha256: hash(manifestBytes), rawSha256Before: before, rawSha256After: hash(after), records: records.length, prunedAt: new Date().toISOString() };
+  writeFileSync(join(dir, "prune-manifest.json"), JSON.stringify(proof, null, 2) + "\n");
+  return proof;
 }
 
-function main([mode, file, labels]) {
-  if (mode === "draw" && file) {
-    const records = readRaw(file);
+export const prunePilot = (dir) => rewriteRun(dir, readRaw(join(dir, "raw.jsonl")).map((r) => pruneExcerpt(r, new Set(), { all: true })), "pilot");
+
+function main([mode, target, a, b]) {
+  if (mode === "draw" && target) {
+    const records = readRaw(join(target, "raw.jsonl"));
     const sample = drawSample(records);
     const { sheet, key } = blindSheet(sample, records);
-    writeFileSync(join(dirname(file), "validation-sheet.json"), JSON.stringify(sheet, null, 2) + "\n");
-    writeFileSync(join(dirname(file), "validation-key.json"), JSON.stringify(key, null, 2) + "\n");
+    writeFileSync(join(target, "validation-sheet.json"), JSON.stringify(sheet, null, 2) + "\n");
+    writeFileSync(join(target, "validation-key.json"), JSON.stringify(key, null, 2) + "\n");
     const sampled = new Set(sample.map((s) => s.host));
-    console.log(JSON.stringify({ sampled: sample.length, ...rewrite(file, records.map((r) => pruneExcerpt(r, sampled))) }));
+    console.log(JSON.stringify({ sampled: sample.length, ...rewriteRun(target, records.map((r) => pruneExcerpt(r, sampled)), "validation-draw") }));
     return 0;
   }
-  if (mode === "prune" && file) {
-    console.log(JSON.stringify(rewrite(file, readRaw(file).map((r) => pruneExcerpt(r)))));
+  if (mode === "prune" && target) {
+    console.log(JSON.stringify(prunePilot(target)));
     return 0;
   }
-  if (mode === "score" && file && labels) {
-    const human = new Map(readFileSync(labels, "utf8").trim().split(/\r?\n/).slice(1).map((l) => l.split(",")).map(([id, label]) => [Number(id), label.trim()]));
-    const rows = JSON.parse(readFileSync(file, "utf8")).filter((k) => human.has(k.id)).map((k) => ({ ...k, human: human.get(k.id) }));
-    console.log(JSON.stringify(weightedMetrics(rows), null, 2));
+  if (mode === "score" && target && a && b) {
+    console.log(JSON.stringify(scoreLabels(JSON.parse(readFileSync(target, "utf8")), readFileSync(a, "utf8"), readFileSync(b, "utf8")), null, 2));
     return 0;
   }
-  console.error("Usage: validation-sample.mjs draw <raw.jsonl> | prune <raw.jsonl> | score <validation-key.json> <labels.csv>");
+  console.error("Usage: validation-sample.mjs draw <run folder> | prune <run folder> | score <validation-key.json> <human.csv> <agent.csv>");
   return 2;
 }
 

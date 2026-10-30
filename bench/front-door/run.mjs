@@ -188,7 +188,7 @@ export const redact = (text) => String(text || "").replace(/[A-Z0-9._%+-]+@([A-Z
 const EVIDENCE_CUT = 118;
 const dropCutToken = (e) => { const t = String(e || ""); return t.length < EVIDENCE_CUT ? t : t.slice(0, Math.max(...[" ", ",", ";"].map((c) => t.lastIndexOf(c)), 0)); };
 // A malformed Set-Cookie puts its value where the grader expects a name, so no cookie text is stored.
-const slim = (c) => ({ id: c.id, passed: c.passed, severity: c.severity, weight: c.weight, evidence: c.id === "cookies" ? "" : scrub(redact(dropCutToken(c.evidence))).slice(0, 300) });
+export const slim = (c) => ({ id: c.id, passed: c.passed, severity: c.severity, weight: c.weight, evidence: c.id === "cookies" ? "" : scrub(redact(dropCutToken(c.evidence))).slice(0, 300) });
 
 /**
  * RFC 9309 § 2.3.1, as the study applies it (Amendment 2). A 2xx is parsed. A
@@ -278,7 +278,7 @@ export async function visit(row, { loopbackPort, now, appPage = false, exclude =
     userAgent: USER_AGENT, optOutTokens: OPT_OUT_TOKENS, optOutAll: true, assets: false, secrets: false,
     budgetMs, now, lookup, onPage: (p) => { page = p; }, onResponse: (kind, res) => responses.push({ kind, res }),
     onFallback: (e) => { httpsFailed = { error: e.code, ...(e.tlsReason ? { tlsReason: e.tlsReason } : {}) }; },
-    ...rules, meter, ...(strict ? { budget: makeBudget({ requests: LIMITS.siteRequests, budgetMs }) } : {}),
+    ...rules, meter, ...(strict ? { budget: makeBudget({ requests: LIMITS.siteRequests, budgetMs }), skipDns: true } : {}),
   };
   const counters = () => ({ requests: meter.requests, bytes: meter.bytes, redirects: meter.redirects });
   const withRobots = (r) => (strict ? { ...r, robots, counters: counters(), hops: [...meter.hosts], ...(httpsFailed ? { httpsFailed } : {}) } : r);
@@ -341,7 +341,7 @@ export const EDGE_RULES = Object.freeze([
   ["cloudflare", (h) => "cf-ray" in h || /cloudflare/i.test(h.server || "")],
   ["cloudfront", (h) => "x-amz-cf-id" in h || /cloudfront/i.test(h.via || "")],
   ["fastly", (h) => "x-fastly-request-id" in h || /fastly|cache-[a-z]{3}\d/i.test((h["x-served-by"] || "") + (h.via || ""))],
-  ["akamai", (h) => /akamai/i.test(h.server || "")],
+  ["akamai", (h) => "x-akamai-transformed" in h || "akamai-grn" in h || /akamai/i.test(h.server || "")],
   ["github-pages", (h) => /^github\.com$/i.test(h.server || "")],
   ["google", (h) => /^(gws|esf|gse|google frontend)$/i.test(h.server || "")],
 ]);
@@ -459,8 +459,9 @@ export function robotsVerdict(robots, path, tokens = OPT_OUT_TOKENS) {
   let best = null;
   const target = percentForm(path);
   for (const r of rules) {
-    if (!globMatch(percentForm(r.value), target)) continue;
-    if (!best || r.value.length > best.value.length || (r.value.length === best.value.length && r.allow)) best = r;
+    const value = percentForm(r.value);
+    if (!globMatch(value, target)) continue;
+    if (!best || value.length > best.value.length || (value.length === best.value.length && r.allow)) best = { allow: r.allow, value };
   }
   return best && !best.allow ? "disallowed" : "allowed";
 }

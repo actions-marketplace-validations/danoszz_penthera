@@ -33,7 +33,7 @@ export const SCOPE = "Only what a browser loads: /robots.txt first (a site can o
  * @param {{typed?: string, now?: number, lookup?: Function, allowPrivate?: boolean, anyPort?: boolean,
  *   timeout?: number, dns?: object, dnsTimeout?: number, budgetMs?: number, retireDb?: object,
  *   assets?: boolean, secrets?: boolean, userAgent?: string, optOutTokens?: string[], optOutAll?: boolean,
- *   onPage?: Function, onResponse?: Function, onRobots?: Function, onHopUrl?: Function, onFallback?: Function, allowFallback?: Function, fallbackError?: Function, robotsHop?: Function, onAnswered?: Function, meter?: object, budget?: object, robotsRedirects?: number, robotsMaxBytes?: number}} opts
+ *   onPage?: Function, onResponse?: Function, onRobots?: Function, onHopUrl?: Function, onFallback?: Function, allowFallback?: Function, fallbackError?: Function, robotsHop?: Function, onAnswered?: Function, meter?: object, budget?: object, skipDns?: boolean, robotsRedirects?: number, robotsMaxBytes?: number}} opts
  *   lookup, allowPrivate, anyPort, dns and retireDb are for tests. The E20
  *   study (bench/front-door/run.mjs) sets the rest: assets: false skips the
  *   referenced scripts and stylesheets, secrets: false the secret rules, and
@@ -49,6 +49,7 @@ export const SCOPE = "Only what a browser loads: /robots.txt first (a site can o
  *   is read; robotsHop checks that file's hops, and onAnswered hears that the
  *   origin replied. allowFallback may refuse the http fallback, onFallback hears
  *   why https failed, and fallbackError picks the error when http fails too.
+ *   skipDns leaves DNS out: the study reads it apart, on its own thread and clock.
  *   meter counts requests, bytes and redirects, budget shares one budget across
  *   attempts, and an error at a redirect's origin names it in `redirectedTo`.
  *   The live check sets none of these.
@@ -100,7 +101,7 @@ export async function passiveReport(target, opts = {}) {
 
   const [assets, dns, securityTxt] = await Promise.all([
     parsed && opts.assets !== false ? loadAssets(parsed, pageUrl, budget, guard) : { files: [], wanted: 0, skipped: 0 },
-    dnsChecks(host, { dns: opts.dns, dnsTimeout: Math.min(opts.dnsTimeout ?? 2500, 2500) }).catch(() => []),
+    opts.skipDns ? [] : dnsChecks(host, { dns: opts.dns, dnsTimeout: Math.min(opts.dnsTimeout ?? 2500, 2500) }).catch(() => []),
     securityTxtCheck(pageUrl, budget, guard, opts.now ?? Date.now()),
   ]);
 

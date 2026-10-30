@@ -3,12 +3,16 @@
  * E20-R pilot report: what a run's raw.jsonl holds, as counts only. No site is
  * named, so the output can be read and pasted anywhere.
  *
- *   node bench/front-door/pilot-report.mjs <raw.jsonl> --exclude <exclusion list>
+ *   node bench/front-door/pilot-report.mjs <raw.jsonl> --exclude <exclusion list> [--seal]
+ *
+ * --seal writes pilot-result.json next to the raw file, which pass 2 requires. Seal
+ * before pruning: the report reads the excerpts that pruning deletes.
  *
  * Exits 1 when a stop rule of Amendment 2 fires, so a miss holds the full run.
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { scrubMisses } from "./classify.mjs";
 import { exclusionFor, readExclusions } from "./run.mjs";
@@ -27,7 +31,6 @@ function storedText(r) {
     ...Object.values(e?.values ?? {}), ...(e?.cookieNames ?? []),
     ...(e?.others ?? []).flatMap((o) => [o.excerpt, ...Object.values(o.values ?? {}), ...(o.cookieNames ?? [])]),
     ...[r.dns?.listed, r.dns?.final].filter(Boolean).flatMap((d) => [d.dmarcRecord, ...Object.values(d.dmarcTags ?? {}), ...(d.caaTree?.issuers ?? [])]),
-    ...(r.dns?.finalCaa?.issuers ?? []),
     ...(e?.headerNames ?? []), ...(e?.others ?? []).flatMap((o) => o.headerNames ?? []),
     ...(r.checks ?? []).map((c) => c.evidence),
     ...(r.app?.checks ?? []).map((c) => c.evidence),
@@ -63,7 +66,7 @@ export function pilotReport(records, { exclude = new Map() } = {}) {
       withBodyHashes: ok.filter((r) => r.evidence?.bodySha256 && (r.evidence?.others ?? []).every((o) => o.bodySha256)).length,
     },
     dns: {
-      read: dns.length, ungraded: dns.filter((r) => r.status !== "ok").length, finalDomainToo: dns.filter((r) => r.dns.final).length,
+      read: dns.length, ungraded: dns.filter((r) => r.status !== "ok").length, finalDomainToo: dns.filter((r) => r.dns.finalOtherOrg).length,
       domainExists: dns.filter((r) => r.dns.listed.exists).length,
       answered: { spf: answered("spf"), dmarc: answered("dmarc"), caa: answered("caa") },
       withDmarcRecord: dns.filter((r) => r.dns.listed.dmarcRecord).length,
@@ -102,12 +105,40 @@ export function stopRules(report) {
   return stop;
 }
 
+const hash = (b) => createHash("sha256").update(b).digest("hex");
+
+/**
+ * The machine-checked result pass 2 reads: pilot-result.json, next to the run, bound to
+ * its manifest and raw file. A run that changed under it, or whose raw file isn't
+ * the one the manifest hashed, can't pass.
+ */
+export function sealPilot(dir, { exclude = new Map() } = {}) {
+  const manifestBytes = readFileSync(join(dir, "manifest.json"));
+  const manifest = JSON.parse(manifestBytes);
+  const rawBytes = readFileSync(join(dir, "raw.jsonl"));
+  const report = pilotReport(rawBytes.toString("utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)), { exclude });
+  const stop = stopRules(report);
+  if (hash(rawBytes) !== manifest.rawSha256) stop.push("the raw file is not the one the manifest hashed");
+  if (!manifest.finishedAt) stop.push("the run did not finish");
+  if (!manifest.immutableAtFinish?.ok) stop.push("something changed while it ran");
+  const result = { passed: stop.length === 0, stop, manifestSha256: hash(manifestBytes), rawSha256: manifest.rawSha256 ?? null, reportSha256: hash(JSON.stringify(report)), sealedAt: new Date().toISOString() };
+  writeFileSync(join(dir, "pilot-result.json"), JSON.stringify(result, null, 2) + "\n");
+  return { ...result, report };
+}
+
 function main(args) {
   const i = args.indexOf("--exclude");
   const file = args.find((a, k) => !a.startsWith("--") && k !== i + 1);
-  if (!file || i < 0) { console.error("Usage: pilot-report.mjs <raw.jsonl> --exclude <exclusion list>"); return 2; }
+  if (!file || i < 0) { console.error("Usage: pilot-report.mjs <raw.jsonl> --exclude <exclusion list> [--seal]"); return 2; }
+  const exclude = readExclusions(readFileSync(args[i + 1], "utf8"));
+  if (args.includes("--seal")) {
+    if (!existsSync(join(dirname(file), "manifest.json"))) { console.error("--seal needs the run's manifest.json next to the raw file."); return 2; }
+    const { report, ...result } = sealPilot(dirname(file), { exclude });
+    console.log(JSON.stringify({ ...report, ...result }, null, 2));
+    return result.passed ? 0 : 1;
+  }
   const records = readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
-  const report = pilotReport(records, { exclude: readExclusions(readFileSync(args[i + 1], "utf8")) });
+  const report = pilotReport(records, { exclude });
   const stop = stopRules(report);
   console.log(JSON.stringify({ ...report, stop }, null, 2));
   return stop.length ? 1 : 0;

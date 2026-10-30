@@ -62,6 +62,7 @@
     "rules:build": "node scripts/rules/build-pack.mjs",
     "rules:check": "node scripts/rules/check-bundled.mjs",
     "audit:internal": "node scripts/audit/run.mjs",
+    "e20r:acceptance": "node bench/front-door/acceptance.mjs",
     "bench:public": "node bench/public/run.mjs"
   },
   "keywords": [

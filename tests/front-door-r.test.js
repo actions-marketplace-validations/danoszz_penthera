@@ -78,7 +78,7 @@ describe("E20-R guard", () => {
     expect(() => authorizeR({ ...good, priorOptOuts: undefined })).toThrow(/--prior-optouts/);
     expect(() => authorizeR({ ...good, pass: "pilot", priorOptOuts: undefined })).toThrow(/--prior-optouts/);
     expect(() => authorizeR({ ...good, pilot: { ok: false, why: "No pilot manifest found." } })).toThrow(/No pilot manifest/);
-    expect(() => authorizeR({ ...good, pilot: undefined })).toThrow(/--pilot-dropped/);
+    expect(() => authorizeR({ ...good, pilot: undefined })).toThrow(/passed pilot/);
     expect(authorizeR({ ...good, pass: "pilot", pilot: undefined }).mode).toBe("registered");
   });
   it("B7: an empty or edited prior opt-out list is refused", () => {
@@ -486,7 +486,7 @@ describe("E20-R DNS, read apart from HTTP", () => {
     const a = answers({});
     expect((await siteDns("www.example.com", "www.example.com", a)).final).toBeUndefined();
     expect((await siteDns("www.example.com", "shop.other.com", a)).final.domain).toBe("other.com");
-    expect((await siteDns("example.com", "www.example.com", a)).finalCaa).toMatchObject({ found: true, at: "www.example.com" });
+    expect((await siteDns("example.com", "www.example.com", a))).toMatchObject({ final: { caaTree: { found: true, at: "www.example.com" } }, finalOtherOrg: false });
     expect((await siteDns("www.example.com", "[2606:4700::1]", a)).final).toBeUndefined();
   });
   it("reads DNS for a site whose homepage failed, and not for one that opted out", async () => {
@@ -516,7 +516,7 @@ describe("E20-R run records", () => {
     expect(m.psl).toMatchObject({ commit: PSL_VERSION.commit, sha256: pslSha256() });
     expect(m.git).toHaveProperty("remoteTip");
     for (const k of ["protocolSha256", "amendmentSha256", "studyPageSha256", "codeSha256", "runtimeSha256", "rawSha256", "aggregateSha256"]) expect(m[k], k).toMatch(/^[0-9a-f]{64}$/);
-    expect(m.classifierUnchanged).toBe(true);
+    expect(m.immutableAtFinish).toEqual({ ok: true, changed: [] });
     expect(m.totals).toHaveProperty("requests");
     expect(m.config.appPage).toBe(false);
   });
@@ -653,7 +653,7 @@ describe("E20-R analysis", () => {
   const rec = (host, label, status, cohort = "T1k") => ({ host, finalHost: host, status: "ok", httpStatus: status, score: 50, cohorts: { [cohort]: { rank: 1, group: "x" } }, checks: [], evidence: { class: { label, rule: "status" } } });
   it("gives C12 an interval and no decision", () => {
     const rows = Array.from({ length: 40 }, (_, i) => rec(`s${i}.example.com`, "page", 200));
-    const e20 = new Map(rows.map((r) => [r.host, { httpStatus: 403 }]));
+    const e20 = { T1k: new Map(rows.map((r) => [r.host, { httpStatus: 403 }])) };
     const c12 = claims(rows, null, e20, { resamples: 200 }).find((c) => c.id === "C12");
     expect(c12.decision).toBe("descriptive");
     expect(c12.ci).toHaveLength(2);
@@ -662,7 +662,7 @@ describe("E20-R analysis", () => {
   it("counts agreement over every cohort, with one label definition", () => {
     const one = Array.from({ length: 40 }, (_, i) => ({ ...rec(`s${i}.example.com`, i % 2 ? "page" : "block", 200, "T100k") }));
     const two = one.map((r) => ({ ...r, evidence: { class: { label: "page", rule: "status" }, classRegistered: r.evidence.class } }));
-    const c15 = claims(two, one, new Map(), { resamples: 200 }).find((c) => c.id === "C15");
+    const c15 = claims(two, one, {}, { resamples: 200 }).find((c) => c.id === "C15");
     expect(c15.n).toBe(40);
     expect(c15.kappa).toBe(1);
   });

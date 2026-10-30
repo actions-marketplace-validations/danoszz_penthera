@@ -140,8 +140,8 @@ export async function fetchBody(start, { maxRedirects = 4, timeout = 6000, maxBy
     const host = url.hostname.replace(/^\[|\]$/g, "");
     const { address, family } = await resolvePublic(host, { lookup, allowPrivate });
     if (meter) { meter.requests++; meter.hosts?.push(url.hostname); }
-    const res = await requestOnce(url, address, family, timeout, { maxBytes, accept, userAgent });
-    if (meter) meter.bytes += res.bytes ?? 0;
+    const res = await requestOnce(url, address, family, timeout, { maxBytes, accept, userAgent, meter });
+    meter?.tick?.(true);
     hops.push({ url: url.href, status: res.status });
     const location = res.headers.location;
     if (res.status >= 300 && res.status < 400 && location) {
@@ -173,8 +173,19 @@ function requestOnce(url, address, family, timeout, body = null) {
       const redirect = res.statusCode >= 300 && res.statusCode < 400;
       const encoded = res.headers["content-encoding"] && !/^identity$/i.test(res.headers["content-encoding"]);
       if (!body || redirect || encoded) {
-        resolve({ status: res.statusCode, headers: res.headers, tls, ...(body ? { body: "", truncated: false } : {}) });
-        return res.destroy();
+        const answer = { status: res.statusCode, headers: res.headers, tls, ...(body ? { body: "", truncated: false } : {}) };
+        if (!body?.meter) {
+          resolve(answer);
+          return res.destroy();
+        }
+        // Study only: these bodies are never kept, but the traffic count should hold them.
+        let read = 0;
+        const stop = () => { clearTimeout(limit); resolve(answer); res.destroy(); };
+        const limit = setTimeout(stop, timeout);
+        res.on("data", (c) => { read += c.length; body.meter.bytes += c.length; body.meter.tick?.(); if (read >= body.maxBytes) stop(); });
+        res.on("end", stop);
+        res.on("error", stop);
+        return undefined;
       }
       // Read up to maxBytes, then stop; the whole read must fit the timeout.
       const chunks = [];
@@ -184,11 +195,12 @@ function requestOnce(url, address, family, timeout, body = null) {
         if (done) return;
         done = true;
         clearTimeout(timer);
-        resolve({ status: res.statusCode, headers: res.headers, tls, body: Buffer.concat(chunks).toString("utf8"), truncated, bytes: size });
+        resolve({ status: res.statusCode, headers: res.headers, tls, body: Buffer.concat(chunks).toString("utf8"), truncated });
         res.destroy();
       };
       const timer = setTimeout(() => finish(true), timeout);
       res.on("data", (c) => {
+        if (body.meter) { body.meter.bytes += c.length; body.meter.tick?.(); }
         const room = body.maxBytes - size;
         chunks.push(c.length > room ? c.subarray(0, room) : c);
         size += Math.min(c.length, room);

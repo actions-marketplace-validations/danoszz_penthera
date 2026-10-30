@@ -53,9 +53,6 @@ export function publicSuffix(host) {
   return labels.at(-1);
 }
 
-/** A site's organization: `www.` of a host that is itself a suffix is that host, not a second organization. */
-export const siteOrg = (host) => orgDomain(clean(host).replace(/^www\./, ""));
-
 /** The suffix plus one label. An IP address, or a host that is itself a suffix, comes back unchanged. */
 export function orgDomain(host) {
   const name = clean(host);
@@ -65,4 +62,23 @@ export function orgDomain(host) {
   if (ascii === suffix) return ascii;
   const labels = ascii.split(".");
   return labels.slice(labels.length - suffix.split(".").length - 1).join(".");
+}
+
+/**
+ * One name for one site: `www.example.com` is `example.com`. The list decides: when
+ * the rest is itself a public suffix, as in `www.github.io`, the `www.` is a real label.
+ */
+export function siteKey(host) {
+  const name = clean(host);
+  if (!name.startsWith("www.")) return name;
+  const rest = name.slice(4);
+  return publicSuffix(rest) === (domainToASCII(rest) || rest) ? name : rest;
+}
+
+/** A site's organization. `www.` on a host that is itself a suffix is that host, not a second organization. */
+export function siteOrg(host) {
+  const org = orgDomain(host);
+  if (!org.startsWith("www.")) return org;
+  const rest = org.slice(4);
+  return publicSuffix(rest) === rest ? rest : org;
 }

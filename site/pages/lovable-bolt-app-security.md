@@ -1,5 +1,5 @@
 ---
-nav: Lovable, Bolt and Base44 apps
+nav: Lovable, Bolt, Base44
 title: Is my Lovable, Bolt or Base44 app safe? A free security check
 description: Check your Lovable, Bolt or Base44 app for API keys in its JavaScript, missing security headers, weak cookies and vulnerable libraries. Free and passive.
 ---

@@ -32,9 +32,9 @@ import { landingPages, landingHtml, landingMarkdown } from "./landing.mjs";
 import { termsPage, docPage } from "./terms.mjs";
 import { publicBenchHtml } from "./public-bench.mjs";
 import { readPosts, blogFiles } from "./blog.mjs";
-import { siteFooter, footGroups } from "./frame.mjs";
+import { siteFooter, siteRail, footGroups } from "./frame.mjs";
 import { benchmarkHtml, benchmarkMarkdown, benchmarkViews, cardFor, fieldTools, hubHtml, hubMarkdown } from "./benchmarks.mjs";
-import { cardRows, failedChecks, rowTag } from "./check/card.js";
+import { cardRows, rowTag } from "./check/card.js";
 import { researchEntries, researchHtml, researchMarkdown } from "./research.mjs";
 
 const SITE = dirname(fileURLToPath(import.meta.url));
@@ -167,7 +167,8 @@ export async function exampleCheck() {
 
 /** The metal example card: the markup ui.js renders for your result, labelled Example. */
 export function exampleCardHtml(report) {
-  const rows = cardRows(report, { withPassed: true });
+  // Three rows and no button: the scan form is the one action on the screen.
+  const rows = cardRows(report, { withPassed: true }).slice(0, 3);
   const meter = Array.from({ length: 100 }, (_, i) => (i < report.score ? '<i class="on"></i>' : "<i></i>")).join("");
   return `<section class="card card-example" aria-labelledby="example-title">
           <div class="card-top"><span class="card-label" id="example-title">Example</span><span class="card-host">real output<span class="card-wide"> · test server</span></span></div>
@@ -176,7 +177,6 @@ export function exampleCardHtml(report) {
           <ul class="card-rows">
 ${rows.map((c) => `            <li${c.passed ? ' class="ok"' : ""}><span class="card-tag">${esc(rowTag(c))}</span>${esc(c.title)}</li>`).join("\n")}
           </ul>
-          <p class="card-fake" aria-hidden="true">Prompt to fix (${failedChecks(report).length})</p>
         </section>`;
 }
 
@@ -554,7 +554,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   // landing page, benchmark or approved post shows up in it by itself.
   const groups = footGroups({
     pages: landingPages(SITE),
-    benchmarks: pub ? benchmarkViews(pub).map((v) => ({ slug: v.c.slug, label: v.c.label })) : [],
+    benchmarks: pub ? benchmarkViews(pub).map((v) => ({ slug: v.c.slug, label: v.c.label, nav: v.c.nav })) : [],
     posts: posts.published,
   });
   const footer = (home = false) => siteFooter({ groups, version: values.VERSION, stars: values.STARS, home });
@@ -617,6 +617,13 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   for (const [f, text] of Object.entries(agentFiles({ root: ROOT, site: SITE, version: siteVersion(version), origin: ORIGIN, values, pub, posts: posts.published, research }))) {
     mkdirSync(dirname(join(OUT, f)), { recursive: true });
     writeFileSync(join(OUT, f), text);
+  }
+
+  // The rail goes on every rendered page here, so no page template can miss it.
+  for (const f of readdirSync(OUT, { recursive: true }).map(String).filter((n) => n.endsWith(".html"))) {
+    const url = "/" + f.replace(/\\/g, "/").replace(/(^|\/)index\.html$/, "").replace(/\.html$/, "");
+    const html = readFileSync(join(OUT, f), "utf8");
+    writeFileSync(join(OUT, f), html.replace(/<main\b/, `${siteRail({ url: url === "/" ? "/" : url.replace(/\/$/, ""), stars: values.STARS, blog: posts.published.length > 0 })}\n$&`));
   }
 
   const total = readdirSync(OUT, { recursive: true }).map((f) => join(OUT, f)).filter((f) => statSync(f).isFile()).reduce((n, f) => n + statSync(f).size, 0);

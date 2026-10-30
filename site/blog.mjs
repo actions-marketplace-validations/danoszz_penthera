@@ -3,6 +3,7 @@
  *
  *   ---
  *   title: We benchmarked 10 free secret scanners. We came second.
+ *   nav: Secret scanner test    # the footer's label, one short line
  *   description: Under 160 characters.
  *   date: 2026-11-03
  *   approved: false              # Daan sets a date (YYYY-MM-DD) to publish

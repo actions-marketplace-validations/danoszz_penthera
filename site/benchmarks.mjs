@@ -123,6 +123,7 @@ export const BENCHMARKS = {
   npm: {
     slug: "npm-malware",
     label: "Malicious npm packages",
+    nav: "Malicious npm",
     title: (b) => `npm malware detector benchmark: ${b.of} free tools on DataDog's dataset`,
     h1: (b) => `Free npm malware detectors on DataDog's dataset: ${b.of} tools ranked`,
     question: "Which free tool catches the most malicious npm packages, with the fewest false alarms?",
@@ -141,6 +142,7 @@ export const BENCHMARKS = {
   pypi: {
     slug: "pypi-malware",
     label: "Malicious PyPI packages",
+    nav: "Malicious PyPI",
     title: (b) => `PyPI malware detector benchmark: ${b.of} free tools on DataDog's dataset`,
     h1: (b) => `Free PyPI malware detectors on DataDog's dataset: ${b.of} tools ranked`,
     question: "Which free tool catches the most malicious PyPI packages, with the fewest false alarms?",
@@ -159,6 +161,7 @@ export const BENCHMARKS = {
   library: {
     slug: "js-injection",
     label: "Injection bugs in JavaScript libraries",
+    nav: "Injection bugs in JS",
     title: (b) => `JavaScript injection benchmark: ${b.of} free analyzers on SecBench.js`,
     h1: (b) => `Free JavaScript static analyzers on SecBench.js injection bugs: ${b.of} tools ranked`,
     question: "Which free static analyzer finds the most injection bugs in JavaScript libraries?",

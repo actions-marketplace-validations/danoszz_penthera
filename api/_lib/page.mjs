@@ -442,28 +442,37 @@ export function optedOut(robots, tokens = [TOKEN]) {
  * refuse when the owner opted out. No file, or any fetch error, means go on.
  * `optOutAll` (the E20 study only) also refuses on a `*` group with Disallow: /.
  * `onRobots` (study only) hears every outcome and may throw, so the study sets
- * its own rules. The live check never sets it, and keeps "go on".
+ * its own rules; a study run also reads any 2xx. `robotsHop` (study only) checks
+ * each hop of the file's own redirects. The live check sets neither, and keeps
+ * "go on".
  */
 export async function checkOptOut(origin, budget, opts = {}) {
   const timeout = Math.min(4000, budget.left() - 200);
   if (timeout < 500) { opts.onRobots?.({ origin, error: "budget" }); return; }
   let res;
+  let hops = 0;
+  const onHop = async (u) => {
+    if (hops++) opts.onAnswered?.();
+    await opts.robotsHop?.(u);
+    budget.hop();
+  };
   try {
-    res = await fetchBody(parseTarget(`${origin}/robots.txt`, opts), { ...opts, timeout, maxBytes: 65_536, maxRedirects: opts.robotsRedirects ?? 2, accept: "text/plain", onHop: () => budget.hop() });
+    res = await fetchBody(parseTarget(`${origin}/robots.txt`, opts), { ...opts, timeout, maxBytes: opts.robotsMaxBytes ?? 65_536, maxRedirects: opts.robotsRedirects ?? 2, accept: "text/plain", onHop });
   } catch (e) {
     opts.onRobots?.({ origin, error: e?.code || "internal", cause: e });
     return;
   }
   opts.onResponse?.("robots", res);
-  opts.onRobots?.({ origin, status: res.status, body: res.body });
-  if (res.status === 200 && optedOut(res.body, opts.optOutTokens)) {
+  opts.onRobots?.({ origin, status: res.status, body: res.body, headers: res.headers, truncated: res.truncated });
+  const readable = opts.onRobots ? res.status >= 200 && res.status < 300 : res.status === 200;
+  if (readable && optedOut(res.body, opts.optOutTokens)) {
     throw new CheckError("opted_out", "This site's owner opted out of Penthera's online check.", 403, "Ask the owner, or, if it's your site, run npx penthera on your own machine.");
   }
   // The E20 study (bench/front-door) also honors `User-agent: *` with
   // `Disallow: /`, because a survey is closer to a crawler. The live check
   // never sets optOutAll, so the API never sends this. Same code, marked
   // `all`, so the study can count it apart from an opt-out naming us.
-  if (res.status === 200 && opts.optOutAll && optedOut(res.body, ["*"])) {
+  if (readable && opts.optOutAll && optedOut(res.body, ["*"])) {
     throw Object.assign(new CheckError("opted_out", "This site's robots.txt disallows every user agent.", 403, ""), { all: true });
   }
 }

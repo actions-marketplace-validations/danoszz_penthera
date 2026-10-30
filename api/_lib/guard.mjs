@@ -129,22 +129,26 @@ export async function fetchHeaders(start, { maxRedirects = 4, timeout = 6000, lo
  * `onHop` runs before each request (the caller's request budget); it may
  * be async, and it may throw to stop. The body is decoded as UTF-8; a compressed body (which we
  * never ask for) is left empty. Nothing is logged. `userAgent` replaces the
- * live check's User-Agent (the E20 study names itself, bench/front-door).
+ * live check's User-Agent (the E20 study names itself, bench/front-door), and
+ * `meter` (study only) counts requests, bytes read and redirects.
  */
-export async function fetchBody(start, { maxRedirects = 4, timeout = 6000, maxBytes = 1_500_000, accept, onHop, lookup, allowPrivate = false, anyPort = false, userAgent } = {}) {
+export async function fetchBody(start, { maxRedirects = 4, timeout = 6000, maxBytes = 1_500_000, accept, onHop, lookup, allowPrivate = false, anyPort = false, userAgent, meter } = {}) {
   let url = start;
   const hops = [];
   for (let i = 0; i <= maxRedirects; i++) {
     await onHop?.(url);
     const host = url.hostname.replace(/^\[|\]$/g, "");
     const { address, family } = await resolvePublic(host, { lookup, allowPrivate });
+    if (meter) meter.requests++;
     const res = await requestOnce(url, address, family, timeout, { maxBytes, accept, userAgent });
+    if (meter) meter.bytes += res.bytes ?? 0;
     hops.push({ url: url.href, status: res.status });
     const location = res.headers.location;
     if (res.status >= 300 && res.status < 400 && location) {
       let next;
       try { next = new URL(location, url); } catch { break; }
       url = parseTarget(next.href, { anyPort });
+      if (meter) meter.redirects++;
       continue;
     }
     return { ...res, url: url.href, hops };
@@ -180,7 +184,7 @@ function requestOnce(url, address, family, timeout, body = null) {
         if (done) return;
         done = true;
         clearTimeout(timer);
-        resolve({ status: res.statusCode, headers: res.headers, tls, body: Buffer.concat(chunks).toString("utf8"), truncated });
+        resolve({ status: res.statusCode, headers: res.headers, tls, body: Buffer.concat(chunks).toString("utf8"), truncated, bytes: size });
         res.destroy();
       };
       const timer = setTimeout(() => finish(true), timeout);
@@ -199,7 +203,7 @@ function requestOnce(url, address, family, timeout, body = null) {
       if (/CERT|SELF_SIGNED|UNABLE_TO_VERIFY|ERR_TLS/i.test(e.code || "")) {
         return reject(Object.assign(new CheckError("tls_invalid", `The certificate for ${url.hostname} is not valid (${e.code}).`, 422, "Renew or reissue the certificate; browsers show a warning for this site."), { tlsReason: e.code }));
       }
-      reject(new CheckError("unreachable", `Could not connect to ${url.hostname}.`, 502, "Check that the site is up, or run npx penthera from your own machine."));
+      reject(Object.assign(new CheckError("unreachable", `Could not connect to ${url.hostname}.`, 502, "Check that the site is up, or run npx penthera from your own machine."), { netCode: e.code }));
     });
     req.end();
   });

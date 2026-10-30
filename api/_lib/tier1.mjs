@@ -33,7 +33,7 @@ export const SCOPE = "Only what a browser loads: /robots.txt first (a site can o
  * @param {{typed?: string, now?: number, lookup?: Function, allowPrivate?: boolean, anyPort?: boolean,
  *   timeout?: number, dns?: object, dnsTimeout?: number, budgetMs?: number, retireDb?: object,
  *   assets?: boolean, secrets?: boolean, userAgent?: string, optOutTokens?: string[], optOutAll?: boolean,
- *   onPage?: Function, onResponse?: Function, onRobots?: Function, onHopUrl?: Function, onFallback?: Function, robotsRedirects?: number}} opts
+ *   onPage?: Function, onResponse?: Function, onRobots?: Function, onHopUrl?: Function, onFallback?: Function, allowFallback?: Function, fallbackError?: Function, robotsHop?: Function, onAnswered?: Function, meter?: object, robotsRedirects?: number, robotsMaxBytes?: number}} opts
  *   lookup, allowPrivate, anyPort, dns and retireDb are for tests. The E20
  *   study (bench/front-door/run.mjs) sets the rest: assets: false skips the
  *   referenced scripts and stylesheets, secrets: false the secret rules, and
@@ -45,12 +45,16 @@ export const SCOPE = "Only what a browser loads: /robots.txt first (a site can o
  *   with ("robots" | "security.txt", response). onRobots hears each robots.txt
  *   outcome and may throw. onHopUrl is called with the URL of every hop, before
  *   and after a new origin's robots.txt, and may throw; robotsRedirects sets
- *   how many redirects a robots.txt may take. onFallback hears why https
- *   failed before the http fallback. The live check sets none of these.
+ *   how many redirects a robots.txt may take and robotsMaxBytes how much of it
+ *   is read; robotsHop checks that file's hops, and onAnswered hears that the
+ *   origin replied. allowFallback may refuse the http fallback, onFallback hears
+ *   why https failed, and fallbackError picks the error when http fails too.
+ *   meter counts requests, bytes and redirects.
+ *   The live check sets none of these.
  */
 export async function passiveReport(target, opts = {}) {
   const budget = makeBudget({ budgetMs: opts.budgetMs ?? LIMITS.budgetMs });
-  const guard = { lookup: opts.lookup, allowPrivate: opts.allowPrivate, anyPort: opts.anyPort, userAgent: opts.userAgent, optOutTokens: opts.optOutTokens, optOutAll: opts.optOutAll, onResponse: opts.onResponse, onRobots: opts.onRobots, robotsRedirects: opts.robotsRedirects };
+  const guard = { lookup: opts.lookup, allowPrivate: opts.allowPrivate, anyPort: opts.anyPort, userAgent: opts.userAgent, optOutTokens: opts.optOutTokens, optOutAll: opts.optOutAll, onResponse: opts.onResponse, onRobots: opts.onRobots, robotsHop: opts.robotsHop, onAnswered: opts.onAnswered, meter: opts.meter, robotsRedirects: opts.robotsRedirects, robotsMaxBytes: opts.robotsMaxBytes };
   // Study only: every hop goes past onHopUrl, and a new origin's robots.txt is read first.
   const seen = new Set([target.origin]);
   guard.gate = opts.onHopUrl && (async (u) => {
@@ -60,7 +64,8 @@ export async function passiveReport(target, opts = {}) {
     await checkOptOut(u.origin, budget, guard);
     opts.onHopUrl(u);
   });
-  const pageOpts = { ...guard, timeout: Math.min(opts.timeout ?? 6000, 6000), maxBytes: LIMITS.pageBytes, onHop: async (u) => { await guard.gate?.(u); budget.hop(); } };
+  let hops = 0;
+  const pageOpts = { ...guard, timeout: Math.min(opts.timeout ?? 6000, 6000), maxBytes: LIMITS.pageBytes, onHop: async (u) => { if (hops++) opts.onAnswered?.(); await guard.gate?.(u); budget.hop(); } };
 
   let result;
   try {
@@ -70,11 +75,16 @@ export async function passiveReport(target, opts = {}) {
     // "example.com" with no https at all: look at what http serves instead.
     const bare = !/^https?:\/\//i.test(String(opts.typed ?? "").trim());
     if (!bare || !(e instanceof CheckError) || !["unreachable", "tls_invalid"].includes(e.code)) throw e;
+    if (opts.allowFallback && !opts.allowFallback(e)) throw e;
     opts.onFallback?.(e);
     const plain = parseTarget(`http://${target.host}${target.pathname}`, guard);
     seen.add(plain.origin);
-    await checkOptOut(plain.origin, budget, guard);
-    result = await fetchBody(plain, pageOpts);
+    try {
+      await checkOptOut(plain.origin, budget, guard);
+      result = await fetchBody(plain, pageOpts);
+    } catch (e2) {
+      throw opts.fallbackError ? opts.fallbackError(e, e2) : e2;
+    }
   }
 
   const pageUrl = result.url;

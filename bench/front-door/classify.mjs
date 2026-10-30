@@ -4,10 +4,10 @@
  * and Amendment 2. The signature lists are frozen before a run; a change after
  * that is a deviation. No model decides a label (AGENTS.md rule 4).
  *
- *   challenge     an edge network tests the client
- *   block         an edge network or firewall refuses the client
- *   origin-error  the site itself answers with an error
- *   page          a normal page
+ *   challenge                     an edge network tests the client
+ *   block                         an edge network or firewall refuses the client
+ *   unrecognized-error-response   an error no rule recognized (pass 1: origin-error)
+ *   candidate-page                no marker found; not proof of a page (pass 1: page)
  *
  * Header markers come first: Cloudflare documents that the status code alone
  * does not identify a challenge. `classify` is the V2 rule set, written after
@@ -15,6 +15,7 @@
  * unchanged, so C15 and the comparison with pass 1 use one definition.
  */
 import { createHash } from "node:crypto";
+import { isIP, isIPv6 } from "node:net";
 
 export const CHALLENGE_HEADERS = Object.freeze([
   ["cf-mitigated", /challenge/i, "cloudflare"],
@@ -67,16 +68,18 @@ export const BLOCK_BODIES_V2 = Object.freeze([
 ]);
 // CloudFront's own error page, after the two lines above that mean a refusal.
 export const CLOUDFRONT_ERROR = /The request could not be satisfied/i;
-// Cloudflare's short text error. 1001 is a DNS error, not a refusal.
+// Cloudflare's short text error. These four are DNS, tunnel and Worker errors, not refusals.
 const CF_ERROR = /^\s*error code:\s*(1\d{3})\b/i;
-const CF_NOT_REFUSAL = new Set(["1001"]);
+const CF_NOT_REFUSAL = new Set(["1001", "1016", "1033", "1101"]);
 const EDGE_NAMES = Object.freeze([["cf-ray", "cloudflare"], ["x-amz-cf-id", "cloudfront"], ["x-akamai-transformed", "akamai"], ["akamai-grn", "akamai"]]);
 const REFUSAL_STATUS = new Set([401, 403, 406, 429]);
 
 // Header values kept verbatim, then scrubbed. Every other header keeps its name only.
 export const KEPT_VALUES = Object.freeze(["cf-mitigated", "x-amzn-waf-action", "x-vercel-mitigated", "server", "via", "x-cache", "cf-cache-status", "content-type"]);
 export const EXCERPT_BYTES = 4096;
-export const PAGE_TEXT_CHARS = 1024;
+export const PAGE_TEXT_CHARS = 4096;
+// Site-controlled text is cut to this before any regex runs on it.
+export const INPUT_CAP_CHARS = 65_536;
 
 const lower = (headers = {}) => Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]));
 
@@ -92,13 +95,15 @@ export function classify({ status, headers = {}, body = "" }) {
   for (const [name, re, vendor] of CHALLENGE_HEADERS) {
     if (re.test(String(h[name] ?? ""))) return { label: "challenge", vendor, rule: `header:${name}` };
   }
-  const text = String(body);
+  const whole = String(body);
+  const text = whole.slice(0, INPUT_CAP_CHARS);
   for (const [re, vendor] of HARD_CHALLENGE_BODIES) if (re.test(text)) return { label: "challenge", vendor, rule: "body" };
-  for (const [re, vendor] of BLOCK_BODIES_V2) if (re.test(text)) return { label: "block", vendor, rule: "body" };
-  if (status >= 300 || text.length <= SOFT_MAX_CHARS) {
+  // A long 2xx page may mention any of these words. It counts on an error, or a body too small to be a page.
+  if (status >= 400 || whole.length <= SOFT_MAX_CHARS) {
+    for (const [re, vendor] of BLOCK_BODIES_V2) if (re.test(text)) return { label: "block", vendor, rule: "body" };
     for (const [re, vendor] of SOFT_CHALLENGE_BODIES) if (re.test(text)) return { label: "challenge", vendor, rule: "soft-body" };
+    if (CLOUDFRONT_ERROR.test(text)) return { label: "unrecognized-error-response", vendor: "cloudfront", rule: "cloudfront:error" };
   }
-  if (CLOUDFRONT_ERROR.test(text)) return { label: "origin-error", vendor: "cloudfront", rule: "cloudfront:error" };
   const edge = edgeOf(h);
   const code = CF_ERROR.exec(text)?.[1];
   if (status >= 400 && code && edge === "cloudflare" && !CF_NOT_REFUSAL.has(code)) return { label: "block", vendor: "cloudflare", rule: `cloudflare:${code}` };
@@ -106,12 +111,12 @@ export function classify({ status, headers = {}, body = "" }) {
   if (REFUSAL_STATUS.has(status) && !text.trim() && edge) return { label: "block", vendor: edge, rule: "empty-at-edge" };
   // A homepage that answers 403 refuses this client, whoever serves it. A view
   // of signature-backed refusals alone drops this rule.
-  if (status === 403) return { label: "block", vendor: edge, rule: "status:403" };
-  if (status >= 400) return { label: "origin-error", vendor: null, rule: "status" };
-  return { label: "page", vendor: null, rule: "status" };
+  if (status === 403) return { label: "block", vendor: edge, rule: "unrecognized-403" };
+  if (status >= 400) return { label: "unrecognized-error-response", vendor: null, rule: "status" };
+  return { label: "candidate-page", vendor: null, rule: "status" };
 }
 
-/** Pass 1's rule set, unchanged. */
+/** Pass 1's rule set, unchanged, on the whole body, so its labels stay comparable. Each rule is a plain alternation. */
 export function classifyRegistered({ status, headers = {}, body = "" }) {
   const h = lower(headers);
   for (const [name, re, vendor] of CHALLENGE_HEADERS) {
@@ -124,51 +129,148 @@ export function classifyRegistered({ status, headers = {}, body = "" }) {
   return { label: "page", vendor: null, rule: "status" };
 }
 
+const matches = (rules, text) => Object.fromEntries(rules.map(([re, vendor]) => [vendor, re.test(text)]));
+
+/** Every signature, for every rule set, as a boolean, so a label can be replayed under other rules. */
+export function signatureMatches(body) {
+  const whole = String(body ?? "");
+  const text = whole.slice(0, INPUT_CAP_CHARS);
+  return {
+    registeredChallenge: matches(CHALLENGE_BODIES, whole), registeredBlock: matches(BLOCK_BODIES, whole),
+    hardChallenge: matches(HARD_CHALLENGE_BODIES, text), softChallenge: matches(SOFT_CHALLENGE_BODIES, text), block: matches(BLOCK_BODIES_V2, text),
+    cloudfrontError: CLOUDFRONT_ERROR.test(text), cloudflareCode: CF_ERROR.exec(text)?.[1] ?? null,
+  };
+}
+
+/**
+ * What a value test of the CSP needs, from the full header, not the grader's
+ * 160-character evidence. Directive names only. `controlsScripts`: a policy has
+ * `script-src`, `script-src-elem` or `default-src`. `openScripts`: that source
+ * list still allows inline code without a nonce or hash, or any host of a scheme.
+ */
+export function cspEvidence(headers = {}) {
+  const raw = [].concat(lower(headers)["content-security-policy"] ?? []).join(",").slice(0, INPUT_CAP_CHARS);
+  const policies = raw.split(",").map((p) => new Map(p.split(";").map((d) => d.trim().split(/\s+/)).filter(([n]) => /^[a-z-]{1,64}$/i.test(n ?? "")).map(([n, ...v]) => [n.toLowerCase(), v.map((x) => x.toLowerCase())])));
+  const script = policies.map((p) => p.get("script-src") ?? p.get("script-src-elem") ?? p.get("default-src")).filter(Boolean);
+  const open = (v) => v.some((s) => ["*", "http:", "https:", "data:"].includes(s)) || (v.includes("'unsafe-inline'") && !v.some((s) => /^'(?:nonce-|sha(?:256|384|512)-)/.test(s)));
+  return {
+    present: raw.trim().length > 0, chars: raw.length,
+    directives: [...new Set(policies.flatMap((p) => [...p.keys()]))].sort().slice(0, 40),
+    controlsScripts: script.length > 0,
+    openScripts: script.length > 0 && script.every(open),
+  };
+}
+
 /** Cookie names only, never values. */
 export function cookieNames(headers = {}) {
   const raw = lower(headers)["set-cookie"];
   const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
-  return list.map((c) => String(c).split("=")[0].trim()).filter(Boolean).sort();
+  // No = before the first ; means there is no name, and what stands there may be a value.
+  return list.map((c) => { const pair = String(c).split(";")[0]; return pair.includes("=") ? pair.split("=")[0].trim() : ""; }).filter(Boolean).sort();
 }
 
 // § 6, secondary: what kind of site this is, from the homepage already fetched.
 // Fixed rules on the HTML; only the booleans are kept, never a URL or a name.
 export const TRAIT_RULES = Object.freeze({
-  login: /<a\b[^>]*>\s*(?:<[^>]+>\s*)*(log\s?in|sign\s?in|my account|inloggen|anmelden|connexion)\b/i,
+  login: /<a\b[^>]{0,2000}>\s{0,200}(?:<[^>]{1,500}>\s{0,200}){0,8}(log\s?in|sign\s?in|my account|inloggen|anmelden|connexion)\b/i,
   payments: /js\.stripe\.com|checkout\.stripe\.com|paypal\.com\/sdk|paypalobjects\.com|js\.braintreegateway\.com|checkoutshopper-[a-z]+\.adyen\.com|klarna(?:cdn|\.com)|mollie\.com/i,
   shop: /cdn\.shopify\.com|woocommerce|magento|\/cart\b|\/checkout\b|add[-_ ]to[-_ ]cart/i,
   // A public security or trust page: a stand-in for a team that owns security, not proof of a CISO.
-  securityPage: /<a\b[^>]*href="[^"]*(?:\/security\b|\/trust\b|\/trust-center|\/\/trust\.|\/\/security\.)[^"]*"/i,
+  securityPage: /<a\b[^>]{0,2000}href="[^"]{0,500}(?:\/security\b|\/trust\b|\/trust-center|\/\/trust\.|\/\/security\.)[^"]{0,500}"/i,
 });
 
 /** Booleans for one page. An empty page (no 2xx HTML) gives null: unknown, not "no". */
 export function traitsOf(html) {
   if (!html) return null;
-  return Object.fromEntries(Object.entries(TRAIT_RULES).map(([k, re]) => [k, re.test(html)]));
+  const text = String(html).slice(0, INPUT_CAP_CHARS);
+  return Object.fromEntries(Object.entries(TRAIT_RULES).map(([k, re]) => [k, re.test(text)]));
 }
 
-const IPV4 = /(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?![\d.])/g;
-const IPV6 = /(?<![\w:.])(?=[0-9a-f:]*:[0-9a-f:]*:)[0-9a-f:]+(?![\w:])/gi;
-const EMAIL = /[\w.+%-]+@[\w-]+\.[\w.-]+/g;
-const QUERY = /([a-z0-9_~%./:-]+)\?[^\s"'<>)\\]+/gi;
-const LONG_NUMBER = /\+?\d[\d\s().-]{7,}\d/g;
+// Every repeat below is bounded, so no input of INPUT_CAP_CHARS can make these slow.
+const AT_FORMS = /&#0*64;|&#x0*40;|&commat;|%40|\\u0040|\s{0,3}(?:\[at\]|\(at\))\s{0,3}/gi;
+// A form field's value can be a token or a person's details. No field is kept.
+const INPUT_TAG = /<input\b[^>]{0,2000}>/gi;
+const CF_EMAIL = /(data-cfemail=["']?)[0-9a-f]{2,512}|(\/cdn-cgi\/l\/email-protection#)[0-9a-f]{2,512}/gi;
+const EMAIL = /[\p{L}\p{N}._%+-]{1,64}@[\p{L}\p{N}-]{1,63}(?:\.[\p{L}\p{N}-]{1,63}){1,6}/gu;
+const IPV6_RUN = /(?<![0-9a-f:])(?:[0-9a-f]{0,4}:){2,8}(?:\d{1,3}(?:\.\d{1,3}){3}|[0-9a-f]{0,4})(?![0-9a-f])/gi;
+const IPV4 = /(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?!\d)(?!\.\d)/g;
+const QUERY = /\?[^\s"'<>)\\#?]{1,4096}/gu;
+const FRAGMENT = /#[\p{L}\p{N}_%.~-]{1,64}=[^\s"'<>)\\]{0,4096}/gu;
+const JWT = /eyJ[\w-]{6,4096}\.[\w-]{2,4096}(?:\.[\w-]{0,4096})?/g;
+const BEARER = /\b(bearer|basic)\s+[\w.~+/=-]{8,4096}/gi;
+const UUID = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
+const NAMED = /\b([\w-]{0,32}(?:token|session|sess|sid|csrf|xsrf|auth|secret|nonce|password|passwd|api[_-]?key|access[_-]?key))(["']?\s{0,3}[:=]\s{0,3}["']?)[^\s"'<>&;,)]{4,4096}/gi;
+const TOKEN_RUN = /[A-Za-z0-9_-]{16,4096}/g;
+const LONG_NUMBER = /\+?\d[\d\s().-]{7,40}\d/g;
 
-/** IP addresses and emails out. For anything that may quote the client back. */
-export const scrubAddresses = (text) => String(text ?? "").replace(EMAIL, "<email>").replace(IPV4, "<ip>").replace(IPV6, "<ip>");
-/** For a stored body: addresses, query strings (tokens live there) and long numbers. */
-export const scrub = (text) => scrubAddresses(String(text ?? "").replace(QUERY, "$1?<query>")).replace(LONG_NUMBER, "<number>");
-/** What should never survive a scrub. The pilot report counts these. */
-export const scrubMisses = (text) => {
-  const s = String(text ?? "");
-  return { ipv4: s.match(IPV4)?.length ?? 0, ipv6: s.match(IPV6)?.length ?? 0, email: s.match(EMAIL)?.length ?? 0, query: s.match(/\?(?!<query>)[a-z0-9_%-]+=[^\s"'<>]+/gi)?.length ?? 0 };
-};
+const digits = (s) => s.replace(/\D/g, "").length;
+const isToken = (s) => /^[0-9a-f]{16,}$/i.test(s) || (s.length >= 24 && /\d/.test(s) && /[A-Za-z]/.test(s));
+// A run can start with one stray label: `IP:` or the `ip6:` of an SPF record.
+const ipv6Out = (m) => (isIPv6(m) || (!m.startsWith("::") && isIPv6(m.slice(m.indexOf(":") + 1))) ? "<ip>" : m);
+const decodeForms = (s) => s.replace(AT_FORMS, "@").replace(/%3a/gi, ":");
+
+/** IP addresses and emails out. */
+export const scrubAddresses = (text) => decodeForms(String(text ?? "")).replace(EMAIL, (m) => (m.startsWith("redacted") ? m : "<email>")).replace(IPV6_RUN, ipv6Out).replace(IPV4, "<ip>");
+/** For anything stored: addresses, query strings, fragments, tokens and long numbers. Run it before slicing. */
+export const scrub = (text) => scrubAddresses(String(text ?? "").slice(0, INPUT_CAP_CHARS).replace(INPUT_TAG, "<input>").replace(CF_EMAIL, (_m, a, b) => `${a ?? b}<email>`))
+  .replace(QUERY, "?<query>").replace(FRAGMENT, "#<fragment>")
+  .replace(JWT, "<token>").replace(BEARER, "$1 <token>").replace(UUID, "<id>")
+  .replace(NAMED, "$1$2<token>")
+  .replace(TOKEN_RUN, (m) => (isToken(m) ? "<token>" : m))
+  .replace(LONG_NUMBER, (m) => (digits(m) >= 9 && !/^\d{4}-\d{2}-\d{2}/.test(m) ? "<number>" : m));
+
+/**
+ * What should never survive a scrub. This walks tokens with its own tests and
+ * shares no pattern with `scrub`, so one regex fault can't hide from both.
+ */
+export function scrubMisses(text) {
+  const out = { ipv4: 0, ipv6: 0, email: 0, query: 0, fragment: 0, jwt: 0, longHex: 0, longNumber: 0 };
+  const edge = new Set(`.,;:!?()[]{}<>"'=\``);
+  const trim = (t) => {
+    let a = 0, b = t.length;
+    while (a < b && edge.has(t[a])) a++;
+    while (b > a && edge.has(t[b - 1])) b--;
+    return t.slice(a, b);
+  };
+  for (const raw of String(text ?? "").split(/[\s"'`<>()\[\],;\\]+/)) {
+    if (raw.startsWith("redacted") || raw === "query" || raw === "fragment") continue;
+    const t = trim(raw);
+    if (!t) continue;
+    for (const piece of [t, ...t.split("="), t.slice(t.indexOf(":") + 1)]) {
+      const v = isIP(trim(piece));
+      if (v === 4) { out.ipv4++; break; }
+      if (v === 6) { out.ipv6++; break; }
+    }
+    // An @ in a URL path (a versioned package on a CDN) is not an address: the part after it must end in a TLD.
+    const isAddress = (piece) => {
+      const at = piece.indexOf("@");
+      const tld = piece.slice(piece.lastIndexOf(".") + 1);
+      return at > 0 && piece.indexOf(".", at) > at + 1 && tld.length >= 2 && [...tld].every((ch) => ch.toLowerCase() !== ch.toUpperCase());
+    };
+    const decoded = t.includes("%40") || t.toLowerCase().includes("&#64") || t.toLowerCase().includes("&#x40");
+    if (decoded || t.split(/[/?&=:]/).some(isAddress)) out.email++;
+    const eq = t.indexOf("=");
+    const q = t.indexOf("?"), hash = t.indexOf("#");
+    if (q >= 0 && eq > q + 1) out.query++;
+    if (hash >= 0 && eq > hash + 1) out.fragment++;
+    if (t.includes("eyJ") && t.split(".").length >= 2) out.jwt++;
+    let run = 0, numerals = 0;
+    for (const ch of t.toLowerCase()) {
+      run = "0123456789abcdef".includes(ch) ? run + 1 : 0;
+      if (ch >= "0" && ch <= "9") numerals++;
+      if (run === 32) { out.longHex++; }
+    }
+    if (numerals >= 12 && !t.includes("-") && !t.includes(":") && !t.includes(".") && numerals === t.replace(/[^0-9]/g, "").length && numerals === t.length) out.longNumber++;
+  }
+  return out;
+}
 
 const headerEvidence = (res) => {
   const h = lower(res.headers);
   return {
     status: res.status,
     headerNames: Object.keys(h).sort(),
-    values: Object.fromEntries(KEPT_VALUES.filter((k) => h[k] !== undefined).map((k) => [k, scrubAddresses(String(h[k])).slice(0, 120)])),
+    values: Object.fromEntries(KEPT_VALUES.filter((k) => h[k] !== undefined).map((k) => [k, scrub(h[k]).slice(0, 120)])),
     cookieNames: cookieNames(h),
   };
 };
@@ -176,18 +278,65 @@ const headerEvidence = (res) => {
 const sha256 = (s) => createHash("sha256").update(s).digest("hex");
 const outside2xx = (status) => status < 200 || status >= 300;
 
-/** Short visible text of a 2xx response: enough to tell a page from a challenge. No scripts, no links. */
+const SKIPPED_TAGS = Object.freeze(["script", "style", "noscript", "svg", "head", "template"]);
+
+/** The text outside markup, in one pass. An unclosed comment or script runs to the end of the input. */
+function visibleText(html) {
+  const low = html.toLowerCase();
+  let out = "";
+  let i = 0;
+  while (i < html.length) {
+    const lt = low.indexOf("<", i);
+    if (lt < 0) { out += html.slice(i); break; }
+    out += `${html.slice(i, lt)} `;
+    if (low.startsWith("<!--", lt)) {
+      const end = low.indexOf("-->", lt + 4);
+      if (end < 0) break;
+      i = end + 3;
+      continue;
+    }
+    const tag = SKIPPED_TAGS.find((t) => low.startsWith(`<${t}`, lt) && !/[a-z0-9-]/.test(low[lt + t.length + 1] ?? " "));
+    if (tag) {
+      const end = low.indexOf(`</${tag}`, lt);
+      const close = end < 0 ? -1 : low.indexOf(">", end);
+      if (close < 0) break;
+      i = close + 1;
+      continue;
+    }
+    const gt = low.indexOf(">", lt);
+    if (gt < 0) break;
+    i = gt + 1;
+  }
+  return out;
+}
+
+function between(html, low, tag) {
+  const open = low.indexOf(`<${tag}`);
+  const start = open < 0 ? -1 : low.indexOf(">", open);
+  const end = start < 0 ? -1 : low.indexOf(`</${tag}`, start);
+  return end < 0 ? "" : html.slice(start + 1, end);
+}
+
+/**
+ * The visible text of a 2xx response and its shape, enough to tell a page from
+ * a JS challenge, a soft block or a custom interstitial. No markup is kept.
+ */
 export function pageExcerpt(body) {
-  const text = String(body ?? "");
-  const title = /<title[^>]*>([\s\S]*?)<\/title\s*>/i.exec(text)?.[1] ?? "";
-  const clean = (s) => s.replace(/<[^>]*>/g, " ").replace(/&[a-z#0-9]+;/gi, " ").replace(/\s+/g, " ").trim();
-  const visible = text.replace(/<!--[\s\S]*?-->/g, " ").replace(/<(script|style|noscript|svg|head)\b[\s\S]*?<\/\1\s*>/gi, " ");
+  const whole = String(body ?? "");
+  const text = whole.slice(0, INPUT_CAP_CHARS);
+  const low = text.toLowerCase();
+  const flat = (s) => s.replace(/<[^>]{0,2000}>/g, " ").replace(/&(?:nbsp|amp|quot|lt|gt|#39|#x27);/gi, " ").replace(/\s+/g, " ").trim();
   return {
-    title: scrub(clean(title)).slice(0, 160),
-    text: scrub(clean(visible)).slice(0, PAGE_TEXT_CHARS),
-    chars: text.length,
+    title: scrub(flat(between(text, low, "title"))).slice(0, 160),
+    text: scrub(flat(visibleText(text))).slice(0, PAGE_TEXT_CHARS),
+    noscript: scrub(flat(between(text, low, "noscript"))).slice(0, 300),
+    chars: whole.length,
     scripts: text.match(/<script\b/gi)?.length ?? 0,
+    forms: text.match(/<form\b/gi)?.length ?? 0,
+    links: text.match(/<a\b/gi)?.length ?? 0,
+    metaRefresh: /<meta\b[^>]{0,500}http-equiv=["']?refresh/i.test(text),
     soft: SOFT_CHALLENGE_BODIES.filter(([re]) => re.test(text)).map(([, vendor]) => vendor),
+    hard: HARD_CHALLENGE_BODIES.filter(([re]) => re.test(text)).map(([, vendor]) => vendor),
   };
 }
 
@@ -201,14 +350,16 @@ export function evidenceOf(page, responses = []) {
   const other = ({ kind, res }) => ({
     kind, ...headerEvidence(res),
     bodySha256: sha256(String(res.body ?? "")),
-    ...(outside2xx(res.status) ? { excerpt: scrub(String(res.body ?? "").slice(0, EXCERPT_BYTES)) } : {}),
+    ...(outside2xx(res.status) ? { excerpt: scrub(res.body).slice(0, EXCERPT_BYTES) } : {}),
   });
   return {
     ...headerEvidence(page),
     bodySha256: sha256(body),
-    ...(outside2xx(page.status) ? { excerpt: scrub(body.slice(0, EXCERPT_BYTES)).slice(0, EXCERPT_BYTES) } : { pageExcerpt: pageExcerpt(body) }),
+    ...(outside2xx(page.status) ? { excerpt: scrub(body).slice(0, EXCERPT_BYTES) } : { pageExcerpt: pageExcerpt(body) }),
     class: classify(page),
     classRegistered: classifyRegistered(page),
+    signatures: signatureMatches(body),
+    csp: cspEvidence(page.headers),
     traits: traitsOf(page.html),
     others: responses.map(other),
   };

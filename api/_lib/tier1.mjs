@@ -33,19 +33,20 @@ export const SCOPE = "Only what a browser loads: /robots.txt first (a site can o
  * @param {{typed?: string, now?: number, lookup?: Function, allowPrivate?: boolean, anyPort?: boolean,
  *   timeout?: number, dns?: object, dnsTimeout?: number, budgetMs?: number, retireDb?: object,
  *   assets?: boolean, secrets?: boolean, userAgent?: string, optOutTokens?: string[], optOutAll?: boolean,
- *   onPage?: Function}} opts
+ *   onPage?: Function, onResponse?: Function}} opts
  *   lookup, allowPrivate, anyPort, dns and retireDb are for tests. The E20
  *   study (bench/front-door/run.mjs) sets the rest: assets: false skips the
  *   referenced scripts and stylesheets, secrets: false the secret rules, and
  *   userAgent and optOutTokens name the study instead of the live check, and
  *   optOutAll also honors a robots.txt `*` group with Disallow: /. onPage
- *   (study only) is called once with { html, url, headers } of the page that
- *   was already fetched, so the study can read a link or the hosting
- *   platform without a second request. The live check never sets it.
+ *   (study only) is called once with { html, url, headers, status, body } of
+ *   the page that was already fetched, so the study can read a link or the
+ *   hosting platform without a second request, and onResponse (study only)
+ *   with ("robots" | "security.txt", response). The live check sets neither.
  */
 export async function passiveReport(target, opts = {}) {
   const budget = makeBudget({ budgetMs: opts.budgetMs ?? LIMITS.budgetMs });
-  const guard = { lookup: opts.lookup, allowPrivate: opts.allowPrivate, anyPort: opts.anyPort, userAgent: opts.userAgent, optOutTokens: opts.optOutTokens, optOutAll: opts.optOutAll };
+  const guard = { lookup: opts.lookup, allowPrivate: opts.allowPrivate, anyPort: opts.anyPort, userAgent: opts.userAgent, optOutTokens: opts.optOutTokens, optOutAll: opts.optOutAll, onResponse: opts.onResponse };
   const pageOpts = { ...guard, timeout: Math.min(opts.timeout ?? 6000, 6000), maxBytes: LIMITS.pageBytes, onHop: () => budget.hop() };
 
   let result;
@@ -65,7 +66,7 @@ export async function passiveReport(target, opts = {}) {
   const host = new URL(pageUrl).hostname;
   const html = /html/i.test(String(result.headers["content-type"] || "")) && result.status < 400 ? result.body : "";
   const parsed = html ? parsePage(html, pageUrl) : null;
-  opts.onPage?.({ html, url: pageUrl, headers: result.headers });
+  opts.onPage?.({ html, url: pageUrl, headers: result.headers, status: result.status, body: result.body });
 
   const [assets, dns, securityTxt] = await Promise.all([
     parsed && opts.assets !== false ? loadAssets(parsed, pageUrl, budget, guard) : { files: [], wanted: 0, skipped: 0 },

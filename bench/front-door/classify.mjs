@@ -60,6 +60,20 @@ export function cookieNames(headers = {}) {
   return list.map((c) => String(c).split("=")[0].trim()).filter(Boolean).sort();
 }
 
+// § 6, secondary: what kind of site this is, from the homepage already fetched.
+// Fixed rules on the HTML; only the booleans are kept, never a URL or a name.
+export const TRAIT_RULES = Object.freeze({
+  login: /<a\b[^>]*>\s*(?:<[^>]+>\s*)*(log\s?in|sign\s?in|my account|inloggen|anmelden|connexion)\b/i,
+  payments: /js\.stripe\.com|checkout\.stripe\.com|paypal\.com\/sdk|paypalobjects\.com|js\.braintreegateway\.com|checkoutshopper-[a-z]+\.adyen\.com|klarna(?:cdn|\.com)|mollie\.com/i,
+  shop: /cdn\.shopify\.com|woocommerce|magento|\/cart\b|\/checkout\b|add[-_ ]to[-_ ]cart/i,
+});
+
+/** Booleans for one page. An empty page (no 2xx HTML) gives null: unknown, not "no". */
+export function traitsOf(html) {
+  if (!html) return null;
+  return Object.fromEntries(Object.entries(TRAIT_RULES).map(([k, re]) => [k, re.test(html)]));
+}
+
 const headerEvidence = (res) => {
   const h = lower(res.headers);
   return {
@@ -84,6 +98,7 @@ export function evidenceOf(page, responses = []) {
     bodySha256: createHash("sha256").update(body).digest("hex"),
     ...(outside2xx ? { excerpt: redactEmails(body.slice(0, EXCERPT_BYTES)) } : {}),
     class: classify(page),
+    traits: traitsOf(page.html),
     others: responses.map(({ kind, res }) => ({ kind, ...headerEvidence(res) })),
   };
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * E20-R runner: two passes over seven fixed lists, from one published address.
+ * E20-R runner: two passes over nine fixed lists, from one published address.
  * Protocol: docs/research/prereg/E20R-front-door-replication.md.
  *
  *   node bench/front-door/replicate.mjs --self-test
@@ -36,8 +36,10 @@ export const R_COHORTS = Object.freeze({
   "YC-new": { file: "yc-fall2026-summer2026-2026-10-29.csv", format: "yc" },
   "YC-25": { file: "yc-2025.csv", format: "yc" },
   "YC-old": { file: "yc-old.csv", format: "yc" },
+  T10k: { file: "tranco-ZJ8PG-1k-10k-sample.csv", format: "tranco" },
   T100k: { file: "tranco-ZJ8PG-10k-100k-sample.csv", format: "tranco" },
   EU: { file: "eu-indexes.csv", format: "yc" },
+  SP500: { file: "sp500.csv", format: "yc" },
   "NL-Cbw": { file: "nl-cbw.csv", format: "yc", homepageOnly: true },
 });
 export const PASS_SEED = Object.freeze({ 1: 2020, 2: 2021 });

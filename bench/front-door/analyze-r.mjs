@@ -135,12 +135,24 @@ export function claims(p1, p2, e20, opts) {
   return out;
 }
 
+/** § 6, secondary: each check by site trait, per cohort, groups of at least 20 sites. */
+export function traitTable(rows, checks = KAPPA_CHECKS, min = 20) {
+  const out = {};
+  for (const trait of ["login", "payments", "shop"]) {
+    const g = rows.filter((r) => r.evidence?.traits?.[trait] === true);
+    if (g.length < min) { out[trait] = { sites: g.length, suppressed: true }; continue; }
+    out[trait] = { sites: g.length, shares: Object.fromEntries(checks.map((c) => [c, share(g, c)])) };
+  }
+  return out;
+}
+
 function main(args) {
   const at = (n) => args[args.indexOf(n) + 1];
   if (!args.includes("--pass1")) { console.error("Usage: analyze-r.mjs --pass1 <raw> --pass2 <raw> --e20 <tranco raw> <yc raw> [--out file]"); return 2; }
   const i = args.indexOf("--e20");
   const e20 = new Map([...load(args[i + 1]), ...load(args[i + 2])].map((r) => [r.host, r]));
-  const out = { experiment: "E20-R", level: LEVEL, resamples: RESAMPLES, claims: claims(load(at("--pass1")), load(at("--pass2")), e20) };
+  const p1 = load(at("--pass1"));
+  const out = { experiment: "E20-R", level: LEVEL, resamples: RESAMPLES, claims: claims(p1, load(at("--pass2")), e20), traits: traitTable(p1) };
   const text = JSON.stringify(out, null, 2) + "\n";
   if (args.includes("--out")) writeFileSync(at("--out"), text); else process.stdout.write(text);
   return 0;

@@ -7,9 +7,9 @@ import { describe, it, expect } from "vitest";
 import { mkdtempSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { classify, cookieNames, evidenceOf, EXCERPT_BYTES } from "../bench/front-door/classify.mjs";
+import { classify, cookieNames, evidenceOf, traitsOf, EXCERPT_BYTES } from "../bench/front-door/classify.mjs";
 import { authorizeR, mergeCohorts, runPass, shuffled, seeded, dnsProviders, selfTestR, aggregateR, R_COHORTS, ipv4Lookup, PREREG_R } from "../bench/front-door/replicate.mjs";
-import { kappa, decide, combine, clusterDiff, pass, claims, CLAIMS_R, LEVEL } from "../bench/front-door/analyze-r.mjs";
+import { kappa, decide, combine, clusterDiff, pass, claims, traitTable, CLAIMS_R, LEVEL } from "../bench/front-door/analyze-r.mjs";
 
 const tmp = () => mkdtempSync(join(tmpdir(), "e20r-"));
 const HASH = "a".repeat(64);
@@ -73,6 +73,26 @@ describe("E20-R classifier", () => {
     const e = evidenceOf({ status: 200, headers: {}, body: "" }, [{ kind: "robots", res: { status: 200, headers: { "strict-transport-security": "max-age=1" }, body: "User-agent: *" } }]);
     expect(e.others[0]).toMatchObject({ kind: "robots", headerNames: ["strict-transport-security"] });
     expect(JSON.stringify(e.others)).not.toContain("User-agent");
+  });
+});
+
+describe("E20-R site traits", () => {
+  it("reads a login link, a payment provider and a shop from the page", () => {
+    expect(traitsOf('<a href="/x"><span>Log in</span></a>').login).toBe(true);
+    expect(traitsOf('<a href="/x">Inloggen</a>').login).toBe(true);
+    expect(traitsOf('<script src="https://js.stripe.com/v3/"></script>').payments).toBe(true);
+    expect(traitsOf('<link href="https://cdn.shopify.com/s/a.css">').shop).toBe(true);
+    expect(traitsOf("<p>A blog about login pages</p>")).toEqual({ login: false, payments: false, shop: false });
+  });
+  it("treats a page with no HTML as unknown, not as no", () => {
+    expect(traitsOf("")).toBeNull();
+    expect(evidenceOf({ status: 403, headers: {}, body: "x", html: "" }).traits).toBeNull();
+  });
+  it("suppresses a trait group under twenty sites", () => {
+    const rows = Array.from({ length: 25 }, (_, i) => ({ checks: [{ id: "csp", passed: i % 2 === 0, weight: 14 }], evidence: { traits: { login: true, payments: i < 3, shop: false } } }));
+    const t = traitTable(rows, ["csp"]);
+    expect(t.login.sites).toBe(25);
+    expect(t.payments).toEqual({ sites: 3, suppressed: true });
   });
 });
 

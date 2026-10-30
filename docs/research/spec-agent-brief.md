@@ -43,8 +43,10 @@ Six sections, always in this order. An empty section is left out, except
 ### Verdict
 
 - `Fix now`: at least one finding in **Act on** at high or critical.
-- `Review`: anything in **Act on** below high, or anything in **Check first**.
-- `Nothing to fix`: both empty. Still followed by **Not checked**.
+- `Review`: anything in **Act on** below high, anything in **Check first**, or a
+  run that exits 1 or 2 with nothing high in **Act on**. A line then gives the
+  reason, and the JSON has `exit_code` and `exit_reason`.
+- `Nothing to fix`: both empty and exit 0. Still followed by **Not checked**.
 - `Nothing to assess`: an agents audit that found no agent config. It has no
   grade. Still followed by **Not checked**.
 

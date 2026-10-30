@@ -16,11 +16,25 @@
 import { cleanText } from "../mcp/results.js";
 import { mdInline } from "./md-escape.js";
 import { footerLines } from "./footer.js";
+import { giantsGate } from "../../lib/giants/index.js";
 
 export const BRIEF_SCHEMA = "penthera.brief/1";
 // Exit 0 is not "safe to publish". Penthera tests these from outside; a pass shows
 // only that no rule matched, with or without a session cookie.
 export const NOT_PROVEN_NOTE = "This run does not prove login, access rules or payments are right.";
+
+const isSevere = (f) => f.severity === "critical" || f.severity === "high";
+
+/**
+ * The scan's exit code. 2: a tool the policy requires did not run. 1: a critical
+ * or high finding, wherever it sits, or other tools' unless the policy says
+ * giants.failOn: never. A bucket says how likely a finding is to matter; it does
+ * not pass a run, so a live-format key in a fixture still fails.
+ */
+export function exitCodeOf(result) {
+  if (result.giants?.requiredNotRun?.length) return 2;
+  return (result.findings || []).some(isSevere) || giantsGate(result) ? 1 : 0;
+}
 
 export const VERDICTS = { fix: "Fix now", review: "Review", clean: "Nothing to fix", none: "Nothing to assess" };
 
@@ -149,6 +163,7 @@ function noiseGroup(group, reason) {
     label: text(label, 200),
     text: NOISE_REASONS[reason],
     count: group.length,
+    severe: group.filter(isSevere).length,
     where: paths.slice(0, MAX_EXAMPLES).map((p) => text(p, 300)),
     more: Math.max(0, paths.length - MAX_EXAMPLES),
     rules: [...new Set(group.map(ruleOf))].map((r) => text(r, 120)),
@@ -227,11 +242,16 @@ export function buildBrief(results, { reports = [], notRunCommand = (n) => Strin
   if (!actHigh && modes.some((m) => m === "repo" || m === "url")) notChecked.unshift(NOT_PROVEN_NOTE);
   // A null grade means the agents audit read nothing: no finding there is no result.
   const nothingRead = list.length > 0 && !findings.length && list.every((r) => r.agents?.grade === null);
-  const verdict = actHigh ? VERDICTS.fix : act.length || check.length ? VERDICTS.review : nothingRead ? VERDICTS.none : VERDICTS.clean;
+  // The verdict never reads as clean on a run that fails: it and the exit code agree.
+  const exitCode = Math.max(0, ...list.map(exitCodeOf));
+  const verdict = actHigh ? VERDICTS.fix : act.length || check.length || exitCode ? VERDICTS.review : nothingRead ? VERDICTS.none : VERDICTS.clean;
+  const others = list.flatMap((r) => (giantsGate(r) ? r.giants.findings.filter(isSevere) : []));
 
   return {
     schema: BRIEF_SCHEMA,
     verdict,
+    exit_code: exitCode,
+    exit_reason: exitReason(exitCode, actHigh, findings.filter(isSevere).length + others.length, list),
     target: text(targets.join(", "), 500),
     scanned: modes,
     counts: {
@@ -248,6 +268,17 @@ export function buildBrief(results, { reports = [], notRunCommand = (n) => Strin
     next: dedupeNext(next).slice(0, MAX_NEXT),
     reports: reports.map((p) => text(p, 300)),
   };
+}
+
+/** Why the run fails, when Act on does not already show it. */
+function exitReason(exitCode, actHigh, severe, list) {
+  if (exitCode === 2) {
+    const tools = [...new Set(list.flatMap((r) => r.giants?.requiredNotRun || []))].map((t) => text(t, 60));
+    return `The CLI exits 2 on this: the policy requires ${tools.join(", ")}, which did not run.`;
+  }
+  if (exitCode === 0 || actHigh) return null;
+  const n = severe === 1 ? "1 critical or high finding sits" : `${severe} critical or high findings sit`;
+  return `The CLI exits 1 on this: ${n} outside Act on. Fix ${severe === 1 ? "it" : "them"}, or write down why you accept ${severe === 1 ? "it" : "them"}.`;
 }
 
 function dedupeNext(list) {
@@ -275,6 +306,7 @@ export function formatBrief(b, { footer = false } = {}) {
   if (c.info) parts.push(`${c.info} info in the full report`);
   const scanned = b.scanned.length ? ` Scanned: ${b.scanned.map((m) => MODE_NAMES[m] || m).join(", ")}.` : "";
   L.push(`**Penthera: ${b.verdict}.** ${parts.join(", ")}.${scanned}`, "");
+  if (b.exit_reason) L.push(md(b.exit_reason), "");
 
   if (b.act_on.length) {
     L.push("### Act on", "");
@@ -300,7 +332,8 @@ export function formatBrief(b, { footer = false } = {}) {
     L.push("### Likely noise", "");
     for (const g of b.likely_noise.slice(0, MAX_ITEMS)) {
       const where = whereText(g);
-      L.push(`- ${g.count} × ${md(g.label)}, ${g.text}${where ? `: ${where}` : ""}.`);
+      const severe = g.severe ? ` (${g.severe} critical or high)` : "";
+      L.push(`- ${g.count} × ${md(g.label)}${severe}, ${g.text}${where ? `: ${where}` : ""}.`);
     }
     L.push("");
   }

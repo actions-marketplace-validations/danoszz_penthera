@@ -30,7 +30,7 @@ import { emptyHistory, updateHistory, buildAuditLoop } from "../lib/audit-loop.j
 import { rateSuppliers, parseSupplierList, formatSuppliersMarkdown } from "../lib/supply-chain.js";
 import { yellow } from "./cli/ansi.js";
 import { wantBrief, wantExitNote, briefReports } from "./cli/brief.js";
-import { buildBrief, formatBrief, NOT_PROVEN_NOTE } from "./report/brief.js";
+import { buildBrief, formatBrief, exitCodeOf, NOT_PROVEN_NOTE } from "./report/brief.js";
 
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8"));
 
@@ -228,8 +228,10 @@ const HELP = `
     2  Scan failed (unreachable target, bad config, a tool the policy requires did not run)
 `;
 
-function bold(s) { return `\x1b[1m${s}\x1b[0m`; }
-function dim(s) { return `\x1b[2m${s}\x1b[0m`; }
+// --help goes to stdout, so style it only for a terminal there.
+function styled() { return process.stdout.isTTY && !process.env.NO_COLOR; }
+function bold(s) { return styled() ? `\x1b[1m${s}\x1b[0m` : s; }
+function dim(s) { return styled() ? `\x1b[2m${s}\x1b[0m` : s; }
 
 /** `penthera init ...`, or bare `penthera --yes` / `--dry-run`: the setup wizard. */
 function initArgs(argv) {
@@ -1000,12 +1002,8 @@ export async function run() {
 
   // Exit code: 1 if critical or high findings, other tools' included unless
   // the policy says giants.failOn: never; 2 if a tool the policy requires did not run.
-  const { giantsGate } = await import("../lib/giants/index.js");
-  const hasSevere = merged.findings.some(
-    (f) => f.severity === "critical" || f.severity === "high",
-  ) || giantsGate(merged);
   if (merged.giants?.requiredNotRun?.length) printError(`The policy file requires ${merged.giants.requiredNotRun.join(", ")}, which did not run (see Coverage by area).`);
-  const code = merged.giants?.requiredNotRun?.length ? 2 : hasSevere ? 1 : 0;
+  const code = exitCodeOf(merged);
   if (wantExitNote({ code, url, repo, opts, custom })) {
     process.stderr.write(`  No critical or high rule fired. ${NOT_PROVEN_NOTE}\n\n`);
   }

@@ -194,15 +194,14 @@ const NUMERIC_ENTITY = /&#(?:x0*([0-9a-f]{1,8})|0*(\d{1,8}));?/gi;
 const NAMED_ENTITY = /&(commat|period|lowbar|colon);?/gi;
 const ESCAPED = /\\(?:x|u00)([0-9a-f]{2})/gi;
 const PERCENT = /%(?:25)?([2-7][0-9a-f])/gi;
-// `(at)` joins two words unless the next is ordinary prose: "look (at) this" stays.
-const AT_WORD = /(?<=[\p{L}\p{N}\p{M}._%+-])\s{0,3}[[({]\s{0,2}at\s{0,2}[\])}]\s{0,3}(?=([\p{L}\p{N}_-]{1,63}))|\s{1,3}@\s{0,3}(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}\p{M}])\s{0,3}@\s{1,3}|[＠﹫]/giu;
-const AT_BARE = /[[({]\s{0,2}at\s{0,2}[\])}]\s{0,3}[\p{L}_-][\p{L}\p{N}_-]{0,62}(?:\.[\p{L}\p{N}_-]{1,63}){1,6}/giu;
-const AT_THEN_DOT_WORD = /@([\p{L}\p{N}_-]{1,63})\s{1,3}dot\s{1,3}/giu;
-export const PROSE_AFTER_AT = Object.freeze(new Set(["a", "all", "an", "any", "dawn", "dusk", "every", "first", "her", "him", "home", "it", "last", "least", "me", "most", "night", "noon", "once", "our", "school", "some", "that", "the", "them", "these", "this", "those", "times", "us", "what", "work", "you", "your"]));
+// A bracketed at is an address, whatever stands around it: both neighbouring words go.
+const BRACKET_AT = /[^\s<>"']{0,64}\s{0,3}[[({]\s{0,2}at\s{0,2}[\])}]\s{0,3}[^\s<>"']{0,64}/gi;
+const AT_WORD = /\s{1,3}@\s{0,3}(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}\p{M}])\s{0,3}@\s{1,3}|[＠﹫]/gu;
 const TAGGED_AT = /(?:<\/?[a-z]{1,8}>\s{0,2}){1,4}@(?:\s{0,2}<\/?[a-z]{1,8}>){1,4}/gi;
 const DASH_AT = /([\p{L}\p{N}+]{1,64})[-_.]at[-_.]([\p{L}\p{N}-]{1,63}\.\p{L}{2,24})\b/giu;
 const DOT_WORD = /\s{0,3}[[({]\s{0,2}(?:dot|\.)\s{0,2}[\])}]\s{0,3}/gi;
-const SPELLED_EMAIL = /([\p{L}\p{N}._%+-]{1,64})\s{1,3}at\s{1,3}([\p{L}\p{N}_-]{1,63})(\s{1,3}dot\s{1,3}|\.|\s{1,3}\.\s{1,3})(\p{L}{2,24})\b/giu;
+// A bare `at` counts only before something with a dot, spaced or not.
+const SPELLED_EMAIL = /([\p{L}\p{N}._%+-]{1,64})\s{1,3}at\s{1,3}([\p{L}\p{N}_-]{1,63})(?:\s{1,3}dot\s{1,3}|\s{0,3}\.\s{0,3})(\p{L}{2,24})\b/giu;
 const CF_EMAIL = /(data-cfemail=["']?)[0-9a-f]{2,512}|(\/cdn-cgi\/l\/email-protection#)[0-9a-f]{2,512}/gi;
 // No TLD needed: a cut address has none, and an @ inside a word is no loss.
 const EMAIL = /[\p{L}\p{M}\p{N}._%+'\uFFFD-]{1,64}@[\p{L}\p{M}\p{N}_\uFFFD-]{1,63}(?:\.[\p{L}\p{M}\p{N}_-]{1,63}){0,6}/gu;
@@ -238,9 +237,8 @@ const decodeForms = (s) => s
   .replace(NAMED_ENTITY, (_m, name) => NAMED_CHARS[name.toLowerCase()])
   .replace(ESCAPED, safeChar).replace(/\\100/g, "@").replace(PERCENT, safeChar)
   .replace(TAGGED_AT, "@").replace(DOT_WORD, ".")
-  .replace(AT_WORD, (m, next) => (next !== undefined && (PROSE_AFTER_AT.has(next.toLowerCase()) || /^\d/.test(next)) ? m : "@"))
-  .replace(AT_BARE, "<email>").replace(AT_THEN_DOT_WORD, "@$1.")
-  .replace(SPELLED_EMAIL, (m, local, name, sep, tld) => (sep.trim() === "." && sep !== "." && tld !== tld.toLowerCase() ? m : `${local}@${name}.${tld}`))
+  .replace(BRACKET_AT, "<email>").replace(AT_WORD, "@")
+  .replace(SPELLED_EMAIL, "$1@$2.$3")
   .replace(DASH_AT, "$1@$2");
 
 /** ASCII lower case, one for one. `toLowerCase` makes U+0130 two units, which shifts every index after it. */
@@ -298,12 +296,22 @@ export function scrubMisses(text) {
   const whole = String(text ?? "");
   const low = whole.toLowerCase();
   for (const mark of ["&commat", "\\x40", "\\u0040", "\\100", "%40", "%2540", "＠", "﹫"]) if (low.includes(mark)) out.email++;
-  // A bracketed at counts when anything but ordinary prose follows it.
-  for (const mark of ["[at]", "(at)", "{at}"]) {
-    for (let i = low.indexOf(mark); i >= 0; i = low.indexOf(mark, i + 1)) {
-      const next = low.slice(i + mark.length, i + 80).trimStart().split(/[\s.,;:!?)]/)[0];
-      if (next && !PROSE_AFTER_AT.has(next) && !"0123456789".includes(next[0])) out.email++;
+  // A bracketed at, with or without inner spaces, in its own walk over the text.
+  for (let i = 0; i < low.length; i++) {
+    if (!"[({".includes(low[i])) continue;
+    let k = i + 1;
+    while (low[k] === " ") k++;
+    if (low.startsWith("at", k)) {
+      k += 2;
+      while (low[k] === " ") k++;
+      if ("])}".includes(low[k] ?? "?")) out.email++;
     }
+  }
+  // A bare `at` before something with a dot.
+  const words = low.split(/\s+/);
+  for (let i = 1; i < words.length; i++) {
+    if (words[i] !== "at" || !/[\p{L}\p{N}._%+-]$/u.test(words[i - 1])) continue;
+    if (/^[^\s.]+(?:\s*\.\s*|\s+dot\s+)[a-z]{2,}\b/.test(words.slice(i + 1, i + 5).join(" "))) out.email++;
   }
   // Ordinary pages hold many entities for quotes and dashes. Only ones that spell ASCII hide text.
   let spelled = 0;

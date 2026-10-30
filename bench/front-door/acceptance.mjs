@@ -13,13 +13,15 @@
  * run refuses. Labels come after pass 2, so those rows prove that scoring refuses them.
  */
 import { createServer } from "node:http";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { sha256 } from "./run.mjs";
+import { main as analyze } from "./analyze-r.mjs";
 import { main as reportMain } from "./pilot-report.mjs";
-import { main as replicate, R_COHORTS } from "./replicate.mjs";
+import { sealHash } from "./record-checks.mjs";
+import { CLAIM_COHORTS, main as replicate, R_COHORTS } from "./replicate.mjs";
 import { main as validation, scoreLabels } from "./validation-sample.mjs";
 
 const IP = "178.104.243.225";
@@ -38,7 +40,7 @@ function fixture(root) {
   mkdirSync(lists);
   const hashes = {};
   for (const [cohort, { file, format }] of Object.entries(R_COHORTS)) {
-    const hosts = Array.from({ length: 60 }, (_, i) => `s${i}.${cohort.toLowerCase()}.selftest.example.com`);
+    const hosts = Array.from({ length: CLAIM_COHORTS.includes(cohort) ? 12 : 2 }, (_, i) => `s${i}.${cohort.toLowerCase()}.selftest.example.com`);
     const text = format === "tranco" ? hosts.map((h, i) => `${i + 1},${h}`).join("\n") : `batch,domain\n${hosts.map((h) => `x,${h}`).join("\n")}`;
     writeFileSync(join(lists, `${file}`), `${text}\n`);
     hashes[cohort] = hashOf(`${text}\n`);
@@ -48,6 +50,7 @@ function fixture(root) {
   const homepage = file("homepage.txt", "s0.t1k.selftest.example.com\n");
   const removals = file("removals.txt", "");
   const prior = file("prior.txt", "old.selftest.example.com\n");
+  const manyRemovals = file("many-removals.txt", `${Array.from({ length: 5 }, (_, i) => `s${i}.t1k.selftest.example.com`).join("\n")}\n`);
   const otherExclude = file("other-exclusions.txt", "bad.org adult\n");
   const prereg = `| Status | **Registered.** Accepted |
 | Amendment 2 | **Adopted.** Merged |
@@ -65,7 +68,7 @@ ${Object.entries(hashes).map(([c, h]) => `| ${c} list SHA-256 | \`${h}\` |`).joi
 `;
   const common = ["--registered", "E20R", "--lists", lists, "--exclude", exclude, "--homepage-only", homepage, "--removals", removals, "--prior-optouts", prior];
   const state = { classifierSha256: CLASSIFIER, protocolSha256: hashOf(prereg), studyPageSha256: hashOf("page"), codeSha256: hashOf("code"), lockfileSha256: hashOf("lock"), runtimeSha256: hashOf("node"), pslSha256: PSL };
-  return { common, prereg, state, exclude, otherExclude, removals, prior };
+  return { common, prereg, state, exclude, otherExclude, removals, prior, manyRemovals, roundsLog: join(root, "rounds.log") };
 }
 
 /** One `main()` call, with its exit code and what it said. */
@@ -73,7 +76,7 @@ async function run(fx, args, over = {}) {
   const said = [];
   const code = await replicate(args, {
     say: (m) => said.push(m), results: fx.results, preregText: fx.prereg, pageText: `Study page, from ${IP}.`, tree: { commit: COMMIT, dirty: false, hidden: false, remoteTip: COMMIT },
-    sourceIps: [IP], state: fx.state, classifierHash: CLASSIFIER, pslHash: PSL, fixture: true, loopbackPort: fx.port, dns: DNS, ...over,
+    sourceIps: [IP], state: fx.state, classifierHash: CLASSIFIER, pslHash: PSL, fixture: true, loopbackPort: fx.port, dns: DNS, roundsLog: fx.roundsLog, ...over,
   });
   return { code, said: said.join(" ") };
 }
@@ -94,7 +97,28 @@ function variant(fx, change = (r) => r, manifest = (m) => m) {
   writeFileSync(join(runDir, "raw.jsonl"), text);
   const m = JSON.parse(readFileSync(join(runDir, "manifest.json"), "utf8"));
   writeFileSync(join(runDir, "manifest.json"), JSON.stringify(manifest({ ...m, rawSha256: hashOf(text) }), null, 2) + "\n");
-  return { ...fx, results: join(dir, "results"), runDir };
+  cpSync(fx.roundsLog, join(dir, "rounds.log"));
+  return { ...fx, results: join(dir, "results"), roundsLog: join(dir, "rounds.log"), runDir };
+}
+
+/** Change a seal's fields, and give it a true hash, as someone editing it by hand would. */
+function reseal(runDir, change) {
+  const file = join(runDir, "pilot-result.json");
+  const fields = change(JSON.parse(readFileSync(file, "utf8")));
+  writeFileSync(file, JSON.stringify({ ...fields, sealSha256: sealHash(fields) }));
+}
+
+/** A second round: a copy of the first, started later, in the log as a run would put it. */
+function secondRound(v) {
+  const again = join(v.results, "e20r-pilot-2");
+  cpSync(v.runDir, again, { recursive: true });
+  const m = JSON.parse(readFileSync(join(again, "manifest.json"), "utf8"));
+  writeFileSync(join(again, "manifest.json"), `${JSON.stringify({ ...m, startedAt: "2099-01-01T00:00:00.000Z" }, null, 2)}\n`);
+  const manifestSha256 = sha256(readFileSync(join(again, "manifest.json")));
+  reseal(again, (seal) => ({ ...seal, manifestSha256 }));
+  writeFileSync(join(again, "prune-manifest.json"), JSON.stringify({ ...JSON.parse(readFileSync(join(again, "prune-manifest.json"), "utf8")), manifestSha256 }));
+  appendFileSync(v.roundsLog, `${JSON.stringify({ dir: "e20r-pilot-2", pilotSitesSha256: m.pilotSitesSha256, startedAt: "2099-01-01T00:00:00.000Z" })}\n`);
+  return again;
 }
 
 const labels = (n, map = (i) => `${i},page`) => `id,label\n${Array.from({ length: n }, (_, i) => map(i + 1)).join("\n")}\n`;
@@ -106,6 +130,29 @@ function scored(human, agent = labels(3)) {
   } catch (e) {
     return { code: 3, said: e.message };
   }
+}
+
+/** A command that refuses by throwing counts as refusing. */
+async function catching(fn) {
+  try {
+    return await fn();
+  } catch (e) {
+    return { code: 3, said: e.message };
+  }
+}
+
+/** Make the later round's number the lower one, so only the start times tell them apart. */
+function renumbered(v, later) {
+  const hold = `${later}-hold`;
+  cpSync(later, hold, { recursive: true });
+  rmSync(later, { recursive: true });
+  cpSync(v.runDir, later, { recursive: true });
+  rmSync(v.runDir, { recursive: true });
+  cpSync(hold, v.runDir, { recursive: true });
+  rmSync(hold, { recursive: true });
+  const lines = readFileSync(v.roundsLog, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  writeFileSync(v.roundsLog, `${lines.map((l) => JSON.stringify(l)).join("\n")}\n`);
+  return v;
 }
 
 /** Every row: its condition, what it must do, and what it did. */
@@ -125,6 +172,7 @@ export async function runAcceptance() {
   try {
     const fx = { ...fixture(root), root, port: server.address().port, results: join(root, "results") };
     const pilotArgs = (n = 50, round = 1) => ["--pilot", String(n), "--pilot-round", String(round), ...fx.common];
+    const withRemovals = (file) => { const args = [...fx.common, "--pass", "2", "--pilot-dropped", join(fx.base ?? fx.results, "e20r-pilot-1", "pilot-sites.txt")]; args[args.indexOf("--removals") + 1] = file; return args; };
     const pass2 = (at) => [...fx.common.slice(0), "--pass", "2", "--pilot-dropped", join(at.results, "e20r-pilot-1", "pilot-sites.txt")];
     const started = await run(fx, pilotArgs());
     fx.base = fx.results;
@@ -134,7 +182,7 @@ export async function runAcceptance() {
     const stops = async (condition, because, change, manifest) => { const v = variant(fx, change, manifest); close(fx, v.runDir); add(condition, "refused", await gate(v), because); };
 
     add("clean pilot, sealed and pruned", "allowed", await gate(clean()), /authorized/);
-    add("no pilot at all", "refused", await run({ ...fx, results: join(root, "nothing") }, [...fx.common, "--pass", "2", "--pilot-dropped", fx.removals], { stopBeforeRun: true }), /No pilot manifest/);
+    add("no pilot at all", "refused", await run({ ...fx, results: join(root, "nothing"), roundsLog: join(root, "no-rounds.log") }, [...fx.common, "--pass", "2", "--pilot-dropped", fx.removals], { stopBeforeRun: true }), /No pilot manifest/);
 
     await stops("privacy scrub miss", /privacy scrub/, (r) => ({ ...r, evidence: { ...r.evidence, excerpt: "you are 203.0.113.7" } }));
     await stops("B3: stored (at) address", /privacy scrub/, (r) => ({ ...r, evidence: { ...r.evidence, excerpt: "john (at) example dot com" } }));
@@ -150,6 +198,9 @@ export async function runAcceptance() {
     await stops("B4: resolver failures on CAA", /resolver failure/, failing("caa"));
     await stops("B4: SPF reads unanswered", /SPF reads/, (r) => ({ ...r, dns: { ...r.dns, listed: { ...r.dns.listed, spfRecordPresent: null, spf: null } } }));
     await stops("every site blocked, zero 2xx", /no site answered/, (r) => ({ ...r, httpStatus: 403 }));
+    await stops("B4: DMARC reads unanswered", /DMARC reads/, (r) => ({ ...r, dns: { ...r.dns, listed: { ...r.dns.listed, dmarc: null } } }));
+    await stops("under 30 eligible sites", /under 30 eligible/, ({ evidence: _e, checks: _c, finalHost: _f, dns: _d, ...r }) => (r.order < 25 ? { ...r, status: "opted_out" } : { ...r, evidence: _e, checks: _c, finalHost: _f, dns: _d }));
+    await stops("under 20 graded sites", /under 20 graded/, ({ evidence: _e, checks: _c, finalHost: _f, ...r }) => (r.order < 20 ? { ...r, status: "opted_out" } : r.order < 31 ? { ...r, status: "error", error: "timeout" } : { ...r, evidence: _e, checks: _c, finalHost: _f }));
     await stops("graded share under the floor", /graded/, ({ evidence: _e, checks: _c, finalHost: _f, ...r }) => ({ ...r, status: "error", error: "timeout" }));
     await stops("B5: every site opted out", /no eligible site/, ({ evidence: _e, checks: _c, finalHost: _f, dns: _d, ...r }) => ({ ...r, status: "opted_out" }));
     await stops("changed while the pilot ran", /changed while/, (r) => r, (m) => ({ ...m, immutableAtFinish: { ok: false, changed: ["codeSha256"] } }));
@@ -159,16 +210,12 @@ export async function runAcceptance() {
 
     const lowerFailed = variant(fx);
     close(fx, lowerFailed.runDir);
-    cpSync(lowerFailed.runDir, join(lowerFailed.results, "e20r-pilot-2"), { recursive: true });
-    const second = join(lowerFailed.results, "e20r-pilot-1");
-    const m2 = JSON.parse(readFileSync(join(second, "manifest.json"), "utf8"));
-    writeFileSync(join(second, "manifest.json"), JSON.stringify({ ...m2, startedAt: "2099-01-01T00:00:00.000Z" }, null, 2));
-    const failedSeal = { ...JSON.parse(readFileSync(join(second, "pilot-result.json"), "utf8")), passed: false, stop: ["a privacy scrub missed something"], manifestSha256: sha256(readFileSync(join(second, "manifest.json"))) };
-    writeFileSync(join(second, "pilot-result.json"), JSON.stringify(failedSeal));
-    const proof = JSON.parse(readFileSync(join(second, "prune-manifest.json"), "utf8"));
-    writeFileSync(join(second, "prune-manifest.json"), JSON.stringify({ ...proof, manifestSha256: failedSeal.manifestSha256 }));
-    add("B1: the later round failed, with a lower number", "refused", await gate(lowerFailed), /failed/);
+    const later = secondRound(lowerFailed);
+    reseal(later, (seal) => ({ ...seal, passed: false, stop: ["a privacy scrub missed something"] }));
+    const earlierFile = join(lowerFailed.runDir, "manifest.json");
+    add("B1: the later round failed, with a lower number", "refused", await gate(renumbered(lowerFailed, later)), /failed/);
     add("B1: a round number at or below an existing one", "refused", await run(lowerFailed, pilotArgs(50, 2)), /not after round/);
+    if (!existsSync(earlierFile)) throw new Error("fixture lost a round");
 
     const wrongExclude = variant(fx);
     close(fx, wrongExclude.runDir, { exclude: fx.otherExclude });
@@ -182,9 +229,29 @@ export async function runAcceptance() {
     const noFlag = variant(fx);
     add("B2: --seal with no --skip", "refused", { code: reportMain([join(noFlag.runDir, "raw.jsonl"), "--exclude", fx.exclude, "--seal"], { log: quiet, fail: quiet }) === 2 ? 3 : 0, said: "--seal refused" });
     const swapped = clean();
-    const swappedSeal = join(swapped.runDir, "pilot-result.json");
-    writeFileSync(swappedSeal, JSON.stringify({ ...JSON.parse(readFileSync(swappedSeal, "utf8")), lists: {} }));
+    reseal(swapped.runDir, (seal) => ({ ...seal, lists: {} }));
     add("B2: seal holds other list hashes", "refused", await gate(swapped), /other skip lists/);
+
+    const flipped = variant(fx, (r) => ({ ...r, evidence: { ...r.evidence, excerpt: "you are 203.0.113.7" } }));
+    close(fx, flipped.runDir);
+    const flippedSeal = join(flipped.runDir, "pilot-result.json");
+    const failedSeal = JSON.parse(readFileSync(flippedSeal, "utf8"));
+    writeFileSync(flippedSeal, JSON.stringify({ ...failedSeal, passed: true, stop: [] }));
+    add("seal: passed edited by hand", "refused", await gate(flipped), /own hash/);
+    reseal(flipped.runDir, (seal) => ({ ...seal, passed: true, stop: [] }));
+    add("seal: passed edited, hash redone", "refused", await gate(flipped), /does not pass/);
+    const reportEdited = clean();
+    writeFileSync(join(reportEdited.runDir, "pilot-report.json"), "{}\n");
+    add("seal: report edited", "refused", await gate(reportEdited), /not the sealed one/);
+
+    const deleted = clean();
+    appendFileSync(deleted.roundsLog, `${JSON.stringify({ dir: "e20r-pilot-2", pilotSitesSha256: "x" })}\n`);
+    add("rounds log: a round's folder was deleted", "refused", await gate(deleted), /rounds log/);
+    const unlogged = clean();
+    writeFileSync(unlogged.roundsLog, "");
+    add("rounds log: a round is not in it", "refused", await gate(unlogged), /rounds log/);
+
+    add("removal list over 5% of sites", "refused", await run(clean(), withRemovals(fx.manyRemovals), { stopBeforeRun: true }), /5 of \d+ sites.*over 5%/);
 
     add("S3: a loopback pilot in a real run", "refused", await gate(clean(), { fixture: false }), /ran on loopback/);
 
@@ -205,8 +272,7 @@ export async function runAcceptance() {
     validation(["prune", killed.runDir], { log: quiet });
     add("pilot killed before it finished", "refused", await gate(killed), /did not finish/);
     const tampered = clean();
-    const sealFile = join(tampered.runDir, "pilot-result.json");
-    writeFileSync(sealFile, JSON.stringify({ ...JSON.parse(readFileSync(sealFile, "utf8")), manifestSha256: "x" }));
+    reseal(tampered.runDir, (seal) => ({ ...seal, manifestSha256: "x" }));
     add("sealed report for another run", "refused", await gate(tampered), /another run/);
 
     const base = clean();
@@ -229,22 +295,35 @@ export async function runAcceptance() {
 
     const failing2 = variant(fx);
     close(fx, failing2.runDir);
-    const failed = { ...JSON.parse(readFileSync(join(failing2.runDir, "pilot-result.json"), "utf8")) };
-    const again = join(failing2.results, "e20r-pilot-2");
-    cpSync(failing2.runDir, again, { recursive: true });
-    writeFileSync(join(failing2.runDir, "pilot-result.json"), JSON.stringify({ ...failed, passed: false, stop: ["x"] }));
-    const m3 = JSON.parse(readFileSync(join(again, "manifest.json"), "utf8"));
-    writeFileSync(join(again, "manifest.json"), `${JSON.stringify({ ...m3, startedAt: "2099-01-01T00:00:00.000Z" }, null, 2)}\n`);
-    const newManifest = sha256(readFileSync(join(again, "manifest.json")));
-    for (const f of ["pilot-result.json", "prune-manifest.json"]) writeFileSync(join(again, f), JSON.stringify({ ...JSON.parse(readFileSync(join(again, f), "utf8")), manifestSha256: newManifest }));
+    secondRound(failing2);
+    reseal(failing2.runDir, (seal) => ({ ...seal, passed: false, stop: ["x"] }));
     add("S1: a failed round rerun with nothing changed", "refused", await gate(failing2), /changed nothing/);
     writeFileSync(join(failing2.runDir, "pilot-explanation.txt"), "A note on what went wrong.\n");
     add("S1: the same, with a recorded explanation", "allowed", await gate(failing2), /authorized/);
 
-    const inflight = { ...clean() };
+    const stopped = clean();
     const failingDns = { ...DNS, ns: () => Promise.reject(Object.assign(new Error("x"), { code: "ESERVFAIL" })) };
-    const stopped = await run(inflight, pass2(inflight), { dns: failingDns, rollingWindow: 8 });
-    add("in flight: resolver failures stop pass 2", "refused", stopped, /STOP: over 20%.*partial/);
+    add("in flight: resolver failures stop pass 2", "refused", await run(stopped, pass2(stopped), { dns: failingDns, rollingWindow: 8 }), /STOP: over 20%.*partial/);
+    const stoppedRun = join(stopped.results, "e20r-pass2");
+    const analysis = (dir) => { const said = []; const code = analyze(["--pass1", join(dir, "raw.jsonl"), "--e20", join(dir, "raw.jsonl"), join(dir, "raw.jsonl"), "--out", join(dir, "analysis.json")], { fail: (m) => said.push(m) }); return { code, said: said.join(" ") || "analyzed" }; };
+    const draw = (dir) => { const said = []; const code = validation(["draw", dir], { log: quiet, fail: (m) => said.push(m) }); return { code, said: said.join(" ") || "drawn" }; };
+    add("analysis of a stopped pass 2", "refused", analysis(stoppedRun), /stopped/);
+    add("audit draw of a stopped pass 2", "refused", draw(stoppedRun), /stopped/);
+    add("no pilot round after pass 2 started", "refused", await run(stopped, pilotArgs(50, 2)), /pass 2 has started/);
+
+    const whole = clean();
+    add("pass 2 runs to its end", "allowed", await run(whole, pass2(whole)));
+    const wholeRun = join(whole.results, "e20r-pass2");
+    add("analysis of a whole pass 2", "allowed", analysis(wholeRun), /analyzed/);
+    add("a second start of pass 2", "refused", await catching(() => run(whole, pass2(whole))), /already holds a run/);
+    const rawFile = join(wholeRun, "raw.jsonl");
+    const kept = readFileSync(rawFile);
+    writeFileSync(rawFile, Buffer.concat([kept, Buffer.from("{}\n")]));
+    add("analysis of a raw file that changed", "refused", analysis(wholeRun), /not the one the manifest hashed/);
+    add("audit draw of a raw file that changed", "refused", draw(wholeRun), /not the one the manifest hashed/);
+    writeFileSync(rawFile, kept);
+    add("audit draw of a whole pass 2", "allowed", draw(wholeRun), /drawn/);
+    add("analysis after the draw pruned it", "allowed", analysis(wholeRun), /analyzed/);
 
     add("audit labels complete", "allowed", scored(labels(3)));
     add("audit labels incomplete", "refused", scored(labels(2)), /no label/);

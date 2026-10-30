@@ -35,7 +35,7 @@ import { execFileSync } from "node:child_process";
 import { isIP } from "node:net";
 import { chmodSync, readFileSync, readdirSync, writeFileSync, mkdirSync, appendFileSync, existsSync, statSync } from "node:fs";
 import { Resolver } from "node:dns/promises";
-import { networkInterfaces, platform, release } from "node:os";
+import { homedir, networkInterfaces, platform, release } from "node:os";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Worker } from "node:worker_threads";
@@ -44,7 +44,7 @@ import {
 } from "./run.mjs";
 import { EXCERPT_BYTES, INPUT_CAP_CHARS, PAGE_TEXT_CHARS, scrub, SOFT_MAX_CHARS } from "./classify.mjs";
 import { pslSha256, PSL_VERSION, siteKey, siteOrg } from "./psl.mjs";
-import { MAX_RESOLVER_FAILURES, recordMisses, resolverFailed } from "./record-checks.mjs";
+import { MAX_RESOLVER_FAILURES, pageTextMissed, resolverFailed, sealHash, stopRules } from "./record-checks.mjs";
 import { scoreOf } from "../../api/_lib/grade.mjs";
 import { dnsChecks } from "../../api/_lib/dns.mjs";
 import { isPublicIp } from "../../api/_lib/guard.mjs";
@@ -55,6 +55,10 @@ export const STUDY_PAGE = join(ROOT, "site", "pages", "research-e20.md");
 export const CLASSIFIER = join(ROOT, "bench", "front-door", "classify.mjs");
 export const RESULTS = join(ROOT, "bench", "front-door", "results");
 export const PASS2_OUT = join(RESULTS, "e20r-pass2");
+// Outside results/, so deleting a round's folder can't delete its line. Append only.
+export const ROUNDS_LOG = join(homedir(), ".penthera-e20r2-rounds.log");
+// Over this share of the sites, a removal list is a mistake, not owners asking.
+export const MAX_REMOVED_SHARE = 0.05;
 // Pinned: a checkout's `origin` is whatever someone set it to.
 export const REMOTE_URL = "https://github.com/danoszz/penthera.git";
 const GIT_TIMEOUT_MS = 15_000;
@@ -455,8 +459,12 @@ export function holdsText(rawFile) {
  * disk. The last round passed its stop rules on that same raw data, under the code,
  * protocol, suffix list and lists in force now, and nothing changed while it ran.
  */
-export function pilotEvidence(dropped, { results = RESULTS, current, allowFixture = false } = {}) {
+export function pilotEvidence(dropped, { results = RESULTS, current, allowFixture = false, logged = [] } = {}) {
   const rounds = pilotRounds(results);
+  const line = (dir, sha) => `${dir} ${sha}`;
+  const onDisk = new Set(rounds.map((r) => line(r.dir, r.listSha256)));
+  const inLog = new Set(logged.map((l) => line(l.dir, l.pilotSitesSha256)));
+  if ([...inLog].some((l) => !onDisk.has(l)) || [...onDisk].some((l) => !inLog.has(l))) return { ok: false, why: "The pilot rounds on disk do not match the rounds log." };
   const listed = checkPilotDropped(dropped, rounds, { need: true });
   if (!listed.ok) return listed;
   const no = (why) => ({ ok: false, why });
@@ -480,6 +488,11 @@ export function pilotEvidence(dropped, { results = RESULTS, current, allowFixtur
     proofs.push({ dir, manifestSha256: sha256(bytes), sealSha256: seal ? sha256(seal) : null });
     if (!m.finishedAt) continue;
     if (!seal) return no(`Pilot ${dir} has no sealed report.`);
+    const sealed = JSON.parse(seal);
+    if (sealed.sealSha256 !== sealHash(sealed)) return no(`Pilot ${dir}: its seal does not match its own hash.`);
+    const reportBytes = read(dir, "pilot-report.json");
+    if (!reportBytes || sha256(reportBytes) !== sealed.reportSha256) return no(`Pilot ${dir}: its report is not the sealed one.`);
+    if (sealed.passed && stopRules(JSON.parse(reportBytes)).length) return no(`Pilot ${dir}: its report does not pass, whatever its seal says.`);
     const next = rounds[i + 1] && JSON.parse(read(rounds[i + 1].dir, "manifest.json"));
     if (next && !JSON.parse(seal).passed && next.codeSha256 === m.codeSha256 && next.protocolSha256 === m.protocolSha256 && !read(dir, "pilot-explanation.txt")?.length) {
       return no(`Pilot ${dir} failed, and the next round changed nothing and explains nothing.`);
@@ -505,6 +518,8 @@ export function pilotEvidence(dropped, { results = RESULTS, current, allowFixtur
   return { ok: true, why: "", rounds: proofs };
 }
 
+export const readRoundsLog = (file = ROUNDS_LOG) => (existsSync(file) ? readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : []);
+
 /**
  * Every pilot round that started, from its manifest. A round whose list no longer
  * matches the hash in its manifest makes the result fail.
@@ -520,7 +535,7 @@ export function pilotRounds(results = RESULTS) {
     if (!existsSync(m) || !existsSync(list)) { rounds.push({ dir, ok: false }); continue; }
     const manifest = JSON.parse(readFileSync(m, "utf8"));
     const bytes = readFileSync(list);
-    rounds.push({ dir, ok: manifest.pilotSitesSha256 === sha256(bytes), hosts: [...readRemovals(bytes.toString("utf8"), "pilot").keys()] });
+    rounds.push({ dir, ok: manifest.pilotSitesSha256 === sha256(bytes), listSha256: manifest.pilotSitesSha256, hosts: [...readRemovals(bytes.toString("utf8"), "pilot").keys()] });
   }
   return rounds;
 }
@@ -657,7 +672,7 @@ export function visitInWorker(row, { loopbackPort, exclude = new Map(), budgetMs
 }
 
 /** One pass. `rows` come from mergeCohorts. Appends each record to raw.jsonl. */
-export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map(), delayMs = LIMITS.delayMs, concurrency = LIMITS.concurrency, dns = {}, meta = {}, manifest = {}, onRecord, workerFile, recheck = () => ({}), rollingWindow = ROLLING_WINDOW } = {}) {
+export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map(), delayMs = LIMITS.delayMs, concurrency = LIMITS.concurrency, dns = {}, meta = {}, manifest = {}, onRecord, onStart, workerFile, recheck = () => ({}), rollingWindow = ROLLING_WINDOW } = {}) {
   if (!loopbackPort) { concurrency = LIMITS.concurrency; delayMs = LIMITS.delayMs; }
   const order = shuffled(rows, PASS_SEED[pass]);
   mkdirSync(out, { recursive: true, mode: 0o700 });
@@ -670,6 +685,7 @@ export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map
   const started = runManifest({ kind: pass === "pilot" ? "pilot" : "pass", pass, seed: PASS_SEED[pass], loopback: Boolean(loopbackPort), sites: order.length, startedAt: new Date().toISOString(), ...(pilotList ? { pilotSitesSha256: sha256(Buffer.from(pilotList)) } : {}), ...manifest });
   if (pilotList) writeFileSync(join(out, "pilot-sites.txt"), pilotList, SECRET);
   writeFileSync(join(out, "manifest.json"), JSON.stringify(started, null, 2) + "\n", SECRET);
+  onStart?.(started);
   // Loopback runs never touch a real resolver.
   const stub = () => Promise.reject(Object.assign(new Error("ENODATA"), { code: "ENODATA" }));
   const dnsAnswers = loopbackPort ? { ...STUB_DNS, mx: stub, ns: stub, ...dns } : dns;
@@ -680,7 +696,7 @@ export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map
   let stoppedFor = null;
   const watch = (record) => {
     if (pass !== 2) return;
-    if (Object.values(recordMisses(record)).some(Boolean)) stoppedFor = "a privacy scrub missed something";
+    if (pageTextMissed(record)) stoppedFor = "a privacy scrub missed something";
     recent.push(resolverFailed(record));
     if (recent.length > rollingWindow) recent.shift();
     if (recent.length === rollingWindow && recent.filter(Boolean).length / rollingWindow > MAX_RESOLVER_FAILURES) stoppedFor ??= "over 20% of recent sites hit a resolver failure";
@@ -722,7 +738,7 @@ export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map
     }
   }));
   const done = records.filter(Boolean);
-  const agg = aggregateR(done, { pass, ...meta, concurrency, delayMs, appPage: false, userAgent: USER_AGENT, order: "seeded shuffle", seed: PASS_SEED[pass] });
+  const agg = aggregateR(done, { pass, partial: Boolean(stoppedFor), ...meta, concurrency, delayMs, appPage: false, userAgent: USER_AGENT, order: "seeded shuffle", seed: PASS_SEED[pass] });
   writeFileSync(join(out, "aggregate.json"), JSON.stringify(agg, null, 2) + "\n", SECRET);
   const sum = (k) => done.reduce((n, r) => n + (r.counters?.[k] ?? 0), 0);
   const end = { ...studyState(), ...recheck() };
@@ -779,6 +795,7 @@ function flag(args, name) {
 export async function main(args, deps = {}) {
   const say = deps.say ?? console.error;
   const results = deps.results ?? RESULTS;
+  const roundsLog = deps.roundsLog ?? ROUNDS_LOG;
   if (args.includes("--self-test")) {
     const r = await selfTestR({ out: flag(args, "--out") });
     console.log(r.ok ? `E20-R self-test passed, all to 127.0.0.1 (${r.out})` : `E20-R self-test FAILED:\n  ${r.problems.join("\n  ")}`);
@@ -804,13 +821,14 @@ export async function main(args, deps = {}) {
     const now = deps.state ?? studyState();
     const known = pilotRounds(results);
     if (pilot !== null) {
+      if (existsSync(join(results, "e20r-pass2", "manifest.json"))) throw new Error("Refused: pass 2 has started, so no pilot round can follow it.");
       const top = Math.max(0, ...known.map((r) => Number(r.dir.split("-").pop())));
       if (round <= top) throw new Error(`Refused: round ${round} is not after round ${top}. Use a higher --pilot-round.`);
     }
     const listSha256 = Object.fromEntries(Object.entries(bytes).map(([c, b]) => [c, b ? sha256(b) : null]));
     const { classifierSha256, protocolSha256, studyPageSha256, codeSha256, lockfileSha256, runtimeSha256, pslSha256: pslNow } = now;
     const evidence = pilot === null
-      ? pilotEvidence(pilotDropped, { results, allowFixture: Boolean(deps.fixture), current: { classifierSha256, protocolSha256, studyPageSha256, codeSha256, lockfileSha256, runtimeSha256, pslSha256: pslNow, listSha256 } })
+      ? pilotEvidence(pilotDropped, { results, allowFixture: Boolean(deps.fixture), logged: readRoundsLog(roundsLog), current: { classifierSha256, protocolSha256, studyPageSha256, codeSha256, lockfileSha256, runtimeSha256, pslSha256: pslNow, listSha256 } })
       : checkPilotDropped(pilotDropped, known, { need: false });
     pilotProof = evidence.rounds ?? [];
     authorizeR({
@@ -832,6 +850,9 @@ export async function main(args, deps = {}) {
     const all = mergeCohorts(lists);
     const missing = unmatchedHosts(readHostList(homepageBytes.toString("utf8")), all);
     if (missing.length) throw new Error(`Refused: ${missing.length} homepage-only entries match no listed site.`);
+    const removed = all.filter((r) => exclusionFor(r.host, removals)).length;
+    say(`Removal list: ${removed} of ${all.length} sites.`);
+    if (removed / all.length > MAX_REMOVED_SHARE) throw new Error(`Refused: the removal list takes out ${removed} of ${all.length} sites, over ${MAX_REMOVED_SHARE * 100}%.`);
     unmatchedRemovals = unmatchedHosts(removals.keys(), all).filter((h) => !all.some((r) => exclusionFor(r.host, new Map([[h, "x"]]))));
     if (unmatchedRemovals.length) say(`Warning: ${unmatchedRemovals.length} removal entries match no listed site. Check for a typo.`);
     rows = pilot === null ? all : pilotSample(all, pilot, { exclude });
@@ -844,6 +865,7 @@ export async function main(args, deps = {}) {
   const listNow = () => ({ listSha256: Object.fromEntries(Object.entries(R_COHORTS).map(([c, { file }]) => [c, fileHash(join(dir, file))])) });
   const { aggregate: agg, stoppedFor } = await runPass(rows, {
     pass, out, exclude, recheck: () => ({ ...listNow(), ...deps.state }),
+    onStart: (m) => { if (pilot !== null) appendFileSync(roundsLog, `${JSON.stringify({ dir: `e20r-pilot-${round}`, pilotSitesSha256: m.pilotSitesSha256, startedAt: m.startedAt })}\n`, SECRET); },
     ...(deps.loopbackPort ? { loopbackPort: deps.loopbackPort, dns: deps.dns, delayMs: 0, rollingWindow: deps.rollingWindow } : {}),
     manifest: {
       ...deps.state, ...(deps.fixture ? { fixture: true } : {}),

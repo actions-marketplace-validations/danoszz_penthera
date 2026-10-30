@@ -9,7 +9,8 @@
  *       page text from raw.jsonl, and writes prune-manifest.json. It can't be undone,
  *       which is its purpose.
  *   node bench/front-door/validation-sample.mjs prune <run folder>
- *       Deletes all text of a pilot and writes prune-manifest.json. Seal first.
+ *       Deletes all text of a pilot, or of a pass that stopped, and writes
+ *       prune-manifest.json. Seal a pilot first.
  *   node bench/front-door/validation-sample.mjs score <validation-key.json> <human.csv> <agent.csv>
  *       Each csv: id,label. Refuses a missing, duplicate, unknown or invalid row. Prints
  *       weighted precision and recall, kappa, disagreement and the unsure count.
@@ -18,6 +19,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { unfinishedRun } from "./record-checks.mjs";
 import { PASS_SEED, seeded, shuffled } from "./replicate.mjs";
 
 // Rows per stratum, frozen in the amendment.
@@ -193,10 +195,13 @@ export function rewriteRun(dir, records, kind) {
   return proof;
 }
 
+/** All text out, for a pilot or for a pass that stopped. */
 export const prunePilot = (dir) => rewriteRun(dir, readRaw(join(dir, "raw.jsonl")).map((r) => pruneExcerpt(r, new Set(), { all: true })), "pilot");
 
-export function main([mode, target, a, b], { log = console.log } = {}) {
+export function main([mode, target, a, b], { log = console.log, fail = console.error } = {}) {
   if (mode === "draw" && target) {
+    const problem = unfinishedRun(target);
+    if (problem) { fail(`Refused: ${problem}. Use prune to delete its text.`); return 3; }
     const records = readRaw(join(target, "raw.jsonl"));
     const sample = drawSample(records);
     const { sheet, key } = blindSheet(sample, records);

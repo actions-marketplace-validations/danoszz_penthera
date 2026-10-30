@@ -16,7 +16,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { recordMisses, resolverFailed, MAX_RESOLVER_FAILURES } from "./record-checks.mjs";
+import { recordMisses, resolverFailed, sealHash, stopRules, MAX_RESOLVER_FAILURES, MIN_ELIGIBLE, MIN_GRADED, MIN_GRADED_SHARE } from "./record-checks.mjs";
 import { readRemovals } from "./replicate.mjs";
 import { exclusionFor, readExclusions } from "./run.mjs";
 
@@ -78,35 +78,7 @@ export function pilotReport(records, { exclude = new Map(), pruned = false } = {
   };
 }
 
-// A visit's own budget allows 20 requests; more means the limit failed.
-const MAX_REQUESTS_PER_SITE = 20;
-// A run that barely reached anything tells nothing about its instrument. Pass 1 graded 84% of what it could.
-export const MIN_GRADED_SHARE = 0.5;
-// A pilot too small to see these rates can't pass them.
-export const MIN_ELIGIBLE = 30;
-export const MIN_GRADED = 20;
-export { MAX_RESOLVER_FAILURES };
-
-/** Amendment 2's stop rules, as counts. Any entry stops the run until it is explained. */
-export function stopRules(report, { floors = true } = {}) {
-  const stop = [];
-  if (Object.values(report.scrubMisses).some(Boolean)) stop.push("a privacy scrub missed something");
-  if ((report.outcomes["error:internal"] ?? 0) > 0) stop.push("an internal error");
-  if (!report.pruned && report.evidence.twoxx && report.evidence.twoxxWithExcerpt < report.evidence.twoxx * 0.9) stop.push("under 90% of 2xx responses have an excerpt");
-  const eligible = report.sites - Object.entries(report.outcomes).filter(([k]) => /^(opted_out|excluded:(robots_disallow_all|robots_disallow_path|not_a_homepage|exclusion_list))$/.test(k)).reduce((n, [, v]) => n + v, 0);
-  if (report.dns.read < eligible) stop.push("a site with no DNS read");
-  if (report.counters.maxRequestsPerSite > MAX_REQUESTS_PER_SITE) stop.push(`a site took more than ${MAX_REQUESTS_PER_SITE} requests`);
-  if (report.excludedHops) stop.push("a request reached an excluded host");
-  if (eligible && report.evidence.graded / eligible < MIN_GRADED_SHARE) stop.push("under half of the eligible sites were graded");
-  if (eligible && report.resolverFailures / eligible > MAX_RESOLVER_FAILURES) stop.push("over 20% of sites hit a resolver failure");
-  if (eligible && report.evidence.twoxx === 0) stop.push("no site answered with a 2xx");
-  if (report.dns.read && report.dns.answered.spf / report.dns.read < 1 - MAX_RESOLVER_FAILURES) stop.push("over 20% of SPF reads got no answer");
-  if (report.dns.read && report.dns.answered.dmarc / report.dns.read < 1 - MAX_RESOLVER_FAILURES) stop.push("over 20% of DMARC reads got no answer");
-  if (floors && eligible === 0) stop.push("no eligible site");
-  else if (floors && eligible < MIN_ELIGIBLE) stop.push(`under ${MIN_ELIGIBLE} eligible sites`);
-  if (floors && eligible && report.evidence.graded < MIN_GRADED) stop.push(`under ${MIN_GRADED} graded sites`);
-  return stop;
-}
+export { stopRules, MAX_RESOLVER_FAILURES, MIN_ELIGIBLE, MIN_GRADED, MIN_GRADED_SHARE };
 
 const hash = (b) => createHash("sha256").update(b).digest("hex");
 
@@ -131,7 +103,10 @@ export function sealPilot(dir, { exclude = new Map(), exclusionBytes, skipBytes 
   if (!exclusionBytes || hash(exclusionBytes) !== lists.exclusionSha256) stop.push("--exclude is not the list this run used");
   for (const name of ["removals", "priorOptOuts", "pilotDropped"]) if (lists[name] && !given.includes(lists[name])) stop.push(`--skip is missing the run's ${name} list`);
   if (given.some((h) => ![lists.removals, lists.priorOptOuts, lists.pilotDropped].includes(h))) stop.push("a --skip file is not one of this run's lists");
-  const result = { passed: stop.length === 0, stop, manifestSha256: hash(manifestBytes), rawSha256: manifest.rawSha256 ?? null, reportSha256: hash(JSON.stringify(report)), lists, sealedAt: new Date().toISOString() };
+  const reportText = `${JSON.stringify(report, null, 2)}\n`;
+  writeFileSync(join(dir, "pilot-report.json"), reportText, { mode: 0o600 });
+  const fields = { passed: stop.length === 0, stop, manifestSha256: hash(manifestBytes), rawSha256: manifest.rawSha256 ?? null, reportSha256: hash(reportText), lists, sealedAt: new Date().toISOString() };
+  const result = { ...fields, sealSha256: sealHash(fields) };
   writeFileSync(join(dir, "pilot-result.json"), JSON.stringify(result, null, 2) + "\n", { mode: 0o600 });
   return { ...result, report };
 }

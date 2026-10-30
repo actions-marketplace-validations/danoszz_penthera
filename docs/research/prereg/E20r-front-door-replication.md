@@ -15,7 +15,7 @@
 | Amendment 2 | **Draft.** Not adopted. E20-R2, a corrected replication after the pass 1 data was seen. See the end of this file. The runner refuses a pilot or pass 2 until this row says Adopted |
 | Source address | `178.104.243.225` |
 | Prior opt-outs SHA-256 | `e25d88b24aa1d4122cd78e65af9c8febfd9f7309959ae1ae89446ccc90b07126` (`prior-optouts.txt`, 95 sites) |
-| Frozen classifier SHA-256 | `e22c9142993524c9e277eb666778f666ac0f457a5be18f6c34b19b0f80b58c03` (`bench/front-door/classify.mjs`) |
+| Frozen classifier SHA-256 | `b2067ad4307dbf4d79726f71d76d318b23a06a0f2eb763460e0ea81213ef06e8` (`bench/front-door/classify.mjs`) |
 | Public Suffix List SHA-256 | `d3e6243b51695327984abb3e2a5aa7077096867f75121e031e6a5a3840ca8bcd` (commit `9dfbe81931367b3f0af21035c36ae7eeb830dd88`, fetched 30 Oct 2026, private suffixes included) |
 | Registration commit | The commit that merges this file to `main` |
 | T1k list SHA-256 | `d670a3c1910fe7baa4883dcb8320b1ec99d7d29f9d22954b9288ae678540674e` (`tranco-ZJ8PG-top1000.csv`) |
@@ -532,11 +532,13 @@ of a block. Sites that refused in pass 1 are visited once more on that basis.
     the first 300 characters of `noscript`, counts of scripts, forms and links, and a meta
     refresh flag, with no markup. This changes § 4.1, which said 2xx bodies are never stored.
     Robots.txt and security.txt get the body hash and the non-2xx excerpt § 4.1 promised.
-    Every stored text is scrubbed of IP addresses, emails in every form we know, form fields,
+    Every stored text is scrubbed of IP addresses, emails in the forms we know, form fields,
     query strings, fragments, tokens, identifiers and long numbers, before it is cut. Cookie
     and header names that look like tokens are dropped. SPF records keep their addresses,
     which are mail servers named on purpose. Names and street addresses in page text are not
-    scrubbed. That is why item 16 exists.
+    scrubbed. That is why item 16 exists. A bracketed `at` takes both neighbouring words with it, and
+    a bare `at` before something with a dot is read as an address, so some ordinary text is lost.
+    Forms the scrub can't see are listed in `bench/front-door/KNOWN-LIMITS.md`.
 14. **Header values.** For each homepage: CSP directive names, a script-control flag and an
     open-sources flag, computed on the full header, not the grader's 160 characters. "CSP
     controls scripts" means `script-src`, `script-src-elem` or `default-src` is present. It
@@ -560,8 +562,9 @@ of a block. Sites that refused in pass 1 are visited once more on that basis.
     service, which this study doesn't send. The legacy `run.mjs` refuses every run off
     loopback.
 16. **Excerpts are deleted.** After the audit draw, `validation-sample.mjs` removes title, text and
-    `noscript` from every unsampled record for good. From every pilot record it also removes error
-    excerpts. Hashes, counts and flags stay. Pruning writes a second manifest with the old and new
+    `noscript` from every unsampled normal page for good. Error excerpts stay until the 12-month
+    deletion. From every pilot record, and from a pass that stopped, it removes all of these. Hashes,
+    counts and flags stay. Pruning writes a second manifest with the old and new
     raw hashes, so the run's own manifest stays true of what was recorded.
 17. **Skips.** Sites that opted out in pass 1, removal requests and pilot sites are skipped, and
     each is counted in its own category.
@@ -633,7 +636,8 @@ a third adjudicator.** The figures are reported as checked by one person.
   scores the labels.
 - **Who sees evidence.** The maintainer, and one labeler under a written note. The note says what
   the sheet holds, that it stays private, and that copies are deleted after labeling. An AI agent,
-  a hosted model, also reads the sampled rows, so they leave the machine for that provider.
+  a hosted model, also reads the sampled rows, so they leave the machine for that provider, and the
+  12-month deletion can't reach what that provider keeps.
 
 ### Pilot
 
@@ -651,11 +655,15 @@ a third adjudicator.** The figures are reported as checked by one person.
 - **Gate.** After the pilot, `pilot-report.mjs --seal` writes its result, bound to the pilot's manifest
   and raw hash, and to the exclusion, removal, prior opt-out and earlier pilot lists that run used. Then
   `validation-sample.mjs prune` deletes its text. Pass 2 refuses unless the last round passed under the
-  code, protocol, suffix list and lists in force, every finished round has a seal, and every round
-  proves its text is gone. After a failed round, the next needs changed code or a changed protocol, or a
+  code, protocol, suffix list and lists in force, every finished round has a seal that matches its own
+  hash and its stored report, every round proves its text is gone, and the rounds on disk match an
+  append-only log kept outside the results folder. After a failed round, the next needs changed code or a changed protocol, or a
   recorded explanation. The pass 2 manifest records each round's manifest and seal hashes.
   `npm run e20r:acceptance` injects each stop condition on loopback and shows pass 2 refused through
-  the run's own command. Labels come after pass 2, so for them it shows that scoring refuses.
+  the run's own command. Labels come after pass 2, so for them it shows that scoring refuses. No pilot
+  round can start once pass 2 has. A removal list over 5% of the sites is refused.
+- **Analysis gate.** `analyze-r.mjs` and the audit draw refuse any run that didn't finish, stopped,
+  changed under itself or doesn't match its raw hash. So a stopped pass 2 can't decide a claim.
 - **Deletion's limit.** Pruning covers the raw file in the run's folder. It can't reach a copy made
   before it ran, so none is made, and deleted text can't be audited later.
 - **An interrupted pilot.** Its sites count as used, by the list hash its manifest recorded at the
@@ -663,8 +671,9 @@ a third adjudicator.** The figures are reported as checked by one person.
 - **An interrupted pass 2.** It isn't resumed or restarted, because a restart would visit sites
   twice. What ran is reported as a partial run, with its coverage, and it decides no claim. A
   new run needs a new registration.
-- **A stop in flight.** Pass 2 watches itself: a privacy scrub miss stops it at once, and so does a
-  share of resolver failures over 20% across its last 200 sites. It then counts as interrupted.
+- **A stop in flight.** Pass 2 watches itself: a privacy scrub miss in page or error text stops it at
+  once, and so does a share of resolver failures over 20% across its last 200 sites. It reads no SPF
+  record for this. It then counts as interrupted, and all its text is deleted.
 - **A pilot-driven rule change.** Update this amendment, re-freeze the hashes, and rerun the pilot
   as the next round, on other sites. Those sites leave pass 2 too. `--pilot-dropped` must hold
   exactly the sites of every finished round, checked against each manifest's hash.

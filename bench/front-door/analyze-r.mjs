@@ -13,9 +13,10 @@
  * Otherwise they are view-dependent.
  */
 import { readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { siteKey, siteOrg } from "./psl.mjs";
+import { unfinishedRun } from "./record-checks.mjs";
 import { seeded } from "./replicate.mjs";
 import { newcombe } from "./run.mjs";
 
@@ -375,9 +376,11 @@ export function traitsByCohort(rows, checks = KAPPA_CHECKS, min = 20) {
   return Object.fromEntries(cohorts.map((c) => [c, traitTable(inCohort(rows, c), checks, min)]));
 }
 
-function main(args) {
+export function main(args, { fail = console.error } = {}) {
   const at = (n) => args[args.indexOf(n) + 1];
-  if (!args.includes("--pass1")) { console.error("Usage: analyze-r.mjs --pass1 <raw> [--pass2 <raw>] --e20 <tranco raw> <yc raw> [--out file]"); return 2; }
+  if (!args.includes("--pass1")) { fail("Usage: analyze-r.mjs --pass1 <raw> [--pass2 <raw>] --e20 <tranco raw> <yc raw> [--out file]"); return 2; }
+  const problem = unfinishedRun(dirname(at("--pass1")));
+  if (problem) { fail(`Refused: this run can't decide claims: ${problem}.`); return 3; }
   const i = args.indexOf("--e20");
   const e20 = { T1k: e20Index(load(args[i + 1])), "YC-new": e20Index(load(args[i + 2])) };
   const p1 = load(at("--pass1"));

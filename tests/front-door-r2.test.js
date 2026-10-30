@@ -21,7 +21,7 @@ import { caaTree, checkPilotDropped, codeFiles, codeHash, dmarcReading, mergeCoh
 import { orgDomain, publicSuffix, PSL_VERSION, pslSha256, siteKey, siteOrg } from "../bench/front-door/psl.mjs";
 import { claims, clusterDiff, combine, coverageBounds, decide, diffClaim, dnsCoverage, e20Index, fisherExact, intervalOutcomes, isEligible, standardizedDiff, traitsByCohort } from "../bench/front-door/analyze-r.mjs";
 import { pilotReport, sealPilot, stopRules } from "../bench/front-door/pilot-report.mjs";
-import { resolverFailed } from "../bench/front-door/record-checks.mjs";
+import { pageTextMissed, resolverFailed, unfinishedRun } from "../bench/front-door/record-checks.mjs";
 import { blindSheet, drawSample, parseLabels, pruneExcerpt, prunePilot, rewriteRun, scoreLabels, stratumOf, weightedMetrics } from "../bench/front-door/validation-sample.mjs";
 import { runAcceptance } from "../bench/front-door/acceptance.mjs";
 import { passiveReport } from "../api/_lib/tier1.mjs";
@@ -357,9 +357,7 @@ describe("what reaches the disk", () => {
     expect(scrub("DB_PASS=hunter2")).toBe("DB_PASS=<token>");
     expect(scrub("pwd: hunter2")).toBe("pwd: <token>");
   });
-  it("note: prose and code are left alone", () => {
-    expect(scrub("Look (at) this page")).toBe("Look (at) this page");
-    expect(scrubMisses("Look (at) this page").email).toBe(0);
+  it("note: code is left alone", () => {
     expect(scrub("std::map<int> and a::b")).toContain("std::map");
     expect(scrub("std::vector")).toBe("std::vector");
     expect(scrub("fe80::1")).toBe("<ip>");
@@ -372,10 +370,25 @@ describe("what reaches the disk", () => {
       expect(Object.values(scrubMisses(clean)).every((v) => v === 0), `${dirty} -> ${clean}`).toBe(true);
     }
     for (const raw of ["john (at) example dot com", "john [at] localhost", "john(at)example", "name {at} label"]) expect(scrubMisses(raw).email, raw).toBeGreaterThan(0);
-    for (const prose of ["look (at) this page", "we are (at) the park.", "rated (at) 4.5 stars", "in (at) 5."]) {
-      expect(scrub(prose), prose).toBe(prose);
-      expect(scrubMisses(prose).email, prose).toBe(0);
+  });
+  it("a bracketed at takes both neighbouring words, with no exceptions, and the detector is as strict", () => {
+    for (const dirty of ["sales [at] 3m.com", "john (at) 1password.com", "info(at)123.nl", "john (at) home.nl", "(AT) Wien", "look (at) this", "john ( at ) x.nl"]) {
+      const clean = scrub(dirty);
+      expect(clean, dirty).toContain("<email>");
+      expect(clean, dirty).not.toMatch(/\((at)\)|\[at\]|sales|john|info|3m|home|this|Wien/i);
+      expect(scrubMisses(dirty).email, dirty).toBeGreaterThan(0);
+      expect(Object.values(scrubMisses(clean)).every((v) => v === 0), `${dirty} -> ${clean}`).toBe(true);
     }
+  });
+  it("a bare at counts only before something with a dot, spaced or not", () => {
+    for (const dirty of ["john at example.com", "john at example .com", "john at example . com", "john at example dot com"]) {
+      expect(scrub(dirty), dirty).toBe("<email>");
+      expect(scrubMisses(dirty).email, dirty).toBeGreaterThan(0);
+    }
+    for (const prose of ["Meet me at home", "at the end of the day", "Open at 9. Closed soon."]) {
+      expect(scrubMisses(scrub(prose)).email, prose).toBe(0);
+    }
+    expect(scrub("Meet me at home")).toBe("Meet me at home");
   });
   it("S4: the scrub and the detector agree on IPv6, by one rule", () => {
     for (const a of ["dead:beef::cafe", "fdab::cdef", "abcd:ef::", "2001:db8::1"]) {
@@ -388,10 +401,6 @@ describe("what reaches the disk", () => {
       expect(scrubMisses(c).ipv6, c).toBe(0);
     }
     expect(scrub("2001:db8::1and")).not.toContain("2001");
-  });
-  it("S5: a spaced dot needs spaces on both sides, and a lower-case ending", () => {
-    for (const prose of ["We are at home. Today we work.", "He is at work . Back soon.", "Open at 9. Closed at 5."]) expect(scrub(prose), prose).toBe(prose);
-    expect(scrub("john at acme . com")).toBe("<email>");
   });
   it("B9: address forms in host names come out", () => {
     for (const dirty of ["static.225.243.104.178.clients.your-server.de", "ip-2-31-141-178.eu-central-1.compute.amazonaws.com", "2%2E31%2E141%2E178", "0x021F8DB2", "decade:2a01:4f8:c17:1234::1", "fe80::1%25en0", "2a01:4f8:c17:1234:0:0:0:1%eth0", "[::ffff:2.31.141.178]:8080", "x-forwarded-for: 2.31.141.178, 10.0.0.1"]) {
@@ -562,6 +571,7 @@ describe("what reaches the disk", () => {
     const sum = (b) => createHash("sha256").update(b).digest("hex");
     writeFileSync(join(dir, "manifest.json"), JSON.stringify({ finishedAt: "x", rawSha256: sum(raw), immutableAtFinish: { ok: true }, exclusionSha256: sum(ex) }));
     expect(sealPilot(dir, { exclusionBytes: ex }).stop).toEqual(["under 30 eligible sites", "under 20 graded sites"]);
+    expect(JSON.parse(readFileSync(join(dir, "pilot-result.json"), "utf8")).sealSha256).toMatch(/^[0-9a-f]{64}$/);
     writeFileSync(join(dir, "prune-manifest.json"), "{}");
     expect(sealPilot(dir, { exclusionBytes: ex }).stop).toContain("sealed after pruning: seal first, while the excerpts exist");
   });
@@ -863,9 +873,14 @@ describe("the analysis", () => {
     const rows = [...Array.from({ length: 25 }, (_, i) => site(`a${i}.example${i}.com`, "T1k", i < 5, { platform: { edge: "cloudflare" } })), ...Array.from({ length: 25 }, (_, i) => site(`b${i}.other${i}.com`, "YC-new", i < 20, { platform: { edge: "cloudflare" } }))];
     const lines = (r) => r.map((x) => JSON.stringify(x)).join("\n") + "\n";
     writeFileSync(join(dir, "p.jsonl"), lines(rows));
+    writeFileSync(join(dir, "manifest.json"), JSON.stringify({ kind: "pass", finishedAt: "x", immutableAtFinish: { ok: true }, rawSha256: "wrong" }));
+    writeFileSync(join(dir, "raw.jsonl"), lines(rows));
     writeFileSync(join(dir, "t.jsonl"), lines(rows.slice(0, 25)));
     writeFileSync(join(dir, "y.jsonl"), lines(rows.slice(25)));
-    execFileSync(process.execPath, [join(import.meta.dirname, "..", "bench", "front-door", "analyze-r.mjs"), "--pass1", join(dir, "p.jsonl"), "--e20", join(dir, "t.jsonl"), join(dir, "y.jsonl"), "--out", join(dir, "o.json")]);
+    const analyze = () => execFileSync(process.execPath, [join(import.meta.dirname, "..", "bench", "front-door", "analyze-r.mjs"), "--pass1", join(dir, "raw.jsonl"), "--e20", join(dir, "t.jsonl"), join(dir, "y.jsonl"), "--out", join(dir, "o.json")], { stdio: "pipe" });
+    expect(analyze).toThrow();
+    writeFileSync(join(dir, "manifest.json"), JSON.stringify({ kind: "pass", finishedAt: "x", immutableAtFinish: { ok: true }, rawSha256: createHash("sha256").update(lines(rows)).digest("hex") }));
+    analyze();
     const o = JSON.parse(readFileSync(join(dir, "o.json"), "utf8"));
     expect(o.bounds.C1.low).toBeDefined();
     expect(o.bounds).toHaveProperty("C3");
@@ -991,10 +1006,16 @@ describe("what ties a run to its code", () => {
     expect(prunePilot(run).kind).toBe("pilot");
     expect(readFileSync(join(run, "raw.jsonl"), "utf8")).not.toContain("excerpt");
   });
+  it("in flight: only page and error text can stop a run, never DNS records", () => {
+    expect(pageTextMissed({ evidence: { excerpt: "you are 203.0.113.7" } })).toBe(true);
+    expect(pageTextMissed({ evidence: { pageExcerpt: { text: "jan@example.nl" } } })).toBe(true);
+    expect(pageTextMissed({ dns: { listed: { spfRecord: "v=spf1 ip4:203.0.113.7 include:a@b -all" } } })).toBe(false);
+    expect(pageTextMissed({ evidence: { pageExcerpt: { text: scrub("(AT) Wien") } } })).toBe(false);
+  });
   it("in flight: a scrub miss stops pass 2 at once, and the run says it is partial", async () => {
     const dir = mkdtempSync(join(tmpdir(), "e20r2-"));
     const file = join(dir, "leak.mjs");
-    writeFileSync(file, 'import { parentPort, workerData } from "node:worker_threads"; parentPort.postMessage({ record: { ...workerData.row, status: "ok", checks: [{ id: "x", evidence: "you are 203.0.113.7", weight: 0 }], finalHost: workerData.row.host, score: 1, counters: {}, hops: [], robots: [] } });');
+    writeFileSync(file, 'import { parentPort, workerData } from "node:worker_threads"; parentPort.postMessage({ record: { ...workerData.row, status: "ok", checks: [], evidence: { excerpt: "you are 203.0.113.7" }, finalHost: workerData.row.host, score: 1, counters: {}, hops: [], robots: [] } });');
     const rows = mergeCohorts({ T1k: Array.from({ length: 20 }, (_, i) => ({ host: `s${i}.selftest.example.com`, rank: i, group: "x" })) });
     const stub = () => Promise.reject(Object.assign(new Error("x"), { code: "ENODATA" }));
     const out = join(dir, "run");
@@ -1002,6 +1023,8 @@ describe("what ties a run to its code", () => {
     expect(stoppedFor).toMatch(/scrub/);
     expect(records.length).toBeLessThan(20);
     expect(JSON.parse(readFileSync(join(out, "manifest.json"), "utf8"))).toMatchObject({ partial: true, stoppedFor, records: records.length });
+    expect(JSON.parse(readFileSync(join(out, "aggregate.json"), "utf8")).partial).toBe(true);
+    expect(unfinishedRun(out)).toMatch(/stopped/);
     expect(ROLLING_WINDOW).toBe(200);
   });
   it("note: results are private to the account", async () => {
@@ -1034,7 +1057,7 @@ describe("acceptance", () => {
   it("every stop condition refuses pass 2, for its own reason, and a clean pilot is allowed", async () => {
     const rows = await runAcceptance();
     expect(rows.filter((r) => !r.pass)).toEqual([]);
-    expect(rows.length).toBeGreaterThanOrEqual(50);
+    expect(rows.length).toBeGreaterThanOrEqual(65);
   }, 60_000);
 });
 

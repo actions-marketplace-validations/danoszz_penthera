@@ -209,7 +209,7 @@ The bottom veil still switches off over the footer.
   one of the answers.
 
 Decided with the maintainer, 2026-10-30 (navigation and footer labels): the
-site has a top navigation, the steel rail, chosen from three options. It is an
+site has a bottom dock, the steel rail, chosen from three options. It is an
 opaque metal plate with no backdrop blur. The footer keeps its four groups and
 set-in sub-links, and drops the numbers: each group's label is a rotated pill
 in its own finish (Penthera blue, steel, gunmetal, the palette's other blue).

@@ -47,22 +47,27 @@ describe("site rail", () => {
 
   it("marks the section you are in", () => {
     const current = (html) => /<a [^>]*aria-current="\w+"[^>]*>([^<]+)<\/a>/.exec(html)?.[1];
-    expect(current(siteRail({ url: "/" }))).toBe("Check");
+    expect(current(siteRail({ url: "/" }))).toBeUndefined();
     expect(current(siteRail({ url: "/research" }))).toBe("Research");
     expect(current(siteRail({ url: "/research-e20" }))).toBe("Research");
     expect(current(siteRail({ url: "/benchmarks/secrets" }))).toBe("Benchmarks");
     expect(current(siteRail({ url: "/terms" }))).toBeUndefined();
   });
 
-  it("starts beside the logo only on the homepage and drops Blog without a post", () => {
-    expect(siteRail({ url: "/" })).toContain("data-top");
-    expect(siteRail({ url: "/pro" })).not.toContain("data-top");
+  it("holds the check back only on the homepage and drops Blog without a post", () => {
+    expect(siteRail({ url: "/" })).toContain("data-hero");
+    expect(siteRail({ url: "/" })).toContain('class="rail-check" href="#scan"');
+    expect(siteRail({ url: "/pro" })).not.toContain("data-hero");
+    expect(siteRail({ url: "/pro" })).toContain('class="rail-check" href="/#scan"');
     expect(siteRail({ url: "/pro", blog: false })).not.toContain('href="/blog"');
   });
 
-  it("is an opaque plate with its own hover ink, so it adds no blur over the field", () => {
+  it("is an opaque plate fixed to the bottom, with no blur and its own hover ink", () => {
     const css = readFileSync(join(out, "styles.css"), "utf8");
-    expect(css).toMatch(/\.rail \.glass \{ -webkit-backdrop-filter: none; backdrop-filter: none; \}/);
+    const rail = /\.rail \{[^}]*\}/.exec(css)[0];
+    expect(rail).toMatch(/position: fixed;/);
+    expect(rail).toMatch(/bottom: var\(--rail-gap\)/);
+    expect(rail).not.toMatch(/backdrop-filter/);
     expect(css).toMatch(/\.rail-links a:hover \{ background: var\(--accent\); color: var\(--on-accent\); \}/);
   });
 });

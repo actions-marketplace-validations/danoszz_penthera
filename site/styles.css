@@ -152,6 +152,7 @@
   --target: 44px;
   --veil-h: 224px;                      /* the bottom blur; check/ui.js reads it too */
   --ticker-h: 30px;
+  --hero-over: 96px;                    /* the glass panel runs this far past the fold */
   --bar-gap: 12px;                      /* air between the ticker and the bar */
   --press: 100ms;
   --out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -164,7 +165,7 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html:not(.js) [data-js] { display: none !important; }
-html { background: var(--ground); -webkit-text-size-adjust: 100%; scroll-padding-top: 76px; }
+html { background: var(--ground); -webkit-text-size-adjust: 100%; scroll-padding-top: 24px; scroll-padding-bottom: 88px; }
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 body {
   margin: 0;
@@ -238,86 +239,102 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
   .ticker-list[aria-hidden] { display: none; }
 }
 
-/* ── The steel rail ───────────────────────────────────────────────────── */
+/* ── The steel dock ───────────────────────────────────────────────────── */
 
-/* The top navigation of every page (siteRail in frame.mjs): a metal plate with
- * a soft blue button on the current section. It docks centered at the top of
- * the window; on the homepage it starts beside the logo (data-top). On phones
- * it is a dock at thumb height, above the bottom blur, with the controls left
- * in the bar. The plate is opaque, with no backdrop blur, so it adds no blur
- * work over the hero's field. */
+/* The navigation of every page (siteRail in frame.mjs): a metal plate fixed to
+ * the bottom of the window, on the blur that already rises there, so it covers
+ * nothing you were reading. It is fixed by CSS from the first paint, so no
+ * scroll speed can lose it, and it never moves. The plate is opaque, with no
+ * backdrop blur, so it adds no blur work over the hero's field. */
 :root {
   --pad: clamp(12px, 1.6vw, 24px);       /* the hero's side margin: tight, to the edge */
   --rail-plate: #1c1e23; --rail-lit: 0.13; --rail-shade: 0.45; --rail-rim: 0.22;
   --glass-tint: rgba(0, 0, 0, 0.58); --glass-edge: rgba(255, 255, 255, 0.24); --glass-rim: rgba(255, 255, 255, 0.2);
+  --rail-gap: 16px;
 }
 :root[data-theme="light"] {
   --rail-plate: #e4e6ea; --rail-lit: 0.9; --rail-shade: 0.1; --rail-rim: 1;
   --glass-tint: rgba(253, 253, 250, 0.62); --glass-edge: rgba(0, 0, 0, 0.2); --glass-rim: rgba(255, 255, 255, 0.9);
 }
 .rail {
-  position: fixed; z-index: 30; top: 16px; left: 50%; transform: translateX(-50%);
+  --plate: linear-gradient(180deg, rgba(255, 255, 255, var(--rail-lit)), transparent 46%, rgba(0, 0, 0, var(--rail-shade))), var(--rail-plate);
+  position: fixed; z-index: 30; bottom: var(--rail-gap); left: 50%; transform: translateX(-50%);
   display: flex; align-items: center; gap: 2px;
-  width: max-content; max-width: calc(100vw - 24px); height: 46px; padding: 0 6px;
+  width: max-content; max-width: calc(100vw - 24px); height: 50px; padding: 0 6px;
   font-family: var(--px); font-size: 13px; letter-spacing: 0.02em;
-  background: linear-gradient(180deg, rgba(255, 255, 255, var(--rail-lit)), transparent 46%, rgba(0, 0, 0, var(--rail-shade))), var(--rail-plate);
+  background: var(--plate);
   border: 1px solid rgba(var(--ink-rgb), 0.28);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, var(--rail-rim)), 0 14px 34px -14px rgba(0, 0, 237, 0.55);
 }
-/* Sticky at the top of the homepage: it rides up with the header, and the
- * browser then holds it 6 px from the edge, so it cannot be lost at any scroll
- * speed, with or without script. check/ui.js docks it from there. The negative
- * margin keeps it out of the page's flow. */
-.rail[data-top] {
-  position: sticky; top: 6px; left: auto; transform: none;
-  margin: calc(var(--ticker-h) + var(--bar-gap)) var(--pad) calc(-1 * (var(--ticker-h) + var(--bar-gap) + 46px)) auto;
-}
 .rail a { color: var(--text-1); text-decoration: none; }
-.rail-mark { display: inline-flex; align-items: center; height: 34px; padding: 0 16px 0 10px; }
+.rail-mark { display: inline-flex; align-items: center; height: 38px; padding: 0 16px 0 10px; }
 .rail-mark span[aria-hidden] {
   display: block; width: 96px; height: 22px; background: var(--text-1);
   -webkit-mask: url("/logo.svg") left center / contain no-repeat; mask: url("/logo.svg") left center / contain no-repeat;
 }
 .rail-mark:hover { background: none; }
-.rail[data-top] .rail-mark { display: none; }
 .rail-links { display: flex; align-items: center; gap: 2px; }
-.rail-links a { position: relative; display: inline-flex; align-items: center; height: 34px; padding: 0 13px; white-space: nowrap; }
+.rail-links a { position: relative; display: inline-flex; align-items: center; height: 38px; padding: 0 13px; white-space: nowrap; }
 .rail-links a::after { content: ""; position: absolute; inset: -6px 0; }
 .rail-links a:hover { background: var(--accent); color: var(--on-accent); }
 .rail-links a { transition: background-color 160ms var(--out), color 160ms var(--out), transform var(--press) var(--out); }
 .rail-links a:active { transform: scale(0.97); }
-.rail-links a[aria-current] {
-  color: #ffffff;
+.rail-links a[aria-current] { box-shadow: inset 0 -2px 0 var(--text-1); }
+.rail-check {
+  display: inline-flex; align-items: center; height: 38px; padding: 0 14px; white-space: nowrap;
   background: linear-gradient(180deg, #4a4aff, #0000ed 58%, #0000b8);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 6px 18px -6px rgba(0, 0, 237, 0.75);
+  transition: transform var(--press) var(--out);
 }
-.rail-ctas { display: flex; gap: 6px; margin-left: 8px; }
-.rail .glass { -webkit-backdrop-filter: none; backdrop-filter: none; }
-.rail .download { color: #ffffff; }
-.bar .theme, .bar .star, .bar .download { display: none; }
-/* At the top of the homepage the scan button is the one blue action, so the
- * rail is quiet there. Check and Star come back once it docks. */
+.rail a.rail-check, .rail a.rail-check:hover { color: #ffffff; }
+.rail-check:active { transform: scale(0.97); }
+
+/* Variation 1: the plate opens. The check's slot grows from nothing, and the
+ * dock re-centres as it does. */
+.rail[data-v="1"] .rail-cta { display: grid; grid-template-columns: 1fr; margin-left: 6px; }
+.rail[data-v="1"] .rail-check { min-width: 0; overflow: hidden; }
+.js .rail[data-v="1"][data-hero="here"] .rail-cta, .js .rail[data-v="1"][data-hero=""] .rail-cta { grid-template-columns: 0fr; margin-left: 0; }
+.js .rail[data-v="1"][data-hero="here"] .rail-check, .js .rail[data-v="1"][data-hero=""] .rail-check { padding-inline: 0; box-shadow: none; visibility: hidden; }
+.rail[data-v="1"][data-ready] .rail-cta { transition: grid-template-columns 280ms var(--out), margin-left 280ms var(--out); }
+.rail[data-v="1"][data-ready] .rail-check { transition: padding 280ms var(--out), visibility 0s linear 0s, transform var(--press) var(--out); }
+.rail[data-v="1"][data-ready][data-hero="here"] .rail-check { transition: padding 280ms var(--out), visibility 0s linear 280ms; }
+
+/* Variation 2: the check rises from the bottom edge of the window and parks
+ * beside the plate. The plate itself doesn't move at all. */
+.rail[data-v="2"] .rail-cta { position: absolute; left: 100%; bottom: -1px; margin-left: 6px; height: 50px; padding: 0 5px; display: flex; align-items: center; background: var(--plate); border: 1px solid rgba(var(--ink-rgb), 0.28); box-shadow: inset 0 1px 0 rgba(255, 255, 255, var(--rail-rim)), 0 14px 34px -14px rgba(0, 0, 237, 0.55); }
+.js .rail[data-v="2"][data-hero="here"] .rail-cta, .js .rail[data-v="2"][data-hero=""] .rail-cta { transform: translateY(calc(100% + var(--rail-gap) + 8px)); visibility: hidden; }
+.rail[data-v="2"][data-ready] .rail-cta { transition: transform 280ms var(--out), visibility 0s; }
+.rail[data-v="2"][data-ready][data-hero="here"] .rail-cta { transition: transform 200ms var(--out), visibility 0s linear 200ms; }
+
+/* The header's right side, where the navigation used to be. */
+.bar .theme, .bar .star, .bar .download, .bar-status { display: none; }
+.bar .theme, .bar .download { display: inline-flex; }
+.bar .download { color: var(--text-1); background: none; border-color: rgba(var(--ink-rgb), 0.45); box-shadow: none; }
 @media (min-width: 1101px) {
-  .rail[data-top], .rail[data-fly] { box-shadow: inset 0 1px 0 rgba(255, 255, 255, var(--rail-rim)); }
-  .rail[data-top] .star, .rail[data-top] .rail-links a[href="#scan"], .rail[data-fly] .star, .rail[data-fly] .rail-links a[href="#scan"], .rail[data-fly] .rail-mark { display: none; }
-  .rail[data-top] .download, .rail[data-fly] .download { color: var(--text-1); background: none; border-color: rgba(var(--ink-rgb), 0.45); box-shadow: none; }
+  :root:has(.rail[data-h="1"]) .bar .star { display: inline-flex; }
+  :root:has(.rail[data-h="2"]) .bar .download { display: none; }
+  :root:has(.rail[data-h="2"]) .bar-status { display: block; margin: 0 10px 0 0; font-family: var(--px); font-size: 13px; letter-spacing: 0.02em; color: var(--text-1); white-space: nowrap; }
 }
-/* Below 1100 px the rail no longer fits beside the logo, so it is the dock. */
+/* Below 1100 px the dock spans the window, and the check keeps its place. */
 @media (max-width: 1100px) {
-  .rail, .rail[data-top] {
-    position: fixed; top: auto; right: 12px; bottom: 12px; left: 12px; margin: 0; transform: none;
+  .rail {
+    right: 12px; bottom: 12px; left: 12px; transform: none;
     width: auto; max-width: none; height: 56px; padding: 0 5px;
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   .rail-links { flex: 1; justify-content: space-between; gap: 0; }
   .rail-links a { flex: 1 1 auto; justify-content: center; height: 44px; padding: 0 7px; font-size: 11.5px; }
   .rail-links a::after { inset: 0; }
-  .rail-mark, .rail-ctas { display: none; }
-  .bar .theme, .bar .download { display: inline-flex; }
+  .rail-mark, .rail-check-more { display: none; }
+  .rail[data-v] .rail-cta, .js .rail[data-v][data-hero] .rail-cta { position: static; display: block; margin: 0; padding: 0; height: auto; background: none; border: 0; box-shadow: none; transform: none; visibility: visible; transition: none; }
+  .rail[data-v] .rail-check, .js .rail[data-v][data-hero] .rail-check { height: 44px; padding: 0 12px; visibility: visible; transition: none; }
+  .js .rail[data-v][data-hero="here"] .rail-check, .js .rail[data-v][data-hero=""] .rail-check { background: none; box-shadow: none; }
+  .js .rail[data-v][data-hero="here"] a.rail-check, .js .rail[data-v][data-hero=""] a.rail-check { color: var(--text-1); }
   .bar { --logo-w: 132px; }
-  /* The dock must not cover the last line of a page. */
-  .foot { padding-bottom: 96px; }
-  html { scroll-padding-top: 24px; scroll-padding-bottom: 84px; }
+  html { scroll-padding-top: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rail[data-ready] .rail-cta, .rail[data-ready] .rail-check { transition: none !important; }
 }
 
 /* ── Bar ──────────────────────────────────────────────────────────────── */
@@ -519,8 +536,8 @@ h3 { font-family: var(--display); font-size: 21px; letter-spacing: -0.01em; line
 
 /* 1 · Hero: the dithered field, then the one assertion. */
 main > .hero {
-  position: relative; display: grid; grid-template-columns: minmax(0, 1fr); align-items: center;
-  min-height: 100svh; max-width: none; padding: calc(var(--ticker-h) + 100px) var(--pad) 40px;
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch;
+  min-height: calc(100svh + var(--hero-over)); max-width: none; padding: calc(var(--ticker-h) + 100px + clamp(0px, (100svh - 760px) / 2, 120px)) var(--pad) 0;  /* the field keeps a band on tall windows */
 }
 .field {
   position: absolute; z-index: 0;
@@ -542,7 +559,7 @@ main > .hero {
  * hierarchy, top to bottom: the problem in display type, the pills, the
  * lede, the two ways in, then the loop. Spacing on the 8 px scale: 40 · 24
  * · 40, and the loop a section step below. */
-main > .slab { margin-top: var(--section); padding-bottom: var(--section); background: var(--slab); }
+main > .slab { padding-bottom: var(--section); background: var(--slab); }
 .hero-text {
   position: relative; z-index: 1;
   max-width: var(--measure); margin: 0 auto;
@@ -993,7 +1010,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
   --foot-pad: max(var(--gutter), calc((100vw - var(--measure)) / 2));
   position: relative; isolation: isolate;
   display: grid; gap: clamp(48px, 6vw, 80px);
-  padding: clamp(72px, 10vw, 136px) var(--foot-pad) 28px;
+  padding: clamp(72px, 10vw, 136px) var(--foot-pad) 96px;
   background: var(--ground); color: var(--text-3);
   font-size: 12px;
 }
@@ -1308,7 +1325,6 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 
 /* /terms: the live check's terms, a plain reading page. */
 .terms { max-width: 720px; margin: 0 auto; padding: 64px var(--gutter) 120px; }
-@media (min-width: 1101px) { .terms { padding-top: 92px; } }  /* clears the docked rail */
 .terms h1 { margin-top: 12px; font-size: clamp(34px, 5vw, 56px); line-height: 1; letter-spacing: -0.035em; }
 .terms h2 { max-width: none; margin-top: 48px; font-size: clamp(22px, 2.6vw, 30px); letter-spacing: -0.02em; }
 .terms p, .terms ul, .terms ol, .terms pre { margin-top: 14px; }
@@ -1922,7 +1938,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
  * glass, and the field stays one screen tall, so a long report never makes it
  * draw more cells. */
 .hero .field { inset: 0; width: 100%; height: 100%; }
-.hero[data-mode="fix"] { align-items: start; }
+.hero[data-mode="fix"] { align-items: start; min-height: 100svh; padding-bottom: 40px; }
 .hero[data-mode="fix"] .field { height: 100svh; }
 .poster, .report {
   position: relative; z-index: 1; min-width: 0; padding: clamp(24px, 3vw, 44px);
@@ -1935,13 +1951,13 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .poster, .report { background: var(--ground); }
 }
-.poster { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0 24px; align-items: center; }
+.poster { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0 24px; align-items: center; padding-bottom: calc(clamp(24px, 3vw, 44px) + var(--hero-over)); border-bottom: 0; }
 .report-grid { display: grid; gap: 40px; align-items: start; }
 @media (min-width: 1000px) { .report-grid { grid-template-columns: minmax(0, 1fr) minmax(400px, 500px); gap: 56px; } }
 .poster-text { grid-column: 1 / 7; min-width: 0; }
 .poster-card { grid-column: 8 / -1; }
 @media (max-width: 1100px) {
-  main > .hero { padding: calc(var(--ticker-h) + 100px) var(--pad) 84px; align-items: start; }
+  main > .hero { padding: calc(var(--ticker-h) + 100px) var(--pad) 0; }
   .poster { display: block; }
   .poster-card { margin-top: 28px; }
 }
@@ -2106,5 +2122,5 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 @keyframes dialog-in { from { opacity: 0; transform: scale(0.97); } }
 @media (prefers-reduced-motion: reduce) {
   .consent[open], .prompt-dialog[open] { animation: none; }
-  .btn:active, .glass:active, .cmd:active, .brand:active, .btn-steel:active, .gopro-btn:active, .rail-links a:active { transform: none; }
+  .btn:active, .glass:active, .cmd:active, .brand:active, .btn-steel:active, .gopro-btn:active, .rail-links a:active, .rail-check:active { transform: none; }
 }

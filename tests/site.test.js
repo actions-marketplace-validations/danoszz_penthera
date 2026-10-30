@@ -392,19 +392,22 @@ describe("site motion budget", () => {
     expect(ui).toContain('[$(".hero"), $(".foot")]');
   });
 
-  it("moves the rail on the compositor, and not at all under reduced motion", () => {
-    const dock = ui.slice(ui.indexOf("function railDock"), ui.indexOf("The bottom veil"));
-    expect(dock).toContain("still.matches");
-    expect(dock).toContain("translate:");
-    expect(dock).not.toMatch(/\b(left|top|width):\s*`/);
-    // Down, then left on the way in; right, then up on the way out.
-    expect(dock).toContain("[0.3, 1, 0, 0.5], DOCK_MS");
-    expect(dock).toContain("[0, 0.62, 0.42, 1], UNDOCK_MS");
+  it("never moves the dock, and brings the check in on the compositor", () => {
+    const dock = ui.slice(ui.indexOf("function dockCheck"), ui.indexOf("The bottom veil"));
+    expect(dock).toContain("IntersectionObserver");
+    expect(dock).not.toMatch(/scrollY|addEventListener|animate\(/);
+    expect(css).toMatch(/\.rail\[data-v="2"\]\[data-ready\] \.rail-cta \{ transition: transform 280ms var\(--out\), visibility 0s; \}/);
+    expect(css).toMatch(/prefers-reduced-motion: reduce\) \{\s*\.rail\[data-ready\] \.rail-cta, \.rail\[data-ready\] \.rail-check \{ transition: none !important; \}/);
   });
 
-  it("keeps the rail on screen at any scroll speed, without script", () => {
-    expect(css).toMatch(/\.rail\[data-top\] \{\s*position: sticky; top: 6px;/);
-    expect(css).not.toMatch(/\.rail\[data-top\] \{ position: absolute/);
+  it("runs the hero's panel past the fold and straight into the grey", () => {
+    expect(css).toMatch(/main > \.hero \{[^}]*min-height: calc\(100svh \+ var\(--hero-over\)\);/);
+    expect(css).toMatch(/main > \.slab \{ padding-bottom/);
+  });
+
+  it("keeps the check available without script", () => {
+    // Only a page that runs script can hold it back.
+    for (const [, sel] of css.matchAll(/([^\n{}]*data-hero="here"[^\n{}]*)\{ (?:transform|grid)/g)) expect(sel.trim()).toMatch(/^\.js /);
   });
 
   it("keeps the live field on a layer of its own", () => {

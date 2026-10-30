@@ -63,9 +63,8 @@ export function footGroups({ pages = [], benchmarks = [], posts = [] } = {}) {
 const STAR = '<svg class="star-glyph" viewBox="0 0 9 9" aria-hidden="true"><path d="M4 0h1v2h1v1h3v1H8v1H7v1h1v3H7V8H6V7H3v1H2v1H1V6h1V5H1V4H0V3h3V2h1z"/></svg>';
 const DOWN = '<svg class="download-glyph" viewBox="0 0 9 10" aria-hidden="true"><path d="M4 0h1v6h1V5h1V4h1v1H7v1H6v1H5v1H4V7H3V6H2V5H1V4h1v1h1v1h1zM0 9h9v1H0z"/></svg>';
 
-/** The steel rail's destinations, and the first path segment each one owns. */
+/** The dock's destinations, and the first path segment each one owns. */
 const RAIL = [
-  { text: "Check", href: "/#scan", home: "#scan", match: "" },
   { text: "Research", href: "/research", match: "research" },
   { text: "Benchmarks", href: "/benchmarks", match: "benchmarks" },
   { text: "Blog", href: "/blog", match: "blog" },
@@ -73,36 +72,26 @@ const RAIL = [
 ];
 
 /**
- * The top navigation of every page: the steel rail. The build puts it before
- * <main> on each page it renders (site/build.mjs), so a new page gets it
- * without an edit. On the homepage it starts beside the logo (data-top) and
- * check/ui.js docks it once the logo has scrolled away.
- * @param {{ url?: string, stars?: string, blog?: boolean }} opts
- *   url: the page's path; stars: the GitHub count; blog: false drops Blog while no post is approved
+ * The navigation of every page: a steel dock fixed to the bottom of the window.
+ * The build puts it before <main> on each page it renders (site/build.mjs), so
+ * a new page gets it without an edit. It never moves. Its one action is the
+ * check: on the homepage that action waits until the hero's own button has
+ * scrolled away (data-hero, cleared by check/ui.js), so it stays on screen if
+ * no script runs.
+ * @param {{ url?: string, blog?: boolean, variant?: string }} opts
+ *   url: the page's path; blog: false drops Blog while no post is approved
  */
-export function siteRail({ url = "/", stars = "", blog = true } = {}) {
+export function siteRail({ url = "/", blog = true, variant = process.env.PENTHERA_NAV_V || "2", header = process.env.PENTHERA_NAV_H || "1" } = {}) {
   const home = url === "/";
   const seg = url.split("/")[1] || "";
   const links = RAIL.filter((r) => blog || r.match !== "blog").map((r) => {
     const on = seg === r.match || (r.match === "research" && seg.startsWith("research-"));
-    return `<a href="${home && r.home ? r.home : r.href}"${on ? ` aria-current="${url === r.href || home ? "page" : "true"}"` : ""}>${r.text}</a>`;
+    return `<a href="${r.href}"${on ? ` aria-current="${url === r.href ? "page" : "true"}"` : ""}>${r.text}</a>`;
   }).join("");
-  return `<nav class="rail"${home ? " data-top" : ""} aria-label="Main">
+  return `<nav class="rail"${home ? " data-hero" : ""} data-v="${variant}" data-h="${header}" aria-label="Main">
     <a class="rail-mark" href="/"><span aria-hidden="true"></span><span class="sr">Penthera, home</span></a>
     <div class="rail-links">${links}</div>
-    <div class="rail-ctas">
-      <button class="theme glass" type="button" role="switch" aria-checked="true" aria-label="Dark theme" data-theme-toggle hidden>
-        <span class="theme-track" aria-hidden="true"><span class="theme-knob"></span></span>
-      </button>
-      <a class="star glass" href="${REPO}" data-track="github-star-rail" aria-label="Star Penthera on GitHub${stars ? `, ${esc(stars)} stars` : ""}">
-        ${STAR}
-        <span class="star-word">Star</span><span class="star-count">${esc(stars)}</span>
-      </a>
-      <a class="download glass" href="${home ? "#get" : "/#get"}">
-        ${DOWN}
-        <span>Download</span>
-      </a>
-    </div>
+    <div class="rail-cta"><a class="rail-check" href="${home ? "#scan" : "/#scan"}" data-track="check-dock"><span>Check<span class="rail-check-more"> your site</span></span></a></div>
   </nav>`;
 }
 

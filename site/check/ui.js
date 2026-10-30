@@ -608,81 +608,20 @@ function tickerRest() {
   }).observe(ticker);
 }
 
-// ── The rail docks once the logo has scrolled away ──────────────────────
+// ── The dock's check waits for the hero's own ───────────────────────────
 
-// The rail can never be lost. At the top of the homepage it is sticky: it rides
-// up with the header and the browser holds it on screen, at any scroll speed and
-// with no script running. Once it is held, it docks: a small move down, then a
-// slide left to the centre. The way back is the reverse: right, then up. No
-// bounce. The two moves overlap a little, so the path curves at the corner. The
-// rail changes width, so it is measured before and after; only `translate`
-// moves, on the compositor, and a change of direction mid-flight starts from
-// wherever the rail is. A page that opens mid-scroll docks without a flight.
-const DOCK_AT = 40;                     // px scrolled; the rail is held by then
-const DOCK_MS = 640, UNDOCK_MS = 420;   // slow on the way in, quicker on the way out
-const STEPS = 30;
-
-/** cubic-bezier(x1, y1, x2, y2) as a function of time. */
-function bezier(x1, y1, x2, y2) {
-  const at = (a, b, t) => 3 * a * t * (1 - t) ** 2 + 3 * b * t * t * (1 - t) + t ** 3;
-  return (x) => {
-    let lo = 0, hi = 1;
-    for (let i = 0; i < 20; i++) { const m = (lo + hi) / 2; if (at(x1, x2, m) < x) lo = m; else hi = m; }
-    return at(y1, y2, (lo + hi) / 2);
-  };
-}
-const glide = bezier(0.32, 0.72, 0, 1);
-const span = (t, from, to) => glide(Math.min(1, Math.max(0, (t - from) / (to - from))));
-
-function railDock() {
-  const rail = $(".rail[data-top]");
-  const ticker = $(".ticker");
-  if (!rail || !ticker) return;
-  const still = matchMedia("(prefers-reduced-motion: reduce)");
-  const fresh = rail.querySelectorAll('.rail-mark, .star, .rail-links a[href="#scan"]');
-  let flight, settled = false, atTop = true;
-  const box = () => { const r = rail.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top }; };
-  // Both flights run on the fixed rail, so scrolling can't push it off screen:
-  // it becomes sticky again only when it lands.
-  const fly = (from, to, [xFrom, xTo, yFrom, yTo], duration) => {
-    const at = (a, b, p) => (b + (a - b) * (1 - p)).toFixed(2);
-    const frames = Array.from({ length: STEPS + 1 }, (_, i) => {
-      const t = i / STEPS;
-      return { translate: `${at(from.x, to.x, span(t, xFrom, xTo))}px ${at(from.y, to.y, span(t, yFrom, yTo))}px` };
-    });
-    return rail.animate(frames, { duration, easing: "linear", fill: "forwards" });
-  };
-  const land = () => { rail.setAttribute("data-top", ""); delete rail.dataset.fly; flight?.cancel(); flight = null; };
-  const move = (top) => {
-    if (atTop === top) return;
-    atTop = top;
-    const a = box();
-    flight?.cancel();
-    flight = null;
-    const calm = !settled || still.matches;
-    if (!top) {                         // down, then left
-      rail.removeAttribute("data-top");
-      delete rail.dataset.fly;
-      const b = box();
-      const from = { x: a.x - b.x, y: a.y - b.y };
-      if (calm || Math.hypot(from.x, from.y) < 2) return;
-      flight = fly(from, { x: 0, y: 0 }, [0.3, 1, 0, 0.5], DOCK_MS);
-      flight.onfinish = () => { flight?.cancel(); flight = null; };
-      for (const el of fresh) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, delay: 160, fill: "backwards", easing: "ease" });
-      return;
-    }
-    // Right, then up: measure the landing spot, then fly there, still fixed.
-    rail.dataset.fly = "";
-    const home = box();
-    rail.setAttribute("data-top", "");
-    const spot = box();
-    rail.removeAttribute("data-top");
-    const to = { x: spot.x - home.x, y: spot.y - home.y };
-    if (calm || Math.hypot(a.x - spot.x, a.y - spot.y) < 2) { land(); return; }
-    flight = fly({ x: a.x - home.x, y: a.y - home.y }, to, [0, 0.62, 0.42, 1], UNDOCK_MS);
-    flight.onfinish = land;
-  };
-  new IntersectionObserver(([e]) => { move(e.isIntersecting); settled = true; }, { rootMargin: `${DOCK_AT - ticker.offsetHeight}px 0px 0px 0px` }).observe(ticker);
+// The dock itself never moves. Its check button arrives once the hero's button
+// has gone, and leaves when the hero comes back. Without script it simply stays.
+function dockCheck() {
+  const rail = $(".rail[data-hero]");
+  const hero = $(".hero");
+  if (!rail || !hero) return;
+  new IntersectionObserver(([e]) => {
+    if (e.isIntersecting) rail.dataset.hero = "here";
+    else rail.dataset.hero = "gone";
+    // The first call only sets the state: a page opened mid-scroll doesn't animate.
+    requestAnimationFrame(() => { rail.dataset.ready = ""; });
+  }, { rootMargin: "-25% 0px 0px 0px" }).observe(hero);
 }
 
 // ── The bottom veil stays off the hero text and the footer ──────────────
@@ -769,7 +708,7 @@ for (const a of document.querySelectorAll("a[data-track]")) a.addEventListener("
 metalLight();
 heroLoop();
 tickerRest();
-railDock();
+dockCheck();
 veilClear();
 liveField($(".hero .field"));
 barPalette();

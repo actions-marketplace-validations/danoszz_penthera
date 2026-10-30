@@ -42,7 +42,7 @@
  *     and handles http:// gracefully (no TLS check).
  */
 import { fingerprint, discoverEndpoints, autoCalibrate } from "../lib/crawler.js";
-import { runBuiltInTemplates } from "../lib/templates.js";
+import { runBuiltInTemplates, headerChangesAnswer } from "../lib/templates.js";
 import { fuzzEndpoint } from "../lib/fuzzer.js";
 import { checkTls } from "../lib/tls.js";
 import { runRecon, extractDomain } from "../lib/recon.js";
@@ -95,10 +95,11 @@ const SERVER_STATUS_RE = /Apache Server Status for|Server uptime:|Total accesses
 export async function scanUrl(rawTarget, opts = {}) {
   const target = normalizeBaseUrl(rawTarget);
   // Every request in this scan goes through one egress context: it enforces
-  // --offline, sets the User-Agent, applies --rate, and records hosts contacted and probe errors.
+  // --offline or the MCP scope, sets the User-Agent, applies --rate, and records hosts contacted and probe errors.
   const ctx = createEgressContext({
     target,
     offline: opts.offline,
+    scoped: opts.scoped,
     userAgent: opts.userAgent,
     allowHosts: opts.allowHosts,
     rateLimit: opts.rateLimit,
@@ -369,14 +370,11 @@ async function scanUrlInContext(target, opts) {
     (ep) => ep.path.includes("/admin") || ep.path.includes("/api/admin"),
   );
   for (const ep of adminEndpoints.slice(0, 3)) {
-    const res = await safeFetch(`${target}${ep.path}`, {
-      headers: {
-        "x-middleware-subrequest": "middleware:middleware:middleware:middleware:middleware",
-      },
-      timeout: 5_000,
-      probe: "framework-check",
-    });
+    const headers = { "x-middleware-subrequest": "middleware:middleware:middleware:middleware:middleware" };
+    const res = await safeFetch(`${target}${ep.path}`, { headers, timeout: 5_000, probe: "framework-check" });
     if (res && res.status === 200) {
+      const changed = await headerChangesAnswer(`${target}${ep.path}`, headers, { timeout: 5_000, probe: "framework-check" }).catch(() => false);
+      if (!changed) continue;
       const alreadyFound = result.findings.some(
         (f) => f.templateId === "cve-2025-29927-nextjs-middleware-bypass" && f.url?.includes(ep.path),
       );

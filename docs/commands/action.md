@@ -14,7 +14,7 @@ pull requests, a scan step in your own workflow, and the
 
 ```yaml
 - name: "Penthera: your open-source cyber security agent"
-  uses: danoszz/penthera@9b6bb2d10cf08601e68a8fdc27ba688c9d721570 # v2.0.0
+  uses: danoszz/penthera@393236c79776ed55db1118dc5707c56ad18a663f # v2.1.0
   with:
     mode: deps        # deps | agents | scan (scan also needs url:)
     fail-on: none     # none | high | critical

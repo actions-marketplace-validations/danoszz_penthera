@@ -7,6 +7,7 @@
  *          (symlinks followed) and must land inside a root's realpath.
  *   Hosts  scan_url may contact loopback, or a host listed exactly with
  *          --allow-host. http and https only, no credentials in the URL.
+ *          The scan's egress context holds that line on every redirect hop.
  */
 import { realpathSync, statSync } from "node:fs";
 import { isAbsolute, relative, resolve, sep } from "node:path";

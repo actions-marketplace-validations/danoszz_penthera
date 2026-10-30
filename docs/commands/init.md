@@ -60,8 +60,8 @@ Type numbers to toggle items (`2,4`), or press Enter:
   scan may download the Retire.js database. Nothing else changes.
 
 **3. Run and summarize.** One line per check, then the grade per area (A to F,
-the same scale as `penthera agents`), the three things to fix first in plain
-language, and the report folder:
+the same scale as `penthera agents`, or `–` when there was nothing to read), the
+three things to fix first in plain language, and the report folder:
 
 ```
   Running 3 checks  (offline)
@@ -171,7 +171,5 @@ updates keep it current in your repo.
 
 Known issue: in every release from 1.5.0 to 2.0.0, the action's `mode: deps`
 exits before it scans, and the job still reports success, with no comment and
-no SARIF. The v2.0.0 pin that this version writes has the same problem.
-2.1.0-rc.1 has the fix, so `mode: deps` works with a pin to 2.1.0-rc.1 or later,
-and `init` writes such a pin from the first release after 2.1.0-rc.1. Until
-then, move the pin in your workflow to the 2.1.0-rc.1 release commit.
+no SARIF. 2.1.0-rc.1 has the fix, and `init` now writes a v2.1.0 pin. A workflow
+written by an older `init` needs its pin moved to 2.1.0-rc.1 or later.

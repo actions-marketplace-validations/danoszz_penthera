@@ -83,6 +83,11 @@ export function wantBrief(opts, { stdout = process.stdout, env = process.env } =
   return !stdout.isTTY && !env.CI;
 }
 
+/** The exit 0 line goes on a terminal report of a URL or repo scan, not on a run that scanned neither. */
+export function wantExitNote({ code, url, repo, opts, custom }) {
+  return code === 0 && !!(url || repo) && !opts.json && !opts.quiet && !custom && !wantBrief(opts);
+}
+
 /** The full-report paths a brief points to. */
 export function briefReports(opts) {
   return [opts.output && markdownPathFromJson(opts.output), opts.markdown].filter(Boolean);

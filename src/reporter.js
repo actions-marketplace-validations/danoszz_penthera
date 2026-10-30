@@ -332,7 +332,7 @@ export function printReport(result, opts = {}) {
     w(`  ${c.dim(line())}`);
     w(`  ${c.bold("Agent Config")}${a.home ? c.dim("  repo + home") : c.dim("  repo")}`);
     w("");
-    w(`  Grade      ${gradeColor(` ${a.grade} `)} ${c.dim(`(${a.score}/100)`)}`);
+    w(`  Grade      ${a.grade ? `${gradeColor(` ${a.grade} `)} ${c.dim(`(${a.score}/100)`)}` : c.dim("none, nothing found to assess")}`);
     w(`  Found      ${inv.skills || 0} skills · ${inv.mcpServers || 0} MCP servers · ${inv.hooks || 0} hooks · ${inv.plugins || 0} plugins · ${inv.instructionFiles || 0} rule files`);
     if (a.lock) {
       const l = a.lock;

@@ -4,7 +4,7 @@
  * private raw files of both passes and of E20. Aggregates only; no site is
  * named in the output.
  *
- *   node bench/front-door/analyze-r.mjs --pass1 <raw.jsonl> --pass2 <raw.jsonl> --e20 <tranco/raw.jsonl> <yc/raw.jsonl> [--e20-excluded <hosts file>] [--industries <csv>] [--out analysis.json]
+ *   node bench/front-door/analyze-r.mjs --pass1 <raw.jsonl> [--pass2 <raw.jsonl>] --e20 <tranco/raw.jsonl> <yc/raw.jsonl> [--e20-excluded <hosts file>] [--industries <csv>] [--out analysis.json]
  *
  * Intervals are a cluster bootstrap over organizations, by registrable domain
  * of the final host. HTTP claims must hold on both estimands: S (every graded
@@ -125,6 +125,8 @@ export function claims(p1, p2, e20, opts) {
     out.push({ id, label: `server refusals minus E20 403s, ${cohort}`, n: pairs.length, diff: pairs.length ? stat(pairs) : NaN, lower: lo, decision: lo > 0 ? "supported" : "inconclusive" });
   }
   // C14, C15: agreement between the passes.
+  // Amendment 1: one pass, so the agreement claims are reported as not run.
+  if (!p2) return [...out, { id: "C14", label: "median kappa between passes", decision: "not run" }, { id: "C15", label: "label kappa between passes", decision: "not run" }];
   const byHost = new Map(p2.map((r) => [r.host, r]));
   const pairs = p1.filter((r) => byHost.has(r.host) && (r.cohorts?.T1k || r.cohorts?.["YC-new"])).map((r) => [r, byHost.get(r.host)]);
   const checkKappas = (s) => median(KAPPA_CHECKS.map((id) => { const v = s.filter(([a, b]) => pass(a, id) !== undefined && pass(b, id) !== undefined); return kappa(v.map(([a]) => pass(a, id)), v.map(([, b]) => pass(b, id))); }).filter(Number.isFinite));
@@ -169,11 +171,11 @@ export function traitTable(rows, checks = KAPPA_CHECKS, min = 20) {
 
 function main(args) {
   const at = (n) => args[args.indexOf(n) + 1];
-  if (!args.includes("--pass1")) { console.error("Usage: analyze-r.mjs --pass1 <raw> --pass2 <raw> --e20 <tranco raw> <yc raw> [--out file]"); return 2; }
+  if (!args.includes("--pass1")) { console.error("Usage: analyze-r.mjs --pass1 <raw> [--pass2 <raw>] --e20 <tranco raw> <yc raw> [--out file]"); return 2; }
   const i = args.indexOf("--e20");
   const e20 = new Map([...load(args[i + 1]), ...load(args[i + 2])].map((r) => [r.host, r]));
   const p1 = load(at("--pass1"));
-  const out = { experiment: "E20-R", level: LEVEL, resamples: RESAMPLES, claims: claims(p1, load(at("--pass2")), e20), traits: traitTable(p1) };
+  const out = { experiment: "E20-R", level: LEVEL, resamples: RESAMPLES, claims: claims(p1, args.includes("--pass2") ? load(at("--pass2")) : null, e20), traits: traitTable(p1) };
   if (args.includes("--industries")) out.industries = industryTable(p1, new Map(readFileSync(at("--industries"), "utf8").split(/\r?\n/).slice(1).filter(Boolean).map((l) => l.split(",")).map(([h, i]) => [h, i])));
   if (args.includes("--e20-excluded")) out.replicationAsE20 = replicationAsE20(p1, new Set(readFileSync(at("--e20-excluded"), "utf8").split(/\r?\n/).map((l) => l.trim().toLowerCase()).filter(Boolean)));
   const text = JSON.stringify(out, null, 2) + "\n";

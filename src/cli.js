@@ -29,7 +29,7 @@ import { buildCraReports, craTemplate, formatCraMarkdown, readCraInput } from ".
 import { emptyHistory, updateHistory, buildAuditLoop } from "../lib/audit-loop.js";
 import { rateSuppliers, parseSupplierList, formatSuppliersMarkdown } from "../lib/supply-chain.js";
 import { yellow } from "./cli/ansi.js";
-import { wantBrief, briefReports } from "./cli/brief.js";
+import { wantBrief, wantExitNote, briefReports } from "./cli/brief.js";
 import { buildBrief, formatBrief, NOT_PROVEN_NOTE } from "./report/brief.js";
 
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8"));
@@ -1006,7 +1006,7 @@ export async function run() {
   ) || giantsGate(merged);
   if (merged.giants?.requiredNotRun?.length) printError(`The policy file requires ${merged.giants.requiredNotRun.join(", ")}, which did not run (see Coverage by area).`);
   const code = merged.giants?.requiredNotRun?.length ? 2 : hasSevere ? 1 : 0;
-  if (code === 0 && (url || repo) && !opts.json && !opts.quiet && !custom && !wantBrief(opts)) {
+  if (wantExitNote({ code, url, repo, opts, custom })) {
     process.stderr.write(`  No critical or high rule fired. ${NOT_PROVEN_NOTE}\n\n`);
   }
   // Exit only once stdout has drained: on a pipe the write is asynchronous, and

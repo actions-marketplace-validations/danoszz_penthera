@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import { BUILT_IN_TEMPLATES, executeTemplate, sameSite } from "../lib/templates.js";
 import { scanUrl } from "../src/scan-url.js";
 import { buildBrief, NOT_PROVEN_NOTE } from "../src/report/brief.js";
+import { wantExitNote } from "../src/cli/brief.js";
 
 const BIN = fileURLToPath(new URL("../bin/penthera.js", import.meta.url));
 const INDEX = '<!doctype html><html lang="en"><head><meta charset="UTF-8"><title>Vite + React</title>'
@@ -80,6 +81,19 @@ describe("a single-page app that answers 200 on every path", () => {
     const { code, out, err } = await cli(await spa(), flag);
     expect(code).toBe(0);
     expect(out + err).not.toContain("No critical or high rule fired.");
+  }, 30_000);
+
+  it("prints that line on a repo scan", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "pk-spa-repo-"));
+    const { code, err } = await cli("--repo", dir);
+    rmSync(dir, { recursive: true, force: true });
+    expect(code).toBe(0);
+    expect(err).toContain(`No critical or high rule fired. ${NOT_PROVEN_NOTE}`);
+  }, 30_000);
+
+  it("gives the same meaning for exit 0 in --help", async () => {
+    const { out } = await cli("--help");
+    expect(out).toContain(`0  No critical or high rule fired. ${NOT_PROVEN_NOTE.replace(/\.$/, "")}`);
   }, 30_000);
 
   it("keeps that line out of a run with a critical finding", async () => {
@@ -176,8 +190,8 @@ describe("CVE-2025-29927 needs the header to change the answer", () => {
   const inTurn = (...answers) => {
     let n = 0;
     return route((req, res) => {
-      const [status, body = "[]"] = answers[Math.min(n++, answers.length - 1)];
-      res.writeHead(status, { "Content-Type": "text/html" }).end(body);
+      const [status, body = "[]", type = "text/html"] = answers[Math.min(n++, answers.length - 1)];
+      res.writeHead(status, { "Content-Type": type }).end(body);
     });
   };
 
@@ -187,9 +201,24 @@ describe("CVE-2025-29927 needs the header to change the answer", () => {
     ["one 429 in three", [[200], [429], [200], [200], [429], [200]]],
     ["a 5xx that clears before the last plain request", [[200], [503], [503], [200], [200]]],
     ["a 5xx on the header request", [[200], [503], [503], [503]]],
+    ["a redirect on the header request", [[200], [401], [401], [302]]],
+    ["a plain 200 after two refusals", [[200], [401], [401], [200], [200]]],
+    ["a plain 200 between two refusals", [[200], [401], [200], [200], [401]]],
+    ["a flaky route whose 200s differ in type", [[200, "[]", "application/json"], [503, "busy"], [200, "app"], [200, "[]", "application/json"], [200, "app"]]],
+    ["a plain answer that matches the header answer", [[200, "[]", "application/json"], [200, "app"], [200, "app"], [200, "[]", "application/json"], [200, "[]", "application/json"]]],
+    ["a page that changes at the header request and stays changed", [[200, "t1"], [200, "t1"], [200, "t1"], [200, "t2"], [200, "t2"]]],
+    ["a page that changes once more after the header request", [[200, "t1"], [200, "t1"], [200, "t1"], [200, "t2"], [200, "t3"]]],
     ["two builds behind a round robin", [[200, "A"], [200, "B"], [200, "A"], [200, "B"], [200, "A"]]],
   ])("stays quiet on %s", async (_, answers) => {
     expect(await fires(await inTurn(...answers))).toBe(false);
+  });
+
+  it.each([
+    ["a 401, a 503 and a 401", [[200], [401], [503], [200], [401]]],
+    ["a 503, a 401 and a 429", [[200], [503], [401], [200], [429]]],
+    ["three 503s", [[200], [503], [503], [200], [503]]],
+  ])("fires when no plain request got a 200: %s", async (_, answers) => {
+    expect(await fires(await inTurn(...answers))).toBe(true);
   });
 
   it("counts a redirect even when its target reads the same as the 200", async () => {
@@ -284,6 +313,10 @@ describe("the Next.js debug endpoint needs a Next.js app", () => {
     expect(sameSite("https://example.com", "https://example.org/")).toBe(false);
     expect(sameSite("http://127.0.0.1:3000", "http://127.0.0.1:4000/")).toBe(false);
     expect(sameSite("https://example.com", "http://example.com:8080/")).toBe(false);
+    expect(sameSite("http://example.com", "https://example.com/")).toBe(true);
+    expect(sameSite("http://www.example.com", "https://www.example.com/en")).toBe(true);
+    expect(sameSite("http://example.com", "https://www.example.com/")).toBe(true);
+    expect(sameSite("http://example.com:8080", "http://example.com:8080/en")).toBe(true);
   });
 });
 
@@ -324,6 +357,24 @@ describe("the /docs check", () => {
     });
     const real = await scanUrl(base, { profile: "quick", offline: true, timeout: 2_000 });
     expect(real.findings.filter((f) => f.source === "openapi-scan").map((f) => f.url)).toEqual([`${base}/docs`]);
+  });
+});
+
+describe("the exit 0 line", () => {
+  // verbose keeps the terminal report on when stdout is not a terminal.
+  const want = (over) => wantExitNote({ code: 0, url: "http://127.0.0.1", repo: null, opts: { verbose: true }, custom: null, ...over });
+
+  it("goes on a scan of a URL or repo that exits 0", () => {
+    expect(want()).toBe(true);
+    expect(want({ url: null, repo: "." })).toBe(true);
+    expect(want({ code: 1 })).toBe(false);
+    expect(want({ code: 2 })).toBe(false);
+  });
+
+  it("stays off a run with no URL or repo", () => {
+    for (const opts of [{ machine: true }, { "policy-pack": "dir" }, { readiness: true }, { sbom: "x" }]) {
+      expect(want({ url: null, opts: { ...opts, verbose: true } })).toBe(false);
+    }
   });
 });
 

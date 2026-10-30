@@ -612,7 +612,14 @@ are welcome (see [MANIFESTO.md](MANIFESTO.md)).
   - No stored or second-order injection testing (Bau et al., 2010).
   - The CVE-2025-29927 check reports when its header steadily changes the
     answer. It misses a login page with a fresh token that turns into another
-    HTML page, because that page already differs from itself.
+    HTML page, because that page already differs from itself. It can still
+    fire falsely on an unstable site. In stub tests of quick scans, a
+    single-page app that answers 503 on 25% of requests fired on 1.4% of 2,000
+    runs, and at 50% on 6.3%. Two builds picked at random per request fired on
+    13.3% of 1,000 runs.
+  - The Next.js debug endpoint check takes its proof from the target's site.
+    There is no public suffix list, so two sites on a shared host such as
+    vercel.app count as one site.
   - No DOM-based XSS analysis, because Penthera does not run JavaScript (Lekies et
     al., 2013; Stock et al., 2014).
 - **Logic and authorization.** No business logic testing. IDOR/BOLA findings are

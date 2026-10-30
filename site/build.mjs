@@ -554,7 +554,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   // landing page, benchmark or approved post shows up in it by itself.
   const groups = footGroups({
     pages: landingPages(SITE),
-    benchmarks: pub ? benchmarkViews(pub).map((v) => ({ slug: v.c.slug, label: v.c.label })) : [],
+    benchmarks: pub ? benchmarkViews(pub).map((v) => ({ slug: v.c.slug, label: v.c.label, nav: v.c.nav })) : [],
     posts: posts.published,
   });
   const footer = (home = false) => siteFooter({ groups, version: values.VERSION, stars: values.STARS, home });

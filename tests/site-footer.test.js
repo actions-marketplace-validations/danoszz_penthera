@@ -53,7 +53,7 @@ describe("site footer", () => {
   it("is a labelled nav landmark with grouped lists", () => {
     const foot = footerOf(readFileSync(join(out, "index.html"), "utf8"));
     expect(foot).toMatch(/<nav class="foot-nav" aria-label="Site map">/);
-    for (const g of ["product", "research", "trust", "elsewhere"]) expect(foot).toContain(`<ul aria-labelledby="foot-${g}">`);
+    for (const g of ["product", "research", "benchmarks", "blog", "trust", "elsewhere"]) expect(foot).toContain(`<ul aria-labelledby="foot-${g}">`);
   });
 
   it("keeps the facts, the controls and no dither behind the wordmark", () => {
@@ -62,6 +62,34 @@ describe("site footer", () => {
     expect(siteFooter({ home: true })).toContain('href="#get"');
     // The dither ramp is its own row, never the wordmark's parent.
     expect(foot).toMatch(/<div class="foot-field" aria-hidden="true">(<i><\/i>)+<\/div>\s*<a class="foot-mark"/);
+  });
+
+  it("keeps one level of links, each label short enough for one line", () => {
+    const foot = footerOf(readFileSync(join(out, "index.html"), "utf8"));
+    expect(foot).not.toContain("foot-sub");
+    for (const [, text] of foot.matchAll(/<li><a [^>]*>([^<]+)<\/a>/g)) expect(text.length, text).toBeLessThanOrEqual(24);
+  });
+
+  it("uses a post's or benchmark's short label and falls back to its title", () => {
+    const links = footGroups({ benchmarks: [{ slug: "b", label: "Long", nav: "Short" }], posts: [{ slug: "a", title: "A title", nav: "A" }, { slug: "c", title: "C title" }] }).flatMap((g) => g.links);
+    expect(links.find((l) => l.href === "/benchmarks/b").text).toBe("Short");
+    expect(links.find((l) => l.href === "/blog/a").text).toBe("A");
+    expect(links.find((l) => l.href === "/blog/c").text).toBe("C title");
+  });
+
+  it("sets a hovered link in the accent's own ink, at 4.5:1 or better in both themes", () => {
+    const css = readFileSync(join(out, "styles.css"), "utf8");
+    // `.foot-nav a` outranks the global a:hover, so it must set the colour itself.
+    expect(css).toMatch(/\.foot-nav a:hover \{[^}]*background: var\(--accent\);[^}]*color: var\(--on-accent\);/);
+    const lum = (hex) => {
+      const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+    // The first two palettes are the light and dark themes the footer sits on.
+    const palettes = [...css.matchAll(/--accent: (#[0-9a-f]{6});[\s\S]*?--on-accent: (#[0-9a-f]{6});/g)].slice(0, 2);
+    expect(palettes).toHaveLength(2);
+    for (const [, accent, ink] of palettes) expect(ratio(accent, ink)).toBeGreaterThanOrEqual(4.5);
   });
 
   it("lists only what it is given: no blog without an approved post", () => {

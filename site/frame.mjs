@@ -16,11 +16,13 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 export const ldScript = (graph) => `<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@graph": graph }).replace(/</g, "\\u003c")}</script>`;
 
 /**
- * The footer's map, in four groups (and the blog's posts under Research).
+ * The footer's map: one flat level of links under each group, so every link
+ * is set the same. A page's footer label is its `nav`, kept short enough to
+ * stay on one line (tests/site-footer.test.js), or its title.
  * @param {{ pages?: {slug: string, h1: string, nav?: string, eyebrow?: string}[],
- *   benchmarks?: {slug: string, label: string}[], posts?: {slug: string, title: string}[] }} known
+ *   benchmarks?: {slug: string, label: string, nav?: string}[], posts?: {slug: string, title: string, nav?: string}[] }} known
  *   what the build rendered: landing pages, benchmark pages, approved posts
- * @returns {{ id: string, label: string, links: {href: string, text: string, sub?: boolean, rel?: string, track?: string}[] }[]}
+ * @returns {{ id: string, label: string, links: {href: string, text: string, rel?: string, track?: string}[] }[]}
  */
 export function footGroups({ pages = [], benchmarks = [], posts = [] } = {}) {
   const page = (p) => ({ href: `/${p.slug}`, text: p.nav || p.h1 });
@@ -34,14 +36,19 @@ export function footGroups({ pages = [], benchmarks = [], posts = [] } = {}) {
       { href: REPO, text: "GitHub" },
     ] },
     { id: "research", label: "Research", links: [
-      { href: "/research", text: "Research" },
+      { href: "/research", text: "All research" },
       ...research.map(page),
-      { href: "/benchmarks", text: "Benchmarks" },
-      ...benchmarks.map((b) => ({ href: `/benchmarks/${b.slug}`, text: b.label, sub: true })),
-      ...(posts.length ? [{ href: "/blog", text: "Blog" }, ...posts.map((p) => ({ href: `/blog/${p.slug}`, text: p.title, sub: true }))] : []),
       { href: `${REPO}/blob/main/docs/METHODOLOGY.md`, text: "Methodology" },
       { href: `${REPO}/blob/main/docs/references.md`, text: "References" },
     ] },
+    { id: "benchmarks", label: "Benchmarks", links: [
+      { href: "/benchmarks", text: "All benchmarks" },
+      ...benchmarks.map((b) => ({ href: `/benchmarks/${b.slug}`, text: b.nav || b.label })),
+    ] },
+    ...(posts.length ? [{ id: "blog", label: "Blog", links: [
+      { href: "/blog", text: "All posts" },
+      ...posts.map((p) => ({ href: `/blog/${p.slug}`, text: p.nav || p.title })),
+    ] }] : []),
     { id: "trust", label: "Trust", links: [
       { href: "/trust", text: "Trust" },
       { href: "/terms", text: "Terms" },
@@ -61,7 +68,7 @@ export function footGroups({ pages = [], benchmarks = [], posts = [] } = {}) {
 const STAR = '<svg class="star-glyph" viewBox="0 0 9 9" aria-hidden="true"><path d="M4 0h1v2h1v1h3v1H8v1H7v1h1v3H7V8H6V7H3v1H2v1H1V6h1V5H1V4H0V3h3V2h1z"/></svg>';
 const DOWN = '<svg class="download-glyph" viewBox="0 0 9 10" aria-hidden="true"><path d="M4 0h1v6h1V5h1V4h1v1H7v1H6v1H5v1H4V7H3V6H2V5H1V4h1v1h1v1h1zM0 9h9v1H0z"/></svg>';
 
-const link = (l) => `<li${l.sub ? ' class="foot-sub"' : ""}><a href="${esc(l.href)}"${l.rel ? ` rel="${l.rel}"` : ""}${l.track ? ` data-track="${l.track}"` : ""}>${esc(l.text)}</a></li>`;
+const link = (l) => `<li><a href="${esc(l.href)}"${l.rel ? ` rel="${l.rel}"` : ""}${l.track ? ` data-track="${l.track}"` : ""}>${esc(l.text)}</a></li>`;
 
 /**
  * The footer of every page. Outside <main>, after it.

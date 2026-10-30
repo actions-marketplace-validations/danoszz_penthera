@@ -204,7 +204,15 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
 /* ── Ticker ───────────────────────────────────────────────────────────── */
 /* Sourced security news (site/news.json), inverted, in Departure Mono. It
  * scrolls; hover or focus pauses it; with reduced motion it stands still and
- * scrolls by hand. */
+ * scrolls by hand.
+ *
+ * Cost (2026-10-30): a smooth transform is redrawn by the system compositor
+ * at the display's full rate, so one strip of text kept all of Safari's
+ * window recompositing: 44% of a core in WindowServer and 22% GPU, and every
+ * keystroke's frame waited behind it. It now moves in steps of about 2 px
+ * (half the track is near 6,800 px), like a departure board, at about 38 Hz.
+ * It stops while the URL field has focus and off screen (data-rest, set by
+ * check/ui.js). */
 .ticker {
   position: absolute; inset: 0 0 auto; z-index: 11;
   height: var(--ticker-h);
@@ -212,8 +220,9 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
   background: rgb(var(--ink-rgb)); color: rgb(var(--ground-rgb));
   font-family: var(--px); font-size: 12px; letter-spacing: 0.02em;
 }
-.ticker-track { display: flex; width: max-content; height: 100%; animation: ticker 90s linear infinite; }
-.ticker:hover .ticker-track, .ticker:focus-within .ticker-track { animation-play-state: paused; }
+.ticker-track { display: flex; width: max-content; height: 100%; animation: ticker 90s steps(3400, end) infinite; }
+.ticker:hover .ticker-track, .ticker:focus-within .ticker-track, .ticker[data-rest] .ticker-track { animation-play-state: paused; }
+:root:has(.scan input:focus) .ticker-track { animation-play-state: paused; }
 .ticker-list { display: flex; margin: 0; padding: 0; list-style: none; }
 .ticker-list li { display: inline-flex; align-items: center; height: var(--ticker-h); padding: 0 28px 0 0; white-space: nowrap; }
 .ticker time { opacity: 1; margin-right: 10px; text-transform: uppercase; }
@@ -440,8 +449,11 @@ main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
   user-select: none;
 }
 /* The live field (check/field.js) draws in the palette's own colours, so it
- * skips the light theme's invert; the static PNG stays until its first frame. */
-.field-live { filter: none; }
+ * skips the light theme's invert; the static PNG stays until its first frame.
+ * On its own layer: Safari paints a small canvas into the layer it shares
+ * with the page, so without this every frame repaints that whole layer (13%
+ * of a core in its GPU process at rest, 4% with it). */
+.field-live { filter: none; will-change: transform; }
 .hero.live img.field { visibility: hidden; }
 /* The problem slab (2026-10-29): after the poster, the problem gets a section
  * of its own on a flat grey, with section padding above and below. One
@@ -925,21 +937,23 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 @keyframes foot-led-dim { 50% { opacity: 1; } }
 .foot-ctas { display: flex; flex-wrap: wrap; gap: 8px; }
 
-/* The map: four groups, each under a numbered mono label. */
-.foot-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 48px 32px; }
-.foot-k { display: flex; align-items: baseline; gap: 10px; margin-bottom: 18px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
+/* The map: one level only. A numbered mono label, then links all set alike.
+ * A hovered link is the site's highlight, ink on the accent; the colour is
+ * set here because `.foot-nav a` outranks the global `a:hover`. The negative
+ * margin keeps the text on the column's edge while the highlight has air. */
+.foot-nav { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 44px 28px; }
+.foot-k { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
 .foot-k span { color: var(--accent-ink); font-variant-numeric: tabular-nums; }
-.foot-nav ul { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.foot-nav ul { display: grid; justify-items: start; margin: 0; padding: 0; list-style: none; }
 .foot-nav a {
-  display: inline-flex; align-items: center; min-height: 32px; padding: 2px 0;
-  font-family: var(--display); font-size: 17px; line-height: 1.2; letter-spacing: -0.01em;
+  display: inline-flex; align-items: center; min-height: 30px; margin-left: -4px; padding: 0 4px;
+  font-family: var(--display); font-size: 15px; line-height: 1.25; letter-spacing: -0.005em;
   color: var(--text-1); text-decoration: none;
 }
-/* Pages under a page (each benchmark, each post): mono, smaller, set in. */
-.foot-sub a { min-height: 28px; padding-left: 14px; font-family: var(--px); font-size: 12px; letter-spacing: 0.01em; color: var(--text-2); }
-@media (pointer: coarse) { .foot-nav a, .foot-sub a { min-height: var(--target); } }
-@media (max-width: 1000px) { .foot-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 560px) { .foot-nav { grid-template-columns: minmax(0, 1fr); gap: 40px; } }
+.foot-nav a:hover { background: var(--accent); color: var(--on-accent); }
+@media (pointer: coarse) { .foot-nav a { min-height: var(--target); } }
+@media (max-width: 1200px) { .foot-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .foot-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 36px 20px; } }
 
 /* A 1-bit ramp, blue to empty paper: the only dither in the footer, on a row
  * with nothing else in it. */

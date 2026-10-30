@@ -351,6 +351,25 @@ describe("site benchmark (E10 pilot)", () => {
   });
 });
 
+describe("site motion budget", () => {
+  const css = readFileSync(join(import.meta.dirname, "..", "site", "styles.css"), "utf8");
+  const ui = readFileSync(join(import.meta.dirname, "..", "site", "check", "ui.js"), "utf8");
+
+  it("moves the ticker in steps, never at the display's full rate", () => {
+    expect(css).toMatch(/\.ticker-track \{[^}]*animation: ticker \d+s steps\(\d+, end\) infinite;/);
+  });
+
+  it("rests the ticker while the URL field has focus and off screen", () => {
+    expect(css).toMatch(/:has\(\.scan input:focus\) \.ticker-track \{ animation-play-state: paused; \}/);
+    expect(css).toContain(".ticker[data-rest] .ticker-track");
+    expect(ui).toMatch(/function tickerRest\(\)[\s\S]*IntersectionObserver/);
+  });
+
+  it("keeps the live field on a layer of its own", () => {
+    expect(css).toMatch(/\.field-live \{[^}]*will-change: transform;/);
+  });
+});
+
 describe("site news ticker", () => {
   it("every item has a date, one short line and an https source, and the build renders them all", () => {
     const items = readNews();

@@ -563,6 +563,17 @@ function barPalette() {
   observe();
 }
 
+// ── The ticker rests off screen ─────────────────────────────────────────
+
+function tickerRest() {
+  const ticker = $(".ticker");
+  if (!ticker) return;
+  new IntersectionObserver(([e]) => {
+    if (e.isIntersecting) delete ticker.dataset.rest;
+    else ticker.dataset.rest = "";
+  }).observe(ticker);
+}
+
 // ── The bottom veil stays off the hero text and the footer ──────────────
 
 function veilClear() {
@@ -647,6 +658,7 @@ copyButtons();
 for (const a of document.querySelectorAll("a[data-track]")) a.addEventListener("click", () => count("link", { to: a.dataset.track }));
 metalLight();
 heroLoop();
+tickerRest();
 veilClear();
 liveField($(".hero .field"));
 barPalette();

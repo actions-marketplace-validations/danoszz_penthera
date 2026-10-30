@@ -16,6 +16,9 @@ section: Site
 - **Every report ends with something to do.** Copy the fix prompt, download the
   report as Markdown (made in your browser, nothing stored), or copy the full
   scan command.
+- **Motion is calmer and cheaper.** The nav slides left, then settles down,
+  with no bounce. Buttons press to 0.97, dialogs fade in, and the star on the
+  Go Pro plate glows with an opacity fade.
 - **The footer is easier to read.** Each group has a label of its own in blue,
   steel or gunmetal, sub-pages are set in, and long labels are shorter. A
   hovered link is white on blue in both themes, 9.45:1 instead of 2.1:1 in the

@@ -54,7 +54,7 @@ describe("/research", () => {
     expect(read("research.md")).toMatch(/^# Penthera research/);
     expect(read("sitemap.xml")).toContain(`<loc>${ORIGIN}/research</loc>`);
     expect(read("llms.txt")).toContain(`(${ORIGIN}/research.md)`);
-    for (const f of ["index.html", "benchmarks.html", "research.html"]) expect(read(f), f).toContain('<a href="/research">All research</a>');
+    for (const f of ["index.html", "benchmarks.html", "research.html"]) expect(read(f), f).toContain('<a href="/research">Research</a>');
     // The theme and the page's own script, both files; no inline style, no tracking.
     expect(html).not.toMatch(/\{\{| style=|track\.js|insights/);
     const scripts = [...html.matchAll(/<script(?![^>]*type="application\/ld\+json")[^>]*>/g)].map((m) => m[0]);

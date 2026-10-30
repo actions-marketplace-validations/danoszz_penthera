@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { buildSite } from "../site/build.mjs";
-import { footGroups, siteFooter } from "../site/frame.mjs";
+import { footGroups, siteFooter, siteRail } from "../site/frame.mjs";
 
 let dir, out, pages;
 
@@ -28,8 +28,44 @@ afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
 /** The URL a built file is served at (cleanUrls; folder index files share their folder's URL). */
 const urlOf = (f) => "/" + f.replace(/\\/g, "/").replace(/(^|\/)index\.html$/, "").replace(/\.html$/, "");
+const lum = (hex) => {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
 const footerOf = (html) => /<footer class="foot">[\s\S]*?<\/footer>/.exec(html)?.[0];
 const hrefs = (html) => new Set([...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1].replace(/#.*$/, "") || "/"));
+
+describe("site rail", () => {
+  it("is on every built page, once, before <main>", () => {
+    for (const f of pages) {
+      const html = readFileSync(join(out, f), "utf8");
+      expect(html.match(/<nav class="rail"/g), f).toHaveLength(1);
+      expect(html.indexOf('<nav class="rail"'), f).toBeLessThan(html.indexOf("<main"));
+    }
+  });
+
+  it("marks the section you are in", () => {
+    const current = (html) => /<a [^>]*aria-current="\w+"[^>]*>([^<]+)<\/a>/.exec(html)?.[1];
+    expect(current(siteRail({ url: "/" }))).toBe("Check");
+    expect(current(siteRail({ url: "/research" }))).toBe("Research");
+    expect(current(siteRail({ url: "/research-e20" }))).toBe("Research");
+    expect(current(siteRail({ url: "/benchmarks/secrets" }))).toBe("Benchmarks");
+    expect(current(siteRail({ url: "/terms" }))).toBeUndefined();
+  });
+
+  it("starts beside the logo only on the homepage and drops Blog without a post", () => {
+    expect(siteRail({ url: "/" })).toContain("data-top");
+    expect(siteRail({ url: "/pro" })).not.toContain("data-top");
+    expect(siteRail({ url: "/pro", blog: false })).not.toContain('href="/blog"');
+  });
+
+  it("is an opaque plate with its own hover ink, so it adds no blur over the field", () => {
+    const css = readFileSync(join(out, "styles.css"), "utf8");
+    expect(css).toMatch(/\.rail \.glass \{ -webkit-backdrop-filter: none; backdrop-filter: none; \}/);
+    expect(css).toMatch(/\.rail-links a:hover \{ background: var\(--accent\); color: var\(--on-accent\); \}/);
+  });
+});
 
 describe("site footer", () => {
   it("is on every built page, once, outside <main>", () => {
@@ -53,7 +89,7 @@ describe("site footer", () => {
   it("is a labelled nav landmark with grouped lists", () => {
     const foot = footerOf(readFileSync(join(out, "index.html"), "utf8"));
     expect(foot).toMatch(/<nav class="foot-nav" aria-label="Site map">/);
-    for (const g of ["product", "research", "benchmarks", "blog", "trust", "elsewhere"]) expect(foot).toContain(`<ul aria-labelledby="foot-${g}">`);
+    for (const g of ["product", "research", "trust", "elsewhere"]) expect(foot).toContain(`<ul aria-labelledby="foot-${g}">`);
   });
 
   it("keeps the facts, the controls and no dither behind the wordmark", () => {
@@ -64,10 +100,23 @@ describe("site footer", () => {
     expect(foot).toMatch(/<div class="foot-field" aria-hidden="true">(<i><\/i>)+<\/div>\s*<a class="foot-mark"/);
   });
 
-  it("keeps one level of links, each label short enough for one line", () => {
+  it("sets benchmarks and posts in under their parent, each label short enough for one line", () => {
     const foot = footerOf(readFileSync(join(out, "index.html"), "utf8"));
-    expect(foot).not.toContain("foot-sub");
-    for (const [, text] of foot.matchAll(/<li><a [^>]*>([^<]+)<\/a>/g)) expect(text.length, text).toBeLessThanOrEqual(24);
+    expect(foot).toMatch(/<li class="foot-sub"><a href="\/benchmarks\/secrets">/);
+    expect(foot).toMatch(/<li class="foot-sub"><a href="\/blog\//);
+    for (const [, text] of foot.matchAll(/<li[^>]*><a [^>]*>([^<]+)<\/a>/g)) expect(text.length, text).toBeLessThanOrEqual(24);
+  });
+
+  it("gives each group a pill of its own, with no numbers, legible on any ground", () => {
+    const foot = footerOf(readFileSync(join(out, "index.html"), "utf8"));
+    expect(foot).toMatch(/<p class="foot-k" id="foot-product">Product<\/p>/);
+    const css = readFileSync(join(out, "styles.css"), "utf8");
+    const pills = [1, 2, 3, 4].map((n) => new RegExp(`\\.foot-group:nth-child\\(${n}\\) \\.foot-k \\{ --pill-ink: (#[0-9a-f]{6}); --pill-tilt: ([^;]+); --pill-bg: ([^;]+); \\}`).exec(css));
+    for (const p of pills) expect(p).not.toBeNull();
+    expect(new Set(pills.map((p) => p[3])).size).toBe(4);
+    expect(new Set(pills.map((p) => p[2])).size).toBe(4);
+    // Every colour of a finish, so the ink holds on its lightest and darkest stop.
+    for (const [, ink, , bg] of pills) for (const [stop] of bg.matchAll(/#[0-9a-f]{6}/g)) expect(ratio(ink, stop), `${ink} on ${stop}`).toBeGreaterThanOrEqual(4.5);
   });
 
   it("uses a post's or benchmark's short label and falls back to its title", () => {
@@ -81,11 +130,6 @@ describe("site footer", () => {
     const css = readFileSync(join(out, "styles.css"), "utf8");
     // `.foot-nav a` outranks the global a:hover, so it must set the colour itself.
     expect(css).toMatch(/\.foot-nav a:hover \{[^}]*background: var\(--accent\);[^}]*color: var\(--on-accent\);/);
-    const lum = (hex) => {
-      const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
-      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    };
-    const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
     // The first two palettes are the light and dark themes the footer sits on.
     const palettes = [...css.matchAll(/--accent: (#[0-9a-f]{6});[\s\S]*?--on-accent: (#[0-9a-f]{6});/g)].slice(0, 2);
     expect(palettes).toHaveLength(2);

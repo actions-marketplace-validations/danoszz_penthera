@@ -574,6 +574,15 @@ function tickerRest() {
   }).observe(ticker);
 }
 
+// ── The rail docks once the logo has scrolled away ──────────────────────
+
+function railDock() {
+  const rail = $(".rail[data-top]");
+  const brand = $(".bar .brand");
+  if (!rail || !brand) return;
+  new IntersectionObserver(([e]) => { rail.toggleAttribute("data-top", e.isIntersecting); }).observe(brand);
+}
+
 // ── The bottom veil stays off the hero text and the footer ──────────────
 
 function veilClear() {
@@ -659,6 +668,7 @@ for (const a of document.querySelectorAll("a[data-track]")) a.addEventListener("
 metalLight();
 heroLoop();
 tickerRest();
+railDock();
 veilClear();
 liveField($(".hero .field"));
 barPalette();

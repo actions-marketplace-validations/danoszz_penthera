@@ -16,13 +16,13 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 export const ldScript = (graph) => `<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@graph": graph }).replace(/</g, "\\u003c")}</script>`;
 
 /**
- * The footer's map: one flat level of links under each group, so every link
- * is set the same. A page's footer label is its `nav`, kept short enough to
- * stay on one line (tests/site-footer.test.js), or its title.
+ * The footer's map, in four groups, with each benchmark and post set in under
+ * its parent. A page's footer label is its `nav`, kept short enough to stay on
+ * one line (tests/site-footer.test.js), or its title.
  * @param {{ pages?: {slug: string, h1: string, nav?: string, eyebrow?: string}[],
  *   benchmarks?: {slug: string, label: string, nav?: string}[], posts?: {slug: string, title: string, nav?: string}[] }} known
  *   what the build rendered: landing pages, benchmark pages, approved posts
- * @returns {{ id: string, label: string, links: {href: string, text: string, rel?: string, track?: string}[] }[]}
+ * @returns {{ id: string, label: string, links: {href: string, text: string, sub?: boolean, rel?: string, track?: string}[] }[]}
  */
 export function footGroups({ pages = [], benchmarks = [], posts = [] } = {}) {
   const page = (p) => ({ href: `/${p.slug}`, text: p.nav || p.h1 });
@@ -36,19 +36,14 @@ export function footGroups({ pages = [], benchmarks = [], posts = [] } = {}) {
       { href: REPO, text: "GitHub" },
     ] },
     { id: "research", label: "Research", links: [
-      { href: "/research", text: "All research" },
+      { href: "/research", text: "Research" },
       ...research.map(page),
+      { href: "/benchmarks", text: "Benchmarks" },
+      ...benchmarks.map((b) => ({ href: `/benchmarks/${b.slug}`, text: b.nav || b.label, sub: true })),
+      ...(posts.length ? [{ href: "/blog", text: "Blog" }, ...posts.map((p) => ({ href: `/blog/${p.slug}`, text: p.nav || p.title, sub: true }))] : []),
       { href: `${REPO}/blob/main/docs/METHODOLOGY.md`, text: "Methodology" },
       { href: `${REPO}/blob/main/docs/references.md`, text: "References" },
     ] },
-    { id: "benchmarks", label: "Benchmarks", links: [
-      { href: "/benchmarks", text: "All benchmarks" },
-      ...benchmarks.map((b) => ({ href: `/benchmarks/${b.slug}`, text: b.nav || b.label })),
-    ] },
-    ...(posts.length ? [{ id: "blog", label: "Blog", links: [
-      { href: "/blog", text: "All posts" },
-      ...posts.map((p) => ({ href: `/blog/${p.slug}`, text: p.nav || p.title })),
-    ] }] : []),
     { id: "trust", label: "Trust", links: [
       { href: "/trust", text: "Trust" },
       { href: "/terms", text: "Terms" },
@@ -68,7 +63,50 @@ export function footGroups({ pages = [], benchmarks = [], posts = [] } = {}) {
 const STAR = '<svg class="star-glyph" viewBox="0 0 9 9" aria-hidden="true"><path d="M4 0h1v2h1v1h3v1H8v1H7v1h1v3H7V8H6V7H3v1H2v1H1V6h1V5H1V4H0V3h3V2h1z"/></svg>';
 const DOWN = '<svg class="download-glyph" viewBox="0 0 9 10" aria-hidden="true"><path d="M4 0h1v6h1V5h1V4h1v1H7v1H6v1H5v1H4V7H3V6H2V5H1V4h1v1h1v1h1zM0 9h9v1H0z"/></svg>';
 
-const link = (l) => `<li><a href="${esc(l.href)}"${l.rel ? ` rel="${l.rel}"` : ""}${l.track ? ` data-track="${l.track}"` : ""}>${esc(l.text)}</a></li>`;
+/** The steel rail's destinations, and the first path segment each one owns. */
+const RAIL = [
+  { text: "Check", href: "/#scan", home: "#scan", match: "" },
+  { text: "Research", href: "/research", match: "research" },
+  { text: "Benchmarks", href: "/benchmarks", match: "benchmarks" },
+  { text: "Blog", href: "/blog", match: "blog" },
+  { text: "Pro", href: "/pro", match: "pro" },
+];
+
+/**
+ * The top navigation of every page: the steel rail. The build puts it before
+ * <main> on each page it renders (site/build.mjs), so a new page gets it
+ * without an edit. On the homepage it starts beside the logo (data-top) and
+ * check/ui.js docks it once the logo has scrolled away.
+ * @param {{ url?: string, stars?: string, blog?: boolean }} opts
+ *   url: the page's path; stars: the GitHub count; blog: false drops Blog while no post is approved
+ */
+export function siteRail({ url = "/", stars = "", blog = true } = {}) {
+  const home = url === "/";
+  const seg = url.split("/")[1] || "";
+  const links = RAIL.filter((r) => blog || r.match !== "blog").map((r) => {
+    const on = seg === r.match || (r.match === "research" && seg.startsWith("research-"));
+    return `<a href="${home && r.home ? r.home : r.href}"${on ? ` aria-current="${url === r.href || home ? "page" : "true"}"` : ""}>${r.text}</a>`;
+  }).join("");
+  return `<nav class="rail"${home ? " data-top" : ""} aria-label="Main">
+    <a class="rail-mark" href="/"><span aria-hidden="true"></span><span class="sr">Penthera, home</span></a>
+    <div class="rail-links">${links}</div>
+    <div class="rail-ctas">
+      <button class="theme glass" type="button" role="switch" aria-checked="true" aria-label="Dark theme" data-theme-toggle hidden>
+        <span class="theme-track" aria-hidden="true"><span class="theme-knob"></span></span>
+      </button>
+      <a class="star glass" href="${REPO}" data-track="github-star-rail" aria-label="Star Penthera on GitHub${stars ? `, ${esc(stars)} stars` : ""}">
+        ${STAR}
+        <span class="star-word">Star</span><span class="star-count">${esc(stars)}</span>
+      </a>
+      <a class="download glass" href="${home ? "#get" : "/#get"}">
+        ${DOWN}
+        <span>Download</span>
+      </a>
+    </div>
+  </nav>`;
+}
+
+const link = (l) => `<li${l.sub ? ' class="foot-sub"' : ""}><a href="${esc(l.href)}"${l.rel ? ` rel="${l.rel}"` : ""}${l.track ? ` data-track="${l.track}"` : ""}>${esc(l.text)}</a></li>`;
 
 /**
  * The footer of every page. Outside <main>, after it.
@@ -76,8 +114,8 @@ const link = (l) => `<li><a href="${esc(l.href)}"${l.rel ? ` rel="${l.rel}"` : "
  *   home: on the homepage the Download button goes to #get on the same page
  */
 export function siteFooter({ groups = footGroups(), version = "", stars = "", home = false } = {}) {
-  const nav = groups.map((g, i) => `<div class="foot-group">
-        <p class="foot-k" id="foot-${g.id}"><span>${String(i + 1).padStart(2, "0")}</span> ${esc(g.label)}</p>
+  const nav = groups.map((g) => `<div class="foot-group">
+        <p class="foot-k" id="foot-${g.id}">${esc(g.label)}</p>
         <ul aria-labelledby="foot-${g.id}">
           ${g.links.map(link).join("\n          ")}
         </ul>

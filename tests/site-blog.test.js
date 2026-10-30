@@ -117,7 +117,7 @@ describe("blog, published", () => {
   it("links /blog from the homepage footer and every page's footer once a post is approved", () => {
     const o = builds.one;
     for (const f of ["index.html", "benchmarks.html", "benchmarks/secrets.html", "website-security-check.html", "blog/sealed-half-benchmark.html"]) {
-      expect(o(f), f).toContain('<a href="/blog">All posts</a>');
+      expect(o(f), f).toContain('<a href="/blog">Blog</a>');
     }
   });
 

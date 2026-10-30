@@ -18,6 +18,7 @@ node site/serve.mjs     # http://127.0.0.1:4173/ with the production headers
 | `news.json` | The ticker at the top: dated, one-line items, each with an https source. The build renders it (and refuses an item without a source); edit it to change the news. A daily workflow proposes new items as a PR; see [The news feed](#the-news-feed). |
 | `styles.css` | System 1-bit, as in `penthera ui`. Tokens and contrast measurements are in its header. |
 | `theme.js` | Sets the theme before paint. A choice is kept in localStorage, never a cookie. |
+| `frame.mjs` | What every page shares: the footer, and the steel rail (the top navigation), which `build.mjs` puts before `<main>` on each rendered page. |
 | `check/` | The browser check. `engine.js` calls `lib/`; `ui.js` is the page script; `copy.js` holds its strings; `field.js` is the hero's live field (a dithered cloud, a pointer lens with a soft glow, and a click shockwave on a canvas; off under reduced motion, where `media/field.png` stays). |
 | `check/shims/` | The Node built-ins `lib/` uses, for the browser: an in-memory `fs`, POSIX `path`, a synchronous SHA-256, and `gunzipSync` fed by DecompressionStream. |
 | `build.mjs` | Bundles `check/` with `lib/` (rolldown), embeds the rule packs and the popular-package list, verifies each pack's signature, and copies the media. Every version on the page and in `llms.txt` is `{{VERSION}}`, from `package.json`; while it is a release candidate, the MCP sections say so. |

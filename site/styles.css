@@ -164,7 +164,7 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html:not(.js) [data-js] { display: none !important; }
-html { background: var(--ground); -webkit-text-size-adjust: 100%; scroll-padding-top: 24px; }
+html { background: var(--ground); -webkit-text-size-adjust: 100%; scroll-padding-top: 76px; }
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 body {
   margin: 0;
@@ -237,6 +237,68 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
   .ticker-track { animation: none; }
   .ticker-list[aria-hidden] { display: none; }
 }
+
+/* ── The steel rail ───────────────────────────────────────────────────── */
+
+/* The top navigation of every page (siteRail in frame.mjs): a metal plate with
+ * a soft blue button on the current section. It docks centered at the top of
+ * the window; on the homepage it starts beside the logo (data-top). On phones
+ * it is a dock at thumb height, above the bottom blur, with the controls left
+ * in the bar. The plate is opaque, with no backdrop blur, so it adds no blur
+ * work over the hero's field. */
+:root { --rail-plate: #1c1e23; --rail-lit: 0.13; --rail-shade: 0.45; --rail-rim: 0.22; }
+:root[data-theme="light"] { --rail-plate: #e4e6ea; --rail-lit: 0.9; --rail-shade: 0.1; --rail-rim: 1; }
+.rail {
+  position: fixed; z-index: 30; top: 12px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 2px;
+  width: max-content; max-width: calc(100vw - 24px); height: 46px; padding: 0 6px;
+  font-family: var(--px); font-size: 13px; letter-spacing: 0.02em;
+  background: linear-gradient(180deg, rgba(255, 255, 255, var(--rail-lit)), transparent 46%, rgba(0, 0, 0, var(--rail-shade))), var(--rail-plate);
+  border: 1px solid rgba(var(--ink-rgb), 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, var(--rail-rim)), 0 14px 34px -14px rgba(0, 0, 237, 0.55);
+  animation: rail-in 200ms var(--out);
+}
+@keyframes rail-in { from { opacity: 0; translate: 0 -6px; } }
+.rail[data-top] { top: calc(var(--ticker-h) + var(--bar-gap)); left: auto; right: var(--gutter); transform: none; animation: none; }
+.rail a { color: var(--text-1); text-decoration: none; }
+.rail-mark { display: inline-flex; align-items: center; height: 34px; padding: 0 16px 0 10px; }
+.rail-mark span[aria-hidden] {
+  display: block; width: 96px; height: 22px; background: var(--text-1);
+  -webkit-mask: url("/logo.svg") left center / contain no-repeat; mask: url("/logo.svg") left center / contain no-repeat;
+}
+.rail-mark:hover { background: none; }
+.rail[data-top] .rail-mark { display: none; }
+.rail-links { display: flex; align-items: center; gap: 2px; }
+.rail-links a { position: relative; display: inline-flex; align-items: center; height: 34px; padding: 0 13px; white-space: nowrap; }
+.rail-links a::after { content: ""; position: absolute; inset: -6px 0; }
+.rail-links a:hover { background: var(--accent); color: var(--on-accent); }
+.rail-links a[aria-current] {
+  color: #ffffff;
+  background: linear-gradient(180deg, #4a4aff, #0000ed 58%, #0000b8);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 6px 18px -6px rgba(0, 0, 237, 0.75);
+}
+.rail-ctas { display: flex; gap: 6px; margin-left: 8px; }
+.rail .glass { -webkit-backdrop-filter: none; backdrop-filter: none; }
+.rail .download { color: #ffffff; }
+.bar .theme, .bar .star, .bar .download { display: none; }
+/* Below 1100 px the rail no longer fits beside the logo, so it is the dock. */
+@media (max-width: 1100px) {
+  .rail, .rail[data-top] {
+    top: auto; right: 12px; bottom: 12px; left: 12px; transform: none; animation: none;
+    width: auto; max-width: none; height: 56px; padding: 0 5px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .rail-links { flex: 1; justify-content: space-between; gap: 0; }
+  .rail-links a { flex: 1 1 auto; justify-content: center; height: 44px; padding: 0 7px; font-size: 11.5px; }
+  .rail-links a::after { inset: 0; }
+  .rail-mark, .rail-ctas { display: none; }
+  .bar .theme, .bar .star { display: inline-flex; }
+  .bar .download { display: inline-flex; }
+  /* The dock must not cover the last line of a page. */
+  .foot { padding-bottom: 96px; }
+  html { scroll-padding-top: 24px; scroll-padding-bottom: 84px; }
+}
+@media (prefers-reduced-motion: reduce) { .rail { animation: none; } }
 
 /* ── Bar ──────────────────────────────────────────────────────────────── */
 
@@ -937,23 +999,37 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 @keyframes foot-led-dim { 50% { opacity: 1; } }
 .foot-ctas { display: flex; flex-wrap: wrap; gap: 8px; }
 
-/* The map: one level only. A numbered mono label, then links all set alike.
+/* The map: four groups, each under a pill cut like the hero's (.pills), in a
+ * finish of its own: Penthera blue, polished steel, gunmetal and the palette's
+ * other blue. Each finish fixes its own ink, so it reads the same on paper and
+ * on black. Pages under a page are set in, one size down.
+ *
  * A hovered link is the site's highlight, ink on the accent; the colour is
  * set here because `.foot-nav a` outranks the global `a:hover`. The negative
  * margin keeps the text on the column's edge while the highlight has air. */
-.foot-nav { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 44px 28px; }
-.foot-k { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
-.foot-k span { color: var(--accent-ink); font-variant-numeric: tabular-nums; }
+.foot-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 48px 32px; }
+.foot-k {
+  width: fit-content; margin-bottom: 18px; padding: 5px 12px 4px;
+  font-size: 13px; line-height: 1.3; color: var(--pill-ink); background: var(--pill-bg);
+  clip-path: polygon(0 3px, 3px 3px, 3px 0, calc(100% - 6px) 0, calc(100% - 6px) 2px, 100% 2px, 100% calc(100% - 4px), calc(100% - 3px) calc(100% - 4px), calc(100% - 3px) 100%, 5px 100%, 5px calc(100% - 2px), 0 calc(100% - 2px));
+  transform: rotate(var(--pill-tilt));
+}
+.foot-group:nth-child(1) .foot-k { --pill-ink: #ffffff; --pill-tilt: -1.2deg; --pill-bg: #0000ed; }
+.foot-group:nth-child(2) .foot-k { --pill-ink: #0a0a0a; --pill-tilt: 0.8deg; --pill-bg: linear-gradient(180deg, #dfe3e9 0%, #b9c0ca 40%, #9aa3b0 54%, #e4e8ed 72%, #aab2bd 100%); }
+.foot-group:nth-child(3) .foot-k { --pill-ink: #ffffff; --pill-tilt: -0.4deg; --pill-bg: linear-gradient(180deg, #5d6572 0%, #2b2f36 44%, #15171b 58%, #4a515c 100%); }
+.foot-group:nth-child(4) .foot-k { --pill-ink: #00006b; --pill-tilt: 1.1deg; --pill-bg: linear-gradient(180deg, #c9c9ff 0%, #8a8aff 60%, #7a7aff 100%); }
 .foot-nav ul { display: grid; justify-items: start; margin: 0; padding: 0; list-style: none; }
 .foot-nav a {
   display: inline-flex; align-items: center; min-height: 30px; margin-left: -4px; padding: 0 4px;
   font-family: var(--display); font-size: 15px; line-height: 1.25; letter-spacing: -0.005em;
   color: var(--text-1); text-decoration: none;
 }
+.foot-sub { margin-left: 14px; }
+.foot-sub a { min-height: 26px; font-size: 14px; color: var(--text-2); }
 .foot-nav a:hover { background: var(--accent); color: var(--on-accent); }
-@media (pointer: coarse) { .foot-nav a { min-height: var(--target); } }
-@media (max-width: 1200px) { .foot-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 640px) { .foot-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 36px 20px; } }
+@media (pointer: coarse) { .foot-nav a, .foot-sub a { min-height: var(--target); } }
+@media (max-width: 1000px) { .foot-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .foot-nav { gap: 40px 20px; } }
 
 /* A 1-bit ramp, blue to empty paper: the only dither in the footer, on a row
  * with nothing else in it. */
@@ -1206,6 +1282,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 
 /* /terms: the live check's terms, a plain reading page. */
 .terms { max-width: 720px; margin: 0 auto; padding: 64px var(--gutter) 120px; }
+@media (min-width: 1101px) { .terms { padding-top: 92px; } }  /* clears the docked rail */
 .terms h1 { margin-top: 12px; font-size: clamp(34px, 5vw, 56px); line-height: 1; letter-spacing: -0.035em; }
 .terms h2 { max-width: none; margin-top: 48px; font-size: clamp(22px, 2.6vw, 30px); letter-spacing: -0.02em; }
 .terms p, .terms ul, .terms ol, .terms pre { margin-top: 14px; }

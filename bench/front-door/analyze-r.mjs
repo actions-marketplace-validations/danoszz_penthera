@@ -4,7 +4,7 @@
  * private raw files of both passes and of E20. Aggregates only; no site is
  * named in the output.
  *
- *   node bench/front-door/analyze-r.mjs --pass1 <raw.jsonl> --pass2 <raw.jsonl> --e20 <tranco/raw.jsonl> <yc/raw.jsonl> [--e20-excluded <hosts file>] [--out analysis.json]
+ *   node bench/front-door/analyze-r.mjs --pass1 <raw.jsonl> --pass2 <raw.jsonl> --e20 <tranco/raw.jsonl> <yc/raw.jsonl> [--e20-excluded <hosts file>] [--industries <csv>] [--out analysis.json]
  *
  * Intervals are a cluster bootstrap over organizations, by registrable domain
  * of the final host. HTTP claims must hold on both estimands: S (every graded
@@ -141,6 +141,21 @@ export function replicationAsE20(p1, droppedHosts, opts) {
   return claims(keep, keep, new Map(), opts).filter((c) => ["C1", "C2", "C3", "C4"].includes(c.id));
 }
 
+/** § 6, secondary: each check by industry, from a private host-to-industry map. Groups of at least 20 only. */
+export function industryTable(rows, industries, checks = KAPPA_CHECKS, min = 20) {
+  const by = {};
+  for (const r of rows) {
+    const i = industries.get(String(r.host).replace(/^www\./, ""));
+    if (i) (by[i] ||= []).push(r);
+  }
+  const out = { suppressedGroups: 0 };
+  for (const [i, g] of Object.entries(by)) {
+    if (g.length < min) { out.suppressedGroups++; continue; }
+    out[i] = { sites: g.length, median: median(g.map((r) => r.score)), shares: Object.fromEntries(checks.map((c) => [c, share(g, c)])) };
+  }
+  return out;
+}
+
 /** § 6, secondary: each check by site trait, per cohort, groups of at least 20 sites. */
 export function traitTable(rows, checks = KAPPA_CHECKS, min = 20) {
   const out = {};
@@ -159,6 +174,7 @@ function main(args) {
   const e20 = new Map([...load(args[i + 1]), ...load(args[i + 2])].map((r) => [r.host, r]));
   const p1 = load(at("--pass1"));
   const out = { experiment: "E20-R", level: LEVEL, resamples: RESAMPLES, claims: claims(p1, load(at("--pass2")), e20), traits: traitTable(p1) };
+  if (args.includes("--industries")) out.industries = industryTable(p1, new Map(readFileSync(at("--industries"), "utf8").split(/\r?\n/).slice(1).filter(Boolean).map((l) => l.split(",")).map(([h, i]) => [h, i])));
   if (args.includes("--e20-excluded")) out.replicationAsE20 = replicationAsE20(p1, new Set(readFileSync(at("--e20-excluded"), "utf8").split(/\r?\n/).map((l) => l.trim().toLowerCase()).filter(Boolean)));
   const text = JSON.stringify(out, null, 2) + "\n";
   if (args.includes("--out")) writeFileSync(at("--out"), text); else process.stdout.write(text);

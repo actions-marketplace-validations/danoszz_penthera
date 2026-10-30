@@ -9,13 +9,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { classify, cookieNames, evidenceOf, traitsOf, EXCERPT_BYTES } from "../bench/front-door/classify.mjs";
 import { authorizeR, mergeCohorts, readRemovals, runPass, shuffled, seeded, dnsProviders, selfTestR, aggregateR, R_COHORTS, ipv4Lookup, PREREG_R } from "../bench/front-door/replicate.mjs";
-import { kappa, decide, combine, clusterDiff, pass, claims, traitTable, replicationAsE20, CLAIMS_R, LEVEL } from "../bench/front-door/analyze-r.mjs";
+import { kappa, decide, combine, clusterDiff, pass, claims, traitTable, replicationAsE20, industryTable, CLAIMS_R, LEVEL } from "../bench/front-door/analyze-r.mjs";
 
 const tmp = () => mkdtempSync(join(tmpdir(), "e20r-"));
 const HASH = "a".repeat(64);
-const prereg = (status = "**Registered.** Accepted") => `| Status | ${status} |\n` + Object.keys(R_COHORTS).map((c) => `| ${c} list SHA-256 | \`${HASH}\` |`).join("\n") + `\n| E20-R exclusion list SHA-256 | \`${HASH}\` |\n`;
+const prereg = (status = "**Registered.** Accepted") => `| Status | ${status} |\n` + Object.keys(R_COHORTS).map((c) => `| ${c} list SHA-256 | \`${HASH}\` |`).join("\n") + `\n| E20-R exclusion list SHA-256 | \`${HASH}\` |\n| E20-R homepage-only list SHA-256 | \`${HASH}\` |\n`;
 const allHashes = Object.fromEntries(Object.keys(R_COHORTS).map((c) => [c, HASH]));
-const good = { registered: "E20R", pass: 1, listHashes: allHashes, excludeHash: HASH, preregText: prereg() };
+const good = { registered: "E20R", pass: 1, listHashes: allHashes, excludeHash: HASH, homepageOnlyHash: HASH, preregText: prereg() };
 
 describe("E20-R guard", () => {
   it("allows loopback, and a registered pass whose hashes all match", () => {
@@ -31,6 +31,7 @@ describe("E20-R guard", () => {
     expect(() => authorizeR({ ...good, pass: 3 })).toThrow(/--pass/);
     expect(() => authorizeR({ ...good, listHashes: { ...allHashes, Europe: "b".repeat(64) } })).toThrow(/Europe list/);
     expect(() => authorizeR({ ...good, excludeHash: "b".repeat(64) })).toThrow(/exclusion/);
+    expect(() => authorizeR({ ...good, homepageOnlyHash: "b".repeat(64) })).toThrow(/homepage-only/);
   });
   it("has no registered protocol in the repository yet", () => {
     expect(existsSync(PREREG_R) && /\*\*Registered\./.test(readFileSync(PREREG_R, "utf8"))).toBe(false);
@@ -145,6 +146,9 @@ describe("E20-R order and cohorts", () => {
       await runPass(rows, { pass: 1, out: tmp(), loopbackPort: server.address().port, delayMs: 0, dns: { mx: stub, ns: stub } });
       expect(hits.filter((u) => u === "/")).toHaveLength(2);
       expect(hits.filter((u) => u === "/login")).toHaveLength(1);
+      hits.length = 0;
+      await runPass(mergeCohorts({ T1k: [{ host: "www.clinic.selftest.example.com", rank: 1, group: "com" }] }), { pass: 1, out: tmp(), loopbackPort: server.address().port, delayMs: 0, homepageOnlyHosts: new Set(["clinic.selftest.example.com"]), dns: { mx: stub, ns: stub } });
+      expect(hits).not.toContain("/login");
     } finally {
       await new Promise((r) => server.close(r));
     }
@@ -206,6 +210,14 @@ describe("E20-R analysis", () => {
   it("is deterministic for a seed", () => {
     const a = Array.from({ length: 50 }, (_, i) => site(`a${i}.org`, i % 3 === 0)), b = Array.from({ length: 50 }, (_, i) => site(`b${i}.org`, i % 2 === 0));
     expect(clusterDiff(a, b, "csp", { resamples: 200 })).toEqual(clusterDiff(a, b, "csp", { resamples: 200 }));
+  });
+  it("reports industries only for groups of at least twenty", () => {
+    const rows = Array.from({ length: 25 }, (_, i) => ({ host: `www.s${i}.org`, score: 50, checks: [{ id: "csp", passed: true, weight: 14 }] }));
+    const map = new Map(rows.map((r, i) => [r.host.slice(4), i < 22 ? "Healthcare" : "Fintech"]));
+    const t = industryTable(rows, map, ["csp"]);
+    expect(t.Healthcare.sites).toBe(22);
+    expect(t.Fintech).toBeUndefined();
+    expect(t.suppressedGroups).toBe(1);
   });
   it("repeats C1 to C4 without the hosts E20 excluded", () => {
     const mk = (cohort, n) => Array.from({ length: n }, (_, i) => site(`${cohort.toLowerCase()}${i}.org`, i % 2 === 0, { cohorts: { [cohort]: { rank: i, group: "x" } }, platform: { edge: "vercel" } }));

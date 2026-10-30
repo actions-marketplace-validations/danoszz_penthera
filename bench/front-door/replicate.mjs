@@ -5,7 +5,7 @@
  *
  *   node bench/front-door/replicate.mjs --self-test
  *       Loopback only: visits tests/fixtures/mock-server.js.
- *   node bench/front-door/replicate.mjs --pass 1|2 --registered E20R --lists <dir> --exclude <file> [--removals <file>] [--out <dir>]
+ *   node bench/front-door/replicate.mjs --pass 1|2 --registered E20R --lists <dir> --exclude <file> --homepage-only <file> [--removals <file>] [--out <dir>]
  *       The registered pass. Refused unless the prereg says Registered and
  *       every list and the exclusion list match the hashes recorded there.
  *       Rate, order and sub-measures are fixed; no flag changes them.
@@ -49,6 +49,7 @@ export const R_COHORTS = Object.freeze({
 });
 export const PASS_SEED = Object.freeze({ 1: 2020, 2: 2021 });
 export const R_EXCLUSION_LABEL = "E20-R exclusion list";
+export const R_HOMEPAGE_LABEL = "E20-R homepage-only list";
 
 export const MX_RULES = Object.freeze([
   ["google", /(^|\.)(google|googlemail)\.com$/i], ["microsoft", /\.outlook\.com$/i], ["proofpoint", /pphosted\.com$/i],
@@ -121,7 +122,7 @@ export function recordedHashR(preregText, label) {
 }
 
 /** Throws unless this pass may leave loopback. */
-export function authorizeR({ loopback, registered, pass, listHashes = {}, excludeHash, preregText }) {
+export function authorizeR({ loopback, registered, pass, listHashes = {}, excludeHash, homepageOnlyHash, preregText }) {
   if (loopback) return { mode: "loopback" };
   if (registered !== "E20R") throw new Error("Refused: this run would reach other hosts. It needs --registered E20R, after the maintainer registered the protocol (AGENTS.md rule 6).");
   if (!PASS_SEED[pass]) throw new Error("Refused: --pass must be 1 or 2.");
@@ -134,6 +135,9 @@ export function authorizeR({ loopback, registered, pass, listHashes = {}, exclud
   const ex = recordedHashR(preregText, R_EXCLUSION_LABEL);
   if (!ex) throw new Error(`Refused: the prereg records no ${R_EXCLUSION_LABEL} SHA-256.`);
   if (ex !== excludeHash) throw new Error("Refused: the exclusion list does not match the prereg.");
+  const ho = recordedHashR(preregText, R_HOMEPAGE_LABEL);
+  if (!ho) throw new Error(`Refused: the prereg records no ${R_HOMEPAGE_LABEL} SHA-256.`);
+  if (ho !== homepageOnlyHash) throw new Error("Refused: the homepage-only list does not match the prereg.");
   return { mode: "registered" };
 }
 
@@ -171,7 +175,7 @@ export function aggregateR(records, meta = {}) {
 }
 
 /** One pass. `rows` come from mergeCohorts. Appends each record to raw.jsonl. */
-export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map(), appPage = true, delayMs = LIMITS.delayMs, concurrency = LIMITS.concurrency, dns = {}, meta = {}, onRecord } = {}) {
+export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map(), homepageOnlyHosts = new Set(), appPage = true, delayMs = LIMITS.delayMs, concurrency = LIMITS.concurrency, dns = {}, meta = {}, onRecord } = {}) {
   if (!loopbackPort) { concurrency = LIMITS.concurrency; delayMs = LIMITS.delayMs; }
   const order = shuffled(rows, PASS_SEED[pass]);
   mkdirSync(out, { recursive: true });
@@ -189,8 +193,8 @@ export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map
       let record;
       if (category) record = { ...row, at: new Date().toISOString(), status: "excluded", reason: "exclusion_list", category };
       else {
-        // § 3: a site on a homepage-only list never gets the app page, whatever other list it is on.
-        const homepageOnly = Object.keys(row.cohorts).some((c) => R_COHORTS[c]?.homepageOnly);
+        // § 3: a health site, or one on a homepage-only list, never gets the app page, whatever other list it is on.
+        const homepageOnly = homepageOnlyHosts.has(row.host.replace(/^www\./, "")) || Object.keys(row.cohorts).some((c) => R_COHORTS[c]?.homepageOnly);
         record = { ...row, ...(await visit(row, { loopbackPort, appPage: appPage && !homepageOnly, exclude, lookup, evidence: evidenceOf })) };
         if (record.status === "ok") record.dnsProviders = await dnsProviders(registrableDomain(record.finalHost), dns);
       }
@@ -240,14 +244,16 @@ async function main(args) {
     return r.ok ? 0 : 1;
   }
   const dir = flag(args, "--lists"), pass = Number(flag(args, "--pass"));
-  if (!dir) { console.error("Usage: node bench/front-door/replicate.mjs --self-test | --pass 1|2 --registered E20R --lists <dir> --exclude <file> [--out <dir>]"); return 2; }
+  if (!dir) { console.error("Usage: node bench/front-door/replicate.mjs --self-test | --pass 1|2 --registered E20R --lists <dir> --exclude <file> --homepage-only <file> [--removals <file>] [--out <dir>]"); return 2; }
   const excludeBytes = flag(args, "--exclude") ? readFileSync(flag(args, "--exclude")) : null;
+  const homepageBytes = flag(args, "--homepage-only") ? readFileSync(flag(args, "--homepage-only")) : null;
   const bytes = Object.fromEntries(Object.entries(R_COHORTS).map(([c, { file }]) => [c, existsSync(join(dir, file)) ? readFileSync(join(dir, file)) : null]));
   try {
     authorizeR({
       registered: flag(args, "--registered"), pass,
       listHashes: Object.fromEntries(Object.entries(bytes).map(([c, b]) => [c, b ? sha256(b) : null])),
       excludeHash: excludeBytes ? sha256(excludeBytes) : undefined,
+      homepageOnlyHash: homepageBytes ? sha256(homepageBytes) : undefined,
       preregText: existsSync(PREREG_R) ? readFileSync(PREREG_R, "utf8") : "",
     });
   } catch (e) {
@@ -260,6 +266,7 @@ async function main(args) {
   const removals = flag(args, "--removals") ? readRemovals(readFileSync(flag(args, "--removals"), "utf8")) : new Map();
   const { aggregate: agg } = await runPass(rows, {
     pass, out, exclude: new Map([...readExclusions(excludeBytes.toString("utf8")), ...removals]),
+    homepageOnlyHosts: new Set(homepageBytes.toString("utf8").split(/\r?\n/).map((l) => l.trim().toLowerCase()).filter(Boolean)),
     meta: { listSha256: Object.fromEntries(Object.entries(bytes).map(([c, b]) => [c, sha256(b)])), exclusionSha256: sha256(excludeBytes), startedFrom: process.version },
     onRecord: (r, k) => process.stderr.write(`\r${k + 1}/${rows.length} ${r.status.padEnd(9)}`),
   });

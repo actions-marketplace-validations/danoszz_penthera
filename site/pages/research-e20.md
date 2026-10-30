@@ -21,7 +21,7 @@ If you saw `Penthera-Research/E20` in your logs, it was a visit to your homepage
 1. the top 1000 sites of the [Tranco list](https://tranco-list.eu/), a research ranking of popular domains;
 2. the public websites of companies in the two most recent Y Combinator batches, from YC's public company directory.
 
-**E20-R** runs two passes, a week apart, no earlier than 6 November 2026, over about 7,000 sites: the two lists above, more Tranco sites, older Y Combinator companies, large listed companies in Europe and the US, public Show HN launches, and Dutch organizations in sectors of the Cyberbeveiligingswet. Each site is visited once per pass. Nothing is retried. Adult, gambling, patient-facing health and government sites, and sites of people at risk, are on an exclusion list and are not visited. In E20-R, Y Combinator companies stay in whatever their sector, except adult sites: a company that launched publicly can stand a homepage check.
+**E20-R** runs two passes, a week apart, no earlier than 6 November 2026, over about 7,000 sites: the two lists above, more Tranco sites, older Y Combinator companies, large listed companies in Europe and the US, public Show HN launches, and Dutch organizations in sectors of the Cyberbeveiligingswet. Each site is visited once per pass. Nothing is retried. Adult, gambling and government sites, and sites of people at risk, are on an exclusion list and are not visited. E20 also excluded health sites. E20-R includes them, so results can show which industries are exposed, but for a health site it requests the homepage only and never follows a link to a login or patient portal. Y Combinator companies stay in whatever their sector, except adult sites.
 
 ## What it requests
 
@@ -60,7 +60,7 @@ You can also ask to be removed at any time. Email us from your domain, or from a
 
 The raw per-site results stay private. They hold check outcomes and short evidence such as header values, never page bodies of normal pages, never IP addresses, and no email addresses: the part before the @ is removed before anything is written. E20-R also keeps header names, cookie names (never values), a hash of the page, and, for an error or block page only, its first 4 KB. All of it is never committed or shared, and is deleted 12 months after publication.
 
-What we publish is the share of sites that pass each check, with a 95% interval, and the score distribution. There is no ranking, and no site is named. For anyone who wants to check the work, the code, the target lists and the aggregates can be downloaded with the results. The Dutch sector list is published as a hash and a method only.
+What we publish is the share of sites that pass each check, with a 95% interval, and the score distribution. There is no ranking, and no site is named. For anyone who wants to check the work, the code, the target lists and the aggregates can be downloaded with the results. Health sites and the Dutch sector list are published as a hash and a method only, and appear in the results as industry totals.
 
 ## What it is not
 

@@ -59,7 +59,7 @@ tests what npm users get, on every PR and push to `main`:
   `hook install` plus a real `git commit` through the hook, `ui --demo`
   answering 401 without a token, `rules verify` on the bundled packs). The
   checks live in `scripts/ci/smoke-installed.mjs`.
-- **Upgrade.** `penthera@1.7.0` from npm writes `~/.penthera` state (a
+- **Upgrade.** The last release (`FROM_VERSION`) from npm writes `~/.penthera` state (a
   `--memory` scan, `ui --demo`), then the tarball is installed over it and must
   verify and extend the same memory chain. Move `FROM_VERSION` to the latest
   release after each release.
@@ -300,7 +300,7 @@ quality from depending on anyone's free evenings.
   go into that release; features wait for the next one.
 - **No version bump or tag without the maintainer's go.**
 
-**Now:** 2.1.0 is on `latest` since 2026-10-29. See the [roadmap](ROADMAP.md#now-210)
+**Now:** 2.1.1 is on `latest` since 2026-10-30. See the [roadmap](ROADMAP.md#now-211)
 for what is in it.
 
 Between releases:

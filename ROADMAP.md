@@ -16,11 +16,23 @@ here.
 
 | npm tag | Version | Install |
 |---|---|---|
-| `latest` | 2.1.0 (2026-10-29) | `npx penthera` |
+| `latest` | 2.1.1 (2026-10-30) | `npx penthera` |
 
-## Now: 2.1.0
+## Now: 2.1.1
 
-2.1.0 is on npm's `latest` tag since 2026-10-29. It went through two release
+2.1.1 is on npm's `latest` tag since 2026-10-30. It's a patch release.
+
+| In 2.1.1 | What it means for you |
+|---|---|
+| MCP `scan_url` stays in scope | On every request and redirect, with or without `--offline`. It refuses any other host and names it under Not checked ([docs](docs/commands/mcp.md)) |
+| No grade without agent config | `penthera agents` reports `Nothing to assess` instead of A, 100 ([docs](docs/commands/agents.md)) |
+| No false critical on a clean single-page app | The CVE-2025-29927 check now needs its header to steadily change the answer, not a 200 alone. Three more checks ask for proof ([limits](docs/METHODOLOGY.md#what-the-scanners-cannot-see)) |
+| Exit 0 says what it means | No critical or high rule fired. The run does not prove login, access rules or payments are right ([docs](docs/before-you-publish.md)) |
+| `init` pins the action to v2.1.0 | The old v2.0.0 pin skipped the scan in `mode: deps` and still reported success |
+
+## Before: 2.1.0
+
+2.1.0 was on npm's `latest` tag from 2026-10-29. It went through two release
 candidates first.
 
 | In 2.1.0 (rc.2) | What it means for you |

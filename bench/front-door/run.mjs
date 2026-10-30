@@ -40,6 +40,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, mkdirSync, appendFileSync, existsSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { lookup as dnsLookup } from "node:dns/promises";
 import { passiveReport } from "../../api/_lib/tier1.mjs";
 import { parseTarget, fetchBody, CheckError } from "../../api/_lib/guard.mjs";
 import { scrub } from "./classify.mjs";
@@ -195,9 +196,10 @@ export const slim = (c) => ({ id: c.id, passed: c.passed, severity: c.severity, 
  * 4xx means no rules. A 5xx, an unreachable file or a spent budget means
  * complete disallow. 429 is a 4xx in the RFC; the study treats it as a request
  * to stay away. A 2xx that can't be read to its end proves nothing, so a
- * compressed or cut-off file counts as unavailable.
+ * compressed or cut-off file counts as unavailable, and so does a 3xx with no
+ * Location, which no client can follow.
  */
-export const robotsAccess = ({ status, error, encoded, truncated, binary }) => (error || status === 429 || status >= 500 || ((encoded || truncated || binary) && status < 300) ? "disallow" : "allow");
+export const robotsAccess = ({ status, error, encoded, truncated, binary }) => (error || status === 429 || status >= 500 || (status >= 300 && status < 400) || ((encoded || truncated || binary) && status < 300) ? "disallow" : "allow");
 /** NUL, or the two bad bytes a UTF-16 BOM decodes to: a file we can't read as text, whatever it says. */
 export const robotsBinary = (body) => String(body ?? "").includes("\0") || String(body ?? "").startsWith("\uFFFD\uFFFD");
 export const ROBOTS_REDIRECTS = 5;
@@ -210,6 +212,14 @@ const ROBOTS_KEEP_OUTCOME = new Set(["not_found", "unreachable", "tls_invalid", 
 // Nothing answered at all. A reset can be a refusal, and a refusal gets no retry.
 const NO_ANSWER = new Set(["ECONNREFUSED", "EHOSTUNREACH", "ENETUNREACH", "ETIMEDOUT", "EADDRNOTAVAIL"]);
 const AFTER_TLS = new Set(["unreachable", "timeout", "not_found"]);
+// No TLS session could be set up: old versions, or plain HTTP on the TLS port. Not a refusal.
+const TLS_HANDSHAKE = /^(?:EPROTO$|ERR_SSL_)/;
+const tlsFailed = (e) => e.code === "tls_invalid" || TLS_HANDSHAKE.test(e.netCode ?? "");
+/** The outcome a record names. A handshake failure is its own, not `unreachable`. */
+const outcomeOf = (e) => (!(e instanceof CheckError) ? "internal" : TLS_HANDSHAKE.test(e.netCode ?? "") ? "tls_handshake" : e.code);
+
+/** IPv4 only, so one published address accounts for every request (§ 5). */
+export const ipv4Lookup = (host, opts = {}) => dnsLookup(host, { ...opts, family: 4 });
 
 const robotsStop = (reason) => Object.assign(new CheckError("robots_stop", "robots.txt stops this visit.", 403, ""), { reason });
 
@@ -220,7 +230,7 @@ const robotsStop = (reason) => Object.assign(new CheckError("robots_stop", "robo
  * failed, and inside the rules of its origin. A fallback runs only when nothing
  * from the listed origin has answered.
  */
-export function strictRobots({ exclude = new Map(), outcomes = [] } = {}) {
+export function strictRobots({ exclude = new Map(), outcomes = [], listedHost } = {}) {
   const bodies = new Map();
   const failed = new Set();
   let answered = false;
@@ -251,13 +261,14 @@ export function strictRobots({ exclude = new Map(), outcomes = [] } = {}) {
       const body = bodies.get(u.origin);
       if (body === undefined) return;
       const verdict = robotsVerdict(body, u.pathname + u.search);
-      if (verdict === "opted_out") throw new CheckError("opted_out", "This site's owner opted out.", 403, "");
-      if (verdict === "disallowed") throw robotsStop("robots_disallow_path");
+      if (verdict === "opted_out") throw Object.assign(new CheckError("opted_out", "This site's owner opted out.", 403, ""), { redirectedTo: u.hostname });
+      // Another organization's rule is theirs: the listed site didn't ask to be left out.
+      if (verdict === "disallowed") throw robotsStop(listedHost && siteOrg(u.hostname) !== siteOrg(listedHost) ? "redirect_disallow_path" : "robots_disallow_path");
     },
-    allowFallback: (e) => !answered && (e.code === "tls_invalid" || NO_ANSWER.has(e.netCode)),
+    allowFallback: (e) => !answered && (tlsFailed(e) || NO_ANSWER.has(e.netCode)),
     allowWww: () => !answered,
     // A bad certificate stays the outcome when plain http has nothing either.
-    fallbackError: (https, http) => (https.code === "tls_invalid" && (AFTER_TLS.has(http.code) || http.reason === "robots_unavailable") ? https : http),
+    fallbackError: (https, http) => (tlsFailed(https) && (AFTER_TLS.has(http.code) || http.reason === "robots_unavailable") ? https : http),
   };
 }
 
@@ -272,12 +283,12 @@ export async function visit(row, { loopbackPort, now, appPage = false, exclude =
   let httpsFailed = null;
   const responses = [];
   const robots = [];
-  const rules = strict ? strictRobots({ exclude, outcomes: robots }) : null;
+  const rules = strict ? strictRobots({ exclude, outcomes: robots, listedHost: row.host }) : null;
   const meter = strict ? (given ?? { requests: 0, bytes: 0, redirects: 0, hosts: [] }) : undefined;
   const base = {
     userAgent: USER_AGENT, optOutTokens: OPT_OUT_TOKENS, optOutAll: true, assets: false, secrets: false,
     budgetMs, now, lookup, onPage: (p) => { page = p; }, onResponse: (kind, res) => responses.push({ kind, res }),
-    onFallback: (e) => { httpsFailed = { error: e.code, ...(e.tlsReason ? { tlsReason: e.tlsReason } : {}) }; },
+    onFallback: (e) => { httpsFailed = { error: outcomeOf(e), ...(e.tlsReason ? { tlsReason: e.tlsReason } : {}), ...(e.netCode ? { netCode: e.netCode } : {}) }; },
     ...rules, meter, ...(strict ? { budget: makeBudget({ requests: LIMITS.siteRequests, budgetMs }), skipDns: true } : {}),
   };
   const counters = () => ({ requests: meter.requests, bytes: meter.bytes, redirects: meter.redirects });
@@ -324,7 +335,7 @@ export async function visit(row, { loopbackPort, now, appPage = false, exclude =
     if (e instanceof CheckError && e.code === "opted_out" && e.all) return withRobots({ ...row, at, status: "excluded", reason: "robots_disallow_all" });
     if (e instanceof CheckError && e.code === "opted_out") return withRobots({ ...row, at, status: "opted_out" });
     if (e instanceof CheckError && e.code === "robots_stop") return withRobots({ ...row, at, status: "excluded", reason: e.reason });
-    return withRobots({ ...row, at, status: "error", error: e instanceof CheckError ? e.code : "internal", ...(e?.tlsReason ? { tlsReason: e.tlsReason } : {}) });
+    return withRobots({ ...row, at, status: "error", error: outcomeOf(e), ...(e?.tlsReason ? { tlsReason: e.tlsReason } : {}), ...(e?.netCode ? { netCode: e.netCode } : {}) });
   }
 }
 
@@ -401,13 +412,34 @@ export function findAppLink(html, pageUrl) {
   return null;
 }
 
-/** RFC 9309 § 2.2.2 compares in percent-encoded form: non-ASCII encoded, hex in upper case. */
+const UNRESERVED = /[A-Za-z0-9\-._~]/;
+const URL_ENCODES = new Set(['"', "<", ">", "`", "{", "}", " ", "^", "|", "\\"]);
+
+/**
+ * RFC 9309 § 2.2.2: rule and path compare in one form. Octets of unreserved characters
+ * are decoded, other escapes keep upper-case hex, and anything a URL parser encodes is
+ * encoded. `*` and `$` stay. A malformed `%` stays literal, so it matches only itself:
+ * a rule we can't read can still stop a visit, and a path can't dodge a rule by it.
+ */
 export function percentForm(text) {
+  const s = String(text);
   let out = "";
-  for (const ch of String(text)) {
-    out += ch.charCodeAt(0) < 128 ? ch : Buffer.from(ch, "utf8").toString("hex").replace(/../g, (b) => `%${b}`);
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === "%" && /^[0-9a-f]{2}$/i.test(s.slice(i + 1, i + 3))) {
+      const hex = s.slice(i + 1, i + 3).toUpperCase();
+      const plain = String.fromCharCode(parseInt(hex, 16));
+      out += UNRESERVED.test(plain) ? plain : `%${hex}`;
+      i += 2;
+    } else if (ch.charCodeAt(0) >= 128) {
+      const whole = String.fromCodePoint(s.codePointAt(i));
+      out += Buffer.from(whole, "utf8").toString("hex").toUpperCase().replace(/../g, (b) => `%${b}`);
+      i += whole.length - 1;
+    } else {
+      out += URL_ENCODES.has(ch) ? `%${ch.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}` : ch;
+    }
   }
-  return out.replace(/%[0-9a-f]{2}/gi, (m) => m.toUpperCase());
+  return out;
 }
 
 /**
@@ -451,7 +483,7 @@ export function robotsVerdict(robots, path, tokens = OPT_OUT_TOKENS) {
     const value = m[2].trim();
     if (key === "user-agent") {
       if (!cur || cur.rules.length) groups.push(cur = { agents: [], rules: [] });
-      cur.agents.push(value.split("/")[0].trim().toLowerCase());
+      cur.agents.push(value.split(/[/\s]/)[0].toLowerCase());
     } else if ((key === "allow" || key === "disallow") && cur) cur.rules.push({ allow: key === "allow", value });
   }
   const ours = groups.filter((g) => g.agents.some((a) => names.includes(a)));

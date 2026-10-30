@@ -87,8 +87,8 @@ export async function resolvePublic(host, { lookup = dnsLookup, allowPrivate = f
   let answers;
   try {
     answers = await lookup(host, { all: true, verbatim: true });
-  } catch {
-    throw new CheckError("not_found", `${host} does not resolve to an address.`, 422, "Check the spelling of the domain.");
+  } catch (e) {
+    throw Object.assign(new CheckError("not_found", `${host} does not resolve to an address.`, 422, "Check the spelling of the domain."), { netCode: e?.code });
   }
   if (!answers.length) throw new CheckError("not_found", `${host} does not resolve to an address.`, 422, "Check the spelling of the domain.");
   // Every answer must be public, so a mixed record cannot smuggle in an internal one.

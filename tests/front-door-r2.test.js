@@ -8,19 +8,20 @@ import { createHash } from "node:crypto";
 import http from "node:http";
 import https from "node:https";
 import { EventEmitter } from "node:events";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
 import { gzipSync } from "node:zlib";
 import { classify, classifyRegistered, cookieNames, cspEvidence, evidenceOf, pageExcerpt, scrub, scrubMisses, signatureMatches, traitsOf, SOFT_MAX_CHARS } from "../bench/front-door/classify.mjs";
-import { authorize, exclusionFor, globMatch, percentForm, platformOf, readExclusions, robotsBinary, robotsVerdict, visit } from "../bench/front-door/run.mjs";
+import { authorize, exclusionFor, globMatch, ipv4Lookup, percentForm, platformOf, readExclusions, robotsAccess, robotsBinary, robotsVerdict, strictRobots, visit } from "../bench/front-door/run.mjs";
 import { optedOut } from "../api/_lib/page.mjs";
-import { caaTree, codeFiles, codeHash, dmarcReading, mergeCohorts, normalizeHost, readDomain, readHostList, readRemovals, runPass, unmatchedHosts, V2_LIMITS, visitInWorker } from "../bench/front-door/replicate.mjs";
+import { CheckError, resolvePublic } from "../api/_lib/guard.mjs";
+import { caaTree, checkPilotDropped, codeFiles, codeHash, dmarcReading, mergeCohorts, normalizeHost, pilotRounds, readDomain, readHostList, readRemovals, runPass, NO_DNS, unmatchedHosts, V2_LIMITS, visitInWorker } from "../bench/front-door/replicate.mjs";
 import { orgDomain, publicSuffix, PSL_VERSION, pslSha256, siteKey, siteOrg } from "../bench/front-door/psl.mjs";
 import { claims, clusterDiff, combine, coverageBounds, decide, diffClaim, dnsCoverage, e20Index, fisherExact, intervalOutcomes, isEligible, standardizedDiff, traitsByCohort } from "../bench/front-door/analyze-r.mjs";
-import { pilotReport, stopRules } from "../bench/front-door/pilot-report.mjs";
-import { blindSheet, drawSample, parseLabels, pruneExcerpt, rewriteRun, scoreLabels, stratumOf, weightedMetrics } from "../bench/front-door/validation-sample.mjs";
+import { pilotReport, sealPilot, stopRules } from "../bench/front-door/pilot-report.mjs";
+import { blindSheet, drawSample, parseLabels, pruneExcerpt, prunePilot, rewriteRun, scoreLabels, stratumOf, weightedMetrics } from "../bench/front-door/validation-sample.mjs";
 import { runAcceptance } from "../bench/front-door/acceptance.mjs";
 import { passiveReport } from "../api/_lib/tier1.mjs";
 import { scoreOf } from "../api/_lib/grade.mjs";
@@ -177,6 +178,34 @@ describe("redirects and origins", () => {
       expect(records[0].dns.listed.registeredChecks).toBeUndefined();
     } finally { await new Promise((r) => server.close(r)); }
   });
+  it("B2: a lookup failure keeps its code, so a resolver fault differs from a name that doesn't exist", async () => {
+    const fail = (code) => async () => { throw Object.assign(new Error(code), { code }); };
+    expect((await visit({ host: "a.org", cohorts: {} }, { strict: true, exclude, lookup: fail("ESERVFAIL") }))).toMatchObject({ error: "not_found", netCode: "ESERVFAIL" });
+    expect((await visit({ host: "a.org", cohorts: {} }, { strict: true, exclude, lookup: fail("ENOTFOUND") })).netCode).toBe("ENOTFOUND");
+  });
+  it("S1: a failed handshake is its own outcome, and keeps its code", async () => {
+    const r = await go({ "https://a.org/robots.txt": { err: "EPROTO" }, "http://a.org/robots.txt": { err: "ECONNREFUSED" } });
+    expect(r).toMatchObject({ status: "error", error: "tls_handshake", netCode: "EPROTO" });
+    const fell = await go({ "https://a.org/robots.txt": { err: "ERR_SSL_WRONG_VERSION_NUMBER" }, "http://a.org/robots.txt": ROBOTS, "http://a.org/": HOME });
+    expect(fell).toMatchObject({ status: "ok", httpsFailed: { error: "tls_handshake", netCode: "ERR_SSL_WRONG_VERSION_NUMBER" } });
+    expect((await go({ "https://a.org/robots.txt": { err: "ECONNRESET" } })).netCode).toBe("ECONNRESET");
+  });
+  it("S2: a timeout gets no http fallback, as the amendment says", () => {
+    expect(strictRobots().allowFallback(new CheckError("timeout", "x", 504, ""))).toBe(false);
+    expect(readFileSync(join(import.meta.dirname, "..", "docs", "research", "prereg", "E20r-front-door-replication.md"), "utf8")).toContain("timeout, as in pass 1");
+  });
+  it("S11: another organization's path rule keeps the listed site eligible", async () => {
+    const r = await go({ "https://a.org/robots.txt": ROBOTS, "https://a.org/": { status: 301, headers: { location: "https://parent.com/x" } }, "https://parent.com/robots.txt": { status: 200, body: "User-agent: *\nDisallow: /x\n" } });
+    expect(r).toMatchObject({ status: "excluded", reason: "redirect_disallow_path" });
+    expect(isEligible(r)).toBe(true);
+    expect(NO_DNS).not.toContain("redirect_disallow_path");
+    const own = await go({ "https://a.org/robots.txt": { status: 200, body: "User-agent: *\nDisallow: /x\n" }, "https://a.org/": { status: 301, headers: { location: "/x" } } });
+    expect(own.reason).toBe("robots_disallow_path");
+    expect(isEligible(own)).toBe(false);
+  });
+  it("note: the real lookup path works through the guard", async () => {
+    expect(await resolvePublic("localhost", { lookup: ipv4Lookup, allowPrivate: true })).toMatchObject({ family: 4 });
+  });
   it("records each host it requested", async () => {
     const r = await go({ "https://a.org/robots.txt": ROBOTS, "https://a.org/": HOME });
     expect(r.hops).toEqual(["a.org", "a.org", "a.org"]);
@@ -224,6 +253,25 @@ describe("robots.txt reading", () => {
     expect(r).toMatchObject({ status: "excluded", reason: "robots_unavailable" });
     expect(r.robots[0].binary).toBe(true);
     expect(log).not.toContain("https://a.org/");
+  });
+  it("S4: rule and path compare in one form, and a malformed escape fails closed", () => {
+    expect(percentForm("/%7Ea%41b")).toBe("/~aAb");
+    expect(percentForm("/a%2fb")).toBe("/a%2Fb");
+    expect(percentForm("/a b")).toBe("/a%20b");
+    expect(percentForm("/😀")).toBe("/%F0%9F%98%80");
+    expect(percentForm("/*.php$")).toBe("/*.php$");
+    expect(robotsVerdict("User-agent: *\nDisallow: /~x\n", "/%7Ex")).toBe("disallowed");
+    expect(robotsVerdict("User-agent: *\nDisallow: /%7Ex\n", "/~x")).toBe("disallowed");
+    expect(robotsVerdict("User-agent: *\nDisallow: /a b\n", "/a%20b")).toBe("disallowed");
+    expect(robotsVerdict("User-agent: *\nDisallow: /a%zz\n", "/a%zz/b")).toBe("disallowed");
+    expect(robotsVerdict("User-agent: *\nDisallow: /a%2Fb\n", "/a/b")).toBe("allowed");
+  });
+  it("note: a 3xx with no Location is unavailable", () => {
+    expect(robotsAccess({ status: 304 })).toBe("disallow");
+  });
+  it("note: a User-agent name ends at a space, in the live reader too", () => {
+    expect(optedOut("User-agent: Penthera-QuickCheck bot\nDisallow: /\n")).toBe(true);
+    expect(robotsVerdict("User-agent: Penthera-Research bot\nDisallow: /x\n", "/x")).toBe("disallowed");
   });
   it("item 11: the longest rule is measured in percent-encoded form", () => {
     expect(robotsVerdict("User-agent: *\nDisallow: /caf%C3\nAllow: /café\n", "/caf%C3%A9")).toBe("allowed");
@@ -278,7 +326,30 @@ describe("what reaches the disk", () => {
       expect(clean, dirty).toContain("<email>");
       expect(Object.values(scrubMisses(clean)).every((v) => v === 0), `${dirty} -> ${clean}`).toBe(true);
     }
-    for (const raw of ["&#106;&#111;&#104;&#110;&#64;&#101;", "john [at] example.com", "john(at)example.com", "john\\x40example.com", "john&commat;x", "john＠x.nl", "john@exam", "redacted.bob@x.nl"]) expect(scrubMisses(raw).email, raw).toBeGreaterThan(0);
+    for (const raw of ["&#106;&#111;&#104;&#110;", "&#64;", "john [at] example.com", "john(at)example.com", "john\\x40example.com", "john&commat;x", "john＠x.nl", "john@exam", "redacted.bob@x.nl"]) expect(scrubMisses(raw).email, raw).toBeGreaterThan(0);
+  });
+  it("B1: ordinary typography is no miss, and spelled-out ASCII still is", () => {
+    const wordpress = "It&#8217;s &#8220;fine&#8221; &#8212; really &#8230; &#8217;s &#169; &#xA0;";
+    expect(Object.values(scrubMisses(scrub(wordpress))).every((v) => v === 0)).toBe(true);
+    expect(scrubMisses(wordpress).email).toBe(0);
+    expect(scrubMisses("&#106;&#111;&#104;&#110;").email).toBe(1);
+  });
+  it("note: the last written forms of an address come out", () => {
+    for (const dirty of ["john&amp;#64;example.com", "john&#x00000040;example.com", "john﹫example.com", '"john smith"@acme.com', "john at acme . com", "john-at-acme.com", "john<b>@</b>acme.com", "john\\100acme.com", "jose\u0301@example.com"]) {
+      const clean = scrub(dirty);
+      expect(clean, dirty).toContain("<email>");
+      expect(clean, dirty).not.toMatch(/john|jose|acme/);
+    }
+    expect(scrub("DB_PASS=hunter2")).toBe("DB_PASS=<token>");
+    expect(scrub("pwd: hunter2")).toBe("pwd: <token>");
+  });
+  it("note: prose and code are left alone", () => {
+    expect(scrub("Look (at) this page")).toBe("Look (at) this page");
+    expect(scrubMisses("Look (at) this page").email).toBe(0);
+    expect(scrub("std::map<int> and a::b")).toContain("std::map");
+    expect(scrub("std::vector")).toBe("std::vector");
+    expect(scrub("fe80::1")).toBe("<ip>");
+    expect(scrub("::1")).toBe("<ip>");
   });
   it("B9: address forms in host names come out", () => {
     for (const dirty of ["static.225.243.104.178.clients.your-server.de", "ip-2-31-141-178.eu-central-1.compute.amazonaws.com", "2%2E31%2E141%2E178", "0x021F8DB2", "decade:2a01:4f8:c17:1234::1", "fe80::1%25en0", "2a01:4f8:c17:1234:0:0:0:1%eth0", "[::ffff:2.31.141.178]:8080", "x-forwarded-for: 2.31.141.178, 10.0.0.1"]) {
@@ -415,6 +486,32 @@ describe("what reaches the disk", () => {
     const many = Array.from({ length: 49 }, () => rec);
     expect(stopRules(pilotReport([...many, { ...rec, counters: { requests: 40, bytes: 1, redirects: 0 } }]))).toEqual(["a site took more than 20 requests"]);
   });
+  const dead = (n, o) => Array.from({ length: n }, () => ({ status: "error", dns: { listed: { dmarcRecord: "" } }, counters: { requests: 1 }, ...o }));
+  it("B2: a run that reached nothing stops", () => {
+    expect(stopRules(pilotReport(dead(50, { error: "not_found", netCode: "ESERVFAIL" })))).toEqual(expect.arrayContaining(["under half of the eligible sites were graded", "over 20% of sites hit a resolver failure", "no site answered with a 2xx"]));
+    expect(stopRules(pilotReport(dead(50, { error: "not_found", netCode: "ENOTFOUND" })))).not.toContain("over 20% of sites hit a resolver failure");
+    const blocked = Array.from({ length: 50 }, () => ({ ...rec, httpStatus: 403 }));
+    expect(stopRules(pilotReport(blocked))).toEqual(["no site answered with a 2xx"]);
+    const bad = [...Array.from({ length: 79 }, () => rec), ...Array.from({ length: 21 }, () => ({ ...rec, dns: { listed: { dmarcRecord: "", outcomes: { ns: "resolver-failure:ETIMEOUT" } } } }))];
+    expect(stopRules(pilotReport(bad))).toEqual(["over 20% of sites hit a resolver failure"]);
+    expect(stopRules(pilotReport([...Array.from({ length: 50 }, () => rec), ...dead(50, { error: "timeout" })]))).toEqual([]);
+  });
+  it("S10: the report reads a pruned run with no false stop, and sealing after pruning is refused", () => {
+    const shaped = { ...rec, evidence: { ...rec.evidence, pageExcerpt: { chars: 9, scripts: 1 } } };
+    expect(stopRules(pilotReport([shaped]))).toEqual(["under 90% of 2xx responses have an excerpt"]);
+    expect(stopRules(pilotReport([shaped], { pruned: true }))).toEqual([]);
+    const dir = mkdtempSync(join(tmpdir(), "e20r2-"));
+    const raw = `${JSON.stringify(rec)}\n`;
+    writeFileSync(join(dir, "raw.jsonl"), raw);
+    writeFileSync(join(dir, "manifest.json"), JSON.stringify({ finishedAt: "x", rawSha256: createHash("sha256").update(raw).digest("hex"), immutableAtFinish: { ok: true } }));
+    expect(sealPilot(dir).passed).toBe(true);
+    writeFileSync(join(dir, "prune-manifest.json"), "{}");
+    expect(sealPilot(dir).stop).toContain("sealed after pruning: seal first, while the excerpts exist");
+  });
+  it("S6: a hop meets every skip list", () => {
+    const skip = readRemovals("removed.example.com\n", "removed");
+    expect(pilotReport([{ ...rec, hops: ["removed.example.com"] }], { exclude: skip }).excludedHops).toBe(1);
+  });
   it("9: any hop to an excluded host stops the run", () => {
     const r = pilotReport([{ ...rec, hops: ["a.org", "ministry.gov"] }], { exclude });
     expect(r.excludedHops).toBe(1);
@@ -488,6 +585,13 @@ describe("a visit in its own thread", () => {
       expect(r.counters.bytes).toBeGreaterThanOrEqual(ROBOTS.body.length + 300);
       expect(JSON.stringify(r.evidence)).not.toContain("zzzz");
     } finally { await new Promise((r) => server.close(r)); }
+  });
+  it("note: a hard-capped record keeps the bytes the thread reported", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "e20r2-"));
+    const file = join(dir, "fx.mjs");
+    writeFileSync(file, 'import { parentPort } from "node:worker_threads"; parentPort.postMessage({ progress: { requests: 2, bytes: 900, redirects: 1, hosts: ["x.example.com"] } }); await new Promise((r) => setTimeout(r, 50)); for (;;) {}');
+    const r = await visitInWorker({ host: "a.selftest.example.com", cohorts: {} }, { hardCapMs: 100, workerFile: file });
+    expect(r).toMatchObject({ reason: "hard_cap", counters: { requests: 2, bytes: 900, redirects: 1 }, hops: ["x.example.com"] });
   });
   it("B2: ends a visit whose thread is stuck, at the hard cap, and keeps the rest of the run going", async () => {
     const started = Date.now();
@@ -730,9 +834,10 @@ describe("the validation draw", () => {
     expect(drawSample([...records].reverse())).toEqual(a);
     expect(stratumOf(records.at(-1))).toBe("block-signature");
   });
-  it("23: gives the labeler a blind sheet", () => {
-    const records = [rec(1, "candidate-page"), rec(2, "block", "body"), rec(3, "challenge")].map((r) => ({ ...r, evidence: { ...r.evidence, status: 200, headerNames: [], values: {} } }));
+  it("23, S7: gives the labeler a blind sheet, with no rule's verdict on it", () => {
+    const records = [rec(1, "candidate-page"), rec(2, "block", "body"), rec(3, "challenge")].map((r) => ({ ...r, evidence: { ...r.evidence, status: 200, headerNames: [], values: {}, pageExcerpt: { ...r.evidence.pageExcerpt, soft: ["cloudflare"], hard: ["akamai"] } } }));
     const { sheet, key } = blindSheet(drawSample(records), records);
+    expect(JSON.stringify(sheet)).not.toMatch(/soft|hard|cloudflare|akamai/);
     expect(sheet).toHaveLength(3);
     expect(JSON.stringify(sheet)).not.toMatch(/example\.com|block|stratum|candidate/);
     expect(key[0]).toHaveProperty("stratumSize");
@@ -755,8 +860,9 @@ describe("the validation draw", () => {
     const r = scoreLabels(key, "id,label\n1,challenge\n2,page\n", "id,label\n1,challenge\n2,block\n", { resamples: 10 });
     expect(r.humanVsAgent).toMatchObject({ disagreements: 1, pairs: { "human page, agent block": 1 } });
   });
-  it("item 5: refuses a missing, duplicate, unknown or invalid label", () => {
-    expect(() => parseLabels("id,label\n1,page\n", [1, 2])).toThrow(/no label/);
+  it("item 5, S8: refuses a missing, duplicate, unknown or invalid label, and names missing ids", () => {
+    expect(() => parseLabels("id,label\n1,page\n", [1, 2, 3])).toThrow(/2 ids have no label: 2, 3/);
+    expect(() => weightedMetrics([{ stratum: "challenge", stratumSize: 1, ruleLabel: "block", human: "Block " }], { resamples: 1 })).toThrow(/invalid label/);
     expect(() => parseLabels("id,label\n1,page\n1,page\n", [1])).toThrow(/duplicate/);
     expect(() => parseLabels("id,label\n9,page\n", [1])).toThrow(/unknown id/);
     expect(() => parseLabels("id,label\n1,maybe\n", [1])).toThrow(/invalid label/);
@@ -785,12 +891,38 @@ describe("what ties a run to its code", () => {
     await runPass([], { pass: 2, out, loopbackPort: 9, delayMs: 0, manifest: { listSha256: { T1k: "a" } }, recheck: () => ({ listSha256: { T1k: "b" } }) });
     expect(JSON.parse(readFileSync(join(out, "manifest.json"), "utf8")).immutableAtFinish).toEqual({ ok: false, changed: ["listSha256"] });
   });
+  it("S3: a killed round counts by its list, and its text can still go", () => {
+    const dir = mkdtempSync(join(tmpdir(), "e20r2-"));
+    const run = join(dir, "e20r-pilot-1");
+    mkdirSync(run);
+    const list = "a.example.com\n";
+    writeFileSync(join(run, "pilot-sites.txt"), list);
+    writeFileSync(join(run, "manifest.json"), JSON.stringify({ pilotSitesSha256: createHash("sha256").update(list).digest("hex") }));
+    writeFileSync(join(run, "raw.jsonl"), `${JSON.stringify({ host: "a.example.com", evidence: { excerpt: "x" } })}\n`);
+    const rounds = pilotRounds(dir);
+    expect(rounds[0]).toMatchObject({ ok: true, hosts: ["a.example.com"] });
+    expect(checkPilotDropped(readRemovals(list, "pilot"), rounds, { need: false }).ok).toBe(true);
+    expect(checkPilotDropped(new Map(), rounds, { need: false }).ok).toBe(false);
+    expect(prunePilot(run).kind).toBe("pilot");
+    expect(readFileSync(join(run, "raw.jsonl"), "utf8")).not.toContain("excerpt");
+  });
+  it("note: results are private to the account", async () => {
+    const out = join(mkdtempSync(join(tmpdir(), "e20r2-")), "run");
+    await runPass([], { pass: "pilot", out, loopbackPort: 9, delayMs: 0 });
+    expect(statSync(out).mode & 0o777).toBe(0o700);
+    for (const f of ["raw.jsonl", "manifest.json", "aggregate.json", "pilot-sites.txt"]) expect(statSync(join(out, f)).mode & 0o777, f).toBe(0o600);
+  });
+  it("S5: a loopback run asks no remote", () => {
+    const src = readFileSync(join(import.meta.dirname, "..", "bench", "front-door", "replicate.mjs"), "utf8");
+    expect(src).toContain("{ remote: !extra.loopback }");
+    expect(src).toContain("{ remote: !loopbackPort }");
+  });
   it("item 2: pruning leaves the run's manifest alone, and links the old and new raw hash", () => {
     const dir = mkdtempSync(join(tmpdir(), "e20r2-"));
     const text = `${JSON.stringify({ host: "a.example.com", evidence: { pageExcerpt: { text: "x" } } })}\n`;
     writeFileSync(join(dir, "raw.jsonl"), text);
     const sum = createHash("sha256").update(text).digest("hex");
-    writeFileSync(join(dir, "manifest.json"), JSON.stringify({ rawSha256: sum }));
+    writeFileSync(join(dir, "manifest.json"), JSON.stringify({ finishedAt: "x", rawSha256: sum }));
     const proof = rewriteRun(dir, [{ host: "a.example.com" }], "pilot");
     expect(proof.rawSha256Before).toBe(sum);
     expect(proof.rawSha256After).not.toBe(sum);

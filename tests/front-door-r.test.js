@@ -10,7 +10,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { classify, classifyRegistered, cookieNames, evidenceOf, pageExcerpt, scrub, scrubAddresses, scrubMisses, traitsOf, EXCERPT_BYTES, PAGE_TEXT_CHARS, SOFT_MAX_CHARS } from "../bench/front-door/classify.mjs";
-import { authorizeR, checkPilotDropped, CLAIM_COHORTS, CLASSIFIER, dmarcTags, dnsOutcome, gitState, mergeCohorts, pilotRounds, pilotSample, readDomain, readRemovals, recordedHashR, runManifest, runPass, siteDns, shuffled, seeded, dnsProviders, selfTestR, sourceAddressCount, aggregateR, R_COHORTS, ipv4Lookup, PASS_SEED, PREREG_R, sourceAddressOf, V2_LIMITS } from "../bench/front-door/replicate.mjs";
+import { authorizeR, checkPilotDropped, CLAIM_COHORTS, CLASSIFIER, dmarcTags, dnsOutcome, gitState, mergeCohorts, pilotRounds, pilotSample, readDomain, readRemovals, recordedHashR, runManifest, runPass, siteDns, shuffled, seeded, dnsProviders, selfTestR, sourceAddressCount, aggregateR, R_COHORTS, ipv4Lookup, PASS_SEED, PREREG_R, REMOTE_URL, sourceAddressOf, V2_LIMITS } from "../bench/front-door/replicate.mjs";
 import { robotsAccess, strictRobots, visit, LIMITS } from "../bench/front-door/run.mjs";
 import { CheckError, fetchBody, parseTarget } from "../api/_lib/guard.mjs";
 import { createServer as createTlsServer } from "node:tls";
@@ -521,13 +521,21 @@ describe("E20-R run records", () => {
     expect(m.config.appPage).toBe(false);
   });
   it("records the commit and a dirty tree", () => {
-    const run = (_c, args) => ({ "rev-parse": "abc\n", status: " M x\n", "ls-files": "H a\nH b\n", "ls-remote": "def\trefs/heads/main\n" })[args[0]];
-    expect(gitState("/x", run)).toEqual({ commit: "abc", dirty: true, hidden: false, remoteTip: "def" });
+    const calls = [];
+    const run = (_c, args, opts) => { calls.push([args, opts]); return ({ "rev-parse": "abc\n", status: " M x\n", "ls-files": "H a\nH b\n", "ls-remote": "def\trefs/heads/main\n" })[args[0]]; };
+    expect(gitState("/x", run)).toEqual({ commit: "abc", dirty: true, hidden: false, remoteUrl: REMOTE_URL, remoteTip: "def" });
+    expect(calls.find(([a]) => a[0] === "ls-remote")[0]).toEqual(["ls-remote", REMOTE_URL, "refs/heads/main"]);
+    expect(calls.find(([a]) => a[0] === "status")[0]).toContain("--untracked-files=all");
+    expect(calls.every(([, o]) => o.timeout > 0)).toBe(true);
+    // S5: nothing goes to the network unless asked.
+    calls.length = 0;
+    expect(gitState("/x", run, { remote: false }).remoteTip).toBeNull();
+    expect(calls.some(([a]) => a[0] === "ls-remote")).toBe(false);
     expect(gitState("/x", (c, a) => (a[0] === "ls-files" ? "h a\n" : run(c, a))).hidden).toBe(true);
     expect(gitState("/x", (c, a) => (a[0] === "ls-files" ? "S a\n" : run(c, a))).hidden).toBe(true);
     const offline = (c, a) => { if (a[0] === "ls-remote") throw new Error("no network"); return run(c, a); };
     expect(gitState("/x", offline).remoteTip).toBeNull();
-    expect(gitState("/x", () => { throw new Error("no git"); })).toEqual({ commit: null, dirty: null, hidden: null, remoteTip: null });
+    expect(gitState("/x", () => { throw new Error("no git"); })).toEqual({ commit: null, dirty: null, hidden: null, remoteUrl: REMOTE_URL, remoteTip: null });
     expect(runManifest({ kind: "x" }).kind).toBe("x");
   });
   it("counts public IPv4 addresses only", () => {

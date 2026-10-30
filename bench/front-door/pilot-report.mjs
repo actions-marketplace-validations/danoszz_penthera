@@ -3,8 +3,9 @@
  * E20-R pilot report: what a run's raw.jsonl holds, as counts only. No site is
  * named, so the output can be read and pasted anywhere.
  *
- *   node bench/front-door/pilot-report.mjs <raw.jsonl> --exclude <exclusion list> [--seal]
+ *   node bench/front-door/pilot-report.mjs <raw.jsonl> --exclude <exclusion list> [--skip <host list>]... [--seal]
  *
+ * Pass the removal, prior opt-out and pilot lists as --skip, so every hop meets all four.
  * --seal writes pilot-result.json next to the raw file, which pass 2 requires. Seal
  * before pruning: the report reads the excerpts that pruning deletes.
  *
@@ -15,6 +16,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { scrubMisses } from "./classify.mjs";
+import { readRemovals } from "./replicate.mjs";
 import { exclusionFor, readExclusions } from "./run.mjs";
 
 const tally = (items) => {
@@ -37,11 +39,18 @@ function storedText(r) {
   ].filter(Boolean);
 }
 
+// A name that doesn't exist is a finding. A resolver that didn't answer says nothing about the site.
+const NO_NAME = new Set(["ENOTFOUND", "ENODATA", "NXDOMAIN"]);
+const resolverFailed = (r) => (r.error === "not_found" && r.netCode !== undefined && !NO_NAME.has(r.netCode)) || Boolean(r.dns?.listed?.outcomes?.ns?.startsWith("resolver-failure"));
+
 // SPF records list mail servers by address on purpose, so addresses don't count here.
 const spfText = (r) => [r.dns?.listed?.spfRecord, r.dns?.final?.spfRecord].filter(Boolean);
 
-/** Counts for one run. `records` come from raw.jsonl; `exclude` is the exclusion list, to check every hop. */
-export function pilotReport(records, { exclude = new Map() } = {}) {
+/**
+ * Counts for one run. `records` come from raw.jsonl; `exclude` is every skip list, to
+ * check every hop. `pruned` says the text is gone, so its absence is no failure.
+ */
+export function pilotReport(records, { exclude = new Map(), pruned = false } = {}) {
   const ok = records.filter((r) => r.status === "ok");
   const dns = records.filter((r) => r.dns?.listed);
   const answered = (id) => dns.filter((r) => r.dns.listed[id] !== null).length;
@@ -51,7 +60,8 @@ export function pilotReport(records, { exclude = new Map() } = {}) {
   const sum = (k) => records.reduce((n, r) => n + (r.counters?.[k] ?? 0), 0);
   const twoxx = ok.filter((r) => r.httpStatus >= 200 && r.httpStatus < 300);
   return {
-    sites: records.length,
+    sites: records.length, pruned,
+    resolverFailures: records.filter(resolverFailed).length,
     outcomes: tally(records.map((r) => (r.status === "error" ? `error:${r.error}` : r.reason ? `${r.status}:${r.reason}` : r.status))),
     labels: tally(ok.map((r) => r.evidence?.class?.label ?? "none")),
     labelsRegistered: tally(ok.map((r) => r.evidence?.classRegistered?.label ?? "none")),
@@ -91,17 +101,23 @@ export function pilotReport(records, { exclude = new Map() } = {}) {
 
 // A visit's own budget allows 20 requests; more means the limit failed.
 const MAX_REQUESTS_PER_SITE = 20;
+// A run that barely reached anything tells nothing about its instrument. Pass 1 graded 84% of what it could.
+export const MIN_GRADED_SHARE = 0.5;
+export const MAX_RESOLVER_FAILURES = 0.2;
 
 /** Amendment 2's stop rules, as counts. Any entry stops the run until it is explained. */
 export function stopRules(report) {
   const stop = [];
   if (Object.values(report.scrubMisses).some(Boolean)) stop.push("a privacy scrub missed something");
   if ((report.outcomes["error:internal"] ?? 0) > 0) stop.push("an internal error");
-  if (report.evidence.twoxx && report.evidence.twoxxWithExcerpt < report.evidence.twoxx * 0.9) stop.push("under 90% of 2xx responses have an excerpt");
+  if (!report.pruned && report.evidence.twoxx && report.evidence.twoxxWithExcerpt < report.evidence.twoxx * 0.9) stop.push("under 90% of 2xx responses have an excerpt");
   const eligible = report.sites - Object.entries(report.outcomes).filter(([k]) => /^(opted_out|excluded:(robots_disallow_all|robots_disallow_path|not_a_homepage|exclusion_list))$/.test(k)).reduce((n, [, v]) => n + v, 0);
   if (report.dns.read < eligible) stop.push("a site with no DNS read");
   if (report.counters.maxRequestsPerSite > MAX_REQUESTS_PER_SITE) stop.push(`a site took more than ${MAX_REQUESTS_PER_SITE} requests`);
   if (report.excludedHops) stop.push("a request reached an excluded host");
+  if (eligible && report.evidence.graded / eligible < MIN_GRADED_SHARE) stop.push("under half of the eligible sites were graded");
+  if (eligible && report.resolverFailures / eligible > MAX_RESOLVER_FAILURES) stop.push("over 20% of sites hit a resolver failure");
+  if (eligible && report.evidence.twoxx === 0) stop.push("no site answered with a 2xx");
   return stop;
 }
 
@@ -118,19 +134,21 @@ export function sealPilot(dir, { exclude = new Map() } = {}) {
   const rawBytes = readFileSync(join(dir, "raw.jsonl"));
   const report = pilotReport(rawBytes.toString("utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)), { exclude });
   const stop = stopRules(report);
-  if (hash(rawBytes) !== manifest.rawSha256) stop.push("the raw file is not the one the manifest hashed");
+  if (existsSync(join(dir, "prune-manifest.json"))) stop.push("sealed after pruning: seal first, while the excerpts exist");
+  else if (hash(rawBytes) !== manifest.rawSha256) stop.push("the raw file is not the one the manifest hashed");
   if (!manifest.finishedAt) stop.push("the run did not finish");
   if (!manifest.immutableAtFinish?.ok) stop.push("something changed while it ran");
   const result = { passed: stop.length === 0, stop, manifestSha256: hash(manifestBytes), rawSha256: manifest.rawSha256 ?? null, reportSha256: hash(JSON.stringify(report)), sealedAt: new Date().toISOString() };
-  writeFileSync(join(dir, "pilot-result.json"), JSON.stringify(result, null, 2) + "\n");
+  writeFileSync(join(dir, "pilot-result.json"), JSON.stringify(result, null, 2) + "\n", { mode: 0o600 });
   return { ...result, report };
 }
 
 function main(args) {
   const i = args.indexOf("--exclude");
-  const file = args.find((a, k) => !a.startsWith("--") && k !== i + 1);
-  if (!file || i < 0) { console.error("Usage: pilot-report.mjs <raw.jsonl> --exclude <exclusion list> [--seal]"); return 2; }
-  const exclude = readExclusions(readFileSync(args[i + 1], "utf8"));
+  const file = args.find((a, k) => !a.startsWith("--") && !["--exclude", "--skip"].includes(args[k - 1]));
+  if (!file || i < 0) { console.error("Usage: pilot-report.mjs <raw.jsonl> --exclude <exclusion list> [--skip <host list>]... [--seal]"); return 2; }
+  const skips = args.flatMap((a, k) => (a === "--skip" ? [args[k + 1]] : []));
+  const exclude = new Map([...readExclusions(readFileSync(args[i + 1], "utf8")), ...skips.flatMap((f) => [...readRemovals(readFileSync(f, "utf8"), "skip")])]);
   if (args.includes("--seal")) {
     if (!existsSync(join(dirname(file), "manifest.json"))) { console.error("--seal needs the run's manifest.json next to the raw file."); return 2; }
     const { report, ...result } = sealPilot(dirname(file), { exclude });
@@ -138,7 +156,7 @@ function main(args) {
     return result.passed ? 0 : 1;
   }
   const records = readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
-  const report = pilotReport(records, { exclude });
+  const report = pilotReport(records, { exclude, pruned: existsSync(join(dirname(file), "prune-manifest.json")) });
   const stop = stopRules(report);
   console.log(JSON.stringify({ ...report, stop }, null, 2));
   return stop.length ? 1 : 0;

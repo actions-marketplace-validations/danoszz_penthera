@@ -127,6 +127,10 @@ export async function runAcceptance() {
     stops("missing DNS", /no DNS read/, ({ dns: _dns, ...r }) => r);
     stops("more than 20 requests", /more than 20/, (r) => ({ ...r, counters: { ...r.counters, requests: 21 } }));
     stops("hop to an excluded host", /excluded host/, (r) => ({ ...r, hops: [...r.hops, "ministry.gov"] }));
+    stops("dead run: no name resolves, resolver failing", /graded/, ({ evidence: _e, checks: _c, finalHost: _f, ...r }) => ({ ...r, status: "error", error: "not_found", netCode: "ESERVFAIL" }));
+    stops("resolver failures over the ceiling", /resolver failure/, (r) => ({ ...r, dns: { ...r.dns, listed: { ...r.dns.listed, outcomes: { ...r.dns.listed.outcomes, ns: "resolver-failure:ESERVFAIL" } } } }));
+    stops("every site blocked, zero 2xx", /no site answered/, (r) => ({ ...r, httpStatus: 403 }));
+    stops("graded share under the floor", /graded/, ({ evidence: _e, checks: _c, finalHost: _f, ...r }) => ({ ...r, status: "error", error: "timeout" }));
     stops("changed while the pilot ran", /changed while/, (r) => r, (m) => ({ ...m, immutableAtFinish: { ok: false, changed: ["codeSha256"] } }));
 
     const unsealed = variant(root);
@@ -146,6 +150,10 @@ export async function runAcceptance() {
     sealPilot(fake.run, { exclude });
     writeFileSync(join(fake.run, "prune-manifest.json"), JSON.stringify({ manifestSha256: "x", rawSha256Before: "x", rawSha256After: "x" }));
     add("pruning failed: proof for another run", "refused", gate(fake.results), /another run/);
+
+    const killed = variant(root, (r) => r, ({ finishedAt: _f, rawSha256: _r, ...m }) => m);
+    prunePilot(killed.run);
+    add("pilot killed before it finished", "refused", gate(killed.results), /did not finish/);
 
     const tampered = clean();
     const sealed = JSON.parse(readFileSync(join(tampered.run, "pilot-result.json"), "utf8"));

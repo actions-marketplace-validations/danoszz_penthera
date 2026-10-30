@@ -4,10 +4,9 @@
  * hard cap instead. Progress goes out as bytes arrive, so a killed visit keeps its
  * counters and hop list, also in the middle of a response.
  */
-import { lookup as dnsLookup } from "node:dns/promises";
 import { parentPort, workerData } from "node:worker_threads";
 import { evidenceOf } from "./classify.mjs";
-import { visit } from "./run.mjs";
+import { ipv4Lookup, visit } from "./run.mjs";
 
 const { row, loopbackPort, exclude, budgetMs, hardCapMs } = workerData;
 const meter = { requests: 0, bytes: 0, redirects: 0, hosts: [] };
@@ -22,6 +21,6 @@ const add = meter.hosts.push.bind(meter.hosts);
 meter.hosts.push = (host) => { add(host); send(); };
 const record = await visit(row, {
   loopbackPort, exclude: new Map(exclude), evidence: evidenceOf, strict: true, budgetMs, hardCapMs, meter,
-  lookup: loopbackPort ? undefined : (host, opts = {}) => dnsLookup(host, { ...opts, family: 4 }),
+  lookup: loopbackPort ? undefined : ipv4Lookup,
 });
 parentPort.postMessage({ record });

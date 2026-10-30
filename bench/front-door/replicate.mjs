@@ -33,14 +33,14 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { isIP } from "node:net";
-import { readFileSync, readdirSync, writeFileSync, mkdirSync, appendFileSync, existsSync, statSync } from "node:fs";
-import { Resolver, lookup as dnsLookup } from "node:dns/promises";
+import { chmodSync, readFileSync, readdirSync, writeFileSync, mkdirSync, appendFileSync, existsSync, statSync } from "node:fs";
+import { Resolver } from "node:dns/promises";
 import { networkInterfaces, platform, release } from "node:os";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Worker } from "node:worker_threads";
 import {
-  readList, readExclusions, exclusionFor, hostOf, aggregate, sha256, redact, slim, LIMITS, USER_AGENT, OPT_OUT_TOKENS, MIN_GROUP, STUB_DNS, ROBOTS_REDIRECTS, ROBOTS_MAX_BYTES,
+  readList, readExclusions, exclusionFor, hostOf, aggregate, ipv4Lookup, sha256, redact, slim, LIMITS, USER_AGENT, OPT_OUT_TOKENS, MIN_GROUP, STUB_DNS, ROBOTS_REDIRECTS, ROBOTS_MAX_BYTES,
 } from "./run.mjs";
 import { EXCERPT_BYTES, INPUT_CAP_CHARS, PAGE_TEXT_CHARS, scrub, SOFT_MAX_CHARS } from "./classify.mjs";
 import { pslSha256, PSL_VERSION, siteKey, siteOrg } from "./psl.mjs";
@@ -54,6 +54,10 @@ export const STUDY_PAGE = join(ROOT, "site", "pages", "research-e20.md");
 export const CLASSIFIER = join(ROOT, "bench", "front-door", "classify.mjs");
 export const RESULTS = join(ROOT, "bench", "front-door", "results");
 export const PASS2_OUT = join(RESULTS, "e20r-pass2");
+// Pinned: a checkout's `origin` is whatever someone set it to.
+export const REMOTE_URL = "https://github.com/danoszz/penthera.git";
+const GIT_TIMEOUT_MS = 15_000;
+const SECRET = Object.freeze({ mode: 0o600 });
 export const VISIT_WORKER = fileURLToPath(new URL("./visit-worker.mjs", import.meta.url));
 // The thread's own timers fire first when its event loop is free.
 const WORKER_GRACE_MS = 1500;
@@ -409,20 +413,20 @@ export function unmatchedHosts(entries, rows) {
  * and the tip of main on the remote, asked now: a stale `origin/main` would pass.
  */
 export function gitState(cwd = ROOT, run = execFileSync, { remote = true } = {}) {
-  const git = (...args) => run("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+  const git = (...args) => run("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: GIT_TIMEOUT_MS }).trim();
   try {
     const state = {
-      commit: git("rev-parse", "HEAD"), dirty: git("status", "--porcelain").length > 0,
-      hidden: git("ls-files", "-v").split("\n").some((l) => /^[a-zS]/.test(l)), remoteTip: null,
+      commit: git("rev-parse", "HEAD"), dirty: git("status", "--porcelain", "--untracked-files=all").length > 0,
+      hidden: git("ls-files", "-v").split("\n").some((l) => /^[a-zS]/.test(l)), remoteUrl: REMOTE_URL, remoteTip: null,
     };
     if (remote) {
       try {
-        state.remoteTip = git("ls-remote", "origin", "refs/heads/main").split(/\s+/)[0] || null;
+        state.remoteTip = git("ls-remote", REMOTE_URL, "refs/heads/main").split(/\s+/)[0] || null;
       } catch { /* no answer: the lock refuses */ }
     }
     return state;
   } catch {
-    return { commit: null, dirty: null, hidden: null, remoteTip: null };
+    return { commit: null, dirty: null, hidden: null, remoteUrl: REMOTE_URL, remoteTip: null };
   }
 }
 
@@ -443,7 +447,7 @@ export function holdsText(rawFile) {
  */
 export function pilotEvidence(dropped, { results = RESULTS, current } = {}) {
   const rounds = pilotRounds(results);
-  const listed = checkPilotDropped(dropped, rounds);
+  const listed = checkPilotDropped(dropped, rounds, { need: true });
   if (!listed.ok) return listed;
   const no = (why) => ({ ok: false, why });
   const read = (dir, f) => { const p = join(results, dir, f); return existsSync(p) ? readFileSync(p) : null; };
@@ -452,13 +456,15 @@ export function pilotEvidence(dropped, { results = RESULTS, current } = {}) {
     const proof = JSON.parse(read(dir, "prune-manifest.json") ?? "null");
     const raw = join(results, dir, "raw.jsonl");
     if (!proof) return no(`Pilot ${dir} has no proof that its text was deleted.`);
-    if (proof.manifestSha256 !== sha256(manifest) || proof.rawSha256Before !== JSON.parse(manifest).rawSha256) return no(`Pilot ${dir}: its prune proof is for another run.`);
+    const recorded = JSON.parse(manifest);
+    if (proof.manifestSha256 !== sha256(manifest) || (recorded.finishedAt && proof.rawSha256Before !== recorded.rawSha256)) return no(`Pilot ${dir}: its prune proof is for another run.`);
     if (!existsSync(raw) || proof.rawSha256After !== sha256(readFileSync(raw))) return no(`Pilot ${dir}: the raw file is not the pruned one.`);
     if (holdsText(raw)) return no(`Pilot ${dir} still holds excerpt text.`);
   }
   const last = rounds.at(-1).dir;
   const manifestBytes = read(last, "manifest.json");
   const manifest = JSON.parse(manifestBytes);
+  if (!manifest.finishedAt) return no(`Pilot ${last} did not finish. Run the next round.`);
   const result = JSON.parse(read(last, "pilot-result.json") ?? "null");
   if (!result) return no(`Pilot ${last} has no sealed report.`);
   if (result.manifestSha256 !== sha256(manifestBytes) || result.rawSha256 !== manifest.rawSha256) return no(`Pilot ${last}: its sealed report is for another run.`);
@@ -471,8 +477,8 @@ export function pilotEvidence(dropped, { results = RESULTS, current } = {}) {
 }
 
 /**
- * Every finished pilot round, from its manifest. `sites` is their union. A round
- * whose list no longer matches the hash in its manifest makes the result fail.
+ * Every pilot round that started, from its manifest. A round whose list no longer
+ * matches the hash in its manifest makes the result fail.
  */
 export function pilotRounds(results = RESULTS) {
   const rounds = [];
@@ -483,16 +489,16 @@ export function pilotRounds(results = RESULTS) {
     if (!existsSync(m) || !existsSync(list)) { rounds.push({ dir, ok: false }); continue; }
     const manifest = JSON.parse(readFileSync(m, "utf8"));
     const bytes = readFileSync(list);
-    rounds.push({ dir, ok: Boolean(manifest.finishedAt) && manifest.pilotSitesSha256 === sha256(bytes), hosts: [...readRemovals(bytes.toString("utf8"), "pilot").keys()] });
+    rounds.push({ dir, ok: manifest.pilotSitesSha256 === sha256(bytes), hosts: [...readRemovals(bytes.toString("utf8"), "pilot").keys()] });
   }
   return rounds;
 }
 
-/** Pass 2 needs the file to hold exactly the sites of every finished pilot round. */
+/** A later round and pass 2 need the file to hold exactly the sites of every pilot round, finished or not: a killed round still visited them. */
 export function checkPilotDropped(dropped, rounds, { need = true } = {}) {
   if (!rounds.length) return need ? { ok: false, why: "No pilot manifest found." } : { ok: true, why: "" };
   const bad = rounds.find((r) => !r.ok);
-  if (bad) return { ok: false, why: `Pilot ${bad.dir} is unfinished, or its list does not match its manifest.` };
+  if (bad) return { ok: false, why: `Pilot ${bad.dir}: its site list does not match its manifest.` };
   const want = new Set(rounds.flatMap((r) => r.hosts));
   const same = want.size === dropped.size && [...want].every((h) => dropped.has(h));
   return same ? { ok: true, why: "" } : { ok: false, why: "--pilot-dropped does not hold exactly the pilot sites." };
@@ -556,7 +562,7 @@ export function studyState() {
 /** What ran, where: written at the start of a run and again at the end. */
 export function runManifest(extra = {}) {
   return {
-    study: "E20-R2", git: gitState(),
+    study: "E20-R2", git: gitState(ROOT, execFileSync, { remote: !extra.loopback }),
     ...studyState(),
     node: process.version, os: `${platform()} ${release()}`,
     sourceIpv4Count: sourceAddressCount(),
@@ -566,8 +572,7 @@ export function runManifest(extra = {}) {
   };
 }
 
-/** § 5: IPv4 only, so one published address accounts for every request. */
-export const ipv4Lookup = (host, opts = {}) => dnsLookup(host, { ...opts, family: 4 });
+export { ipv4Lookup };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -624,15 +629,16 @@ export function visitInWorker(row, { loopbackPort, exclude = new Map(), budgetMs
 export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map(), delayMs = LIMITS.delayMs, concurrency = LIMITS.concurrency, dns = {}, meta = {}, manifest = {}, onRecord, workerFile, recheck = () => ({}) } = {}) {
   if (!loopbackPort) { concurrency = LIMITS.concurrency; delayMs = LIMITS.delayMs; }
   const order = shuffled(rows, PASS_SEED[pass]);
-  mkdirSync(out, { recursive: true });
+  mkdirSync(out, { recursive: true, mode: 0o700 });
+  chmodSync(out, 0o700);
   writeFileSync(join(out, ".gitignore"), "*\n");
   const raw = join(out, "raw.jsonl");
   if ((existsSync(raw) && statSync(raw).size) || existsSync(join(out, "manifest.json"))) throw new Error(`Refused: ${out} already holds a run.`);
-  writeFileSync(raw, "");
+  writeFileSync(raw, "", SECRET);
   const pilotList = pass === "pilot" ? order.map((r) => siteKey(r.host)).join("\n") + "\n" : null;
   const started = runManifest({ kind: pass === "pilot" ? "pilot" : "pass", pass, seed: PASS_SEED[pass], loopback: Boolean(loopbackPort), sites: order.length, startedAt: new Date().toISOString(), ...(pilotList ? { pilotSitesSha256: sha256(Buffer.from(pilotList)) } : {}), ...manifest });
-  if (pilotList) writeFileSync(join(out, "pilot-sites.txt"), pilotList);
-  writeFileSync(join(out, "manifest.json"), JSON.stringify(started, null, 2) + "\n");
+  if (pilotList) writeFileSync(join(out, "pilot-sites.txt"), pilotList, SECRET);
+  writeFileSync(join(out, "manifest.json"), JSON.stringify(started, null, 2) + "\n", SECRET);
   // Loopback runs never touch a real resolver.
   const stub = () => Promise.reject(Object.assign(new Error("ENODATA"), { code: "ENODATA" }));
   const dnsAnswers = loopbackPort ? { ...STUB_DNS, mx: stub, ns: stub, ...dns } : dns;
@@ -674,16 +680,16 @@ export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map
     }
   }));
   const agg = aggregateR(records, { pass, ...meta, concurrency, delayMs, appPage: false, userAgent: USER_AGENT, order: "seeded shuffle", seed: PASS_SEED[pass] });
-  writeFileSync(join(out, "aggregate.json"), JSON.stringify(agg, null, 2) + "\n");
+  writeFileSync(join(out, "aggregate.json"), JSON.stringify(agg, null, 2) + "\n", SECRET);
   const sum = (k) => records.reduce((n, r) => n + (r.counters?.[k] ?? 0), 0);
   const end = { ...studyState(), ...recheck() };
   const changed = Object.keys(end).filter((k) => JSON.stringify(end[k]) !== JSON.stringify(started[k]));
   writeFileSync(join(out, "manifest.json"), JSON.stringify({
-    ...started, git: gitState(), finishedAt: new Date().toISOString(), records: records.length,
+    ...started, git: gitState(ROOT, execFileSync, { remote: !loopbackPort }), finishedAt: new Date().toISOString(), records: records.length,
     totals: { requests: sum("requests"), bytes: sum("bytes"), redirects: sum("redirects") },
     immutableAtFinish: { ok: changed.length === 0, changed },
     rawSha256: fileHash(raw), aggregateSha256: fileHash(join(out, "aggregate.json")),
-  }, null, 2) + "\n");
+  }, null, 2) + "\n", SECRET);
   return { records, aggregate: agg };
 }
 

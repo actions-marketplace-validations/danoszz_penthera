@@ -429,7 +429,8 @@ export function optedOut(robots, tokens = [TOKEN]) {
     const value = m[2].trim();
     if (key === "user-agent") {
       if (inRules) { agents = []; inRules = false; }
-      agents.push(value.split("/")[0].trim().toLowerCase());
+      // The product token ends at a slash or a space (RFC 9309 § 2.2.1).
+      agents.push(value.split(/[/\s]/)[0].toLowerCase());
     } else if (key === "disallow" || key === "allow") {
       inRules = true;
       if (key === "disallow" && (value === "/" || value === "/*") && agents.some((a) => names.includes(a))) return true;

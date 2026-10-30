@@ -54,7 +54,9 @@ export function blindSheet(sample, records, { seed = PASS_SEED[2] } = {}) {
   const order = shuffled(sample, seed);
   const sheet = order.map((s, i) => {
     const e = byHost.get(s.host).evidence;
-    return { id: i + 1, status: e.status, headerNames: e.headerNames, values: e.values, cookieNames: e.cookieNames, excerpt: e.excerpt ?? "", pageExcerpt: e.pageExcerpt ?? null };
+    // `soft` and `hard` name the rules that fired, which would tell the labeler the answer.
+    const { soft: _soft, hard: _hard, ...shown } = e.pageExcerpt ?? {};
+    return { id: i + 1, status: e.status, headerNames: e.headerNames, values: e.values, cookieNames: e.cookieNames, excerpt: e.excerpt ?? "", pageExcerpt: e.pageExcerpt ? shown : null };
   });
   return { sheet, key: order.map((s, i) => ({ id: i + 1, stratum: s.stratum, stratumSize: s.stratumSize, ruleLabel: s.ruleLabel })) };
 }
@@ -90,7 +92,7 @@ export function parseLabels(text, ids, name = "labels") {
     out.set(id, label);
   }
   const missing = ids.filter((id) => !out.has(id));
-  if (missing.length) throw new Error(`${name}: ${missing.length} ids have no label`);
+  if (missing.length) throw new Error(`${name}: ${missing.length} ids have no label: ${missing.slice(0, 20).join(", ")}`);
   return out;
 }
 
@@ -131,6 +133,8 @@ function kappaOf(rows, x, y) {
  * Intervals resample within each stratum.
  */
 export function weightedMetrics(rows, { resamples = BOOTSTRAP.resamples, seed = BOOTSTRAP.seed } = {}) {
+  const bad = rows.find((r) => !ANSWERS.includes(r.human));
+  if (bad) throw new Error(`invalid label "${bad.human}"`);
   const answered = reweighted(rows.filter((r) => r.human !== "unsure"));
   const strata = Object.keys(STRATA).map((s) => answered.filter((r) => r.stratum === s)).filter((g) => g.length);
   const next = seeded(seed);
@@ -163,6 +167,7 @@ export function scoreLabels(key, humanText, agentText, opts) {
   };
 }
 
+const PRIVATE = Object.freeze({ mode: 0o600 });
 const hash = (b) => createHash("sha256").update(b).digest("hex");
 const readRaw = (file) => readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
 
@@ -173,13 +178,15 @@ const readRaw = (file) => readFileSync(file, "utf8").split("\n").filter(Boolean)
 export function rewriteRun(dir, records, kind) {
   const raw = join(dir, "raw.jsonl");
   const manifestBytes = readFileSync(join(dir, "manifest.json"));
+  const manifest = JSON.parse(manifestBytes);
   const before = hash(readFileSync(raw));
-  if (before !== JSON.parse(manifestBytes).rawSha256) throw new Error("Refused: the raw file is not the one the manifest hashed.");
+  // A killed run has no end hash. Its text still has to go.
+  if (manifest.finishedAt && before !== manifest.rawSha256) throw new Error("Refused: the raw file is not the one the manifest hashed.");
   const after = records.map((r) => JSON.stringify(r)).join("\n") + "\n";
-  writeFileSync(`${raw}.tmp`, after);
+  writeFileSync(`${raw}.tmp`, after, PRIVATE);
   renameSync(`${raw}.tmp`, raw);
   const proof = { kind, manifestSha256: hash(manifestBytes), rawSha256Before: before, rawSha256After: hash(after), records: records.length, prunedAt: new Date().toISOString() };
-  writeFileSync(join(dir, "prune-manifest.json"), JSON.stringify(proof, null, 2) + "\n");
+  writeFileSync(join(dir, "prune-manifest.json"), JSON.stringify(proof, null, 2) + "\n", PRIVATE);
   return proof;
 }
 
@@ -190,8 +197,8 @@ function main([mode, target, a, b]) {
     const records = readRaw(join(target, "raw.jsonl"));
     const sample = drawSample(records);
     const { sheet, key } = blindSheet(sample, records);
-    writeFileSync(join(target, "validation-sheet.json"), JSON.stringify(sheet, null, 2) + "\n");
-    writeFileSync(join(target, "validation-key.json"), JSON.stringify(key, null, 2) + "\n");
+    writeFileSync(join(target, "validation-sheet.json"), JSON.stringify(sheet, null, 2) + "\n", PRIVATE);
+    writeFileSync(join(target, "validation-key.json"), JSON.stringify(key, null, 2) + "\n", PRIVATE);
     const sampled = new Set(sample.map((s) => s.host));
     console.log(JSON.stringify({ sampled: sample.length, ...rewriteRun(target, records.map((r) => pruneExcerpt(r, sampled)), "validation-draw") }));
     return 0;

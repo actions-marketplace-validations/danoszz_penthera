@@ -2,7 +2,7 @@
  * The agent brief (docs/research/spec-agent-brief.md): one short, fixed-shape
  * summary an AI assistant can pass on as it is. Rules fill every section:
  *
- *   Verdict       Fix now | Review | Nothing to fix, with the counts behind it
+ *   Verdict       Fix now | Review | Nothing to fix | Nothing to assess, with the counts behind it
  *   Act on        findings that need a change, grouped by place and fix
  *   Check first   heuristic, low or dependency-capability findings
  *   Likely noise  findings demoted by a deterministic reason, one line per group
@@ -18,7 +18,7 @@ import { mdInline } from "./md-escape.js";
 import { footerLines } from "./footer.js";
 
 export const BRIEF_SCHEMA = "penthera.brief/1";
-export const VERDICTS = { fix: "Fix now", review: "Review", clean: "Nothing to fix" };
+export const VERDICTS = { fix: "Fix now", review: "Review", clean: "Nothing to fix", none: "Nothing to assess" };
 
 const SEV_ORDER = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 const MAX_ITEMS = 8;
@@ -204,7 +204,7 @@ export function buildBrief(results, { reports = [], notRunCommand = (n) => Strin
     .map((g) => noiseGroup(g, noiseReason.get(g[0])));
 
   const notChecked = [];
-  for (const r of list) notChecked.push(...coverageLines(r.coverage), ...(r.agents?.notChecked || []).map((l) => text(l, 300)));
+  for (const r of list) notChecked.push(...coverageLines(r.coverage), ...(r.agents?.notChecked || []).map((l) => text(l, 300)), ...(r.notChecked || []).map((l) => text(l, 300)));
   const next = [];
   for (const f of by.info) {
     const cmd = commandIn(f);
@@ -220,7 +220,9 @@ export function buildBrief(results, { reports = [], notRunCommand = (n) => Strin
   if (!notChecked.length) notChecked.push("The scan reported nothing it skipped. No finding is still not proof of safety: Penthera reports what its rules match.");
 
   const actHigh = act.some((i) => i.severity === "critical" || i.severity === "high");
-  const verdict = actHigh ? VERDICTS.fix : act.length || check.length ? VERDICTS.review : VERDICTS.clean;
+  // A null grade means the agents audit read nothing: no finding there is no result.
+  const nothingRead = list.length > 0 && !findings.length && list.every((r) => r.agents?.grade === null);
+  const verdict = actHigh ? VERDICTS.fix : act.length || check.length ? VERDICTS.review : nothingRead ? VERDICTS.none : VERDICTS.clean;
 
   return {
     schema: BRIEF_SCHEMA,

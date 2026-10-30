@@ -185,7 +185,7 @@ export function createRunManager(deps) {
       for (const f of result.findings || []) if (c[f.severity] != null) c[f.severity]++;
       const file = deps.writeReport(result, `${req.kind}_${stamp}.json`);
       run.summary = { counts: c, total: (result.findings || []).length, file, grade: result.agents?.grade || null };
-      log(`${req.kind === "deps" ? "deps" : "agents"} done: ${c.critical} critical, ${c.high} high, ${c.medium} medium, ${c.low} low${result.agents ? `, grade ${result.agents.grade}` : ""}`);
+      log(`${req.kind === "deps" ? "deps" : "agents"} done: ${c.critical} critical, ${c.high} high, ${c.medium} medium, ${c.low} low${result.agents ? `, ${result.agents.grade ? `grade ${result.agents.grade}` : "nothing to assess"}` : ""}`);
       if (file) log(`report written to ${file}`);
     } else {
       const offline = deps.settings().offline;

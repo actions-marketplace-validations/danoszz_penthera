@@ -92,7 +92,7 @@ function projectView(col, ctx) {
   col.append(h("section", { class: ["report", "verdict", "plate", `v-${v.level}`], "aria-label": "Verdict" },
     h("div", { class: "report-main" },
       h("p", { class: "report-host" },
-        h("span", { class: `grade grade-${all ? "x" : p.grade}`, title: all ? "" : `score ${p.score}/100` }, all ? "∑" : p.grade),
+        h("span", { class: `grade grade-${all ? "x" : p.grade}`, title: all || p.score == null ? "" : `score ${p.score}/100` }, all ? "∑" : p.grade),
         h("span", { title: key || "" }, all ? "All projects" : shortProject(key)),
         h("span", {}, easy
           ? (all ? `${plural(o.projects.length, "project")} · last checked ${when}` : `last checked ${when}`)

@@ -95,10 +95,11 @@ const SERVER_STATUS_RE = /Apache Server Status for|Server uptime:|Total accesses
 export async function scanUrl(rawTarget, opts = {}) {
   const target = normalizeBaseUrl(rawTarget);
   // Every request in this scan goes through one egress context: it enforces
-  // --offline, sets the User-Agent, applies --rate, and records hosts contacted and probe errors.
+  // --offline or the MCP scope, sets the User-Agent, applies --rate, and records hosts contacted and probe errors.
   const ctx = createEgressContext({
     target,
     offline: opts.offline,
+    scoped: opts.scoped,
     userAgent: opts.userAgent,
     allowHosts: opts.allowHosts,
     rateLimit: opts.rateLimit,

@@ -263,7 +263,7 @@ export async function runScanWizard() {
  * release before this version. Update after each release is tagged:
  * git rev-parse vX.Y.Z^{commit}. tests/init.test.js fails when it falls behind.
  */
-export const ACTION_PIN = Object.freeze({ tag: "v2.0.0", sha: "9b6bb2d10cf08601e68a8fdc27ba688c9d721570" });
+export const ACTION_PIN = Object.freeze({ tag: "v2.1.0", sha: "393236c79776ed55db1118dc5707c56ad18a663f" });
 
 export const WORKFLOW_PATH = ".github/workflows/penthera.yml";
 export const AGENTS_WORKFLOW_PATH = ".github/workflows/penthera-agents.yml";

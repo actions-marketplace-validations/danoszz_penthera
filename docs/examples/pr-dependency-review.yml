@@ -50,7 +50,7 @@ jobs:
           (cd "$RUNNER_TEMP/base" && npm ci --ignore-scripts --no-audit --no-fund)
           npm ci --ignore-scripts --no-audit --no-fund
 
-      - uses: danoszz/penthera@9b6bb2d10cf08601e68a8fdc27ba688c9d721570 # v2.0.0 (or a later release commit SHA)
+      - uses: danoszz/penthera@393236c79776ed55db1118dc5707c56ad18a663f # v2.1.0 (or a later release commit SHA)
         with:
           mode: deps
           fail-on: none # or high / critical to block the merge

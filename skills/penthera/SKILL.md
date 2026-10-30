@@ -19,7 +19,7 @@ compatibility: Node.js 22+, network access to target, Penthera CLI (npm link or 
 allowed-tools: "Bash(penthera:*) Bash(npx -y penthera@2.1.0:*) Bash(npx --no-install penthera:*) Read"
 metadata:
   author: danoszz
-  version: 2.1.0
+  version: 2.1.1
   category: security
 ---
 

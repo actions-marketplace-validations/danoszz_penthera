@@ -21,7 +21,7 @@ If you saw `Penthera-Research/E20` in your logs, it was a visit to your homepage
 1. the top 1000 sites of the [Tranco list](https://tranco-list.eu/), a research ranking of popular domains;
 2. the public websites of companies in the two most recent Y Combinator batches, from YC's public company directory.
 
-**E20-R** runs two passes, a week apart, no earlier than 6 November 2026, over about 7,000 sites: the two lists above, more Tranco sites, older Y Combinator companies, large listed companies in Europe and the US, public Show HN launches, and Dutch organizations in sectors of the Cyberbeveiligingswet. Each site is visited once per pass. Nothing is retried. Adult, gambling, health and government sites, and sites of people at risk, are on an exclusion list and are not visited.
+**E20-R** runs two passes, a week apart, no earlier than 6 November 2026, over about 7,000 sites: the two lists above, more Tranco sites, older Y Combinator companies, large listed companies in Europe and the US, public Show HN launches, and Dutch organizations in sectors of the Cyberbeveiligingswet. Each site is visited once per pass. Nothing is retried. Adult, gambling, patient-facing health and government sites, and sites of people at risk, are on an exclusion list and are not visited. In E20-R, Y Combinator companies stay in whatever their sector, except adult sites: a company that launched publicly can stand a homepage check.
 
 ## What it requests
 

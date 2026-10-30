@@ -18,6 +18,9 @@ import { mdInline } from "./md-escape.js";
 import { footerLines } from "./footer.js";
 
 export const BRIEF_SCHEMA = "penthera.brief/1";
+// Exit 0 is not "safe to publish": the rules do not reach these three areas.
+export const NOT_CHECKED_NOTE = "This run does not check login, access rules or payments.";
+
 export const VERDICTS = { fix: "Fix now", review: "Review", clean: "Nothing to fix", none: "Nothing to assess" };
 
 const SEV_ORDER = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
@@ -220,6 +223,7 @@ export function buildBrief(results, { reports = [], notRunCommand = (n) => Strin
   if (!notChecked.length) notChecked.push("The scan reported nothing it skipped. No finding is still not proof of safety: Penthera reports what its rules match.");
 
   const actHigh = act.some((i) => i.severity === "critical" || i.severity === "high");
+  if (!actHigh && modes.some((m) => m === "repo" || m === "url")) notChecked.unshift(NOT_CHECKED_NOTE);
   // A null grade means the agents audit read nothing: no finding there is no result.
   const nothingRead = list.length > 0 && !findings.length && list.every((r) => r.agents?.grade === null);
   const verdict = actHigh ? VERDICTS.fix : act.length || check.length ? VERDICTS.review : nothingRead ? VERDICTS.none : VERDICTS.clean;

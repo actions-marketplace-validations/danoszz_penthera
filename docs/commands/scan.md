@@ -83,7 +83,7 @@ next to it. `penthera init` can add `reports/` to your `.gitignore`.
 
 | Code | Meaning |
 |------|---------|
-| `0` | No critical or high findings |
+| `0` | No critical or high rule fired. This run does not check login, access rules or payments |
 | `1` | Critical or high findings detected |
 | `2` | Scan failed (unreachable target, bad config) |
 

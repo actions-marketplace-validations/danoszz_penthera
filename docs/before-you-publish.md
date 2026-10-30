@@ -57,11 +57,18 @@ npx penthera@2.1.0 --repo .
 npx penthera@2.1.0 agents .
 ```
 
-Read the exit code before you publish:
+`npm audit` lists known vulnerabilities in your npm packages. A default
+Penthera run can miss those, so run both.
+
+```bash
+npm audit
+```
+
+Read the Penthera exit code before you publish:
 
 | Code | Meaning | What to do |
 |---|---|---|
-| `0` | No critical or high findings | Publish |
+| `0` | No critical or high rule fired. This run does not check login, access rules or payments | Read any medium or low findings, then test those three yourself |
 | `1` | Critical or high findings | Fix them first, or write down why you accept them |
 | `2` | The scan did not run | Fix the setup and run it again |
 

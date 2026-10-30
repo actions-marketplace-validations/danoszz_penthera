@@ -256,17 +256,15 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
   --glass-tint: rgba(253, 253, 250, 0.62); --glass-edge: rgba(0, 0, 0, 0.2); --glass-rim: rgba(255, 255, 255, 0.9);
 }
 .rail {
-  position: fixed; z-index: 30; top: 12px; left: 50%; transform: translateX(-50%);
+  position: fixed; z-index: 30; top: 16px; left: 50%; transform: translateX(-50%);
   display: flex; align-items: center; gap: 2px;
   width: max-content; max-width: calc(100vw - 24px); height: 46px; padding: 0 6px;
   font-family: var(--px); font-size: 13px; letter-spacing: 0.02em;
   background: linear-gradient(180deg, rgba(255, 255, 255, var(--rail-lit)), transparent 46%, rgba(0, 0, 0, var(--rail-shade))), var(--rail-plate);
   border: 1px solid rgba(var(--ink-rgb), 0.28);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, var(--rail-rim)), 0 14px 34px -14px rgba(0, 0, 237, 0.55);
-  animation: rail-in 200ms var(--out);
 }
-@keyframes rail-in { from { opacity: 0; translate: 0 -6px; } }
-.rail[data-top] { top: calc(var(--ticker-h) + var(--bar-gap)); left: auto; right: var(--pad); transform: none; animation: none; }
+.rail[data-top] { top: calc(var(--ticker-h) + var(--bar-gap)); left: auto; right: var(--pad); transform: none; }
 .rail a { color: var(--text-1); text-decoration: none; }
 .rail-mark { display: inline-flex; align-items: center; height: 34px; padding: 0 16px 0 10px; }
 .rail-mark span[aria-hidden] {
@@ -298,7 +296,7 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
 /* Below 1100 px the rail no longer fits beside the logo, so it is the dock. */
 @media (max-width: 1100px) {
   .rail, .rail[data-top] {
-    top: auto; right: 12px; bottom: 12px; left: 12px; transform: none; animation: none;
+    top: auto; right: 12px; bottom: 12px; left: 12px; transform: none;
     width: auto; max-width: none; height: 56px; padding: 0 5px;
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
@@ -312,7 +310,6 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
   .foot { padding-bottom: 96px; }
   html { scroll-padding-top: 24px; scroll-padding-bottom: 84px; }
 }
-@media (prefers-reduced-motion: reduce) { .rail { animation: none; } }
 
 /* ── Bar ──────────────────────────────────────────────────────────────── */
 
@@ -1255,6 +1252,13 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .report-passed > summary::before { content: "+"; width: 24px; height: 24px; display: grid; place-items: center; border: 1px solid var(--frame); }
 .report-passed[open] > summary::before { content: "\2212"; }
 .report-scope { margin-top: 16px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
+/* The end of a report: the fix prompt is the one blue action. */
+.report-next { margin-top: 32px; padding-top: 32px; }
+.report-next h3 { font: 500 clamp(24px, 3vw, 36px) / 1.1 var(--display); letter-spacing: -0.03em; color: var(--text-1); }
+.report-next-acts { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin-top: 20px; }
+.report-next-acts .btn { min-height: 52px; padding: 0 24px; }
+.report-next-note { margin-top: 12px; font: 13px / 1.4 var(--px); color: var(--text-3); }
+@media (max-width: 759px) { .report-next-scan { display: none; } .report-next-acts .btn { flex: 1 1 100%; } }
 
 .prompt-dialog {
   width: min(640px, calc(100vw - 32px)); max-height: min(80vh, 760px); padding: 24px;

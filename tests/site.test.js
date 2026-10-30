@@ -351,6 +351,25 @@ describe("site benchmark (E10 pilot)", () => {
   });
 });
 
+describe("site report end", () => {
+  const report = { url: "https://a.test/", score: 40, verdict: "Weak", scope: "Passive.", checks: [
+    { title: "No HSTS", severity: "high", passed: false, evidence: "header missing", fix: "Send it.", verify: "curl -I a.test" },
+    { title: "HTTPS", severity: "high", passed: true },
+  ] };
+
+  it("turns a report into Markdown with every fix and what passed", async () => {
+    const { reportMarkdown } = await import("../site/check/card.js");
+    const md = reportMarkdown(report, "2026-10-30");
+    for (const s of ["# Penthera quick check: https://a.test/", "40/100. Weak. Checked 2026-10-30.", "## 1 to fix", "### No HSTS (high)", "Evidence: header missing", "Fix: Send it.", "Verify: `curl -I a.test`", "- HTTPS", "`npx penthera https://a.test/`"]) expect(md).toContain(s);
+  });
+
+  it("ends every report with an action, counted without any URL", () => {
+    const ui = readFileSync(join(ROOT, "site", "check", "ui.js"), "utf8");
+    expect(ui).toContain('wrap.append(el("p", "report-scope", report.scope), reportNext(report));');
+    for (const s of ["Copy fix prompt (", "Download report", 'count("link", { to: "download-report" })', 'count("copy", { what: "fix-prompt-end" })']) expect(ui).toContain(s);
+  });
+});
+
 describe("site motion budget", () => {
   const css = readFileSync(join(import.meta.dirname, "..", "site", "styles.css"), "utf8");
   const ui = readFileSync(join(import.meta.dirname, "..", "site", "check", "ui.js"), "utf8");
@@ -371,6 +390,13 @@ describe("site motion budget", () => {
     // A long report must not grow the canvas.
     expect(css).toMatch(/\.hero\[data-mode="fix"\] \.field \{ height: 100svh; \}/);
     expect(ui).toContain('[$(".hero"), $(".foot")]');
+  });
+
+  it("moves the rail on the compositor, and not at all under reduced motion", () => {
+    const dock = ui.slice(ui.indexOf("function railDock"), ui.indexOf("The bottom veil"));
+    expect(dock).toContain("still.matches");
+    expect(dock).toContain("translate:");
+    expect(dock).not.toMatch(/\b(left|top|width):\s*`/);
   });
 
   it("keeps the live field on a layer of its own", () => {

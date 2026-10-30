@@ -4,7 +4,7 @@
  */
 import { COPY } from "./copy.js";
 import { liveField } from "./field.js";
-import { cardRows, failedChecks, handoffTitle, rowTag } from "./card.js";
+import { cardRows, failedChecks, handoffTitle, reportMarkdown, rowTag } from "./card.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const el = (tag, cls, text) => {
@@ -326,6 +326,40 @@ function resultCard(report, rescan, openPrompt) {
   return card;
 }
 
+// The last thing in a report: something to do with it. The fix prompt, the
+// report as a file, and the full scan. A phone can't run npx, so it gets the
+// file and the star.
+function reportNext(report) {
+  const fixes = failedChecks(report);
+  const box = el("section", "report-next");
+  box.setAttribute("aria-label", "What to do next");
+  box.append(el("h3", null, fixes.length ? "Fix it now, or go deeper." : "Keep it, or go deeper."));
+  const acts = el("div", "report-next-acts");
+  if (fixes.length) {
+    const b = el("button", "btn glow", `Copy fix prompt (${fixes.length})`);
+    b.type = "button";
+    b.dataset.variant = "default";
+    b.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(promptFor(report, fixes)); b.textContent = "Copied. Paste it into your agent."; count("copy", { what: "fix-prompt-end" }); } catch { b.textContent = "Copy failed"; }
+    });
+    acts.append(b);
+  }
+  const dl = el("button", `btn${fixes.length ? " btn-white" : ""}`, "Download report");
+  dl.type = "button";
+  if (!fixes.length) dl.dataset.variant = "default";
+  dl.addEventListener("click", () => {
+    const a = el("a");
+    a.href = URL.createObjectURL(new Blob([reportMarkdown(report)], { type: "text/markdown" }));
+    a.download = `penthera-${new URL(report.url).hostname.replace(/[^a-z0-9.-]/gi, "")}.md`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    count("link", { to: "download-report" });
+  });
+  acts.append(dl, copyCmd(`npx penthera ${report.url}`, "report-next-scan", () => count("copy", { what: "full-scan-end" })), starLink());
+  box.append(acts, el("p", "report-next-note", "The report stays in this tab. The file is made here, and nothing is stored."));
+  return box;
+}
+
 // Every check with its evidence, fix and verify command, below the fold.
 function reportDetail(report) {
   const wrap = el("div", "report-detail");
@@ -353,7 +387,7 @@ function reportDetail(report) {
     fold.append(okList);
     wrap.append(fold);
   }
-  wrap.append(el("p", "report-scope", report.scope));
+  wrap.append(el("p", "report-scope", report.scope), reportNext(report));
   return wrap;
 }
 
@@ -576,11 +610,43 @@ function tickerRest() {
 
 // ── The rail docks once the logo has scrolled away ──────────────────────
 
+// A small joke on the way past. Docking: up, left along the top edge, then a
+// drop into place with a bounce. Leaving: the same path backwards, up, right,
+// and down onto its spot. The rail is measured before and after, because it
+// changes width, and only `translate` moves, so the compositor runs it. A
+// reversal mid-flight starts from wherever the rail is.
+const RAIL_MS = 680, RAIL_LIFT = 22;
 function railDock() {
   const rail = $(".rail[data-top]");
   const brand = $(".bar .brand");
   if (!rail || !brand) return;
-  new IntersectionObserver(([e]) => { rail.toggleAttribute("data-top", e.isIntersecting); }).observe(brand);
+  const still = matchMedia("(prefers-reduced-motion: reduce)");
+  let flight;
+  const box = () => { const r = rail.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top }; };
+  const move = (top) => {
+    if (rail.hasAttribute("data-top") === top) return;
+    const a = box();
+    flight?.cancel();
+    rail.toggleAttribute("data-top", top);
+    const b = box();
+    const dx = a.x - b.x, dy = a.y - b.y;
+    if (still.matches || Math.hypot(dx, dy) < 2) return;
+    const out = "cubic-bezier(.3, 0, .2, 1)";
+    flight = rail.animate(top ? [
+      { translate: `${dx}px ${dy}px`, easing: "ease-out" },
+      { offset: 0.2, translate: `${dx}px ${dy - RAIL_LIFT}px`, easing: out },
+      { offset: 0.68, translate: `10px ${dy - RAIL_LIFT}px`, easing: "ease-in-out" },
+      { offset: 0.84, translate: "-3px 0px", easing: "ease-out" },
+      { translate: "0px 0px" },
+    ] : [
+      { translate: `${dx}px ${dy}px`, easing: out },
+      { offset: 0.56, translate: `-10px ${-RAIL_LIFT}px`, easing: "cubic-bezier(.5, 0, .9, .6)" },
+      { offset: 0.76, translate: "0px 7px", easing: "ease-out" },
+      { offset: 0.9, translate: "0px -2px", easing: "ease-in-out" },
+      { translate: "0px 0px" },
+    ], { duration: RAIL_MS });
+  };
+  new IntersectionObserver(([e]) => move(e.isIntersecting)).observe(brand);
 }
 
 // ── The bottom veil stays off the hero text and the footer ──────────────

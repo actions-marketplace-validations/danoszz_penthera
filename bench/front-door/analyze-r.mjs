@@ -4,7 +4,7 @@
  * private raw files of both passes and of E20. Aggregates only; no site is
  * named in the output.
  *
- *   node bench/front-door/analyze-r.mjs --pass1 <raw.jsonl> --pass2 <raw.jsonl> --e20 <tranco/raw.jsonl> <yc/raw.jsonl> [--out analysis.json]
+ *   node bench/front-door/analyze-r.mjs --pass1 <raw.jsonl> --pass2 <raw.jsonl> --e20 <tranco/raw.jsonl> <yc/raw.jsonl> [--e20-excluded <hosts file>] [--out analysis.json]
  *
  * Intervals are a cluster bootstrap over organizations, by registrable domain
  * of the final host. HTTP claims must hold on both estimands: S (every graded
@@ -135,6 +135,12 @@ export function claims(p1, p2, e20, opts) {
   return out;
 }
 
+/** § 7: C1 to C4 without the hosts E20 excluded, so the comparison with E20 is like for like. */
+export function replicationAsE20(p1, droppedHosts, opts) {
+  const keep = p1.filter((r) => !droppedHosts.has(r.host.replace(/^www\./, "")));
+  return claims(keep, keep, new Map(), opts).filter((c) => ["C1", "C2", "C3", "C4"].includes(c.id));
+}
+
 /** § 6, secondary: each check by site trait, per cohort, groups of at least 20 sites. */
 export function traitTable(rows, checks = KAPPA_CHECKS, min = 20) {
   const out = {};
@@ -153,6 +159,7 @@ function main(args) {
   const e20 = new Map([...load(args[i + 1]), ...load(args[i + 2])].map((r) => [r.host, r]));
   const p1 = load(at("--pass1"));
   const out = { experiment: "E20-R", level: LEVEL, resamples: RESAMPLES, claims: claims(p1, load(at("--pass2")), e20), traits: traitTable(p1) };
+  if (args.includes("--e20-excluded")) out.replicationAsE20 = replicationAsE20(p1, new Set(readFileSync(at("--e20-excluded"), "utf8").split(/\r?\n/).map((l) => l.trim().toLowerCase()).filter(Boolean)));
   const text = JSON.stringify(out, null, 2) + "\n";
   if (args.includes("--out")) writeFileSync(at("--out"), text); else process.stdout.write(text);
   return 0;

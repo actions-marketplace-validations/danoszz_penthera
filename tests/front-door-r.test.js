@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { classify, cookieNames, evidenceOf, traitsOf, EXCERPT_BYTES } from "../bench/front-door/classify.mjs";
 import { authorizeR, mergeCohorts, readRemovals, runPass, shuffled, seeded, dnsProviders, selfTestR, aggregateR, R_COHORTS, ipv4Lookup, PREREG_R } from "../bench/front-door/replicate.mjs";
-import { kappa, decide, combine, clusterDiff, pass, claims, traitTable, CLAIMS_R, LEVEL } from "../bench/front-door/analyze-r.mjs";
+import { kappa, decide, combine, clusterDiff, pass, claims, traitTable, replicationAsE20, CLAIMS_R, LEVEL } from "../bench/front-door/analyze-r.mjs";
 
 const tmp = () => mkdtempSync(join(tmpdir(), "e20r-"));
 const HASH = "a".repeat(64);
@@ -206,6 +206,13 @@ describe("E20-R analysis", () => {
   it("is deterministic for a seed", () => {
     const a = Array.from({ length: 50 }, (_, i) => site(`a${i}.org`, i % 3 === 0)), b = Array.from({ length: 50 }, (_, i) => site(`b${i}.org`, i % 2 === 0));
     expect(clusterDiff(a, b, "csp", { resamples: 200 })).toEqual(clusterDiff(a, b, "csp", { resamples: 200 }));
+  });
+  it("repeats C1 to C4 without the hosts E20 excluded", () => {
+    const mk = (cohort, n) => Array.from({ length: n }, (_, i) => site(`${cohort.toLowerCase()}${i}.org`, i % 2 === 0, { cohorts: { [cohort]: { rank: i, group: "x" } }, platform: { edge: "vercel" } }));
+    const p1 = [...mk("T1k", 40), ...mk("YC-new", 40), ...mk("T100k", 20), ...mk("YC-old", 20)];
+    const out = replicationAsE20(p1, new Set(["yc-new0.org"]), { resamples: 50 });
+    expect(out.map((c) => c.id)).toEqual(["C1", "C2", "C3", "C4"]);
+    expect(out[0].S.nB).toBe(39);
   });
   it("returns the fifteen claims on synthetic records and names no site", () => {
     const mk = (cohort, n, rate, offset = 0) => Array.from({ length: n }, (_, i) => site(`${cohort.toLowerCase()}${i}.org`, i % rate === 0, { cohorts: { [cohort]: { rank: i + offset, group: "x" } }, platform: { edge: i % 2 ? "cloudflare" : "vercel" } }));

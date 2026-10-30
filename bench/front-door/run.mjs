@@ -46,6 +46,7 @@ import { join, dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { passiveReport } from "../../api/_lib/tier1.mjs";
 import { parseTarget, fetchBody, CheckError } from "../../api/_lib/guard.mjs";
+import { scrubAddresses } from "./classify.mjs";
 import { grade } from "../../api/_lib/grade.mjs";
 import { makeBudget, optedOut } from "../../api/_lib/page.mjs";
 import { registrableDomain } from "../../src/utils/url.js";
@@ -198,7 +199,46 @@ export const STUB_DNS = { resolveTxt: enodata, resolveCaa: enodata };
 export const redact = (text) => String(text || "").replace(/[A-Z0-9._%+-]+@([A-Z0-9.-]+\.[A-Z]{2,})/gi, "<redacted>@$1");
 
 /** What a raw record keeps of a check: no fix text, evidence capped and redacted. */
-const slim = (c) => ({ id: c.id, passed: c.passed, severity: c.severity, weight: c.weight, evidence: redact(c.evidence).slice(0, 300) });
+const slim = (c) => ({ id: c.id, passed: c.passed, severity: c.severity, weight: c.weight, evidence: scrubAddresses(redact(c.evidence)).slice(0, 300) });
+
+/**
+ * RFC 9309 § 2.3.1, as the study applies it (Amendment 2). A 2xx is parsed. A
+ * 4xx means no rules. A 5xx, an unreachable file or a spent budget means
+ * complete disallow. 429 is a 4xx in the RFC; the study treats it as a request
+ * to stay away.
+ */
+export const robotsAccess = ({ status, error }) => (error || status === 429 || status >= 500 ? "disallow" : "allow");
+export const ROBOTS_REDIRECTS = 5;
+// These say what happened to the origin, not what its robots.txt says, so the
+// visit ends with the same outcome the homepage would have given, and the
+// www and http fallbacks still run. Nothing more is sent to that origin.
+const ROBOTS_KEEP_OUTCOME = new Set(["not_found", "unreachable", "tls_invalid", "timeout", "not_public"]);
+
+const robotsStop = (reason) => Object.assign(new CheckError("robots_stop", "robots.txt stops this visit.", 403, ""), { reason });
+
+/**
+ * The study's rules for hops and robots.txt, for one visit. `outcomes` keeps
+ * what each origin answered. Every hop must stay off the exclusion list and
+ * inside the path rules of its origin.
+ */
+export function strictRobots({ exclude = new Map(), outcomes = [] } = {}) {
+  const bodies = new Map();
+  return {
+    robotsRedirects: ROBOTS_REDIRECTS,
+    onRobots({ origin, status, error, body, cause }) {
+      const access = robotsAccess({ status, error });
+      outcomes.push({ status: status ?? null, error: error ?? null, access });
+      if (cause instanceof CheckError && ROBOTS_KEEP_OUTCOME.has(cause.code)) throw cause;
+      if (access === "disallow") throw robotsStop("robots_unavailable");
+      if (status >= 200 && status < 300) bodies.set(origin, body);
+    },
+    onHopUrl(u) {
+      if (exclusionFor(u.hostname, exclude)) throw robotsStop("exclusion_redirect");
+      const body = bodies.get(u.origin);
+      if (body !== undefined && robotsVerdict(body, u.pathname) === "disallowed") throw robotsStop("robots_disallow_path");
+    },
+  };
+}
 
 /**
  * One site, one visit. Loopback: http://<host>:<port>/ with the name pinned
@@ -206,13 +246,18 @@ const slim = (c) => ({ id: c.id, passed: c.passed, severity: c.severity, weight:
  * http when https does not connect); when the name does not resolve, one try
  * at www.<host>.
  */
-export async function visit(row, { loopbackPort, now, appPage = false, exclude = new Map(), lookup, evidence } = {}) {
+export async function visit(row, { loopbackPort, now, appPage = false, exclude = new Map(), lookup, evidence, strict = false, budgetMs = LIMITS.siteBudgetMs, hardCapMs = LIMITS.siteHardCapMs } = {}) {
   let page = null;
+  let httpsFailed = null;
   const responses = [];
+  const robots = [];
   const base = {
     userAgent: USER_AGENT, optOutTokens: OPT_OUT_TOKENS, optOutAll: true, assets: false, secrets: false,
-    budgetMs: LIMITS.siteBudgetMs, now, lookup, onPage: (p) => { page = p; }, onResponse: (kind, res) => responses.push({ kind, res }),
+    budgetMs, now, lookup, onPage: (p) => { page = p; }, onResponse: (kind, res) => responses.push({ kind, res }),
+    onFallback: (e) => { httpsFailed = { error: e.code, ...(e.tlsReason ? { tlsReason: e.tlsReason } : {}) }; },
+    ...(strict ? strictRobots({ exclude, outcomes: robots }) : {}),
   };
+  const withRobots = (r) => (strict ? { ...r, robots, ...(httpsFailed ? { httpsFailed } : {}) } : r);
   const opts = loopbackPort
     ? { ...base, lookup: loopbackLookup, allowPrivate: true, anyPort: true, dns: STUB_DNS }
     : base;
@@ -225,7 +270,7 @@ export async function visit(row, { loopbackPort, now, appPage = false, exclude =
   };
   const capped = (p) => {
     let timer;
-    return Promise.race([p, new Promise((_, reject) => { timer = setTimeout(() => reject(new CheckError("timeout", "Hard cap", 504, "")), LIMITS.siteHardCapMs); })])
+    return Promise.race([p, new Promise((_, reject) => { timer = setTimeout(() => reject(new CheckError("timeout", "Hard cap", 504, "")), hardCapMs); })])
       .finally(() => clearTimeout(timer));
   };
   try {
@@ -236,22 +281,23 @@ export async function visit(row, { loopbackPort, now, appPage = false, exclude =
       if (loopbackPort || !(e instanceof CheckError) || e.code !== "not_found" || row.host.startsWith("www.")) throw e;
       report = await capped(attempt(`www.${row.host}`));
     }
-    const record = {
+    const record = withRobots({
       ...row, at, status: "ok",
       finalHost: new URL(report.url).hostname, httpStatus: report.status, redirects: report.redirects.length,
       score: report.score, checks: report.checks.map(slim),
       platform: page ? platformOf(page.headers, page.html) : { edge: "unknown", builder: "unknown" },
-    };
+    });
     // E20-R only: what the response carried, for the classifier (replicate.mjs).
     if (evidence && page) record.evidence = evidence(page, responses);
     // § 4.2, pending: one app or login page, only when B is on.
-    if (appPage) record.app = await capped(visitAppPage(page, { loopbackPort, now, exclude, lookup })).catch((e) => ({ status: "error", error: e instanceof CheckError ? e.code : "internal" }));
+    if (appPage) record.app = await capped(visitAppPage(page, { loopbackPort, now, exclude, lookup, strict })).catch((e) => ({ status: "error", error: e instanceof CheckError ? e.code : "internal" }));
     return record;
   } catch (e) {
     // § 5, decided 29 Oct: a `*` group with Disallow: / is an opt-out for E20, counted as excluded.
-    if (e instanceof CheckError && e.code === "opted_out" && e.all) return { ...row, at, status: "excluded", reason: "robots_disallow_all" };
-    if (e instanceof CheckError && e.code === "opted_out") return { ...row, at, status: "opted_out" };
-    return { ...row, at, status: "error", error: e instanceof CheckError ? e.code : "internal" };
+    if (e instanceof CheckError && e.code === "opted_out" && e.all) return withRobots({ ...row, at, status: "excluded", reason: "robots_disallow_all" });
+    if (e instanceof CheckError && e.code === "opted_out") return withRobots({ ...row, at, status: "opted_out" });
+    if (e instanceof CheckError && e.code === "robots_stop") return withRobots({ ...row, at, status: "excluded", reason: e.reason });
+    return withRobots({ ...row, at, status: "error", error: e instanceof CheckError ? e.code : "internal", ...(e?.tlsReason ? { tlsReason: e.tlsReason } : {}) });
   }
 }
 
@@ -368,7 +414,7 @@ export function robotsVerdict(robots, path, tokens = OPT_OUT_TOKENS) {
  * registrable domain; a redirect elsewhere is not followed (off_site). Only
  * the response headers are graded: no form, no login, no script.
  */
-export async function visitAppPage(page, { loopbackPort, now, exclude = new Map(), lookup } = {}) {
+export async function visitAppPage(page, { loopbackPort, now, exclude = new Map(), lookup, strict = false } = {}) {
   if (!page?.html) return { status: "no_link" };
   const link = findAppLink(page.html, page.url);
   if (!link) return { status: "no_link" };
@@ -378,30 +424,48 @@ export async function visitAppPage(page, { loopbackPort, now, exclude = new Map(
   const site = registrableDomain(new URL(page.url).hostname);
   const guard = loopbackPort ? { lookup: loopbackLookup, allowPrivate: true, anyPort: true } : { lookup };
   const budget = makeBudget({ requests: APP_PAGE.requests, budgetMs: APP_PAGE.budgetMs });
-  const onHop = (u) => {
+  const hop = (u) => {
     if (registrableDomain(u.hostname) !== site) throw new CheckError("off_site", "Redirect to another site, not followed.", 422, "");
     budget.hop();
   };
-  const opts = { ...guard, userAgent: USER_AGENT, onHop };
-  let robots = "";
+  const opts = { ...guard, userAgent: USER_AGENT, onHop: hop };
+  const readRobots = async (origin) => {
+    try {
+      const r = await fetchBody(parseTarget(`${origin}/robots.txt`, guard), { ...opts, timeout: 4000, maxBytes: 65_536, maxRedirects: strict ? ROBOTS_REDIRECTS : 2, accept: "text/plain" });
+      return { status: r.status, body: r.status === 200 ? r.body : "" };
+    } catch (e) {
+      // Not strict: no robots.txt, or not readable, means go on, as for the homepage.
+      return { error: e?.code || "internal", body: "" };
+    }
+  };
+  // Throws to stop. When strict, a redirect to a new origin reads that origin's robots.txt first.
+  const bodies = new Map();
+  const gate = async (u) => {
+    if (exclusionFor(u.hostname, exclude)) throw robotsStop("exclusion_redirect");
+    if (!bodies.has(u.origin) && (strict || !bodies.size)) {
+      const r = await readRobots(u.origin);
+      if (strict && robotsAccess(r) === "disallow") throw robotsStop("robots_unavailable");
+      bodies.set(u.origin, r.body);
+    }
+    const verdict = robotsVerdict(bodies.get(u.origin) ?? "", u.pathname);
+    if (verdict === "opted_out") throw robotsStop("opted_out");
+    if (verdict === "disallowed") throw robotsStop("robots_disallow_path");
+  };
+  const stopped = (e) => (e.reason === "opted_out" ? { status: "opted_out" } : e.code === "robots_stop" ? { status: "excluded", reason: e.reason } : { status: "error", error: e instanceof CheckError ? e.code : "internal" });
   try {
-    const r = await fetchBody(parseTarget(`${target.origin}/robots.txt`, guard), { ...opts, timeout: 4000, maxBytes: 65_536, maxRedirects: 2, accept: "text/plain" });
-    if (r.status === 200) robots = r.body;
-  } catch {
-    // No robots.txt, or not readable: go on, as for the homepage.
+    await gate(target);
+  } catch (e) {
+    return stopped(e);
   }
-  const verdict = robotsVerdict(robots, target.pathname);
-  if (verdict === "opted_out") return { status: "opted_out" };
-  if (verdict === "disallowed") return { status: "excluded", reason: "robots_disallow_path" };
   try {
-    const res = await fetchBody(parseTarget(link, guard), { ...opts, timeout: 6000, maxBytes: APP_PAGE.maxBytes, maxRedirects: APP_PAGE.maxRedirects });
+    const res = await fetchBody(parseTarget(link, guard), { ...opts, onHop: async (u) => { hop(u); await gate(u); }, timeout: 6000, maxBytes: APP_PAGE.maxBytes, maxRedirects: APP_PAGE.maxRedirects });
     return {
       status: "ok", httpStatus: res.status, redirects: res.hops.length - 1,
       sameHost: new URL(res.url).hostname === new URL(page.url).hostname,
       checks: grade(res, { now }).checks.filter((c) => APP_CHECKS.includes(c.id)).map(slim),
     };
   } catch (e) {
-    return { status: "error", error: e instanceof CheckError ? e.code : "internal" };
+    return stopped(e);
   }
 }
 

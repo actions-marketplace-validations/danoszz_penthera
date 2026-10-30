@@ -2,7 +2,8 @@
 /**
  * E20-R analysis: the fifteen claims of the protocol (§ 6, § 7), from the
  * private raw files of both passes and of E20. Aggregates only; no site is
- * named in the output.
+ * named in the output. Under Amendment 2, --pass1 takes the run the claims are
+ * decided on (pass 2) and --pass2 the run it is compared with (pass 1).
  *
  *   node bench/front-door/analyze-r.mjs --pass1 <raw.jsonl> [--pass2 <raw.jsonl>] --e20 <tranco/raw.jsonl> <yc/raw.jsonl> [--e20-excluded <hosts file>] [--industries <csv>] [--out analysis.json]
  *
@@ -76,19 +77,22 @@ export function kappa(x, y) {
   return pe === 1 ? 1 : (po - pe) / (1 - pe);
 }
 
-/** Bootstrap lower bound for a statistic of paired sites, resampling organizations. */
-function lowerBound(pairs, stat, { level = LEVEL, resamples = 2000, seed = SEED } = {}) {
+/** Bootstrap interval for a statistic of paired sites, resampling organizations. */
+function bounds(pairs, stat, { level = LEVEL, resamples = 2000, seed = SEED } = {}) {
   const g = Object.values(pairs.reduce((m, p) => ((m[org(p[0])] ||= []).push(p), m), {})), r = seeded(seed), out = [];
   for (let i = 0; i < resamples; i++) { const s = []; for (let k = 0; k < g.length; k++) s.push(...g[Math.floor(r() * g.length)]); out.push(stat(s)); }
   out.sort((a, b) => a - b);
-  return pct(out, (1 - level) / 2);
+  return [pct(out, (1 - level) / 2), pct(out, 1 - (1 - level) / 2)];
 }
 
 const median = (a) => { const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
-const load = (f) => readFileSync(f, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((r) => r.status === "ok");
+const loadAll = (f) => readFileSync(f, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+const load = (f) => loadAll(f).filter((r) => r.status === "ok");
 const inCohort = (rows, ...names) => rows.filter((r) => names.some((n) => r.cohorts?.[n]));
 const isPage = (r) => r.evidence?.class?.label === "page";
 const isRefused = (r) => ["challenge", "block"].includes(r.evidence?.class?.label);
+// One definition across passes: a record from pass 2 carries pass 1's rules next to its own.
+const labelForAgreement = (r) => (r.evidence?.classRegistered ?? r.evidence?.class)?.label;
 
 /** One difference claim, on S alone for a DNS check, on S and R otherwise. */
 export function diffClaim(id, label, a, b, check, sign, opts) {
@@ -120,21 +124,45 @@ export function claims(p1, p2, e20, opts) {
   // C12, C13: paired on sites graded in E20 and in pass 1; E20 stored only the status.
   for (const [id, cohort] of [["C12", "T1k"], ["C13", "YC-new"]]) {
     const pairs = inCohort(p1, cohort).filter((r) => e20.has(r.host)).map((r) => [r, e20.get(r.host)]);
-    const stat = (s) => s.filter(([r]) => isRefused(r)).length / s.length - s.filter(([, e]) => e.httpStatus === 403).length / s.length;
-    const lo = pairs.length ? lowerBound(pairs, stat, opts) : NaN;
-    out.push({ id, label: `server refusals minus E20 403s, ${cohort}`, n: pairs.length, diff: pairs.length ? stat(pairs) : NaN, lower: lo, decision: lo > 0 ? "supported" : "inconclusive" });
+    const refused = ([r]) => ["challenge", "block"].includes(labelForAgreement(r));
+    const stat = (s) => s.filter(refused).length / s.length - s.filter(([, e]) => e.httpStatus === 403).length / s.length;
+    const ci = pairs.length ? bounds(pairs, stat, opts) : [NaN, NaN];
+    out.push({ id, label: `server refusals minus E20 403s, ${cohort}`, n: pairs.length, diff: pairs.length ? stat(pairs) : NaN, ci, lower: ci[0], decision: Number.isNaN(ci[0]) ? "inconclusive" : decide(ci, +1) });
   }
   // C14, C15: agreement between the passes.
   // Amendment 1: one pass, so the agreement claims are reported as not run.
   if (!p2) return [...out, { id: "C14", label: "median kappa between passes", decision: "not run" }, { id: "C15", label: "label kappa between passes", decision: "not run" }];
   const byHost = new Map(p2.map((r) => [r.host, r]));
-  const pairs = p1.filter((r) => byHost.has(r.host) && (r.cohorts?.T1k || r.cohorts?.["YC-new"])).map((r) => [r, byHost.get(r.host)]);
+  const pairs = p1.filter((r) => byHost.has(r.host)).map((r) => [r, byHost.get(r.host)]);
   const checkKappas = (s) => median(KAPPA_CHECKS.map((id) => { const v = s.filter(([a, b]) => pass(a, id) !== undefined && pass(b, id) !== undefined); return kappa(v.map(([a]) => pass(a, id)), v.map(([, b]) => pass(b, id))); }).filter(Number.isFinite));
-  const labelKappa = (s) => kappa(s.map(([a]) => a.evidence?.class?.label), s.map(([, b]) => b.evidence?.class?.label));
-  const lo14 = pairs.length ? lowerBound(pairs, checkKappas, opts) : NaN, lo15 = pairs.length ? lowerBound(pairs, labelKappa, opts) : NaN;
+  const labelKappa = (s) => kappa(s.map(([a]) => labelForAgreement(a)), s.map(([, b]) => labelForAgreement(b)));
+  const lo14 = pairs.length ? bounds(pairs, checkKappas, opts)[0] : NaN, lo15 = pairs.length ? bounds(pairs, labelKappa, opts)[0] : NaN;
   out.push({ id: "C14", label: "median kappa between passes", n: pairs.length, kappa: pairs.length ? checkKappas(pairs) : NaN, lower: lo14, threshold: 0.8, decision: lo14 >= 0.8 ? "supported" : "inconclusive" });
   out.push({ id: "C15", label: "label kappa between passes", n: pairs.length, kappa: pairs.length ? labelKappa(pairs) : NaN, lower: lo15, threshold: 0.6, decision: lo15 >= 0.6 ? "supported" : "inconclusive" });
   return out;
+}
+
+/**
+ * Amendment 2: the mail and CAA claims on DNS read for the listed domain, for
+ * every site whose domain exists, whether or not HTTP worked. `measure` is
+ * `spf+dmarc` (the registered reading) or `spf+dmarc-full`.
+ */
+export function dnsClaims(records, { measure = "spf+dmarc", ...opts } = {}) {
+  const rows = records.filter((r) => r.dns?.listed?.exists).map((r) => ({ ...r, checks: ["spf", "dmarc", "caa"].map((id) => ({ id, weight: r.dns.listed[id] === null ? 0 : 1, passed: id === "dmarc" && measure.endsWith("full") ? r.dns.listed[measure] : r.dns.listed[id] })) }));
+  const T = inCohort(rows, "T1k"), Y = inCohort(rows, "YC-new"), H = inCohort(rows, "T100k"), Rc = inCohort(rows, "YC-new", "YC-25"), O = inCohort(rows, "YC-old");
+  return [
+    diffClaim("C2", "YC-new minus T1k", T, Y, "spf+dmarc", -1, opts),
+    diffClaim("C6", "T100k minus T1k", T, H, "spf+dmarc", -1, opts),
+    diffClaim("C7", "YC-recent minus T100k", H, Rc, "spf+dmarc", +1, opts),
+    diffClaim("C10", "YC-old minus YC-new", Y, O, "spf+dmarc", +1, opts),
+  ];
+}
+
+/** Amendment 2: refusal share among graded sites, with and without the status:403 rule. */
+export function refusalShares(rows) {
+  const n = rows.length;
+  const refused = rows.filter(isRefused);
+  return { n, all: n ? refused.length / n : NaN, signatureBacked: n ? refused.filter((r) => r.evidence.class.rule !== "status:403").length / n : NaN, registered: n ? rows.filter((r) => ["challenge", "block"].includes(r.evidence?.classRegistered?.label)).length / n : NaN };
 }
 
 /** § 7: C1 to C4 without the hosts E20 excluded, so the comparison with E20 is like for like. */
@@ -175,7 +203,9 @@ function main(args) {
   const i = args.indexOf("--e20");
   const e20 = new Map([...load(args[i + 1]), ...load(args[i + 2])].map((r) => [r.host, r]));
   const p1 = load(at("--pass1"));
-  const out = { experiment: "E20-R", level: LEVEL, resamples: RESAMPLES, claims: claims(p1, args.includes("--pass2") ? load(at("--pass2")) : null, e20), traits: traitTable(p1) };
+  const out = { experiment: "E20-R", level: LEVEL, resamples: RESAMPLES, claims: claims(p1, args.includes("--pass2") ? load(at("--pass2")) : null, e20), traits: traitTable(p1), refusals: refusalShares(p1) };
+  const all = loadAll(at("--pass1"));
+  if (all.some((r) => r.dns?.listed)) out.dnsListed = { registered: dnsClaims(all), fullCoverage: dnsClaims(all, { measure: "spf+dmarc-full" }) };
   if (args.includes("--industries")) out.industries = industryTable(p1, new Map(readFileSync(at("--industries"), "utf8").split(/\r?\n/).slice(1).filter(Boolean).map((l) => l.split(",")).map(([h, i]) => [h, i])));
   if (args.includes("--e20-excluded")) out.replicationAsE20 = replicationAsE20(p1, new Set(readFileSync(at("--e20-excluded"), "utf8").split(/\r?\n/).map((l) => l.trim().toLowerCase()).filter(Boolean)));
   const text = JSON.stringify(out, null, 2) + "\n";

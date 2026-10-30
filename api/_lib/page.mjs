@@ -379,7 +379,7 @@ export async function securityTxtCheck(pageUrl, budget, opts = {}, now = Date.no
   try {
     const timeout = Math.min(4000, budget.left() - 200);
     if (timeout < 500) throw new CheckError("budget", "", 0, "");
-    res = await fetchBody(parseTarget(url, opts), { ...opts, timeout, maxBytes: 32_768, maxRedirects: 2, accept: "text/plain", onHop: () => budget.hop() });
+    res = await fetchBody(parseTarget(url, opts), { ...opts, timeout, maxBytes: 32_768, maxRedirects: 2, accept: "text/plain", onHop: async (u) => { await opts.gate?.(u); budget.hop(); } });
   } catch {
     return [{ id: "security-txt", category: "contact", weight: 0, passed: false, severity: "info", title: "Could not read security.txt", evidence: "The request did not finish in time; this says nothing about the site.", fix: "Nothing to fix from this result.", verify }];
   }
@@ -441,17 +441,21 @@ export function optedOut(robots, tokens = [TOKEN]) {
  * GET /robots.txt through the guard (4 s, 64 KB, in the request budget) and
  * refuse when the owner opted out. No file, or any fetch error, means go on.
  * `optOutAll` (the E20 study only) also refuses on a `*` group with Disallow: /.
+ * `onRobots` (study only) hears every outcome and may throw, so the study sets
+ * its own rules. The live check never sets it, and keeps "go on".
  */
 export async function checkOptOut(origin, budget, opts = {}) {
+  const timeout = Math.min(4000, budget.left() - 200);
+  if (timeout < 500) { opts.onRobots?.({ origin, error: "budget" }); return; }
   let res;
   try {
-    const timeout = Math.min(4000, budget.left() - 200);
-    if (timeout < 500) return;
-    res = await fetchBody(parseTarget(`${origin}/robots.txt`, opts), { ...opts, timeout, maxBytes: 65_536, maxRedirects: 2, accept: "text/plain", onHop: () => budget.hop() });
-  } catch {
+    res = await fetchBody(parseTarget(`${origin}/robots.txt`, opts), { ...opts, timeout, maxBytes: 65_536, maxRedirects: opts.robotsRedirects ?? 2, accept: "text/plain", onHop: () => budget.hop() });
+  } catch (e) {
+    opts.onRobots?.({ origin, error: e?.code || "internal", cause: e });
     return;
   }
   opts.onResponse?.("robots", res);
+  opts.onRobots?.({ origin, status: res.status, body: res.body });
   if (res.status === 200 && optedOut(res.body, opts.optOutTokens)) {
     throw new CheckError("opted_out", "This site's owner opted out of Penthera's online check.", 403, "Ask the owner, or, if it's your site, run npx penthera on your own machine.");
   }

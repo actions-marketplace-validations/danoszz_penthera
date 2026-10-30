@@ -127,7 +127,7 @@ export async function fetchHeaders(start, { maxRedirects = 4, timeout = 6000, lo
  * GET a URL and read its body, up to maxBytes, as a browser would load it.
  * Same guard as fetchHeaders: every hop resolved, checked and pinned again.
  * `onHop` runs before each request (the caller's request budget); it may
- * throw to stop. The body is decoded as UTF-8; a compressed body (which we
+ * be async, and it may throw to stop. The body is decoded as UTF-8; a compressed body (which we
  * never ask for) is left empty. Nothing is logged. `userAgent` replaces the
  * live check's User-Agent (the E20 study names itself, bench/front-door).
  */
@@ -135,7 +135,7 @@ export async function fetchBody(start, { maxRedirects = 4, timeout = 6000, maxBy
   let url = start;
   const hops = [];
   for (let i = 0; i <= maxRedirects; i++) {
-    onHop?.(url);
+    await onHop?.(url);
     const host = url.hostname.replace(/^\[|\]$/g, "");
     const { address, family } = await resolvePublic(host, { lookup, allowPrivate });
     const res = await requestOnce(url, address, family, timeout, { maxBytes, accept, userAgent });
@@ -197,7 +197,7 @@ function requestOnce(url, address, family, timeout, body = null) {
     req.on("error", (e) => {
       if (e instanceof CheckError) return reject(e);
       if (/CERT|SELF_SIGNED|UNABLE_TO_VERIFY|ERR_TLS/i.test(e.code || "")) {
-        return reject(new CheckError("tls_invalid", `The certificate for ${url.hostname} is not valid (${e.code}).`, 422, "Renew or reissue the certificate; browsers show a warning for this site."));
+        return reject(Object.assign(new CheckError("tls_invalid", `The certificate for ${url.hostname} is not valid (${e.code}).`, 422, "Renew or reissue the certificate; browsers show a warning for this site."), { tlsReason: e.code }));
       }
       reject(new CheckError("unreachable", `Could not connect to ${url.hostname}.`, 502, "Check that the site is up, or run npx penthera from your own machine."));
     });

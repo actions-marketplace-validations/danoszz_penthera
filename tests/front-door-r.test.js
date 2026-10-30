@@ -8,7 +8,7 @@ import { mkdtempSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { classify, cookieNames, evidenceOf, EXCERPT_BYTES } from "../bench/front-door/classify.mjs";
-import { authorizeR, mergeCohorts, shuffled, seeded, dnsProviders, selfTestR, aggregateR, R_COHORTS, ipv4Lookup, PREREG_R } from "../bench/front-door/replicate.mjs";
+import { authorizeR, mergeCohorts, runPass, shuffled, seeded, dnsProviders, selfTestR, aggregateR, R_COHORTS, ipv4Lookup, PREREG_R } from "../bench/front-door/replicate.mjs";
 import { kappa, decide, combine, clusterDiff, pass, claims, CLAIMS_R, LEVEL } from "../bench/front-door/analyze-r.mjs";
 
 const tmp = () => mkdtempSync(join(tmpdir(), "e20r-"));
@@ -102,6 +102,25 @@ describe("E20-R order and cohorts", () => {
     expect(r.problems).toEqual([]);
     expect(Object.keys(r.aggregate.cohorts).sort()).toEqual(["T1k", "YC-new"]);
     expect(r.aggregate.cohorts.T1k.labels).toBeDefined();
+  });
+  it("never follows an app page on a homepage-only list, also for a host on two lists", () => {
+    expect(R_COHORTS["NL-Cbw"].homepageOnly).toBe(true);
+    expect(R_COHORTS.T1k.homepageOnly).toBeUndefined();
+  });
+  it("skips the app page in a pass for a homepage-only host", async () => {
+    const { createServer } = await import("node:http");
+    const hits = [];
+    const server = createServer((req, res) => { hits.push(req.url); res.setHeader("content-type", "text/html"); res.end('<a href="/login">Log in</a>'); });
+    await new Promise((r) => server.listen(0, "127.0.0.1", r));
+    const stub = () => Promise.reject(Object.assign(new Error("x"), { code: "ENODATA" }));
+    try {
+      const rows = mergeCohorts({ "NL-Cbw": [{ host: "a.nl-selftest.example.com", rank: 1, group: "Energy" }], T1k: [{ host: "a.nl-selftest.example.com", rank: 2, group: "com" }, { host: "b.selftest.example.com", rank: 3, group: "com" }] });
+      await runPass(rows, { pass: 1, out: tmp(), loopbackPort: server.address().port, delayMs: 0, dns: { mx: stub, ns: stub } });
+      expect(hits.filter((u) => u === "/")).toHaveLength(2);
+      expect(hits.filter((u) => u === "/login")).toHaveLength(1);
+    } finally {
+      await new Promise((r) => server.close(r));
+    }
   });
   it("folds small provider groups into other", () => {
     const records = Array.from({ length: 21 }, (_, i) => ({ host: `s${i}.example`, status: "ok", score: 50, checks: [], cohorts: { T1k: { rank: i, group: "example" } }, dnsProviders: { mx: i === 0 ? "rare" : "google", ns: "other" } }));

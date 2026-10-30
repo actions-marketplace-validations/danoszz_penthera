@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * E20-R runner: two passes over six fixed lists, from one published address.
+ * E20-R runner: two passes over seven fixed lists, from one published address.
  * Protocol: docs/research/prereg/E20R-front-door-replication.md.
  *
  *   node bench/front-door/replicate.mjs --self-test
@@ -38,6 +38,7 @@ export const R_COHORTS = Object.freeze({
   "YC-old": { file: "yc-old.csv", format: "yc" },
   T100k: { file: "tranco-ZJ8PG-10k-100k-sample.csv", format: "tranco" },
   EU: { file: "eu-indexes.csv", format: "yc" },
+  "NL-Cbw": { file: "nl-cbw.csv", format: "yc", homepageOnly: true },
 });
 export const PASS_SEED = Object.freeze({ 1: 2020, 2: 2021 });
 export const R_EXCLUSION_LABEL = "E20-R exclusion list";
@@ -167,7 +168,9 @@ export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map
       let record;
       if (category) record = { ...row, at: new Date().toISOString(), status: "excluded", reason: "exclusion_list", category };
       else {
-        record = { ...row, ...(await visit(row, { loopbackPort, appPage, exclude, lookup, evidence: evidenceOf })) };
+        // § 3: a site on a homepage-only list never gets the app page, whatever other list it is on.
+        const homepageOnly = Object.keys(row.cohorts).some((c) => R_COHORTS[c]?.homepageOnly);
+        record = { ...row, ...(await visit(row, { loopbackPort, appPage: appPage && !homepageOnly, exclude, lookup, evidence: evidenceOf })) };
         if (record.status === "ok") record.dnsProviders = await dnsProviders(registrableDomain(record.finalHost), dns);
       }
       records[k] = record;

@@ -82,7 +82,9 @@ describe("E20-R site traits", () => {
     expect(traitsOf('<a href="/x">Inloggen</a>').login).toBe(true);
     expect(traitsOf('<script src="https://js.stripe.com/v3/"></script>').payments).toBe(true);
     expect(traitsOf('<link href="https://cdn.shopify.com/s/a.css">').shop).toBe(true);
-    expect(traitsOf("<p>A blog about login pages</p>")).toEqual({ login: false, payments: false, shop: false });
+    expect(traitsOf('<a href="https://trust.example.com">Trust</a>').securityPage).toBe(true);
+    expect(traitsOf('<a class="x" href="/security">Security</a>').securityPage).toBe(true);
+    expect(traitsOf("<p>A blog about login pages</p>")).toEqual({ login: false, payments: false, shop: false, securityPage: false });
   });
   it("treats a page with no HTML as unknown, not as no", () => {
     expect(traitsOf("")).toBeNull();

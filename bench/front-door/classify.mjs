@@ -66,6 +66,8 @@ export const TRAIT_RULES = Object.freeze({
   login: /<a\b[^>]*>\s*(?:<[^>]+>\s*)*(log\s?in|sign\s?in|my account|inloggen|anmelden|connexion)\b/i,
   payments: /js\.stripe\.com|checkout\.stripe\.com|paypal\.com\/sdk|paypalobjects\.com|js\.braintreegateway\.com|checkoutshopper-[a-z]+\.adyen\.com|klarna(?:cdn|\.com)|mollie\.com/i,
   shop: /cdn\.shopify\.com|woocommerce|magento|\/cart\b|\/checkout\b|add[-_ ]to[-_ ]cart/i,
+  // A public security or trust page: a stand-in for a team that owns security, not proof of a CISO.
+  securityPage: /<a\b[^>]*href="[^"]*(?:\/security\b|\/trust\b|\/trust-center|\/\/trust\.|\/\/security\.)[^"]*"/i,
 });
 
 /** Booleans for one page. An empty page (no 2xx HTML) gives null: unknown, not "no". */

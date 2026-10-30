@@ -138,7 +138,7 @@ export function claims(p1, p2, e20, opts) {
 /** § 6, secondary: each check by site trait, per cohort, groups of at least 20 sites. */
 export function traitTable(rows, checks = KAPPA_CHECKS, min = 20) {
   const out = {};
-  for (const trait of ["login", "payments", "shop"]) {
+  for (const trait of ["login", "payments", "shop", "securityPage"]) {
     const g = rows.filter((r) => r.evidence?.traits?.[trait] === true);
     if (g.length < min) { out[trait] = { sites: g.length, suppressed: true }; continue; }
     out[trait] = { sites: g.length, shares: Object.fromEntries(checks.map((c) => [c, share(g, c)])) };

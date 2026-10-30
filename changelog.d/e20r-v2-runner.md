@@ -1,9 +1,11 @@
 section: Docs
 
-- **E20-R second run (draft).** Amendment 2 and the study page describe a second
-  run with a corrected instrument: robots.txt at every origin under RFC 9309, the
-  exclusion list on every redirect, DNS read whether or not a site answers, a
-  fixed classifier, a short excerpt of normal pages with addresses scrubbed, a run
-  manifest and a 50-site pilot. The rule against evading bot defenses is stated
-  there. It sends nothing until the maintainer adopts it. The live check's
-  requests and scores do not change.
+- **E20-R2 (draft).** Amendment 2 and the study page describe a corrected
+  replication of E20-R, a low-interaction active measurement: robots.txt at every
+  origin under RFC 9309, the exclusion list on every hop, no app page, DNS read
+  whether or not a site answers, a frozen classifier, CSP directive names, a
+  scrubbed excerpt of normal pages that is deleted after sampling, a pinned Public
+  Suffix List for the study only, a run manifest and a pilot with stop rules. The
+  page now says that stored evidence can contain addresses, and who sees it. It
+  sends nothing until the maintainer adopts it. The live check's requests and
+  scores do not change.

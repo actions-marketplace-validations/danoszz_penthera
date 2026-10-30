@@ -1,7 +1,7 @@
 ---
 nav: E20 study
 title: Penthera-Research/E20: what it requested from your site, and how to opt out
-description: E20 and E20-R are passive studies of public homepages, published as aggregates only. What they request, how to opt out or be removed, and who to contact.
+description: E20 and E20-R are low-interaction active measurements of homepages, published as totals. What they request, and how to opt out or be removed.
 eyebrow: Research
 cta: contact
 subject: Penthera-Research/E20
@@ -10,7 +10,7 @@ subject: Penthera-Research/E20
 
 > For "why did Penthera-Research/E20 visit my site, and how do I stop it?"
 
-If you saw `Penthera-Research/E20` in your logs, it was a visit to your homepage for a study. E20 asks how the most visited sites on the web, and recent startups, score on the same passive checks as Penthera's live check. A follow-up, E20-R, repeats and widens it. Results are published as totals and shares only. No site is named.
+If you saw `Penthera-Research/E20` in your logs, it was a visit to your homepage for a study. E20 asks how the most visited sites on the web, and recent startups, score on the same checks as Penthera's live check. A follow-up, E20-R, repeats and widens it. Results are published as totals and shares only. No site is named.
 
 {{CTA}}
 
@@ -21,19 +21,19 @@ If you saw `Penthera-Research/E20` in your logs, it was a visit to your homepage
 1. the top 1000 sites of the [Tranco list](https://tranco-list.eu/), a research ranking of popular domains;
 2. the public websites of companies in the two most recent Y Combinator batches, from YC's public company directory.
 
-**E20-R** ran from 30 October 2026, and runs a second time with a corrected instrument, over about 7,000 sites: the two lists above, more Tranco sites, older Y Combinator companies, large listed companies in Europe and the US, public Show HN launches, and Dutch organizations in sectors of the Cyberbeveiligingswet. Each run visits a site once, so a site can see two E20-R visits, and about 50 sites see one more in a short test before the second run. A failed request is not repeated, and a block is never retried. Adult, gambling and government sites, and sites of people at risk, are on an exclusion list and are not visited. E20 also excluded health sites. E20-R includes them, so results can show which industries are exposed, but for a health site it requests the homepage only and never follows a link to a login or patient portal. Y Combinator companies stay in whatever their sector, except adult sites.
+**E20-R** ran from 30 October 2026 as a pilot and instrument audit. A second run, E20-R2, repeats it as a corrected replication, over about 7,000 sites: the two lists above, more Tranco sites, older Y Combinator companies, large listed companies in Europe and the US, public Show HN launches, and Dutch organizations in sectors of the Cyberbeveiligingswet. Each run visits a site once, so a site can see two E20-R visits. The second is scheduled for every site, whatever it answered the first time, and isn't a retry of a block. Up to 50 sites are instead visited in a short test before the second run, and aren't visited in the run itself. A failed request isn't repeated. Adult, gambling and government sites, and sites of people at risk, are on an exclusion list and are not visited. E20 also excluded health sites. E20-R includes them, so results can show which industries are exposed, but for a health site it requests the homepage only and never follows a link to a login or patient portal. Y Combinator companies stay in whatever their sector, except adult sites.
 
 ## What it requests
 
 Per site, in this order, and nothing else:
 
-1. `GET /robots.txt`. If you opted out (below), the visit stops here. The second E20-R run also stops if the file answers 5xx or 429, or can't be reached, as [RFC 9309](https://www.rfc-editor.org/rfc/rfc9309) asks.
-2. `GET /` over HTTPS, following at most 4 redirects. The second E20-R run reads `/robots.txt` at each new origin before it follows a redirect there, and stops at a site on the exclusion list. If the name doesn't resolve, one try at `www.` plus the name. Only if HTTPS does not connect, `GET /` over HTTP.
+1. `GET /robots.txt`. If you opted out (below), the visit stops here. E20-R2 also stops if the file answers 5xx or 429, can't be reached or can't be read, as [RFC 9309](https://www.rfc-editor.org/rfc/rfc9309) asks.
+2. `GET /` over HTTPS, following at most 4 redirects. E20-R2 reads `/robots.txt` at each new origin before it follows a redirect there, and stops at a site on the exclusion list. If the name doesn't resolve, one try at `www.` plus the name. Only if HTTPS gets no answer or fails its certificate, `GET /` over HTTP. In E20-R2 both of these run only when nothing from your site has answered yet.
 3. `GET /.well-known/security.txt`, the file [RFC 9116](https://www.rfc-editor.org/rfc/rfc9116) asks sites to publish.
-4. Public DNS records: SPF and DMARC (TXT) and CAA. E20-R also reads MX and NS, and keeps only the provider's name. The second run reads these for every site that didn't opt out, whether or not its homepage answered.
-5. If your homepage links to a login or app page on your own domain (a link named "Log in", "Sign in", "App" or "Dashboard", or a path like `/login`), one `GET` of that page, after checking that page's host's robots.txt. Headers only: no form is filled, nobody logs in, and links to another domain are never followed.
+4. Public DNS records: SPF and DMARC (TXT) and CAA. E20-R also reads MX and NS, and keeps only the provider's name. E20-R2 reads these for every site that didn't opt out, whether or not its homepage answered.
+5. E20 and the first E20-R run only, never E20-R2: if your homepage links to a login or app page on your own domain (a link named "Log in", "Sign in", "App" or "Dashboard", or a path like `/login`), one `GET` of that page, after checking that page's host's robots.txt. Headers only: no form is filled, nobody logs in, and links to another domain are never followed.
 
-It does not load your scripts, stylesheets or images. It guesses no paths, follows no other links, sends no query strings, forms, payloads or logins, and reads no keys. At most 4 sites are visited at a time, and each worker waits 1 second between sites.
+It does not load your scripts, stylesheets or images. It guesses no paths and follows no other links. It adds no query string of its own, and follows a site's redirect as given. It sends no forms, payloads or logins, and reads no keys. At most 4 sites are visited at a time, and each worker waits 1 second between sites.
 
 The request carries this User-Agent:
 
@@ -41,7 +41,7 @@ The request carries this User-Agent:
 Penthera-Research/E20 (+https://penthera.org/research/e20; opt out: robots.txt User-agent: Penthera-Research)
 ```
 
-Every request carries the User-Agent above. It doesn't imitate a browser, solve a challenge, or switch addresses to get past a block: a refusal is a result. E20-R's first run came from `research.penthera.org` (2.31.141.178, a rented server in Germany, since deleted), and its second run comes from `<NEW-SOURCE-ADDRESS>` under the same name. For E20 we do not publish the address the visits came from, because it was a personal connection. If you want to know whether a request in your logs was ours, email us the address and time you saw, and we will confirm or deny privately.
+Every request carries the User-Agent above. It doesn't imitate a browser, solve a challenge, or switch addresses to get past a block: a refusal is a result. E20-R's first run came from `research.penthera.org` (2.31.141.178, a rented server in Germany, since deleted), and E20-R2 comes from 178.104.243.225 under the same name. That name has no web page: reach us through the URL in the User-Agent. For E20 we do not publish the address the visits came from, because it was a personal connection. If you want to know whether a request in your logs was ours, email us the address and time you saw, and we will confirm or deny privately.
 
 ## How to opt out
 
@@ -52,13 +52,13 @@ User-agent: Penthera-Research
 Disallow: /
 ```
 
-E20 and E20-R also stop for `User-agent: *` with `Disallow: /`. The second E20-R run also follows a rule that disallows the path it is about to request. A site that opted out is counted as excluded and nothing else is requested from it. A site that opted out during the first run is skipped in the second.
+E20 and E20-R also stop for `User-agent: *` with `Disallow: /`. E20-R2 also follows a rule that disallows the path it is about to request. A site that opted out is counted as excluded and nothing else is requested from it. A site that opted out during the first run is skipped in E20-R2.
 
 You can also ask to be removed at any time. Email us from your domain, or from a contact listed for it. We skip your site in every later pass, delete its record from the raw data, recompute the totals, and take it off the published list.
 
 ## What we keep and publish
 
-The raw per-site results stay private. They hold check outcomes and short evidence such as header values, and no email addresses: the part before the @ is removed before anything is written. E20-R also keeps header names, cookie names (never values), a hash of the page, and, for an error or block page only, its first 4 KB. Error pages can quote the visitor's address back, so the first run's excerpts hold some IP addresses, mostly our own server's. The second run removes IP addresses, emails, query strings and long numbers before anything is written, and keeps a hash of robots.txt and security.txt. For a normal page it also keeps the title and up to 1,024 characters of visible text, so a person can check that it was a real page, plus your domain's DMARC record with report addresses redacted. All of it is never committed or shared, and is deleted 12 months after publication.
+The raw per-site results stay private. They hold check outcomes and short evidence such as header values, and no email addresses: the part before the @ is removed before anything is written. E20-R also keeps header names, cookie names (never values), a hash of the page, and, for an error or block page only, its first 4 KB. Stored evidence can contain addresses: error pages can quote the visitor's address back, so the first run's excerpts hold IP addresses, mostly our own server's. E20-R2 removes IP addresses, emails, form fields, query strings, tokens and long numbers before anything is written, and keeps a hash of robots.txt and security.txt. For a normal page it also keeps the title and up to 4,096 characters of visible text, so a person can check that it was a real page. Names in that text are not removed. After a sample is drawn for checking, the text of every other page is deleted. It also keeps your domain's SPF record, and its DMARC record with report addresses redacted, because those are what the mail results test. The evidence stays out of the repository and is never published. The maintainer sees it, and so does a labeler under a written note who checks a sample. The first run's labeler saw 150 rows. All of it is deleted 12 months after publication.
 
 What we publish is the share of sites that pass each check, with a 95% interval, and the score distribution. There is no ranking, and no site is named. For anyone who wants to check the work, the code, the target lists and the aggregates can be downloaded with the results. Health sites and the Dutch sector list are published as a hash and a method only, and appear in the results as industry totals.
 

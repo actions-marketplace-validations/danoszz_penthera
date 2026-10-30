@@ -7,5 +7,5 @@ section: Docs
   scrubbed excerpt of normal pages that is deleted after sampling, a pinned Public
   Suffix List for the study only, a run manifest and a pilot with stop rules. The
   page now says that stored evidence can contain addresses, and who sees it. It
-  sends nothing until the maintainer adopts it. The live check's requests and
-  scores do not change.
+  sends nothing until the maintainer adopts it. The legacy E20 runner now works on
+  loopback only.

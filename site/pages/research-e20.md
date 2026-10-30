@@ -21,11 +21,11 @@ If you saw `Penthera-Research/E20` in your logs, it was a visit to your homepage
 1. the top 1000 sites of the [Tranco list](https://tranco-list.eu/), a research ranking of popular domains;
 2. the public websites of companies in the two most recent Y Combinator batches, from YC's public company directory.
 
-**E20-R** ran from 30 October 2026 as a pilot and instrument audit. A second run, E20-R2, repeats it as a corrected replication, over about 7,000 sites: the two lists above, more Tranco sites, older Y Combinator companies, large listed companies in Europe and the US, public Show HN launches, and Dutch organizations in sectors of the Cyberbeveiligingswet. Each run visits a site once, so a site can see two E20-R visits. The second is scheduled for every site, whatever it answered the first time, and isn't a retry of a block. Up to 50 sites are instead visited in a short test before the second run, and aren't visited in the run itself. A failed request isn't repeated. Adult, gambling and government sites, and sites of people at risk, are on an exclusion list and are not visited. E20 also excluded health sites. E20-R includes them, so results can show which industries are exposed, but for a health site it requests the homepage only and never follows a link to a login or patient portal. Y Combinator companies stay in whatever their sector, except adult sites.
+**E20-R** ran from 30 October 2026 as a pilot and instrument audit. A second run, E20-R2, repeats it as a corrected replication, over about 7,000 sites: the two lists above, more Tranco sites, older Y Combinator companies, large listed companies in Europe and the US, public Show HN launches, and Dutch organizations in sectors of the Cyberbeveiligingswet. Each run visits a site once, so a site can see two E20-R visits. The second is scheduled for every site, whatever it answered the first time, and isn't a retry of a block. Up to 50 sites are instead visited in a short test before the second run, more if that test has to be repeated on other sites, and aren't visited in the run itself. A failed request isn't repeated. Adult, gambling and government sites, and sites of people at risk, are on an exclusion list and are not visited. E20 also excluded health sites. E20-R includes them, so results can show which industries are exposed, but for a health site it requests the homepage only and never follows a link to a login or patient portal. Y Combinator companies stay in whatever their sector, except adult sites.
 
 ## What it requests
 
-Per site, in this order, and nothing else:
+Per site, in this order, and nothing else, apart from any redirect a site itself sends for these files:
 
 1. `GET /robots.txt`. If you opted out (below), the visit stops here. E20-R2 also stops if the file answers 5xx or 429, can't be reached or can't be read, as [RFC 9309](https://www.rfc-editor.org/rfc/rfc9309) asks.
 2. `GET /` over HTTPS, following at most 4 redirects. E20-R2 reads `/robots.txt` at each new origin before it follows a redirect there, and stops at a site on the exclusion list. If the name doesn't resolve, one try at `www.` plus the name. Only if HTTPS gets no answer or fails its certificate, `GET /` over HTTP. In E20-R2 both of these run only when nothing from your site has answered yet.
@@ -52,7 +52,7 @@ User-agent: Penthera-Research
 Disallow: /
 ```
 
-E20 and E20-R also stop for `User-agent: *` with `Disallow: /`. E20-R2 also follows a rule that disallows the path it is about to request. A site that opted out is counted as excluded and nothing else is requested from it. A site that opted out during the first run is skipped in E20-R2.
+E20 and E20-R also stop for `User-agent: *` with `Disallow: /`. E20-R2 also follows a rule that disallows the path it is about to request. A site that opted out is counted as excluded and nothing else is requested from it, though public DNS may still be read if it was a redirect that led to the opt-out. A site that opted out during the first run is skipped in E20-R2.
 
 You can also ask to be removed at any time. Email us from your domain, or from a contact listed for it. We skip your site in every later pass, delete its record from the raw data, recompute the totals, and take it off the published list.
 

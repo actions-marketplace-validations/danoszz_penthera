@@ -147,6 +147,8 @@ export function weightedMetrics(rows, { resamples = BOOTSTRAP.resamples, seed = 
   const est = point(answered);
   return {
     rows: rows.length, unsure: rows.length - answered.length,
+    // A stratum with no answered row has no weight to give, so the metrics leave it out.
+    strataWithoutAnswers: [...new Set(rows.map((r) => r.stratum))].filter((s) => !answered.some((r) => r.stratum === s)),
     kappa: kappaOf(answered, "human", "ruleLabel"),
     kappaUnsureAsDisagreement: kappaOf(rows, "human", "ruleLabel"),
     metrics: Object.fromEntries(LABELS.map((l) => [l, { ...est[l], precisionCi: ci(draws[l].precision), recallCi: ci(draws[l].recall) }])),
@@ -155,6 +157,7 @@ export function weightedMetrics(rows, { resamples = BOOTSTRAP.resamples, seed = 
 
 /** Both labelers against the rules and each other. The model is a comparison, never a judge. */
 export function scoreLabels(key, humanText, agentText, opts) {
+  if (!key.length) throw new Error("the key is empty");
   const ids = key.map((k) => k.id);
   const human = parseLabels(humanText, ids, "human labels");
   const agent = parseLabels(agentText, ids, "agent labels");
@@ -192,7 +195,7 @@ export function rewriteRun(dir, records, kind) {
 
 export const prunePilot = (dir) => rewriteRun(dir, readRaw(join(dir, "raw.jsonl")).map((r) => pruneExcerpt(r, new Set(), { all: true })), "pilot");
 
-function main([mode, target, a, b]) {
+export function main([mode, target, a, b], { log = console.log } = {}) {
   if (mode === "draw" && target) {
     const records = readRaw(join(target, "raw.jsonl"));
     const sample = drawSample(records);
@@ -200,11 +203,11 @@ function main([mode, target, a, b]) {
     writeFileSync(join(target, "validation-sheet.json"), JSON.stringify(sheet, null, 2) + "\n", PRIVATE);
     writeFileSync(join(target, "validation-key.json"), JSON.stringify(key, null, 2) + "\n", PRIVATE);
     const sampled = new Set(sample.map((s) => s.host));
-    console.log(JSON.stringify({ sampled: sample.length, ...rewriteRun(target, records.map((r) => pruneExcerpt(r, sampled)), "validation-draw") }));
+    log(JSON.stringify({ sampled: sample.length, ...rewriteRun(target, records.map((r) => pruneExcerpt(r, sampled)), "validation-draw") }));
     return 0;
   }
   if (mode === "prune" && target) {
-    console.log(JSON.stringify(prunePilot(target)));
+    log(JSON.stringify(prunePilot(target)));
     return 0;
   }
   if (mode === "score" && target && a && b) {

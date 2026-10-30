@@ -179,9 +179,11 @@ function requestOnce(url, address, family, timeout, body = null) {
           return res.destroy();
         }
         // Study only: these bodies are never kept, but the traffic count should hold them.
+        // A redirect is followed at its headers, as in pass 1; what follows is counted as it comes.
+        if (redirect) resolve(answer);
         let read = 0;
         const stop = () => { clearTimeout(limit); resolve(answer); res.destroy(); };
-        const limit = setTimeout(stop, timeout);
+        const limit = setTimeout(stop, redirect ? Math.min(timeout, 1000) : timeout);
         res.on("data", (c) => { read += c.length; body.meter.bytes += c.length; body.meter.tick?.(); if (read >= body.maxBytes) stop(); });
         res.on("end", stop);
         res.on("error", stop);

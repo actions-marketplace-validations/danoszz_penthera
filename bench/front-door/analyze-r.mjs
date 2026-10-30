@@ -339,7 +339,7 @@ export function primaryRefusal(rows, { resamples = RESAMPLES, seed = SEED } = {}
 
 /** § 7: C1 to C4 without the hosts E20 excluded, so the comparison with E20 is like for like. */
 export function replicationAsE20(p1, droppedHosts, opts) {
-  const keep = p1.filter((r) => !droppedHosts.has(r.host.replace(/^www\./, "")));
+  const keep = p1.filter((r) => !droppedHosts.has(siteKey(r.host)));
   return claims(keep, keep, {}, opts).filter((c) => ["C1", "C2", "C3", "C4"].includes(c.id));
 }
 
@@ -347,7 +347,7 @@ export function replicationAsE20(p1, droppedHosts, opts) {
 export function industryTable(rows, industries, checks = KAPPA_CHECKS, min = 20) {
   const by = {};
   for (const r of rows) {
-    const i = industries.get(String(r.host).replace(/^www\./, ""));
+    const i = industries.get(siteKey(r.host));
     if (i) (by[i] ||= []).push(r);
   }
   const out = { suppressedGroups: 0 };

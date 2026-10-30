@@ -44,6 +44,7 @@ import {
 } from "./run.mjs";
 import { EXCERPT_BYTES, INPUT_CAP_CHARS, PAGE_TEXT_CHARS, scrub, SOFT_MAX_CHARS } from "./classify.mjs";
 import { pslSha256, PSL_VERSION, siteKey, siteOrg } from "./psl.mjs";
+import { MAX_RESOLVER_FAILURES, recordMisses, resolverFailed } from "./record-checks.mjs";
 import { scoreOf } from "../../api/_lib/grade.mjs";
 import { dnsChecks } from "../../api/_lib/dns.mjs";
 import { isPublicIp } from "../../api/_lib/guard.mjs";
@@ -79,6 +80,9 @@ export const R_COHORTS = Object.freeze({
 // Pass 1 ran with 2020. Pass 2 keeps the seed § 5 registered for it. The pilot draws its sample and its order from its own.
 export const PASS_SEED = Object.freeze({ 1: 2020, 2: 2021, pilot: 2026 });
 export const PILOT_MAX = 50;
+export const PILOT_MIN = 40;
+// Pass 2 watches its last records, so a fault stops it, not its report.
+export const ROLLING_WINDOW = 200;
 // Amendment 2: more time per site, so a slow answer is not a lost site. Per-request timeouts stay 6 s and 4 s, and the request rate does not change.
 export const V2_LIMITS = Object.freeze({ siteBudgetMs: 15_000, siteHardCapMs: 30_000 });
 // Amendment 2: the cohorts claims C1 to C11 use. Pilot sites come from these and leave pass 2.
@@ -185,7 +189,7 @@ const both = (a, b) => (a === null || b === null ? null : a && b);
  * `caaTree`, and the MX and NS labels. `outcomes` says per query what came back.
  * A value is null when the resolver failed: that is unknown, never a failed check.
  */
-export async function readDomain(host, dns = {}) {
+export async function readDomain(host, dns = {}, memo = {}) {
   const r = dns.resolveTxt ? null : defaultResolver();
   const name = String(host).toLowerCase().replace(/\.+$/, "");
   const mailHost = siteKey(name);
@@ -194,28 +198,32 @@ export async function readDomain(host, dns = {}) {
   const queries = [];
   // CAA walks up from the host: the strongest outcome over the names decides.
   const note = (key, o) => { if (OUTCOME_RANK(o) >= OUTCOME_RANK(outcomes[key])) outcomes[key] = o; };
+  const heard = new Set();
   const watched = (type, keyOf, fn) => {
-    const asked = new Map();
+    const asked = (memo[type] ??= new Map());
     return (query) => {
       if (!asked.has(query)) {
         const entry = { type, name: query, outcome: null, answers: 0 };
-        queries.push(entry);
-        asked.set(query, (async () => {
-          const key = keyOf(query);
+        const answer = (async () => {
           try {
             const a = await fn(query);
             entry.outcome = a.length ? "answer" : "nodata";
             entry.answers = a.length;
-            note(key, entry.outcome);
             return a;
           } catch (e) {
             entry.outcome = dnsOutcome(e);
-            note(key, entry.outcome);
             throw e;
           }
-        })());
+        })();
+        asked.set(query, { entry, answer });
       }
-      return asked.get(query);
+      const hit = asked.get(query);
+      if (!heard.has(`${type} ${query}`)) {
+        heard.add(`${type} ${query}`);
+        queries.push(hit.entry);
+        hit.answer.then(() => note(keyOf(query), hit.entry.outcome), () => note(keyOf(query), hit.entry.outcome));
+      }
+      return hit.answer;
     };
   };
   const txt = watched("TXT", (n) => (n === domain ? "txt" : n === `_dmarc.${domain}` ? "dmarc" : "other"), (n) => (dns.resolveTxt ? dns.resolveTxt(n) : r.resolveTxt(n)));
@@ -258,16 +266,18 @@ export async function readDomain(host, dns = {}) {
     "spf-record+dmarc-enforcing": both(spfPresent, nullable(reading.enforcing)),
     "spf-record+dmarc-reject": both(spfPresent, nullable(reading.reject)),
     dmarcTags: dmarcRecords.filter((t) => /^v=DMARC1/i.test(t.trim())).length === 1 ? dmarcTags(dmarcRecords.find((t) => /^v=DMARC1/i.test(t.trim()))) : { p: null, sp: null, pct: null },
-    dmarcRecord: scrub(redact(dmarcRecords.filter((t) => /^v=DMARC1/i.test(t.trim())).join(" | "))).slice(0, 400),
+    dmarcRecord: scrub(redact(dmarcRecords.filter((t) => /^v=DMARC1/i.test(t.trim())).join(" | ").slice(0, 4096))).slice(0, 400),
     caaTree: tree,
   };
 }
 
-/** The listed name always, and the final host too when a redirect moved. */
+/** The listed name always, and the final host too when a redirect moved. One organization asks each name once. */
 export async function siteDns(host, finalHost, dns = {}) {
-  const listed = await readDomain(host, dns);
+  const memo = {};
+  const listed = await readDomain(host, dns, memo);
   if (!finalHost || isIP(finalHost.replace(/^\[|\]$/g, "")) || finalHost === host) return { listed };
-  return { listed, final: await readDomain(finalHost, dns), finalOtherOrg: siteOrg(finalHost) !== siteOrg(host) };
+  const otherOrg = siteOrg(finalHost) !== siteOrg(host);
+  return { listed, final: await readDomain(finalHost, dns, otherOrg ? {} : memo), finalOtherOrg: otherOrg };
 }
 
 /** mulberry32, so an order can be rebuilt from its seed. */
@@ -445,7 +455,7 @@ export function holdsText(rawFile) {
  * disk. The last round passed its stop rules on that same raw data, under the code,
  * protocol, suffix list and lists in force now, and nothing changed while it ran.
  */
-export function pilotEvidence(dropped, { results = RESULTS, current } = {}) {
+export function pilotEvidence(dropped, { results = RESULTS, current, allowFixture = false } = {}) {
   const rounds = pilotRounds(results);
   const listed = checkPilotDropped(dropped, rounds, { need: true });
   if (!listed.ok) return listed;
@@ -461,19 +471,38 @@ export function pilotEvidence(dropped, { results = RESULTS, current } = {}) {
     if (!existsSync(raw) || proof.rawSha256After !== sha256(readFileSync(raw))) return no(`Pilot ${dir}: the raw file is not the pruned one.`);
     if (holdsText(raw)) return no(`Pilot ${dir} still holds excerpt text.`);
   }
+  // S1: every finished round has a seal, and a failed round isn't simply run again.
+  const proofs = [];
+  for (const [i, { dir }] of rounds.entries()) {
+    const bytes = read(dir, "manifest.json");
+    const m = JSON.parse(bytes);
+    const seal = read(dir, "pilot-result.json");
+    proofs.push({ dir, manifestSha256: sha256(bytes), sealSha256: seal ? sha256(seal) : null });
+    if (!m.finishedAt) continue;
+    if (!seal) return no(`Pilot ${dir} has no sealed report.`);
+    const next = rounds[i + 1] && JSON.parse(read(rounds[i + 1].dir, "manifest.json"));
+    if (next && !JSON.parse(seal).passed && next.codeSha256 === m.codeSha256 && next.protocolSha256 === m.protocolSha256 && !read(dir, "pilot-explanation.txt")?.length) {
+      return no(`Pilot ${dir} failed, and the next round changed nothing and explains nothing.`);
+    }
+  }
   const last = rounds.at(-1).dir;
   const manifestBytes = read(last, "manifest.json");
   const manifest = JSON.parse(manifestBytes);
+  if (manifest.kind !== "pilot") return no(`Pilot ${last}: its manifest is not a pilot's.`);
+  if (manifest.loopback !== false && !(allowFixture && manifest.fixture === true)) return no(`Pilot ${last} ran on loopback, so it proves nothing about the study.`);
   if (!manifest.finishedAt) return no(`Pilot ${last} did not finish. Run the next round.`);
+  if (!(manifest.sites >= PILOT_MIN)) return no(`Pilot ${last} has ${manifest.sites} sites. The floor is ${PILOT_MIN}.`);
   const result = JSON.parse(read(last, "pilot-result.json") ?? "null");
   if (!result) return no(`Pilot ${last} has no sealed report.`);
   if (result.manifestSha256 !== sha256(manifestBytes) || result.rawSha256 !== manifest.rawSha256) return no(`Pilot ${last}: its sealed report is for another run.`);
   if (!result.passed) return no(`Pilot ${last} failed: ${result.stop.join("; ")}.`);
+  const { lists = {} } = result;
+  if (lists.exclusionSha256 !== manifest.exclusionSha256 || lists.removals !== manifest.removals?.sha256 || lists.priorOptOuts !== manifest.priorOptOuts?.sha256 || lists.pilotDropped !== (manifest.pilotDropped?.sha256 ?? null)) return no(`Pilot ${last}: its report was sealed against other skip lists.`);
   if (!manifest.immutableAtFinish?.ok) return no(`Pilot ${last}: something changed while it ran.`);
   for (const [name, now] of Object.entries(current ?? {})) {
     if (JSON.stringify(manifest[name]) !== JSON.stringify(now)) return no(`Pilot ${last} ran under another ${name}.`);
   }
-  return { ok: true, why: "" };
+  return { ok: true, why: "", rounds: proofs };
 }
 
 /**
@@ -483,7 +512,9 @@ export function pilotEvidence(dropped, { results = RESULTS, current } = {}) {
 export function pilotRounds(results = RESULTS) {
   const rounds = [];
   if (!existsSync(results)) return rounds;
-  for (const dir of readdirSync(results).filter((d) => /^e20r-pilot-\d+$/.test(d)).sort()) {
+  const started = (dir) => { const m = join(results, dir, "manifest.json"); return existsSync(m) ? JSON.parse(readFileSync(m, "utf8")).startedAt ?? "" : ""; };
+  // In the order they ran: a number can't say which round came last.
+  for (const dir of readdirSync(results).filter((d) => /^e20r-pilot-\d+$/.test(d)).sort((a, b) => started(a).localeCompare(started(b)) || a.localeCompare(b))) {
     const m = join(results, dir, "manifest.json");
     const list = join(results, dir, "pilot-sites.txt");
     if (!existsSync(m) || !existsSync(list)) { rounds.push({ dir, ok: false }); continue; }
@@ -511,9 +542,9 @@ export function sourceAddresses(interfaces = networkInterfaces()) {
 export const sourceAddressCount = (interfaces) => sourceAddresses(interfaces).length;
 
 const fileHash = (path) => (existsSync(path) ? createHash("sha256").update(readFileSync(path)).digest("hex") : null);
-const STUDY_ENTRIES = Object.freeze(["bench/front-door/replicate.mjs", "bench/front-door/visit-worker.mjs", "bench/front-door/analyze-r.mjs", "bench/front-door/pilot-report.mjs", "bench/front-door/validation-sample.mjs"]);
+const STUDY_ENTRIES = Object.freeze(["bench/front-door/replicate.mjs", "bench/front-door/visit-worker.mjs", "bench/front-door/analyze-r.mjs", "bench/front-door/pilot-report.mjs", "bench/front-door/validation-sample.mjs", "bench/front-door/record-checks.mjs"]);
 // Data the code reads at run time, which no import names.
-const STUDY_DATA = Object.freeze(["lib/data/retire-jsrepository.json.gz", "lib/data/retire-jsrepository.meta.json", "package-lock.json"]);
+const STUDY_DATA = Object.freeze(["lib/data/retire-jsrepository.json.gz", "lib/data/retire-jsrepository.meta.json", "package-lock.json", "package.json"]);
 const IMPORT = /(?:\bfrom\s*|\bimport\s*\(?\s*)["'](\.{1,2}\/[^"']+)["']/g;
 
 /** Every file the study's entry points reach by a relative import, in order. Packages are the lockfile's job. */
@@ -543,7 +574,7 @@ function runtimeHash() {
 export const amendmentText = (preregText) => { const i = preregText.indexOf("## Amendment 2"); return i < 0 ? "" : preregText.slice(i); };
 
 export const runConfig = () => ({
-  limits: V2_LIMITS, visitInThread: true, concurrency: LIMITS.concurrency, delayMs: LIMITS.delayMs, userAgent: USER_AGENT, optOutTokens: OPT_OUT_TOKENS,
+  limits: V2_LIMITS, visitInThread: true, rollingWindow: ROLLING_WINDOW, maxResolverFailures: MAX_RESOLVER_FAILURES, concurrency: LIMITS.concurrency, delayMs: LIMITS.delayMs, userAgent: USER_AGENT, optOutTokens: OPT_OUT_TOKENS,
   strictRobots: true, appPage: false, robotsRedirects: ROBOTS_REDIRECTS, robotsMaxBytes: ROBOTS_MAX_BYTES, requestTimeoutsMs: { page: 6000, robots: 4000, securityTxt: 4000 },
   dnsTimeoutMs: DNS_TIMEOUT_MS, excerptBytes: EXCERPT_BYTES, pageTextChars: PAGE_TEXT_CHARS, softMaxChars: SOFT_MAX_CHARS, inputCapChars: INPUT_CAP_CHARS, seeds: PASS_SEED, pilotMax: PILOT_MAX,
 });
@@ -626,7 +657,7 @@ export function visitInWorker(row, { loopbackPort, exclude = new Map(), budgetMs
 }
 
 /** One pass. `rows` come from mergeCohorts. Appends each record to raw.jsonl. */
-export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map(), delayMs = LIMITS.delayMs, concurrency = LIMITS.concurrency, dns = {}, meta = {}, manifest = {}, onRecord, workerFile, recheck = () => ({}) } = {}) {
+export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map(), delayMs = LIMITS.delayMs, concurrency = LIMITS.concurrency, dns = {}, meta = {}, manifest = {}, onRecord, workerFile, recheck = () => ({}), rollingWindow = ROLLING_WINDOW } = {}) {
   if (!loopbackPort) { concurrency = LIMITS.concurrency; delayMs = LIMITS.delayMs; }
   const order = shuffled(rows, PASS_SEED[pass]);
   mkdirSync(out, { recursive: true, mode: 0o700 });
@@ -644,8 +675,18 @@ export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map
   const dnsAnswers = loopbackPort ? { ...STUB_DNS, mx: stub, ns: stub, ...dns } : dns;
   const records = new Array(order.length);
   let next = 0;
+  // Pass 2 stops itself: a scrub miss at once, resolver failures over the rolling window.
+  const recent = [];
+  let stoppedFor = null;
+  const watch = (record) => {
+    if (pass !== 2) return;
+    if (Object.values(recordMisses(record)).some(Boolean)) stoppedFor = "a privacy scrub missed something";
+    recent.push(resolverFailed(record));
+    if (recent.length > rollingWindow) recent.shift();
+    if (recent.length === rollingWindow && recent.filter(Boolean).length / rollingWindow > MAX_RESOLVER_FAILURES) stoppedFor ??= "over 20% of recent sites hit a resolver failure";
+  };
   await Promise.all(Array.from({ length: Math.min(concurrency, order.length) }, async () => {
-    while (next < order.length) {
+    while (next < order.length && !stoppedFor) {
       const k = next++;
       const row = order[k];
       const category = exclusionFor(row.host, exclude);
@@ -675,22 +716,25 @@ export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map
       }
       records[k] = record;
       appendFileSync(raw, JSON.stringify({ pass, order: k, ...record }) + "\n");
+      watch(record);
       onRecord?.(record, k);
       if (next < order.length && delayMs) await sleep(delayMs);
     }
   }));
-  const agg = aggregateR(records, { pass, ...meta, concurrency, delayMs, appPage: false, userAgent: USER_AGENT, order: "seeded shuffle", seed: PASS_SEED[pass] });
+  const done = records.filter(Boolean);
+  const agg = aggregateR(done, { pass, ...meta, concurrency, delayMs, appPage: false, userAgent: USER_AGENT, order: "seeded shuffle", seed: PASS_SEED[pass] });
   writeFileSync(join(out, "aggregate.json"), JSON.stringify(agg, null, 2) + "\n", SECRET);
-  const sum = (k) => records.reduce((n, r) => n + (r.counters?.[k] ?? 0), 0);
+  const sum = (k) => done.reduce((n, r) => n + (r.counters?.[k] ?? 0), 0);
   const end = { ...studyState(), ...recheck() };
   const changed = Object.keys(end).filter((k) => JSON.stringify(end[k]) !== JSON.stringify(started[k]));
   writeFileSync(join(out, "manifest.json"), JSON.stringify({
-    ...started, git: gitState(ROOT, execFileSync, { remote: !loopbackPort }), finishedAt: new Date().toISOString(), records: records.length,
+    ...started, git: gitState(ROOT, execFileSync, { remote: !loopbackPort }), finishedAt: new Date().toISOString(), records: done.length,
+    ...(stoppedFor ? { partial: true, stoppedFor } : {}),
     totals: { requests: sum("requests"), bytes: sum("bytes"), redirects: sum("redirects") },
     immutableAtFinish: { ok: changed.length === 0, changed },
     rawSha256: fileHash(raw), aggregateSha256: fileHash(join(out, "aggregate.json")),
   }, null, 2) + "\n", SECRET);
-  return { records, aggregate: agg };
+  return { records: done, aggregate: agg, stoppedFor };
 }
 
 // DNS goes to public resolvers, not to the site, but a site that said stop stays out.
@@ -728,7 +772,13 @@ function flag(args, name) {
   return i === -1 ? undefined : args[i + 1];
 }
 
-async function main(args) {
+/**
+ * The command. `deps` is for the acceptance run alone: it stands in for what only a real
+ * server can supply, so the same path decides there as in a run.
+ */
+export async function main(args, deps = {}) {
+  const say = deps.say ?? console.error;
+  const results = deps.results ?? RESULTS;
   if (args.includes("--self-test")) {
     const r = await selfTestR({ out: flag(args, "--out") });
     console.log(r.ok ? `E20-R self-test passed, all to 127.0.0.1 (${r.out})` : `E20-R self-test FAILED:\n  ${r.problems.join("\n  ")}`);
@@ -740,32 +790,40 @@ async function main(args) {
   const round = Number(flag(args, "--pilot-round") ?? 1);
   if (!dir) { console.error("Usage: node bench/front-door/replicate.mjs --self-test | (--pass 2 | --pilot <n> [--pilot-round <k>]) --registered E20R --lists <dir> --exclude <file> --homepage-only <file> --removals <file> --prior-optouts <file> --pilot-dropped <file>"); return 2; }
   if (flag(args, "--out")) { console.error("A registered run has one fixed output folder; --out is for no run."); return 2; }
-  if (!(Number.isInteger(round) && round >= 1 && round <= 9)) { console.error("--pilot-round takes 1 to 9."); return 2; }
-  if (pilot !== null && !(Number.isInteger(pilot) && pilot >= 1 && pilot <= PILOT_MAX)) { console.error(`--pilot takes 1 to ${PILOT_MAX} sites.`); return 2; }
+  if (!(Number.isInteger(round) && round >= 1 && round <= 9)) { say("--pilot-round takes 1 to 9."); return 2; }
+  if (pilot !== null && !(Number.isInteger(pilot) && pilot >= PILOT_MIN && pilot <= PILOT_MAX)) { say(`--pilot takes ${PILOT_MIN} to ${PILOT_MAX} sites.`); return 2; }
   const excludeBytes = flag(args, "--exclude") ? readFileSync(flag(args, "--exclude")) : null;
   const homepageBytes = flag(args, "--homepage-only") ? readFileSync(flag(args, "--homepage-only")) : null;
   const bytes = Object.fromEntries(Object.entries(R_COHORTS).map(([c, { file }]) => [c, existsSync(join(dir, file)) ? readFileSync(join(dir, file)) : null]));
   const removalsBytes = flag(args, "--removals") ? readFileSync(flag(args, "--removals")) : null;
   const priorBytes = flag(args, "--prior-optouts") ? readFileSync(flag(args, "--prior-optouts")) : null;
   const pilotBytes = flag(args, "--pilot-dropped") ? readFileSync(flag(args, "--pilot-dropped")) : null;
-  let lists, exclude, rows, removals, prior, pilotDropped, unmatchedRemovals;
+  let lists, exclude, rows, removals, prior, pilotDropped, unmatchedRemovals, pilotProof;
   try {
     pilotDropped = pilotBytes ? readRemovals(pilotBytes.toString("utf8"), "pilot") : new Map();
-    const now = studyState();
-    const earlier = pilotRounds().filter((r) => r.dir !== `e20r-pilot-${round}`);
+    const now = deps.state ?? studyState();
+    const known = pilotRounds(results);
+    if (pilot !== null) {
+      const top = Math.max(0, ...known.map((r) => Number(r.dir.split("-").pop())));
+      if (round <= top) throw new Error(`Refused: round ${round} is not after round ${top}. Use a higher --pilot-round.`);
+    }
     const listSha256 = Object.fromEntries(Object.entries(bytes).map(([c, b]) => [c, b ? sha256(b) : null]));
     const { classifierSha256, protocolSha256, studyPageSha256, codeSha256, lockfileSha256, runtimeSha256, pslSha256: pslNow } = now;
+    const evidence = pilot === null
+      ? pilotEvidence(pilotDropped, { results, allowFixture: Boolean(deps.fixture), current: { classifierSha256, protocolSha256, studyPageSha256, codeSha256, lockfileSha256, runtimeSha256, pslSha256: pslNow, listSha256 } })
+      : checkPilotDropped(pilotDropped, known, { need: false });
+    pilotProof = evidence.rounds ?? [];
     authorizeR({
       registered: flag(args, "--registered"), pass,
       listHashes: Object.fromEntries(Object.entries(bytes).map(([c, b]) => [c, b ? sha256(b) : null])),
       excludeHash: excludeBytes ? sha256(excludeBytes) : undefined,
       homepageOnlyHash: homepageBytes ? sha256(homepageBytes) : undefined,
-      preregText: existsSync(PREREG_R) ? readFileSync(PREREG_R, "utf8") : "",
-      pageText: existsSync(STUDY_PAGE) ? readFileSync(STUDY_PAGE, "utf8") : "",
-      tree: gitState(), sourceIps: sourceAddresses(),
+      preregText: deps.preregText ?? (existsSync(PREREG_R) ? readFileSync(PREREG_R, "utf8") : ""),
+      pageText: deps.pageText ?? (existsSync(STUDY_PAGE) ? readFileSync(STUDY_PAGE, "utf8") : ""),
+      tree: deps.tree ?? gitState(), sourceIps: deps.sourceIps ?? sourceAddresses(),
       removals: removalsBytes ?? undefined, priorOptOuts: priorBytes ?? undefined,
-      pilot: pilot === null ? pilotEvidence(pilotDropped, { current: { classifierSha256, protocolSha256, studyPageSha256, codeSha256, lockfileSha256, runtimeSha256, pslSha256: pslNow, listSha256 } }) : checkPilotDropped(pilotDropped, earlier, { need: false }),
-      classifierHash: fileHash(CLASSIFIER), pslHash: pslSha256(),
+      pilot: evidence,
+      classifierHash: deps.classifierHash ?? fileHash(CLASSIFIER), pslHash: deps.pslHash ?? pslSha256(),
     });
     lists = Object.fromEntries(Object.entries(R_COHORTS).map(([c, { format }]) => [c, readList(bytes[c].toString("utf8"), format)]));
     removals = readRemovals(removalsBytes.toString("utf8"));
@@ -775,29 +833,34 @@ async function main(args) {
     const missing = unmatchedHosts(readHostList(homepageBytes.toString("utf8")), all);
     if (missing.length) throw new Error(`Refused: ${missing.length} homepage-only entries match no listed site.`);
     unmatchedRemovals = unmatchedHosts(removals.keys(), all).filter((h) => !all.some((r) => exclusionFor(r.host, new Map([[h, "x"]]))));
-    if (unmatchedRemovals.length) console.error(`Warning: ${unmatchedRemovals.length} removal entries match no listed site. Check for a typo.`);
+    if (unmatchedRemovals.length) say(`Warning: ${unmatchedRemovals.length} removal entries match no listed site. Check for a typo.`);
     rows = pilot === null ? all : pilotSample(all, pilot, { exclude });
   } catch (e) {
-    console.error(e.message);
+    say(e.message);
     return 3;
   }
-  const out = pilot === null ? PASS2_OUT : join(RESULTS, `e20r-pilot-${round}`);
+  if (deps.stopBeforeRun) { say("authorized"); return 0; }
+  const out = join(results, pilot === null ? "e20r-pass2" : `e20r-pilot-${round}`);
   const listNow = () => ({ listSha256: Object.fromEntries(Object.entries(R_COHORTS).map(([c, { file }]) => [c, fileHash(join(dir, file))])) });
-  const { aggregate: agg } = await runPass(rows, {
-    pass, out, exclude, recheck: listNow,
+  const { aggregate: agg, stoppedFor } = await runPass(rows, {
+    pass, out, exclude, recheck: () => ({ ...listNow(), ...deps.state }),
+    ...(deps.loopbackPort ? { loopbackPort: deps.loopbackPort, dns: deps.dns, delayMs: 0, rollingWindow: deps.rollingWindow } : {}),
     manifest: {
+      ...deps.state, ...(deps.fixture ? { fixture: true } : {}),
+      ...(pilot === null ? { pilotRounds: pilotProof } : {}),
       listSha256: Object.fromEntries(Object.entries(bytes).map(([c, b]) => [c, sha256(b)])), exclusionSha256: sha256(excludeBytes), homepageOnlySha256: sha256(homepageBytes),
       removals: { used: true, count: removals.size, unmatched: unmatchedRemovals.length, sha256: sha256(removalsBytes) },
       priorOptOuts: { used: true, count: prior.size, sha256: sha256(priorBytes) },
       pilotDropped: { used: Boolean(pilotBytes), count: pilotDropped.size, sha256: pilotBytes ? sha256(pilotBytes) : null },
     },
     meta: { listSha256: Object.fromEntries(Object.entries(bytes).map(([c, b]) => [c, sha256(b)])), exclusionSha256: sha256(excludeBytes), startedFrom: process.version },
-    onRecord: (r, k) => process.stderr.write(`\r${k + 1}/${rows.length} ${r.status.padEnd(9)}`),
+    onRecord: (r, k) => { if (!deps.say) process.stderr.write(`\r${k + 1}/${rows.length} ${r.status.padEnd(9)}`); },
   });
-  process.stderr.write("\n");
+  if (!deps.say) process.stderr.write("\n");
   const finished = JSON.parse(readFileSync(join(out, "manifest.json"), "utf8"));
-  if (!finished.immutableAtFinish.ok) { console.error(`STOP: changed during the run: ${finished.immutableAtFinish.changed.join(", ")}.`); return 4; }
-  console.log(`E20-R ${pilot === null ? `pass ${pass}` : "pilot"}: ${Object.entries(agg.cohorts).map(([c, a]) => `${c} ${a.sites.visited}/${a.sites.listed}`).join(", ")}. Raw (private): ${join(out, "raw.jsonl")}`);
+  if (stoppedFor) { say(`STOP: ${stoppedFor}. This run is partial: ${finished.records} of ${rows.length} sites. It decides no claim.`); return 5; }
+  if (!finished.immutableAtFinish.ok) { say(`STOP: changed during the run: ${finished.immutableAtFinish.changed.join(", ")}.`); return 4; }
+  (deps.say ?? console.log)(`E20-R ${pilot === null ? `pass ${pass}` : "pilot"}: ${Object.entries(agg.cohorts).map(([c, a]) => `${c} ${a.sites.visited}/${a.sites.listed}`).join(", ")}. Raw (private): ${join(out, "raw.jsonl")}`);
   return 0;
 }
 

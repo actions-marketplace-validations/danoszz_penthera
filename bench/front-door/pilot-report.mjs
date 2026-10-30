@@ -3,9 +3,10 @@
  * E20-R pilot report: what a run's raw.jsonl holds, as counts only. No site is
  * named, so the output can be read and pasted anywhere.
  *
- *   node bench/front-door/pilot-report.mjs <raw.jsonl> --exclude <exclusion list> [--skip <host list>]... [--seal]
+ *   node bench/front-door/pilot-report.mjs <raw.jsonl> --exclude <exclusion list> --skip <host list>... [--seal]
  *
- * Pass the removal, prior opt-out and pilot lists as --skip, so every hop meets all four.
+ * Pass the removal, prior opt-out and earlier pilot lists as --skip, so every hop meets all
+ * four. Sealing checks each against the run's manifest. This round's own list is not one.
  * --seal writes pilot-result.json next to the raw file, which pass 2 requires. Seal
  * before pruning: the report reads the excerpts that pruning deletes.
  *
@@ -15,7 +16,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { scrubMisses } from "./classify.mjs";
+import { recordMisses, resolverFailed, MAX_RESOLVER_FAILURES } from "./record-checks.mjs";
 import { readRemovals } from "./replicate.mjs";
 import { exclusionFor, readExclusions } from "./run.mjs";
 
@@ -24,27 +25,6 @@ const tally = (items) => {
   for (const k of items) t[k] = (t[k] || 0) + 1;
   return Object.fromEntries(Object.entries(t).sort(([, a], [, b]) => b - a));
 };
-
-// The stored text fields of one record. Header names and hashes hold no quote.
-function storedText(r) {
-  const e = r.evidence;
-  return [
-    e?.excerpt, e?.pageExcerpt?.title, e?.pageExcerpt?.text, e?.pageExcerpt?.noscript,
-    ...Object.values(e?.values ?? {}), ...(e?.cookieNames ?? []),
-    ...(e?.others ?? []).flatMap((o) => [o.excerpt, ...Object.values(o.values ?? {}), ...(o.cookieNames ?? [])]),
-    ...[r.dns?.listed, r.dns?.final].filter(Boolean).flatMap((d) => [d.dmarcRecord, ...Object.values(d.dmarcTags ?? {}), ...(d.caaTree?.issuers ?? [])]),
-    ...(e?.headerNames ?? []), ...(e?.others ?? []).flatMap((o) => o.headerNames ?? []),
-    ...(r.checks ?? []).map((c) => c.evidence),
-    ...(r.app?.checks ?? []).map((c) => c.evidence),
-  ].filter(Boolean);
-}
-
-// A name that doesn't exist is a finding. A resolver that didn't answer says nothing about the site.
-const NO_NAME = new Set(["ENOTFOUND", "ENODATA", "NXDOMAIN"]);
-const resolverFailed = (r) => (r.error === "not_found" && r.netCode !== undefined && !NO_NAME.has(r.netCode)) || Boolean(r.dns?.listed?.outcomes?.ns?.startsWith("resolver-failure"));
-
-// SPF records list mail servers by address on purpose, so addresses don't count here.
-const spfText = (r) => [r.dns?.listed?.spfRecord, r.dns?.final?.spfRecord].filter(Boolean);
 
 /**
  * Counts for one run. `records` come from raw.jsonl; `exclude` is every skip list, to
@@ -55,8 +35,7 @@ export function pilotReport(records, { exclude = new Map(), pruned = false } = {
   const dns = records.filter((r) => r.dns?.listed);
   const answered = (id) => dns.filter((r) => r.dns.listed[id] !== null).length;
   const misses = { ipv4: 0, ipv6: 0, email: 0, query: 0, fragment: 0, jwt: 0, longHex: 0, longNumber: 0 };
-  for (const text of records.flatMap(storedText)) for (const [k, v] of Object.entries(scrubMisses(text))) misses[k] += v;
-  for (const text of records.flatMap(spfText)) for (const [k, v] of Object.entries(scrubMisses(text))) if (k !== "ipv4" && k !== "ipv6") misses[k] += v;
+  for (const r of records) for (const [k, v] of Object.entries(recordMisses(r))) misses[k] += v;
   const sum = (k) => records.reduce((n, r) => n + (r.counters?.[k] ?? 0), 0);
   const twoxx = ok.filter((r) => r.httpStatus >= 200 && r.httpStatus < 300);
   return {
@@ -103,10 +82,13 @@ export function pilotReport(records, { exclude = new Map(), pruned = false } = {
 const MAX_REQUESTS_PER_SITE = 20;
 // A run that barely reached anything tells nothing about its instrument. Pass 1 graded 84% of what it could.
 export const MIN_GRADED_SHARE = 0.5;
-export const MAX_RESOLVER_FAILURES = 0.2;
+// A pilot too small to see these rates can't pass them.
+export const MIN_ELIGIBLE = 30;
+export const MIN_GRADED = 20;
+export { MAX_RESOLVER_FAILURES };
 
 /** Amendment 2's stop rules, as counts. Any entry stops the run until it is explained. */
-export function stopRules(report) {
+export function stopRules(report, { floors = true } = {}) {
   const stop = [];
   if (Object.values(report.scrubMisses).some(Boolean)) stop.push("a privacy scrub missed something");
   if ((report.outcomes["error:internal"] ?? 0) > 0) stop.push("an internal error");
@@ -118,6 +100,11 @@ export function stopRules(report) {
   if (eligible && report.evidence.graded / eligible < MIN_GRADED_SHARE) stop.push("under half of the eligible sites were graded");
   if (eligible && report.resolverFailures / eligible > MAX_RESOLVER_FAILURES) stop.push("over 20% of sites hit a resolver failure");
   if (eligible && report.evidence.twoxx === 0) stop.push("no site answered with a 2xx");
+  if (report.dns.read && report.dns.answered.spf / report.dns.read < 1 - MAX_RESOLVER_FAILURES) stop.push("over 20% of SPF reads got no answer");
+  if (report.dns.read && report.dns.answered.dmarc / report.dns.read < 1 - MAX_RESOLVER_FAILURES) stop.push("over 20% of DMARC reads got no answer");
+  if (floors && eligible === 0) stop.push("no eligible site");
+  else if (floors && eligible < MIN_ELIGIBLE) stop.push(`under ${MIN_ELIGIBLE} eligible sites`);
+  if (floors && eligible && report.evidence.graded < MIN_GRADED) stop.push(`under ${MIN_GRADED} graded sites`);
   return stop;
 }
 
@@ -128,7 +115,7 @@ const hash = (b) => createHash("sha256").update(b).digest("hex");
  * its manifest and raw file. A run that changed under it, or whose raw file isn't
  * the one the manifest hashed, can't pass.
  */
-export function sealPilot(dir, { exclude = new Map() } = {}) {
+export function sealPilot(dir, { exclude = new Map(), exclusionBytes, skipBytes = [] } = {}) {
   const manifestBytes = readFileSync(join(dir, "manifest.json"));
   const manifest = JSON.parse(manifestBytes);
   const rawBytes = readFileSync(join(dir, "raw.jsonl"));
@@ -138,27 +125,36 @@ export function sealPilot(dir, { exclude = new Map() } = {}) {
   else if (hash(rawBytes) !== manifest.rawSha256) stop.push("the raw file is not the one the manifest hashed");
   if (!manifest.finishedAt) stop.push("the run did not finish");
   if (!manifest.immutableAtFinish?.ok) stop.push("something changed while it ran");
-  const result = { passed: stop.length === 0, stop, manifestSha256: hash(manifestBytes), rawSha256: manifest.rawSha256 ?? null, reportSha256: hash(JSON.stringify(report)), sealedAt: new Date().toISOString() };
+  // The hop check is only as good as its lists, so they must be this run's own.
+  const lists = { exclusionSha256: manifest.exclusionSha256 ?? null, removals: manifest.removals?.sha256 ?? null, priorOptOuts: manifest.priorOptOuts?.sha256 ?? null, pilotDropped: manifest.pilotDropped?.sha256 ?? null };
+  const given = skipBytes.map(hash);
+  if (!exclusionBytes || hash(exclusionBytes) !== lists.exclusionSha256) stop.push("--exclude is not the list this run used");
+  for (const name of ["removals", "priorOptOuts", "pilotDropped"]) if (lists[name] && !given.includes(lists[name])) stop.push(`--skip is missing the run's ${name} list`);
+  if (given.some((h) => ![lists.removals, lists.priorOptOuts, lists.pilotDropped].includes(h))) stop.push("a --skip file is not one of this run's lists");
+  const result = { passed: stop.length === 0, stop, manifestSha256: hash(manifestBytes), rawSha256: manifest.rawSha256 ?? null, reportSha256: hash(JSON.stringify(report)), lists, sealedAt: new Date().toISOString() };
   writeFileSync(join(dir, "pilot-result.json"), JSON.stringify(result, null, 2) + "\n", { mode: 0o600 });
   return { ...result, report };
 }
 
-function main(args) {
+export function main(args, { log = console.log, fail = console.error } = {}) {
   const i = args.indexOf("--exclude");
   const file = args.find((a, k) => !a.startsWith("--") && !["--exclude", "--skip"].includes(args[k - 1]));
-  if (!file || i < 0) { console.error("Usage: pilot-report.mjs <raw.jsonl> --exclude <exclusion list> [--skip <host list>]... [--seal]"); return 2; }
+  if (!file || i < 0) { fail("Usage: pilot-report.mjs <raw.jsonl> --exclude <exclusion list> --skip <host list>... [--seal]"); return 2; }
   const skips = args.flatMap((a, k) => (a === "--skip" ? [args[k + 1]] : []));
-  const exclude = new Map([...readExclusions(readFileSync(args[i + 1], "utf8")), ...skips.flatMap((f) => [...readRemovals(readFileSync(f, "utf8"), "skip")])]);
+  if (args.includes("--seal") && !skips.length) { fail("--seal needs --skip for the removal, prior opt-out and earlier pilot lists."); return 2; }
+  const exclusionBytes = readFileSync(args[i + 1]);
+  const skipBytes = skips.map((f) => readFileSync(f));
+  const exclude = new Map([...readExclusions(exclusionBytes.toString("utf8")), ...skipBytes.flatMap((b) => [...readRemovals(b.toString("utf8"), "skip")])]);
   if (args.includes("--seal")) {
-    if (!existsSync(join(dirname(file), "manifest.json"))) { console.error("--seal needs the run's manifest.json next to the raw file."); return 2; }
-    const { report, ...result } = sealPilot(dirname(file), { exclude });
-    console.log(JSON.stringify({ ...report, ...result }, null, 2));
+    if (!existsSync(join(dirname(file), "manifest.json"))) { fail("--seal needs the run's manifest.json next to the raw file."); return 2; }
+    const { report, ...result } = sealPilot(dirname(file), { exclude, exclusionBytes, skipBytes });
+    log(JSON.stringify({ ...report, ...result }, null, 2));
     return result.passed ? 0 : 1;
   }
   const records = readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
   const report = pilotReport(records, { exclude, pruned: existsSync(join(dirname(file), "prune-manifest.json")) });
   const stop = stopRules(report);
-  console.log(JSON.stringify({ ...report, stop }, null, 2));
+  log(JSON.stringify({ ...report, stop }, null, 2));
   return stop.length ? 1 : 0;
 }
 

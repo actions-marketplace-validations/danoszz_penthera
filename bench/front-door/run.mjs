@@ -212,8 +212,9 @@ const ROBOTS_KEEP_OUTCOME = new Set(["not_found", "unreachable", "tls_invalid", 
 // Nothing answered at all. A reset can be a refusal, and a refusal gets no retry.
 const NO_ANSWER = new Set(["ECONNREFUSED", "EHOSTUNREACH", "ENETUNREACH", "ETIMEDOUT", "EADDRNOTAVAIL"]);
 const AFTER_TLS = new Set(["unreachable", "timeout", "not_found"]);
-// No TLS session could be set up: old versions, or plain HTTP on the TLS port. Not a refusal.
-const TLS_HANDSHAKE = /^(?:EPROTO$|ERR_SSL_)/;
+// No TLS session could be set up: old versions, or plain HTTP on the TLS port. An alert
+// that says access is denied is a refusal, though, and a refusal gets no fallback.
+const TLS_HANDSHAKE = /^(?:EPROTO$|ERR_SSL_(?!.*ACCESS_DENIED))/;
 const tlsFailed = (e) => e.code === "tls_invalid" || TLS_HANDSHAKE.test(e.netCode ?? "");
 /** The outcome a record names. A handshake failure is its own, not `unreachable`. */
 const outcomeOf = (e) => (!(e instanceof CheckError) ? "internal" : TLS_HANDSHAKE.test(e.netCode ?? "") ? "tls_handshake" : e.code);
@@ -442,6 +443,9 @@ export function percentForm(text) {
   return out;
 }
 
+/** Every valid escape decoded once, so `%2F` and `/` meet. Bytes stay bytes: only ASCII is decoded. */
+export const percentDecoded = (text) => String(text).replace(/%([0-7][0-9A-F])/g, (_m, hex) => String.fromCharCode(parseInt(hex, 16)));
+
 /**
  * A robots rule against a path, with no regex: `*` is any run, a final `$` ends
  * the path, and a rule is otherwise a prefix. Each part is found once, left to
@@ -490,9 +494,11 @@ export function robotsVerdict(robots, path, tokens = OPT_OUT_TOKENS) {
   const rules = (ours.length ? ours : groups.filter((g) => g.agents.includes("*"))).flatMap((g) => g.rules).filter((r) => r.value);
   let best = null;
   const target = percentForm(path);
+  const plain = percentDecoded(target);
   for (const r of rules) {
     const value = percentForm(r.value);
-    if (!globMatch(value, target)) continue;
+    // A Disallow also matches on the decoded form, so a reserved character can't slip past it.
+    if (!globMatch(value, target) && (r.allow || !globMatch(percentDecoded(value), plain))) continue;
     if (!best || value.length > best.value.length || (value.length === best.value.length && r.allow)) best = { allow: r.allow, value };
   }
   return best && !best.allow ? "disallowed" : "allowed";

@@ -190,21 +190,24 @@ export function traitsOf(html) {
 
 // Every repeat below is bounded, so no input of INPUT_CAP_CHARS can make these slow.
 const ZERO_WIDTH = /[​-‍⁠﻿­]/g;
-const NUMERIC_ENTITY = /&#(?:x([0-9a-f]{1,8})|(\d{1,8}));?/gi;
+const NUMERIC_ENTITY = /&#(?:x0*([0-9a-f]{1,8})|0*(\d{1,8}));?/gi;
 const NAMED_ENTITY = /&(commat|period|lowbar|colon);?/gi;
 const ESCAPED = /\\(?:x|u00)([0-9a-f]{2})/gi;
 const PERCENT = /%(?:25)?([2-7][0-9a-f])/gi;
-// `(at)` counts only between what can be an address: "look (at) this" is prose.
-const AT_WORD = /(?<=[\p{L}\p{N}\p{M}._%+-])\s{0,3}[[({]\s{0,2}at\s{0,2}[\])}]\s{0,3}(?=[\p{L}\p{N}-]{1,63}(?:\.|\s{0,3}[[({]\s{0,2}dot))|\s{1,3}@\s{0,3}(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}\p{M}])\s{0,3}@\s{1,3}|[＠﹫]/giu;
+// `(at)` joins two words unless the next is ordinary prose: "look (at) this" stays.
+const AT_WORD = /(?<=[\p{L}\p{N}\p{M}._%+-])\s{0,3}[[({]\s{0,2}at\s{0,2}[\])}]\s{0,3}(?=([\p{L}\p{N}_-]{1,63}))|\s{1,3}@\s{0,3}(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}\p{M}])\s{0,3}@\s{1,3}|[＠﹫]/giu;
+const AT_BARE = /[[({]\s{0,2}at\s{0,2}[\])}]\s{0,3}[\p{L}_-][\p{L}\p{N}_-]{0,62}(?:\.[\p{L}\p{N}_-]{1,63}){1,6}/giu;
+const AT_THEN_DOT_WORD = /@([\p{L}\p{N}_-]{1,63})\s{1,3}dot\s{1,3}/giu;
+export const PROSE_AFTER_AT = Object.freeze(new Set(["a", "all", "an", "any", "dawn", "dusk", "every", "first", "her", "him", "home", "it", "last", "least", "me", "most", "night", "noon", "once", "our", "school", "some", "that", "the", "them", "these", "this", "those", "times", "us", "what", "work", "you", "your"]));
 const TAGGED_AT = /(?:<\/?[a-z]{1,8}>\s{0,2}){1,4}@(?:\s{0,2}<\/?[a-z]{1,8}>){1,4}/gi;
-const DASH_AT = /([\p{L}\p{N}._+]{1,64})-at-([\p{L}\p{N}-]{1,63}\.\p{L}{2,24})\b/giu;
-const DOT_WORD = /\s{0,3}[[({]\s{0,2}dot\s{0,2}[\])}]\s{0,3}/gi;
-const SPELLED_EMAIL = /([\p{L}\p{N}._%+-]{1,64})\s{1,3}at\s{1,3}([\p{L}\p{N}-]{1,63})(?:\s{1,3}dot\s{1,3}|\s{0,3}\.\s{0,3})(\p{L}{2,24})\b/giu;
+const DASH_AT = /([\p{L}\p{N}+]{1,64})[-_.]at[-_.]([\p{L}\p{N}-]{1,63}\.\p{L}{2,24})\b/giu;
+const DOT_WORD = /\s{0,3}[[({]\s{0,2}(?:dot|\.)\s{0,2}[\])}]\s{0,3}/gi;
+const SPELLED_EMAIL = /([\p{L}\p{N}._%+-]{1,64})\s{1,3}at\s{1,3}([\p{L}\p{N}_-]{1,63})(\s{1,3}dot\s{1,3}|\.|\s{1,3}\.\s{1,3})(\p{L}{2,24})\b/giu;
 const CF_EMAIL = /(data-cfemail=["']?)[0-9a-f]{2,512}|(\/cdn-cgi\/l\/email-protection#)[0-9a-f]{2,512}/gi;
 // No TLD needed: a cut address has none, and an @ inside a word is no loss.
-const EMAIL = /[\p{L}\p{M}\p{N}._%+'\uFFFD-]{1,64}@[\p{L}\p{M}\p{N}\uFFFD-]{1,63}(?:\.[\p{L}\p{M}\p{N}-]{1,63}){0,6}/gu;
+const EMAIL = /[\p{L}\p{M}\p{N}._%+'\uFFFD-]{1,64}@[\p{L}\p{M}\p{N}_\uFFFD-]{1,63}(?:\.[\p{L}\p{M}\p{N}_-]{1,63}){0,6}/gu;
 const QUOTED_EMAIL = /"[^"\n]{1,64}"@[\p{L}\p{N}-]{1,63}(?:\.[\p{L}\p{N}-]{1,63}){0,6}/gu;
-const IPV6_RUN = /(?<!:)(?:[0-9a-f]{0,4}:){2,8}(?:\d{1,3}(?:\.\d{1,3}){3}|[0-9a-f]{0,4})(?![0-9a-z_])/gi;
+const IPV6_RUN = /(?<!:)(?:[0-9a-f]{0,4}:){2,8}(?:\d{1,3}(?:\.\d{1,3}){3}|[0-9a-f]{0,4})(?![0-9a-f])/gi;
 const IPV4 = /(?<!\d)(?:\d{1,3}\.){3}\d{1,3}(?!\d)(?!\.\d)/g;
 const IPV4_DASHED = /(?<!\d)\d{1,3}-\d{1,3}-\d{1,3}-\d{1,3}(?![\d-])/g;
 const IPV4_HEX = /\b0x[0-9a-f]{8}\b/gi;
@@ -220,8 +223,9 @@ const LONG_NUMBER = /\+?\d[\d\s().-]{7,40}\d/g;
 const digits = (s) => s.replace(/\D/g, "").length;
 const isToken = (s) => /^[0-9a-f]{16,}$/i.test(s) || (digits(s) >= 3 && /[A-Za-z]/.test(s)) || (s.length >= 20 && /\d/.test(s) && /[a-z]/.test(s) && /[A-Z]/.test(s));
 // A run can start with one stray label: `IP:` or the `ip6:` of an SPF record.
-// `std::` and `a::b` are C++: an address here needs a digit.
-const ipv6Out = (m) => (/\d/.test(m) && (isIPv6(m) || (!m.startsWith("::") && isIPv6(m.slice(m.indexOf(":") + 1)))) ? "<ip>" : m);
+/** One rule for the scrub and its detector. `a::b` is C++: with no digit, an address needs some length. */
+export const looksIpv6 = (s) => isIPv6(s) && (/\d/.test(s) || s.replace(/:/g, "").length >= 6);
+const ipv6Out = (m) => (looksIpv6(m) || (!m.startsWith("::") && looksIpv6(m.slice(m.indexOf(":") + 1))) ? "<ip>" : m);
 const printable = (code, m) => (code >= 0x20 && code < 0x7f ? String.fromCharCode(code) : m);
 const NAMED_CHARS = Object.freeze({ commat: "@", period: ".", lowbar: "_", colon: ":" });
 const safeChar = (m, hex) => { const ch = String.fromCharCode(parseInt(hex, 16)); return /[\w@.:-]/.test(ch) ? ch : m; };
@@ -233,8 +237,11 @@ const decodeForms = (s) => s
   .replace(NUMERIC_ENTITY, (m, hex, dec) => printable(hex ? parseInt(hex, 16) : Number(dec), m))
   .replace(NAMED_ENTITY, (_m, name) => NAMED_CHARS[name.toLowerCase()])
   .replace(ESCAPED, safeChar).replace(/\\100/g, "@").replace(PERCENT, safeChar)
-  .replace(TAGGED_AT, "@").replace(AT_WORD, "@").replace(DOT_WORD, ".")
-  .replace(SPELLED_EMAIL, "$1@$2.$3").replace(DASH_AT, "$1@$2");
+  .replace(TAGGED_AT, "@").replace(DOT_WORD, ".")
+  .replace(AT_WORD, (m, next) => (next !== undefined && (PROSE_AFTER_AT.has(next.toLowerCase()) || /^\d/.test(next)) ? m : "@"))
+  .replace(AT_BARE, "<email>").replace(AT_THEN_DOT_WORD, "@$1.")
+  .replace(SPELLED_EMAIL, (m, local, name, sep, tld) => (sep.trim() === "." && sep !== "." && tld !== tld.toLowerCase() ? m : `${local}@${name}.${tld}`))
+  .replace(DASH_AT, "$1@$2");
 
 /** ASCII lower case, one for one. `toLowerCase` makes U+0130 two units, which shifts every index after it. */
 const asciiLower = (s) => s.replace(/[A-Z]+/g, (m) => m.toLowerCase());
@@ -291,11 +298,11 @@ export function scrubMisses(text) {
   const whole = String(text ?? "");
   const low = whole.toLowerCase();
   for (const mark of ["&commat", "\\x40", "\\u0040", "\\100", "%40", "%2540", "＠", "﹫"]) if (low.includes(mark)) out.email++;
-  // A bracketed at counts when an address can follow it: "look (at) this" can't.
+  // A bracketed at counts when anything but ordinary prose follows it.
   for (const mark of ["[at]", "(at)", "{at}"]) {
     for (let i = low.indexOf(mark); i >= 0; i = low.indexOf(mark, i + 1)) {
-      const next = low.slice(i + mark.length, i + 80).trimStart().split(/\s/);
-      if (next[0].includes(".") || next[1]?.includes("dot")) out.email++;
+      const next = low.slice(i + mark.length, i + 80).trimStart().split(/[\s.,;:!?)]/)[0];
+      if (next && !PROSE_AFTER_AT.has(next) && !"0123456789".includes(next[0])) out.email++;
     }
   }
   // Ordinary pages hold many entities for quotes and dashes. Only ones that spell ASCII hide text.
@@ -303,7 +310,7 @@ export function scrubMisses(text) {
   for (let i = low.indexOf("&#"); i >= 0; i = low.indexOf("&#", i + 2)) {
     const hex = low[i + 2] === "x";
     let end = i + (hex ? 3 : 2);
-    while (end < low.length && end < i + 12 && (hex ? "0123456789abcdef" : "0123456789").includes(low[end])) end++;
+    while (end < low.length && end < i + 16 && (hex ? "0123456789abcdef" : "0123456789").includes(low[end])) end++;
     const code = Number.parseInt(low.slice(i + (hex ? 3 : 2), end), hex ? 16 : 10);
     if (code === 0x40) out.email++;
     if (code >= 0x20 && code < 0x7f) spelled++;
@@ -320,10 +327,11 @@ export function scrubMisses(text) {
     if (raw === "redacted" || raw === "query" || raw === "fragment") continue;
     const t = trim(raw);
     if (!t) continue;
-    for (const piece of [t, ...t.split("="), t.slice(t.indexOf(":") + 1)]) {
-      const v = isIP(trim(piece));
+    for (const piece of [raw, t, ...t.split("="), t.slice(t.indexOf(":") + 1)]) {
+      const candidate = isIP(piece) ? piece : trim(piece);
+      const v = isIP(candidate);
       if (v === 4) { out.ipv4++; break; }
-      if (v === 6) { out.ipv6++; break; }
+      if (v === 6 && looksIpv6(candidate)) { out.ipv6++; break; }
     }
     // The @ needs an address on both sides: `}@media` in a stylesheet and `pkg@^1` on a CDN have none.
     const wordChar = (ch) => ch.toLowerCase() !== ch.toUpperCase() || (ch >= "0" && ch <= "9");

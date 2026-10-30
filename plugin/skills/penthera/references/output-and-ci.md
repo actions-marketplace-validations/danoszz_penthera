@@ -21,7 +21,7 @@ Reports should go in `reports/` (gitignored). Do not write scan artifacts into `
 
 | Code | Meaning |
 |------|---------|
-| `0` | No critical or high findings |
+| `0` | No critical or high rule fired. This run does not prove login, access rules or payments are right |
 | `1` | Critical or high findings detected |
 | `2` | Scan failed (unreachable target, bad config) |
 

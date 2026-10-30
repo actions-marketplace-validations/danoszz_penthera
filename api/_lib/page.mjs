@@ -383,6 +383,7 @@ export async function securityTxtCheck(pageUrl, budget, opts = {}, now = Date.no
   } catch {
     return [{ id: "security-txt", category: "contact", weight: 0, passed: false, severity: "info", title: "Could not read security.txt", evidence: "The request did not finish in time; this says nothing about the site.", fix: "Nothing to fix from this result.", verify }];
   }
+  opts.onResponse?.("security.txt", res);
   const type = String(res.headers["content-type"] || "");
   const present = res.status === 200 && !/html/i.test(type) && /^\s*Contact\s*:/mi.test(res.body);
   if (!present) {
@@ -450,6 +451,7 @@ export async function checkOptOut(origin, budget, opts = {}) {
   } catch {
     return;
   }
+  opts.onResponse?.("robots", res);
   if (res.status === 200 && optedOut(res.body, opts.optOutTokens)) {
     throw new CheckError("opted_out", "This site's owner opted out of Penthera's online check.", 403, "Ask the owner, or, if it's your site, run npx penthera on your own machine.");
   }

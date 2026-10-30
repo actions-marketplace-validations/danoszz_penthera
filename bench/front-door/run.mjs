@@ -188,7 +188,7 @@ export function exclusionFor(host, exclusions) {
 
 const loopbackLookup = async () => [{ address: "127.0.0.1", family: 4 }];
 const enodata = () => Promise.reject(Object.assign(new Error("ENODATA"), { code: "ENODATA" }));
-const STUB_DNS = { resolveTxt: enodata, resolveCaa: enodata };
+export const STUB_DNS = { resolveTxt: enodata, resolveCaa: enodata };
 
 /**
  * § 8.7: evidence can quote an email address (a security.txt Contact, a
@@ -206,11 +206,12 @@ const slim = (c) => ({ id: c.id, passed: c.passed, severity: c.severity, weight:
  * http when https does not connect); when the name does not resolve, one try
  * at www.<host>.
  */
-export async function visit(row, { loopbackPort, now, appPage = false, exclude = new Map() } = {}) {
+export async function visit(row, { loopbackPort, now, appPage = false, exclude = new Map(), lookup, evidence } = {}) {
   let page = null;
+  const responses = [];
   const base = {
     userAgent: USER_AGENT, optOutTokens: OPT_OUT_TOKENS, optOutAll: true, assets: false, secrets: false,
-    budgetMs: LIMITS.siteBudgetMs, now, onPage: (p) => { page = p; },
+    budgetMs: LIMITS.siteBudgetMs, now, lookup, onPage: (p) => { page = p; }, onResponse: (kind, res) => responses.push({ kind, res }),
   };
   const opts = loopbackPort
     ? { ...base, lookup: loopbackLookup, allowPrivate: true, anyPort: true, dns: STUB_DNS }
@@ -241,8 +242,10 @@ export async function visit(row, { loopbackPort, now, appPage = false, exclude =
       score: report.score, checks: report.checks.map(slim),
       platform: page ? platformOf(page.headers, page.html) : { edge: "unknown", builder: "unknown" },
     };
+    // E20-R only: what the response carried, for the classifier (replicate.mjs).
+    if (evidence && page) record.evidence = evidence(page, responses);
     // § 4.2, pending: one app or login page, only when B is on.
-    if (appPage) record.app = await capped(visitAppPage(page, { loopbackPort, now, exclude })).catch((e) => ({ status: "error", error: e instanceof CheckError ? e.code : "internal" }));
+    if (appPage) record.app = await capped(visitAppPage(page, { loopbackPort, now, exclude, lookup })).catch((e) => ({ status: "error", error: e instanceof CheckError ? e.code : "internal" }));
     return record;
   } catch (e) {
     // § 5, decided 29 Oct: a `*` group with Disallow: / is an opt-out for E20, counted as excluded.
@@ -365,7 +368,7 @@ export function robotsVerdict(robots, path, tokens = OPT_OUT_TOKENS) {
  * registrable domain; a redirect elsewhere is not followed (off_site). Only
  * the response headers are graded: no form, no login, no script.
  */
-export async function visitAppPage(page, { loopbackPort, now, exclude = new Map() } = {}) {
+export async function visitAppPage(page, { loopbackPort, now, exclude = new Map(), lookup } = {}) {
   if (!page?.html) return { status: "no_link" };
   const link = findAppLink(page.html, page.url);
   if (!link) return { status: "no_link" };
@@ -373,7 +376,7 @@ export async function visitAppPage(page, { loopbackPort, now, exclude = new Map(
   const category = exclusionFor(target.hostname, exclude);
   if (category) return { status: "excluded", reason: "exclusion_list", category };
   const site = registrableDomain(new URL(page.url).hostname);
-  const guard = loopbackPort ? { lookup: loopbackLookup, allowPrivate: true, anyPort: true } : {};
+  const guard = loopbackPort ? { lookup: loopbackLookup, allowPrivate: true, anyPort: true } : { lookup };
   const budget = makeBudget({ requests: APP_PAGE.requests, budgetMs: APP_PAGE.budgetMs });
   const onHop = (u) => {
     if (registrableDomain(u.hostname) !== site) throw new CheckError("off_site", "Redirect to another site, not followed.", 422, "");

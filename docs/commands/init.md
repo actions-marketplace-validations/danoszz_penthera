@@ -60,8 +60,8 @@ Type numbers to toggle items (`2,4`), or press Enter:
   scan may download the Retire.js database. Nothing else changes.
 
 **3. Run and summarize.** One line per check, then the grade per area (A to F,
-the same scale as `penthera agents`), the three things to fix first in plain
-language, and the report folder:
+the same scale as `penthera agents`, or `–` when there was nothing to read), the
+three things to fix first in plain language, and the report folder:
 
 ```
   Running 3 checks  (offline)

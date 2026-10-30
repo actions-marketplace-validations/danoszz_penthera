@@ -33,7 +33,7 @@ Six sections, always in this order. An empty section is left out, except
 
 | # | Section | What goes in it | Decided by |
 |---|---|---|---|
-| 1 | **Verdict** | One line: `Fix now`, `Review` or `Nothing to fix`, plus the counts behind it | rules |
+| 1 | **Verdict** | One line: `Fix now`, `Review`, `Nothing to fix` or `Nothing to assess`, plus the counts behind it | rules |
 | 2 | **Act on** | Findings that need a change: what, where (`file:line`), why in one clause, the fix in one line, the rule id | rules |
 | 3 | **Check first** | Heuristic findings a person has to look at before acting | rules |
 | 4 | **Likely noise** | Findings demoted by a deterministic reason, grouped by reason, one line per group | rules |
@@ -45,6 +45,8 @@ Six sections, always in this order. An empty section is left out, except
 - `Fix now`: at least one finding in **Act on** at high or critical.
 - `Review`: anything in **Act on** below high, or anything in **Check first**.
 - `Nothing to fix`: both empty. Still followed by **Not checked**.
+- `Nothing to assess`: an agents audit that found no agent config. It has no
+  grade. Still followed by **Not checked**.
 
 The verdict uses the same words as the penthera.org check, so the user sees one
 vocabulary.

@@ -11,7 +11,7 @@ assistant to pass on as it is. Penthera's rules fill it; no model is involved.
 
 | Section | What is in it |
 |---|---|
-| Verdict | `Fix now`, `Review` or `Nothing to fix`, with the counts |
+| Verdict | `Fix now`, `Review` or `Nothing to fix`, with the counts. `Nothing to assess` when `penthera agents` found no agent config |
 | Act on | Findings that need a change: where, why, the fix, the rule id |
 | Check first | Heuristic and low findings, and what a dependency *can* do |
 | Likely noise | Hits in files git ignores, generated build output or test fixtures, one line per group |

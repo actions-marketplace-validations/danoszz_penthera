@@ -101,13 +101,13 @@ export function toMcpFinding(f) {
  * @param {string[]} p.limits    what this tool did not look at
  * @param {number} [p.maxFindings]
  * @param {object} [p.extra]     tool-specific fields (grade, packages, ...)
- * @param {object} [p.scan]      { mode, coverage } for the brief
+ * @param {object} [p.scan]      { mode, coverage, agents, notChecked } for the brief
  */
 export function buildResult({ tool, target, findings, limits, maxFindings = DEFAULT_FINDINGS, extra = {}, scan = {} }) {
   const sorted = [...findings].sort((a, b) => (SEV_RANK[a.severity] ?? 9) - (SEV_RANK[b.severity] ?? 9));
   const all = sorted.map(toMcpFinding);
   let shown = all.slice(0, maxFindings);
-  const brief = buildBrief({ target, mode: scan.mode, coverage: scan.coverage, findings }, { notRunCommand: (n) => NOT_RUN_TOOL[n.id] || n.command });
+  const brief = buildBrief({ ...scan, target, findings }, { notRunCommand: (n) => NOT_RUN_TOOL[n.id] || n.command });
   const structured = {
     tool,
     target: cleanText(target, 500),

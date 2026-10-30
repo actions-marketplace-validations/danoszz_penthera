@@ -68,7 +68,7 @@ export function formatMarkdownReport(result, opts = {}) {
   if (modes.includes("url")) lines.push(`| **Reachable** | ${result.reachable ? "Yes" : "No"} |`);
   if (result.profile) lines.push(`| **Profile** | ${result.profile} |`);
   if (result.agents) {
-    lines.push(`| **Agent config grade** | **${result.agents.grade}** (${result.agents.score}/100) |`);
+    lines.push(`| **Agent config grade** | ${result.agents.grade ? `**${result.agents.grade}** (${result.agents.score}/100)` : "none, nothing found to assess"} |`);
     const inv = result.agents.inventory || {};
     lines.push(`| **Agent config found** | ${inv.skills || 0} skills, ${inv.mcpServers || 0} MCP servers, ${inv.hooks || 0} hooks, ${inv.plugins || 0} plugins |`);
     if (result.agents.lock) lines.push(`| **penthera.lock** | ${result.agents.lock.status} |`);

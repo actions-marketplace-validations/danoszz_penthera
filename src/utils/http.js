@@ -9,9 +9,11 @@
  *
  * A scan runs inside an egress context (see `runWithEgress`). The context
  * names the scan target and records every host contacted, every request it
- * refused, and every probe request that failed. Under `offline: true` the
- * client refuses any host (or port) other than the target's; a redirect may
- * only move to a host on the target's registrable domain. Outside a context
+ * refused, and every probe request that failed. Under `offline: true` or
+ * `scoped: true` the client refuses any host (or port) other than the target's
+ * and `allowHosts`; a redirect may also move to a host on the target's
+ * registrable domain. `scoped` holds that line without `offline`'s other
+ * limits, for callers that promise a scope (`penthera mcp`). Outside a context
  * (unit tests, library use) requests are unrestricted and nothing is recorded.
  *
  * Response bodies are read through `readBody`, which caps the decoded size
@@ -44,8 +46,8 @@ const store = new AsyncLocalStorage();
 
 /** Thrown (and recorded) when the egress policy refuses a request. */
 export class EgressBlockedError extends Error {
-  constructor(url, reason) {
-    super(`blocked by --offline: ${reason}`);
+  constructor(url, reason, policy = "--offline") {
+    super(`blocked by ${policy}: ${reason}`);
     this.name = "EgressBlockedError";
     this.code = "EGRESS_BLOCKED";
     this.url = url;
@@ -59,7 +61,8 @@ export class EgressBlockedError extends Error {
  * @param {string} opts.target - scan target URL; its host is always allowed
  * @param {boolean} [opts.offline] - refuse every host except the target
  * @param {string} [opts.userAgent] - override the default User-Agent
- * @param {string[]} [opts.allowHosts] - extra hosts to allow under offline
+ * @param {boolean} [opts.scoped] - refuse every host except the target and allowHosts, online too
+ * @param {string[]} [opts.allowHosts] - extra hosts to allow under offline or scoped
  * @param {number} [opts.rateLimit] - requests per second for the whole scan; 0 or unset for no limit
  */
 export function createEgressContext(opts = {}) {
@@ -70,6 +73,7 @@ export function createEgressContext(opts = {}) {
     targetPort: target ? effectivePort(target) : null,
     targetDomain: targetHost ? registrableDomain(targetHost) : null,
     offline: opts.offline === true,
+    scoped: opts.scoped === true,
     userAgent: opts.userAgent || DEFAULT_USER_AGENT,
     allowHosts: new Set((opts.allowHosts || []).map((h) => h.toLowerCase())),
     rateLimit: opts.rateLimit > 0 ? opts.rateLimit : 0,
@@ -104,7 +108,7 @@ function isThirdParty(ctx, host) {
  * @returns {{ allowed: boolean, reason?: string }}
  */
 export function checkEgress(url, opts = {}, ctx = currentEgress()) {
-  if (!ctx || !ctx.offline) return { allowed: true };
+  if (!ctx || !(ctx.offline || ctx.scoped)) return { allowed: true };
   let parsed;
   try {
     parsed = new URL(url);
@@ -229,7 +233,7 @@ export async function request(url, opts = {}) {
       if (!verdict.allowed) {
         const blockedHost = safeHost(current);
         if (ctx && blockedHost) bump(ctx.blocked, blockedHost);
-        throw new EgressBlockedError(current, verdict.reason);
+        throw new EgressBlockedError(current, verdict.reason, ctx?.offline ? "--offline" : "the allowed scope");
       }
 
       if (hop > 0) await acquireSlot(ctx, combined);

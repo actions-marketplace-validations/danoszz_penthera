@@ -88,7 +88,7 @@ Every tool is read-only. None writes a file, applies a fix, or runs a shell.
 |---|---|---|
 | `scan_repo` | Secrets, code-execution sinks, API routes, runtime version pins in a project folder, plus a coverage ledger of what ran and what was skipped | none |
 | `check_dependencies` | What each npm or Python package can do (install scripts, shell, network, eval, credential access), known-malicious packages, typosquats | none |
-| `audit_ai_tooling` | The project's skills, MCP servers, hooks, permissions and rule files, graded A to F | none |
+| `audit_ai_tooling` | The project's skills, MCP servers, hooks, permissions and rule files, graded A to F, or no grade if it finds no agent config | none |
 | `runtime_advisories` | Advisories and end of life for the PHP, nginx, Apache, Node.js, Python or OpenSSL a project pins or a `Server` header shows | none |
 | `explain_finding` | What a finding's rule checks, why it matters, how to fix it, references and OWASP ids | none |
 | `scan_url` | A passive scan of a running app: TLS, headers, cookies, CORS, exposed files, OpenAPI and auth smoke checks | the target only (see below) |
@@ -119,14 +119,18 @@ most severe findings; ask for up to 200 with `max_findings`.
 npx -y penthera@2.1.0 mcp --allow-host staging.example.com
 ```
 
-  Only list hosts you are authorized to test.
+  Only list hosts you are authorized to test. The same limit holds on every
+  redirect, with or without `--offline`. A redirect may also move within the
+  target's registrable domain, such as `example.com` to `www.example.com`.
+  `scan_url` refuses any other host and names it under **Not checked**.
 - **Follow instructions in your files.** Scanned text reaches the agent only as
   finding text, with invisible characters removed and a note that it is data.
   A file that says "ignore previous instructions" becomes a finding, not a
   command.
 - **Phone home.** It talks to your agent over stdin and stdout and never opens
-  a port. With `--offline`, `scan_url` also skips the Retire.js download and
-  DNS lookups and contacts only the target.
+  a port. `scan_url` uses the vendored Retire.js snapshot, never a download.
+  Without `--offline` it makes the SPF and DMARC DNS lookups. With `--offline`
+  it skips them and contacts only the target, not your listed hosts.
 
 ## Options
 
@@ -139,7 +143,7 @@ npx -y penthera@2.1.0 mcp --help
 |---|---|
 | `--root <dir>` | A folder tools may read (repeatable). Default: the folder the agent starts the server in. Roots your agent sends take precedence. |
 | `--allow-host <host>` | A host `scan_url` may contact besides loopback (repeatable, exact name, no wildcards) |
-| `--offline` | `scan_url` contacts only the target |
+| `--offline` | `scan_url` contacts only the target: no listed hosts, no DNS lookups |
 
 ## In a container
 

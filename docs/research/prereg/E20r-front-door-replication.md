@@ -15,7 +15,7 @@
 | Amendment 2 | **Draft.** Not adopted. E20-R2, a corrected replication after the pass 1 data was seen. See the end of this file. The runner refuses a pilot or pass 2 until this row says Adopted |
 | Source address | `178.104.243.225` |
 | Prior opt-outs SHA-256 | `e25d88b24aa1d4122cd78e65af9c8febfd9f7309959ae1ae89446ccc90b07126` (`prior-optouts.txt`, 95 sites) |
-| Frozen classifier SHA-256 | `d7461d44cb678fd1f5a3503f859ab8f39798df47a2df33a6ba64fa454e55f9a8` (`bench/front-door/classify.mjs`) |
+| Frozen classifier SHA-256 | `e22c9142993524c9e277eb666778f666ac0f457a5be18f6c34b19b0f80b58c03` (`bench/front-door/classify.mjs`) |
 | Public Suffix List SHA-256 | `d3e6243b51695327984abb3e2a5aa7077096867f75121e031e6a5a3840ca8bcd` (commit `9dfbe81931367b3f0af21035c36ae7eeb830dd88`, fetched 30 Oct 2026, private suffixes included) |
 | Registration commit | The commit that merges this file to `main` |
 | T1k list SHA-256 | `d670a3c1910fe7baa4883dcb8320b1ec99d7d29f9d22954b9288ae678540674e` (`tranco-ZJ8PG-top1000.csv`) |
@@ -450,8 +450,9 @@ of a block. Sites that refused in pass 1 are visited once more on that basis.
    file cut off at the cap, and a file with NUL bytes or a UTF-16 mark, because none of
    them can be read as rules. CR, LF and CRLF all end a line, a `User-agent` name ends at a
    slash or a space, and rule and path compare in one percent-encoded form (RFC 9309
-   § 2.2.2). A malformed escape stays literal, so a path can't dodge a rule by it. A file that can't be reached ends the visit with the outcome the homepage would have given: `not_found`,
-   `timeout`, `unreachable`, `tls_invalid` or `not_public`. Pass 1 went on in all these
+   § 2.2.2). A malformed escape stays literal, so a path can't dodge a rule by it, and a
+   Disallow also matches on the decoded form, so a reserved character can't either. A file that can't be reached ends the visit with the outcome the homepage would have given: `not_found`,
+   `timeout`, `unreachable`, `tls_invalid`, `tls_handshake` or `not_public`. Pass 1 went on in all these
    cases, and 70 of its graded sites had a 5xx or no robots answer, so some sites drop out,
    and the count is reported.
 5. **Every hop is checked.** A redirect into an excluded domain stops as `exclusion_redirect`
@@ -468,7 +469,8 @@ of a block. Sites that refused in pass 1 are visited once more on that basis.
    timeout, as in pass 1. § 5's "no retries" meant the same request isn't repeated. Pass 1
    also ran both fallbacks, and neither was stated before.
 7. **TLS.** `tls_invalid` stays its own outcome, reported apart from other failures, with
-   the reason code, also when plain HTTP then fails. A failed handshake is `tls_handshake`.
+   the reason code, also when plain HTTP then fails. A failed handshake is `tls_handshake`,
+   except an alert that denies access, which is a refusal and gets no fallback.
    When HTTP answered, the record keeps why HTTPS failed. Each error keeps the system's
    code, so a resolver failure can be told from a name that doesn't exist.
 8. **Hosts.** Each record stores listed host, final host, listed organization and final
@@ -482,7 +484,9 @@ of a block. Sites that refused in pass 1 are visited once more on that basis.
    7,031 listed hosts and 10 of 5,882 final hosts, 6 of them mail lookups. No decision
    changes, and intervals move by at most 0.5 points.
 9. **DNS apart from HTTP.** SPF, DMARC, CAA, MX and NS are read outside the visit's thread and
-   clock, including for sites that time out, don't resolve, fail TLS or refuse the client. The
+   clock, on the listed name, including for sites that time out, don't resolve, fail TLS or
+   refuse the client. When a redirect moved to another host, all five are read for the final
+   host too, and one organization asks each name once. The
    grader's DNS checks run there too, and join the score as they did in pass 1. **DNS isn't
    read** for a site on the exclusion list, removed, dropped as a pilot site or an earlier
    opt-out, a `NOT_A_HOMEPAGE` host, or a site whose robots.txt opts out or disallows the
@@ -493,7 +497,8 @@ of a block. Sites that refused in pass 1 are visited once more on that basis.
    failure. A resolver failure is unknown, never a failed check.
 10. **Mail, frozen here.**
     - *SPF record present:* exactly one `v=spf1` record on the organization domain. Includes,
-      redirects and lookup limits are not validated. The full record is stored.
+      redirects and lookup limits are not validated. The record is stored up to 2,048
+      characters.
     - *DMARC:* a valid record is the single `v=DMARC1` record with a known `p`. We follow
       RFC 7489: the host's record, then the organization domain's, where `sp` applies. RFC
       9989 replaced RFC 7489 and is said to drop `pct` and use a tree walk. We did not read
@@ -627,29 +632,39 @@ a third adjudicator.** The figures are reported as checked by one person.
   is reported unweighted. `validation-sample.mjs` draws the sample, writes the blind sheet and
   scores the labels.
 - **Who sees evidence.** The maintainer, and one labeler under a written note. The note says what
-  the sheet holds, that it stays private, and that copies are deleted after labeling.
+  the sheet holds, that it stays private, and that copies are deleted after labeling. An AI agent,
+  a hosted model, also reads the sampled rows, so they leave the machine for that provider.
 
 ### Pilot
 
-- At most 50 sites from the claim lists, seed 2026, at the same rate and under the same rules.
+- 40 to 50 sites from the claim lists, seed 2026, at the same rate and under the same rules. Each
+  round has a higher number than the last, and the rounds' order is the order they started.
 - Pilot sites are dropped for good from pass 2 visits and analyses, and counted.
 - **Stop rules.** The run does not go on while any of these holds, and `pilot-report.mjs` prints
   them: a privacy scrub miss, an internal error, under 90% of 2xx responses with an excerpt, an
   eligible site without a DNS read, any site over 20 requests, any hop to a host on any of the
   four skip lists, under half of eligible sites graded, over 20% of eligible sites with a
-  resolver failure, or no 2xx response at all.
+  resolver failure on any query, over 20% of SPF or DMARC reads unanswered, no 2xx response at all,
+  no eligible site, or under 30 eligible or 20 graded sites.
   Also stop on a complaint from a site owner or the provider, or if the source address isn't the
   registered one.
 - **Gate.** After the pilot, `pilot-report.mjs --seal` writes its result, bound to the pilot's manifest
-  and raw hash, and `validation-sample.mjs prune` deletes its text. Pass 2 refuses unless the last round
-  passed under the code, protocol, suffix list and lists in force, and every round proves its text is
-  gone. `npm run e20r:acceptance` injects each stop condition on loopback and shows pass 2 refused.
-  Labels come after pass 2, so for them it shows that scoring refuses.
+  and raw hash, and to the exclusion, removal, prior opt-out and earlier pilot lists that run used. Then
+  `validation-sample.mjs prune` deletes its text. Pass 2 refuses unless the last round passed under the
+  code, protocol, suffix list and lists in force, every finished round has a seal, and every round
+  proves its text is gone. After a failed round, the next needs changed code or a changed protocol, or a
+  recorded explanation. The pass 2 manifest records each round's manifest and seal hashes.
+  `npm run e20r:acceptance` injects each stop condition on loopback and shows pass 2 refused through
+  the run's own command. Labels come after pass 2, so for them it shows that scoring refuses.
+- **Deletion's limit.** Pruning covers the raw file in the run's folder. It can't reach a copy made
+  before it ran, so none is made, and deleted text can't be audited later.
 - **An interrupted pilot.** Its sites count as used, by the list hash its manifest recorded at the
   start. Its text is deleted, and the next round runs on other sites.
 - **An interrupted pass 2.** It isn't resumed or restarted, because a restart would visit sites
   twice. What ran is reported as a partial run, with its coverage, and it decides no claim. A
   new run needs a new registration.
+- **A stop in flight.** Pass 2 watches itself: a privacy scrub miss stops it at once, and so does a
+  share of resolver failures over 20% across its last 200 sites. It then counts as interrupted.
 - **A pilot-driven rule change.** Update this amendment, re-freeze the hashes, and rerun the pilot
   as the next round, on other sites. Those sites leave pass 2 too. `--pilot-dropped` must hold
   exactly the sites of every finished round, checked against each manifest's hash.

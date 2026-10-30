@@ -610,15 +610,16 @@ function tickerRest() {
 
 // ── The rail docks once the logo has scrolled away ──────────────────────
 
-// A small detail on the way past. At the top of the homepage the rail is part
-// of the header and scrolls away with it. Half out of view it slides left along
-// the top edge, then settles down into its docked place, and the way back is
-// the reverse: up, then right. No bounce. The two moves overlap a little, so
-// the path curves at the corner. The rail changes width, so it is measured
-// before and after; only `translate` moves, on the compositor, and a change of
-// direction mid-flight starts from wherever the rail is.
-const DOCK_AT = 60;                     // px scrolled when the rail leaves the header
-const DOCK_MS = 720, UNDOCK_MS = 480;   // slow on the way in, quicker on the way out
+// The rail can never be lost. At the top of the homepage it is sticky: it rides
+// up with the header and the browser holds it on screen, at any scroll speed and
+// with no script running. Once it is held, it docks: a small move down, then a
+// slide left to the centre. The way back is the reverse: right, then up. No
+// bounce. The two moves overlap a little, so the path curves at the corner. The
+// rail changes width, so it is measured before and after; only `translate`
+// moves, on the compositor, and a change of direction mid-flight starts from
+// wherever the rail is. A page that opens mid-scroll docks without a flight.
+const DOCK_AT = 40;                     // px scrolled; the rail is held by then
+const DOCK_MS = 640, UNDOCK_MS = 420;   // slow on the way in, quicker on the way out
 const STEPS = 30;
 
 /** cubic-bezier(x1, y1, x2, y2) as a function of time. */
@@ -639,26 +640,49 @@ function railDock() {
   if (!rail || !ticker) return;
   const still = matchMedia("(prefers-reduced-motion: reduce)");
   const fresh = rail.querySelectorAll('.rail-mark, .star, .rail-links a[href="#scan"]');
-  let flight;
+  let flight, settled = false, atTop = true;
   const box = () => { const r = rail.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top }; };
-  const move = (top) => {
-    if (rail.hasAttribute("data-top") === top) return;
-    const a = box();
-    flight?.cancel();
-    rail.toggleAttribute("data-top", top);
-    const b = box();
-    const dx = a.x - b.x, dy = Math.max(a.y, -20) - b.y;
-    if (still.matches || Math.hypot(dx, dy) < 2) return;
-    // In: x first, then y. Out: y first, then x.
-    const [xFrom, xTo, yFrom, yTo] = top ? [0.3, 1, 0, 0.55] : [0, 0.62, 0.42, 1];
+  // Both flights run on the fixed rail, so scrolling can't push it off screen:
+  // it becomes sticky again only when it lands.
+  const fly = (from, to, [xFrom, xTo, yFrom, yTo], duration) => {
+    const at = (a, b, p) => (b + (a - b) * (1 - p)).toFixed(2);
     const frames = Array.from({ length: STEPS + 1 }, (_, i) => {
       const t = i / STEPS;
-      return { translate: `${(dx * (1 - span(t, xFrom, xTo))).toFixed(2)}px ${(dy * (1 - span(t, yFrom, yTo))).toFixed(2)}px` };
+      return { translate: `${at(from.x, to.x, span(t, xFrom, xTo))}px ${at(from.y, to.y, span(t, yFrom, yTo))}px` };
     });
-    flight = rail.animate(frames, { duration: top ? UNDOCK_MS : DOCK_MS, easing: "linear" });
-    if (!top) for (const el of fresh) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, delay: 160, fill: "backwards", easing: "ease" });
+    return rail.animate(frames, { duration, easing: "linear", fill: "forwards" });
   };
-  new IntersectionObserver(([e]) => move(e.isIntersecting), { rootMargin: `${DOCK_AT - ticker.offsetHeight}px 0px 0px 0px` }).observe(ticker);
+  const land = () => { rail.setAttribute("data-top", ""); delete rail.dataset.fly; flight?.cancel(); flight = null; };
+  const move = (top) => {
+    if (atTop === top) return;
+    atTop = top;
+    const a = box();
+    flight?.cancel();
+    flight = null;
+    const calm = !settled || still.matches;
+    if (!top) {                         // down, then left
+      rail.removeAttribute("data-top");
+      delete rail.dataset.fly;
+      const b = box();
+      const from = { x: a.x - b.x, y: a.y - b.y };
+      if (calm || Math.hypot(from.x, from.y) < 2) return;
+      flight = fly(from, { x: 0, y: 0 }, [0.3, 1, 0, 0.5], DOCK_MS);
+      flight.onfinish = () => { flight?.cancel(); flight = null; };
+      for (const el of fresh) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, delay: 160, fill: "backwards", easing: "ease" });
+      return;
+    }
+    // Right, then up: measure the landing spot, then fly there, still fixed.
+    rail.dataset.fly = "";
+    const home = box();
+    rail.setAttribute("data-top", "");
+    const spot = box();
+    rail.removeAttribute("data-top");
+    const to = { x: spot.x - home.x, y: spot.y - home.y };
+    if (calm || Math.hypot(a.x - spot.x, a.y - spot.y) < 2) { land(); return; }
+    flight = fly({ x: a.x - home.x, y: a.y - home.y }, to, [0, 0.62, 0.42, 1], UNDOCK_MS);
+    flight.onfinish = land;
+  };
+  new IntersectionObserver(([e]) => { move(e.isIntersecting); settled = true; }, { rootMargin: `${DOCK_AT - ticker.offsetHeight}px 0px 0px 0px` }).observe(ticker);
 }
 
 // ── The bottom veil stays off the hero text and the footer ──────────────

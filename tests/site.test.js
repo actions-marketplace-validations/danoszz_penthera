@@ -397,9 +397,14 @@ describe("site motion budget", () => {
     expect(dock).toContain("still.matches");
     expect(dock).toContain("translate:");
     expect(dock).not.toMatch(/\b(left|top|width):\s*`/);
-    // The slide comes first on the way in, and the rail never bounces.
-    expect(dock).toContain("[0.3, 1, 0, 0.55] : [0, 0.62, 0.42, 1]");
-    expect(css).toMatch(/\.rail\[data-top\] \{ position: absolute;/);
+    // Down, then left on the way in; right, then up on the way out.
+    expect(dock).toContain("[0.3, 1, 0, 0.5], DOCK_MS");
+    expect(dock).toContain("[0, 0.62, 0.42, 1], UNDOCK_MS");
+  });
+
+  it("keeps the rail on screen at any scroll speed, without script", () => {
+    expect(css).toMatch(/\.rail\[data-top\] \{\s*position: sticky; top: 6px;/);
+    expect(css).not.toMatch(/\.rail\[data-top\] \{ position: absolute/);
   });
 
   it("keeps the live field on a layer of its own", () => {

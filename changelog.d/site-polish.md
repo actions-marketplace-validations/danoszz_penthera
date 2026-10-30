@@ -16,7 +16,7 @@ section: Site
 - **Every report ends with something to do.** Copy the fix prompt, download the
   report as Markdown (made in your browser, nothing stored), or copy the full
   scan command.
-- **Motion is calmer and cheaper.** The nav slides left, then settles down,
+- **Motion is calmer and cheaper.** The nav stays on screen at any scroll speed, and docks with a small move down, then a slide left,
   with no bounce. Buttons press to 0.97, dialogs fade in, and the star on the
   Go Pro plate glows with an opacity fade.
 - **The footer is easier to read.** Each group has a label of its own in blue,

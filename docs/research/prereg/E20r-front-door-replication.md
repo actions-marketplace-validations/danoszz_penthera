@@ -11,6 +11,7 @@
 | Independent review | AI review of the E20 draft (figures, statistics), 30 Oct 2026. No human review |
 | Vantage point | Rented server: Hetzner Cloud, Falkenstein, `research.penthera.org`, 2.31.141.178, IPv4 only. The address is published. The maintainer's home connection is not used |
 | Runs | Pass 1 no earlier than 12 hours after the updated study page is live, pass 2 seven days later |
+| Amendment | **One pass only.** Amendment 1 (30 Oct 2026, before any data) replaces every mention of pass 2 below. See the end of this file |
 | Registration commit | The commit that merges this file to `main` |
 | T1k list SHA-256 | `d670a3c1910fe7baa4883dcb8320b1ec99d7d29f9d22954b9288ae678540674e` (`tranco-ZJ8PG-top1000.csv`) |
 | YC-new list SHA-256 | `13df01eb681993205e89c00322db972e5137d3c4a95ec982d40a2552f415dd7f` (`yc-fall2026-summer2026-2026-10-29.csv`) |
@@ -346,3 +347,18 @@ Taken by the maintainer on 30 Oct 2026.
 4. **Ethics read.** None. No outside reader before the run.
 5. **Timing.** Pass 1 as soon as the study page has been live 12 hours, pass 2 seven days later.
 6. **NCSC.** No notice before the run. The CVD form only if something serious turns up.
+
+## Amendment 1 (30 Oct 2026, before any data)
+
+The maintainer decided to run pass 1 only, as a single snapshot, before pass 1 started
+and before any E20-R data existed. A second pass may follow later, under its own
+registration. The text above stays as registered, and this section overrides it.
+
+- **C14 and C15** (agreement between passes) are not run, and are reported as not run.
+- **C12 and C13** are still reported, but no vantage effect can be claimed: without
+  pass 2, nothing measures how much changes from time alone. They are described as a
+  difference between E20 and the server run, and nothing more.
+- **The correction stays at 15 claims.** That keeps the registered decision level, which
+  is slightly stricter than 13 claims would need.
+- **What is lost.** Test-retest reliability stays unmeasured, so a change between runs
+  cannot be separated from day-to-day noise. The results say so next to the numbers.

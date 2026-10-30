@@ -229,6 +229,12 @@ describe("E20-R analysis", () => {
     expect(out.map((c) => c.id)).toEqual(["C1", "C2", "C3", "C4"]);
     expect(out[0].S.nB).toBe(39);
   });
+  it("reports C14 and C15 as not run with one pass", () => {
+    const rows = ["T1k", "YC-new", "YC-25", "YC-old", "T100k"].flatMap((c) => Array.from({ length: 30 }, (_, i) => site(`${c.toLowerCase()}${i}.org`, i % 2 === 0, { cohorts: { [c]: { rank: i, group: "x" } }, platform: { edge: "vercel" } })));
+    const out = claims(rows, null, new Map(), { resamples: 50 });
+    expect(out).toHaveLength(15);
+    expect(out.slice(-2).map((c) => c.decision)).toEqual(["not run", "not run"]);
+  });
   it("returns the fifteen claims on synthetic records and names no site", () => {
     const mk = (cohort, n, rate, offset = 0) => Array.from({ length: n }, (_, i) => site(`${cohort.toLowerCase()}${i}.org`, i % rate === 0, { cohorts: { [cohort]: { rank: i + offset, group: "x" } }, platform: { edge: i % 2 ? "cloudflare" : "vercel" } }));
     const p1 = [...mk("T1k", 60, 2), ...mk("YC-new", 60, 5), ...mk("YC-25", 30, 5), ...mk("YC-old", 40, 3), ...mk("T100k", 60, 4)];

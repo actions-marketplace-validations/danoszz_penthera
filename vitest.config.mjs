@@ -46,6 +46,10 @@ const shared = {
   setupFiles: ["tests/setup/isolate-env.js"],
 };
 
+// Tests stay offline: site/build.mjs would otherwise read the star count from
+// api.github.com and rewrite site/stars.json.
+const TEST_ENV = { PENTHERA_SITE_STARS: "off" };
+
 export default defineConfig({
   test: {
     projects: [
@@ -54,6 +58,7 @@ export default defineConfig({
         test: {
           ...shared,
           name: "unit",
+          env: TEST_ENV,
           include: ["tests/**/*.test.{js,ts}"],
           exclude: SPAWN_HEAVY,
           testTimeout: 20_000,
@@ -66,6 +71,7 @@ export default defineConfig({
         test: {
           ...shared,
           name: "spawn",
+          env: TEST_ENV,
           include: SPAWN_HEAVY,
           testTimeout: 180_000,
           hookTimeout: 180_000,

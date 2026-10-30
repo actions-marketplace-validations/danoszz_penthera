@@ -338,6 +338,9 @@ describe("verifyPack", () => {
     bad({ "s.json": secretRule() }, { name: "../evil" }, /name must match/);
     bad({ "s.json": secretRule() }, { rules: [{ file: "../../package.json", kind: "secret", sha256: "0".repeat(64) }] }, /plain file name/);
     bad({ "s.json": secretRule() }, { rules: [{ file: "x.json", kind: "__proto__", sha256: "0".repeat(64) }] }, /kind/);
+    const guarded = (extra) => ({ kind: "nuclei-template", rules: [{ id: "t", ...meta, template: { id: "t", info: { name: "t", severity: "low" }, http: [{ path: "/x", matchers: [{ type: "status", status: [200] }], ...extra }] } }] });
+    bad({ "t.json": guarded({ confirm: { path: "/" } }) }, {}, /confirm: built-in templates only/);
+    bad({ "t.json": guarded({ mustChangeAnswer: true }) }, {}, /mustChangeAnswer: built-in templates only/);
     const tpl = (path) => ({ kind: "nuclei-template", rules: [{ id: "t", ...meta, template: { id: "t", info: { name: "t", severity: "low" }, http: [{ path, matchers: [{ type: "status", status: [200] }] }] } }] });
     bad({ "t.json": tpl("https://attacker.example/x") }, {}, /path on the target/);
     bad({ "t.json": tpl("//attacker.example/x") }, {}, /path on the target/);

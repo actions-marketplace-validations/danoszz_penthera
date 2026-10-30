@@ -68,9 +68,13 @@ Read the Penthera exit code before you publish:
 
 | Code | Meaning | What to do |
 |---|---|---|
-| `0` | No critical or high rule fired. This run does not check login, access rules or payments | Read any medium or low findings, then test those three yourself |
+| `0` | No critical or high rule fired. This run does not prove login, access rules or payments are right | Read any medium or low findings, then test those three yourself |
 | `1` | Critical or high findings | Fix them first, or write down why you accept them |
 | `2` | The scan did not run | Fix the setup and run it again |
+
+Penthera tests login and access rules from outside, with rules for known
+problems. It does not log in to your app unless you pass a session with
+`--auth-cookie`, and it has no rule for how your payments work.
 
 ## Make it automatic
 

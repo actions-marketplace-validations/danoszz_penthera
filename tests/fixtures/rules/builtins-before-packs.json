@@ -436,20 +436,18 @@
               ]
             },
             {
-              "type": "word",
-              "words": [
-                "mappings",
-                "sources"
-              ],
-              "condition": "or"
+              "type": "regex",
+              "regex": [
+                "^\\s*\\{"
+              ]
             },
             {
-              "type": "negative-word",
+              "type": "word",
               "words": [
-                "<html",
-                "<!DOCTYPE",
-                "<!doctype"
-              ]
+                "\"mappings\"",
+                "\"sources\""
+              ],
+              "condition": "or"
             }
           ],
           "matchers-condition": "and"
@@ -523,6 +521,7 @@
               "type": "negative-word",
               "words": [
                 "<html",
+                "<HTML",
                 "<!DOCTYPE",
                 "<!doctype"
               ]
@@ -532,6 +531,7 @@
           "confirm": {
             "method": "GET",
             "path": "/",
+            "redirect": "follow",
             "matchers": [
               {
                 "type": "word",
@@ -653,24 +653,7 @@
               ]
             }
           ],
-          "confirm": {
-            "method": "GET",
-            "path": "/api/admin/users",
-            "matchers": [
-              {
-                "type": "status",
-                "status": [
-                  301,
-                  302,
-                  303,
-                  307,
-                  308,
-                  401,
-                  403
-                ]
-              }
-            ]
-          }
+          "mustChangeAnswer": true
         }
       ]
     },

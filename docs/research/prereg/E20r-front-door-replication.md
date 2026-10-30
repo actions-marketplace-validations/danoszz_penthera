@@ -467,17 +467,24 @@ of a block. Sites that refused in pass 1 are visited once more on that basis.
    the reason code, also when plain HTTP then fails. When HTTP answered, the record keeps
    why HTTPS failed.
 8. **Hosts.** Each record stores listed host, final host, listed organization and final
-   organization apart, with a redirect class: none, same organization, other organization.
+   organization apart, with a redirect class: none, same organization, other organization. The
+   same list decides whether two names are one site: `www.example.com` is `example.com`, and
+   `www.github.io` isn't `github.io`.
    Organizations come from a pinned Public Suffix List, private suffixes included, vendored
    under `bench/front-door/psl/` for the study only. It is used for organization domains,
    DNS domain choice, clustering, deduplication and redirect classes. The grader keeps its
    own parser, so the registered reading is unchanged. In pass 1 the list changes 19 of
    7,031 listed hosts and 10 of 5,882 final hosts, 6 of them mail lookups. No decision
    changes, and intervals move by at most 0.5 points.
-9. **DNS apart from HTTP.** SPF, DMARC, CAA, MX and NS are read for every site that did not
-   opt out and is not excluded, including sites that time out, don't resolve, fail TLS or
-   refuse the client. Each query records NXDOMAIN, NODATA or a resolver failure. A resolver
-   failure is unknown, never a failed check. Sites with `Disallow: /` stay out.
+9. **DNS apart from HTTP.** SPF, DMARC, CAA, MX and NS are read outside the visit's thread and
+   clock, including for sites that time out, don't resolve, fail TLS or refuse the client. The
+   grader's DNS checks run there too, and join the score as they did in pass 1. **DNS isn't
+   read** for a site on the exclusion list, removed, dropped as a pilot site or an earlier
+   opt-out, a `NOT_A_HOMEPAGE` host, or a site whose robots.txt opts out or disallows the
+   homepage. **It is read** when the stop was ours or someone else's: `robots_unavailable`,
+   `exclusion_redirect`, `ipv6_literal` and `redirect_opted_out`. Each query keeps its exact
+   name, type and result, for every CAA ancestor too: an answer, NXDOMAIN, NODATA or a resolver
+   failure. A resolver failure is unknown, never a failed check.
 10. **Mail, frozen here.**
     - *SPF record present:* exactly one `v=spf1` record on the organization domain. Includes,
       redirects and lookup limits are not validated. The full record is stored.
@@ -523,11 +530,15 @@ of a block. Sites that refused in pass 1 are visited once more on that basis.
     open-sources flag, computed on the full header, not the grader's 160 characters. "CSP
     controls scripts" means `script-src`, `script-src-elem` or `default-src` is present. It
     is reported next to "CSP present", for C1, C5, C9 and C11.
-15. **Run record.** A manifest holds the commit, whether the tree is clean, the protocol,
+15. **Run record.** Each record counts requests, redirects and bytes, including bytes from redirect
+    and compressed bodies that aren't kept, and from a response cut off at the hard cap. A manifest
+    holds the commit, whether the tree is clean, the protocol,
     amendment and study page hashes, lockfile, classifier, study code and runtime hashes,
     Node and OS, the suffix list's version and hash, the complete configuration, list and
     removal hashes, the seed and the times, and at the end the raw and aggregate hashes and
-    totals. Each record holds requests, bytes and redirects. The runner refuses a dirty tree,
+    totals. The code hash covers every file the study imports, and the data files it reads.
+    All of these, lists included, are read again at the end, and the manifest names anything
+    that changed. A run with a change ends in a stop. The runner refuses a dirty tree,
     any commit but the current tip of main on the remote, read at the start, a file git hides
     from `status`, a placeholder in this file or the page, a page that doesn't name the
     address, and any classifier, suffix list or prior opt-out list that doesn't match its
@@ -537,9 +548,10 @@ of a block. Sites that refused in pass 1 are visited once more on that basis.
     machine's interfaces. It can't see NAT or a proxy. It would need a request to an echo
     service, which this study doesn't send. The legacy `run.mjs` refuses every run off
     loopback.
-16. **Excerpts are deleted.** After the validation draw, `validation-sample.mjs` removes title,
-    text and `noscript` from every unsampled record for good, and from every pilot record.
-    Hashes, counts and flags stay.
+16. **Excerpts are deleted.** After the audit draw, `validation-sample.mjs` removes title, text and
+    `noscript` from every unsampled record for good. From every pilot record it also removes error
+    excerpts. Hashes, counts and flags stay. Pruning writes a second manifest with the old and new
+    raw hashes, so the run's own manifest stays true of what was recorded.
 17. **Skips.** Sites that opted out in pass 1, removal requests and pilot sites are skipped, and
     each is counted in its own category.
 
@@ -570,22 +582,27 @@ These order the reporting. They add no test.
   bound. Time, address and limits differ between the passes, so agreement says less than § 6 hoped.
 - **Margin.** The ±10 points is kept because it was registered, not because it is substantively
   justified.
-- **Common-support floor.** A difference needs at least 20 judged responses on each side, in each
-  view it uses. Below that it is "not estimable". Standardization drops an edge stratum under that
-  floor and names it.
+- **Common-support floor.** A difference needs at least 20 organizations with a judged response on
+  each side, in each view it uses. Below that it is "not estimable". Standardization drops an edge
+  stratum under that floor and names it.
+- **Reading an interval.** Statistical direction and practical equivalence are reported as separate
+  outcomes for each view, next to the registered decision. Newcombe intervals and exact tests stand
+  beside the bootstrap. An organization in both groups is resampled as one, which keeps the covariance.
 - **Missingness.** Each HTTP claim reports coverage per list, and worst-case bounds that count every
   eligible site without a judged value either way. Our own stops stay eligible; an owner's opt-out
   and our exclusions don't. C3 and C4 are edge strata, which only a graded response shows, so their
   bounds cover graded sites. HTTP claims make no statement about ungraded sites, and nothing here
   can say what a browser would have seen. DNS values with a resolver failure are unknown, are left
   out, and are counted.
-- **Analysis.** `analyze-r.mjs` holds the claims, the bounds and the standardization. In it,
-  `--pass1` takes pass 2 and `--pass2` takes pass 1.
+- **Analysis.** `analyze-r.mjs` holds the claims, the bounds and the standardization, C3 and C4
+  included, and reports traits per cohort. C12 and C13 pair with their own E20 file. In it, `--pass1`
+  takes pass 2 and `--pass2` takes pass 1.
 
-### Validation
+### Single-human audit with model comparison
 
-One human labeler and the AI agent, as in pass 1. **This misses the outside reviewer's requirement
-of two human labelers and a third adjudicator.** The figures are reported as checked by one person.
+One human labeler and the AI agent, as in pass 1. This is a single-human audit with model comparison,
+never independent validation. **It misses the outside reviewer's requirement of two human labelers and
+a third adjudicator.** The figures are reported as checked by one person.
 
 - **Strata**, drawn from pass 2 with seed 2021 by `validation-sample.mjs`, with no pilot sites:
   `candidate-page` 150, `challenge` 50, signature-backed `block` 50, `unrecognized-403` 30,
@@ -593,7 +610,10 @@ of two human labelers and a third adjudicator.** The figures are reported as che
 - **Blinding.** Rows are shuffled, and the sheet has no label, stratum or host field. Page text
   can still name a site, and can't be blinded from that.
 - **`unsure`.** It stays a recorded answer and is never forced. Unsure rows are left out of kappa,
-  precision and recall, counted, and reported as a sensitivity that treats them as disagreement.
+  precision and recall, and counted. Weights are taken over the answered rows of each stratum. A
+  sensitivity keeps `unsure` as an answer no rule gives, so each one is a disagreement.
+- **Labels.** Scoring takes the human's and the agent's file, reports where they differ, and refuses
+  a missing, duplicate, unknown or invalid row.
 - **Disagreement.** The agent never settles a label. The human's label stands, and every
   disagreement is counted.
 - **Weighted metrics.** Each row carries stratum size over rows drawn. Precision and recall use
@@ -612,6 +632,11 @@ of two human labelers and a third adjudicator.** The figures are reported as che
   eligible site without a DNS read, any site over 20 requests, or any hop to an excluded host.
   Also stop on a complaint from a site owner or the provider, or if the source address isn't the
   registered one.
+- **Gate.** After the pilot, `pilot-report.mjs --seal` writes its result, bound to the pilot's manifest
+  and raw hash, and `validation-sample.mjs prune` deletes its text. Pass 2 refuses unless the last round
+  passed under the code, protocol, suffix list and lists in force, and every round proves its text is
+  gone. `npm run e20r:acceptance` injects each stop condition on loopback and shows pass 2 refused.
+  Labels come after pass 2, so for them it shows that scoring refuses.
 - **A pilot-driven rule change.** Update this amendment, re-freeze the hashes, and rerun the pilot
   as the next round, on other sites. Those sites leave pass 2 too. `--pilot-dropped` must hold
   exactly the sites of every finished round, checked against each manifest's hash.
@@ -625,9 +650,10 @@ of two human labelers and a third adjudicator.** The figures are reported as che
   This departs from the 12 hours of § 5, and owners get almost no notice. Notice means the public
   study page and this amendment. No email goes to site owners.
 - **The seven-day spacing of § 5 is not kept.**
-- **No independent ethics review.** No board or outside reader reviewed this study.
-- **Provider notice.** One advance notice was sent on 30 October 2026, naming the first server. The
-  maintainer treats it as covering the study.
+- **No independent human ethics board reviewed this study.** AI and external technical reviews have
+  occurred.
+- **Provider notice.** One advance notice was sent on 30 October 2026, naming the first server. It
+  wasn't repeated for the new address, by the maintainer's decision.
 - **Notice page, changing § 8.** § 8 promised a notice page at `research.penthera.org`. The server's
   firewall opens port 22 only, so that page can't be served, and it was not served in pass 1. Owners
   reach the study through the User-Agent's URL and reverse DNS.
@@ -638,4 +664,6 @@ of two human labelers and a third adjudicator.** The figures are reported as che
   browser would have received.
 - `unrecognized-403` is a label without vendor evidence.
 - A compressed page body is dropped by the instrument and reads as empty: 23 responses in pass 1.
+- `platformOf` now reads Akamai's other headers as the classifier does, so a few pass 1 and pass 2
+  strata for C3 and C4 can differ for that reason.
 - SPF semantics and DMARC reporting are not validated.

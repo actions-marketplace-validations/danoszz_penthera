@@ -400,9 +400,11 @@ describe("site motion budget", () => {
     expect(css).toMatch(/prefers-reduced-motion: reduce\) \{\s*\.rail\[data-ready\] \.rail-cta, \.rail\[data-ready\] \.rail-check \{ transition: none !important; \}/);
   });
 
-  it("runs the hero's panel past the fold and straight into the grey", () => {
-    expect(css).toMatch(/main > \.hero \{[^}]*min-height: calc\(100svh \+ var\(--hero-over\)\);/);
-    expect(css).toMatch(/main > \.slab \{ padding-bottom/);
+  it("lets the hero's card overlap the grey, past the fold", () => {
+    expect(css).toMatch(/main > \.hero \{[^}]*min-height: calc\(100svh - var\(--hero-peek\)\);/);
+    expect(css).toMatch(/\.poster \{[^}]*margin-bottom: calc\(-1 \* var\(--hero-over\)\);/);
+    expect(css).toMatch(/main > \.slab \{ padding-top: calc\(var\(--section\) \+ var\(--hero-over\)\);/);
+    expect(css).toMatch(/--hero-over: 136px;[\s\S]*--hero-peek: 72px;/);
   });
 
   it("keeps the check available without script", () => {

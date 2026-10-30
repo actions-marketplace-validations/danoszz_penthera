@@ -7,8 +7,8 @@ section: Site
   WindowServer from 45% to 22% of a core.
 - **Every page has a bottom dock.** A steel dock fixed to the bottom of the window links Research, Benchmarks, Blog and Pro, on every screen size. It never moves, so no scroll speed can lose it. On the homepage its Check button rises in once the hero has scrolled away.
 - **The first screen is calmer.** The hero's field fills the screen, and the
-  question and an example result float above it in one glass panel. The panel runs past
-  the bottom of the window into the grey section, with no band between them.
+  question and an example result float above it in one glass panel. The panel is a
+  card that overlaps the grey section and runs past the bottom of the window.
   The scan button is the one blue action, and the report after a check uses
   the same glass.
 - **Every report ends with something to do.** Copy the fix prompt, download the

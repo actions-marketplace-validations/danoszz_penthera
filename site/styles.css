@@ -152,7 +152,8 @@
   --target: 44px;
   --veil-h: 224px;                      /* the bottom blur; check/ui.js reads it too */
   --ticker-h: 30px;
-  --hero-over: 96px;                    /* the glass panel runs this far past the fold */
+  --hero-over: 136px;                   /* how far the hero card overlaps the grey below it */
+  --hero-peek: 72px;                    /* how much of the grey the first screen shows */
   --bar-gap: 12px;                      /* air between the ticker and the bar */
   --press: 100ms;
   --out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -537,7 +538,7 @@ h3 { font-family: var(--display); font-size: 21px; letter-spacing: -0.01em; line
 /* 1 · Hero: the dithered field, then the one assertion. */
 main > .hero {
   position: relative; display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch;
-  min-height: calc(100svh + var(--hero-over)); max-width: none; padding: calc(var(--ticker-h) + 100px + clamp(0px, (100svh - 760px) / 2, 120px)) var(--pad) 0;  /* the field keeps a band on tall windows */
+  min-height: calc(100svh - var(--hero-peek)); max-width: none; padding: calc(var(--ticker-h) + 100px + clamp(0px, (100svh - 760px) / 2, 120px)) var(--pad) 0;  /* the field keeps a band on tall windows */
 }
 .field {
   position: absolute; z-index: 0;
@@ -559,7 +560,7 @@ main > .hero {
  * hierarchy, top to bottom: the problem in display type, the pills, the
  * lede, the two ways in, then the loop. Spacing on the 8 px scale: 40 · 24
  * · 40, and the loop a section step below. */
-main > .slab { padding-bottom: var(--section); background: var(--slab); }
+main > .slab { padding-top: calc(var(--section) + var(--hero-over)); padding-bottom: var(--section); background: var(--slab); }
 .hero-text {
   position: relative; z-index: 1;
   max-width: var(--measure); margin: 0 auto;
@@ -1940,6 +1941,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .hero .field { inset: 0; width: 100%; height: 100%; }
 .hero[data-mode="fix"] { align-items: start; min-height: 100svh; padding-bottom: 40px; }
 .hero[data-mode="fix"] .field { height: 100svh; }
+.hero[data-mode="fix"] + .slab { padding-top: var(--section); }
 .poster, .report {
   position: relative; z-index: 1; min-width: 0; padding: clamp(24px, 3vw, 44px);
   background: var(--glass-tint);
@@ -1951,7 +1953,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .poster, .report { background: var(--ground); }
 }
-.poster { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0 24px; align-items: center; padding-bottom: calc(clamp(24px, 3vw, 44px) + var(--hero-over)); border-bottom: 0; }
+.poster { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0 24px; align-items: center; margin-bottom: calc(-1 * var(--hero-over)); padding-bottom: calc(clamp(24px, 3vw, 44px) + var(--hero-over)); box-shadow: inset 0 1px 0 var(--glass-rim), 0 40px 70px -24px rgba(0, 0, 0, 0.5); }
 .report-grid { display: grid; gap: 40px; align-items: start; }
 @media (min-width: 1000px) { .report-grid { grid-template-columns: minmax(0, 1fr) minmax(400px, 500px); gap: 56px; } }
 .poster-text { grid-column: 1 / 7; min-width: 0; }

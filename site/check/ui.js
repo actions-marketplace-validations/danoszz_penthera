@@ -621,7 +621,7 @@ function dockCheck() {
     else rail.dataset.hero = "gone";
     // The first call only sets the state: a page opened mid-scroll doesn't animate.
     requestAnimationFrame(() => { rail.dataset.ready = ""; });
-  }, { rootMargin: "-25% 0px 0px 0px" }).observe(hero);
+  }, { rootMargin: "-8% 0px 0px 0px" }).observe(hero);
 }
 
 // ── The bottom veil stays off the hero text and the footer ──────────────

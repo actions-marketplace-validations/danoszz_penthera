@@ -14,7 +14,7 @@ pull requests, a scan step in your own workflow, and the
 
 ```yaml
 - name: "Penthera: your open-source cyber security agent"
-  uses: danoszz/penthera@9b6bb2d10cf08601e68a8fdc27ba688c9d721570 # v2.0.0
+  uses: danoszz/penthera@4dc8ac8f84985bf694ccee750bb4cdb67a0458f2 # v2.1.1
   with:
     mode: deps        # deps | agents | scan (scan also needs url:)
     fail-on: none     # none | high | critical
@@ -22,7 +22,7 @@ pull requests, a scan step in your own workflow, and the
 
 Pin the action to a release commit SHA, not a tag: a tag can be moved, a
 commit cannot. Find the SHA for a release with
-`git ls-remote https://github.com/danoszz/penthera refs/tags/v2.0.0`.
+`git ls-remote https://github.com/danoszz/penthera refs/tags/v2.1.1`.
 
 The action's name contains a colon, so a `name:` line that holds it needs
 quotes. The snippet on the GitHub Marketplace page may print the name without
@@ -63,13 +63,12 @@ SARIF to code scanning. Copy it into `.github/workflows/`, or let
 `penthera init` write it when the repo has agent config. The step it runs:
 
 ```yaml
-- run: npx --yes penthera@2.1.0 agents "$GITHUB_WORKSPACE" --sarif "$RUNNER_TEMP/penthera-agents.sarif"
+- run: npx --yes penthera@2.1.1 agents "$GITHUB_WORKSPACE" --sarif "$RUNNER_TEMP/penthera-agents.sarif"
 ```
 
 The rules that [`penthera agents`](agents.md#rules-for-auto-run-registries-and-environment)
-lists for auto-run, registries and environment ship in the next release,
-2.1.0. The 2.0.0 pin above does not have them; they run once you pin 2.1.0 or
-later.
+lists for auto-run, registries and environment shipped in 2.1.0. A 2.0.0 pin
+does not have them; they run once you pin 2.1.0 or later.
 
 It is report-only until you uncomment its last step. The difference from the
 action: `npx` fetches Penthera from npm on each run, so pin a version you have

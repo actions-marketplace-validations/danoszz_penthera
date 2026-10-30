@@ -207,3 +207,16 @@ The bottom veil still switches off over the footer.
   The waitlist must be able to say "no": the budget slider starts at $0
   with no default above it, and "Nothing more: the free tool is enough" is
   one of the answers.
+
+Decided with the maintainer, 2026-10-30 (navigation and footer labels): the
+site has a bottom dock, the steel rail, chosen from three options. It is an
+opaque metal plate with no backdrop blur. The footer keeps its four groups and
+set-in sub-links, and drops the numbers: each group's label is a rotated pill
+in its own finish (Penthera blue, steel, gunmetal, the palette's other blue).
+The ticker moves in steps of about 2 px and rests while the URL field has
+focus, because its smooth transform was the main cause of slow typing.
+
+Decided with the maintainer, 2026-10-30 (first screen): option 2 of three, with
+narrower side margins. The field fills the first screen under the bar's hard
+edge, and the question and example float in one panel of heavy glass. The scan
+button is the only blue action there.

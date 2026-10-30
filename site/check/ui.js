@@ -4,7 +4,7 @@
  */
 import { COPY } from "./copy.js";
 import { liveField } from "./field.js";
-import { cardRows, failedChecks, handoffTitle, rowTag } from "./card.js";
+import { cardRows, failedChecks, handoffTitle, reportMarkdown, rowTag } from "./card.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const el = (tag, cls, text) => {
@@ -326,6 +326,40 @@ function resultCard(report, rescan, openPrompt) {
   return card;
 }
 
+// The last thing in a report: something to do with it. The fix prompt, the
+// report as a file, and the full scan. A phone can't run npx, so it gets the
+// file and the star.
+function reportNext(report) {
+  const fixes = failedChecks(report);
+  const box = el("section", "report-next");
+  box.setAttribute("aria-label", "What to do next");
+  box.append(el("h3", null, fixes.length ? "Fix it now, or go deeper." : "Keep it, or go deeper."));
+  const acts = el("div", "report-next-acts");
+  if (fixes.length) {
+    const b = el("button", "btn glow", `Copy fix prompt (${fixes.length})`);
+    b.type = "button";
+    b.dataset.variant = "default";
+    b.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(promptFor(report, fixes)); b.textContent = "Copied. Paste it into your agent."; count("copy", { what: "fix-prompt-end" }); } catch { b.textContent = "Copy failed"; }
+    });
+    acts.append(b);
+  }
+  const dl = el("button", `btn${fixes.length ? " btn-white" : ""}`, "Download report");
+  dl.type = "button";
+  if (!fixes.length) dl.dataset.variant = "default";
+  dl.addEventListener("click", () => {
+    const a = el("a");
+    a.href = URL.createObjectURL(new Blob([reportMarkdown(report)], { type: "text/markdown" }));
+    a.download = `penthera-${new URL(report.url).hostname.replace(/[^a-z0-9.-]/gi, "")}.md`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    count("link", { to: "download-report" });
+  });
+  acts.append(dl, copyCmd(`npx penthera ${report.url}`, "report-next-scan", () => count("copy", { what: "full-scan-end" })), starLink());
+  box.append(acts, el("p", "report-next-note", "The report stays in this tab. The file is made here, and nothing is stored."));
+  return box;
+}
+
 // Every check with its evidence, fix and verify command, below the fold.
 function reportDetail(report) {
   const wrap = el("div", "report-detail");
@@ -353,7 +387,7 @@ function reportDetail(report) {
     fold.append(okList);
     wrap.append(fold);
   }
-  wrap.append(el("p", "report-scope", report.scope));
+  wrap.append(el("p", "report-scope", report.scope), reportNext(report));
   return wrap;
 }
 
@@ -563,13 +597,39 @@ function barPalette() {
   observe();
 }
 
+// ── The ticker rests off screen ─────────────────────────────────────────
+
+function tickerRest() {
+  const ticker = $(".ticker");
+  if (!ticker) return;
+  new IntersectionObserver(([e]) => {
+    if (e.isIntersecting) delete ticker.dataset.rest;
+    else ticker.dataset.rest = "";
+  }).observe(ticker);
+}
+
+// ── The dock opens once the hero has gone ───────────────────────────────
+
+// The dock itself never moves. It opens for the star and the download once the
+// hero has gone, and closes when the hero comes back. Without script it stays open.
+function dockOpen() {
+  const rail = $(".rail[data-hero]");
+  const hero = $(".hero");
+  if (!rail || !hero) return;
+  new IntersectionObserver(([e]) => {
+    if (e.isIntersecting) rail.dataset.hero = "here";
+    else rail.dataset.hero = "gone";
+    // The first call only sets the state: a page opened mid-scroll doesn't animate.
+    requestAnimationFrame(() => { rail.dataset.ready = ""; });
+  }, { rootMargin: "-8% 0px 0px 0px" }).observe(hero);
+}
+
 // ── The bottom veil stays off the hero text and the footer ──────────────
 
 function veilClear() {
   const veil = $(".veil");
-  // The poster (the question, the field and the example), the result that
-  // replaces it, the text block below it, and the footer.
-  const targets = [$(".poster"), $(".report"), $(".hero-text"), $(".foot")].filter(Boolean);
+  // The first screen, whatever is in it, and the footer.
+  const targets = [$(".hero"), $(".foot")].filter(Boolean);
   if (!veil || !targets.length) return;
   const inZone = new Set();
   let io;
@@ -647,6 +707,8 @@ copyButtons();
 for (const a of document.querySelectorAll("a[data-track]")) a.addEventListener("click", () => count("link", { to: a.dataset.track }));
 metalLight();
 heroLoop();
+tickerRest();
+dockOpen();
 veilClear();
 liveField($(".hero .field"));
 barPalette();

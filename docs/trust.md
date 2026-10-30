@@ -7,8 +7,8 @@ description: "How Penthera itself is built, released and run."
 > **Starter.** For "can I trust the tool I'm about to run on my code?"
 
 How Penthera itself is built, released and run. Every line links to something
-you can check yourself. Penthera holds no certification, such as SOC 2 or ISO
-27001. This page shows evidence instead.
+you can check yourself. Penthera holds no certification, such as SOC 2 or
+ISO 27001. This page shows evidence instead.
 
 ## Releases you can verify
 

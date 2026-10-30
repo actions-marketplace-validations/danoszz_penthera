@@ -152,9 +152,11 @@
   --target: 44px;
   --veil-h: 224px;                      /* the bottom blur; check/ui.js reads it too */
   --ticker-h: 30px;
+  --hero-over: 136px;                   /* how far the hero card overlaps the grey below it */
+  --hero-peek: 72px;                    /* how much of the grey the first screen shows */
   --bar-gap: 12px;                      /* air between the ticker and the bar */
   --press: 100ms;
-  --out: cubic-bezier(0, 0, .2, 1);
+  --out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 @media (min-width: 720px) { :root { --gutter: 32px; } }
 @media (min-width: 1100px) { :root { --gutter: 48px; } }
@@ -164,7 +166,7 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html:not(.js) [data-js] { display: none !important; }
-html { background: var(--ground); -webkit-text-size-adjust: 100%; scroll-padding-top: 24px; }
+html { background: var(--ground); -webkit-text-size-adjust: 100%; scroll-padding-top: 24px; scroll-padding-bottom: 88px; }
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 body {
   margin: 0;
@@ -204,7 +206,15 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
 /* ── Ticker ───────────────────────────────────────────────────────────── */
 /* Sourced security news (site/news.json), inverted, in Departure Mono. It
  * scrolls; hover or focus pauses it; with reduced motion it stands still and
- * scrolls by hand. */
+ * scrolls by hand.
+ *
+ * Cost (2026-10-30): a smooth transform is redrawn by the system compositor
+ * at the display's full rate, so one strip of text kept all of Safari's
+ * window recompositing: 44% of a core in WindowServer and 22% GPU, and every
+ * keystroke's frame waited behind it. It now moves in steps of about 2 px
+ * (half the track is near 6,800 px), like a departure board, at about 38 Hz.
+ * It stops while the URL field has focus and off screen (data-rest, set by
+ * check/ui.js). */
 .ticker {
   position: absolute; inset: 0 0 auto; z-index: 11;
   height: var(--ticker-h);
@@ -212,8 +222,9 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
   background: rgb(var(--ink-rgb)); color: rgb(var(--ground-rgb));
   font-family: var(--px); font-size: 12px; letter-spacing: 0.02em;
 }
-.ticker-track { display: flex; width: max-content; height: 100%; animation: ticker 90s linear infinite; }
-.ticker:hover .ticker-track, .ticker:focus-within .ticker-track { animation-play-state: paused; }
+.ticker-track { display: flex; width: max-content; height: 100%; animation: ticker 90s steps(3400, end) infinite; }
+.ticker:hover .ticker-track, .ticker:focus-within .ticker-track, .ticker[data-rest] .ticker-track { animation-play-state: paused; }
+:root:has(.scan input:focus) .ticker-track { animation-play-state: paused; }
 .ticker-list { display: flex; margin: 0; padding: 0; list-style: none; }
 .ticker-list li { display: inline-flex; align-items: center; height: var(--ticker-h); padding: 0 28px 0 0; white-space: nowrap; }
 .ticker time { opacity: 1; margin-right: 10px; text-transform: uppercase; }
@@ -229,6 +240,110 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
   .ticker-list[aria-hidden] { display: none; }
 }
 
+/* ── The steel dock ───────────────────────────────────────────────────── */
+
+/* The navigation of every page (siteRail in frame.mjs): a metal plate fixed to
+ * the bottom of the window, on the blur that already rises there, so it covers
+ * nothing you were reading. It is fixed by CSS from the first paint, so no
+ * scroll speed can lose it, and it never moves. The plate is opaque, with no
+ * backdrop blur, so it adds no blur work over the hero's field. */
+:root {
+  --pad: clamp(12px, 1.6vw, 24px);       /* the hero's side margin: tight, to the edge */
+  --rail-plate: #1c1e23; --rail-lit: 0.13; --rail-shade: 0.45; --rail-rim: 0.22;
+  --glass-tint: rgba(0, 0, 0, 0.58); --glass-edge: rgba(255, 255, 255, 0.24); --glass-rim: rgba(255, 255, 255, 0.2);
+  --rail-gap: 16px;
+}
+:root[data-theme="light"] {
+  --rail-plate: #e4e6ea; --rail-lit: 0.9; --rail-shade: 0.1; --rail-rim: 1;
+  --glass-tint: rgba(253, 253, 250, 0.62); --glass-edge: rgba(0, 0, 0, 0.2); --glass-rim: rgba(255, 255, 255, 0.9);
+}
+.rail {
+  --plate: linear-gradient(180deg, rgba(255, 255, 255, var(--rail-lit)), transparent 46%, rgba(0, 0, 0, var(--rail-shade))), var(--rail-plate);
+  position: fixed; z-index: 30; bottom: var(--rail-gap); left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 2px;
+  width: max-content; max-width: calc(100vw - 24px); height: 50px; padding: 0 6px;
+  font-family: var(--px); font-size: 13px; letter-spacing: 0.02em;
+  background: var(--plate);
+  border: 1px solid rgba(var(--ink-rgb), 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, var(--rail-rim)), 0 14px 34px -14px rgba(0, 0, 237, 0.55);
+}
+.rail a { color: var(--text-1); text-decoration: none; }
+.rail-mark { display: inline-flex; align-items: center; height: 38px; padding: 0 16px 0 10px; }
+.rail-mark span[aria-hidden] {
+  display: block; width: 96px; height: 22px; background: var(--text-1);
+  -webkit-mask: url("/logo.svg") left center / contain no-repeat; mask: url("/logo.svg") left center / contain no-repeat;
+}
+.rail-mark:hover { background: none; }
+.rail-links { display: flex; align-items: center; gap: 2px; }
+.rail-links a { position: relative; display: inline-flex; align-items: center; height: 38px; padding: 0 13px; white-space: nowrap; }
+.rail-links a::after { content: ""; position: absolute; inset: -6px 0; }
+.rail-links a:hover { background: var(--accent); color: var(--on-accent); }
+.rail-links a { transition: background-color 160ms var(--out), color 160ms var(--out), transform var(--press) var(--out); }
+.rail-links a:active { transform: scale(0.97); }
+.rail-links a[aria-current] { box-shadow: inset 0 -2px 0 var(--text-1); }
+.rail-more-in { display: flex; align-items: center; gap: 4px; }
+.rail-star { display: inline-flex; align-items: center; height: 38px; white-space: nowrap; transition: background-color 160ms var(--out), color 160ms var(--out); }
+.rail-star:hover { background: var(--accent); color: var(--on-accent); }
+.rail-download {
+  display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; white-space: nowrap;
+  background: linear-gradient(180deg, #4a4aff, #0000ed 58%, #0000b8);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition: transform var(--press) var(--out);
+}
+.rail a.rail-download, .rail a.rail-download:hover { color: #ffffff; }
+.rail-download:active { transform: scale(0.97); }
+
+/* The plate opens from its center, then the star and the button show inside
+ * it. Going back, they leave first and the plate closes after them. */
+@media (min-width: 1101px) {
+  .rail-more { display: grid; grid-template-columns: 1fr; margin-left: 6px; }
+  .rail-more-in { min-width: 0; overflow: hidden; }
+  .js .rail[data-hero="here"] .rail-more, .js .rail[data-hero=""] .rail-more { grid-template-columns: 0fr; margin-left: 0; }
+  .js .rail[data-hero="here"] .rail-more-in, .js .rail[data-hero=""] .rail-more-in { opacity: 0; visibility: hidden; }
+  .rail[data-ready] .rail-more { transition: grid-template-columns 240ms var(--out), margin-left 240ms var(--out); }
+  .rail[data-ready] .rail-more-in { transition: opacity 160ms var(--out) 140ms, visibility 0s; }
+  .rail[data-ready][data-hero="here"] .rail-more { transition: grid-template-columns 200ms var(--out) 80ms, margin-left 200ms var(--out) 80ms; }
+  .rail[data-ready][data-hero="here"] .rail-more-in { transition: opacity 80ms var(--out), visibility 0s linear 80ms; }
+}
+
+/* The header's right side, where the navigation used to be. */
+.bar .theme, .bar .star, .bar .download, .bar-status { display: none; }
+.bar .theme, .bar .download { display: inline-flex; }
+.bar .download { color: var(--text-1); background: none; border-color: rgba(var(--ink-rgb), 0.45); box-shadow: none; }
+@media (min-width: 1101px) {
+  :root:has(.rail[data-h="1"]) .bar .star { display: inline-flex; }
+  :root:has(.rail[data-h="2"]) .bar .download { display: none; }
+  :root:has(.rail[data-h="2"]) .bar-status { display: block; margin: 0 10px 0 0; font-family: var(--px); font-size: 13px; letter-spacing: 0.02em; color: var(--text-1); white-space: nowrap; }
+}
+/* Below 1100 px the dock spans the window, and the download keeps its place. */
+@media (max-width: 1100px) {
+  .rail {
+    right: 12px; bottom: 12px; left: 12px; transform: none;
+    width: auto; max-width: none; height: 56px; padding: 0 5px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .rail-links { flex: 1; justify-content: space-between; gap: 0; }
+  .rail-links a { flex: 1 1 auto; justify-content: center; height: 44px; padding: 0 7px; font-size: 11.5px; }
+  .rail-links a::after { inset: 0; }
+  .rail-mark { display: none; }
+  .rail-star { height: 44px; font-size: 11.5px; }
+  .rail-download { height: 44px; padding: 0 12px; font-size: 11.5px; }
+  .js .rail[data-hero="here"] .rail-download, .js .rail[data-hero=""] .rail-download { background: none; box-shadow: none; }
+  .js .rail[data-hero="here"] a.rail-download, .js .rail[data-hero=""] a.rail-download { color: var(--text-1); }
+  .bar { --logo-w: 132px; }
+  html { scroll-padding-top: 24px; }
+}
+@media (max-width: 640px) {
+  .rail-star { display: none; }
+}
+@media (max-width: 360px) {
+  .rail-links a { padding: 0 2px; }
+  .rail-download { padding: 0 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rail[data-ready] .rail-more, .rail[data-ready] .rail-more-in { transition: none !important; }
+}
+
 /* ── Bar ──────────────────────────────────────────────────────────────── */
 
 /* The header is static: it scrolls away with the page. It sits on a solid
@@ -238,7 +353,7 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
   position: absolute; inset: calc(var(--ticker-h) + var(--bar-gap)) 0 auto; z-index: 10;
   display: flex; align-items: center; gap: 8px;
   height: 60px;                         /* the mark hangs below it */
-  padding: 0 var(--gutter);
+  padding: 0 var(--pad);
 }
 .bar::before {
   content: ""; position: absolute; z-index: -1; pointer-events: none;
@@ -257,10 +372,10 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
   transition: color 160ms var(--out);
 }
 .brand:hover { background: none; color: var(--accent-ink); }
-.brand:active { transform: translateY(1px); }
+.brand:active { transform: scale(0.97); }
 /* Up to 288 px, but never more than the controls leave (about 360 px of
  * bar is theirs), down to 112 px on the smallest phones. */
-.bar { --logo-w: clamp(112px, calc(100vw - 360px), 288px); --logo-h: calc(var(--logo-w) * 63 / 279); }
+.bar { --logo-w: 168px; --logo-h: calc(var(--logo-w) * 63 / 279); }
 @media (max-width: 480px) { .brand { margin-top: 12px; } }
 .logotype {
   display: block; width: var(--logo-w, 72px); height: var(--logo-h, 16px); background: currentColor;
@@ -286,7 +401,7 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
 }
 .glass { flex: none; }
 .glass::after { content: ""; position: absolute; inset: -6px -2px; }
-.glass:active { transform: translateY(1px); }
+.glass:active { transform: scale(0.97); }
 .glass > * { display: inline-flex; align-items: center; }
 
 .star { background: rgba(var(--ground-rgb), 0.55); box-shadow: inset 0 1px 0 rgba(var(--ink-rgb), 0.18); }
@@ -360,7 +475,7 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
 }
 .btn::after { content: ""; position: absolute; inset: -5px -2px; }   /* 44px hit area, same look */
 .btn:hover { --btn-bg: var(--frame); --btn-fg: var(--ground); }
-.btn:active { transform: translateY(1px); }
+.btn:active { transform: scale(0.97); }
 .btn:disabled { --btn-fg: var(--text-3); --btn-bd: var(--hair); cursor: not-allowed; transform: none; }
 .btn:disabled:hover { --btn-bg: var(--ground); --btn-fg: var(--text-3); }
 .btn[data-variant="default"] { --btn-bg: var(--accent); --btn-fg: var(--on-accent); --btn-bd: var(--accent); --btn-ring: var(--frame); }
@@ -400,7 +515,7 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
 }
 .cmd-done { display: none; }
 .cmd:hover { --cmd-bd: var(--frame); --cmd-act-bg: var(--frame); --cmd-act-fg: var(--ground); --cmd-act-bd: var(--frame); }
-.cmd:active { transform: translateY(1px); --cmd-act-bg: var(--pt-half); }
+.cmd:active { transform: scale(0.97); --cmd-act-bg: var(--pt-half); }
 .cmd[data-state="copied"] { --cmd-bd: var(--frame); --cmd-act-bg: var(--accent); --cmd-act-fg: var(--on-accent); --cmd-act-bd: var(--frame); }
 .cmd[data-state="copied"] .cmd-copy { display: none; }
 .cmd[data-state="copied"] .cmd-done { display: inline; }
@@ -427,12 +542,12 @@ h3 { font-family: var(--display); font-size: 21px; letter-spacing: -0.01em; line
 .links a { display: inline-flex; align-items: center; min-height: var(--target); }
 
 /* 1 · Hero: the dithered field, then the one assertion. */
-main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
-/* The field runs to the very top, behind the ticker and the mark. */
-.hero { --field-top: 0px; }
+main > .hero {
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch;
+  min-height: calc(100svh - var(--hero-peek)); max-width: none; padding: calc(var(--ticker-h) + 100px + clamp(0px, (100svh - 760px) / 2, 120px)) var(--pad) 0;  /* the field keeps a band on tall windows */
+}
 .field {
-  position: absolute; inset: var(--field-top) 0 auto; z-index: 0;
-  width: 100%; height: calc(min(100vh, 1000px) - var(--field-top));
+  position: absolute; z-index: 0;
   object-fit: cover; object-position: 50% 0;
   image-rendering: pixelated;
   filter: var(--field-filter);
@@ -440,15 +555,18 @@ main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
   user-select: none;
 }
 /* The live field (check/field.js) draws in the palette's own colours, so it
- * skips the light theme's invert; the static PNG stays until its first frame. */
-.field-live { filter: none; }
+ * skips the light theme's invert; the static PNG stays until its first frame.
+ * On its own layer: Safari paints a small canvas into the layer it shares
+ * with the page, so without this every frame repaints that whole layer (13%
+ * of a core in its GPU process at rest, 4% with it). */
+.field-live { filter: none; will-change: transform; }
 .hero.live img.field { visibility: hidden; }
 /* The problem slab (2026-10-29): after the poster, the problem gets a section
  * of its own on a flat grey, with section padding above and below. One
  * hierarchy, top to bottom: the problem in display type, the pills, the
  * lede, the two ways in, then the loop. Spacing on the 8 px scale: 40 · 24
  * · 40, and the loop a section step below. */
-main > .slab { margin-top: var(--section); padding-bottom: var(--section); background: var(--slab); }
+main > .slab { padding-top: calc(var(--section) + var(--hero-over)); padding-bottom: var(--section); background: var(--slab); }
 .hero-text {
   position: relative; z-index: 1;
   max-width: var(--measure); margin: 0 auto;
@@ -899,7 +1017,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
   --foot-pad: max(var(--gutter), calc((100vw - var(--measure)) / 2));
   position: relative; isolation: isolate;
   display: grid; gap: clamp(48px, 6vw, 80px);
-  padding: clamp(72px, 10vw, 136px) var(--foot-pad) 28px;
+  padding: clamp(72px, 10vw, 136px) var(--foot-pad) 96px;
   background: var(--ground); color: var(--text-3);
   font-size: 12px;
 }
@@ -925,21 +1043,37 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 @keyframes foot-led-dim { 50% { opacity: 1; } }
 .foot-ctas { display: flex; flex-wrap: wrap; gap: 8px; }
 
-/* The map: four groups, each under a numbered mono label. */
+/* The map: four groups, each under a pill cut like the hero's (.pills), in a
+ * finish of its own: Penthera blue, polished steel, gunmetal and the palette's
+ * other blue. Each finish fixes its own ink, so it reads the same on paper and
+ * on black. Pages under a page are set in, one size down.
+ *
+ * A hovered link is the site's highlight, ink on the accent; the colour is
+ * set here because `.foot-nav a` outranks the global `a:hover`. The negative
+ * margin keeps the text on the column's edge while the highlight has air. */
 .foot-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 48px 32px; }
-.foot-k { display: flex; align-items: baseline; gap: 10px; margin-bottom: 18px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
-.foot-k span { color: var(--accent-ink); font-variant-numeric: tabular-nums; }
-.foot-nav ul { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.foot-k {
+  width: fit-content; margin-bottom: 18px; padding: 5px 12px 4px;
+  font-size: 13px; line-height: 1.3; color: var(--pill-ink); background: var(--pill-bg);
+  clip-path: polygon(0 3px, 3px 3px, 3px 0, calc(100% - 6px) 0, calc(100% - 6px) 2px, 100% 2px, 100% calc(100% - 4px), calc(100% - 3px) calc(100% - 4px), calc(100% - 3px) 100%, 5px 100%, 5px calc(100% - 2px), 0 calc(100% - 2px));
+  transform: rotate(var(--pill-tilt));
+}
+.foot-group:nth-child(1) .foot-k { --pill-ink: #ffffff; --pill-tilt: -1.2deg; --pill-bg: #0000ed; }
+.foot-group:nth-child(2) .foot-k { --pill-ink: #0a0a0a; --pill-tilt: 0.8deg; --pill-bg: linear-gradient(180deg, #dfe3e9 0%, #b9c0ca 40%, #9aa3b0 54%, #e4e8ed 72%, #aab2bd 100%); }
+.foot-group:nth-child(3) .foot-k { --pill-ink: #ffffff; --pill-tilt: -0.4deg; --pill-bg: linear-gradient(180deg, #5d6572 0%, #2b2f36 44%, #15171b 58%, #4a515c 100%); }
+.foot-group:nth-child(4) .foot-k { --pill-ink: #00006b; --pill-tilt: 1.1deg; --pill-bg: linear-gradient(180deg, #c9c9ff 0%, #8a8aff 60%, #7a7aff 100%); }
+.foot-nav ul { display: grid; justify-items: start; margin: 0; padding: 0; list-style: none; }
 .foot-nav a {
-  display: inline-flex; align-items: center; min-height: 32px; padding: 2px 0;
-  font-family: var(--display); font-size: 17px; line-height: 1.2; letter-spacing: -0.01em;
+  display: inline-flex; align-items: center; min-height: 30px; margin-left: -4px; padding: 0 4px;
+  font-family: var(--display); font-size: 15px; line-height: 1.25; letter-spacing: -0.005em;
   color: var(--text-1); text-decoration: none;
 }
-/* Pages under a page (each benchmark, each post): mono, smaller, set in. */
-.foot-sub a { min-height: 28px; padding-left: 14px; font-family: var(--px); font-size: 12px; letter-spacing: 0.01em; color: var(--text-2); }
+.foot-sub { margin-left: 14px; }
+.foot-sub a { min-height: 26px; font-size: 14px; color: var(--text-2); }
+.foot-nav a:hover { background: var(--accent); color: var(--on-accent); }
 @media (pointer: coarse) { .foot-nav a, .foot-sub a { min-height: var(--target); } }
 @media (max-width: 1000px) { .foot-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 560px) { .foot-nav { grid-template-columns: minmax(0, 1fr); gap: 40px; } }
+@media (max-width: 560px) { .foot-nav { gap: 40px 20px; } }
 
 /* A 1-bit ramp, blue to empty paper: the only dither in the footer, on a row
  * with nothing else in it. */
@@ -960,7 +1094,6 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .foot-mark {
   display: block; padding: 0; color: var(--text-1); text-decoration: none;
   filter: drop-shadow(0 22px 44px rgba(0, 0, 237, 0.42));
-  transition: filter 240ms var(--out);
 }
 .foot-word {
   display: block; width: 100%; aspect-ratio: 279 / 63;
@@ -1151,6 +1284,13 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .report-passed > summary::before { content: "+"; width: 24px; height: 24px; display: grid; place-items: center; border: 1px solid var(--frame); }
 .report-passed[open] > summary::before { content: "\2212"; }
 .report-scope { margin-top: 16px; font-family: var(--px); font-size: 13px; color: var(--text-3); }
+/* The end of a report: the fix prompt is the one blue action. */
+.report-next { margin-top: 32px; padding-top: 32px; }
+.report-next h3 { font: 500 clamp(24px, 3vw, 36px) / 1.1 var(--display); letter-spacing: -0.03em; color: var(--text-1); }
+.report-next-acts { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin-top: 20px; }
+.report-next-acts .btn { min-height: 52px; padding: 0 24px; }
+.report-next-note { margin-top: 12px; font: 13px / 1.4 var(--px); color: var(--text-3); }
+@media (max-width: 759px) { .report-next-scan { display: none; } .report-next-acts .btn { flex: 1 1 100%; } }
 
 .prompt-dialog {
   width: min(640px, calc(100vw - 32px)); max-height: min(80vh, 760px); padding: 24px;
@@ -1441,7 +1581,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
   background: var(--metal);
   border: 1px solid rgba(var(--ink-rgb), 0.5);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, calc(var(--lit) * 4)), inset 0 -1px 0 rgba(0, 0, 0, calc(var(--shade) * 0.8));
-  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+  transition: transform 160ms var(--out), box-shadow 160ms var(--out), border-color 160ms var(--out);
 }
 .pb-card::before {
   content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
@@ -1576,7 +1716,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
   transition: transform var(--press) var(--out), filter 120ms;
 }
 .btn-steel:hover { filter: brightness(1.06); }
-.btn-steel:active { transform: translateY(1px); }
+.btn-steel:active { transform: scale(0.97); }
 .btn-steel:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 
 /* Statement and card panels */
@@ -1747,12 +1887,12 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
   color: #2a2f37; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9), 0 -1px 0 rgba(0, 0, 0, 0.35);
 }
 .gopro-mark { position: relative; flex: none; width: clamp(30px, 3.6vw, 48px); aspect-ratio: 1; align-self: flex-start; margin: 0.02em 0 0 calc(-1 * clamp(10px, 1.6vw, 22px)); }
-.gopro-star { width: 100%; height: 100%; transition: transform 700ms cubic-bezier(0.2, 0.8, 0.2, 1); animation: gopro-glow 3s ease-in-out infinite; }
-.gopro-plate:hover .gopro-star { transform: rotate(90deg) scale(1.08); }
-@keyframes gopro-glow {
-  0%, 100% { filter: drop-shadow(0 6px 10px rgba(0, 0, 40, 0.35)); }
-  50% { filter: drop-shadow(0 3px 6px rgba(0, 0, 40, 0.35)) drop-shadow(0 0 14px rgba(80, 80, 255, 1)) drop-shadow(0 0 4px rgba(255, 255, 255, 0.9)); }
-}
+/* The star's glow is a halo that fades, not an animated filter: a filter
+ * repaints on the main thread every frame. */
+.gopro-star { position: relative; width: 100%; height: 100%; filter: drop-shadow(0 6px 10px rgba(0, 0, 40, 0.35)); transition: transform 700ms var(--out); }
+.gopro-mark::after { content: ""; position: absolute; inset: -55%; pointer-events: none; opacity: 0; background: radial-gradient(circle, rgba(120, 120, 255, 0.95), rgba(80, 80, 255, 0.35) 34%, transparent 64%); animation: gopro-halo 3s ease-in-out infinite; }
+@media (hover: hover) and (pointer: fine) { .gopro-plate:hover .gopro-star { transform: rotate(90deg) scale(1.08); } }
+@keyframes gopro-halo { 50% { opacity: 1; } }
 .gopro-twinkle { position: absolute; width: 45%; height: 45%; left: 27.5%; top: -22%; pointer-events: none; opacity: 0; animation: gopro-twinkle 3s ease-in-out infinite; }
 .gopro-twinkle + .gopro-twinkle { width: 30%; height: 30%; left: 78%; top: 62%; animation-delay: 1.4s; }
 @keyframes gopro-twinkle { 0%, 70%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); } 80% { opacity: 1; transform: scale(1) rotate(45deg); } }
@@ -1764,7 +1904,7 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
   font-family: var(--px); font-size: 16px; letter-spacing: 0.02em; color: #fff; border: 1px solid rgba(255, 255, 255, 0.45);
   background: linear-gradient(180deg, #6b6bff 0%, #0000ed 55%, #0000b8 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 14px 34px -10px rgba(0, 0, 237, 0.9);
-  transition: transform 160ms, box-shadow 160ms;
+  transition: transform 160ms var(--out), box-shadow 160ms var(--out);
 }
 .gopro-btn::after {
   content: ""; position: absolute; inset: 0; pointer-events: none;
@@ -1772,12 +1912,13 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
   transform: translateX(-120%); animation: gopro-shimmer-btn 4.2s cubic-bezier(0.6, 0, 0.2, 1) infinite;
 }
 @keyframes gopro-shimmer-btn { 0%, 62% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
-.gopro-btn:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 20px 44px -10px rgba(0, 0, 237, 1); }
+@media (hover: hover) and (pointer: fine) { .gopro-btn:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 20px 44px -10px rgba(0, 0, 237, 1); } }
+.gopro-btn:active { transform: scale(0.97); }
 .gopro-btn:focus-visible { outline: 2px solid #7a7aff; outline-offset: 3px; }
 /* Off screen the loops wait (gopro.js sets data-rest). */
-.gopro-plate[data-rest]::before, .gopro-plate[data-rest] .gopro-btn::after, .gopro-plate[data-rest] .gopro-star, .gopro-plate[data-rest] .gopro-twinkle { animation-play-state: paused; }
+.gopro-plate[data-rest]::before, .gopro-plate[data-rest] .gopro-btn::after, .gopro-plate[data-rest] .gopro-mark::after, .gopro-plate[data-rest] .gopro-twinkle { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) {
-  .gopro-plate::before, .gopro-btn::after, .gopro-star, .gopro-twinkle { animation: none; }
+  .gopro-plate::before, .gopro-btn::after, .gopro-mark::after, .gopro-twinkle { animation: none; }
   .gopro-plate, .gopro-star, .gopro-btn { transition: none; }
 }
 @media (max-width: 600px) {
@@ -1798,48 +1939,63 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
  * metal card with a real result of the test server, labelled Example, built
  * with the site. Your result lands in the same place, and the left side
  * turns into the hand-off: Prompt to fix, the full scan, the code scan. */
-.hero {
-  /* Where the header ends: the bar's solid box (ticker, gap, mark, air). */
-  --logo-h: calc(clamp(112px, calc(100vw - 360px), 288px) * 63 / 279);
-  --head: calc(var(--ticker-h) + 32px + max(var(--target), var(--logo-h)));
-}
-/* The field sits top right, behind the card, and fades out to the left so
- * no dots run behind the headline. */
-.hero .field {
-  inset: calc(var(--head) + 4px) 0 auto auto;
-  width: min(66vw, 960px); height: min(620px, 72vh);
-  -webkit-mask: linear-gradient(90deg, transparent 0, transparent 18%, #000 62%); mask: linear-gradient(90deg, transparent 0, transparent 18%, #000 62%);
-  --field-from: 0.18;   /* the mask is clear up to here; check/field.js skips those columns */
-}
+/* The field fills the first screen, and the bar's solid box cuts it on a
+ * hard line. Everything else floats above it in one panel of heavy glass, the
+ * same material as the bottom veil. After a check the report takes the same
+ * glass, and the field stays one screen tall, so a long report never makes it
+ * draw more cells. */
+.hero .field { inset: 0; width: 100%; height: 100%; }
+.hero[data-mode="fix"] { align-items: start; min-height: 100svh; padding-bottom: 40px; }
+.hero[data-mode="fix"] .field { height: 100svh; }
+.hero[data-mode="fix"] + .slab { padding-top: var(--section); }
 .poster, .report {
-  position: relative; z-index: 1; max-width: var(--measure); margin: 0 auto;
-  padding-top: calc(var(--head) + clamp(40px, 6vw, 80px));
+  position: relative; z-index: 1; min-width: 0; padding: clamp(24px, 3vw, 44px);
+  background: var(--glass-tint);
+  -webkit-backdrop-filter: blur(40px) saturate(1.5); backdrop-filter: blur(40px) saturate(1.5);
+  border: 1px solid var(--glass-edge);
+  box-shadow: inset 0 1px 0 var(--glass-rim);
 }
-.poster, .report-grid { display: grid; gap: 40px; align-items: start; }
-@media (min-width: 1000px) { .poster, .report-grid { grid-template-columns: minmax(0, 1fr) minmax(400px, 500px); gap: 56px; } }
-.poster-text { padding-top: 8px; }
-#hero-title, .report-kick {
-  max-width: none; margin: 0 0 22px;
+/* Without backdrop blur, dots behind the text would be noise. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .poster, .report { background: var(--ground); }
+}
+.poster { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0 24px; align-items: center; margin-bottom: calc(-1 * var(--hero-over)); padding-bottom: calc(clamp(24px, 3vw, 44px) + var(--hero-over)); box-shadow: inset 0 1px 0 var(--glass-rim), 0 40px 70px -24px rgba(0, 0, 0, 0.5); }
+.report-grid { display: grid; gap: 40px; align-items: start; }
+@media (min-width: 1000px) { .report-grid { grid-template-columns: minmax(0, 1fr) minmax(400px, 500px); gap: 56px; } }
+.poster-text { grid-column: 1 / 7; min-width: 0; }
+.poster-card { grid-column: 8 / -1; }
+@media (max-width: 1100px) {
+  main > .hero { padding: calc(var(--ticker-h) + 100px) var(--pad) 0; }
+  .poster { display: block; }
+  .poster-card { margin-top: 28px; }
+}
+.report-kick {
+  max-width: none; margin: 0 0 20px;
   font: 14px / 1.4 var(--px); letter-spacing: 0.02em; color: var(--text-1);
   text-wrap: pretty;
 }
 .ask {
   font-family: var(--display); font-weight: 500; color: var(--text-1);
-  font-size: clamp(54px, 7.2vw, 112px); line-height: 0.9; letter-spacing: -0.05em;
-  max-width: 8.2ch; text-wrap: balance;
+  font-size: clamp(52px, 6.6vw, 96px); line-height: 0.98; letter-spacing: -0.04em;
+  text-wrap: balance;
 }
-.ask-sub { margin-top: 22px; max-width: 30ch; font: 500 clamp(18px, 1.7vw, 23px) / 1.35 var(--display); letter-spacing: -0.01em; color: var(--text-1); }
-.poster .scan { margin-top: 32px; }
+.ask-sub { max-width: none; margin-top: 20px; text-wrap: pretty; font: 500 20px / 1.3 var(--display); letter-spacing: -0.01em; color: var(--text-1); }
+.ask-sub + .ask-sub { margin-top: 2px; }
+.poster .scan { margin-top: 28px; max-width: none; }
 .scan-row { gap: 0; }
 .scan-row input { min-height: 64px; padding: 0 20px; font-size: 19px; border-right: 0; }
 .scan-go { min-height: 64px; padding: 0 32px; font-size: 18px; }
-/* The glow: the one call to act on the first screen, and Prompt to fix after. */
-.scan-go:not(:disabled), .handoff .glow {
+/* The glow: Prompt to fix, once there is a result. */
+.handoff .glow {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 10px 34px -6px rgba(0, 0, 237, 0.95), 0 0 60px -10px rgba(60, 60, 255, 0.7);
 }
-.scan-note { margin-top: 4px; }
+.scan-note { margin-top: 4px; color: var(--text-2); }
 .scan-note a { color: var(--accent-ink); }
-.scan-alt { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; margin-top: 28px; font: 13px / 1.3 var(--px); color: var(--text-3); }
+.scan-alt { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; margin-top: 12px; font: 13px / 1.3 var(--px); color: var(--text-2); }
+/* The code scan is a plain link in the panel; it says Copied when clicked. */
+.scan-alt .cmd { min-height: 0; padding: 0; background: none; border: 0; box-shadow: none; }
+.scan-alt .cmd code { color: var(--text-1); text-decoration: underline; text-underline-offset: 3px; }
+.scan-alt .cmd-prompt, .scan-alt .cmd:not([data-state="copied"]) .cmd-act { display: none; }
 
 /* The metal card: black steel on the dark ground, silver on the light one,
  * lit from above. No inner rules: rows are spaced plates. */
@@ -1883,14 +2039,13 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .card-rows li.ok .card-tag { color: var(--text-2); background: none; border-color: rgba(var(--ink-rgb), 0.45); box-shadow: none; }
 .card-clean { margin-top: 14px; color: var(--text-1); }
 /* The example's button is a picture of the real one: not focusable, hidden from screen readers. */
-.card-fake, .card .card-prompt {
+.card .card-prompt {
   display: flex; align-items: center; justify-content: center; width: 100%; min-height: 56px; margin-top: 20px;
   font: 18px / 1 var(--px); letter-spacing: 0.02em; color: #fff;
   background: linear-gradient(180deg, #5a5aff 0%, #0000ed 55%, #0000b8 100%);
   border: 1px solid rgba(255, 255, 255, 0.45);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 10px 34px -6px rgba(0, 0, 237, 0.95);
 }
-.card-cap { margin-top: 14px; font: 13px / 1.45 var(--px); letter-spacing: 0.02em; color: var(--text-3); }
 .card-more { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; margin-top: 14px; font: 13px / 1.3 var(--px); color: var(--text-3); }
 .card-more a { display: inline-flex; align-items: center; min-height: var(--target); color: var(--text-1); text-underline-offset: 3px; }
 .card .report-busy, .card .report-error { margin-top: 14px; }
@@ -1946,16 +2101,14 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 }
 @media (min-width: 760px) { .card .card-prompt { display: none; } }
 @media (max-width: 759px) {
-  .hero .field { --field-from: 0; inset: calc(var(--head) + 8px) 0 auto; width: 100%; height: 132px; -webkit-mask: linear-gradient(180deg, #000 60%, transparent); mask: linear-gradient(180deg, #000 60%, transparent); }
-  .poster { padding-top: calc(var(--head) + 150px); gap: 28px; }
-  .report { padding-top: calc(var(--head) + 24px); }
-  #hero-title, .report-kick { font-size: 12px; margin-bottom: 14px; }
-  .ask { font-size: 54px; }
+  .report-kick { font-size: 12px; margin-bottom: 14px; }
+  .ask { font-size: 52px; }
   .ask-sub { margin-top: 14px; font-size: 18px; }
+  .ask-sub + .ask-sub { margin-top: 2px; }
   .poster .scan { margin-top: 22px; }
   .scan-row input { min-height: 56px; padding: 0 14px; font-size: 16px; }
   .scan-go { min-height: 56px; padding: 0 20px; font-size: 16px; }
-  .scan-alt, .card-cap, .card-wide { display: none; }
+  .scan-alt, .card-wide { display: none; }
   .card { padding: 20px; }
   .card-score { margin: 14px 0; gap: 16px; }
   .card .meter { grid-template-columns: repeat(10, 7px); }
@@ -1971,3 +2124,11 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 }
 .report-detail { scroll-margin-top: 24px; }
 .report-detail h3 + .report-cats { margin-top: 14px; }
+
+/* The two dialogs fade in from just under their size, never from nothing. */
+.consent[open], .prompt-dialog[open] { animation: dialog-in 200ms var(--out); }
+@keyframes dialog-in { from { opacity: 0; transform: scale(0.97); } }
+@media (prefers-reduced-motion: reduce) {
+  .consent[open], .prompt-dialog[open] { animation: none; }
+  .btn:active, .glass:active, .cmd:active, .brand:active, .btn-steel:active, .gopro-btn:active, .rail-links a:active, .rail-download:active { transform: none; }
+}

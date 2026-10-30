@@ -16,10 +16,10 @@ description: >
   NOT use for targets without explicit authorization.
 license: MIT
 compatibility: Node.js 22+, network access to target, Penthera CLI (npm link or node bin/penthera.js from repo). macOS only for --machine.
-allowed-tools: "Bash(penthera:*) Bash(npx -y penthera@2.1.0:*) Bash(npx --no-install penthera:*) Read"
+allowed-tools: "Bash(penthera:*) Bash(npx -y penthera@2.1.1:*) Bash(npx --no-install penthera:*) Read"
 metadata:
   author: danoszz
-  version: 2.1.0
+  version: 2.1.1
   category: security
 ---
 
@@ -56,12 +56,12 @@ Run it from the user's project folder: it creates `reports/` there. The skill's 
 Use whichever is available:
 
 ```bash
-penthera --version          # installed (npm install -g penthera@2.1.0, or npm link)
-npx -y penthera@2.1.0 --version   # nothing installed: npx fetches it
+penthera --version          # installed (npm install -g penthera@2.1.1, or npm link)
+npx -y penthera@2.1.1 --version   # nothing installed: npx fetches it
 node bin/penthera.js --version   # from a Penthera checkout
 ```
 
-All examples below use `penthera`; substitute `npx -y penthera@2.1.0` or `node bin/penthera.js` when needed.
+All examples below use `penthera`; substitute `npx -y penthera@2.1.1` or `node bin/penthera.js` when needed.
 
 To try a release candidate in someone's project, run it with `npx penthera@next ...` rather than `npm install penthera@next`. An install pins the exact rc in the lockfile, so it never moves to the final release, and it adds a dependency the project did not ask for. If the user does want it installed, use `-D` and point out the pin.
 

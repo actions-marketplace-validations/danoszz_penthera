@@ -33,3 +33,23 @@ export function handoffTitle(report) {
   if (!n) return "Nothing to fix from the outside.";
   return n === 1 ? "1 fix. Your agent can do it." : `${n} fixes. Your agent can do them.`;
 }
+
+/**
+ * The report as Markdown, for the visitor to keep. Built in the page from what
+ * is already on screen; nothing is sent anywhere.
+ */
+export function reportMarkdown(report, date = new Date().toISOString().slice(0, 10)) {
+  const failed = failedChecks(report);
+  const passed = report.checks.filter((c) => c.passed);
+  const lines = [`# Penthera quick check: ${report.url}`, "", `${report.score}/100. ${report.verdict}. Checked ${date}.`, "", report.scope, ""];
+  if (failed.length) lines.push(`## ${failed.length} to fix, most severe first`, "");
+  for (const c of failed) {
+    lines.push(`### ${c.title} (${c.severity})`, "");
+    if (c.evidence) lines.push(`Evidence: ${c.evidence}`, "");
+    if (c.fix) lines.push(`Fix: ${c.fix}`, "");
+    if (c.verify) lines.push(`Verify: \`${c.verify}\``, "");
+  }
+  if (passed.length) lines.push(`## ${passed.length} passed`, "", ...passed.map((c) => `- ${c.title}`), "");
+  lines.push(`Full scan on your own machine: \`npx penthera ${report.url}\``, "");
+  return lines.join("\n");
+}

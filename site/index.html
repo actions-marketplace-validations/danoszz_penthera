@@ -56,6 +56,7 @@
 
   <header class="bar">
     <a class="brand" href="/"><span class="logotype" aria-hidden="true"></span><span class="sr">Penthera, home</span></a>
+    <p class="bar-status">Penthera {{VERSION}} · MIT · Runs offline · No cookies</p>
     <button class="theme glass" type="button" role="switch" aria-checked="true" aria-label="Dark theme" data-theme-toggle hidden>
       <span class="theme-track" aria-hidden="true"><span class="theme-knob"></span></span>
     </button>
@@ -77,8 +78,8 @@
       <img class="field" src="/media/field.png" alt="" width="360" height="225" aria-hidden="true">
       <div class="poster" data-poster>
         <div class="poster-text">
-          <h1 id="hero-title"><span class="sr">Penthera: </span>your <span class="nowrap">open-source</span> cyber security agent</h1>
           <p class="ask">Is your site/app safe?</p>
+          <h1 class="ask-sub" id="hero-title">Penthera: your <span class="nowrap">open-source</span> cyber security agent.</h1>
           <p class="ask-sub">Find out in seconds. Then fix it with your coding agent.</p>
           <form class="scan" id="scan" data-scan novalidate>
             <label class="sr" for="scan-url">Your site's address, for a free cyber security quick scan</label>
@@ -101,7 +102,6 @@
         </div>
         <div class="poster-card">
           {{EX_CARD}}
-          <p class="card-cap">This is what you get back. Yours replaces it, right here.</p>
         </div>
       </div>
       <div class="report" data-report hidden></div>

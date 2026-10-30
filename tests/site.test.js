@@ -351,6 +351,73 @@ describe("site benchmark (E10 pilot)", () => {
   });
 });
 
+describe("site report end", () => {
+  const report = { url: "https://a.test/", score: 40, verdict: "Weak", scope: "Passive.", checks: [
+    { title: "No HSTS", severity: "high", passed: false, evidence: "header missing", fix: "Send it.", verify: "curl -I a.test" },
+    { title: "HTTPS", severity: "high", passed: true },
+  ] };
+
+  it("turns a report into Markdown with every fix and what passed", async () => {
+    const { reportMarkdown } = await import("../site/check/card.js");
+    const md = reportMarkdown(report, "2026-10-30");
+    for (const s of ["# Penthera quick check: https://a.test/", "40/100. Weak. Checked 2026-10-30.", "## 1 to fix", "### No HSTS (high)", "Evidence: header missing", "Fix: Send it.", "Verify: `curl -I a.test`", "- HTTPS", "`npx penthera https://a.test/`"]) expect(md).toContain(s);
+  });
+
+  it("ends every report with an action, counted without any URL", () => {
+    const ui = readFileSync(join(ROOT, "site", "check", "ui.js"), "utf8");
+    expect(ui).toContain('wrap.append(el("p", "report-scope", report.scope), reportNext(report));');
+    for (const s of ["Copy fix prompt (", "Download report", 'count("link", { to: "download-report" })', 'count("copy", { what: "fix-prompt-end" })']) expect(ui).toContain(s);
+  });
+});
+
+describe("site motion budget", () => {
+  const css = readFileSync(join(import.meta.dirname, "..", "site", "styles.css"), "utf8");
+  const ui = readFileSync(join(import.meta.dirname, "..", "site", "check", "ui.js"), "utf8");
+
+  it("moves the ticker in steps, never at the display's full rate", () => {
+    expect(css).toMatch(/\.ticker-track \{[^}]*animation: ticker \d+s steps\(\d+, end\) infinite;/);
+  });
+
+  it("rests the ticker while the URL field has focus and off screen", () => {
+    expect(css).toMatch(/:has\(\.scan input:focus\) \.ticker-track \{ animation-play-state: paused; \}/);
+    expect(css).toContain(".ticker[data-rest] .ticker-track");
+    expect(ui).toMatch(/function tickerRest\(\)[\s\S]*IntersectionObserver/);
+  });
+
+  it("floats the first screen in one glass panel over a full-screen field", () => {
+    expect(css).toMatch(/\.hero \.field \{ inset: 0; width: 100%; height: 100%; \}/);
+    expect(css).toMatch(/\.poster, \.report \{[^}]*backdrop-filter: blur\(40px\)/);
+    // A long report must not grow the canvas.
+    expect(css).toMatch(/\.hero\[data-mode="fix"\] \.field \{ height: 100svh; \}/);
+    expect(ui).toContain('[$(".hero"), $(".foot")]');
+  });
+
+  it("keeps the dock centered and opens it from within", () => {
+    const dock = ui.slice(ui.indexOf("function dockOpen"), ui.indexOf("The bottom veil"));
+    expect(dock).toContain("IntersectionObserver");
+    expect(dock).not.toMatch(/scrollY|addEventListener|animate\(/);
+    expect(css).toMatch(/\.rail\[data-ready\] \.rail-more \{ transition: grid-template-columns 240ms/);
+    expect(css).toMatch(/\.rail\[data-ready\] \.rail-more-in \{ transition: opacity 160ms var\(--out\) 140ms/);
+    expect(css).toMatch(/prefers-reduced-motion: reduce\) \{\s*\.rail\[data-ready\] \.rail-more, \.rail\[data-ready\] \.rail-more-in \{ transition: none !important; \}/);
+  });
+
+  it("lets the hero's card overlap the grey, past the fold", () => {
+    expect(css).toMatch(/main > \.hero \{[^}]*min-height: calc\(100svh - var\(--hero-peek\)\);/);
+    expect(css).toMatch(/\.poster \{[^}]*margin-bottom: calc\(-1 \* var\(--hero-over\)\);/);
+    expect(css).toMatch(/main > \.slab \{ padding-top: calc\(var\(--section\) \+ var\(--hero-over\)\);/);
+    expect(css).toMatch(/--hero-over: 136px;[\s\S]*--hero-peek: 72px;/);
+  });
+
+  it("keeps the check available without script", () => {
+    // Only a page that runs script can hold it back.
+    for (const [, sel] of css.matchAll(/([^\n{}]*data-hero="here"[^\n{}]*)\{ (?:transform|grid)/g)) expect(sel.trim()).toMatch(/^\.js /);
+  });
+
+  it("keeps the live field on a layer of its own", () => {
+    expect(css).toMatch(/\.field-live \{[^}]*will-change: transform;/);
+  });
+});
+
 describe("site news ticker", () => {
   it("every item has a date, one short line and an https source, and the build renders them all", () => {
     const items = readNews();
@@ -382,7 +449,7 @@ describe("site story", () => {
     for (const [i, m] of order.entries()) expect(at[i], m).toBeGreaterThan(0);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
     expect(h).toContain("AI coding tools ship faster than anyone can check.");
-    expect(h).toContain('<h1 id="hero-title"><span class="sr">Penthera: </span>your <span class="nowrap">open-source</span> cyber security agent</h1>');
+    expect(h).toContain('<h1 class="ask-sub" id="hero-title">Penthera: your <span class="nowrap">open-source</span> cyber security agent.</h1>');
     expect(h).toContain('<p class="bubble">yo, is my app safe?</p>');
     expect(h).toMatch(/<h2 id="faq-title">Before you install\.<\/h2>/);
     // Merged away: no section repeats another.
@@ -443,21 +510,21 @@ describe("site story", () => {
     const h = html();
     const hero = h.slice(h.indexOf('class="hero"'), h.indexOf('id="answer"'));
     expect(h.match(/<h1[ >]/g)).toHaveLength(1);
-    expect(hero.indexOf('id="hero-title"')).toBeLessThan(hero.indexOf('<p class="ask">Is your site/app safe?</p>'));
-    expect(hero.indexOf('class="ask"')).toBeLessThan(hero.indexOf('id="scan"'));
+    expect(hero.indexOf('<p class="ask">Is your site/app safe?</p>')).toBeLessThan(hero.indexOf('id="hero-title"'));
+    expect(hero.indexOf('id="hero-title"')).toBeLessThan(hero.indexOf('id="scan"'));
     // The example is the live check's own report of the test server, made at build time.
     const r = await exampleCheck();
-    const card = hero.slice(hero.indexOf('class="card card-example"'), hero.indexOf('class="card-cap"'));
+    const card = hero.slice(hero.indexOf('class="card card-example"'), hero.indexOf('data-report hidden'));
     expect(card).toContain('id="example-title">Example</span>');
     expect(card).toContain(`<p class="card-verdict">${r.verdict}</p>`);
     expect(card).toContain(`<p class="score-n">${r.score}<span>/100</span></p>`);
     expect(card.match(/<i class="on"><\/i>/g)).toHaveLength(r.score);
     const worst = r.checks.filter((c) => !c.passed)[0];
     expect(card).toContain(worst.title);
-    expect(card).toContain(`Prompt to fix (${r.checks.filter((c) => !c.passed).length})`);
-    // The example's button is a picture: not focusable, hidden from screen readers.
-    expect(card).toMatch(/<p class="card-fake" aria-hidden="true">/);
+    // The example has no button, real or drawn: the scan form is the one action.
+    expect(card).not.toContain("Prompt to fix");
     expect(card).not.toMatch(/<button|<a /);
+    expect(card.match(/<li/g)).toHaveLength(3);
     // No Pro pitch in the hero or the check.
     expect(hero).not.toMatch(/\bPro\b|go-pro|\/pro\b/);
     expect(readFileSync(join(ROOT, "site", "check", "ui.js"), "utf8")).not.toMatch(/\bPro\b|\/pro\b/);

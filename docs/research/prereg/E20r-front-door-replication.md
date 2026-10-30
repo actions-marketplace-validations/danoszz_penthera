@@ -3,14 +3,14 @@
 | | |
 |---|---|
 | Experiment | E20-R, a follow-up to [E20](E20-front-door.md) |
-| Status | **Registered.** By the maintainer, through the commit that merges this version to `main`. The runs start no earlier than 6 Nov 2026 |
+| Status | **Registered.** By the maintainer, through the commit that merges this version to `main`. The runs start no earlier than 12 hours after the study page is live |
 | Date written | 2026-10-30 |
 | Authors | Daan van der Zwaag (PI). Drafted with Claude (AI-assisted) |
 | Conflict of interest | The PI maintains Penthera, and the instrument is its live check. The study serves Penthera's interest in showing why such checks matter. See § 8 |
 | Data collected before registration | The E20 results of 30 Oct 2026 are known, and every prediction below was written after seeing them. The new cohorts are unseen. The new instrument is tested on loopback only |
 | Independent review | AI review of the E20 draft (figures, statistics), 30 Oct 2026. No human review |
 | Vantage point | Rented server: Hetzner Cloud, Falkenstein, `research.penthera.org`, 2.31.141.178, IPv4 only. The address is published. The maintainer's home connection is not used |
-| Runs | Pass 1 no earlier than 6 Nov 2026, pass 2 seven days later |
+| Runs | Pass 1 no earlier than 12 hours after the updated study page is live, pass 2 seven days later |
 | Registration commit | The commit that merges this file to `main` |
 | T1k list SHA-256 | `d670a3c1910fe7baa4883dcb8320b1ec99d7d29f9d22954b9288ae678540674e` (`tranco-ZJ8PG-top1000.csv`) |
 | YC-new list SHA-256 | `13df01eb681993205e89c00322db972e5137d3c4a95ec982d40a2552f415dd7f` (`yc-fall2026-summer2026-2026-10-29.csv`) |
@@ -202,8 +202,9 @@ results say so.
 
 - **Order.** One shuffled order across all cohorts, seed 2020, so that time is not
   confounded with cohort. Pass 2 uses a new shuffle, seed 2021.
-- **Passes.** Pass 1 no earlier than 6 Nov 2026, pass 2 seven days later at the
-  same hour of the day. One pass takes about 2 to 3 hours.
+- **Passes.** Pass 1 no earlier than 12 hours after the updated study page is live, as
+  in E20, and pass 2 seven days later at the same hour of the day. Running close to
+  E20 keeps the comparison with E20 (C12, C13) as free of time as it can be. One pass takes about 2 to 3 hours.
 - **No retries.** A failure is recorded by code.
 - **IPv4 only**, so that one published address accounts for every request.
 
@@ -343,5 +344,5 @@ Taken by the maintainer on 30 Oct 2026.
 2. **Cohorts.** All four older YC batches (Summer 2024, 2022, 2020, 2018), Summer and Winter 2025 as YC-25, and T10k, Europe, SP500, YC-scale, ShowHN and NL-Cbw as secondary cohorts. No accelerator portfolio pages: none grants permission and several forbid collection. Governments stay excluded, as in E20. Software vendors are left out, because no neutral list exists.
 3. **Error pages.** First 4 KB of non-2xx bodies kept privately, as in § 4.1.
 4. **Ethics read.** None. No outside reader before the run.
-5. **Timing.** 6 and 13 Nov 2026 at the earliest.
+5. **Timing.** Pass 1 as soon as the study page has been live 12 hours, pass 2 seven days later.
 6. **NCSC.** No notice before the run. The CVD form only if something serious turns up.

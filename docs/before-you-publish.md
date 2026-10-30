@@ -74,7 +74,8 @@ Read the Penthera exit code before you publish:
 
 Penthera tests login and access rules from outside, with rules for known
 problems. It does not log in to your app unless you pass a session with
-`--auth-cookie`, and it has no rule for how your payments work.
+`--auth-cookie` or `--auth-bearer`, and it has no rule for how your payments
+work.
 
 ## Make it automatic
 

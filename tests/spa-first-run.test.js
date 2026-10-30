@@ -11,7 +11,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { BUILT_IN_TEMPLATES, executeTemplate } from "../lib/templates.js";
+import { BUILT_IN_TEMPLATES, executeTemplate, sameSite } from "../lib/templates.js";
 import { scanUrl } from "../src/scan-url.js";
 import { buildBrief, NOT_PROVEN_NOTE } from "../src/report/brief.js";
 
@@ -36,7 +36,7 @@ function serve(handler) {
 async function cli(...args) {
   const home = mkdtempSync(join(tmpdir(), "pk-spa-"));
   const env = { ...process.env, HOME: home, NO_COLOR: "1", PENTHERA_BRIEF: "0" };
-  const argv = args[0] === "agents" ? args : [...args, "--profile", "quick", "--timeout", "2000"];
+  const argv = args[0] === "agents" ? args : [...args, "--offline", "--timeout", "2000"];
   const child = spawn(process.execPath, [BIN, ...argv], { cwd: home, env, stdio: ["ignore", "pipe", "pipe"] });
   let out = "";
   let err = "";
@@ -54,7 +54,7 @@ const spa = () => serve((req, res) => {
 
 describe("a single-page app that answers 200 on every path", () => {
   it.each(["quick", "standard"])("gets no critical, high or framework finding (%s)", async (profile) => {
-    const { findings } = await scanUrl(await spa(), { profile, timeout: 2_000 });
+    const { findings } = await scanUrl(await spa(), { profile, offline: true, timeout: 2_000 });
     expect(findings.filter((f) => f.severity === "critical" || f.severity === "high")).toEqual([]);
     expect(findings.filter((f) => /CVE-2025-29927|Next\.js|Swagger/.test(f.title))).toEqual([]);
   });
@@ -65,7 +65,7 @@ describe("a single-page app that answers 200 on every path", () => {
       res.writeHead(known ? 200 : 404, { "Content-Type": "text/html" });
       res.end(known ? INDEX : "Not found");
     });
-    const { findings, endpoints } = await scanUrl(base, { profile: "quick", timeout: 2_000 });
+    const { findings, endpoints } = await scanUrl(base, { profile: "quick", offline: true, timeout: 2_000 });
     expect(endpoints.list.map((e) => e.path)).toContain("/api/admin");
     expect(findings.filter((f) => /CVE-2025-29927/.test(f.title))).toEqual([]);
   });
@@ -89,6 +89,20 @@ describe("a single-page app that answers 200 on every path", () => {
     });
     const { code, out, err } = await cli(base);
     expect(code).toBe(1);
+    expect(out + err).not.toContain("No critical or high rule fired.");
+  }, 30_000);
+
+  it.each([["--brief"], ["--audience", "developer"]])("keeps that line out of %s output", async (...flags) => {
+    const { code, out, err } = await cli(await spa(), ...flags);
+    expect(code).toBe(0);
+    expect(out + err).not.toContain("No critical or high rule fired.");
+  }, 30_000);
+
+  it("keeps that line out of a run that scanned nothing", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "pk-spa-pack-"));
+    const { code, out, err } = await cli("--policy-pack", join(dir, "pack"));
+    rmSync(dir, { recursive: true, force: true });
+    expect(code).toBe(0);
     expect(out + err).not.toContain("No critical or high rule fired.");
   }, 30_000);
 
@@ -158,6 +172,35 @@ describe("CVE-2025-29927 needs the header to change the answer", () => {
     expect(await fires(base)).toBe(false);
   });
 
+  // Answers in order, then the last one forever. The check's first request has the header.
+  const inTurn = (...answers) => {
+    let n = 0;
+    return route((req, res) => {
+      const [status, body = "[]"] = answers[Math.min(n++, answers.length - 1)];
+      res.writeHead(status, { "Content-Type": "text/html" }).end(body);
+    });
+  };
+
+  it.each([
+    ["one 502 between 200s", [[200], [502], [200], [200]]],
+    ["a 200 and 503 round robin", [[200], [503], [200], [503], [200], [503]]],
+    ["one 429 in three", [[200], [429], [200], [200], [429], [200]]],
+    ["a 5xx that clears before the last plain request", [[200], [503], [503], [200], [200]]],
+    ["a 5xx on the header request", [[200], [503], [503], [503]]],
+    ["two builds behind a round robin", [[200, "A"], [200, "B"], [200, "A"], [200, "B"], [200, "A"]]],
+  ])("stays quiet on %s", async (_, answers) => {
+    expect(await fires(await inTurn(...answers))).toBe(false);
+  });
+
+  it("counts a redirect even when its target reads the same as the 200", async () => {
+    const base = await serve((req, res) => {
+      if (req.url === "/same") return res.writeHead(200).end("[]");
+      if (req.headers[BYPASS]) return res.writeHead(200).end("[]");
+      res.writeHead(307, { Location: "/same" }).end();
+    });
+    expect(await fires(base)).toBe(true);
+  });
+
   const adminRoute = (plain) => serve((req, res) => {
     if (req.url === "/") return res.writeHead(200, { "Content-Type": "text/html" }).end(INDEX);
     if (req.url === "/api/admin") return res.writeHead(req.headers[BYPASS] ? 200 : plain).end();
@@ -165,8 +208,24 @@ describe("CVE-2025-29927 needs the header to change the answer", () => {
   });
 
   it.each([401, 403, 400, 405, 500])("the phase 8 check fires when the header turns a %i into a 200", async (plain) => {
-    const { findings } = await scanUrl(await adminRoute(plain), { profile: "quick", timeout: 2_000 });
+    const { findings } = await scanUrl(await adminRoute(plain), { profile: "quick", offline: true, timeout: 2_000 });
     expect(findings.filter((f) => f.source === "framework-check")).toHaveLength(1);
+  });
+});
+
+describe("the phase 8 check when the follow-up requests fail", () => {
+  it("does not count a dropped connection as a change", async () => {
+    let sent = false;
+    const base = await serve((req, res) => {
+      if (req.url === "/") return res.writeHead(200, { "Content-Type": "text/html" }).end(INDEX);
+      if (req.url !== "/api/admin") return res.writeHead(404).end();
+      if (req.headers["x-middleware-subrequest"]) { sent = true; return res.writeHead(200).end("[]"); }
+      if (sent) return req.socket.destroy();
+      res.writeHead(401).end();
+    });
+    const { findings } = await scanUrl(base, { profile: "quick", offline: true, timeout: 2_000 });
+    expect(sent).toBe(true);
+    expect(findings.filter((f) => f.source === "framework-check")).toEqual([]);
   });
 });
 
@@ -188,9 +247,43 @@ describe("the Next.js debug endpoint needs a Next.js app", () => {
     expect(await executeTemplate(base, check)).toHaveLength(1);
   });
 
-  it("ignores a Next.js app that serves a page on every path", async () => {
-    const base = await serve((req, res) => res.writeHead(200, { "Content-Type": "text/html" }).end('<!doctype html><html><script src="/_next/static/chunks/main.js"></script></html>'));
+  it("reads __NEXT_DATA__ on the home page", async () => {
+    const base = await app((q, r) => r.writeHead(200).end('<script id="__NEXT_DATA__" type="application/json">{}</script>'));
+    expect(await executeTemplate(base, check)).toHaveLength(1);
+  });
+
+  const NEXT_HOME = '<script src="/_next/static/chunks/main.js"></script>';
+
+  it.each(["<html>", "<HTML>", "<!DOCTYPE html>", "<!doctype html>"])("ignores a Next.js app that answers the path with a %s page", async (tag) => {
+    const base = await serve((req, res) => res.writeHead(200, { "Content-Type": "text/html" }).end(req.url === "/" ? NEXT_HOME : `${tag}page`));
     expect(await executeTemplate(base, check)).toEqual([]);
+  });
+
+  it("does not follow a redirect on the checked path", async () => {
+    const base = await serve((req, res) => {
+      if (req.url === "/") return res.writeHead(200).end(NEXT_HOME);
+      if (req.url === "/moved") return res.writeHead(200).end("{}");
+      res.writeHead(307, { Location: "/moved" }).end();
+    });
+    expect(await executeTemplate(base, check)).toEqual([]);
+  });
+
+  it("does not take the proof from another origin", async () => {
+    const other = await serve((req, res) => res.writeHead(200).end(NEXT_HOME));
+    const base = await serve((req, res) => {
+      if (req.url === "/") return res.writeHead(307, { Location: `${other}/` }).end();
+      res.writeHead(400).end("Bad Request");
+    });
+    expect(await executeTemplate(base, check)).toEqual([]);
+  });
+
+  it("takes the proof from the same origin or registrable domain only", () => {
+    expect(sameSite("https://example.com", "https://example.com/en")).toBe(true);
+    expect(sameSite("https://example.com", "https://www.example.com/")).toBe(true);
+    expect(sameSite("https://api.example.co.uk", "https://www.example.co.uk/")).toBe(true);
+    expect(sameSite("https://example.com", "https://example.org/")).toBe(false);
+    expect(sameSite("http://127.0.0.1:3000", "http://127.0.0.1:4000/")).toBe(false);
+    expect(sameSite("https://example.com", "http://example.com:8080/")).toBe(false);
   });
 });
 
@@ -202,8 +295,18 @@ describe("the Next.js source map check reads the shape", () => {
     ["a plain map", { version: 3, sources: ["a.js"], mappings: "AAAA" }],
     ["JSX in sourcesContent", { version: 3, sources: ["layout.jsx"], sourcesContent: ['<html lang="en"><body/></html>'], mappings: "AAAA" }],
     ["a doctype in sourcesContent", { version: 3, sources: ["_document.js"], sourcesContent: ['"<!DOCTYPE html>"'], mappings: "AAAA" }],
+    ["a map with no top-level sources", { version: 3, sections: [{ offset: { line: 0, column: 0 }, map: { mappings: "AAAA" } }] }],
   ])("reports %s", async (_, map) => {
     expect(await executeTemplate(await at(JSON.stringify(map)), check)).toHaveLength(1);
+  });
+
+  it("reports a map after leading whitespace", async () => {
+    expect(await executeTemplate(await at('\n  {"version":3,"sources":["a.js"],"mappings":"AAAA"}'), check)).toHaveLength(1);
+  });
+
+  it("ignores a page with a JSON-looking script, and JSON that only says the words", async () => {
+    expect(await executeTemplate(await at('<html><script>var map = {"sources":[]}</script></html>'), check)).toEqual([]);
+    expect(await executeTemplate(await at('{"note":"data sources and mappings"}'), check)).toEqual([]);
   });
 
   it.each([["lower case", INDEX], ["upper case", '<HTML><BODY>data "sources" and "mappings"</BODY></HTML>']])("ignores an HTML page, %s", async (_, page) => {
@@ -213,13 +316,13 @@ describe("the Next.js source map check reads the shape", () => {
 
 describe("the /docs check", () => {
   it("needs the page to name an API docs tool", async () => {
-    const { findings } = await scanUrl(await spa(), { profile: "quick", timeout: 2_000 });
+    const { findings } = await scanUrl(await spa(), { profile: "quick", offline: true, timeout: 2_000 });
     expect(findings.filter((f) => f.source === "openapi-scan")).toEqual([]);
     const base = await serve((req, res) => {
       res.writeHead(req.url === "/docs" || req.url === "/" ? 200 : 404, { "Content-Type": "text/html" });
       res.end(req.url === "/docs" ? "<html><title>Swagger UI</title></html>" : "<html></html>");
     });
-    const real = await scanUrl(base, { profile: "quick", timeout: 2_000 });
+    const real = await scanUrl(base, { profile: "quick", offline: true, timeout: 2_000 });
     expect(real.findings.filter((f) => f.source === "openapi-scan").map((f) => f.url)).toEqual([`${base}/docs`]);
   });
 });

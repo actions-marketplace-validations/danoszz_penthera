@@ -610,6 +610,9 @@ are welcome (see [MANIFESTO.md](MANIFESTO.md)).
   - No authenticated crawling beyond the bearer token or cookie you pass, so
     pages behind multi-step flows are not reached (Doupé et al., 2010).
   - No stored or second-order injection testing (Bau et al., 2010).
+  - The CVE-2025-29927 check reports when its header steadily changes the
+    answer. It misses a login page with a fresh token that turns into another
+    HTML page, because that page already differs from itself.
   - No DOM-based XSS analysis, because Penthera does not run JavaScript (Lekies et
     al., 2013; Stock et al., 2014).
 - **Logic and authorization.** No business logic testing. IDOR/BOLA findings are

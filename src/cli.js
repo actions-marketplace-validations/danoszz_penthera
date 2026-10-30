@@ -223,7 +223,7 @@ const HELP = `
     $ penthera --repo . --with gitleaks,trivy
 
   ${dim("Exit codes")}
-    0  No critical or high findings
+    0  No critical or high rule fired. This run does not prove login, access rules or payments are right
     1  Critical or high findings detected (other tools' too, with --giants)
     2  Scan failed (unreachable target, bad config, a tool the policy requires did not run)
 `;
@@ -1006,7 +1006,7 @@ export async function run() {
   ) || giantsGate(merged);
   if (merged.giants?.requiredNotRun?.length) printError(`The policy file requires ${merged.giants.requiredNotRun.join(", ")}, which did not run (see Coverage by area).`);
   const code = merged.giants?.requiredNotRun?.length ? 2 : hasSevere ? 1 : 0;
-  if (code === 0 && !agentsMode && !opts.json && !opts.quiet && !custom && !wantBrief(opts)) {
+  if (code === 0 && (url || repo) && !opts.json && !opts.quiet && !custom && !wantBrief(opts)) {
     process.stderr.write(`  No critical or high rule fired. ${NOT_PROVEN_NOTE}\n\n`);
   }
   // Exit only once stdout has drained: on a pipe the write is asynchronous, and

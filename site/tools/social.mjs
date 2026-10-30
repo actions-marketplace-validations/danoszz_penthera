@@ -3,7 +3,7 @@
  * Render the site's social images with a local headless Chrome:
  *
  *   og.png       1200 × 630   the share card (Open Graph, X, LinkedIn, Facebook):
- *                             the live check, with penthera.org's own report
+ *                             the site's first screen, with penthera.org's own report
  *   square.png   1080 × 1080  Instagram and other square feeds
  *   story.png    1080 × 1920  TikTok, Reels and Stories (9:16)
  *
@@ -95,62 +95,68 @@ export const SHOTS = [
 ];
 
 /**
- * The share card since the live check (2026-10-23): the question the page asks,
- * the scan field, and a real report on a brushed plate, penthera.org's own:
- * 95/100, its one gap (SPF and DMARC) listed honestly. Lit from one light
- * above, as on the site. `l.split` puts the plate beside the message (og),
- * otherwise below it (square).
+ * The share card since the glass hero (2026-10-30): the first screen of the
+ * site. The field is check/field.js itself, running in the page, under a solid
+ * header with a hard edge; the question and a real report float in one panel of
+ * heavy glass, and the scan button is the one blue action. The report is
+ * penthera.org's own: 95/100, its one gap (SPF and DMARC) listed honestly.
+ * `l.split` puts the plate beside the message (og), otherwise below it.
  */
 const meter = (score, px, gap) => `<div class="meter" style="grid-template-columns: repeat(10, ${px}px); gap: ${gap}px">${
   Array.from({ length: 100 }, (_, i) => `<i class="${i < score ? "on" : ""}" style="width:${px}px;height:${px}px"></i>`).join("")}</div>`;
 
-export const scanCard = (w, h, l) => `<!doctype html><html><head><meta charset="utf-8"><style>
+const fieldSrc = readFileSync(join(SITE, "check", "field.js"), "utf8");
+
+export const scanCard = (w, h, l) => `<!doctype html><html style="--ink-rgb: 255, 255, 255; --accent-ink: #7a7aff"><head><meta charset="utf-8"><style>
 @font-face { font-family: "Departure Mono"; src: url("${font}") format("woff2"); }
 * { box-sizing: border-box; margin: 0; }
 html, body { width: ${w}px; height: ${h}px; background: #000; color: #fff; overflow: hidden; }
 body { position: relative; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
 .mono { font-family: "Departure Mono", monospace; letter-spacing: 0.02em; }
-.field { position: absolute; ${l.field}; object-fit: cover; object-position: 50% 0; image-rendering: pixelated; -webkit-mask-image: ${l.mask}; }
-.wrap { position: absolute; inset: 0; padding: ${l.padTop ?? l.pad}px ${l.pad}px ${l.padBottom ?? l.pad}px; display: grid; ${l.split ? `grid-template-columns: 1fr ${l.plateW}px; column-gap: ${l.colGap}px;` : ""} align-content: ${l.split ? "stretch" : "space-between"}; row-gap: ${l.rowGap}px; }
-.left { display: flex; flex-direction: column; justify-content: space-between; min-width: 0; ${l.split ? "" : "gap: " + l.rowGap + "px;"} }
+.hero { position: absolute; inset: 0; }
+.field { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+.hero.live img.field { visibility: hidden; }
+.head { position: absolute; inset: 0 0 auto; height: ${l.head}px; padding: 0 ${l.pad}px ${l.headPad}px; display: flex; align-items: flex-end; justify-content: space-between; background: #000; }
 .logo { display: block; width: ${l.logoW}px; height: auto; }
-h1 { font-weight: 500; font-size: ${l.h1}px; line-height: 1.42; letter-spacing: -0.035em; }
-h1 span { background: #000; padding: 0 ${l.h1 * 0.18}px 4px; margin-left: -${l.h1 * 0.18}px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
-.sub { margin-top: ${l.h1 * 0.12}px; font-size: ${l.h1 * 0.36}px; font-weight: 500; letter-spacing: -0.015em; line-height: 1.45; }
-.sub span { background: #000; padding: 2px 8px 3px; margin-left: -8px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
-.scan { display: grid; grid-template-columns: 1fr auto; margin-top: ${l.scanGap}px; max-width: ${l.scanW}px; }
-.scan .in { height: ${l.scanH}px; display: flex; align-items: center; padding: 0 ${l.scanH * 0.3}px; font-size: ${l.mono}px; color: rgba(255,255,255,0.55); background: #000; border: 1px solid #fff; }
-.scan .go { height: ${l.scanH}px; display: flex; align-items: center; padding: 0 ${l.scanH * 0.5}px; font-size: ${l.mono}px; color: #fff; background: linear-gradient(180deg, #5a5aff, #0000ed 55%, #0000b8); box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 10px 28px -10px rgba(0,0,237,0.9); }
-.note { display: inline-block; margin-top: ${l.noteGap}px; padding: 4px 8px; margin-left: -8px; font-size: ${l.small}px; color: rgba(255,255,255,0.72); background: #000; }
-.note b { color: #fff; font-weight: 400; }
-.plate { align-self: ${l.split ? "center" : "end"}; padding: ${l.platePad}px; border: 1px solid rgba(255,255,255,0.24);
-  background: radial-gradient(${l.plateW * 1.1}px circle at 50% -40%, rgba(255,255,255,0.16), transparent 70%), linear-gradient(180deg, rgba(255,255,255,0.08), transparent 48%, rgba(0,0,0,0.4)), #171717;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.6), 0 24px 60px -20px rgba(0,0,0,0.9); position: relative; }
+.url { font-size: ${l.small}px; color: rgba(255,255,255,0.72); }
+.panel {
+  position: absolute; top: ${l.head + l.gap}px; right: ${l.gap}px; bottom: ${l.bottom}px; left: ${l.gap}px;
+  padding: ${l.panelPad}px; display: grid; gap: ${l.colGap}px; align-items: center;
+  ${l.split ? `grid-template-columns: minmax(0, 1fr) ${l.plateW}px;` : "align-content: center;"}
+  background: rgba(0,0,0,0.58); -webkit-backdrop-filter: blur(40px) saturate(1.5); backdrop-filter: blur(40px) saturate(1.5);
+  border: 1px solid rgba(255,255,255,0.24); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+}
+h1 { font-weight: 500; font-size: ${l.h1}px; line-height: 0.98; letter-spacing: -0.04em; text-wrap: balance; }
+.sub { margin-top: ${l.h1 * 0.28}px; font-size: ${l.sub}px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.3; }
+.scan { display: grid; grid-template-columns: 1fr auto; margin-top: ${l.scanGap}px; }
+.scan .in { height: ${l.scanH}px; display: flex; align-items: center; padding: 0 ${l.scanH * 0.3}px; font-size: ${l.mono}px; color: rgba(255,255,255,0.6); background: #000; border: 1px solid #fff; border-right: 0; }
+.scan .go { height: ${l.scanH}px; display: flex; align-items: center; padding: 0 ${l.scanH * 0.5}px; font-size: ${l.mono}px; color: #fff; background: linear-gradient(180deg, #4a4aff, #0000ed 58%, #0000b8); box-shadow: inset 0 1px 0 rgba(255,255,255,0.45); }
+.note { margin-top: ${l.noteGap}px; font-size: ${l.small}px; color: rgba(255,255,255,0.72); }
+.plate { position: relative; padding: ${l.platePad}px; border: 1px solid rgba(255,255,255,0.24);
+  background: radial-gradient(${l.plateW * 1.1}px circle at 50% -40%, rgba(255,255,255,0.16), transparent 70%), linear-gradient(180deg, rgba(255,255,255,0.08), transparent 48%, rgba(0,0,0,0.45)), #16171a;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.6); }
 .plate::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(180deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 3px); pointer-events: none; }
 .host { font-size: ${l.small}px; color: rgba(255,255,255,0.6); }
 .verdict { margin-top: 6px; font-size: ${l.verdict}px; font-weight: 500; letter-spacing: -0.03em; }
-.score { display: flex; align-items: center; gap: ${l.platePad * 0.6}px; margin-top: ${l.platePad * 0.6}px; }
+.score { display: flex; align-items: center; gap: ${l.platePad * 0.7}px; margin-top: ${l.platePad * 0.6}px; }
 .meter { display: grid; }
 .meter i { display: block; background: rgba(255,255,255,0.14); }
 .meter i.on { background: #fff; }
 .n { font-size: ${l.score}px; line-height: 0.85; letter-spacing: -0.05em; font-weight: 500; }
 .n span { font-family: "Departure Mono", monospace; font-size: ${l.small}px; letter-spacing: 0; color: rgba(255,255,255,0.6); margin-left: 6px; }
-.rows { margin-top: ${l.platePad * 0.7}px; border-top: 1px solid rgba(255,255,255,0.9); }
-.rows div { display: flex; align-items: baseline; gap: 12px; padding: ${l.rowPad}px 0; border-bottom: 1px solid rgba(255,255,255,0.18); font-size: ${l.rowFont}px; }
-.rows .m { flex: none; width: ${l.markW}px; text-align: center; padding: 1px 0; font-size: ${l.small * 0.85}px; border: 1px solid rgba(255,255,255,0.5); color: rgba(255,255,255,0.7); }
+.rows { display: grid; gap: 4px; margin-top: ${l.platePad * 0.7}px; }
+.rows div { display: flex; align-items: center; gap: 12px; padding: ${l.rowPad}px; background: rgba(255,255,255,0.05); font-size: ${l.rowFont}px; }
+.rows .m { flex: none; width: ${l.markW}px; text-align: center; padding: 1px 0; font-size: ${l.small * 0.85}px; color: #fff; border: 1px solid rgba(255,255,255,0.5); }
 .rows .bad .m { background: #fff; color: #000; border-color: #fff; }
-.fix { margin-top: ${l.platePad * 0.8}px; height: ${l.scanH * 0.86}px; display: flex; align-items: center; justify-content: center; font-size: ${l.mono}px; background: linear-gradient(180deg, #5a5aff, #0000ed 55%, #0000b8); box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 10px 28px -10px rgba(0,0,237,0.9); }
 </style></head><body>
-<img class="field" src="${field}" alt="">
-<div class="wrap">
-  <div class="left">
-    ${logo}
-    <div>
-      <h1><span>Is your site/app safe?</span></h1>
-      <p class="sub"><span>Check it with a free cyber security quick scan.</span></p>
-      <div class="scan mono"><div class="in">your-site.com</div><div class="go">Check</div></div>
-      <p class="note mono">passive · nothing stored · <b>penthera.org</b></p>
-    </div>
+<div class="hero"><img class="field" src="${field}" alt=""></div>
+<div class="head">${logo}<span class="url mono">penthera.org</span></div>
+<div class="panel">
+  <div>
+    <h1>Is your site/app safe?</h1>
+    <p class="sub">Find out in seconds. Then fix it with your coding agent.</p>
+    <div class="scan mono"><div class="in">your-site.com</div><div class="go">Check</div></div>
+    <p class="note mono">Passive · nothing stored · your own site only</p>
   </div>
   <div class="plate">
     <p class="host mono">penthera.org</p>
@@ -161,33 +167,30 @@ h1 span { background: #000; padding: 0 ${l.h1 * 0.18}px 4px; margin-left: -${l.h
       <div><span class="m mono">OK</span>7 of 7 browser protections</div>
       <div class="bad"><span class="m mono">FIX</span>No SPF or DMARC record</div>
     </div>
-    <div class="fix mono">Prompt to fix (2)</div>
   </div>
 </div>
+<script type="module">${fieldSrc}
+liveField(document.querySelector(".field"));</script>
 </body></html>`;
 
 /** The cards the site ships: og.png for link previews, square.png for square feeds, story.png for 9:16. */
 export const CARDS = [
   { file: "og.png", w: 1200, h: 630, layout: {
-    split: true, pad: 64, plateW: 400, colGap: 56, rowGap: 0,
-    field: "top: 0; right: 0; width: 70%; height: 100%", mask: "linear-gradient(to right, transparent, #000 45%)",
-    logoW: 200, h1: 58, scanGap: 28, scanW: 560, scanH: 64, mono: 21, noteGap: 18, small: 17,
-    platePad: 30, verdict: 32, score: 72, cell: 9, rowPad: 10, rowFont: 18, markW: 44,
+    split: true, pad: 28, head: 76, headPad: 18, gap: 28, bottom: 28, panelPad: 32, plateW: 400, colGap: 36,
+    logoW: 168, h1: 62, sub: 20, scanGap: 28, scanH: 60, mono: 20, noteGap: 14, small: 15,
+    platePad: 24, verdict: 30, score: 68, cell: 8, rowPad: 8, rowFont: 16, markW: 42,
   } },
   { file: "square.png", w: 1080, h: 1080, layout: {
-    split: false, pad: 72, plateW: 936, colGap: 0, rowGap: 36,
-    field: "top: 150px; left: 0; width: 100%; height: 36%", mask: "linear-gradient(transparent, #000 18%, #000 40%, transparent)",
-    logoW: 240, h1: 84, scanGap: 24, scanW: 936, scanH: 68, mono: 22, noteGap: 16, small: 19,
-    platePad: 30, verdict: 34, score: 78, cell: 10, rowPad: 10, rowFont: 21, markW: 50,
+    split: false, pad: 32, head: 96, headPad: 22, gap: 32, bottom: 64, panelPad: 36, plateW: 900, colGap: 26,
+    logoW: 208, h1: 84, sub: 26, scanGap: 24, scanH: 68, mono: 23, noteGap: 12, small: 19,
+    platePad: 24, verdict: 32, score: 72, cell: 7, rowPad: 8, rowFont: 20, markW: 48,
   } },
-  // 1080 × 1920, 9:16 for TikTok, Reels and Stories: the square's stack, taller.
-  // The top 220 px and bottom 360 px stay clear of the apps' own buttons and
-  // captions, so the message and the plate sit in the middle band.
+  // 1080 × 1920, 9:16 for TikTok, Reels and Stories. The top 220 px and bottom
+  // 360 px stay clear of the apps' own buttons and captions.
   { file: "story.png", w: 1080, h: 1920, layout: {
-    split: false, pad: 80, padTop: 220, padBottom: 360, plateW: 920, colGap: 0, rowGap: 40,
-    field: "top: 260px; left: 0; width: 100%; height: 34%", mask: "linear-gradient(transparent, #000 18%, #000 45%, transparent)",
-    logoW: 240, h1: 100, scanGap: 28, scanW: 920, scanH: 80, mono: 27, noteGap: 18, small: 23,
-    platePad: 34, verdict: 40, score: 92, cell: 11, rowPad: 12, rowFont: 26, markW: 60,
+    split: false, pad: 40, head: 240, headPad: 36, gap: 40, bottom: 380, panelPad: 52, plateW: 900, colGap: 44,
+    logoW: 240, h1: 124, sub: 34, scanGap: 36, scanH: 88, mono: 28, noteGap: 18, small: 23,
+    platePad: 34, verdict: 44, score: 104, cell: 11, rowPad: 12, rowFont: 26, markW: 60,
   } },
 ];
 

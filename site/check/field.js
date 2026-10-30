@@ -4,7 +4,8 @@
  * replaces. The pointer is a scanning lens: it parts the cloud around it,
  * and the dots under it turn the accent colour, dithered out at the rim:
  * hard pixels, no blur. With no
- * pointer (touch, or idle) the lens drifts on a slow path.
+ * pointer (touch, or idle) the lens drifts on a slow path. It fills the first
+ * screen, under the glass panel.
  *
  * A click in the hero sends a shockwave: a ring expands from the point and
  * shoves the cloud outward, leaving a crater that refills. The ring's front
@@ -86,7 +87,7 @@ export function liveField(img) {
   const ctx = canvas.getContext("2d", { alpha: true });
   const hero = img.closest(".hero");
 
-  let cols = 0, rows = 0, skip = 0, image, pixels, ink = 0, accent = 0, wake = 0;
+  let cols = 0, rows = 0, image, pixels, ink = 0, accent = 0, wake = 0;
   const waves = [];
   const lens = { x: 0.62, y: 0.32, tx: 0.62, ty: 0.32, last: -Infinity, inside: false };
   let raf = 0, visible = true, t0 = performance.now(), drawn = -Infinity, timer = 0;
@@ -106,9 +107,6 @@ export function liveField(img) {
     rows = Math.max(1, Math.ceil(r.height / CELL));
     canvas.width = cols;
     canvas.height = rows;
-    // Columns the CSS mask hides completely (--field-from, a share of the
-    // width; styles.css keeps it with the mask) are never drawn.
-    skip = Math.floor(cols * Math.min(1, Math.max(0, parseFloat(getComputedStyle(canvas).getPropertyValue("--field-from")) || 0)));
     image = ctx.createImageData(cols, rows);
     pixels = new Uint32Array(image.data.buffer);
   }
@@ -151,14 +149,12 @@ export function liveField(img) {
     pixels.fill(0);
     for (let j = 0; j < rows; j++) {
       const v = j / rows;
-      // The cloud thins towards the bottom and is gone 85% of the way down,
-      // so the headline sits on its thinning edge.
-      const fade = Math.pow(Math.max(0, 1 - v / 0.85), 1.2);
-      if (fade <= 0 && !live.length) continue;
+      // The cloud thins towards the bottom, and still shows at the last row.
+      const fade = Math.pow(1 - v / 1.9, 1.2);
       const vy = v * aspect;
       const dy = vy - lens.y * aspect;
       const row = j * cols, brow = (j & 7) * 8, brow2 = ((j + 4) & 7) * 8;
-      for (let i = skip; i < cols; i++) {
+      for (let i = 0; i < cols; i++) {
         const u = i / cols;
         const dx = u - lens.x;
         const d2 = dx * dx + dy * dy;
@@ -238,7 +234,8 @@ export function liveField(img) {
   const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; schedule(); });
   const themeWatch = new MutationObserver(colours);
   let resizeTimer;
-  const onResize = () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(resize, 100); };
+  // The canvas's size, not the window's: the hero grows with what is in it.
+  const sized = new ResizeObserver(() => { clearTimeout(resizeTimer); resizeTimer = setTimeout(resize, 100); });
   const onVisibility = () => schedule();
   const onMotion = () => { if (still.matches) stop(); };
 
@@ -248,7 +245,7 @@ export function liveField(img) {
   themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   addEventListener("pointermove", onPointer, { passive: true });
   hero.addEventListener("pointerdown", onPress);
-  addEventListener("resize", onResize);
+  sized.observe(canvas);
   document.addEventListener("visibilitychange", onVisibility);
   still.addEventListener("change", onMotion);
   schedule();
@@ -260,7 +257,7 @@ export function liveField(img) {
     themeWatch.disconnect();
     removeEventListener("pointermove", onPointer);
     hero.removeEventListener("pointerdown", onPress);
-    removeEventListener("resize", onResize);
+    sized.disconnect();
     document.removeEventListener("visibilitychange", onVisibility);
     still.removeEventListener("change", onMotion);
     hero.classList.remove("live");

@@ -83,7 +83,7 @@ next to it. `penthera init` can add `reports/` to your `.gitignore`.
 
 | Code | Meaning |
 |------|---------|
-| `0` | No critical or high findings |
+| `0` | No critical or high rule fired. This run does not prove login, access rules or payments are right |
 | `1` | Critical or high findings detected |
 | `2` | Scan failed (unreachable target, bad config) |
 
@@ -163,7 +163,7 @@ means.
 
 ```yaml
 # Scan a staging URL on a schedule and upload results to GitHub Security.
-- run: npx penthera@2.1.0 "$PENTEST_URL" --profile standard --sarif reports/scan.sarif
+- run: npx penthera@2.1.1 "$PENTEST_URL" --profile standard --sarif reports/scan.sarif
 - uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
   with:
     sarif_file: reports/scan.sarif

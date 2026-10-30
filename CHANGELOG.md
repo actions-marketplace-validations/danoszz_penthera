@@ -4,6 +4,64 @@ All notable changes to Penthera are documented here. Versioning follows [SemVer]
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-10-30
+
+### Security
+
+- **`scan_url` over MCP now stays in scope on every request and redirect hop,
+  with or without `--offline`.** It reaches the target and hosts you listed with
+  `--allow-host`. A redirect may also move within the target's registrable
+  domain. It refuses any other host and names it under **Not checked** and in
+  `blocked_hosts`. It now uses the vendored Retire.js snapshot, never a download.
+- **`penthera agents` gives no grade when it finds no agent config.** It used to
+  report A, 100 and `Nothing to fix`. It now reports `Nothing to assess`, and the
+  CLI, reports, brief, MCP, `init` and dashboard all show no grade. A project
+  with any agent config is graded as before.
+
+### Added
+
+- **E20-R study tooling (research).** A runner and analysis for the planned
+  front-door follow-up, tested on loopback only: a fixed response classifier
+  (challenge, block, origin error, page), stored header evidence, a seeded order
+  across cohorts, and intervals that account for one organization owning several
+  domains. It refuses to leave loopback until the protocol is registered. The live
+  check's requests and scores do not change.
+
+### Fixed
+
+- **`init` now pins the action to v2.1.0.** The old v2.0.0 pin skipped the scan
+  in `mode: deps` and still reported success.
+- **A clean single-page app no longer gets a false critical.** The
+  CVE-2025-29927 check fired on a 200 alone, and a single-page app answers 200
+  on every path. Two of the three places that run it now report only when the
+  header steadily changes the answer: the status, or a stable body. The third,
+  the `--adaptive` check, already compared. The Next.js debug endpoint check now
+  needs a Next.js home page, the Next.js source map check needs a JSON body, and
+  the `/docs` check needs the page to name Swagger, OpenAPI, ReDoc or RapiDoc.
+  `--profile quick` and MCP `scan_url` use the same checks.
+- **Exit 0 now says what it means.** The terminal report ends with "No critical
+  or high rule fired. This run does not prove login, access rules or payments
+  are right."
+  The agent brief lists the same limit under Not checked. `docs/before-you-publish.md`
+  no longer says "Publish" for exit 0, and its checklist adds `npm audit`.
+
+### Docs
+
+- **E20 study (draft):** the source address is not published, for the
+  maintainer's privacy; owners can ask us privately whether a request was
+  ours. The app or login page check is adopted for both cohorts, and the
+  study page lists it. Hosting platforms are named only for groups of 20 or
+  more sites.
+- **E20 registered (29 Oct 2026):** the Tranco top 1000 (list ZJ8PG) and the
+  two newest YC batches with at least 100 companies (Fall and Summer 2026,
+  416 sites, from a pinned public mirror of YC's directory) are stored and
+  hashed, with the exclusion list. Nothing has been sent to a study site yet.
+- **E20-R runs once.** Amendment 1 drops the second pass, before any data, and the
+  study page says so.
+- Every command, MCP config and workflow example pins `penthera@2.1.0`, the
+  new `latest`. The roadmap and README show 2.1.0 as the current release, and
+  the upgrade test in the install matrix starts from 2.1.0.
+
 ## [2.1.0] - 2026-10-29
 
 ### Added

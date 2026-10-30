@@ -3,7 +3,7 @@
 > **Project page.** For "what do we paste into mcp.so, Smithery and Glama?"
 
 Ready-to-paste text for MCP directories. **Not submitted.** Submitting is the
-maintainer's step, after `penthera@2.1.0` is on npm and the server is in the
+maintainer's step, after `penthera@2.1.1` is on npm and the server is in the
 official MCP Registry. Keep the version pinned everywhere it appears.
 
 ## Fields
@@ -33,7 +33,7 @@ MCP server it gives your coding agent six read-only tools:
   and typosquats, read offline from the lockfile;
 - `audit_ai_tooling`: the project's skills, MCP servers, hooks and
   permissions, checked for hidden instructions, curl-pipe-shell, unpinned
-  packages and inline secrets, graded A to F;
+  packages and inline secrets, graded A to F when it finds agent config;
 - `runtime_advisories`: published advisories and end of life for the PHP,
   nginx, Apache, Node.js, Python or OpenSSL an app runs;
 - `explain_finding`: why a rule matters and how to fix it;
@@ -53,13 +53,13 @@ dependency.
   "mcpServers": {
     "penthera": {
       "command": "npx",
-      "args": ["-y", "penthera@2.1.0", "mcp"]
+      "args": ["-y", "penthera@2.1.1", "mcp"]
     }
   }
 }
 ```
 
-Claude Code: `claude mcp add penthera -- npx -y penthera@2.1.0 mcp`
+Claude Code: `claude mcp add penthera -- npx -y penthera@2.1.1 mcp`
 
 ## Per directory
 

@@ -32,7 +32,7 @@ software. The metadata are in [CITATION.cff](https://github.com/danoszz/penthera
 renders as "Cite this repository".
 
 ```text
-van der Zwaag, D. (2026). Penthera: An offline security scanner for web apps and AI-built code (Version 2.1.0) [Computer software]. https://github.com/danoszz/penthera
+van der Zwaag, D. (2026). Penthera: An offline security scanner for web apps and AI-built code (Version 2.1.1) [Computer software]. https://github.com/danoszz/penthera
 ```
 
 ```bibtex
@@ -40,7 +40,7 @@ van der Zwaag, D. (2026). Penthera: An offline security scanner for web apps and
   author  = {van der Zwaag, Daan},
   title   = {Penthera: An Offline Security Scanner for Web Apps and {AI}-Built Code},
   year    = {2026},
-  version = {2.1.0},
+  version = {2.1.1},
   license = {MIT},
   url     = {https://github.com/danoszz/penthera}
 }
@@ -610,6 +610,18 @@ are welcome (see [MANIFESTO.md](MANIFESTO.md)).
   - No authenticated crawling beyond the bearer token or cookie you pass, so
     pages behind multi-step flows are not reached (Doupé et al., 2010).
   - No stored or second-order injection testing (Bau et al., 2010).
+  - The CVE-2025-29927 check reports when its header steadily changes the
+    answer. It misses a login page with a fresh token that turns into another
+    HTML page, because that page already differs from itself. It can still
+    fire falsely on an unstable site. In stub tests of quick scans, a
+    single-page app that answers 503 on 25% of requests fired on about 2% of
+    runs, and at 50% on 6.3% of 2,000 runs. Two builds picked at random per
+    request fired on 13.3% of 1,000 runs. A steady limiter or round robin that
+    passes about one request in three can line up with the request order and
+    fire too.
+  - The Next.js debug endpoint check takes its proof from the target's site.
+    There is no public suffix list, so two sites on a shared host such as
+    vercel.app count as one site.
   - No DOM-based XSS analysis, because Penthera does not run JavaScript (Lekies et
     al., 2013; Stock et al., 2014).
 - **Logic and authorization.** No business logic testing. IDOR/BOLA findings are

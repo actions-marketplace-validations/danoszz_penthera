@@ -1,5 +1,5 @@
 {
-  "_note": "Built-in rules as they were in lib/ before rule packs (main @ afafb24). tests/rule-packs.test.js checks the engines still expose exactly these, in this order, now that part of them lives in lib/rules/core. Changed on purpose since: E11b pass 2 (Hardcoded password reads key names by their words); E11b round 2 (AWS ASIA keys, all GitHub token prefixes, Stripe restricted keys; the generic API key rule accepts broader token and secret names, same pattern).",
+  "_note": "Built-in rules as they were in lib/ before rule packs (main @ afafb24). tests/rule-packs.test.js checks the engines still expose exactly these, in this order, now that part of them lives in lib/rules/core. Changed on purpose since: E11b pass 2 (Hardcoded password reads key names by their words); E11b round 2 (AWS ASIA keys, all GitHub token prefixes, Stripe restricted keys; the generic API key rule accepts broader token and secret names, same pattern). First-run fix (single-page apps): the Next.js source map, debug endpoint and CVE-2025-29927 templates no longer fire on a 200 alone.",
   "secrets": [
     {
       "name": "AWS access key",
@@ -436,10 +436,16 @@
               ]
             },
             {
+              "type": "regex",
+              "regex": [
+                "^\\s*\\{"
+              ]
+            },
+            {
               "type": "word",
               "words": [
-                "mappings",
-                "sources"
+                "\"mappings\"",
+                "\"sources\""
               ],
               "condition": "or"
             }
@@ -510,8 +516,40 @@
                 200,
                 400
               ]
+            },
+            {
+              "type": "negative-word",
+              "words": [
+                "<html",
+                "<HTML",
+                "<!DOCTYPE",
+                "<!doctype"
+              ]
             }
-          ]
+          ],
+          "matchers-condition": "and",
+          "confirm": {
+            "method": "GET",
+            "path": "/",
+            "redirect": "follow",
+            "matchers": [
+              {
+                "type": "word",
+                "words": [
+                  "/_next/static/",
+                  "__NEXT_DATA__"
+                ]
+              },
+              {
+                "type": "word",
+                "words": [
+                  "x-powered-by: Next.js"
+                ],
+                "part": "header"
+              }
+            ],
+            "matchers-condition": "or"
+          }
         }
       ]
     },
@@ -614,7 +652,8 @@
                 200
               ]
             }
-          ]
+          ],
+          "mustChangeAnswer": true
         }
       ]
     },

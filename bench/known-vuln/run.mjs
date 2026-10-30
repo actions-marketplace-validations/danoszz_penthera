@@ -120,7 +120,7 @@ function runPenthera(url, src, run) {
   const home = mkdtempSync(join(tmpdir(), "pk-e10-home-"));
   const guardLog = join(home, "guard.log");
   const args = ["--require", join(ROOT, "scripts", "ci", "net-guard.cjs"), join(ROOT, "bin", "penthera.js"),
-    url, "--repo", src, "--offline", "--json", "--profile", run.profile, "--timeout", "10000"];
+    url, "--repo", src, "--offline", "--json", "--profile", run.profile, "--timeout", "10000", ...(run.payloads ? ["--confirm-target", "127.0.0.1"] : [])];
   const started = Date.now();
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, args, {

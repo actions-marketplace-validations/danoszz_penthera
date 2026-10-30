@@ -31,7 +31,7 @@ describe("adaptive scan", () => {
   });
 
   it("CLI --adaptive integrates with scanUrl", async () => {
-    const result = await scanUrl(baseUrl, { adaptive: true, timeout: 5_000, onPhase: () => {} });
+    const result = await scanUrl(baseUrl, { offline: true, adaptive: true, timeout: 5_000, onPhase: () => {} });
     expect(result.reachable).toBe(true);
     expect(result.findings.some((f) => f.source === "adaptive-probe" || f.source === "idor-probe")).toBe(true);
   });

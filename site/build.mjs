@@ -34,7 +34,7 @@ import { publicBenchHtml } from "./public-bench.mjs";
 import { readPosts, blogFiles } from "./blog.mjs";
 import { siteFooter, siteRail, footGroups } from "./frame.mjs";
 import { benchmarkHtml, benchmarkMarkdown, benchmarkViews, cardFor, fieldTools, hubHtml, hubMarkdown } from "./benchmarks.mjs";
-import { cardRows, failedChecks, rowTag } from "./check/card.js";
+import { cardRows, rowTag } from "./check/card.js";
 import { researchEntries, researchHtml, researchMarkdown } from "./research.mjs";
 
 const SITE = dirname(fileURLToPath(import.meta.url));
@@ -167,7 +167,8 @@ export async function exampleCheck() {
 
 /** The metal example card: the markup ui.js renders for your result, labelled Example. */
 export function exampleCardHtml(report) {
-  const rows = cardRows(report, { withPassed: true });
+  // Three rows and no button: the scan form is the one action on the screen.
+  const rows = cardRows(report, { withPassed: true }).slice(0, 3);
   const meter = Array.from({ length: 100 }, (_, i) => (i < report.score ? '<i class="on"></i>' : "<i></i>")).join("");
   return `<section class="card card-example" aria-labelledby="example-title">
           <div class="card-top"><span class="card-label" id="example-title">Example</span><span class="card-host">real output<span class="card-wide"> · test server</span></span></div>
@@ -176,7 +177,6 @@ export function exampleCardHtml(report) {
           <ul class="card-rows">
 ${rows.map((c) => `            <li${c.passed ? ' class="ok"' : ""}><span class="card-tag">${esc(rowTag(c))}</span>${esc(c.title)}</li>`).join("\n")}
           </ul>
-          <p class="card-fake" aria-hidden="true">Prompt to fix (${failedChecks(report).length})</p>
         </section>`;
 }
 

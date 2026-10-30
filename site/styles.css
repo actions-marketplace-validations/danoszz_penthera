@@ -246,8 +246,15 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
  * it is a dock at thumb height, above the bottom blur, with the controls left
  * in the bar. The plate is opaque, with no backdrop blur, so it adds no blur
  * work over the hero's field. */
-:root { --rail-plate: #1c1e23; --rail-lit: 0.13; --rail-shade: 0.45; --rail-rim: 0.22; }
-:root[data-theme="light"] { --rail-plate: #e4e6ea; --rail-lit: 0.9; --rail-shade: 0.1; --rail-rim: 1; }
+:root {
+  --pad: clamp(12px, 1.6vw, 24px);       /* the hero's side margin: tight, to the edge */
+  --rail-plate: #1c1e23; --rail-lit: 0.13; --rail-shade: 0.45; --rail-rim: 0.22;
+  --glass-tint: rgba(0, 0, 0, 0.58); --glass-edge: rgba(255, 255, 255, 0.24); --glass-rim: rgba(255, 255, 255, 0.2);
+}
+:root[data-theme="light"] {
+  --rail-plate: #e4e6ea; --rail-lit: 0.9; --rail-shade: 0.1; --rail-rim: 1;
+  --glass-tint: rgba(253, 253, 250, 0.62); --glass-edge: rgba(0, 0, 0, 0.2); --glass-rim: rgba(255, 255, 255, 0.9);
+}
 .rail {
   position: fixed; z-index: 30; top: 12px; left: 50%; transform: translateX(-50%);
   display: flex; align-items: center; gap: 2px;
@@ -259,7 +266,7 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
   animation: rail-in 200ms var(--out);
 }
 @keyframes rail-in { from { opacity: 0; translate: 0 -6px; } }
-.rail[data-top] { top: calc(var(--ticker-h) + var(--bar-gap)); left: auto; right: var(--gutter); transform: none; animation: none; }
+.rail[data-top] { top: calc(var(--ticker-h) + var(--bar-gap)); left: auto; right: var(--pad); transform: none; animation: none; }
 .rail a { color: var(--text-1); text-decoration: none; }
 .rail-mark { display: inline-flex; align-items: center; height: 34px; padding: 0 16px 0 10px; }
 .rail-mark span[aria-hidden] {
@@ -281,6 +288,13 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
 .rail .glass { -webkit-backdrop-filter: none; backdrop-filter: none; }
 .rail .download { color: #ffffff; }
 .bar .theme, .bar .star, .bar .download { display: none; }
+/* At the top of the homepage the scan button is the one blue action, so the
+ * rail is quiet there. Check and Star come back once it docks. */
+@media (min-width: 1101px) {
+  .rail[data-top] { box-shadow: inset 0 1px 0 rgba(255, 255, 255, var(--rail-rim)); }
+  .rail[data-top] .star, .rail[data-top] .rail-links a[href="#scan"] { display: none; }
+  .rail[data-top] .download { color: var(--text-1); background: none; border-color: rgba(var(--ink-rgb), 0.45); box-shadow: none; }
+}
 /* Below 1100 px the rail no longer fits beside the logo, so it is the dock. */
 @media (max-width: 1100px) {
   .rail, .rail[data-top] {
@@ -292,8 +306,8 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
   .rail-links a { flex: 1 1 auto; justify-content: center; height: 44px; padding: 0 7px; font-size: 11.5px; }
   .rail-links a::after { inset: 0; }
   .rail-mark, .rail-ctas { display: none; }
-  .bar .theme, .bar .star { display: inline-flex; }
-  .bar .download { display: inline-flex; }
+  .bar .theme, .bar .download { display: inline-flex; }
+  .bar { --logo-w: 132px; }
   /* The dock must not cover the last line of a page. */
   .foot { padding-bottom: 96px; }
   html { scroll-padding-top: 24px; scroll-padding-bottom: 84px; }
@@ -309,7 +323,7 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
   position: absolute; inset: calc(var(--ticker-h) + var(--bar-gap)) 0 auto; z-index: 10;
   display: flex; align-items: center; gap: 8px;
   height: 60px;                         /* the mark hangs below it */
-  padding: 0 var(--gutter);
+  padding: 0 var(--pad);
 }
 .bar::before {
   content: ""; position: absolute; z-index: -1; pointer-events: none;
@@ -331,7 +345,7 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
 .brand:active { transform: translateY(1px); }
 /* Up to 288 px, but never more than the controls leave (about 360 px of
  * bar is theirs), down to 112 px on the smallest phones. */
-.bar { --logo-w: clamp(112px, calc(100vw - 360px), 288px); --logo-h: calc(var(--logo-w) * 63 / 279); }
+.bar { --logo-w: 168px; --logo-h: calc(var(--logo-w) * 63 / 279); }
 @media (max-width: 480px) { .brand { margin-top: 12px; } }
 .logotype {
   display: block; width: var(--logo-w, 72px); height: var(--logo-h, 16px); background: currentColor;
@@ -498,12 +512,12 @@ h3 { font-family: var(--display); font-size: 21px; letter-spacing: -0.01em; line
 .links a { display: inline-flex; align-items: center; min-height: var(--target); }
 
 /* 1 · Hero: the dithered field, then the one assertion. */
-main > .hero { position: relative; max-width: none; padding: 0 var(--gutter); }
-/* The field runs to the very top, behind the ticker and the mark. */
-.hero { --field-top: 0px; }
+main > .hero {
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr); align-items: center;
+  min-height: 100svh; max-width: none; padding: calc(var(--ticker-h) + 100px) var(--pad) 40px;
+}
 .field {
-  position: absolute; inset: var(--field-top) 0 auto; z-index: 0;
-  width: 100%; height: calc(min(100vh, 1000px) - var(--field-top));
+  position: absolute; z-index: 0;
   object-fit: cover; object-position: 50% 0;
   image-rendering: pixelated;
   filter: var(--field-filter);
@@ -1889,48 +1903,61 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
  * metal card with a real result of the test server, labelled Example, built
  * with the site. Your result lands in the same place, and the left side
  * turns into the hand-off: Prompt to fix, the full scan, the code scan. */
-.hero {
-  /* Where the header ends: the bar's solid box (ticker, gap, mark, air). */
-  --logo-h: calc(clamp(112px, calc(100vw - 360px), 288px) * 63 / 279);
-  --head: calc(var(--ticker-h) + 32px + max(var(--target), var(--logo-h)));
-}
-/* The field sits top right, behind the card, and fades out to the left so
- * no dots run behind the headline. */
-.hero .field {
-  inset: calc(var(--head) + 4px) 0 auto auto;
-  width: min(66vw, 960px); height: min(620px, 72vh);
-  -webkit-mask: linear-gradient(90deg, transparent 0, transparent 18%, #000 62%); mask: linear-gradient(90deg, transparent 0, transparent 18%, #000 62%);
-  --field-from: 0.18;   /* the mask is clear up to here; check/field.js skips those columns */
-}
+/* The field fills the first screen, and the bar's solid box cuts it on a
+ * hard line. Everything else floats above it in one panel of heavy glass, the
+ * same material as the bottom veil. After a check the report takes the same
+ * glass, and the field stays one screen tall, so a long report never makes it
+ * draw more cells. */
+.hero .field { inset: 0; width: 100%; height: 100%; }
+.hero[data-mode="fix"] { align-items: start; }
+.hero[data-mode="fix"] .field { height: 100svh; }
 .poster, .report {
-  position: relative; z-index: 1; max-width: var(--measure); margin: 0 auto;
-  padding-top: calc(var(--head) + clamp(40px, 6vw, 80px));
+  position: relative; z-index: 1; min-width: 0; padding: clamp(24px, 3vw, 44px);
+  background: var(--glass-tint);
+  -webkit-backdrop-filter: blur(40px) saturate(1.5); backdrop-filter: blur(40px) saturate(1.5);
+  border: 1px solid var(--glass-edge);
+  box-shadow: inset 0 1px 0 var(--glass-rim);
 }
-.poster, .report-grid { display: grid; gap: 40px; align-items: start; }
-@media (min-width: 1000px) { .poster, .report-grid { grid-template-columns: minmax(0, 1fr) minmax(400px, 500px); gap: 56px; } }
-.poster-text { padding-top: 8px; }
+/* Without backdrop blur, dots behind the text would be noise. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .poster, .report { background: var(--ground); }
+}
+.poster { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0 24px; align-items: center; }
+.report-grid { display: grid; gap: 40px; align-items: start; }
+@media (min-width: 1000px) { .report-grid { grid-template-columns: minmax(0, 1fr) minmax(400px, 500px); gap: 56px; } }
+.poster-text { grid-column: 1 / 7; min-width: 0; }
+.poster-card { grid-column: 8 / -1; }
+@media (max-width: 1100px) {
+  main > .hero { padding: calc(var(--ticker-h) + 100px) var(--pad) 84px; align-items: start; }
+  .poster { display: block; }
+  .poster-card { margin-top: 28px; }
+}
 #hero-title, .report-kick {
-  max-width: none; margin: 0 0 22px;
+  max-width: none; margin: 0 0 20px;
   font: 14px / 1.4 var(--px); letter-spacing: 0.02em; color: var(--text-1);
   text-wrap: pretty;
 }
 .ask {
   font-family: var(--display); font-weight: 500; color: var(--text-1);
-  font-size: clamp(54px, 7.2vw, 112px); line-height: 0.9; letter-spacing: -0.05em;
-  max-width: 8.2ch; text-wrap: balance;
+  font-size: clamp(52px, 6.6vw, 96px); line-height: 0.98; letter-spacing: -0.04em;
+  text-wrap: balance;
 }
-.ask-sub { margin-top: 22px; max-width: 30ch; font: 500 clamp(18px, 1.7vw, 23px) / 1.35 var(--display); letter-spacing: -0.01em; color: var(--text-1); }
-.poster .scan { margin-top: 32px; }
+.ask-sub { margin-top: 20px; font: 500 20px / 1.3 var(--display); letter-spacing: -0.01em; color: var(--text-1); }
+.poster .scan { margin-top: 28px; max-width: none; }
 .scan-row { gap: 0; }
 .scan-row input { min-height: 64px; padding: 0 20px; font-size: 19px; border-right: 0; }
 .scan-go { min-height: 64px; padding: 0 32px; font-size: 18px; }
-/* The glow: the one call to act on the first screen, and Prompt to fix after. */
-.scan-go:not(:disabled), .handoff .glow {
+/* The glow: Prompt to fix, once there is a result. */
+.handoff .glow {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 10px 34px -6px rgba(0, 0, 237, 0.95), 0 0 60px -10px rgba(60, 60, 255, 0.7);
 }
-.scan-note { margin-top: 4px; }
+.scan-note { margin-top: 4px; color: var(--text-2); }
 .scan-note a { color: var(--accent-ink); }
-.scan-alt { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; margin-top: 28px; font: 13px / 1.3 var(--px); color: var(--text-3); }
+.scan-alt { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; margin-top: 12px; font: 13px / 1.3 var(--px); color: var(--text-2); }
+/* The code scan is a plain link in the panel; it says Copied when clicked. */
+.scan-alt .cmd { min-height: 0; padding: 0; background: none; border: 0; box-shadow: none; }
+.scan-alt .cmd code { color: var(--text-1); text-decoration: underline; text-underline-offset: 3px; }
+.scan-alt .cmd-prompt, .scan-alt .cmd:not([data-state="copied"]) .cmd-act { display: none; }
 
 /* The metal card: black steel on the dark ground, silver on the light one,
  * lit from above. No inner rules: rows are spaced plates. */
@@ -1974,14 +2001,13 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 .card-rows li.ok .card-tag { color: var(--text-2); background: none; border-color: rgba(var(--ink-rgb), 0.45); box-shadow: none; }
 .card-clean { margin-top: 14px; color: var(--text-1); }
 /* The example's button is a picture of the real one: not focusable, hidden from screen readers. */
-.card-fake, .card .card-prompt {
+.card .card-prompt {
   display: flex; align-items: center; justify-content: center; width: 100%; min-height: 56px; margin-top: 20px;
   font: 18px / 1 var(--px); letter-spacing: 0.02em; color: #fff;
   background: linear-gradient(180deg, #5a5aff 0%, #0000ed 55%, #0000b8 100%);
   border: 1px solid rgba(255, 255, 255, 0.45);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 10px 34px -6px rgba(0, 0, 237, 0.95);
 }
-.card-cap { margin-top: 14px; font: 13px / 1.45 var(--px); letter-spacing: 0.02em; color: var(--text-3); }
 .card-more { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; margin-top: 14px; font: 13px / 1.3 var(--px); color: var(--text-3); }
 .card-more a { display: inline-flex; align-items: center; min-height: var(--target); color: var(--text-1); text-underline-offset: 3px; }
 .card .report-busy, .card .report-error { margin-top: 14px; }
@@ -2037,16 +2063,13 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 }
 @media (min-width: 760px) { .card .card-prompt { display: none; } }
 @media (max-width: 759px) {
-  .hero .field { --field-from: 0; inset: calc(var(--head) + 8px) 0 auto; width: 100%; height: 132px; -webkit-mask: linear-gradient(180deg, #000 60%, transparent); mask: linear-gradient(180deg, #000 60%, transparent); }
-  .poster { padding-top: calc(var(--head) + 150px); gap: 28px; }
-  .report { padding-top: calc(var(--head) + 24px); }
   #hero-title, .report-kick { font-size: 12px; margin-bottom: 14px; }
-  .ask { font-size: 54px; }
+  .ask { font-size: 52px; }
   .ask-sub { margin-top: 14px; font-size: 18px; }
   .poster .scan { margin-top: 22px; }
   .scan-row input { min-height: 56px; padding: 0 14px; font-size: 16px; }
   .scan-go { min-height: 56px; padding: 0 20px; font-size: 16px; }
-  .scan-alt, .card-cap, .card-wide { display: none; }
+  .scan-alt, .card-wide { display: none; }
   .card { padding: 20px; }
   .card-score { margin: 14px 0; gap: 16px; }
   .card .meter { grid-template-columns: repeat(10, 7px); }

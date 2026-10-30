@@ -9,6 +9,10 @@ section: Site
   Benchmarks, Blog and Pro, with the theme switch, Star and Download beside
   them. It stays in reach as you scroll. Below 1,100 px it is a dock at thumb
   height.
+- **The first screen is calmer.** The hero's field fills the screen, and the
+  question and an example result float above it in one glass panel. The scan
+  button is the one blue action, and the report after a check uses the same
+  glass.
 - **The footer is easier to read.** Each group has a label of its own in blue,
   steel or gunmetal, sub-pages are set in, and long labels are shorter. A
   hovered link is white on blue in both themes, 9.45:1 instead of 2.1:1 in the

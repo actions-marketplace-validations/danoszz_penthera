@@ -365,6 +365,14 @@ describe("site motion budget", () => {
     expect(ui).toMatch(/function tickerRest\(\)[\s\S]*IntersectionObserver/);
   });
 
+  it("floats the first screen in one glass panel over a full-screen field", () => {
+    expect(css).toMatch(/\.hero \.field \{ inset: 0; width: 100%; height: 100%; \}/);
+    expect(css).toMatch(/\.poster, \.report \{[^}]*backdrop-filter: blur\(40px\)/);
+    // A long report must not grow the canvas.
+    expect(css).toMatch(/\.hero\[data-mode="fix"\] \.field \{ height: 100svh; \}/);
+    expect(ui).toContain('[$(".hero"), $(".foot")]');
+  });
+
   it("keeps the live field on a layer of its own", () => {
     expect(css).toMatch(/\.field-live \{[^}]*will-change: transform;/);
   });
@@ -466,17 +474,17 @@ describe("site story", () => {
     expect(hero.indexOf('class="ask"')).toBeLessThan(hero.indexOf('id="scan"'));
     // The example is the live check's own report of the test server, made at build time.
     const r = await exampleCheck();
-    const card = hero.slice(hero.indexOf('class="card card-example"'), hero.indexOf('class="card-cap"'));
+    const card = hero.slice(hero.indexOf('class="card card-example"'), hero.indexOf('data-report hidden'));
     expect(card).toContain('id="example-title">Example</span>');
     expect(card).toContain(`<p class="card-verdict">${r.verdict}</p>`);
     expect(card).toContain(`<p class="score-n">${r.score}<span>/100</span></p>`);
     expect(card.match(/<i class="on"><\/i>/g)).toHaveLength(r.score);
     const worst = r.checks.filter((c) => !c.passed)[0];
     expect(card).toContain(worst.title);
-    expect(card).toContain(`Prompt to fix (${r.checks.filter((c) => !c.passed).length})`);
-    // The example's button is a picture: not focusable, hidden from screen readers.
-    expect(card).toMatch(/<p class="card-fake" aria-hidden="true">/);
+    // The example has no button, real or drawn: the scan form is the one action.
+    expect(card).not.toContain("Prompt to fix");
     expect(card).not.toMatch(/<button|<a /);
+    expect(card.match(/<li/g)).toHaveLength(3);
     // No Pro pitch in the hero or the check.
     expect(hero).not.toMatch(/\bPro\b|go-pro|\/pro\b/);
     expect(readFileSync(join(ROOT, "site", "check", "ui.js"), "utf8")).not.toMatch(/\bPro\b|\/pro\b/);

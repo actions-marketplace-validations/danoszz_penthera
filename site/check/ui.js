@@ -587,9 +587,8 @@ function railDock() {
 
 function veilClear() {
   const veil = $(".veil");
-  // The poster (the question, the field and the example), the result that
-  // replaces it, the text block below it, and the footer.
-  const targets = [$(".poster"), $(".report"), $(".hero-text"), $(".foot")].filter(Boolean);
+  // The first screen, whatever is in it, and the footer.
+  const targets = [$(".hero"), $(".foot")].filter(Boolean);
   if (!veil || !targets.length) return;
   const inZone = new Set();
   let io;

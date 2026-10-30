@@ -156,7 +156,7 @@ describe("benchmark pages", () => {
     expect(ds["@id"]).toBe(`${ORIGIN}/benchmarks#dataset`);
     expect(ds.hasPart.map((p) => p["@id"])).toEqual(views.map((v) => `${ORIGIN}/benchmarks/${v.c.slug}#dataset`));
     // The homepage's SoftwareApplication points at it.
-    const app = ld(read("index.html")).find((x) => x["@type"] === "SoftwareApplication");
+    const app = ld(read("index.html")).flatMap((x) => x["@graph"] || [x]).find((x) => x["@type"] === "SoftwareApplication");
     expect(app.subjectOf["@id"]).toBe(`${ORIGIN}/benchmarks#dataset`);
   });
 

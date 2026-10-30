@@ -362,3 +362,14 @@ registration. The text above stays as registered, and this section overrides it.
   is slightly stricter than 13 claims would need.
 - **What is lost.** Test-retest reliability stays unmeasured, so a change between runs
   cannot be separated from day-to-day noise. The results say so next to the numbers.
+
+## Deviation 1 (30 Oct 2026)
+
+Pass 1 started at 12:15 UTC on 30 October 2026, about 12 minutes after the updated
+study page went live, by the maintainer's decision. The protocol required at least 12
+hours, and the notice to the hosting provider said 31 October. Site owners therefore
+had almost no notice from the page before the visit, though the user agent and the
+robots.txt opt-out applied as registered, and removal stays open at any time. This
+was decided before any E20-R data existed, and it does not change a check, a list or
+an analysis. The run stays a registered, one-pass snapshot, and this deviation is
+reported with the results.

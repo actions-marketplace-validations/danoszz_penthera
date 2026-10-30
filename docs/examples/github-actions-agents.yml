@@ -8,7 +8,7 @@
 #
 # Penthera 2.0.0 does not have the agent rules added after it (VS Code
 # folder-open tasks, hook scripts, registry redirects, loader variables, MCP
-# auto-approve); they ship in 2.1.0 and run once you pin 2.1.0 or later.
+# auto-approve); they shipped in 2.1.0 and run once you pin 2.1.0 or later.
 #
 # `npx` fetches this exact Penthera version from npm. Pin a release you have
 # reviewed, and the actions below to commit SHAs. The scan step runs from the
@@ -55,7 +55,7 @@ jobs:
         working-directory: ${{ runner.temp }}
         run: |
           set +e
-          npx --yes penthera@2.1.0 agents "$GITHUB_WORKSPACE" --sarif "$RUNNER_TEMP/penthera-agents.sarif"
+          npx --yes penthera@2.1.1 agents "$GITHUB_WORKSPACE" --sarif "$RUNNER_TEMP/penthera-agents.sarif"
           code=$?
           set -e
           echo "code=$code" >> "$GITHUB_OUTPUT"

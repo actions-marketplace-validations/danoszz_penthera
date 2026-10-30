@@ -533,7 +533,7 @@ export async function run() {
 
   // `penthera agents [path]`: offline audit of skills, MCP servers, hooks, plugins.
   const agentsMode = positionals[0] === "agents";
-  const agentsRoot = agentsMode ? resolve(positionals[1] || ".") : null;
+  let agentsRoot = agentsMode ? resolve(positionals[1] || ".") : null;
   if (agentsMode && positionals.length > 2) {
     printError(`agents takes one path, got: ${positionals.slice(1).join(" ")}`);
     process.exit(2);
@@ -691,7 +691,13 @@ export async function run() {
         printError(`Path not found: ${agentsRoot}`);
         process.exit(2);
       }
-      const { scanAgents } = await import("../lib/agents/index.js");
+      const { scanAgents, agentsTarget } = await import("../lib/agents/index.js");
+      const target = agentsTarget(agentsRoot);
+      if (!target) {
+        printError(`Not a folder or a SKILL.md file: ${agentsRoot}`);
+        process.exit(2);
+      }
+      agentsRoot = target;
       results.push(await scanAgents(agentsRoot, { home: opts.home, pin: opts.pin, onPhase: scanOpts.onPhase }));
     }
 

@@ -161,11 +161,11 @@ export const TOOLS = [
   {
     name: "audit_ai_tooling",
     title: "Audit AI agent config",
-    description: "Audit the project's AI agent setup: skills, MCP servers, hooks, permissions, plugins and rule files, for hidden instructions, curl-pipe-shell, unpinned MCP packages, inline secrets and wildcard permissions. Grades A to F, or gives no grade when it finds no agent config. Offline, deterministic, read-only.",
-    inputSchema: { type: "object", properties: { path: PATH, max_findings: MAX }, additionalProperties: false },
+    description: "Audit the project's AI agent setup: skills, MCP servers, hooks, permissions, plugins and rule files, for hidden instructions, curl-pipe-shell, unpinned MCP packages, inline secrets and wildcard permissions. A folder with SKILL.md at its root is audited as a skill. Grades A to F, or gives no grade when it finds no agent config. Offline, deterministic, read-only.",
+    inputSchema: { type: "object", properties: { path: { ...PATH, description: "Project folder, skill folder or SKILL.md file to audit, relative to the workspace root or absolute inside it. Default: the workspace root." }, max_findings: MAX }, additionalProperties: false },
     annotations: { title: "Audit AI agent config", ...READ_ONLY },
     async run(args, ctx) {
-      const { real, display } = confinePath(args.path, await ctx.roots());
+      const { real, display } = confinePath(args.path, await ctx.roots(), { skillFile: true });
       const { scanAgents } = await import("../../lib/agents/index.js");
       const raw = await scanAgents(real, { home: false, pin: false });
       const a = raw.agents || {};

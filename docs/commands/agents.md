@@ -21,6 +21,15 @@ penthera agents ./some-skill    # vet a downloaded skill before you install it
 penthera agents --pin           # write penthera.lock; later runs flag anything that changed
 ```
 
+A folder with `SKILL.md` at its root, in any casing, is read as one skill. Its
+scripts and other files get the same rules as a skill under `skills/<name>/`.
+You can also pass the `SKILL.md` itself, and Penthera reads its folder. Any
+other file is an error. A folder that only holds skills further down, such as
+`./skills`, reports `Nothing to assess`: name one skill, or the project above it.
+A project with `SKILL.md` at its root counts as a skill too, so every file in it
+is read. With `--pin`, `penthera.lock` goes inside the folder you named and is
+left out of the skill's hash.
+
 It is **offline and deterministic**: no LLM judge, no registry lookups, nothing
 leaves your machine, and it never modifies the config it reads. Every verdict
 is a rule you can read in [`lib/agents/`](https://github.com/danoszz/penthera/tree/main/lib/agents), so a skill can't talk
@@ -97,7 +106,9 @@ The rules in [Rules for auto-run, registries and environment](#rules-for-auto-ru
 
 ## What you get
 
-From Penthera's own test fixture of a deliberately bad setup (abridged):
+From Penthera's own test fixture of a deliberately bad setup (abridged). This
+is the terminal report. Piped output is the shorter [agent brief](brief.md),
+which has no grade line; `--json` and `-o` hold the grade.
 
 ```
   Grade       F  (0/100)

@@ -375,6 +375,7 @@ export function printReport(result, opts = {}) {
     const un = uncheckedDeps(result.deps);
     if (un?.none) w(`  ${c.yellow("Not checked")}: no package code was read. See "Not read" above.`);
     else if (un) w(`  ${c.green("No findings")} in the ${un.total - un.missing} packages read; ${c.yellow(`${un.missing} were not read`)} (see above).`);
+    else if (nothingToAssess(result)) w(`  ${c.yellow("Not checked")}: no agent config was read. See "Not read" above.`);
     else w(`  ${c.green("No findings")}.`);
     w("");
   }
@@ -503,6 +504,11 @@ function printInconclusiveLine(result, w, opts = {}) {
   }
 }
 
+/** An agents run that read no config has no grade: silence is not a pass. */
+function nothingToAssess(result) {
+  return !!result.agents && result.agents.grade == null;
+}
+
 function printSummaryLine(result, w) {
   const findings = result.findings || [];
   const counts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
@@ -518,6 +524,8 @@ function printSummaryLine(result, w) {
   const un = uncheckedDeps(result.deps);
   if (parts.length === 0 && un) {
     w(`  ${c.yellow(un.none ? `Not checked: 0 of ${un.total} packages read` : `No issues in what was read; ${un.missing} of ${un.total} packages not read`)}`);
+  } else if (parts.length === 0 && nothingToAssess(result)) {
+    w(`  ${c.yellow("Nothing to assess, which is not a clean result")}`);
   } else if (parts.length === 0) {
     w(`  ${c.green("\u2713")} Clean scan, no issues found`);
   } else {

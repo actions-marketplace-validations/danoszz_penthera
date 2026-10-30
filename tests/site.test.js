@@ -392,12 +392,13 @@ describe("site motion budget", () => {
     expect(ui).toContain('[$(".hero"), $(".foot")]');
   });
 
-  it("never moves the dock, and brings the check in on the compositor", () => {
-    const dock = ui.slice(ui.indexOf("function dockCheck"), ui.indexOf("The bottom veil"));
+  it("keeps the dock centered and opens it from within", () => {
+    const dock = ui.slice(ui.indexOf("function dockOpen"), ui.indexOf("The bottom veil"));
     expect(dock).toContain("IntersectionObserver");
     expect(dock).not.toMatch(/scrollY|addEventListener|animate\(/);
-    expect(css).toMatch(/\.rail\[data-v="2"\]\[data-ready\] \.rail-cta \{ transition: transform 280ms var\(--out\), visibility 0s; \}/);
-    expect(css).toMatch(/prefers-reduced-motion: reduce\) \{\s*\.rail\[data-ready\] \.rail-cta, \.rail\[data-ready\] \.rail-check \{ transition: none !important; \}/);
+    expect(css).toMatch(/\.rail\[data-ready\] \.rail-more \{ transition: grid-template-columns 240ms/);
+    expect(css).toMatch(/\.rail\[data-ready\] \.rail-more-in \{ transition: opacity 160ms var\(--out\) 140ms/);
+    expect(css).toMatch(/prefers-reduced-motion: reduce\) \{\s*\.rail\[data-ready\] \.rail-more, \.rail\[data-ready\] \.rail-more-in \{ transition: none !important; \}/);
   });
 
   it("lets the hero's card overlap the grey, past the fold", () => {

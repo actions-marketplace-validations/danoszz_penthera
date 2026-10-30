@@ -54,11 +54,11 @@ describe("site rail", () => {
     expect(current(siteRail({ url: "/terms" }))).toBeUndefined();
   });
 
-  it("holds the check back only on the homepage and drops Blog without a post", () => {
+  it("holds the download back only on the homepage and drops Blog without a post", () => {
     expect(siteRail({ url: "/" })).toContain("data-hero");
-    expect(siteRail({ url: "/" })).toContain('class="rail-check" href="#scan"');
+    expect(siteRail({ url: "/" })).toContain('class="rail-download" href="#get"');
     expect(siteRail({ url: "/pro" })).not.toContain("data-hero");
-    expect(siteRail({ url: "/pro" })).toContain('class="rail-check" href="/#scan"');
+    expect(siteRail({ url: "/pro" })).toContain('class="rail-download" href="/#get"');
     expect(siteRail({ url: "/pro", blog: false })).not.toContain('href="/blog"');
   });
 

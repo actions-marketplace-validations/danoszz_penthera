@@ -281,31 +281,30 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
 .rail-links a { transition: background-color 160ms var(--out), color 160ms var(--out), transform var(--press) var(--out); }
 .rail-links a:active { transform: scale(0.97); }
 .rail-links a[aria-current] { box-shadow: inset 0 -2px 0 var(--text-1); }
-.rail-check {
-  display: inline-flex; align-items: center; height: 38px; padding: 0 14px; white-space: nowrap;
+.rail-more-in { display: flex; align-items: center; gap: 4px; }
+.rail-star { display: inline-flex; align-items: center; height: 38px; white-space: nowrap; transition: background-color 160ms var(--out), color 160ms var(--out); }
+.rail-star:hover { background: var(--accent); color: var(--on-accent); }
+.rail-download {
+  display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; white-space: nowrap;
   background: linear-gradient(180deg, #4a4aff, #0000ed 58%, #0000b8);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 6px 18px -6px rgba(0, 0, 237, 0.75);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
   transition: transform var(--press) var(--out);
 }
-.rail a.rail-check, .rail a.rail-check:hover { color: #ffffff; }
-.rail-check:active { transform: scale(0.97); }
+.rail a.rail-download, .rail a.rail-download:hover { color: #ffffff; }
+.rail-download:active { transform: scale(0.97); }
 
-/* Variation 1: the plate opens. The check's slot grows from nothing, and the
- * dock re-centres as it does. */
-.rail[data-v="1"] .rail-cta { display: grid; grid-template-columns: 1fr; margin-left: 6px; }
-.rail[data-v="1"] .rail-check { min-width: 0; overflow: hidden; }
-.js .rail[data-v="1"][data-hero="here"] .rail-cta, .js .rail[data-v="1"][data-hero=""] .rail-cta { grid-template-columns: 0fr; margin-left: 0; }
-.js .rail[data-v="1"][data-hero="here"] .rail-check, .js .rail[data-v="1"][data-hero=""] .rail-check { padding-inline: 0; box-shadow: none; visibility: hidden; }
-.rail[data-v="1"][data-ready] .rail-cta { transition: grid-template-columns 280ms var(--out), margin-left 280ms var(--out); }
-.rail[data-v="1"][data-ready] .rail-check { transition: padding 280ms var(--out), visibility 0s linear 0s, transform var(--press) var(--out); }
-.rail[data-v="1"][data-ready][data-hero="here"] .rail-check { transition: padding 280ms var(--out), visibility 0s linear 280ms; }
-
-/* Variation 2: the check rises from the bottom edge of the window and parks
- * beside the plate. The plate itself doesn't move at all. */
-.rail[data-v="2"] .rail-cta { position: absolute; left: 100%; bottom: -1px; margin-left: 6px; height: 50px; padding: 0 5px; display: flex; align-items: center; background: var(--plate); border: 1px solid rgba(var(--ink-rgb), 0.28); box-shadow: inset 0 1px 0 rgba(255, 255, 255, var(--rail-rim)), 0 14px 34px -14px rgba(0, 0, 237, 0.55); }
-.js .rail[data-v="2"][data-hero="here"] .rail-cta, .js .rail[data-v="2"][data-hero=""] .rail-cta { transform: translateY(calc(100% + var(--rail-gap) + 8px)); visibility: hidden; }
-.rail[data-v="2"][data-ready] .rail-cta { transition: transform 280ms var(--out), visibility 0s; }
-.rail[data-v="2"][data-ready][data-hero="here"] .rail-cta { transition: transform 200ms var(--out), visibility 0s linear 200ms; }
+/* The plate opens from its center, then the star and the button show inside
+ * it. Going back, they leave first and the plate closes after them. */
+@media (min-width: 1101px) {
+  .rail-more { display: grid; grid-template-columns: 1fr; margin-left: 6px; }
+  .rail-more-in { min-width: 0; overflow: hidden; }
+  .js .rail[data-hero="here"] .rail-more, .js .rail[data-hero=""] .rail-more { grid-template-columns: 0fr; margin-left: 0; }
+  .js .rail[data-hero="here"] .rail-more-in, .js .rail[data-hero=""] .rail-more-in { opacity: 0; visibility: hidden; }
+  .rail[data-ready] .rail-more { transition: grid-template-columns 240ms var(--out), margin-left 240ms var(--out); }
+  .rail[data-ready] .rail-more-in { transition: opacity 160ms var(--out) 140ms, visibility 0s; }
+  .rail[data-ready][data-hero="here"] .rail-more { transition: grid-template-columns 200ms var(--out) 80ms, margin-left 200ms var(--out) 80ms; }
+  .rail[data-ready][data-hero="here"] .rail-more-in { transition: opacity 80ms var(--out), visibility 0s linear 80ms; }
+}
 
 /* The header's right side, where the navigation used to be. */
 .bar .theme, .bar .star, .bar .download, .bar-status { display: none; }
@@ -316,7 +315,7 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
   :root:has(.rail[data-h="2"]) .bar .download { display: none; }
   :root:has(.rail[data-h="2"]) .bar-status { display: block; margin: 0 10px 0 0; font-family: var(--px); font-size: 13px; letter-spacing: 0.02em; color: var(--text-1); white-space: nowrap; }
 }
-/* Below 1100 px the dock spans the window, and the check keeps its place. */
+/* Below 1100 px the dock spans the window, and the download keeps its place. */
 @media (max-width: 1100px) {
   .rail {
     right: 12px; bottom: 12px; left: 12px; transform: none;
@@ -326,16 +325,23 @@ h3 > .lock { width: 24px; height: 28px; vertical-align: -4px; margin-right: 12px
   .rail-links { flex: 1; justify-content: space-between; gap: 0; }
   .rail-links a { flex: 1 1 auto; justify-content: center; height: 44px; padding: 0 7px; font-size: 11.5px; }
   .rail-links a::after { inset: 0; }
-  .rail-mark, .rail-check-more { display: none; }
-  .rail[data-v] .rail-cta, .js .rail[data-v][data-hero] .rail-cta { position: static; display: block; margin: 0; padding: 0; height: auto; background: none; border: 0; box-shadow: none; transform: none; visibility: visible; transition: none; }
-  .rail[data-v] .rail-check, .js .rail[data-v][data-hero] .rail-check { height: 44px; padding: 0 12px; visibility: visible; transition: none; }
-  .js .rail[data-v][data-hero="here"] .rail-check, .js .rail[data-v][data-hero=""] .rail-check { background: none; box-shadow: none; }
-  .js .rail[data-v][data-hero="here"] a.rail-check, .js .rail[data-v][data-hero=""] a.rail-check { color: var(--text-1); }
+  .rail-mark { display: none; }
+  .rail-star { height: 44px; font-size: 11.5px; }
+  .rail-download { height: 44px; padding: 0 12px; font-size: 11.5px; }
+  .js .rail[data-hero="here"] .rail-download, .js .rail[data-hero=""] .rail-download { background: none; box-shadow: none; }
+  .js .rail[data-hero="here"] a.rail-download, .js .rail[data-hero=""] a.rail-download { color: var(--text-1); }
   .bar { --logo-w: 132px; }
   html { scroll-padding-top: 24px; }
 }
+@media (max-width: 640px) {
+  .rail-star { display: none; }
+}
+@media (max-width: 360px) {
+  .rail-links a { padding: 0 2px; }
+  .rail-download { padding: 0 8px; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .rail[data-ready] .rail-cta, .rail[data-ready] .rail-check { transition: none !important; }
+  .rail[data-ready] .rail-more, .rail[data-ready] .rail-more-in { transition: none !important; }
 }
 
 /* ── Bar ──────────────────────────────────────────────────────────────── */
@@ -2124,5 +2130,5 @@ main > .desk { padding-top: clamp(64px, 8vw, 120px); }
 @keyframes dialog-in { from { opacity: 0; transform: scale(0.97); } }
 @media (prefers-reduced-motion: reduce) {
   .consent[open], .prompt-dialog[open] { animation: none; }
-  .btn:active, .glass:active, .cmd:active, .brand:active, .btn-steel:active, .gopro-btn:active, .rail-links a:active, .rail-check:active { transform: none; }
+  .btn:active, .glass:active, .cmd:active, .brand:active, .btn-steel:active, .gopro-btn:active, .rail-links a:active, .rail-download:active { transform: none; }
 }

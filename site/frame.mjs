@@ -74,24 +74,33 @@ const RAIL = [
 /**
  * The navigation of every page: a steel dock fixed to the bottom of the window.
  * The build puts it before <main> on each page it renders (site/build.mjs), so
- * a new page gets it without an edit. It never moves. Its one action is the
- * check: on the homepage that action waits until the hero's own button has
- * scrolled away (data-hero, cleared by check/ui.js), so it stays on screen if
- * no script runs.
- * @param {{ url?: string, blog?: boolean, variant?: string }} opts
- *   url: the page's path; blog: false drops Blog while no post is approved
+ * a new page gets it without an edit. It never moves. Its star and download
+ * sit inside the plate: on the homepage the plate opens for them once the
+ * hero has scrolled away (data-hero, cleared by check/ui.js), so they stay on
+ * screen if no script runs.
+ * @param {{ url?: string, stars?: string, blog?: boolean }} opts
+ *   url: the page's path; stars: the GitHub count; blog: false drops Blog while no post is approved
  */
-export function siteRail({ url = "/", blog = true, variant = process.env.PENTHERA_NAV_V || "2", header = process.env.PENTHERA_NAV_H || "1" } = {}) {
+export function siteRail({ url = "/", stars = "", blog = true, header = process.env.PENTHERA_NAV_H || "1" } = {}) {
   const home = url === "/";
   const seg = url.split("/")[1] || "";
   const links = RAIL.filter((r) => blog || r.match !== "blog").map((r) => {
     const on = seg === r.match || (r.match === "research" && seg.startsWith("research-"));
     return `<a href="${r.href}"${on ? ` aria-current="${url === r.href ? "page" : "true"}"` : ""}>${r.text}</a>`;
   }).join("");
-  return `<nav class="rail"${home ? " data-hero" : ""} data-v="${variant}" data-h="${header}" aria-label="Main">
+  return `<nav class="rail"${home ? " data-hero" : ""} data-h="${header}" aria-label="Main">
     <a class="rail-mark" href="/"><span aria-hidden="true"></span><span class="sr">Penthera, home</span></a>
     <div class="rail-links">${links}</div>
-    <div class="rail-cta"><a class="rail-check" href="${home ? "#scan" : "/#scan"}" data-track="check-dock"><span>Check<span class="rail-check-more"> your site</span></span></a></div>
+    <div class="rail-more"><div class="rail-more-in">
+      <a class="rail-star" href="${REPO}" data-track="github-star-dock" aria-label="Star Penthera on GitHub${stars ? `, ${esc(stars)} stars` : ""}">
+        ${STAR}
+        <span class="star-word">Star</span><span class="star-count">${esc(stars)}</span>
+      </a>
+      <a class="rail-download" href="${home ? "#get" : "/#get"}" data-track="download-dock">
+        ${DOWN}
+        <span>Download</span>
+      </a>
+    </div></div>
   </nav>`;
 }
 

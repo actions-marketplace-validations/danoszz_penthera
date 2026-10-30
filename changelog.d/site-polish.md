@@ -5,7 +5,7 @@ section: Site
   screen. The hero's field has a layer of its own. In Safari on a 14-inch
   MacBook Pro, with the URL field focused, GPU use fell from 25% to 11% and
   WindowServer from 45% to 22% of a core.
-- **Every page has a bottom dock.** A steel dock fixed to the bottom of the window links Research, Benchmarks, Blog and Pro, on every screen size. It never moves, so no scroll speed can lose it. On the homepage its Check button rises in once the hero has scrolled away.
+- **Every page has a bottom dock.** A steel dock fixed to the bottom of the window links Research, Benchmarks, Blog and Pro, on every screen size. It never moves, so no scroll speed can lose it. On the homepage the plate opens from its center once the hero has scrolled away, and the GitHub star and Download show inside it.
 - **The first screen is calmer.** The hero's field fills the screen, and the
   question and an example result float above it in one glass panel. The panel is a
   card that overlaps the grey section and runs past the bottom of the window.

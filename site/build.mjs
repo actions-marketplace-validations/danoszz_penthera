@@ -623,7 +623,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   for (const f of readdirSync(OUT, { recursive: true }).map(String).filter((n) => n.endsWith(".html"))) {
     const url = "/" + f.replace(/\\/g, "/").replace(/(^|\/)index\.html$/, "").replace(/\.html$/, "");
     const html = readFileSync(join(OUT, f), "utf8");
-    writeFileSync(join(OUT, f), html.replace(/<main\b/, `${siteRail({ url: url === "/" ? "/" : url.replace(/\/$/, ""), blog: posts.published.length > 0 })}\n$&`));
+    writeFileSync(join(OUT, f), html.replace(/<main\b/, `${siteRail({ url: url === "/" ? "/" : url.replace(/\/$/, ""), stars: values.STARS, blog: posts.published.length > 0 })}\n$&`));
   }
 
   const total = readdirSync(OUT, { recursive: true }).map((f) => join(OUT, f)).filter((f) => statSync(f).isFile()).reduce((n, f) => n + statSync(f).size, 0);

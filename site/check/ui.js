@@ -608,11 +608,11 @@ function tickerRest() {
   }).observe(ticker);
 }
 
-// ── The dock's check waits for the hero's own ───────────────────────────
+// ── The dock opens once the hero has gone ───────────────────────────────
 
-// The dock itself never moves. Its check button arrives once the hero's button
-// has gone, and leaves when the hero comes back. Without script it simply stays.
-function dockCheck() {
+// The dock itself never moves. It opens for the star and the download once the
+// hero has gone, and closes when the hero comes back. Without script it stays open.
+function dockOpen() {
   const rail = $(".rail[data-hero]");
   const hero = $(".hero");
   if (!rail || !hero) return;
@@ -708,7 +708,7 @@ for (const a of document.querySelectorAll("a[data-track]")) a.addEventListener("
 metalLight();
 heroLoop();
 tickerRest();
-dockCheck();
+dockOpen();
 veilClear();
 liveField($(".hero .field"));
 barPalette();

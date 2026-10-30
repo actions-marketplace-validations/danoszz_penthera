@@ -113,6 +113,11 @@ describe("E20-R order and cohorts", () => {
     expect(merged).toHaveLength(2);
     expect(Object.keys(merged[0].cohorts)).toEqual(["T1k", "Europe"]);
   });
+  it("treats example.com and www.example.com as one site", () => {
+    const merged = mergeCohorts({ T1k: [{ host: "example.com", rank: 1, group: "com" }], "YC-new": [{ host: "www.example.com", rank: 2, group: "Fall 2026" }] });
+    expect(merged).toHaveLength(1);
+    expect(Object.keys(merged[0].cohorts)).toEqual(["T1k", "YC-new"]);
+  });
   it("labels MX and NS providers without keeping the hostnames", async () => {
     const p = await dnsProviders("example.com", { mx: async () => [{ exchange: "aspmx.l.google.com." }], ns: async () => ["a.ns.cloudflare.com."] });
     expect(p).toEqual({ mx: "google", ns: "cloudflare" });

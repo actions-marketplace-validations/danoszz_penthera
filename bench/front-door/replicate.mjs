@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * E20-R runner: two passes over ten fixed lists, from one published address.
+ * E20-R runner: two passes over eleven fixed lists, from one published address.
  * Protocol: docs/research/prereg/E20R-front-door-replication.md.
  *
  *   node bench/front-door/replicate.mjs --self-test
@@ -43,6 +43,7 @@ export const R_COHORTS = Object.freeze({
   T10k: { file: "tranco-ZJ8PG-1k-10k-sample.csv", format: "tranco" },
   T100k: { file: "tranco-ZJ8PG-10k-100k-sample.csv", format: "tranco" },
   Europe: { file: "europe-indexes.csv", format: "yc" },
+  ShowHN: { file: "showhn-sample.csv", format: "yc" },
   SP500: { file: "sp500.csv", format: "yc" },
   "NL-Cbw": { file: "nl-cbw.csv", format: "yc", homepageOnly: true },
 });
@@ -96,16 +97,20 @@ export function shuffled(rows, seed) {
   return a;
 }
 
-/** One row per host; `cohorts` lists every list it is on, each with its rank and group. */
+/**
+ * One row per site; `cohorts` lists every list it is on, each with its rank and
+ * group. example.com and www.example.com are one site: one visit per site.
+ */
 export function mergeCohorts(lists) {
-  const byHost = new Map();
+  const bySite = new Map();
   for (const [cohort, rows] of Object.entries(lists)) {
     for (const { host, rank, group } of rows) {
-      if (!byHost.has(host)) byHost.set(host, { host, cohorts: {} });
-      byHost.get(host).cohorts[cohort] = { rank, group };
+      const site = host.replace(/^www\./, "");
+      if (!bySite.has(site)) bySite.set(site, { host, cohorts: {} });
+      bySite.get(site).cohorts[cohort] = { rank, group };
     }
   }
-  return [...byHost.values()];
+  return [...bySite.values()];
 }
 
 /** The hash the prereg records for a cohort list, or null. */

@@ -6,11 +6,11 @@
 import { describe, it, expect } from "vitest";
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { classify, classifyRegistered, cookieNames, evidenceOf, pageExcerpt, scrub, scrubAddresses, scrubMisses, traitsOf, EXCERPT_BYTES, PAGE_TEXT_CHARS, SOFT_MAX_CHARS } from "../bench/front-door/classify.mjs";
-import { authorizeR, CLAIM_COHORTS, CLASSIFIER, dmarcTags, dnsOutcome, gitState, mergeCohorts, pilotSample, readDomain, readRemovals, recordedHashR, runManifest, runPass, siteDns, shuffled, seeded, dnsProviders, selfTestR, sourceAddressCount, aggregateR, R_COHORTS, ipv4Lookup, PASS_SEED, PREREG_R, sourceAddressOf, V2_LIMITS } from "../bench/front-door/replicate.mjs";
+import { authorizeR, checkPilotDropped, CLAIM_COHORTS, CLASSIFIER, dmarcTags, dnsOutcome, gitState, mergeCohorts, pilotRounds, pilotSample, readDomain, readRemovals, recordedHashR, runManifest, runPass, siteDns, shuffled, seeded, dnsProviders, selfTestR, sourceAddressCount, aggregateR, R_COHORTS, ipv4Lookup, PASS_SEED, PREREG_R, sourceAddressOf, V2_LIMITS } from "../bench/front-door/replicate.mjs";
 import { robotsAccess, strictRobots, visit, LIMITS } from "../bench/front-door/run.mjs";
 import { CheckError, fetchBody, parseTarget } from "../api/_lib/guard.mjs";
 import { createServer as createTlsServer } from "node:tls";
@@ -22,9 +22,11 @@ import { kappa, decide, combine, clusterDiff, pass, claims, dnsClaims, primaryRe
 const tmp = () => mkdtempSync(join(tmpdir(), "e20r-"));
 const HASH = "a".repeat(64);
 const IP = "178.104.243.225";
-const prereg = (status = "**Registered.** Accepted", amendment = "**Adopted.** Merged") => `| Status | ${status} |\n| Amendment 2 | ${amendment} |\n| Source address | \`${IP}\` |\n| Frozen classifier SHA-256 | \`${HASH}\` |\n| Public Suffix List SHA-256 | \`${HASH}\` |\n` + Object.keys(R_COHORTS).map((c) => `| ${c} list SHA-256 | \`${HASH}\` |`).join("\n") + `\n| E20-R exclusion list SHA-256 | \`${HASH}\` |\n| E20-R homepage-only list SHA-256 | \`${HASH}\` |\n`;
+const PRIOR = Buffer.from("old.example.com\n");
+const priorHash = createHash("sha256").update(PRIOR).digest("hex");
+const prereg = (status = "**Registered.** Accepted", amendment = "**Adopted.** Merged", own = "adopted") => `| Status | ${status} |\n| Amendment 2 | ${amendment} |\n| Source address | \`${IP}\` |\n| Frozen classifier SHA-256 | \`${HASH}\` |\n| Public Suffix List SHA-256 | \`${HASH}\` |\n| Prior opt-outs SHA-256 | \`${priorHash}\` |\n` + Object.keys(R_COHORTS).map((c) => `| ${c} list SHA-256 | \`${HASH}\` |`).join("\n") + `\n| E20-R exclusion list SHA-256 | \`${HASH}\` |\n| E20-R homepage-only list SHA-256 | \`${HASH}\` |\n\n## Amendment 2\n\n**Status: ${own}.** Text.\n`;
 const allHashes = Object.fromEntries(Object.keys(R_COHORTS).map((c) => [c, HASH]));
-const good = { registered: "E20R", pass: 2, listHashes: allHashes, excludeHash: HASH, homepageOnlyHash: HASH, preregText: prereg(), pageText: "A study page.", tree: { commit: "c".repeat(40), dirty: false, onMain: true }, sourceIps: [IP], removals: "", priorOptOuts: "", pilotDropped: "x.example.com\n", classifierHash: HASH, pslHash: HASH };
+const good = { registered: "E20R", pass: 2, listHashes: allHashes, excludeHash: HASH, homepageOnlyHash: HASH, preregText: prereg(), pageText: `A study page, from ${IP}.`, tree: { commit: "c".repeat(40), dirty: false, hidden: false, remoteTip: "c".repeat(40) }, sourceIps: [IP], removals: "", priorOptOuts: PRIOR, pilot: { ok: true }, classifierHash: HASH, pslHash: HASH };
 const noDns = () => Promise.reject(Object.assign(new Error("x"), { code: "ENODATA" }));
 const stubDns = { mx: noDns, ns: noDns, resolveTxt: noDns, resolveCaa: noDns };
 
@@ -52,7 +54,7 @@ describe("E20-R guard", () => {
     expect(() => authorizeR({ ...good, pass: 1 })).toThrow(/pass 1 ran/);
   });
   it("refuses a dirty tree, a directory with no commit, and a run without a removal list", () => {
-    expect(() => authorizeR({ ...good, tree: { commit: "c".repeat(40), dirty: true, onMain: true } })).toThrow(/dirty/);
+    expect(() => authorizeR({ ...good, tree: { ...good.tree, dirty: true } })).toThrow(/dirty/);
     expect(() => authorizeR({ ...good, tree: { commit: null, dirty: null } })).toThrow(/git checkout/);
     expect(() => authorizeR({ ...good, removals: undefined })).toThrow(/--removals/);
   });
@@ -62,13 +64,42 @@ describe("E20-R guard", () => {
     expect(() => authorizeR({ ...good, sourceIps: ["2.31.141.178"] })).toThrow(/exactly one public IPv4/);
     expect(() => authorizeR({ ...good, sourceIps: [IP, "8.8.8.8"] })).toThrow(/exactly one public IPv4/);
     expect(() => authorizeR({ ...good, sourceIps: [] })).toThrow(/exactly one public IPv4/);
-    expect(() => authorizeR({ ...good, tree: { commit: "c".repeat(40), dirty: false, onMain: false } })).toThrow(/origin\/main/);
+  });
+  it("B5: needs the commit to be the remote tip, asked now, and no hidden file", () => {
+    expect(() => authorizeR({ ...good, tree: { ...good.tree, remoteTip: "d".repeat(40) } })).toThrow(/tip of origin main/);
+    expect(() => authorizeR({ ...good, tree: { ...good.tree, remoteTip: null } })).toThrow(/could not read/);
+    expect(() => authorizeR({ ...good, tree: { ...good.tree, hidden: true } })).toThrow(/assume-unchanged/);
+  });
+  it("12: binds the page to the address, and reads the amendment's own status", () => {
+    expect(() => authorizeR({ ...good, pageText: "A study page, from 9.9.9.9." })).toThrow(/does not name the registered address/);
+    expect(() => authorizeR({ ...good, preregText: prereg(undefined, undefined, "draft") })).toThrow(/own status line/);
   });
   it("B6: needs --prior-optouts for pass 2 and the pilot, and the pilot list for pass 2", () => {
     expect(() => authorizeR({ ...good, priorOptOuts: undefined })).toThrow(/--prior-optouts/);
     expect(() => authorizeR({ ...good, pass: "pilot", priorOptOuts: undefined })).toThrow(/--prior-optouts/);
-    expect(() => authorizeR({ ...good, pilotDropped: undefined })).toThrow(/--pilot-dropped/);
-    expect(authorizeR({ ...good, pass: "pilot", pilotDropped: undefined }).mode).toBe("registered");
+    expect(() => authorizeR({ ...good, pilot: { ok: false, why: "No pilot manifest found." } })).toThrow(/No pilot manifest/);
+    expect(() => authorizeR({ ...good, pilot: undefined })).toThrow(/--pilot-dropped/);
+    expect(authorizeR({ ...good, pass: "pilot", pilot: undefined }).mode).toBe("registered");
+  });
+  it("B7: an empty or edited prior opt-out list is refused", () => {
+    expect(() => authorizeR({ ...good, priorOptOuts: Buffer.alloc(0) })).toThrow(/frozen hash/);
+    expect(() => authorizeR({ ...good, priorOptOuts: Buffer.from("other.example.com\n") })).toThrow(/frozen hash/);
+  });
+  it("B7: the dropped file must hold exactly the pilot's sites, checked against its manifest", () => {
+    const dir = tmp();
+    const list = "a.example.com\nb.example.com\n";
+    const round = join(dir, "e20r-pilot-1");
+    mkdirSync(round);
+    writeFileSync(join(round, "pilot-sites.txt"), list);
+    writeFileSync(join(round, "manifest.json"), JSON.stringify({ finishedAt: "x", pilotSitesSha256: createHash("sha256").update(list).digest("hex") }));
+    const rounds = pilotRounds(dir);
+    expect(checkPilotDropped(readRemovals(list, "pilot"), rounds).ok).toBe(true);
+    expect(checkPilotDropped(readRemovals("a.example.com\n", "pilot"), rounds).ok).toBe(false);
+    expect(checkPilotDropped(readRemovals("x.example.com\ny.example.com\n", "pilot"), rounds).ok).toBe(false);
+    expect(checkPilotDropped(new Map(), []).ok).toBe(false);
+    expect(checkPilotDropped(new Map(), [], { need: false }).ok).toBe(true);
+    writeFileSync(join(round, "pilot-sites.txt"), "c.example.com\n");
+    expect(checkPilotDropped(readRemovals("c.example.com\n", "pilot"), pilotRounds(dir)).ok).toBe(false);
   });
   it("refuses a classifier or suffix list that is not the frozen one", () => {
     expect(() => authorizeR({ ...good, classifierHash: "b".repeat(64) })).toThrow(/frozen classifier/);
@@ -78,6 +109,7 @@ describe("E20-R guard", () => {
     const text = readFileSync(PREREG_R, "utf8");
     expect(recordedHashR(text, "Frozen classifier")).toBe(createHash("sha256").update(readFileSync(CLASSIFIER)).digest("hex"));
     expect(recordedHashR(text, "Public Suffix List")).toBe(pslSha256());
+    expect(recordedHashR(text, "Prior opt-outs")).toMatch(/^[0-9a-f]{64}$/);
     expect(sourceAddressOf(text)).toBe("178.104.243.225");
   });
   it("refuses a draft protocol, a third pass, a changed list or exclusion list", () => {
@@ -482,18 +514,20 @@ describe("E20-R run records", () => {
     expect(m.lockfileSha256).toMatch(/^[0-9a-f]{64}$/);
     expect(m.classifierSha256).toMatch(/^[0-9a-f]{64}$/);
     expect(m.psl).toMatchObject({ commit: PSL_VERSION.commit, sha256: pslSha256() });
-    expect(m.git).toHaveProperty("onMain");
+    expect(m.git).toHaveProperty("remoteTip");
     for (const k of ["protocolSha256", "amendmentSha256", "studyPageSha256", "codeSha256", "runtimeSha256", "rawSha256", "aggregateSha256"]) expect(m[k], k).toMatch(/^[0-9a-f]{64}$/);
     expect(m.classifierUnchanged).toBe(true);
     expect(m.totals).toHaveProperty("requests");
     expect(m.config.appPage).toBe(false);
   });
   it("records the commit and a dirty tree", () => {
-    const run = (_c, args) => (args[0] === "rev-parse" ? "abc\n" : " M x\n");
-    expect(gitState("/x", run)).toEqual({ commit: "abc", dirty: true, onMain: true });
-    const off = (_c, args) => { if (args[0] === "merge-base") throw new Error("not an ancestor"); return "abc\n"; };
-    expect(gitState("/x", off).onMain).toBe(false);
-    expect(gitState("/x", () => { throw new Error("no git"); })).toEqual({ commit: null, dirty: null, onMain: false });
+    const run = (_c, args) => ({ "rev-parse": "abc\n", status: " M x\n", "ls-files": "H a\nH b\n", "ls-remote": "def\trefs/heads/main\n" })[args[0]];
+    expect(gitState("/x", run)).toEqual({ commit: "abc", dirty: true, hidden: false, remoteTip: "def" });
+    expect(gitState("/x", (c, a) => (a[0] === "ls-files" ? "h a\n" : run(c, a))).hidden).toBe(true);
+    expect(gitState("/x", (c, a) => (a[0] === "ls-files" ? "S a\n" : run(c, a))).hidden).toBe(true);
+    const offline = (c, a) => { if (a[0] === "ls-remote") throw new Error("no network"); return run(c, a); };
+    expect(gitState("/x", offline).remoteTip).toBeNull();
+    expect(gitState("/x", () => { throw new Error("no git"); })).toEqual({ commit: null, dirty: null, hidden: null, remoteTip: null });
     expect(runManifest({ kind: "x" }).kind).toBe("x");
   });
   it("counts public IPv4 addresses only", () => {

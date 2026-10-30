@@ -166,7 +166,9 @@ export function cookieNames(headers = {}) {
   const raw = lower(headers)["set-cookie"];
   const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
   // No = before the first ; means there is no name, and what stands there may be a value.
-  return list.map((c) => { const pair = String(c).split(";")[0]; return pair.includes("=") ? pair.split("=")[0].trim() : ""; }).filter(Boolean).sort();
+  // A name that looks like a token, an address or anything but a name isn't kept.
+  const name = (c) => { const pair = String(c).split(";")[0]; return pair.includes("=") ? pair.split("=")[0].trim() : ""; };
+  return list.map(name).filter((n) => /^[\w.-]{1,64}$/.test(n) && scrub(n) === n).sort();
 }
 
 // § 6, secondary: what kind of site this is, from the homepage already fetched.
@@ -187,32 +189,87 @@ export function traitsOf(html) {
 }
 
 // Every repeat below is bounded, so no input of INPUT_CAP_CHARS can make these slow.
-const AT_FORMS = /&#0*64;|&#x0*40;|&commat;|%40|\\u0040|\s{0,3}(?:\[at\]|\(at\))\s{0,3}/gi;
-// A form field's value can be a token or a person's details. No field is kept.
-const INPUT_TAG = /<input\b[^>]{0,2000}>/gi;
+const ZERO_WIDTH = /[​-‍⁠﻿­]/g;
+const NUMERIC_ENTITY = /&#(?:x([0-9a-f]{1,6})|(\d{1,7}));?/gi;
+const NAMED_ENTITY = /&(commat|period|lowbar|colon);?/gi;
+const ESCAPED = /\\(?:x|u00)([0-9a-f]{2})/gi;
+const PERCENT = /%(?:25)?([2-7][0-9a-f])/gi;
+const AT_WORD = /\s{0,3}[[({]\s{0,2}at\s{0,2}[\])}]\s{0,3}|\s{1,3}@\s{0,3}|\s{0,3}@\s{1,3}|＠/gi;
+const DOT_WORD = /\s{0,3}[[({]\s{0,2}dot\s{0,2}[\])}]\s{0,3}/gi;
+const SPELLED_EMAIL = /([\p{L}\p{N}._%+-]{1,64})\s{1,3}at\s{1,3}([\p{L}\p{N}-]{1,63})(?:\s{1,3}dot\s{1,3}|\.)(\p{L}{2,24})\b/giu;
 const CF_EMAIL = /(data-cfemail=["']?)[0-9a-f]{2,512}|(\/cdn-cgi\/l\/email-protection#)[0-9a-f]{2,512}/gi;
-const EMAIL = /[\p{L}\p{N}._%+-]{1,64}@[\p{L}\p{N}-]{1,63}(?:\.[\p{L}\p{N}-]{1,63}){1,6}/gu;
-const IPV6_RUN = /(?<![0-9a-f:])(?:[0-9a-f]{0,4}:){2,8}(?:\d{1,3}(?:\.\d{1,3}){3}|[0-9a-f]{0,4})(?![0-9a-f])/gi;
-const IPV4 = /(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?!\d)(?!\.\d)/g;
+// No TLD needed: a cut address has none, and an @ inside a word is no loss.
+const EMAIL = /[\p{L}\p{N}._%+'�-]{1,64}@[\p{L}\p{N}�-]{1,63}(?:\.[\p{L}\p{N}-]{1,63}){0,6}/gu;
+const IPV6_RUN = /(?<!:)(?:[0-9a-f]{0,4}:){2,8}(?:\d{1,3}(?:\.\d{1,3}){3}|[0-9a-f]{0,4})(?![0-9a-f])/gi;
+const IPV4 = /(?<!\d)(?:\d{1,3}\.){3}\d{1,3}(?!\d)(?!\.\d)/g;
+const IPV4_DASHED = /(?<!\d)\d{1,3}-\d{1,3}-\d{1,3}-\d{1,3}(?![\d-])/g;
+const IPV4_HEX = /\b0x[0-9a-f]{8}\b/gi;
 const QUERY = /\?[^\s"'<>)\\#?]{1,4096}/gu;
-const FRAGMENT = /#[\p{L}\p{N}_%.~-]{1,64}=[^\s"'<>)\\]{0,4096}/gu;
+const FRAGMENT = /(?<=[\w/.-])#[^\s"'<>)\\]{1,4096}/gu;
 const JWT = /eyJ[\w-]{6,4096}\.[\w-]{2,4096}(?:\.[\w-]{0,4096})?/g;
-const BEARER = /\b(bearer|basic)\s+[\w.~+/=-]{8,4096}/gi;
+const BEARER = /\b(bearer|basic|token)\s{1,3}[\w.~+/=-]{8,4096}/gi;
 const UUID = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
-const NAMED = /\b([\w-]{0,32}(?:token|session|sess|sid|csrf|xsrf|auth|secret|nonce|password|passwd|api[_-]?key|access[_-]?key))(["']?\s{0,3}[:=]\s{0,3}["']?)[^\s"'<>&;,)]{4,4096}/gi;
+const NAMED = /\b([\w-]{0,32}(?:token|session[_-]?id|sessionid|sessid|session|sess|sid|csrf|xsrf|auth|secret|nonce|password|passwd|api[_-]?key|access[_-]?key))(["']?\s{0,3}[:=]\s{0,3}["']?)[^\s"'<>&;,)]{3,4096}/gi;
 const TOKEN_RUN = /[A-Za-z0-9_-]{16,4096}/g;
 const LONG_NUMBER = /\+?\d[\d\s().-]{7,40}\d/g;
 
 const digits = (s) => s.replace(/\D/g, "").length;
-const isToken = (s) => /^[0-9a-f]{16,}$/i.test(s) || (s.length >= 24 && /\d/.test(s) && /[A-Za-z]/.test(s));
+const isToken = (s) => /^[0-9a-f]{16,}$/i.test(s) || (digits(s) >= 3 && /[A-Za-z]/.test(s)) || (s.length >= 20 && /\d/.test(s) && /[a-z]/.test(s) && /[A-Z]/.test(s));
 // A run can start with one stray label: `IP:` or the `ip6:` of an SPF record.
 const ipv6Out = (m) => (isIPv6(m) || (!m.startsWith("::") && isIPv6(m.slice(m.indexOf(":") + 1))) ? "<ip>" : m);
-const decodeForms = (s) => s.replace(AT_FORMS, "@").replace(/%3a/gi, ":");
+const printable = (code, m) => (code >= 0x20 && code < 0x7f ? String.fromCharCode(code) : m);
+const NAMED_CHARS = Object.freeze({ commat: "@", period: ".", lowbar: "_", colon: ":" });
+const safeChar = (m, hex) => { const ch = String.fromCharCode(parseInt(hex, 16)); return /[\w@.:-]/.test(ch) ? ch : m; };
+
+/** Every way a page writes an address, back to plain text, so one pattern can see it. */
+const decodeForms = (s) => s
+  .replace(ZERO_WIDTH, "")
+  .replace(NUMERIC_ENTITY, (m, hex, dec) => printable(hex ? parseInt(hex, 16) : Number(dec), m))
+  .replace(NAMED_ENTITY, (_m, name) => NAMED_CHARS[name.toLowerCase()])
+  .replace(ESCAPED, safeChar).replace(PERCENT, safeChar)
+  .replace(AT_WORD, "@").replace(DOT_WORD, ".")
+  .replace(SPELLED_EMAIL, "$1@$2.$3");
+
+/** ASCII lower case, one for one. `toLowerCase` makes U+0130 two units, which shifts every index after it. */
+const asciiLower = (s) => s.replace(/[A-Z]+/g, (m) => m.toLowerCase());
+
+/** The end of a tag, quotes respected, or the end of the text. */
+function tagEnd(text, from) {
+  let quote = "";
+  for (let i = from; i < text.length; i++) {
+    const ch = text[i];
+    if (quote) { if (ch === quote) quote = ""; } else if (ch === '"' || ch === "'") quote = ch;
+    else if (ch === ">") return i + 1;
+  }
+  return text.length;
+}
+
+/** Form fields out, whatever their size: a field's value can be a token or a person's details. */
+function stripFields(text) {
+  const low = asciiLower(text);
+  const field = /<(input|textarea|select)\b/g;
+  let out = "", at = 0, m;
+  while ((m = field.exec(low))) {
+    out += `${text.slice(at, m.index)}<input>`;
+    const close = m[1] === "input" ? -1 : low.indexOf(`</${m[1]}`, m.index);
+    at = m[1] === "input" ? tagEnd(text, m.index) : close < 0 ? text.length : tagEnd(text, close);
+    field.lastIndex = at;
+  }
+  return out + text.slice(at);
+}
+
+/** The cap, ending at a space: what the cut split is never kept. */
+function capped(text) {
+  if (text.length <= INPUT_CAP_CHARS) return text;
+  let end = INPUT_CAP_CHARS;
+  while (end > 0 && !/\s/.test(text[end - 1])) end--;
+  return text.slice(0, end);
+}
 
 /** IP addresses and emails out. */
-export const scrubAddresses = (text) => decodeForms(String(text ?? "")).replace(EMAIL, (m) => (m.startsWith("redacted") ? m : "<email>")).replace(IPV6_RUN, ipv6Out).replace(IPV4, "<ip>");
-/** For anything stored: addresses, query strings, fragments, tokens and long numbers. Run it before slicing. */
-export const scrub = (text) => scrubAddresses(String(text ?? "").slice(0, INPUT_CAP_CHARS).replace(INPUT_TAG, "<input>").replace(CF_EMAIL, (_m, a, b) => `${a ?? b}<email>`))
+export const scrubAddresses = (text) => decodeForms(String(text ?? "")).replace(EMAIL, "<email>").replace(IPV6_RUN, ipv6Out).replace(IPV4, "<ip>").replace(IPV4_DASHED, "<ip>").replace(IPV4_HEX, "<ip>");
+/** For anything stored: addresses, form fields, query strings, fragments, tokens and long numbers. Run it before slicing. */
+export const scrub = (text) => scrubAddresses(stripFields(capped(String(text ?? ""))).replace(CF_EMAIL, (_m, a, b) => `${a ?? b}<email>`))
   .replace(QUERY, "?<query>").replace(FRAGMENT, "#<fragment>")
   .replace(JWT, "<token>").replace(BEARER, "$1 <token>").replace(UUID, "<id>")
   .replace(NAMED, "$1$2<token>")
@@ -225,6 +282,10 @@ export const scrub = (text) => scrubAddresses(String(text ?? "").slice(0, INPUT_
  */
 export function scrubMisses(text) {
   const out = { ipv4: 0, ipv6: 0, email: 0, query: 0, fragment: 0, jwt: 0, longHex: 0, longNumber: 0 };
+  const whole = String(text ?? "");
+  const low = whole.toLowerCase();
+  for (const mark of ["[at]", "(at)", "{at}", "[dot]", "(dot)", "&commat", "\\x40", "\\u0040", "%40", "%2540", "&#64", "&#x40", "＠"]) if (low.includes(mark)) out.email++;
+  if (low.split("&#").length > 4) out.email++;
   const edge = new Set(`.,;:!?()[]{}<>"'=\``);
   const trim = (t) => {
     let a = 0, b = t.length;
@@ -232,8 +293,8 @@ export function scrubMisses(text) {
     while (b > a && edge.has(t[b - 1])) b--;
     return t.slice(a, b);
   };
-  for (const raw of String(text ?? "").split(/[\s"'`<>()\[\],;\\]+/)) {
-    if (raw.startsWith("redacted") || raw === "query" || raw === "fragment") continue;
+  for (const raw of whole.split(/[\s"'`<>()\[\],;\\]+/)) {
+    if (raw === "redacted" || raw === "query" || raw === "fragment") continue;
     const t = trim(raw);
     if (!t) continue;
     for (const piece of [t, ...t.split("="), t.slice(t.indexOf(":") + 1)]) {
@@ -241,14 +302,10 @@ export function scrubMisses(text) {
       if (v === 4) { out.ipv4++; break; }
       if (v === 6) { out.ipv6++; break; }
     }
-    // An @ in a URL path (a versioned package on a CDN) is not an address: the part after it must end in a TLD.
-    const isAddress = (piece) => {
-      const at = piece.indexOf("@");
-      const tld = piece.slice(piece.lastIndexOf(".") + 1);
-      return at > 0 && piece.indexOf(".", at) > at + 1 && tld.length >= 2 && [...tld].every((ch) => ch.toLowerCase() !== ch.toUpperCase());
-    };
-    const decoded = t.includes("%40") || t.toLowerCase().includes("&#64") || t.toLowerCase().includes("&#x40");
-    if (decoded || t.split(/[/?&=:]/).some(isAddress)) out.email++;
+    // The @ needs an address on both sides: `}@media` in a stylesheet and `pkg@^1` on a CDN have none.
+    const wordChar = (ch) => ch.toLowerCase() !== ch.toUpperCase() || (ch >= "0" && ch <= "9");
+    const localEnd = (ch) => wordChar(ch) || "._+-%'".includes(ch);
+    if (t.split(/[/?&=:]/).some((piece) => { const at = piece.indexOf("@"); return at > 0 && at < piece.length - 1 && localEnd(piece[at - 1]) && wordChar(piece[at + 1]); })) out.email++;
     const eq = t.indexOf("=");
     const q = t.indexOf("?"), hash = t.indexOf("#");
     if (q >= 0 && eq > q + 1) out.query++;
@@ -260,7 +317,7 @@ export function scrubMisses(text) {
       if (ch >= "0" && ch <= "9") numerals++;
       if (run === 32) { out.longHex++; }
     }
-    if (numerals >= 12 && !t.includes("-") && !t.includes(":") && !t.includes(".") && numerals === t.replace(/[^0-9]/g, "").length && numerals === t.length) out.longNumber++;
+    if (numerals >= 12 && numerals === t.length) out.longNumber++;
   }
   return out;
 }
@@ -269,7 +326,7 @@ const headerEvidence = (res) => {
   const h = lower(res.headers);
   return {
     status: res.status,
-    headerNames: Object.keys(h).sort(),
+    headerNames: Object.keys(h).filter((n) => /^[\w-]{1,64}$/.test(n) && scrub(n) === n).sort(),
     values: Object.fromEntries(KEPT_VALUES.filter((k) => h[k] !== undefined).map((k) => [k, scrub(h[k]).slice(0, 120)])),
     cookieNames: cookieNames(h),
   };
@@ -278,11 +335,11 @@ const headerEvidence = (res) => {
 const sha256 = (s) => createHash("sha256").update(s).digest("hex");
 const outside2xx = (status) => status < 200 || status >= 300;
 
-const SKIPPED_TAGS = Object.freeze(["script", "style", "noscript", "svg", "head", "template"]);
+const SKIPPED_TAGS = Object.freeze(["script", "style", "noscript", "svg", "title", "template", "textarea", "select"]);
 
 /** The text outside markup, in one pass. An unclosed comment or script runs to the end of the input. */
 function visibleText(html) {
-  const low = html.toLowerCase();
+  const low = asciiLower(html);
   let out = "";
   let i = 0;
   while (i < html.length) {
@@ -323,9 +380,9 @@ function between(html, low, tag) {
  */
 export function pageExcerpt(body) {
   const whole = String(body ?? "");
-  const text = whole.slice(0, INPUT_CAP_CHARS);
-  const low = text.toLowerCase();
-  const flat = (s) => s.replace(/<[^>]{0,2000}>/g, " ").replace(/&(?:nbsp|amp|quot|lt|gt|#39|#x27);/gi, " ").replace(/\s+/g, " ").trim();
+  const text = stripFields(capped(whole));
+  const low = asciiLower(text);
+  const flat = (s) => visibleText(s).replace(/&(?:nbsp|amp|quot|lt|gt|#39|#x27);/gi, " ").replace(/\s+/g, " ").trim();
   return {
     title: scrub(flat(between(text, low, "title"))).slice(0, 160),
     text: scrub(flat(visibleText(text))).slice(0, PAGE_TEXT_CHARS),

@@ -7,9 +7,10 @@
  *
  *   node bench/front-door/analyze-r.mjs --pass1 <raw.jsonl> [--pass2 <raw.jsonl>] --e20 <tranco/raw.jsonl> <yc/raw.jsonl> [--e20-excluded <hosts file>] [--industries <csv>] [--out analysis.json]
  *
- * Intervals are a cluster bootstrap over organizations, by registrable domain
- * of the final host. HTTP claims must hold on both estimands: S (every graded
- * site) and R (sites labeled `page`). Otherwise they are view-dependent.
+ * Intervals are a cluster bootstrap over organizations: the final host's for HTTP,
+ * the listed one's for DNS, from the pinned suffix list. HTTP claims must hold on
+ * both estimands: S (every graded site) and R (sites labeled `candidate-page`).
+ * Otherwise they are view-dependent.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -71,10 +72,8 @@ export function decide([lo, hi], sign) {
 /** § 2: an HTTP claim needs S and R to agree. */
 export function combine(s, r) {
   if (s === "not estimable" || r === "not estimable") return "not estimable";
-  if (s === "supported" && r === "supported") return "supported";
-  if (s === "refuted" && r === "refuted") return "refuted";
-  if (s !== r && (s === "supported" || r === "supported" || s === "refuted" || r === "refuted")) return "view-dependent";
-  return s;
+  if (s === r) return s;
+  return [s, r].some((d) => d === "supported" || d === "refuted") ? "view-dependent" : "inconclusive";
 }
 
 /** Cohen's kappa for two paired label arrays. */
@@ -93,8 +92,8 @@ export function kappa(x, y) {
 function bounds(pairs, stat, { level = LEVEL, resamples = RESAMPLES, seed = SEED } = {}) {
   const g = Object.values(pairs.reduce((m, p) => ((m[org(p[0])] ||= []).push(p), m), {})), r = seeded(seed), out = [];
   for (let i = 0; i < resamples; i++) { const s = []; for (let k = 0; k < g.length; k++) s.push(...g[Math.floor(r() * g.length)]); out.push(stat(s)); }
-  out.sort((a, b) => a - b);
-  return [pct(out, (1 - level) / 2), pct(out, 1 - (1 - level) / 2)];
+  const finite = out.filter(Number.isFinite).sort((a, b) => a - b);
+  return finite.length ? [pct(finite, (1 - level) / 2), pct(finite, 1 - (1 - level) / 2)] : [NaN, NaN];
 }
 
 const median = (a) => { const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
@@ -182,6 +181,20 @@ export function dnsClaims(records, { measure = "enforcing", ...opts } = {}) {
     diffClaim("C10", "YC-old minus YC-new", Y, O, "spf+dmarc", +1, opts),
   ];
 }
+
+/** Domains behind each mail claim, by what DNS said. `exists: null` is a resolver failure: unknown, and left out. */
+export function dnsCoverage(records) {
+  const out = {};
+  for (const cohort of ["T1k", "YC-new", "YC-25", "YC-old", "T100k"]) {
+    const rows = inCohort(records, cohort).filter((r) => r.dns?.listed);
+    out[cohort] = { read: rows.length, exists: rows.filter((r) => r.dns.listed.exists === true).length, nxdomain: rows.filter((r) => r.dns.listed.exists === false).length, unknown: rows.filter((r) => r.dns.listed.exists === null).length };
+  }
+  return out;
+}
+
+/** Sites a whole-list bound counts. A stop of ours stays in; only an owner's choice or our exclusion leaves. */
+const NOT_ELIGIBLE = new Set(["exclusion_list", "robots_disallow_all", "robots_disallow_path", "not_a_homepage"]);
+export const isEligible = (r) => r.status !== "opted_out" && !NOT_ELIGIBLE.has(r.reason);
 
 /** The reported outcome next to "CSP present": C1, C5, C9 and C11 on a policy that controls scripts. */
 export function cspValueClaims(rows, opts) {
@@ -296,9 +309,14 @@ function main(args) {
     out.dnsGradedOnlyReading = out.claims.filter((c) => decided.some((d) => d.id === c.id)).map((c) => ({ ...c, decision: "reported" }));
     out.claims = out.claims.map((c) => decided.find((d) => d.id === c.id) ?? c);
     out.dnsBeside = { registered: dnsClaims(all, { measure: "registered" }), declared: dnsClaims(all, { measure: "declared" }), rejectOnly: dnsClaims(all, { measure: "reject" }) };
-    const eligible = all.filter((r) => r.status !== "excluded" && r.status !== "opted_out");
+    out.dnsCoverage = dnsCoverage(all);
+    const eligible = all.filter(isEligible);
     const pairs = { C1: ["T1k", ["YC-new"], "csp"], C5: ["T1k", ["T100k"], "csp"], C8: ["T100k", ["YC-new", "YC-25"], "https+hsts"], C9: ["T100k", ["YC-new", "YC-25"], "csp"], C11: ["YC-new", ["YC-old"], "csp"] };
     out.bounds = Object.fromEntries(Object.entries(pairs).map(([id, [a, b, check]]) => [id, coverageBounds(inCohort(eligible, a), inCohort(eligible, ...b), check)]));
+    // C3 and C4 are strata of the edge, which only a graded response shows, so their bounds cover graded sites.
+    const edge = (rows, inA) => rows.filter((r) => STRATUM_A.has(r.platform?.edge) === inA);
+    out.bounds.C3 = { ...coverageBounds(edge(inCohort(p1, "T1k"), true), edge(inCohort(p1, "YC-new"), true), "https+hsts"), scope: "graded" };
+    out.bounds.C4 = { ...coverageBounds(edge(inCohort(p1, "T1k"), false), edge(inCohort(p1, "YC-new"), false), "https+hsts"), scope: "graded" };
     out.standardized = Object.fromEntries(Object.entries(pairs).map(([id, [a, b, check]]) => [id, standardizedDiff(inCohort(p1, a), inCohort(p1, ...b), check)]));
     out.cspControlsScripts = cspValueClaims(p1);
   }

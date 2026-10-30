@@ -420,7 +420,8 @@ export function optedOut(robots, tokens = [TOKEN]) {
   const names = tokens.map((t) => String(t).toLowerCase());
   let agents = [];
   let inRules = false;
-  for (const raw of String(robots).split(/\r?\n/)) {
+  // RFC 9309 ends a line with CR, LF or CRLF.
+  for (const raw of String(robots).replace(/^\uFEFF/, "").split(/\r\n|\r|\n/)) {
     const line = raw.replace(/#.*/, "").trim();
     const m = /^([a-z-]+)\s*:\s*(.*)$/i.exec(line);
     if (!m) continue;

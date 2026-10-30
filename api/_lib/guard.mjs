@@ -139,7 +139,7 @@ export async function fetchBody(start, { maxRedirects = 4, timeout = 6000, maxBy
     await onHop?.(url);
     const host = url.hostname.replace(/^\[|\]$/g, "");
     const { address, family } = await resolvePublic(host, { lookup, allowPrivate });
-    if (meter) meter.requests++;
+    if (meter) { meter.requests++; meter.hosts?.push(url.hostname); }
     const res = await requestOnce(url, address, family, timeout, { maxBytes, accept, userAgent });
     if (meter) meter.bytes += res.bytes ?? 0;
     hops.push({ url: url.href, status: res.status });

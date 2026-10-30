@@ -5,18 +5,19 @@
  *
  *   node bench/front-door/replicate.mjs --self-test
  *       Loopback only: visits tests/fixtures/mock-server.js.
- *   node bench/front-door/replicate.mjs (--pass 2 | --pilot <n>) --registered E20R --lists <dir> --exclude <file> --homepage-only <file> --removals <file> --prior-optouts <file> --pilot-dropped <file>
+ *   node bench/front-door/replicate.mjs (--pass 2 | --pilot <n> [--pilot-round <k>]) --registered E20R --lists <dir> --exclude <file> --homepage-only <file> --removals <file> --prior-optouts <file> --pilot-dropped <file>
  *       The registered run. Refused unless the prereg says Registered, Amendment
  *       2 is adopted, no placeholder is left, the checkout is a clean commit on
- *       origin/main, this machine's one public IPv4 is the registered address, the
+ *       the tip of origin main, this machine's one public IPv4 is the registered address, the
  *       classifier and suffix list match their frozen hashes, and every list
  *       matches its hash. Pass 1 ran on 30 October 2026 and is refused. --pilot
- *       takes at most 50 sites from the claim lists and writes pilot-sites.txt.
- *       Pass 2 needs that list as --pilot-dropped, and has one fixed output
- *       folder, so a second start can't revisit sites. Rate, order and sub-measures
- *       are fixed; no flag changes them. --removals and --prior-optouts are required
- *       and may be empty. They can only take sites out, so their hashes are
- *       recorded in the manifest, not checked.
+ *       takes at most 50 sites from the claim lists, one fixed folder per round,
+ *       and writes pilot-sites.txt with its hash in the manifest. A later round
+ *       and pass 2 need --pilot-dropped to hold exactly the sites of every earlier
+ *       round. Pass 2 has one fixed folder, so a second start can't revisit sites.
+ *       Rate, order and sub-measures are fixed; no flag changes them. --prior-optouts
+ *       must match its frozen hash. --removals is required, may be empty, and only
+ *       takes sites out, so its hash is recorded in the manifest, not checked.
  *
  * Reuses the E20 visit (run.mjs) under the strict robots rules: robots.txt at
  * every origin, RFC 9309 for an unreadable file, and the exclusion list on every
@@ -32,15 +33,16 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { isIP } from "node:net";
-import { readFileSync, writeFileSync, mkdirSync, appendFileSync, existsSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync, mkdirSync, appendFileSync, existsSync, statSync } from "node:fs";
 import { Resolver, lookup as dnsLookup } from "node:dns/promises";
 import { networkInterfaces, platform, release } from "node:os";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { Worker } from "node:worker_threads";
 import {
-  visit, readList, readExclusions, exclusionFor, hostOf, aggregate, sha256, redact, LIMITS, USER_AGENT, OPT_OUT_TOKENS, MIN_GROUP, STUB_DNS, ROBOTS_REDIRECTS, ROBOTS_MAX_BYTES,
+  readList, readExclusions, exclusionFor, hostOf, aggregate, sha256, redact, LIMITS, USER_AGENT, OPT_OUT_TOKENS, MIN_GROUP, STUB_DNS, ROBOTS_REDIRECTS, ROBOTS_MAX_BYTES,
 } from "./run.mjs";
-import { evidenceOf, EXCERPT_BYTES, INPUT_CAP_CHARS, PAGE_TEXT_CHARS, SOFT_MAX_CHARS } from "./classify.mjs";
+import { EXCERPT_BYTES, INPUT_CAP_CHARS, PAGE_TEXT_CHARS, scrub, SOFT_MAX_CHARS } from "./classify.mjs";
 import { pslSha256, PSL_VERSION, siteOrg } from "./psl.mjs";
 import { dnsChecks } from "../../api/_lib/dns.mjs";
 import { isPublicIp } from "../../api/_lib/guard.mjs";
@@ -49,7 +51,11 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 export const PREREG_R = join(ROOT, "docs", "research", "prereg", "E20r-front-door-replication.md");
 export const STUDY_PAGE = join(ROOT, "site", "pages", "research-e20.md");
 export const CLASSIFIER = join(ROOT, "bench", "front-door", "classify.mjs");
-export const PASS2_OUT = join(ROOT, "bench", "front-door", "results", "e20r-pass2");
+export const RESULTS = join(ROOT, "bench", "front-door", "results");
+export const PASS2_OUT = join(RESULTS, "e20r-pass2");
+export const VISIT_WORKER = fileURLToPath(new URL("./visit-worker.mjs", import.meta.url));
+// The thread's own timers fire first when its event loop is free.
+const WORKER_GRACE_MS = 1500;
 
 // § 3: cohort, list file, list format, and the label its hash has in the prereg.
 export const R_COHORTS = Object.freeze({
@@ -105,7 +111,7 @@ export async function dnsProviders(domain, { mx = (d) => defaultResolver().resol
 
 /** p, sp and pct of a DMARC record, lower case, or null when absent. */
 export function dmarcTags(record) {
-  const tag = (name) => new RegExp(`(?:^|;)\\s*${name}\\s*=\\s*([^;\\s]+)`, "i").exec(String(record))?.[1]?.toLowerCase() ?? null;
+  const tag = (name) => { const v = new RegExp(`(?:^|;)\\s*${name}\\s*=\\s*([^;\\s]+)`, "i").exec(String(record))?.[1]?.toLowerCase(); return v === undefined ? null : scrub(v).slice(0, 40); };
   return { p: tag("p"), sp: tag("sp"), pct: tag("pct") };
 }
 
@@ -156,7 +162,7 @@ export async function caaTree(host, resolveCaa) {
     const name = labels.slice(i).join(".");
     try {
       const found = await resolveCaa(name);
-      if (found.length) return { found: true, at: name, inherited: i > 0, issuers: found.map((r) => r.issue ?? r.issuewild).filter((v) => v !== undefined).slice(0, 8) };
+      if (found.length) return { found: true, at: name, inherited: i > 0, issuers: found.map((r) => r.issue ?? r.issuewild).filter((v) => v !== undefined).map((v) => scrub(String(v).split(";")[0].trim()).slice(0, 80)).slice(0, 8) };
     } catch (e) {
       const outcome = dnsOutcome(e);
       if (failedRead(outcome)) return { found: null, at: name, outcome };
@@ -238,7 +244,7 @@ export async function readDomain(host, dns = {}) {
     "spf-record+dmarc-enforcing": both(spfPresent, nullable(reading.enforcing)),
     "spf-record+dmarc-reject": both(spfPresent, nullable(reading.reject)),
     dmarcTags: dmarcRecords.filter((t) => /^v=DMARC1/i.test(t.trim())).length === 1 ? dmarcTags(dmarcRecords.find((t) => /^v=DMARC1/i.test(t.trim()))) : { p: null, sp: null, pct: null },
-    dmarcRecord: redact(dmarcRecords.filter((t) => /^v=DMARC1/i.test(t.trim())).join(" | ")).slice(0, 400),
+    dmarcRecord: scrub(redact(dmarcRecords.filter((t) => /^v=DMARC1/i.test(t.trim())).join(" | "))).slice(0, 400),
     caaTree: await caaTree(String(host).replace(/\.+$/, ""), caa),
   };
 }
@@ -321,13 +327,14 @@ const PLACEHOLDER = /<[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+[^>]*>/;
 export const sourceAddressOf = (preregText) => /^\|\s*Source address\s*\|\s*`([\d.]+)`/m.exec(preregText)?.[1] ?? null;
 
 /** Throws unless this pass may leave loopback. */
-export function authorizeR({ loopback, registered, pass, listHashes = {}, excludeHash, homepageOnlyHash, preregText, pageText = "", tree = {}, sourceIps = [], removals, priorOptOuts, pilotDropped, classifierHash, pslHash }) {
+export function authorizeR({ loopback, registered, pass, listHashes = {}, excludeHash, homepageOnlyHash, preregText, pageText = "", tree = {}, sourceIps = [], removals, priorOptOuts, pilot, classifierHash, pslHash }) {
   if (loopback) return { mode: "loopback" };
   if (registered !== "E20R") throw new Error("Refused: this run would reach other hosts. It needs --registered E20R, after the maintainer registered the protocol (AGENTS.md rule 6).");
   if (pass === 1) throw new Error("Refused: pass 1 ran on 30 October 2026.");
   if (!PASS_SEED[pass]) throw new Error("Refused: use --pass 2 or --pilot <n>.");
   if (!/^\|\s*Status\s*\|\s*\*\*Registered\./m.test(preregText)) throw new Error("Refused: the E20-R prereg's status is not Registered.");
   if (!/^\|\s*Amendment 2\s*\|\s*\*\*Adopted\./m.test(preregText)) throw new Error("Refused: Amendment 2 is not adopted in the prereg.");
+  if (!/^\*\*Status: adopted\.\*\*/m.test(amendmentText(preregText))) throw new Error("Refused: Amendment 2's own status line does not say adopted.");
   for (const [name, text] of [["prereg", preregText], ["study page", pageText]]) {
     const left = PLACEHOLDER.exec(text);
     if (left) throw new Error(`Refused: the ${name} still holds the placeholder ${left[0]}.`);
@@ -335,12 +342,17 @@ export function authorizeR({ loopback, registered, pass, listHashes = {}, exclud
   if (!pageText) throw new Error("Refused: the study page could not be read.");
   if (!tree.commit) throw new Error("Refused: not a git checkout, so the deployed code would be unknown.");
   if (tree.dirty) throw new Error("Refused: the git tree is dirty. A registered run needs a clean checkout.");
-  if (!tree.onMain) throw new Error("Refused: this commit is not on origin/main. Fetch, and run a merged commit.");
+  if (tree.hidden) throw new Error("Refused: git hides a tracked file from status (assume-unchanged or skip-worktree).");
+  if (!tree.remoteTip) throw new Error("Refused: could not read the tip of origin main, so the commit can't be checked.");
+  if (tree.remoteTip !== tree.commit) throw new Error("Refused: this commit is not the tip of origin main. Pull, and run that commit.");
   const address = sourceAddressOf(preregText);
+  if (!address || !pageText.includes(address)) throw new Error("Refused: the study page does not name the registered address.");
   if (sourceIps.length !== 1 || sourceIps[0] !== address) throw new Error(`Refused: this machine needs exactly one public IPv4, the registered ${address}. It has ${sourceIps.length}.`);
   if (removals === undefined) throw new Error("Refused: a registered run needs --removals <file>. It may be empty.");
   if (priorOptOuts === undefined) throw new Error("Refused: a registered run needs --prior-optouts <file>.");
-  if (pass === 2 && !pilotDropped?.length) throw new Error("Refused: pass 2 needs --pilot-dropped <file>, the sites the pilot used.");
+  if (recordedHashR(preregText, "Prior opt-outs") !== sha256(priorOptOuts)) throw new Error("Refused: the prior opt-out list does not match its frozen hash.");
+  if (pass === 2 && !pilot?.ok) throw new Error(`Refused: pass 2 needs --pilot-dropped to match the pilot manifests. ${pilot?.why ?? ""}`.trim());
+  if (pass === "pilot" && pilot && !pilot.ok) throw new Error(`Refused: ${pilot.why}`);
   const frozen = recordedHashR(preregText, "Frozen classifier");
   if (!frozen || frozen !== classifierHash) throw new Error("Refused: classify.mjs does not match the frozen classifier hash.");
   const psl = recordedHashR(preregText, "Public Suffix List");
@@ -387,19 +399,54 @@ export function unmatchedHosts(entries, rows) {
   return [...entries].filter((h) => !listed.has(h));
 }
 
-/** The commit, whether the tree is clean, and whether the commit is on origin/main. */
-export function gitState(cwd = ROOT, run = execFileSync) {
+/**
+ * The commit, whether the tree is clean, whether git hides a file from `status`,
+ * and the tip of main on the remote, asked now: a stale `origin/main` would pass.
+ */
+export function gitState(cwd = ROOT, run = execFileSync, { remote = true } = {}) {
   const git = (...args) => run("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
   try {
-    const state = { commit: git("rev-parse", "HEAD"), dirty: git("status", "--porcelain").length > 0, onMain: false };
-    try {
-      git("merge-base", "--is-ancestor", "HEAD", "origin/main");
-      state.onMain = true;
-    } catch { /* not an ancestor, or no origin/main */ }
+    const state = {
+      commit: git("rev-parse", "HEAD"), dirty: git("status", "--porcelain").length > 0,
+      hidden: git("ls-files", "-v").split("\n").some((l) => /^[a-zS]/.test(l)), remoteTip: null,
+    };
+    if (remote) {
+      try {
+        state.remoteTip = git("ls-remote", "origin", "refs/heads/main").split(/\s+/)[0] || null;
+      } catch { /* no answer: the lock refuses */ }
+    }
     return state;
   } catch {
-    return { commit: null, dirty: null, onMain: false };
+    return { commit: null, dirty: null, hidden: null, remoteTip: null };
   }
+}
+
+/**
+ * Every finished pilot round, from its manifest. `sites` is their union. A round
+ * whose list no longer matches the hash in its manifest makes the result fail.
+ */
+export function pilotRounds(results = RESULTS) {
+  const rounds = [];
+  if (!existsSync(results)) return rounds;
+  for (const dir of readdirSync(results).filter((d) => /^e20r-pilot-\d+$/.test(d)).sort()) {
+    const m = join(results, dir, "manifest.json");
+    const list = join(results, dir, "pilot-sites.txt");
+    if (!existsSync(m) || !existsSync(list)) { rounds.push({ dir, ok: false }); continue; }
+    const manifest = JSON.parse(readFileSync(m, "utf8"));
+    const bytes = readFileSync(list);
+    rounds.push({ dir, ok: Boolean(manifest.finishedAt) && manifest.pilotSitesSha256 === sha256(bytes), hosts: [...readRemovals(bytes.toString("utf8"), "pilot").keys()] });
+  }
+  return rounds;
+}
+
+/** Pass 2 needs the file to hold exactly the sites of every finished pilot round. */
+export function checkPilotDropped(dropped, rounds, { need = true } = {}) {
+  if (!rounds.length) return need ? { ok: false, why: "No pilot manifest found." } : { ok: true, why: "" };
+  const bad = rounds.find((r) => !r.ok);
+  if (bad) return { ok: false, why: `Pilot ${bad.dir} is unfinished, or its list does not match its manifest.` };
+  const want = new Set(rounds.flatMap((r) => r.hosts));
+  const same = want.size === dropped.size && [...want].every((h) => dropped.has(h));
+  return same ? { ok: true, why: "" } : { ok: false, why: "--pilot-dropped does not hold exactly the pilot sites." };
 }
 
 /** This machine's public IPv4 addresses. The published address must be the only one. */
@@ -409,14 +456,14 @@ export function sourceAddresses(interfaces = networkInterfaces()) {
 export const sourceAddressCount = (interfaces) => sourceAddresses(interfaces).length;
 
 const fileHash = (path) => (existsSync(path) ? createHash("sha256").update(readFileSync(path)).digest("hex") : null);
-const STUDY_CODE = Object.freeze(["bench/front-door/run.mjs", "bench/front-door/replicate.mjs", "bench/front-door/classify.mjs", "bench/front-door/psl.mjs", "bench/front-door/analyze-r.mjs", "api/_lib/tier1.mjs", "api/_lib/page.mjs", "api/_lib/guard.mjs", "api/_lib/dns.mjs", "api/_lib/grade.mjs"]);
+const STUDY_CODE = Object.freeze(["bench/front-door/run.mjs", "bench/front-door/replicate.mjs", "bench/front-door/visit-worker.mjs", "bench/front-door/classify.mjs", "bench/front-door/psl.mjs", "bench/front-door/analyze-r.mjs", "bench/front-door/pilot-report.mjs", "bench/front-door/validation-sample.mjs", "api/_lib/tier1.mjs", "api/_lib/page.mjs", "api/_lib/guard.mjs", "api/_lib/dns.mjs", "api/_lib/grade.mjs", "src/utils/url.js"]);
 let runtimeHash = null;
 
 /** The protocol's Amendment 2 section alone, so a later edit elsewhere can be told apart. */
 export const amendmentText = (preregText) => { const i = preregText.indexOf("## Amendment 2"); return i < 0 ? "" : preregText.slice(i); };
 
 export const runConfig = () => ({
-  limits: V2_LIMITS, concurrency: LIMITS.concurrency, delayMs: LIMITS.delayMs, userAgent: USER_AGENT, optOutTokens: OPT_OUT_TOKENS,
+  limits: V2_LIMITS, visitInThread: true, concurrency: LIMITS.concurrency, delayMs: LIMITS.delayMs, userAgent: USER_AGENT, optOutTokens: OPT_OUT_TOKENS,
   strictRobots: true, appPage: false, robotsRedirects: ROBOTS_REDIRECTS, robotsMaxBytes: ROBOTS_MAX_BYTES, requestTimeoutsMs: { page: 6000, robots: 4000, securityTxt: 4000 },
   dnsTimeoutMs: DNS_TIMEOUT_MS, excerptBytes: EXCERPT_BYTES, pageTextChars: PAGE_TEXT_CHARS, softMaxChars: SOFT_MAX_CHARS, inputCapChars: INPUT_CAP_CHARS, seeds: PASS_SEED, pilotMax: PILOT_MAX,
 });
@@ -467,8 +514,34 @@ export function aggregateR(records, meta = {}) {
   return { experiment: "E20-R", ...meta, cohorts };
 }
 
+/**
+ * One visit in its own thread, ended at the hard cap. A page can hold a regex for
+ * minutes, and no timer on that thread would fire, so the cap is enforced here.
+ * The record then keeps the last progress the thread sent.
+ */
+export function visitInWorker(row, { loopbackPort, exclude = new Map(), budgetMs = V2_LIMITS.siteBudgetMs, hardCapMs = V2_LIMITS.siteHardCapMs, workerFile = VISIT_WORKER } = {}) {
+  return new Promise((done) => {
+    const at = new Date().toISOString();
+    let last = { requests: 0, bytes: 0, redirects: 0, hosts: [] };
+    let finished = false;
+    const worker = new Worker(workerFile, { workerData: { row, loopbackPort, exclude: [...exclude], budgetMs, hardCapMs } });
+    const finish = (record) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(cap);
+      worker.terminate();
+      done(record);
+    };
+    const lost = (error, reason) => ({ ...row, at, status: "error", error, ...(reason ? { reason } : {}), robots: [], counters: { requests: last.requests, bytes: last.bytes, redirects: last.redirects }, hops: last.hosts });
+    const cap = setTimeout(() => finish(lost("timeout", "hard_cap")), hardCapMs + WORKER_GRACE_MS);
+    worker.on("message", (m) => { if (m.record) finish(m.record); else last = m.progress; });
+    worker.on("error", () => finish(lost("internal")));
+    worker.on("exit", () => finish(lost("internal")));
+  });
+}
+
 /** One pass. `rows` come from mergeCohorts. Appends each record to raw.jsonl. */
-export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map(), delayMs = LIMITS.delayMs, concurrency = LIMITS.concurrency, dns = {}, meta = {}, manifest = {}, onRecord } = {}) {
+export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map(), delayMs = LIMITS.delayMs, concurrency = LIMITS.concurrency, dns = {}, meta = {}, manifest = {}, onRecord, workerFile } = {}) {
   if (!loopbackPort) { concurrency = LIMITS.concurrency; delayMs = LIMITS.delayMs; }
   const order = shuffled(rows, PASS_SEED[pass]);
   mkdirSync(out, { recursive: true });
@@ -476,10 +549,10 @@ export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map
   const raw = join(out, "raw.jsonl");
   if ((existsSync(raw) && statSync(raw).size) || existsSync(join(out, "manifest.json"))) throw new Error(`Refused: ${out} already holds a run.`);
   writeFileSync(raw, "");
-  const started = runManifest({ kind: pass === "pilot" ? "pilot" : "pass", pass, seed: PASS_SEED[pass], loopback: Boolean(loopbackPort), sites: order.length, startedAt: new Date().toISOString(), ...manifest });
-  if (pass === "pilot") writeFileSync(join(out, "pilot-sites.txt"), order.map((r) => r.host.replace(/^www\./, "")).join("\n") + "\n");
+  const pilotList = pass === "pilot" ? order.map((r) => r.host.replace(/^www\./, "")).join("\n") + "\n" : null;
+  const started = runManifest({ kind: pass === "pilot" ? "pilot" : "pass", pass, seed: PASS_SEED[pass], loopback: Boolean(loopbackPort), sites: order.length, startedAt: new Date().toISOString(), ...(pilotList ? { pilotSitesSha256: sha256(Buffer.from(pilotList)) } : {}), ...manifest });
+  if (pilotList) writeFileSync(join(out, "pilot-sites.txt"), pilotList);
   writeFileSync(join(out, "manifest.json"), JSON.stringify(started, null, 2) + "\n");
-  const lookup = loopbackPort ? undefined : ipv4Lookup;
   // Loopback runs never touch a real resolver.
   const stub = () => Promise.reject(Object.assign(new Error("ENODATA"), { code: "ENODATA" }));
   const dnsAnswers = loopbackPort ? { ...STUB_DNS, mx: stub, ns: stub, ...dns } : dns;
@@ -494,7 +567,7 @@ export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map
       if (category) record = { ...row, at: new Date().toISOString(), status: "excluded", reason: "exclusion_list", category };
       else {
         // Amendment 2: no app page, for any site. `appPage` is not passed, and `strict` refuses it anyway.
-        record = { ...row, ...(await visit(row, { loopbackPort, exclude, lookup, evidence: evidenceOf, strict: true, budgetMs: V2_LIMITS.siteBudgetMs, hardCapMs: V2_LIMITS.siteHardCapMs })) };
+        record = { ...row, ...(await visitInWorker(row, { loopbackPort, exclude, workerFile })) };
         record.listedHost = row.host;
         record.listedOrg = siteOrg(row.host);
         if (record.finalHost) {
@@ -528,7 +601,7 @@ export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map
 }
 
 // DNS goes to public resolvers, not to the site, but a site that said stop stays out.
-const NO_DNS = new Set(["robots_disallow_all", "not_a_homepage", "exclusion_list"]);
+const NO_DNS = new Set(["robots_disallow_all", "not_a_homepage", "exclusion_list", "robots_disallow_path"]);
 const readsDns = (r) => r.status !== "opted_out" && !NO_DNS.has(r.reason);
 
 /** Loopback self-test: three names on two lists, all pinned to the mock server. */
@@ -571,8 +644,10 @@ async function main(args) {
   const dir = flag(args, "--lists");
   const pilot = args.includes("--pilot") ? Number(flag(args, "--pilot")) : null;
   const pass = pilot === null ? Number(flag(args, "--pass")) : "pilot";
-  if (!dir) { console.error("Usage: node bench/front-door/replicate.mjs --self-test | (--pass 2 | --pilot <n>) --registered E20R --lists <dir> --exclude <file> --homepage-only <file> --removals <file> --prior-optouts <file> --pilot-dropped <file>"); return 2; }
-  if (pilot === null && flag(args, "--out")) { console.error(`Pass 2 has one output folder: ${PASS2_OUT}.`); return 2; }
+  const round = Number(flag(args, "--pilot-round") ?? 1);
+  if (!dir) { console.error("Usage: node bench/front-door/replicate.mjs --self-test | (--pass 2 | --pilot <n> [--pilot-round <k>]) --registered E20R --lists <dir> --exclude <file> --homepage-only <file> --removals <file> --prior-optouts <file> --pilot-dropped <file>"); return 2; }
+  if (flag(args, "--out")) { console.error("A registered run has one fixed output folder; --out is for no run."); return 2; }
+  if (!(Number.isInteger(round) && round >= 1 && round <= 9)) { console.error("--pilot-round takes 1 to 9."); return 2; }
   if (pilot !== null && !(Number.isInteger(pilot) && pilot >= 1 && pilot <= PILOT_MAX)) { console.error(`--pilot takes 1 to ${PILOT_MAX} sites.`); return 2; }
   const excludeBytes = flag(args, "--exclude") ? readFileSync(flag(args, "--exclude")) : null;
   const homepageBytes = flag(args, "--homepage-only") ? readFileSync(flag(args, "--homepage-only")) : null;
@@ -580,8 +655,10 @@ async function main(args) {
   const removalsBytes = flag(args, "--removals") ? readFileSync(flag(args, "--removals")) : null;
   const priorBytes = flag(args, "--prior-optouts") ? readFileSync(flag(args, "--prior-optouts")) : null;
   const pilotBytes = flag(args, "--pilot-dropped") ? readFileSync(flag(args, "--pilot-dropped")) : null;
-  let lists, exclude, rows, removals, prior, pilotDropped;
+  let lists, exclude, rows, removals, prior, pilotDropped, unmatchedRemovals;
   try {
+    pilotDropped = pilotBytes ? readRemovals(pilotBytes.toString("utf8"), "pilot") : new Map();
+    const earlier = pilotRounds().filter((r) => pilot === null || r.dir !== `e20r-pilot-${round}`);
     authorizeR({
       registered: flag(args, "--registered"), pass,
       listHashes: Object.fromEntries(Object.entries(bytes).map(([c, b]) => [c, b ? sha256(b) : null])),
@@ -590,28 +667,30 @@ async function main(args) {
       preregText: existsSync(PREREG_R) ? readFileSync(PREREG_R, "utf8") : "",
       pageText: existsSync(STUDY_PAGE) ? readFileSync(STUDY_PAGE, "utf8") : "",
       tree: gitState(), sourceIps: sourceAddresses(),
-      removals: removalsBytes ?? undefined, priorOptOuts: priorBytes ?? undefined, pilotDropped: pilotBytes ?? undefined,
+      removals: removalsBytes ?? undefined, priorOptOuts: priorBytes ?? undefined,
+      pilot: checkPilotDropped(pilotDropped, earlier, { need: pilot === null }),
       classifierHash: fileHash(CLASSIFIER), pslHash: pslSha256(),
     });
     lists = Object.fromEntries(Object.entries(R_COHORTS).map(([c, { format }]) => [c, readList(bytes[c].toString("utf8"), format)]));
     removals = readRemovals(removalsBytes.toString("utf8"));
     prior = readRemovals(priorBytes.toString("utf8"), "opted-out-earlier");
-    pilotDropped = pilotBytes ? readRemovals(pilotBytes.toString("utf8"), "pilot") : new Map();
     exclude = new Map([...readExclusions(excludeBytes.toString("utf8")), ...pilotDropped, ...prior, ...removals]);
     const all = mergeCohorts(lists);
     const missing = unmatchedHosts(readHostList(homepageBytes.toString("utf8")), all);
     if (missing.length) throw new Error(`Refused: ${missing.length} homepage-only entries match no listed site.`);
+    unmatchedRemovals = unmatchedHosts(removals.keys(), all).filter((h) => !all.some((r) => exclusionFor(r.host, new Map([[h, "x"]]))));
+    if (unmatchedRemovals.length) console.error(`Warning: ${unmatchedRemovals.length} removal entries match no listed site. Check for a typo.`);
     rows = pilot === null ? all : pilotSample(all, pilot, { exclude });
   } catch (e) {
     console.error(e.message);
     return 3;
   }
-  const out = pilot === null ? PASS2_OUT : resolve(flag(args, "--out") || join(ROOT, "bench", "front-door", "results", `e20r-pilot-${new Date().toISOString().replace(/[:.]/g, "-")}`));
+  const out = pilot === null ? PASS2_OUT : join(RESULTS, `e20r-pilot-${round}`);
   const { aggregate: agg } = await runPass(rows, {
     pass, out, exclude,
     manifest: {
       listSha256: Object.fromEntries(Object.entries(bytes).map(([c, b]) => [c, sha256(b)])), exclusionSha256: sha256(excludeBytes), homepageOnlySha256: sha256(homepageBytes),
-      removals: { used: true, count: removals.size, sha256: sha256(removalsBytes) },
+      removals: { used: true, count: removals.size, unmatched: unmatchedRemovals.length, sha256: sha256(removalsBytes) },
       priorOptOuts: { used: true, count: prior.size, sha256: sha256(priorBytes) },
       pilotDropped: { used: Boolean(pilotBytes), count: pilotDropped.size, sha256: pilotBytes ? sha256(pilotBytes) : null },
     },

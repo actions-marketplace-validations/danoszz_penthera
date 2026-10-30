@@ -397,6 +397,9 @@ describe("site motion budget", () => {
     expect(dock).toContain("still.matches");
     expect(dock).toContain("translate:");
     expect(dock).not.toMatch(/\b(left|top|width):\s*`/);
+    // The slide comes first on the way in, and the rail never bounces.
+    expect(dock).toContain("[0.3, 1, 0, 0.55] : [0, 0.62, 0.42, 1]");
+    expect(css).toMatch(/\.rail\[data-top\] \{ position: absolute;/);
   });
 
   it("keeps the live field on a layer of its own", () => {
@@ -435,7 +438,7 @@ describe("site story", () => {
     for (const [i, m] of order.entries()) expect(at[i], m).toBeGreaterThan(0);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
     expect(h).toContain("AI coding tools ship faster than anyone can check.");
-    expect(h).toContain('<h1 id="hero-title"><span class="sr">Penthera: </span>your <span class="nowrap">open-source</span> cyber security agent</h1>');
+    expect(h).toContain('<h1 class="ask-sub" id="hero-title">Penthera: your <span class="nowrap">open-source</span> cyber security agent</h1>');
     expect(h).toContain('<p class="bubble">yo, is my app safe?</p>');
     expect(h).toMatch(/<h2 id="faq-title">Before you install\.<\/h2>/);
     // Merged away: no section repeats another.
@@ -496,8 +499,8 @@ describe("site story", () => {
     const h = html();
     const hero = h.slice(h.indexOf('class="hero"'), h.indexOf('id="answer"'));
     expect(h.match(/<h1[ >]/g)).toHaveLength(1);
-    expect(hero.indexOf('id="hero-title"')).toBeLessThan(hero.indexOf('<p class="ask">Is your site/app safe?</p>'));
-    expect(hero.indexOf('class="ask"')).toBeLessThan(hero.indexOf('id="scan"'));
+    expect(hero.indexOf('<p class="ask">Is your site/app safe?</p>')).toBeLessThan(hero.indexOf('id="hero-title"'));
+    expect(hero.indexOf('id="hero-title"')).toBeLessThan(hero.indexOf('id="scan"'));
     // The example is the live check's own report of the test server, made at build time.
     const r = await exampleCheck();
     const card = hero.slice(hero.indexOf('class="card card-example"'), hero.indexOf('data-report hidden'));

@@ -610,17 +610,35 @@ function tickerRest() {
 
 // ── The rail docks once the logo has scrolled away ──────────────────────
 
-// A small joke on the way past. Docking: up, left along the top edge, then a
-// drop into place with a bounce. Leaving: the same path backwards, up, right,
-// and down onto its spot. The rail is measured before and after, because it
-// changes width, and only `translate` moves, so the compositor runs it. A
-// reversal mid-flight starts from wherever the rail is.
-const RAIL_MS = 680, RAIL_LIFT = 22;
+// A small detail on the way past. At the top of the homepage the rail is part
+// of the header and scrolls away with it. Half out of view it slides left along
+// the top edge, then settles down into its docked place, and the way back is
+// the reverse: up, then right. No bounce. The two moves overlap a little, so
+// the path curves at the corner. The rail changes width, so it is measured
+// before and after; only `translate` moves, on the compositor, and a change of
+// direction mid-flight starts from wherever the rail is.
+const DOCK_AT = 60;                     // px scrolled when the rail leaves the header
+const DOCK_MS = 720, UNDOCK_MS = 480;   // slow on the way in, quicker on the way out
+const STEPS = 30;
+
+/** cubic-bezier(x1, y1, x2, y2) as a function of time. */
+function bezier(x1, y1, x2, y2) {
+  const at = (a, b, t) => 3 * a * t * (1 - t) ** 2 + 3 * b * t * t * (1 - t) + t ** 3;
+  return (x) => {
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 20; i++) { const m = (lo + hi) / 2; if (at(x1, x2, m) < x) lo = m; else hi = m; }
+    return at(y1, y2, (lo + hi) / 2);
+  };
+}
+const glide = bezier(0.32, 0.72, 0, 1);
+const span = (t, from, to) => glide(Math.min(1, Math.max(0, (t - from) / (to - from))));
+
 function railDock() {
   const rail = $(".rail[data-top]");
-  const brand = $(".bar .brand");
-  if (!rail || !brand) return;
+  const ticker = $(".ticker");
+  if (!rail || !ticker) return;
   const still = matchMedia("(prefers-reduced-motion: reduce)");
+  const fresh = rail.querySelectorAll('.rail-mark, .star, .rail-links a[href="#scan"]');
   let flight;
   const box = () => { const r = rail.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top }; };
   const move = (top) => {
@@ -629,24 +647,18 @@ function railDock() {
     flight?.cancel();
     rail.toggleAttribute("data-top", top);
     const b = box();
-    const dx = a.x - b.x, dy = a.y - b.y;
+    const dx = a.x - b.x, dy = Math.max(a.y, -20) - b.y;
     if (still.matches || Math.hypot(dx, dy) < 2) return;
-    const out = "cubic-bezier(.3, 0, .2, 1)";
-    flight = rail.animate(top ? [
-      { translate: `${dx}px ${dy}px`, easing: "ease-out" },
-      { offset: 0.2, translate: `${dx}px ${dy - RAIL_LIFT}px`, easing: out },
-      { offset: 0.68, translate: `10px ${dy - RAIL_LIFT}px`, easing: "ease-in-out" },
-      { offset: 0.84, translate: "-3px 0px", easing: "ease-out" },
-      { translate: "0px 0px" },
-    ] : [
-      { translate: `${dx}px ${dy}px`, easing: out },
-      { offset: 0.56, translate: `-10px ${-RAIL_LIFT}px`, easing: "cubic-bezier(.5, 0, .9, .6)" },
-      { offset: 0.76, translate: "0px 7px", easing: "ease-out" },
-      { offset: 0.9, translate: "0px -2px", easing: "ease-in-out" },
-      { translate: "0px 0px" },
-    ], { duration: RAIL_MS });
+    // In: x first, then y. Out: y first, then x.
+    const [xFrom, xTo, yFrom, yTo] = top ? [0.3, 1, 0, 0.55] : [0, 0.62, 0.42, 1];
+    const frames = Array.from({ length: STEPS + 1 }, (_, i) => {
+      const t = i / STEPS;
+      return { translate: `${(dx * (1 - span(t, xFrom, xTo))).toFixed(2)}px ${(dy * (1 - span(t, yFrom, yTo))).toFixed(2)}px` };
+    });
+    flight = rail.animate(frames, { duration: top ? UNDOCK_MS : DOCK_MS, easing: "linear" });
+    if (!top) for (const el of fresh) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, delay: 160, fill: "backwards", easing: "ease" });
   };
-  new IntersectionObserver(([e]) => move(e.isIntersecting)).observe(brand);
+  new IntersectionObserver(([e]) => move(e.isIntersecting), { rootMargin: `${DOCK_AT - ticker.offsetHeight}px 0px 0px 0px` }).observe(ticker);
 }
 
 // ── The bottom veil stays off the hero text and the footer ──────────────

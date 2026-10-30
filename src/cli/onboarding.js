@@ -364,6 +364,7 @@ export function inside(root, path, p = { resolve, relative, isAbsolute, sep }) {
 }
 
 function countLine(findings, un = null) {
+  if (un?.nothing) return "nothing found to assess";
   if (un?.none) return `not checked: 0 of ${un.total} packages installed or cached`;
   const c = countFindings(findings);
   const parts = ["critical", "high", "medium", "low"].filter((s) => c[s]).map((s) => `${c[s]} ${s}`);
@@ -374,7 +375,9 @@ function countLine(findings, un = null) {
 /** A grade for what was read; "–" when nothing was, so nothing unread reads as an A. */
 function gradeArea(r) {
   Object.assign(r, gradeFindings(r.merged.findings));
-  r.unchecked = uncheckedDeps(r.merged.deps);
+  r.unchecked = r.merged.agents?.grade === null
+    ? { none: true, nothing: true, what: "No agent config at the paths Penthera reads, so there is nothing to grade.", fix: "If this project uses AI tooling, its config sits somewhere Penthera does not read yet." }
+    : uncheckedDeps(r.merged.deps);
   if (r.unchecked?.none) Object.assign(r, { grade: "–", score: null });
 }
 
@@ -621,7 +624,7 @@ export async function runInit(argv, { version = pkg.version } = {}) {
       offline: ctx.offline,
       checks: results.map((r) => ({
         id: r.id, label: r.label, command: r.command,
-        ...(r.error ? { error: r.error } : { grade: r.grade, score: r.score, counts: countFindings(r.merged.findings), ...(r.unchecked ? { notRead: { packages: r.unchecked.missing, of: r.unchecked.total } } : {}), report: { json: `${r.id}.json`, markdown: `${r.id}.md` } }),
+        ...(r.error ? { error: r.error } : { grade: r.grade, score: r.score, counts: countFindings(r.merged.findings), ...(r.unchecked && !r.unchecked.nothing ? { notRead: { packages: r.unchecked.missing, of: r.unchecked.total } } : {}), report: { json: `${r.id}.json`, markdown: `${r.id}.md` } }),
       })),
       fixFirst: top,
     }, null, 2) + "\n");

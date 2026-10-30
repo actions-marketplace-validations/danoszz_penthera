@@ -49,6 +49,7 @@ const REPO_LIMITS = [
 const URL_LIMITS = [
   "Passive checks only (quick or standard profile): TLS, headers, cookies, CORS, discovery, templates, OpenAPI and auth smoke tests. No injection payloads, no fuzzing, no recon sources: active modes are not available over MCP; run `penthera <url> --deep` yourself for those.",
   "Only what the target serves to an unauthenticated client is seen.",
+  "Stays on the target and hosts listed with --allow-host. A redirect may also move within the target's registrable domain. Anything else is refused and named under Not checked. Retire.js uses the vendored snapshot, never a download.",
 ];
 const DEPS_LIMITS = [
   "Reads the lockfile and the installed package tree; never runs install scripts and never contacts the registry (no --online).",
@@ -96,7 +97,7 @@ export const TOOLS = [
   {
     name: "scan_url",
     title: "Scan a running app (passive)",
-    description: "Passive black-box scan of a running web app the user is authorized to test: TLS, security headers, cookies, CORS, exposed files and docs, OpenAPI and auth checks. Sends no attack payloads: profile quick sends no login request, standard sends one POST /api/login with invalid credentials. Only loopback targets, or hosts the user listed with --allow-host when configuring this server, can be scanned.",
+    description: "Passive black-box scan of a running web app the user is authorized to test: TLS, security headers, cookies, CORS, exposed files and docs, OpenAPI and auth checks. Sends no attack payloads: profile quick sends no login request, standard sends one POST /api/login with invalid credentials. Only loopback targets, or hosts the user listed with --allow-host when configuring this server, can be scanned, and a redirect off them is refused.",
     inputSchema: {
       type: "object",
       properties: {
@@ -113,15 +114,21 @@ export const TOOLS = [
       const url = normalizeBaseUrl(target.href);
       // Active modes are never reachable here: the profile is quick or standard, and deep/fuzz/adaptive/recon are fixed off.
       const p = resolveScanOptions({ profile: args.profile || "standard" });
+      // The scope holds on every request and redirect hop, with or without --offline.
       const raw = await scanUrl(url, {
         timeout: 10000, concurrency: 10, profile: p.profile,
         recon: false, deep: false, fuzz: false, adaptive: false,
         skipRetireJs: p.skipRetireJs, skipParamDiscovery: p.skipParamDiscovery,
-        offline: ctx.offline, onPhase: () => {},
+        offline: ctx.offline, scoped: true, allowHosts: ctx.offline ? [] : ctx.allowHosts, onPhase: () => {},
       });
       if (!raw.reachable) throw new ToolInputError(`Target unreachable: ${url}. Is the app running?`);
       const merged = mergeResults([raw]);
-      return buildResult({ tool: "scan_url", target: url, findings: merged.findings, limits: URL_LIMITS, maxFindings: args.max_findings, extra: { profile: p.profile, offline: !!ctx.offline }, scan: { mode: "url" } });
+      const blocked = (raw.egress?.blocked || []).map((b) => cleanText(b.host, 300));
+      return buildResult({
+        tool: "scan_url", target: url, findings: merged.findings, limits: URL_LIMITS, maxFindings: args.max_findings,
+        extra: { profile: p.profile, offline: !!ctx.offline, blocked_hosts: blocked },
+        scan: { mode: "url", notChecked: blocked.length ? [`Requests that left the allowed scope were refused: ${blocked.join(", ")}. What they would have returned was not checked.`] : [] },
+      });
     },
   },
   {
@@ -154,7 +161,7 @@ export const TOOLS = [
   {
     name: "audit_ai_tooling",
     title: "Audit AI agent config",
-    description: "Audit the project's AI agent setup: skills, MCP servers, hooks, permissions, plugins and rule files, for hidden instructions, curl-pipe-shell, unpinned MCP packages, inline secrets and wildcard permissions. Grades A to F. Offline, deterministic, read-only.",
+    description: "Audit the project's AI agent setup: skills, MCP servers, hooks, permissions, plugins and rule files, for hidden instructions, curl-pipe-shell, unpinned MCP packages, inline secrets and wildcard permissions. Grades A to F, or gives no grade when it finds no agent config. Offline, deterministic, read-only.",
     inputSchema: { type: "object", properties: { path: PATH, max_findings: MAX }, additionalProperties: false },
     annotations: { title: "Audit AI agent config", ...READ_ONLY },
     async run(args, ctx) {
@@ -165,7 +172,7 @@ export const TOOLS = [
       return buildResult({
         tool: "audit_ai_tooling", target: display, findings: stampProvenance(raw.findings, raw.timestamp), limits: AGENTS_LIMITS, maxFindings: args.max_findings,
         extra: { grade: a.grade ?? null, score: a.score ?? null, inventory: a.inventory ? { ...a.inventory, configFiles: (a.inventory.configFiles || []).slice(0, 50).map((f) => cleanText(f, 300)) } : null },
-        scan: { mode: "agents" },
+        scan: { mode: "agents", agents: a },
       });
     },
   },

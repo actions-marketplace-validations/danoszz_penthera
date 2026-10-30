@@ -10,7 +10,9 @@ description: "Your AI tools run code too."
 
 Your AI tools run code too. `penthera agents` audits the skills, MCP servers,
 hooks, permissions, plugins and rule files that Claude Code, Cursor, Claude
-Desktop, VS Code and Copilot load, and grades the setup A to F.
+Desktop, VS Code and Copilot load, and grades the setup A to F. If it finds no
+agent config, it gives no grade and reports `Nothing to assess`, because an A
+would grade something it never read.
 
 ```bash
 penthera agents                 # this repo: .mcp.json, .claude/, .cursor/, AGENTS.md, CLAUDE.md, skills/

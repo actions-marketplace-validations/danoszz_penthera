@@ -58,8 +58,8 @@ export async function aiTab(el) {
   el.append(
     section("AI tooling", ago(l.ts),
       h("div", { class: "head" },
-        h("span", { class: `grade lg grade-${l.grade}` }, l.grade),
-        h("div", {}, h("div", { class: "t1" }, `score ${l.score}/100`), h("div", { class: "muted" }, `grade history ${d.history.map((x) => x.grade).join(" → ")}`))),
+        h("span", { class: `grade lg grade-${l.grade || "x"}` }, l.grade || "–"),
+        h("div", {}, h("div", { class: "t1" }, l.grade ? `score ${l.score}/100` : "nothing to assess"), h("div", { class: "muted" }, `grade history ${d.history.map((x) => x.grade || "–").join(" → ")}`))),
       h("dl", { class: "kv" },
         h("dt", {}, "penthera.lock"), h("dd", { class: drift ? "bad" : null }, lock.status === "missing" ? "not pinned" : drift ? `${lock.changed || 0} changed · ${lock.added || 0} new · ${lock.removed || 0} removed` : "no drift"),
         h("dt", {}, "inventory"), h("dd", {}, `${l.inventory.skills || 0} skills · ${l.inventory.mcpServers || 0} MCP servers · ${l.inventory.hooks || 0} hooks`),

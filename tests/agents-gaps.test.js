@@ -16,7 +16,7 @@ import {
   checkHookExtras, checkMcpExtras, checkTasks, npmSpecPinned, pySpecPinned, runnerPackage,
   gitSource, gitRefPinned,
 } from "../lib/agents/rules.js";
-import { scanAgents, NOT_CHECKED_TOOL_DESCRIPTIONS } from "../lib/agents/index.js";
+import { scanAgents, NOT_CHECKED_TOOL_DESCRIPTIONS, NOTHING_TO_ASSESS } from "../lib/agents/index.js";
 import { computeLockEntries } from "../lib/agents/lock.js";
 import { discoverAgentConfig, vscodeGlobalStoragePaths, claudeDesktopConfigPaths } from "../lib/agents/discover.js";
 import { RULE_OWASP } from "../lib/agents/owasp.js";
@@ -132,7 +132,7 @@ describe("Not checked line", () => {
 
   it("never claims nothing was skipped for an agents scan, even on an empty repo", async () => {
     const brief = buildBrief(await scanAgents(tmp()));
-    expect(brief.not_checked).toEqual([NOT_CHECKED_TOOL_DESCRIPTIONS]);
+    expect(brief.not_checked).toEqual([NOTHING_TO_ASSESS, NOT_CHECKED_TOOL_DESCRIPTIONS]);
   });
 });
 

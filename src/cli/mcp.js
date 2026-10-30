@@ -27,8 +27,9 @@ export const MCP_HELP = `
         --root <dir>        Workspace folder tools may read (repeatable). Default: the folder the
                            client starts the server in. Clients that send MCP roots override it.
         --allow-host <host> A host scan_url may contact besides loopback (repeatable, exact name).
-                           Only list targets you are authorized to test.
-        --offline           scan_url contacts only the target: no Retire.js download, no DNS lookups
+                           Only list targets you are authorized to test. A redirect may also move
+                           within the target's registrable domain; any other host is refused.
+        --offline           scan_url contacts only the target: no listed hosts, no DNS lookups
     -h, --help              Show this help
 `;
 

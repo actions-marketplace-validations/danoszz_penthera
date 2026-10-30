@@ -146,6 +146,8 @@ export function buildOverview({ scans = [], memory = [], runs = [] }) {
       open: actionable(c),
       fixed: gone.length,
       ...postureGrade(c),
+      // An agents audit that read nothing has no grade to show.
+      ...(latest.data.agents?.grade === null ? { grade: "–", score: null } : {}),
       trend: trend.map((t) => ({ ts: t.ts, total: actionable(t), critical: t.critical, high: t.high })),
       memory: mem ? { events: mem.events, chain: mem.chain, medianTimeToFixDays: mem.medianTimeToFixDays } : null,
     });

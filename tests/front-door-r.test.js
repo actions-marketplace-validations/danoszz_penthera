@@ -1,0 +1,246 @@
+/**
+ * E20-R (bench/front-door/replicate.mjs, classify.mjs, analyze-r.mjs): the
+ * guard, the response classifier, the fixed order, and the analysis on
+ * synthetic records. Loopback only; nothing leaves the machine.
+ */
+import { describe, it, expect } from "vitest";
+import { mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { classify, cookieNames, evidenceOf, traitsOf, EXCERPT_BYTES } from "../bench/front-door/classify.mjs";
+import { authorizeR, mergeCohorts, readRemovals, recordedHashR, runPass, shuffled, seeded, dnsProviders, selfTestR, aggregateR, R_COHORTS, ipv4Lookup, PREREG_R } from "../bench/front-door/replicate.mjs";
+import { kappa, decide, combine, clusterDiff, pass, claims, traitTable, replicationAsE20, industryTable, CLAIMS_R, LEVEL } from "../bench/front-door/analyze-r.mjs";
+
+const tmp = () => mkdtempSync(join(tmpdir(), "e20r-"));
+const HASH = "a".repeat(64);
+const prereg = (status = "**Registered.** Accepted") => `| Status | ${status} |\n` + Object.keys(R_COHORTS).map((c) => `| ${c} list SHA-256 | \`${HASH}\` |`).join("\n") + `\n| E20-R exclusion list SHA-256 | \`${HASH}\` |\n| E20-R homepage-only list SHA-256 | \`${HASH}\` |\n`;
+const allHashes = Object.fromEntries(Object.keys(R_COHORTS).map((c) => [c, HASH]));
+const good = { registered: "E20R", pass: 1, listHashes: allHashes, excludeHash: HASH, homepageOnlyHash: HASH, preregText: prereg() };
+
+describe("E20-R guard", () => {
+  it("allows loopback, and a registered pass whose hashes all match", () => {
+    expect(authorizeR({ loopback: true }).mode).toBe("loopback");
+    expect(authorizeR(good).mode).toBe("registered");
+  });
+  it("refuses without --registered E20R, or with another study's flag", () => {
+    expect(() => authorizeR({ ...good, registered: undefined })).toThrow(/Refused/);
+    expect(() => authorizeR({ ...good, registered: "E20" })).toThrow(/Refused/);
+  });
+  it("refuses a draft protocol, a third pass, a changed list or exclusion list", () => {
+    expect(() => authorizeR({ ...good, preregText: prereg("**Draft**") })).toThrow(/not Registered/);
+    expect(() => authorizeR({ ...good, pass: 3 })).toThrow(/--pass/);
+    expect(() => authorizeR({ ...good, listHashes: { ...allHashes, Europe: "b".repeat(64) } })).toThrow(/Europe list/);
+    expect(() => authorizeR({ ...good, excludeHash: "b".repeat(64) })).toThrow(/exclusion/);
+    expect(() => authorizeR({ ...good, homepageOnlyHash: "b".repeat(64) })).toThrow(/homepage-only/);
+  });
+  it("records a hash for every list in the protocol", () => {
+    const text = readFileSync(PREREG_R, "utf8");
+    for (const c of Object.keys(R_COHORTS)) expect(recordedHashR(text, `${c} list`)).toMatch(/^[0-9a-f]{64}$/);
+    expect(recordedHashR(text, "E20-R exclusion list")).toMatch(/^[0-9a-f]{64}$/);
+    expect(recordedHashR(text, "E20-R homepage-only list")).toMatch(/^[0-9a-f]{64}$/);
+  });
+  it("resolves IPv4 only", async () => {
+    const answers = await ipv4Lookup("localhost", { all: true });
+    expect(answers.every((a) => a.family === 4)).toBe(true);
+  });
+});
+
+describe("E20-R classifier", () => {
+  it("trusts a header marker before the status code", () => {
+    expect(classify({ status: 200, headers: { "CF-Mitigated": "challenge" } })).toMatchObject({ label: "challenge", vendor: "cloudflare", rule: "header:cf-mitigated" });
+    expect(classify({ status: 202, headers: { "x-amzn-waf-action": "captcha" } }).label).toBe("challenge");
+    expect(classify({ status: 403, headers: { "x-vercel-mitigated": "challenge" } }).vendor).toBe("vercel");
+  });
+  it("finds a challenge in a 2xx body, the gap in E20's status filter", () => {
+    expect(classify({ status: 200, body: "<title>Just a moment...</title>" }).label).toBe("challenge");
+    expect(classify({ status: 403, body: '<script src="https://geo.captcha-delivery.com/x"></script>' }).vendor).toBe("datadome");
+  });
+  it("separates a block from an origin error and a page", () => {
+    expect(classify({ status: 403, body: "Sorry, you have been blocked" })).toMatchObject({ label: "block", vendor: "cloudflare" });
+    expect(classify({ status: 403, body: "<H1>Access Denied</H1>" })).toMatchObject({ label: "block", vendor: "akamai" });
+    expect(classify({ status: 404, body: "not here" }).label).toBe("origin-error");
+    expect(classify({ status: 200, body: "<h1>Welcome</h1>" }).label).toBe("page");
+  });
+  it("keeps cookie names, never values", () => {
+    expect(cookieNames({ "set-cookie": ["__cf_bm=SECRET; Path=/", "sid=abc"] })).toEqual(["__cf_bm", "sid"]);
+    expect(JSON.stringify(evidenceOf({ status: 200, headers: { "set-cookie": ["sid=SECRET"] }, body: "x" }))).not.toContain("SECRET");
+  });
+  it("never stores the body of a 2xx page, and caps other bodies with emails redacted", () => {
+    const ok = evidenceOf({ status: 200, headers: {}, body: "private page" });
+    expect(ok.excerpt).toBeUndefined();
+    expect(JSON.stringify(ok)).not.toContain("private page");
+    const denied = evidenceOf({ status: 403, headers: {}, body: `mail ops@example.com ${"x".repeat(9000)}` });
+    expect(denied.excerpt.length).toBeLessThanOrEqual(EXCERPT_BYTES);
+    expect(denied.excerpt).not.toContain("ops@example.com");
+  });
+  it("keeps only header names for robots.txt and security.txt", () => {
+    const e = evidenceOf({ status: 200, headers: {}, body: "" }, [{ kind: "robots", res: { status: 200, headers: { "strict-transport-security": "max-age=1" }, body: "User-agent: *" } }]);
+    expect(e.others[0]).toMatchObject({ kind: "robots", headerNames: ["strict-transport-security"] });
+    expect(JSON.stringify(e.others)).not.toContain("User-agent");
+  });
+});
+
+describe("E20-R site traits", () => {
+  it("reads a login link, a payment provider and a shop from the page", () => {
+    expect(traitsOf('<a href="/x"><span>Log in</span></a>').login).toBe(true);
+    expect(traitsOf('<a href="/x">Inloggen</a>').login).toBe(true);
+    expect(traitsOf('<script src="https://js.stripe.com/v3/"></script>').payments).toBe(true);
+    expect(traitsOf('<link href="https://cdn.shopify.com/s/a.css">').shop).toBe(true);
+    expect(traitsOf('<a href="https://trust.example.com">Trust</a>').securityPage).toBe(true);
+    expect(traitsOf('<a class="x" href="/security">Security</a>').securityPage).toBe(true);
+    expect(traitsOf("<p>A blog about login pages</p>")).toEqual({ login: false, payments: false, shop: false, securityPage: false });
+  });
+  it("treats a page with no HTML as unknown, not as no", () => {
+    expect(traitsOf("")).toBeNull();
+    expect(evidenceOf({ status: 403, headers: {}, body: "x", html: "" }).traits).toBeNull();
+  });
+  it("suppresses a trait group under twenty sites", () => {
+    const rows = Array.from({ length: 25 }, (_, i) => ({ checks: [{ id: "csp", passed: i % 2 === 0, weight: 14 }], evidence: { traits: { login: true, payments: i < 3, shop: false } } }));
+    const t = traitTable(rows, ["csp"]);
+    expect(t.login.sites).toBe(25);
+    expect(t.payments).toEqual({ sites: 3, suppressed: true });
+  });
+});
+
+describe("E20-R order and cohorts", () => {
+  const rows = ["c.com", "a.com", "b.com", "d.com", "e.com"].map((host) => ({ host }));
+  it("gives the same order for the same seed, whatever the file order", () => {
+    expect(shuffled(rows, 2020)).toEqual(shuffled([...rows].reverse(), 2020));
+    expect(shuffled(rows, 2020).map((r) => r.host)).not.toEqual(shuffled(rows, 2021).map((r) => r.host));
+  });
+  it("is a reproducible generator in [0, 1)", () => {
+    const a = seeded(1), b = seeded(1);
+    for (let i = 0; i < 100; i++) { const v = a(); expect(v).toBe(b()); expect(v).toBeGreaterThanOrEqual(0); expect(v).toBeLessThan(1); }
+  });
+  it("visits a host on two lists once and counts it in both", () => {
+    const merged = mergeCohorts({ T1k: [{ host: "x.com", rank: 1, group: "com" }], Europe: [{ host: "x.com", rank: 9, group: "DAX" }, { host: "y.de", rank: 2, group: "DAX" }] });
+    expect(merged).toHaveLength(2);
+    expect(Object.keys(merged[0].cohorts)).toEqual(["T1k", "Europe"]);
+  });
+  it("treats example.com and www.example.com as one site", () => {
+    const merged = mergeCohorts({ T1k: [{ host: "example.com", rank: 1, group: "com" }], "YC-new": [{ host: "www.example.com", rank: 2, group: "Fall 2026" }] });
+    expect(merged).toHaveLength(1);
+    expect(Object.keys(merged[0].cohorts)).toEqual(["T1k", "YC-new"]);
+  });
+  it("labels MX and NS providers without keeping the hostnames", async () => {
+    const p = await dnsProviders("example.com", { mx: async () => [{ exchange: "aspmx.l.google.com." }], ns: async () => ["a.ns.cloudflare.com."] });
+    expect(p).toEqual({ mx: "google", ns: "cloudflare" });
+    const none = Object.assign(new Error("x"), { code: "ENODATA" }), bad = Object.assign(new Error("x"), { code: "ETIMEOUT" });
+    expect(await dnsProviders("example.com", { mx: () => Promise.reject(none), ns: () => Promise.reject(bad) })).toEqual({ mx: "none", ns: "unknown" });
+  });
+  it("runs a loopback pass, once per host, with no site in the aggregate", async () => {
+    const r = await selfTestR({ out: tmp() });
+    expect(r.problems).toEqual([]);
+    expect(Object.keys(r.aggregate.cohorts).sort()).toEqual(["T1k", "YC-new"]);
+    expect(r.aggregate.cohorts.T1k.labels).toBeDefined();
+  });
+  it("never follows an app page on a homepage-only list, also for a host on two lists", () => {
+    expect(R_COHORTS["NL-Cbw"].homepageOnly).toBe(true);
+    expect(R_COHORTS.T1k.homepageOnly).toBeUndefined();
+  });
+  it("skips the app page in a pass for a homepage-only host", async () => {
+    const { createServer } = await import("node:http");
+    const hits = [];
+    const server = createServer((req, res) => { hits.push(req.url); res.setHeader("content-type", "text/html"); res.end('<a href="/login">Log in</a>'); });
+    await new Promise((r) => server.listen(0, "127.0.0.1", r));
+    const stub = () => Promise.reject(Object.assign(new Error("x"), { code: "ENODATA" }));
+    try {
+      const rows = mergeCohorts({ "NL-Cbw": [{ host: "a.nl-selftest.example.com", rank: 1, group: "Energy" }], T1k: [{ host: "a.nl-selftest.example.com", rank: 2, group: "com" }, { host: "b.selftest.example.com", rank: 3, group: "com" }] });
+      await runPass(rows, { pass: 1, out: tmp(), loopbackPort: server.address().port, delayMs: 0, dns: { mx: stub, ns: stub } });
+      expect(hits.filter((u) => u === "/")).toHaveLength(2);
+      expect(hits.filter((u) => u === "/login")).toHaveLength(1);
+      hits.length = 0;
+      await runPass(mergeCohorts({ T1k: [{ host: "www.clinic.selftest.example.com", rank: 1, group: "com" }] }), { pass: 1, out: tmp(), loopbackPort: server.address().port, delayMs: 0, homepageOnlyHosts: new Set(["clinic.selftest.example.com"]), dns: { mx: stub, ns: stub } });
+      expect(hits).not.toContain("/login");
+    } finally {
+      await new Promise((r) => server.close(r));
+    }
+  });
+  it("never visits a site whose owner asked to be removed", async () => {
+    const stub = () => Promise.reject(Object.assign(new Error("x"), { code: "ENODATA" }));
+    const removals = readRemovals("# asked by email\nExample.COM\n\n");
+    expect(removals.get("example.com")).toBe("removed");
+    const rows = mergeCohorts({ T1k: [{ host: "www.example.com", rank: 1, group: "com" }] });
+    const { records, aggregate: agg } = await runPass(rows, { pass: 1, out: tmp(), loopbackPort: 9, delayMs: 0, exclude: removals, dns: { mx: stub, ns: stub } });
+    expect(records[0]).toMatchObject({ status: "excluded", reason: "exclusion_list", category: "removed" });
+    expect(agg.cohorts.T1k.exclusionCategories.removed).toBe(1);
+  });
+  it("folds small provider groups into other", () => {
+    const records = Array.from({ length: 21 }, (_, i) => ({ host: `s${i}.example`, status: "ok", score: 50, checks: [], cohorts: { T1k: { rank: i, group: "example" } }, dnsProviders: { mx: i === 0 ? "rare" : "google", ns: "other" } }));
+    const a = aggregateR(records);
+    expect(a.cohorts.T1k.mailProviders.google).toBe(20);
+    expect(a.cohorts.T1k.mailProviders.rare).toBeUndefined();
+    expect(a.cohorts.T1k.mailProviders.other).toBe(1);
+  });
+});
+
+describe("E20-R analysis", () => {
+  it("fixes the family at fifteen claims", () => {
+    expect(CLAIMS_R).toBe(15);
+    expect(LEVEL).toBeCloseTo(0.99667, 4);
+  });
+  it("computes Cohen's kappa", () => {
+    expect(kappa([1, 1, 0, 0], [1, 1, 0, 0])).toBe(1);
+    expect(kappa([1, 0, 1, 0], [1, 1, 0, 0])).toBeCloseTo(0);
+    expect(kappa(["a", "a"], ["a", "a"])).toBe(1);
+  });
+  it("decides on the interval and the predicted sign", () => {
+    expect(decide([0.02, 0.2], +1)).toBe("supported");
+    expect(decide([-0.2, -0.02], +1)).toBe("refuted");
+    expect(decide([-0.05, 0.05], +1)).toBe("no meaningful difference");
+    expect(decide([-0.05, 0.3], +1)).toBe("inconclusive");
+  });
+  it("calls a disagreement between S and R view-dependent", () => {
+    expect(combine("supported", "supported")).toBe("supported");
+    expect(combine("supported", "inconclusive")).toBe("view-dependent");
+    expect(combine("refuted", "supported")).toBe("view-dependent");
+    expect(combine("inconclusive", "inconclusive")).toBe("inconclusive");
+  });
+  const site = (host, csp, extra = {}) => ({ host, finalHost: host, status: "ok", checks: [{ id: "csp", passed: csp, weight: 14 }], evidence: { class: { label: "page" } }, ...extra });
+  it("reads derived checks and treats weight 0 as unknown", () => {
+    const r = { checks: [{ id: "https", passed: true, weight: 22 }, { id: "hsts", passed: false, weight: 12 }, { id: "spf", passed: true, weight: 3 }, { id: "dmarc", passed: false, weight: 0 }] };
+    expect(pass(r, "https+hsts")).toBe(false);
+    expect(pass(r, "spf+dmarc")).toBeUndefined();
+  });
+  it("widens the interval when one organization owns many sites", () => {
+    const opts = { resamples: 800, level: 0.95 };
+    const a = Array.from({ length: 200 }, (_, i) => site(`a${i}.org`, i % 2 === 0));
+    const groupsOf10 = Array.from({ length: 200 }, (_, i) => site(`s${i}.o${Math.floor(i / 10)}.org`, Math.floor(i / 10) % 2 === 0));
+    const b = Array.from({ length: 200 }, (_, i) => site(`b${i}.net`, i % 2 === 0));
+    const free = clusterDiff(a, b, "csp", opts), tied = clusterDiff(groupsOf10, b, "csp", opts);
+    expect(tied.ci[1] - tied.ci[0]).toBeGreaterThan(free.ci[1] - free.ci[0]);
+  });
+  it("is deterministic for a seed", () => {
+    const a = Array.from({ length: 50 }, (_, i) => site(`a${i}.org`, i % 3 === 0)), b = Array.from({ length: 50 }, (_, i) => site(`b${i}.org`, i % 2 === 0));
+    expect(clusterDiff(a, b, "csp", { resamples: 200 })).toEqual(clusterDiff(a, b, "csp", { resamples: 200 }));
+  });
+  it("reports industries only for groups of at least twenty", () => {
+    const rows = Array.from({ length: 25 }, (_, i) => ({ host: `www.s${i}.org`, score: 50, checks: [{ id: "csp", passed: true, weight: 14 }] }));
+    const map = new Map(rows.map((r, i) => [r.host.slice(4), i < 22 ? "Healthcare" : "Fintech"]));
+    const t = industryTable(rows, map, ["csp"]);
+    expect(t.Healthcare.sites).toBe(22);
+    expect(t.Fintech).toBeUndefined();
+    expect(t.suppressedGroups).toBe(1);
+  });
+  it("repeats C1 to C4 without the hosts E20 excluded", () => {
+    const mk = (cohort, n) => Array.from({ length: n }, (_, i) => site(`${cohort.toLowerCase()}${i}.org`, i % 2 === 0, { cohorts: { [cohort]: { rank: i, group: "x" } }, platform: { edge: "vercel" } }));
+    const p1 = [...mk("T1k", 40), ...mk("YC-new", 40), ...mk("T100k", 20), ...mk("YC-old", 20)];
+    const out = replicationAsE20(p1, new Set(["yc-new0.org"]), { resamples: 50 });
+    expect(out.map((c) => c.id)).toEqual(["C1", "C2", "C3", "C4"]);
+    expect(out[0].S.nB).toBe(39);
+  });
+  it("reports C14 and C15 as not run with one pass", () => {
+    const rows = ["T1k", "YC-new", "YC-25", "YC-old", "T100k"].flatMap((c) => Array.from({ length: 30 }, (_, i) => site(`${c.toLowerCase()}${i}.org`, i % 2 === 0, { cohorts: { [c]: { rank: i, group: "x" } }, platform: { edge: "vercel" } })));
+    const out = claims(rows, null, new Map(), { resamples: 50 });
+    expect(out).toHaveLength(15);
+    expect(out.slice(-2).map((c) => c.decision)).toEqual(["not run", "not run"]);
+  });
+  it("returns the fifteen claims on synthetic records and names no site", () => {
+    const mk = (cohort, n, rate, offset = 0) => Array.from({ length: n }, (_, i) => site(`${cohort.toLowerCase()}${i}.org`, i % rate === 0, { cohorts: { [cohort]: { rank: i + offset, group: "x" } }, platform: { edge: i % 2 ? "cloudflare" : "vercel" } }));
+    const p1 = [...mk("T1k", 60, 2), ...mk("YC-new", 60, 5), ...mk("YC-25", 30, 5), ...mk("YC-old", 40, 3), ...mk("T100k", 60, 4)];
+    const out = claims(p1, p1, new Map(p1.map((r) => [r.host, { httpStatus: 200 }])), { resamples: 100 });
+    expect(out.map((c) => c.id)).toEqual(Array.from({ length: 15 }, (_, i) => `C${i + 1}`));
+    expect(out.find((c) => c.id === "C14").kappa).toBe(1);
+    expect(JSON.stringify(out)).not.toContain(".org");
+  });
+});

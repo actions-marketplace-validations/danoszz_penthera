@@ -9,3 +9,5 @@ section: Docs
   page now says that stored evidence can contain addresses, and who sees it. It
   sends nothing until the maintainer adopts it. The legacy E20 runner now works on
   loopback only.
+
+The E20-R2 run sheet is `bench/front-door/run-sheet.md`. Runs now stop cleanly on a signal, a stop file or a changed source address, and analysis needs a clean privacy report.

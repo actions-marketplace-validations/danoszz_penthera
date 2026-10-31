@@ -8,7 +8,7 @@ For an outside reviewer. These are the gaps that remain in the runner and its ga
 - **A determined operator can get past every lock.** The locks stop mistakes, not intent. Someone can edit the runner, change the deps seam, delete the rounds log, or run from a fresh clone. The honest record of a run is the public commit plus what the maintainer reports.
 - **The rounds log is one file.** Deleting a round's folder and its log line together leaves no trace, and the two-round cap counts what's there.
 - **Prune proofs, seals, privacy reports and the validation key** are bound to the run by plain hashes. Each binding catches a mix-up between runs. None catches an operator who rewrites both sides.
-- **`--pass2` of the analysis is not gated.** It takes pass 1, which predates this manifest format, and it decides nothing alone. A wrong file would change C14 and C15.
+- **Registered analysis inputs are checked by hash only.** The files stay private, so a reader can't recompute the hashes.
 - **The repeat lock lives on one machine.** A fresh clone has no `e20r-pass2` folder, so a second start from there would revisit sites.
 - **The commit check trusts GitHub and a clean tree.** It proves the checkout is the tip of `main` at the start, not what the Node process loaded afterwards.
 
@@ -46,8 +46,7 @@ The audit sheet goes to one labeler and to a hosted model. The 12-month deletion
 
 ## Other
 
-- DNS traffic isn't in the byte counters.
-- A site hard-capped mid-response keeps only the bytes reported up to its last tick.
+- DNS traffic isn't in the byte counters, and the byte counts are a lower bound: a redirect's body counts only as far as it arrives while the visit goes on, and a hard-capped site only to its last tick.
 - A compressed page body isn't read. It's labeled `body-unavailable` and counts against excerpt coverage.
 - The 50% floor, 20% ceilings, the 30, 25 and 10 count floors, the 90% excerpt floor, the two-round cap and the 5% removal cap are judgment calls, not derived values.
 
@@ -55,10 +54,12 @@ The audit sheet goes to one labeler and to a hosted model. The 12-month deletion
 
 - A signal or the stop file takes effect between sites, so visits in flight finish, up to the 30-second hard cap each.
 - SIGKILL, a crash or a full disk leave no end manifest. The run counts as interrupted, and the prune is a step on the run sheet that nothing enforces for pass 2.
-- The privacy report scans what's stored, with the same detector as the scrub limits above. If it finds a miss after a whole pass, pruning removes excerpts, not the header, cookie or DNS field that held it. The raw file then needs handling by hand.
+- The privacy report scans every stored string, with the same detector as the scrub limits above. Its exceptions are hashes, and addresses in SPF records. After a miss the only recovery is `purge`, which ends the run's data.
 - The source-address check reads local interfaces between sites, so it shares the address check's limit.
 
 ## Audit and analysis
 
 - The audit covers the response class. Grader header outcomes rest on the test suite, and no human audits them.
-- Secondary cohorts report row-level Newcombe intervals and exact tests, without a cluster bootstrap, and decide nothing.
+- Secondary intervals are naive row-level, with no clustering, and corroborate nothing.
+- Provider explanations, the YC trend, origin headers and challenge cookies are not built. Anything on them would be post hoc.
+- Kappa between the human and the model is on rows where neither is unsure, which can leave out the hardest rows.

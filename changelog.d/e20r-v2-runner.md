@@ -10,4 +10,4 @@ section: Docs
   sends nothing until the maintainer adopts it. The legacy E20 runner now works on
   loopback only.
 
-The E20-R2 run sheet is `bench/front-door/run-sheet.md`. Runs now stop cleanly on a signal, a stop file or a changed source address, and analysis needs a clean privacy report.
+The E20-R2 run sheet is `bench/front-door/run-sheet.md`. Runs now stop cleanly on a signal, a stop file or a changed source address, and analysis needs a clean privacy report. A failed privacy report ends in `purge`, which deletes the whole per-site file. `npm run e20r:preflight` runs the checks on the server.

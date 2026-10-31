@@ -3,13 +3,12 @@
  * are replaced in this file, so https, redirects and failures run with no socket.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import http from "node:http";
 import https from "node:https";
 import { EventEmitter } from "node:events";
 import { createServer } from "node:http";
-import { mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
@@ -18,13 +17,13 @@ import { classify, classifyRegistered, cookieNames, cspEvidence, evidenceOf, loo
 import { authorize, exclusionFor, percentDecoded, globMatch, ipv4Lookup, percentForm, platformOf, readExclusions, robotsAccess, robotsBinary, robotsVerdict, strictRobots, visit, wholeSiteStop } from "../bench/front-door/run.mjs";
 import { optedOut } from "../api/_lib/page.mjs";
 import { CheckError, resolvePublic } from "../api/_lib/guard.mjs";
-import { MAX_LIVE_ROUNDS, caaTree, checkPilotDropped, codeFiles, codeHash, dmarcReading, mergeCohorts, PILOT_MIN, ROLLING_WINDOW, siteDns, normalizeHost, pilotRounds, readDomain, readHostList, readRemovals, runPass, NO_DNS, unmatchedHosts, V2_LIMITS, visitInWorker } from "../bench/front-door/replicate.mjs";
+import { MAX_LIVE_ROUNDS, PREREG_R, recordedHashR, STUDY_PAGE, caaTree, checkPilotDropped, codeFiles, codeHash, dmarcReading, mergeCohorts, PILOT_MIN, ROLLING_WINDOW, siteDns, normalizeHost, pilotRounds, readDomain, readHostList, readRemovals, runPass, NO_DNS, unmatchedHosts, V2_LIMITS, visitInWorker } from "../bench/front-door/replicate.mjs";
 import { orgDomain, publicSuffix, PSL_VERSION, pslSha256, siteKey, siteOrg } from "../bench/front-door/psl.mjs";
 import { claims, clusterDiff, combine, coverageBounds, decide, diffClaim, dnsCoverage, e20Index, fisherExact, intervalOutcomes, isEligible, standardizedDiff, traitsByCohort } from "../bench/front-door/analyze-r.mjs";
 import { pilotReport, sealPilot, stopRules, privacyReport } from "../bench/front-door/pilot-report.mjs";
-import { MIN_ELIGIBLE, MIN_GRADED, NO_PRIVACY, pageTextMissed, resolverFailed, unfinishedRun } from "../bench/front-door/record-checks.mjs";
-import { main as analyzeMain, secondaryCohorts } from "../bench/front-door/analyze-r.mjs";
-import { main as validationMain, blindSheet, drawSample, parseLabels, pruneExcerpt, prunePilot, rewriteRun, scoreLabels, stratumOf, weightedMetrics } from "../bench/front-door/validation-sample.mjs";
+import { MIN_ELIGIBLE, MIN_GRADED, NO_PRIVACY, pageTextMissed, recordMisses, resolverFailed, unfinishedRun } from "../bench/front-door/record-checks.mjs";
+import { main as analyzeMain, challengeByEdge, secondaryCohorts } from "../bench/front-door/analyze-r.mjs";
+import { main as validationMain, purgeRun, blindSheet, drawSample, parseLabels, pruneExcerpt, prunePilot, rewriteRun, scoreLabels, stratumOf, weightedMetrics } from "../bench/front-door/validation-sample.mjs";
 import { runAcceptance } from "../bench/front-door/acceptance.mjs";
 import { passiveReport } from "../api/_lib/tier1.mjs";
 import { scoreOf } from "../api/_lib/grade.mjs";
@@ -114,6 +113,12 @@ describe("redirects and origins", () => {
     const r = await go({ "https://a.org/robots.txt": { err: "ECONNREFUSED" }, "http://a.org/robots.txt": ROBOTS, "http://a.org/": { status: 301, headers: { location: "https://a.org/" } }, "https://a.org/": HOME });
     expect(r).toMatchObject({ status: "excluded", reason: "robots_unavailable" });
     expect(log).not.toContain("https://a.org/");
+  });
+  it("stops a redirect to a literal IPv4 address, and stores no trace of it", async () => {
+    const r = await go({ "https://a.org/robots.txt": ROBOTS, "https://a.org/": { status: 302, headers: { location: "https://93.184.216.34/" } } });
+    expect(r).toMatchObject({ status: "excluded", reason: "ipv4_literal" });
+    expect(log.some((u) => u.includes("93.184.216.34"))).toBe(false);
+    expect(JSON.stringify(r)).not.toContain("93.184.216.34");
   });
   it("S6: stops a redirect to a literal IPv6 address", async () => {
     const r = await go({ "https://a.org/robots.txt": ROBOTS, "https://a.org/": { status: 302, headers: { location: "https://[2606:4700:4700::1111]/" } } });
@@ -550,7 +555,7 @@ describe("what reaches the disk", () => {
     expect(stopRules(pilotReport([{ status: "opted_out", counters: { requests: 1 } }]))).toContain("no eligible site");
     expect(stopRules(pilotReport(Array.from({ length: 29 }, () => rec)))).toContain("under 30 eligible sites");
     expect(stopRules(pilotReport([...Array.from({ length: 19 }, () => rec), ...dead(11, { error: "timeout" })]))).toContain("under 25 graded sites");
-    expect(stopRules(pilotReport(Array.from({ length: 40 }, () => rec)))).toEqual([]);
+    expect(stopRules(pilotReport(Array.from({ length: 40 }, () => rec))).filter((m) => !/no usable output/.test(m))).toEqual([]);
     expect(PILOT_MIN).toBe(50);
   });
   it("B2: a run that reached nothing stops", () => {
@@ -572,7 +577,7 @@ describe("what reaches the disk", () => {
     const ex = Buffer.from("gov government\n");
     const sum = (b) => createHash("sha256").update(b).digest("hex");
     writeFileSync(join(dir, "manifest.json"), JSON.stringify({ finishedAt: "x", rawSha256: sum(raw), immutableAtFinish: { ok: true }, exclusionSha256: sum(ex) }));
-    expect(sealPilot(dir, { exclusionBytes: ex }).stop).toEqual(["under 10 2xx responses", "under 30 eligible sites", "under 25 graded sites"]);
+    expect(sealPilot(dir, { exclusionBytes: ex }).stop.filter((m) => !/no usable output/.test(m))).toEqual(["under 10 2xx responses", "under 30 eligible sites", "under 25 graded sites"]);
     expect(JSON.parse(readFileSync(join(dir, "pilot-result.json"), "utf8")).sealSha256).toMatch(/^[0-9a-f]{64}$/);
     writeFileSync(join(dir, "prune-manifest.json"), "{}");
     expect(sealPilot(dir, { exclusionBytes: ex }).stop).toContain("sealed after pruning: seal first, while the excerpts exist");
@@ -879,12 +884,16 @@ describe("the analysis", () => {
     writeFileSync(join(dir, "raw.jsonl"), lines(rows));
     writeFileSync(join(dir, "t.jsonl"), lines(rows.slice(0, 25)));
     writeFileSync(join(dir, "y.jsonl"), lines(rows.slice(25)));
-    const analyze = () => execFileSync(process.execPath, [join(import.meta.dirname, "..", "bench", "front-door", "analyze-r.mjs"), "--pass1", join(dir, "raw.jsonl"), "--e20", join(dir, "t.jsonl"), join(dir, "y.jsonl"), "--out", join(dir, "o.json")], { stdio: "pipe" });
-    expect(analyze).toThrow();
+    writeFileSync(join(dir, "i.csv"), "domain,industry\n");
+    writeFileSync(join(dir, "x.txt"), "\n");
+    const hashOf = (f) => createHash("sha256").update(readFileSync(join(dir, f))).digest("hex");
+    const preregText = [["Pass 1 raw", "p.jsonl"], ["E20 Tranco raw", "t.jsonl"], ["E20 YC raw", "y.jsonl"], ["Industry map", "i.csv"], ["E20 exclusion file", "x.txt"]].map(([l, f]) => `| ${l} SHA-256 | \`${hashOf(f)}\` |`).join("\n");
+    const analyze = () => analyzeMain(["--pass1", join(dir, "raw.jsonl"), "--pass2", join(dir, "p.jsonl"), "--e20", join(dir, "t.jsonl"), join(dir, "y.jsonl"), "--industries", join(dir, "i.csv"), "--e20-excluded", join(dir, "x.txt"), "--out", join(dir, "o.json")], { fail: () => undefined, preregText });
+    expect(analyze()).toBe(3);
     writeFileSync(join(dir, "manifest.json"), JSON.stringify({ kind: "pass", finishedAt: "x", immutableAtFinish: { ok: true }, rawSha256: createHash("sha256").update(lines(rows)).digest("hex") }));
-    expect(analyze).toThrow();
+    expect(analyze()).toBe(3);
     expect(privacyReport(dir).clean).toBe(true);
-    analyze();
+    expect(analyze()).toBe(0);
     const o = JSON.parse(readFileSync(join(dir, "o.json"), "utf8"));
     expect(o.bounds.C1.low).toBeDefined();
     expect(o.bounds).toHaveProperty("C3");
@@ -1201,9 +1210,12 @@ describe("the outside reviewer's conditions", () => {
     const rec = { status: "ok", httpStatus: 200, cohorts: { T1k: { rank: 1 } }, checks: [], counters: { requests: 3, bytes: 1, redirects: 0 }, hops: [], dns: { listed: { spf: true, dmarc: true, caa: true, exists: true, outcomes: {} } }, evidence: { bodySha256: "x", pageExcerpt: { text: "t" }, others: [] } };
     const blocked = { ...rec, httpStatus: 403, evidence: { ...rec.evidence, pageExcerpt: undefined, excerpt: "no" } };
     const report = pilotReport([...Array.from({ length: 9 }, () => rec), ...Array.from({ length: 41 }, () => blocked)]);
-    expect(report.coverage.T1k).toEqual({ sites: 50, graded: 50, twoxx: 9 });
+    expect(report.coverage.T1k).toEqual({ selected: 50, eligible: 50, graded: 50, twoxx: 9, dnsComplete: 50, classes: { none: 50 } });
     expect(stopRules(report)).toContain("under 10 2xx responses");
-    expect(stopRules(pilotReport([...Array.from({ length: 10 }, () => rec), ...Array.from({ length: 40 }, () => blocked)]))).toEqual([]);
+    const everyCohort = { T1k: {}, "YC-new": {}, "YC-25": {}, "YC-old": {}, T100k: {} };
+    const across = (r) => ({ ...r, cohorts: everyCohort });
+    expect(stopRules(pilotReport([...Array.from({ length: 10 }, () => across(rec)), ...Array.from({ length: 40 }, () => across(blocked))]))).toEqual([]);
+    expect(stopRules(report)).toContain("no usable output in YC-old");
     expect(MIN_GRADED).toBe(25);
     expect(MIN_ELIGIBLE).toBe(30);
     expect(MAX_LIVE_ROUNDS).toBe(2);
@@ -1236,8 +1248,127 @@ describe("the outside reviewer's conditions", () => {
     const row = (i, cohort, passed) => ({ host: `h${i}.org`, finalHost: `h${i}.org`, cohorts: { [cohort]: { rank: 1 } }, status: "ok", checks: [{ id: "csp", passed, weight: 1 }] });
     const rows = [...Array.from({ length: 25 }, (_, i) => row(i, "SP500", true)), ...Array.from({ length: 25 }, (_, i) => row(100 + i, "T1k", false)), row(200, "ShowHN", true)];
     const out = secondaryCohorts(rows);
-    expect(out.find((c) => c.cohort === "SP500" && c.against === "T1k")).toMatchObject({ check: "csp", judgedA: 25, judgedB: 25 });
+    expect(out.find((c) => c.cohort === "SP500" && c.against === "T1k")).toMatchObject({ check: "csp", judgedA: 25, judgedB: 25, source: "http", interval: "naive row-level" });
     expect(out.find((c) => c.cohort === "SP500" && c.against === "T1k").exactP).toBeLessThan(0.001);
     expect(out.find((c) => c.cohort === "ShowHN" && c.against === "T1k").decision).toBe("not estimable");
+  });
+});
+
+describe("package 3 criteria", () => {
+  const sum = (b) => createHash("sha256").update(b).digest("hex");
+  const folder = () => mkdtempSync(join(tmpdir(), "e20r2-p3-"));
+
+  it("1: a stop that lands during the last site makes the run partial", async () => {
+    const out = join(folder(), "run");
+    const server = createServer((_q, res) => res.end("x"));
+    await new Promise((r) => server.listen(0, "127.0.0.1", r));
+    let stop = null;
+    const { stoppedFor } = await runPass([{ host: "a.example.com", cohorts: { T1k: { rank: 1 } } }], { pass: 2, out, loopbackPort: server.address().port, delayMs: 0, stopCheck: () => stop, onRecord: () => { stop = "the stop file exists"; } });
+    await new Promise((r) => server.close(r));
+    expect(stoppedFor).toBe("the stop file exists");
+    const m = JSON.parse(readFileSync(join(out, "manifest.json"), "utf8"));
+    expect(m).toMatchObject({ partial: true, stoppedFor, records: 1 });
+    expect(JSON.parse(readFileSync(join(out, "aggregate.json"), "utf8")).partial).toBe(true);
+  });
+
+  it("2: the scan walks every stored string, keys too, with hashes and SPF addresses as the only exceptions", () => {
+    expect(recordMisses({ a: { b: [{ c: "jan@example.nl" }] } }).email).toBe(1);
+    expect(recordMisses({ "jan@example.nl": 1 }).email).toBe(1);
+    expect(recordMisses({ finalHost: "203.0.113.9", hops: ["203.0.113.9"] }).ipv4).toBe(2);
+    expect(recordMisses({ evidence: { bodySha256: "a".repeat(64), others: [{ bodySha256: "b".repeat(64) }] } }).longHex).toBe(0);
+    expect(recordMisses({ evidence: { etag: "a".repeat(64) } }).longHex).toBe(1);
+    expect(recordMisses({ dns: { listed: { spfRecord: "v=spf1 ip4:203.0.113.7 -all" } } }).ipv4).toBe(0);
+    expect(recordMisses({ dns: { listed: { spfRecord: "v=spf1 jan@example.nl" } } }).email).toBe(1);
+  });
+
+  it("3: purge takes the whole file for a miss in a header, cookie, finalHost or DNS field, and the run decides nothing", () => {
+    for (const leak of [{ evidence: { values: { server: "jan@example.nl" } } }, { evidence: { cookieNames: ["jan@example.nl"] } }, { finalHost: "203.0.113.9" }, { dns: { listed: { dmarcRecord: "rua=jan@example.nl" } } }]) {
+      const dir = folder();
+      const raw = `${JSON.stringify({ status: "ok", ...leak })}\n`;
+      writeFileSync(join(dir, "raw.jsonl"), raw);
+      writeFileSync(join(dir, "manifest.json"), JSON.stringify({ kind: "pass", finishedAt: "x", immutableAtFinish: { ok: true }, rawSha256: sum(raw) }));
+      writeFileSync(join(dir, "validation-key.json"), "[]");
+      expect(privacyReport(dir).clean).toBe(false);
+      expect(purgeRun(dir)).toMatchObject({ disposition: "privacy-failed", rawSha256: sum(raw), verified: true });
+      expect(existsSync(join(dir, "raw.jsonl"))).toBe(false);
+      expect(existsSync(join(dir, "validation-key.json"))).toBe(false);
+      expect(unfinishedRun(dir)).toBe("the raw file was purged");
+      expect(() => purgeRun(dir)).toThrow(/no raw file/);
+    }
+  });
+
+  it("3: the disposition says what the run was", () => {
+    const go = (manifest) => {
+      const dir = folder();
+      writeFileSync(join(dir, "raw.jsonl"), "{}\n");
+      writeFileSync(join(dir, "manifest.json"), JSON.stringify(manifest));
+      return purgeRun(dir).disposition;
+    };
+    expect(go({ kind: "pilot" })).toBe("crashed");
+    expect(go({ kind: "pass", finishedAt: "x", partial: true })).toBe("partial");
+    expect(go({ kind: "pass", finishedAt: "x" })).toBe("finished");
+  });
+
+  it("6: secondary DNS reads DNS records, for sites HTTP never graded", () => {
+    const dnsSite = (i, cohort, spf) => ({ host: `d${i}.org`, listedOrg: `d${i}.org`, cohorts: { [cohort]: { rank: 1 } }, status: "error", checks: [], dns: { listed: { exists: true, spfRecordPresent: spf, dmarcReading: { enforcing: spf }, caa: spf } } });
+    const all = [...Array.from({ length: 25 }, (_, i) => dnsSite(i, "SP500", true)), ...Array.from({ length: 25 }, (_, i) => dnsSite(100 + i, "YC-new", false))];
+    const row = secondaryCohorts([], all).find((c) => c.cohort === "SP500" && c.against === "YC-new" && c.check === "spf");
+    expect(row).toMatchObject({ source: "dns", interval: "naive row-level", judgedA: 25, judgedB: 25 });
+    expect(row.exactP).toBeLessThan(0.001);
+  });
+
+  it("6: the challenge share by edge keeps edges of at least 20 sites", () => {
+    const rows = Array.from({ length: 20 }, (_, i) => ({ platform: { edge: "cloudflare" }, evidence: { class: { label: i < 5 ? "challenge" : "candidate-page" } } }));
+    expect(challengeByEdge(rows)).toEqual({ cloudflare: { n: 20, share: 0.25 } });
+    expect(challengeByEdge(rows.slice(0, 19))).toEqual({});
+  });
+
+  it("7: analysis refuses a registered input that is missing or doesn't match", () => {
+    const dir = folder();
+    const raw = "{}\n";
+    writeFileSync(join(dir, "raw.jsonl"), raw);
+    writeFileSync(join(dir, "manifest.json"), JSON.stringify({ kind: "pass", finishedAt: "x", immutableAtFinish: { ok: true }, rawSha256: sum(raw) }));
+    privacyReport(dir);
+    writeFileSync(join(dir, "one.txt"), "x");
+    const said = [];
+    const fail = (m) => said.push(m);
+    expect(analyzeMain(["--pass1", join(dir, "raw.jsonl"), "--e20", "a", "b"], { fail, preregText: "" })).toBe(3);
+    expect(said.at(-1)).toMatch(/Pass 1 raw" was not given/);
+    expect(analyzeMain(["--pass1", join(dir, "raw.jsonl"), "--pass2", join(dir, "one.txt"), "--e20", "a", "b"], { fail, preregText: "| Pass 1 raw SHA-256 | `" + "0".repeat(64) + "` |" })).toBe(3);
+    expect(said.at(-1)).toMatch(/does not match its frozen hash/);
+  });
+
+  it("7: the protocol records every private input", () => {
+    const prereg = readFileSync(PREREG_R, "utf8");
+    for (const label of ["Pass 1 raw", "E20 Tranco raw", "E20 YC raw", "Industry map", "E20 exclusion file"]) expect(recordedHashR(prereg, label), label).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("8: unsure totals stand apart, and the main kappa skips any unsure row", () => {
+    const key = [1, 2, 3, 4, 5, 6].map((id) => ({ id, stratum: "candidate-page", stratumSize: 6, ruleLabel: "page" }));
+    const csv = (a) => `id,label\n${a.map((l, i) => `${i + 1},${l}`).join("\n")}\n`;
+    const human = ["page", "page", "block", "block", "unsure", "unsure"];
+    const agent = ["page", "page", "block", "block", "unsure", "page"];
+    const v = scoreLabels(key, csv(human), csv(agent), { resamples: 10 }).humanVsAgent;
+    expect(v).toMatchObject({ rows: 6, humanUnsure: 2, agentUnsure: 1, bothAnswered: 4, kappa: 1, disagreements: 0 });
+    expect(v.kappaUnsureAsDisagreement).toBeLessThan(1);
+  });
+
+  it("the pilot rejects a claim cohort with no usable output", () => {
+    const report = { scrubMisses: {}, outcomes: {}, sites: 50, evidence: { graded: 50, twoxx: 50, twoxxWithExcerpt: 50 }, dns: { read: 50, answered: { spf: 50, dmarc: 50 } }, resolverFailures: 0, counters: { maxRequestsPerSite: 3 }, excludedHops: 0, coverage: { T1k: { graded: 10, dnsComplete: 0 }, "YC-new": { graded: 0, dnsComplete: 10 }, T100k: { graded: 10, dnsComplete: 10 } } };
+    expect(stopRules(report)).toEqual(["no usable output in T1k", "no usable output in YC-new"]);
+  });
+
+  it("10: the preflight runs the real checks, and the run sheet says so", () => {
+    const { scripts } = JSON.parse(readFileSync(join(import.meta.dirname, "..", "package.json"), "utf8"));
+    for (const step of ["npm test", "e20r:acceptance", "--self-test"]) expect(scripts["e20r:preflight"]).toContain(step);
+    const sheet = readFileSync(join(import.meta.dirname, "..", "bench", "front-door", "run-sheet.md"), "utf8");
+    for (const step of ["npm run e20r:preflight", "uniq -d", "pilot-sites-all.txt", "--skip", "validation-sample.mjs purge"]) expect(sheet).toContain(step);
+  });
+
+  it("the public page makes no absolute privacy claim", () => {
+    const page = readFileSync(STUDY_PAGE, "utf8");
+    expect(page).not.toMatch(/no email addresses/);
+    expect(page).toMatch(/99\.55%/);
+    expect(page).toMatch(/prospective corrected remeasurement/);
   });
 });

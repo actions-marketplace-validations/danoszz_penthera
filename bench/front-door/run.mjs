@@ -44,6 +44,7 @@ import { lookup as dnsLookup } from "node:dns/promises";
 import { passiveReport } from "../../api/_lib/tier1.mjs";
 import { parseTarget, fetchBody, CheckError } from "../../api/_lib/guard.mjs";
 import { scrub } from "./classify.mjs";
+import { isIP } from "node:net";
 import { siteOrg } from "./psl.mjs";
 import { grade } from "../../api/_lib/grade.mjs";
 import { makeBudget } from "../../api/_lib/page.mjs";
@@ -227,7 +228,7 @@ const robotsStop = (reason) => Object.assign(new CheckError("robots_stop", "robo
 /**
  * The study's rules for hops, robots.txt and fallbacks, for one visit.
  * `outcomes` keeps what each origin answered. Every hop must stay off the
- * exclusion list, off a literal IPv6 address, out of an origin whose robots.txt
+ * exclusion list, off a literal IP address, out of an origin whose robots.txt
  * failed, and inside the rules of its origin. A fallback runs only when nothing
  * from the listed origin has answered.
  */
@@ -238,6 +239,7 @@ export function strictRobots({ exclude = new Map(), outcomes = [], listedHost } 
   const refuseHost = (u) => {
     if (exclusionFor(u.hostname, exclude)) throw robotsStop("exclusion_redirect");
     if (u.hostname.startsWith("[")) throw robotsStop("ipv6_literal");
+    if (isIP(u.hostname)) throw robotsStop("ipv4_literal");
     if (failed.has(u.origin)) throw robotsStop("robots_unavailable");
   };
   return {

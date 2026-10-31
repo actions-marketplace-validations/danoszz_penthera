@@ -19,10 +19,10 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { classify } from "./classify.mjs";
 import { siteOrg } from "./psl.mjs";
-import { robotsVerdict, sha256, wholeSiteStop } from "./run.mjs";
-import { main as analyze } from "./analyze-r.mjs";
+import { robotsVerdict, sha256, strictRobots, wholeSiteStop } from "./run.mjs";
+import { main as analyze, secondaryCohorts } from "./analyze-r.mjs";
 import { main as reportMain } from "./pilot-report.mjs";
-import { resolverFailed, sealHash } from "./record-checks.mjs";
+import { recordMisses, resolverFailed, sealHash } from "./record-checks.mjs";
 import { CLAIM_COHORTS, main as replicate, PREREG_R, R_COHORTS } from "./replicate.mjs";
 import { main as validation, scoreLabels } from "./validation-sample.mjs";
 
@@ -36,7 +36,9 @@ const DNS = { mx: stub, ns: stub, resolveTxt: stub, resolveCaa: stub };
 const rawOf = (dir) => readFileSync(join(dir, "raw.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
 const quiet = () => undefined;
 const truth = (holds, said) => ({ code: holds ? 0 : 3, said });
-const SHEET = join(dirname(fileURLToPath(import.meta.url)), "run-sheet.md");
+const HERE = dirname(fileURLToPath(import.meta.url));
+const SHEET = join(HERE, "run-sheet.md");
+const INPUTS = Object.freeze(["Pass 1 raw", "E20 Tranco raw", "E20 YC raw", "Industry map", "E20 exclusion file"]);
 
 /** Lists, a protocol that hashes them, and the flags a run takes. */
 function fixture(root) {
@@ -56,6 +58,7 @@ function fixture(root) {
   const prior = file("prior.txt", "old.selftest.example.com\n");
   const manyRemovals = file("many-removals.txt", `${Array.from({ length: 5 }, (_, i) => `s${i}.t1k.selftest.example.com`).join("\n")}\n`);
   const otherExclude = file("other-exclusions.txt", "bad.org adult\n");
+  const inputs = Object.fromEntries(INPUTS.map((label, i) => [label, file(`input-${i}.txt`, label === "Industry map" ? "domain,industry\n" : "\n")]));
   const prereg = `| Status | **Registered.** Accepted |
 | Amendment 2 | **Adopted.** Merged |
 | Source address | \`${IP}\` |
@@ -63,6 +66,7 @@ function fixture(root) {
 | Public Suffix List SHA-256 | \`${PSL}\` |
 | Prior opt-outs SHA-256 | \`${sha256(readFileSync(prior))}\` |
 ${Object.entries(hashes).map(([c, h]) => `| ${c} list SHA-256 | \`${h}\` |`).join("\n")}
+${INPUTS.map((l) => `| ${l} SHA-256 | \`${sha256(readFileSync(inputs[l]))}\` |`).join("\n")}
 | E20-R exclusion list SHA-256 | \`${sha256(readFileSync(exclude))}\` |
 | E20-R homepage-only list SHA-256 | \`${sha256(readFileSync(homepage))}\` |
 
@@ -72,7 +76,7 @@ ${Object.entries(hashes).map(([c, h]) => `| ${c} list SHA-256 | \`${h}\` |`).joi
 `;
   const common = ["--registered", "E20R", "--lists", lists, "--exclude", exclude, "--homepage-only", homepage, "--removals", removals, "--prior-optouts", prior];
   const state = { classifierSha256: CLASSIFIER, protocolSha256: hashOf(prereg), studyPageSha256: hashOf("page"), codeSha256: hashOf("code"), lockfileSha256: hashOf("lock"), runtimeSha256: hashOf("node"), pslSha256: PSL };
-  return { common, prereg, state, exclude, otherExclude, removals, prior, manyRemovals, roundsLog: join(root, "rounds.log"), stopFile: join(root, "stop") };
+  return { common, prereg, state, exclude, otherExclude, removals, prior, manyRemovals, inputs, roundsLog: join(root, "rounds.log"), stopFile: join(root, "stop") };
 }
 
 /** One `main()` call, with its exit code and what it said. */
@@ -311,13 +315,30 @@ export async function runAcceptance() {
     const failingDns = { ...DNS, ns: () => Promise.reject(Object.assign(new Error("x"), { code: "ESERVFAIL" })) };
     add("in flight: resolver failures stop pass 2", "refused", await run(stopped, pass2(stopped), { dns: failingDns, rollingWindow: 8 }), /STOP: over 20%.*partial/);
     const stoppedRun = join(stopped.results, "e20r-pass2");
-    const analysis = (dir) => { const said = []; const code = analyze(["--pass1", join(dir, "raw.jsonl"), "--e20", join(dir, "raw.jsonl"), join(dir, "raw.jsonl"), "--out", join(dir, "analysis.json")], { fail: (m) => said.push(m) }); return { code, said: said.join(" ") || "analyzed" }; };
+    const analysis = (dir, preregText = fx.prereg) => {
+      const said = [];
+      const i = fx.inputs;
+      const code = analyze(["--pass1", join(dir, "raw.jsonl"), "--pass2", i["Pass 1 raw"], "--e20", i["E20 Tranco raw"], i["E20 YC raw"], "--industries", i["Industry map"], "--e20-excluded", i["E20 exclusion file"], "--out", join(dir, "analysis.json")], { fail: (m) => said.push(m), preregText });
+      return { code, said: said.join(" ") || "analyzed" };
+    };
+    const onLast = (act) => { let n = 0; return (_k, total) => { if (++n === total) act(); }; };
+    const purge = (dir) => { const said = []; const code = validation(["purge", dir], { log: (m) => said.push(m), fail: (m) => said.push(m) }); return { code, said: said.join(" ") }; };
     const draw = (dir) => { const said = []; const code = validation(["draw", dir], { log: quiet, fail: (m) => said.push(m) }); return { code, said: said.join(" ") || "drawn" }; };
     add("analysis of a stopped pass 2", "refused", analysis(stoppedRun), /stopped/);
     add("audit draw of a stopped pass 2", "refused", draw(stoppedRun), /stopped/);
     add("no pilot round after pass 2 started", "refused", await run(stopped, pilotArgs(50, 2)), /pass 2 has started/);
     const pruned = (dir) => { const said = []; const code = validation(["prune", dir], { log: (m) => said.push(m), fail: (m) => said.push(m) }); return { code, said: said.join(" ") }; };
     add("C4: a stopped pass is pruned, and read back", "allowed", pruned(stoppedRun), /"verified":true/);
+
+    add("purge: a partial run", "allowed", purge(stoppedRun), /"disposition":"partial"/);
+    add("purge: nothing left to analyze", "refused", analysis(stoppedRun), /purged/);
+
+    const lastSignal = clean();
+    add("1: a signal during the final record", "refused", await run(lastSignal, pass2(lastSignal), { afterRecord: onLast(() => process.emit("SIGTERM", "SIGTERM")) }), /STOP: interrupted by SIGTERM.*partial/);
+    add("1: that run is partial in its manifest", "refused", analysis(join(lastSignal.results, "e20r-pass2")), /interrupted by SIGTERM/);
+    const lastStop = clean();
+    add("1: the stop file during the final record", "refused", await run(lastStop, pass2(lastStop), { afterRecord: onLast(() => writeFileSync(fx.stopFile, "")) }), /STOP: the stop file exists.*partial/);
+    rmSync(fx.stopFile);
 
     const signaled = clean();
     add("C4: SIGTERM ends a run with a partial manifest", "refused", await run(signaled, pass2(signaled), { afterRecord: (k) => { if (k === 1) process.emit("SIGTERM", "SIGTERM"); } }), /STOP: interrupted by SIGTERM.*partial.*prune/);
@@ -350,13 +371,26 @@ export async function runAcceptance() {
     add("C5: audit draw with no privacy report", "refused", draw(wholeRun), /privacy report/);
     add("C4: a whole pass is not pruned by hand", "refused", (() => { const said = []; const code = validation(["prune", wholeRun], { log: quiet, fail: (m) => said.push(m) }); return { code, said: said.join(" ") }; })(), /finished whole/);
     const privacy = (dir) => { const said = []; const code = reportMain(["--privacy", dir], { log: quiet, fail: (m) => said.push(m) }); return { code, said: said.join(" ") || "clean" }; };
-    const leaky = join(whole.results, "leaky");
-    cpSync(wholeRun, leaky, { recursive: true });
-    const leakRaw = `${readFileSync(join(leaky, "raw.jsonl"), "utf8")}${JSON.stringify({ status: "ok", evidence: { cookieNames: ["jan@example.nl"] } })}\n`;
-    writeFileSync(join(leaky, "raw.jsonl"), leakRaw);
-    writeFileSync(join(leaky, "manifest.json"), JSON.stringify({ ...JSON.parse(readFileSync(join(leaky, "manifest.json"), "utf8")), rawSha256: hashOf(leakRaw) }));
-    add("C5: a miss in a cookie name fails the report", "refused", privacy(leaky));
-    add("C5: analysis after a failed report", "refused", analysis(leaky), /privacy report/);
+    const leaks = {
+      header: { evidence: { values: { server: "jan@example.nl" } } }, cookie: { evidence: { cookieNames: ["jan@example.nl"] } },
+      finalHost: { finalHost: "203.0.113.9" }, hops: { hops: ["203.0.113.9"] }, dns: { dns: { listed: { dmarcRecord: "rua=jan@example.nl" } } },
+    };
+    for (const [field, leak] of Object.entries(leaks)) {
+      const leaky = join(whole.results, `leaky-${field}`);
+      cpSync(wholeRun, leaky, { recursive: true });
+      const leakRaw = `${readFileSync(join(leaky, "raw.jsonl"), "utf8")}${JSON.stringify({ status: "ok", ...leak })}\n`;
+      writeFileSync(join(leaky, "raw.jsonl"), leakRaw);
+      writeFileSync(join(leaky, "manifest.json"), JSON.stringify({ ...JSON.parse(readFileSync(join(leaky, "manifest.json"), "utf8")), rawSha256: hashOf(leakRaw) }));
+      add(`2: a miss in ${field} fails the privacy report`, "refused", privacy(leaky));
+      add(`3: analysis after that failure, ${field}`, "refused", analysis(leaky), /privacy report/);
+      add(`3: purge after that failure, ${field}`, "allowed", purge(leaky), /"disposition":"privacy-failed"/);
+      add(`3: no analysis after the purge, ${field}`, "refused", analysis(leaky), /purged/);
+    }
+    const crashed = join(whole.results, "crashed");
+    cpSync(wholeRun, crashed, { recursive: true });
+    const { finishedAt: _gone, ...unfinished } = JSON.parse(readFileSync(join(crashed, "manifest.json"), "utf8"));
+    writeFileSync(join(crashed, "manifest.json"), JSON.stringify(unfinished));
+    add("3: purge of a crashed run", "allowed", purge(crashed), /"disposition":"crashed"/);
     add("C5: a clean pass 2 writes its report", "allowed", privacy(wholeRun));
     const sibling = join(wholeRun, "other.jsonl");
     cpSync(join(wholeRun, "raw.jsonl"), sibling);
@@ -403,6 +437,25 @@ export async function runAcceptance() {
     if (!existsSync(third)) throw new Error("fixture lost a round");
     add("C8: a third live pilot round", "refused", await run(twoLive, pilotArgs(50, 3)), /2 live pilot rounds/);
 
+    const wrongInput = fx.prereg.replace(/(Pass 1 raw SHA-256 \| `)[0-9a-f]{64}/, `$1${"0".repeat(64)}`);
+    const secondRun = clean();
+    add("7: a registered input that doesn't match", "refused", await (async () => { await run(secondRun, pass2(secondRun)); const dir = join(secondRun.results, "e20r-pass2"); privacy(dir); return analysis(dir, wrongInput); })(), /Pass 1 raw does not match/);
+    await stops("a claim cohort with no usable output", /no usable output in YC-old/, ({ evidence: _e, checks: _c, finalHost: _f, ...r }) => (r.cohorts?.["YC-old"] ? { ...r, status: "error", error: "timeout" } : { ...r, evidence: _e, checks: _c, finalHost: _f }));
+    const noSeal = variant(fx, (r) => r, (m) => ({ ...m, partial: true, stoppedFor: "the stop file exists" }));
+    validation(["prune", noSeal.runDir], { log: quiet });
+    add("5: a finished manifest needs a seal, stopped or not", "refused", await gate(noSeal), /no sealed report/);
+    const purgedRound = clean();
+    secondRound(purgedRound);
+    purge(purgedRound.runDir);
+    add("5: a purged round counts as text gone", "allowed", await gate(purgedRound), /authorized/);
+
+    add("2: an IPv4 in finalHost or hops is a miss", "allowed", truth(recordMisses({ finalHost: "203.0.113.9" }).ipv4 > 0 && recordMisses({ hops: ["203.0.113.9"] }).ipv4 > 0, "recordMisses"));
+    add("2: an SPF address is the one exception", "allowed", truth(recordMisses({ dns: { listed: { spfRecord: "v=spf1 ip4:203.0.113.7 -all" } } }).ipv4 === 0 && recordMisses({ dns: { listed: { dmarcRecord: "203.0.113.7" } } }).ipv4 > 0, "recordMisses"));
+    add("2: a redirect to a literal IPv4 is refused", "allowed", truth((() => { try { strictRobots().robotsHop(new URL("http://203.0.113.9/")); return false; } catch (e) { return e.reason === "ipv4_literal"; } })(), "robotsHop"));
+    add("6: secondary intervals are labeled, DNS from DNS records", "allowed", truth(secondaryCohorts([], []).every((c) => c.interval === "naive row-level" && c.source === "dns"), "secondaryCohorts"));
+    add("8: unsure totals and denominators stand apart", "allowed", truth((() => { const v = scoreLabels(key, labels(3, (i) => (i === 1 ? "1,unsure" : `${i},page`)), labels(3), { resamples: 10 }).humanVsAgent; return v.humanUnsure === 1 && v.agentUnsure === 0 && v.bothAnswered === 2; })(), "scoreLabels"));
+    const preflight = JSON.parse(readFileSync(join(HERE, "..", "..", "package.json"), "utf8")).scripts["e20r:preflight"] ?? "";
+    add("10: preflight runs tests, acceptance and self-test", "allowed", truth(["npm test", "e20r:acceptance", "--self-test"].every((t) => preflight.includes(t)), "package.json"));
     add("C1: a tenant of a shared suffix is its own organization", "allowed", truth(siteOrg("www.github.io") === "www.github.io" && siteOrg("github.io") === "github.io", "siteOrg"));
     add("C2: a host-specific DMARC failure counts", "allowed", truth(resolverFailed({ dns: { listed: { outcomes: {}, queries: [{ outcome: "resolver-failure:timeout" }] } } }), "resolverFailed"));
     add("C7: the amendment removes the header-check labels", "allowed", truth(/removes the inherited requirement that labelers judge/.test(readFileSync(PREREG_R, "utf8")), "amendment"));

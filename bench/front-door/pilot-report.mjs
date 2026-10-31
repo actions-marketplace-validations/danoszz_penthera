@@ -19,7 +19,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { recordMisses, resolverFailed, sealHash, stopRules, MAX_RESOLVER_FAILURES, MIN_ELIGIBLE, MIN_GRADED, MIN_GRADED_SHARE, MIN_TWOXX } from "./record-checks.mjs";
+import { isEligible, recordMisses, resolverFailed, sealHash, stopRules, MAX_RESOLVER_FAILURES, MIN_ELIGIBLE, MIN_GRADED, MIN_GRADED_SHARE, MIN_TWOXX } from "./record-checks.mjs";
 import { CLAIM_COHORTS, readRemovals } from "./replicate.mjs";
 import { exclusionFor, readExclusions } from "./run.mjs";
 
@@ -45,7 +45,11 @@ export function pilotReport(records, { exclude = new Map(), pruned = false } = {
     sites: records.length, pruned,
     coverage: Object.fromEntries(CLAIM_COHORTS.map((c) => {
       const rows = records.filter((r) => r.cohorts?.[c]);
-      return [c, { sites: rows.length, graded: rows.filter((r) => r.status === "ok").length, twoxx: rows.filter((r) => r.httpStatus >= 200 && r.httpStatus < 300).length }];
+      const graded = rows.filter((r) => r.status === "ok");
+      return [c, {
+        selected: rows.length, eligible: rows.filter(isEligible).length, graded: graded.length, twoxx: rows.filter((r) => r.httpStatus >= 200 && r.httpStatus < 300).length,
+        dnsComplete: rows.filter((r) => r.dns?.listed && !resolverFailed(r)).length, classes: tally(graded.map((r) => r.evidence?.class?.label ?? "none")),
+      }];
     })),
     resolverFailures: records.filter(resolverFailed).length,
     outcomes: tally(records.map((r) => (r.status === "error" ? `error:${r.error}` : r.reason ? `${r.status}:${r.reason}` : r.status))),

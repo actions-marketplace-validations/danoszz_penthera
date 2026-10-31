@@ -473,7 +473,9 @@ export function pilotEvidence(dropped, { results = RESULTS, current, allowFixtur
   if (!listed.ok) return listed;
   const no = (why) => ({ ok: false, why });
   const read = (dir, f) => { const p = join(results, dir, f); return existsSync(p) ? readFileSync(p) : null; };
+  const purged = (dir) => JSON.parse(read(dir, "purge-manifest.json") ?? "null")?.manifestSha256 === sha256(read(dir, "manifest.json"));
   for (const { dir } of rounds) {
+    if (purged(dir)) continue;
     const manifest = read(dir, "manifest.json");
     const proof = JSON.parse(read(dir, "prune-manifest.json") ?? "null");
     const raw = join(results, dir, "raw.jsonl");
@@ -490,8 +492,11 @@ export function pilotEvidence(dropped, { results = RESULTS, current, allowFixtur
     const m = JSON.parse(bytes);
     const seal = read(dir, "pilot-result.json");
     proofs.push({ dir, manifestSha256: sha256(bytes), sealSha256: seal ? sha256(seal) : null });
-    if (!m.finishedAt || m.partial) continue;
-    if (!seal) return no(`Pilot ${dir} has no sealed report.`);
+    if (!m.finishedAt) continue;
+    if (!seal) {
+      if (purged(dir)) continue;
+      return no(`Pilot ${dir} has no sealed report.`);
+    }
     const sealed = JSON.parse(seal);
     if (sealed.sealSha256 !== sealHash(sealed)) return no(`Pilot ${dir}: its seal does not match its own hash.`);
     if (sealed.manifestSha256 !== sha256(bytes) || sealed.rawSha256 !== m.rawSha256) return no(`Pilot ${dir}: its sealed report is for another run.`);
@@ -742,9 +747,8 @@ export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map
       if (next < order.length && delayMs) await sleep(delayMs);
     }
   }));
+  stoppedFor ??= stopCheck();
   const done = records.filter(Boolean);
-  const agg = aggregateR(done, { pass, partial: Boolean(stoppedFor), ...meta, concurrency, delayMs, appPage: false, userAgent: USER_AGENT, order: "seeded shuffle", seed: PASS_SEED[pass] });
-  writeFileSync(join(out, "aggregate.json"), JSON.stringify(agg, null, 2) + "\n", SECRET);
   const sum = (k) => done.reduce((n, r) => n + (r.counters?.[k] ?? 0), 0);
   const end = { ...studyState(), ...recheck() };
   const gitAtFinish = gitNow();
@@ -752,6 +756,10 @@ export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map
   // A loopback run may share its checkout with other work, so only the commit counts there.
   const gitChanged = (loopbackPort ? ["commit"] : ["commit", "dirty", "hidden"]).some((k) => gitAtFinish[k] !== gitAtStart[k]);
   const changed = [...Object.keys(end).filter((k) => JSON.stringify(end[k]) !== JSON.stringify(started[k])), ...(gitChanged ? ["git"] : [])];
+  // Nothing below yields, so no signal lands between this check and the manifest.
+  stoppedFor ??= stopCheck();
+  const agg = aggregateR(done, { pass, partial: Boolean(stoppedFor), ...meta, concurrency, delayMs, appPage: false, userAgent: USER_AGENT, order: "seeded shuffle", seed: PASS_SEED[pass] });
+  writeFileSync(join(out, "aggregate.json"), JSON.stringify(agg, null, 2) + "\n", SECRET);
   writeFileSync(join(out, "manifest.json"), JSON.stringify({
     ...begun, gitAtStart, gitAtFinish, finishedAt: new Date().toISOString(), records: done.length,
     ...(stoppedFor ? { partial: true, stoppedFor } : {}),
@@ -903,7 +911,7 @@ export async function main(args, deps = {}) {
       pilotDropped: { used: Boolean(pilotBytes), count: pilotDropped.size, sha256: pilotBytes ? sha256(pilotBytes) : null },
     },
     meta: { listSha256: Object.fromEntries(Object.entries(bytes).map(([c, b]) => [c, sha256(b)])), exclusionSha256: sha256(excludeBytes), startedFrom: process.version },
-    onRecord: (r, k) => { deps.afterRecord?.(k); if (!deps.say) process.stderr.write(`\r${k + 1}/${rows.length} ${r.status.padEnd(9)}`); },
+    onRecord: (r, k) => { deps.afterRecord?.(k, rows.length); if (!deps.say) process.stderr.write(`\r${k + 1}/${rows.length} ${r.status.padEnd(9)}`); },
   });
   process.off("SIGINT", onSignal);
   process.off("SIGTERM", onSignal);

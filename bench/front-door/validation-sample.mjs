@@ -11,12 +11,16 @@
  *   node bench/front-door/validation-sample.mjs prune <run folder>
  *       Deletes all text of a pilot, or of a pass that stopped, and writes
  *       prune-manifest.json. Seal a pilot first.
+ *   node bench/front-door/validation-sample.mjs purge <run folder>
+ *       Deletes the whole per-site raw file, and the audit sheet and key, and writes
+ *       purge-manifest.json with the original hash and the run's disposition. For a
+ *       failed privacy report above all. It can't be undone, and the run decides nothing.
  *   node bench/front-door/validation-sample.mjs score <validation-key.json> <human.csv> <agent.csv>
  *       Each csv: id,label. Refuses a missing, duplicate, unknown or invalid row. Prints
  *       weighted precision and recall, kappa, disagreement and the unsure count.
  */
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { NO_PRIVACY, unfinishedRun } from "./record-checks.mjs";
@@ -164,11 +168,20 @@ export function scoreLabels(key, humanText, agentText, opts) {
   const human = parseLabels(humanText, ids, "human labels");
   const agent = parseLabels(agentText, ids, "agent labels");
   const rows = key.map((k) => ({ ...k, human: human.get(k.id), agent: agent.get(k.id) }));
+  const both = rows.filter((r) => r.human !== "unsure" && r.agent !== "unsure");
   const pairs = {};
   for (const r of rows) if (r.human !== r.agent) pairs[`human ${r.human}, agent ${r.agent}`] = (pairs[`human ${r.human}, agent ${r.agent}`] ?? 0) + 1;
   return {
     ...weightedMetrics(rows, opts),
-    humanVsAgent: { kappa: kappaOf(rows, "human", "agent"), disagreements: rows.filter((r) => r.human !== r.agent).length, pairs },
+    humanVsAgent: {
+      rows: rows.length, humanUnsure: rows.filter((r) => r.human === "unsure").length, agentUnsure: rows.filter((r) => r.agent === "unsure").length,
+      bothAnswered: both.length,
+      // The main reading: rows where neither is unsure.
+      kappa: kappaOf(both, "human", "agent"), disagreements: both.filter((r) => r.human !== r.agent).length,
+      // Over every row, with any `unsure` a disagreement, also when both are unsure.
+      kappaUnsureAsDisagreement: kappaOf(rows.map((r) => (r.agent === "unsure" ? { ...r, agent: "agent-unsure" } : r)), "human", "agent"),
+      pairs,
+    },
   };
 }
 
@@ -203,6 +216,22 @@ export function prunePilot(dir) {
   return { ...proof, verified: true };
 }
 
+/** The whole raw file gone, for any run. Nothing field by field: a miss's neighbours can't be trusted either. */
+export function purgeRun(dir) {
+  const raw = join(dir, "raw.jsonl");
+  if (!existsSync(raw)) throw new Error("Refused: this run has no raw file to purge.");
+  const manifestBytes = readFileSync(join(dir, "manifest.json"));
+  const manifest = JSON.parse(manifestBytes);
+  const privacyFile = join(dir, "privacy-report.json");
+  const privacy = existsSync(privacyFile) ? JSON.parse(readFileSync(privacyFile, "utf8")) : null;
+  const disposition = !manifest.finishedAt ? "crashed" : manifest.partial ? "partial" : privacy && !privacy.clean ? "privacy-failed" : "finished";
+  const proof = { kind: "purge", disposition, manifestSha256: hash(manifestBytes), rawSha256: hash(readFileSync(raw)), records: readRaw(raw).length, purgedAt: new Date().toISOString() };
+  writeFileSync(join(dir, "purge-manifest.json"), JSON.stringify(proof, null, 2) + "\n", PRIVATE);
+  for (const f of ["raw.jsonl", "raw.jsonl.tmp", "validation-sheet.json", "validation-key.json"]) rmSync(join(dir, f), { force: true });
+  if (existsSync(raw)) throw new Error("The raw file is still there after the purge.");
+  return { ...proof, verified: true };
+}
+
 export function main([mode, target, a, b], { log = console.log, fail = console.error } = {}) {
   if (mode === "draw" && target) {
     const problem = unfinishedRun(target);
@@ -225,6 +254,15 @@ export function main([mode, target, a, b], { log = console.log, fail = console.e
     log(JSON.stringify(prunePilot(target)));
     return 0;
   }
+  if (mode === "purge" && target) {
+    try {
+      log(JSON.stringify(purgeRun(target)));
+      return 0;
+    } catch (e) {
+      fail(e.message);
+      return 3;
+    }
+  }
   if (mode === "score" && target && a && b) {
     const proofFile = join(dirname(target), "prune-manifest.json");
     const proof = existsSync(proofFile) ? JSON.parse(readFileSync(proofFile, "utf8")) : null;
@@ -232,7 +270,7 @@ export function main([mode, target, a, b], { log = console.log, fail = console.e
     console.log(JSON.stringify(scoreLabels(JSON.parse(readFileSync(target, "utf8")), readFileSync(a, "utf8"), readFileSync(b, "utf8")), null, 2));
     return 0;
   }
-  console.error("Usage: validation-sample.mjs draw <run folder> | prune <run folder> | score <validation-key.json> <human.csv> <agent.csv>");
+  console.error("Usage: validation-sample.mjs draw <run folder> | prune <run folder> | purge <run folder> | score <validation-key.json> <human.csv> <agent.csv>");
   return 2;
 }
 

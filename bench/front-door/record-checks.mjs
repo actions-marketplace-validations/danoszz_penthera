@@ -7,28 +7,30 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { scrubMisses } from "./classify.mjs";
 
-// The stored text fields of one record. Hashes and counts hold no quote.
-export function storedText(r) {
-  const e = r.evidence;
-  return [
-    e?.excerpt, e?.pageExcerpt?.title, e?.pageExcerpt?.text, e?.pageExcerpt?.noscript,
-    ...Object.values(e?.values ?? {}), ...(e?.cookieNames ?? []),
-    ...(e?.others ?? []).flatMap((o) => [o.excerpt, ...Object.values(o.values ?? {}), ...(o.cookieNames ?? [])]),
-    ...[r.dns?.listed, r.dns?.final].filter(Boolean).flatMap((d) => [d.dmarcRecord, ...Object.values(d.dmarcTags ?? {}), ...(d.caaTree?.issuers ?? [])]),
-    ...(e?.headerNames ?? []), ...(e?.others ?? []).flatMap((o) => o.headerNames ?? []),
-    ...(r.checks ?? []).map((c) => c.evidence),
-    ...(r.app?.checks ?? []).map((c) => c.evidence),
-  ].filter(Boolean);
+// Two narrow exceptions. A hash is hex by design. An SPF record lists mail servers by
+// address on purpose, so addresses don't count there, and anything else does.
+const IS_HASH = /sha256$/i;
+const ADDRESS_KINDS = new Set(["ipv4", "ipv6"]);
+
+/** Every string one record stores, object keys too, each with the key it sits under. */
+function* storedStrings(value, key = "") {
+  if (typeof value === "string") yield [key, value];
+  else if (Array.isArray(value)) for (const v of value) yield* storedStrings(v, key);
+  else if (value && typeof value === "object") {
+    for (const [k, v] of Object.entries(value)) {
+      yield [k, k];
+      yield* storedStrings(v, k);
+    }
+  }
 }
 
-// SPF records list mail servers by address on purpose, so addresses don't count here.
-export const spfText = (r) => [r.dns?.listed?.spfRecord, r.dns?.final?.spfRecord].filter(Boolean);
-
-/** Every miss in one record, by kind. */
+/** Every miss in one record, by kind, over all it stores. */
 export function recordMisses(r) {
   const out = { ipv4: 0, ipv6: 0, email: 0, query: 0, fragment: 0, jwt: 0, longHex: 0, longNumber: 0 };
-  for (const text of storedText(r)) for (const [k, v] of Object.entries(scrubMisses(text))) out[k] += v;
-  for (const text of spfText(r)) for (const [k, v] of Object.entries(scrubMisses(text))) if (k !== "ipv4" && k !== "ipv6") out[k] += v;
+  for (const [key, text] of storedStrings(r)) {
+    if (IS_HASH.test(key)) continue;
+    for (const [k, v] of Object.entries(scrubMisses(text))) if (key !== "spfRecord" || !ADDRESS_KINDS.has(k)) out[k] += v;
+  }
   return out;
 }
 
@@ -41,6 +43,10 @@ export const resolverFailed = (r) => (r.error === "not_found" && r.netCode !== u
   || [r.dns?.listed, r.dns?.final].filter(Boolean).some((d) => Object.values(d.outcomes ?? {}).some(failedOutcome) || (d.queries ?? []).some((q) => failedOutcome(q.outcome)));
 
 export const MAX_RESOLVER_FAILURES = 0.2;
+
+/** Sites a whole-list bound counts. A stop of ours stays in; only an owner's choice or our exclusion leaves. */
+const NOT_ELIGIBLE = new Set(["exclusion_list", "robots_disallow_all", "robots_disallow_path", "not_a_homepage"]);
+export const isEligible = (r) => r.status !== "opted_out" && !NOT_ELIGIBLE.has(r.reason);
 
 /**
  * Text that came from a page: all the in-flight stop reads. A stop ends pass 2 for good,
@@ -80,6 +86,7 @@ export function stopRules(report, { floors = true } = {}) {
   if (floors && eligible === 0) stop.push("no eligible site");
   else if (floors && eligible < MIN_ELIGIBLE) stop.push(`under ${MIN_ELIGIBLE} eligible sites`);
   if (floors && eligible && report.evidence.graded < MIN_GRADED) stop.push(`under ${MIN_GRADED} graded sites`);
+  for (const [cohort, c] of Object.entries(report.coverage ?? {})) if (floors && !(c.graded && c.dnsComplete)) stop.push(`no usable output in ${cohort}`);
   return stop;
 }
 
@@ -99,6 +106,7 @@ export function unfinishedRun(dir) {
   if (!existsSync(file)) return "no run manifest";
   const manifestBytes = readFileSync(file);
   const m = JSON.parse(manifestBytes);
+  if (existsSync(join(dir, "purge-manifest.json"))) return "the raw file was purged";
   if (m.kind !== "pass") return "not a pass";
   if (!m.finishedAt) return "the run did not finish";
   if (m.partial) return `the run stopped: ${m.stoppedFor}`;

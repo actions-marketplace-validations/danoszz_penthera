@@ -128,10 +128,11 @@ export function agentFiles({ root, site, version, origin, values, pub = null, po
   // llms.txt: the template, plus when to reach for Penthera (before the docs),
   // the landing pages (after them) and the live check's spec (with the other
   // machine-readable files).
-  const landing = landingPages(site);
+  // An unlisted page keeps its URL, and stays out of every list.
+  const landing = landingPages(site).filter((p) => !p.unlisted);
   // /contact is a landing page for the build, but it is no question for the check.
   const asked = landing.filter((p) => p.slug !== "contact");
-  const questions = asked.length ? `## Questions the live check answers\n\n${asked.map((p) => `- [${p.h1}](${origin}/${p.slug}.md): ${p.description}`).join("\n")}\n\n` : "";
+  const questions = asked.length ? `## Questions the live check answers\n\n${asked.map((p) => (p.slug === "research-e20" ? `- [State of the Web 2026](${origin}/${p.slug}.md): what the study's crawler, User-Agent Penthera-Research/E20, requests from a homepage, and how to opt out or be removed. Published as totals.` : `- [${p.h1}](${origin}/${p.slug}.md): ${p.description}`)).join("\n")}\n\n` : "";
   out["llms.txt"] = fill(readFileSync(join(site, "llms.txt"), "utf8"), { ...values, ORIGIN: origin }, "llms.txt")
     .replace(/^## Docs$/m, (m) => `${benchmarkBlock(pub, origin)}${whenToUse({ version, origin })}\n${m}`)
     .replace(/^## Trust$/m, (m) => `${questions}${blogList(posts, origin)}${m}`)
@@ -146,9 +147,10 @@ export function agentFiles({ root, site, version, origin, values, pub = null, po
   const urls = [
     ["", "site/index.html"], ["index.md", "site/agent-ready.mjs"], ...terms.map((t) => [t, "docs/live-check-terms.md"]),
     ...(existsSync(join(root, "docs", "trust.md")) ? [["trust", "docs/trust.md"]] : []),
+    ["type", "site/type.mjs"],
     ...(bench.length ? [["benchmarks", pub.date], ...bench] : []),
     // /research is dated by its newest entry.
-    ...(research.length ? [["research", research.find((e) => e.date)?.date || "site/research.mjs"]] : []),
+    ...(research.length ? [["research", research.find((e) => e.date)?.date || "site/research.mjs"], ["news", research.find((e) => e.date)?.date || "site/news.mjs"]] : []),
     ...landing.map((p) => [p.slug, `site/pages/${p.slug}.md`]),
     // Approved posts only: a draft is never built, so never listed.
     ...(posts.length ? [["blog", posts[0].date], ...posts.map((p) => [`blog/${p.slug}`, p.date])] : []),

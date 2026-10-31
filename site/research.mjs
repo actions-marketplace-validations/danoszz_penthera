@@ -118,6 +118,18 @@ const SUMMARIES = {
 };
 
 /**
+ * Names readers see, in place of the protocol's id and title. The ids stay in
+ * the protocols, the code and the study's User-Agent.
+ */
+export const PUBLIC_NAMES = {
+  E20: { tag: "State of the Web", title: "State of the Web 2026: how do websites score on front-door checks?" },
+  E20r: {
+    tag: "State of the Web", title: "State of the Web 2026, follow-up: is the front-door gap real, and what do bot challenges hide?",
+    summary: "A follow-up with new groups of sites and a new check, registered before it ran. Aggregates only.",
+  },
+};
+
+/**
  * Studies with a result: the headline, where the result is, and the sentences
  * in that file the headline rests on (checked at build time). E11b's headline
  * is built from published.json instead.
@@ -247,14 +259,15 @@ export function researchEntries({ root, pub = null, posts = [], preregDir = join
       type: "Study",
       status,
       id: p.id,
-      title: p.title,
+      ...(PUBLIC_NAMES[p.id] ? { tag: PUBLIC_NAMES[p.id].tag } : {}),
+      title: PUBLIC_NAMES[p.id]?.title || p.title,
       // A headline only for a result; a draft never shows one.
       ...(status === "Result" ? {
         headline: r.headline,
         result: r.href.startsWith("/") ? r.href : `${BLOB}/${r.href}`,
         ...(r.notes ? { notes: r.notes.map((n) => ({ date: n.date, text: n.text, href: `${BLOB}/${n.href}` })) } : {}),
       } : {}),
-      summary: (status === "Result" && r.summary) || SUMMARIES[p.id] || p.title,
+      summary: (status === "Result" && r.summary) || PUBLIC_NAMES[p.id]?.summary || SUMMARIES[p.id] || p.title,
       href: `${BLOB}/${rel}`,
       source: rel,
     });
@@ -282,7 +295,7 @@ export function researchEntries({ root, pub = null, posts = [], preregDir = join
 const statusClass = (s) => `rs-status is-${s.toLowerCase()}`;
 
 /** The featured card: the public benchmark, each rank with its interval. */
-function featured(pub) {
+export function featured(pub) {
   if (!pub?.benchmarks) return "";
   const views = benchmarkViews(pub);
   const rows = views.map((v) => `          <li class="rs-rank-row">
@@ -298,15 +311,28 @@ function featured(pub) {
 ${rows}
       </ol>
       <p class="rs-feature-note">Where a range follows the rank, Penthera's rank fell in that range in 95% of bootstrap redraws.</p>
-      <p class="rs-feature-cta"><a class="btn-steel" href="/benchmarks">Every tool, interval and limit</a></p>
+      <p class="rs-feature-cta"><a class="btn btn-steel" href="/benchmarks">Every tool, interval and limit</a></p>
     </section>`;
 }
+
+/** The page's structured data, the same on /research however it is drawn. */
+export const researchLd = (entries, { url, origin, description }) => ldScript([
+    {
+      "@type": "CollectionPage", "@id": `${url}#page`, url, name: "Penthera research", description, author: AUTHOR,
+      isPartOf: { "@type": "WebSite", "@id": `${origin}/#website`, url: `${origin}/`, name: "Penthera" },
+      mainEntity: {
+        "@type": "ItemList", itemListOrder: "https://schema.org/ItemListOrderDescending", numberOfItems: entries.length,
+        itemListElement: entries.map((e, i) => ({ "@type": "ListItem", position: i + 1, name: e.headline || e.title, url: e.href.startsWith("/") ? `${origin}${e.href}` : e.href })),
+      },
+    },
+    { "@type": "BreadcrumbList", itemListElement: [["Penthera", "/"], ["Research", "/research"]].map(([n, p], i) => ({ "@type": "ListItem", position: i + 1, name: n, item: `${origin}${p}` })) },
+  ]);
 
 /** Escape, and keep a flag such as --giants on one line. */
 const text = (s) => esc(s).replace(/(--[a-z][\w-]*)/g, '<span class="nowrap">$1</span>');
 
 function item(e) {
-  const tags = `<span class="rs-type">${esc(e.type)}${e.id ? ` · <span class="rs-id">${esc(e.id)}</span>` : ""}</span>${e.status ? `<span class="${statusClass(e.status)}">${esc(e.status)}</span>` : ""}`;
+  const tags = `<span class="rs-type">${esc(e.type)}${e.id ? ` · <span class="rs-id">${esc(e.tag || e.id)}</span>` : ""}</span>${e.status ? `<span class="${statusClass(e.status)}">${esc(e.status)}</span>` : ""}`;
   const head = e.headline || e.title;
   const more = e.type === "Study" && e.result ? ` <a class="rs-more" href="${esc(e.result)}">Read the result</a>` : "";
   const sub = e.type === "Study" && e.headline ? `<p class="rs-sub">${esc(e.title)}</p>` : "";
@@ -357,17 +383,7 @@ export function researchHtml(entries, { origin, pub = null, styles = "/styles.cs
   const count = (t) => entries.filter((e) => e.type === t).length;
   const tally = TYPES.map((t) => [t, count(t)]).filter(([, n]) => n).map(([t, n]) => `${n} ${({ Study: ["study", "studies"], Result: ["result", "results"], "Case study": ["case study", "case studies"], Post: ["post", "posts"] })[t][n === 1 ? 0 : 1]}`).join(" · ");
   const description = "Penthera's research: every study registered before it runs, its status and result, the case studies and posts, newest first, each dated.";
-  const ld = ldScript([
-    {
-      "@type": "CollectionPage", "@id": `${url}#page`, url, name: "Penthera research", description, author: AUTHOR,
-      isPartOf: { "@type": "WebSite", "@id": `${origin}/#website`, url: `${origin}/`, name: "Penthera" },
-      mainEntity: {
-        "@type": "ItemList", itemListOrder: "https://schema.org/ItemListOrderDescending", numberOfItems: entries.length,
-        itemListElement: entries.map((e, i) => ({ "@type": "ListItem", position: i + 1, name: e.headline || e.title, url: e.href.startsWith("/") ? `${origin}${e.href}` : e.href })),
-      },
-    },
-    { "@type": "BreadcrumbList", itemListElement: [["Penthera", "/"], ["Research", "/research"]].map(([n, p], i) => ({ "@type": "ListItem", position: i + 1, name: n, item: `${origin}${p}` })) },
-  ]);
+  const ld = researchLd(entries, { url, origin, description });
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -383,9 +399,10 @@ export function researchHtml(entries, { origin, pub = null, styles = "/styles.cs
   <meta property="og:description" content="${esc(description)}">
   <meta property="og:type" content="website">
   <meta property="og:url" content="${url}">
-  <meta property="og:image" content="${origin}/media/social/og.png">
+  <meta property="og:image" content="${origin}/media/social/og-plain.png">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="stylesheet" href="${styles}">
   <script src="${theme}"></script>
   <script src="${script}" defer></script>
@@ -404,7 +421,7 @@ ${tools(entries)}
 ${entries.map(item).join("\n")}
     </ol>
     <p class="rs-none" hidden>Nothing matches. <button type="button" class="rs-reset">Clear the search and filters</button></p>
-    <p class="rs-all" data-js hidden><button type="button" class="btn-steel" aria-controls="rs-items">Show all ${entries.length}</button></p>
+    <p class="rs-all" data-js hidden><button type="button" class="btn btn-steel" aria-controls="rs-items">Show all ${entries.length}</button></p>
     <p class="rs-how">A study is registered by the commit that merges its protocol, and the protocol lists any data seen before that. Changes after that are logged in its deviations section, with the date and the reason. Everything here is read from <a href="${REPO}/tree/main/docs/research">docs/research</a>, <a href="${REPO}/tree/main/bench">bench</a> and the blog when the site is built.</p>
   </main>
   ${foot}
@@ -420,7 +437,7 @@ export function researchMarkdown(entries, { origin, pub = null }) {
     ? `## Featured: the public benchmark (${pub.date})\n\nPenthera and ${fieldTools(pub)} free security tools, scored once on the sealed half of four public datasets ([all four](${origin}/benchmarks.md)):\n\n${benchmarkViews(pub).map((v) => `- ${v.c.label}, ${v.c.dataset.short}: ${rankText(v)}, ${v.c.scoreName} ${n2(v.us.score)}`).join("\n")}\n\nWhere a range follows the rank, Penthera's rank fell in that range in 95% of bootstrap redraws.\n\n`
     : "";
   const extra = (e) => `${e.result ? ` [Result](${abs(e.result)}).` : ""}${(e.notes || []).map((n) => ` ${n.text} [Re-run](${n.href}).`).join("")}`;
-  const line = (e) => `- ${e.date || "Undated"} · ${e.type}${e.id ? ` ${e.id}` : ""}${e.status ? ` · ${e.status}` : ""}: [${e.headline || e.title}](${abs(e.href)}). ${e.summary}${extra(e)}`;
+  const line = (e) => `- ${e.date || "Undated"} · ${e.type}${e.id ? ` ${e.tag || e.id}` : ""}${e.status ? ` · ${e.status}` : ""}: [${e.headline || e.title}](${abs(e.href)}). ${e.summary}${extra(e)}`;
   return `# Penthera research
 
 > ${PURPOSE}

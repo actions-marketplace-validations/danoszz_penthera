@@ -32,10 +32,12 @@ import { landingPages, landingHtml, landingMarkdown } from "./landing.mjs";
 import { termsPage, docPage } from "./terms.mjs";
 import { publicBenchHtml } from "./public-bench.mjs";
 import { readPosts, blogFiles } from "./blog.mjs";
-import { siteFooter, siteRail, footGroups } from "./frame.mjs";
+import { typeHtml, typeMarkdown } from "./type.mjs";
+import { hubHtml as newsHub, hubMarkdown as newsMarkdown, hubFeed as newsFeed, releases } from "./news.mjs";
+import { siteFooter, siteRail, smart, stickers, footGroups } from "./frame.mjs";
 import { benchmarkHtml, benchmarkMarkdown, benchmarkViews, cardFor, fieldTools, hubHtml, hubMarkdown } from "./benchmarks.mjs";
 import { cardRows, rowTag } from "./check/card.js";
-import { researchEntries, researchHtml, researchMarkdown } from "./research.mjs";
+import { featured, researchEntries, researchHtml, researchMarkdown } from "./research.mjs";
 
 const SITE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(SITE, "..");
@@ -444,7 +446,7 @@ export function readNews(file = join(SITE, "news.json")) {
 function tickerHtml(items) {
   const fmt = (d) => new Date(`${d}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
   const list = (hidden) => `<ul class="ticker-list"${hidden ? ' aria-hidden="true"' : ""}>${items.map((n) =>
-    `<li><svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><use href="#i-lock"/></svg><time datetime="${n.date}">${fmt(n.date)}</time> <a href="${esc(n.source)}"${hidden ? ' tabindex="-1"' : ""}>${esc(n.text)}</a></li>`).join("")}</ul>`;
+    `<li><svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><use href="#i-lock"/></svg><time datetime="${n.date}">${fmt(n.date)}</time> <a href="${esc(n.source)}" tabindex="-1">${esc(n.text)}</a></li>`).join("")}</ul>`;
   return `<div class="ticker" role="region" aria-label="Security news"><div class="ticker-track">${list(false)}${list(true)}</div></div>`;
 }
 
@@ -495,13 +497,14 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   if (engine) await bundle(join(SITE, "check", "engine.js"), resolve(engine), { minify: false });
 
   // Static files, as they are.
-  for (const f of ["styles.css", "theme.js", "track.js", "pro.js", "gopro.js", "research.js"]) cpSync(join(SITE, f), join(OUT, f));
+  for (const f of ["styles.css", "theme.js", "track.js", "pro.js", "research.js", "blog.js", "hub.js"]) cpSync(join(SITE, f), join(OUT, f));
   // The IndexNow key file, served at /<key>.txt (scripts/indexnow.mjs).
   for (const f of readdirSync(SITE).filter((n) => /^[0-9a-f]{32}\.txt$/.test(n))) cpSync(join(SITE, f), join(OUT, f));
   cpSync(join(SITE, "media"), join(OUT, "media"), { recursive: true });
   // The dashboard's own font and marks, so the site and penthera ui match.
   const UI = join(ROOT, "src", "ui", "static");
   for (const f of ["favicon.svg", "logo.svg"]) cpSync(join(UI, f), join(OUT, f));
+  cpSync(join(SITE, "media", "apple-touch-icon.png"), join(OUT, "apple-touch-icon.png"));
   mkdirSync(join(OUT, "fonts"), { recursive: true });
   for (const f of ["DepartureMono-Regular.woff2", "DepartureMono-LICENSE.txt"]) cpSync(join(UI, "fonts", f), join(OUT, "fonts", f));
   // The walkthrough is no longer on the page; it stays at its URL for links shared before.
@@ -553,7 +556,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   // The footer of every page: a map of what this build renders, so a new
   // landing page, benchmark or approved post shows up in it by itself.
   const groups = footGroups({
-    pages: landingPages(SITE),
+    pages: landingPages(SITE).filter((p) => !p.unlisted),
     benchmarks: pub ? benchmarkViews(pub).map((v) => ({ slug: v.c.slug, label: v.c.label, nav: v.c.nav })) : [],
     posts: posts.published,
   });
@@ -586,12 +589,12 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
   if (pub) {
     const image = (slug) => { const f = cardFor(SITE, pubText, slug); return f ? `${ORIGIN}/${f}?v=${hash(readFileSync(join(SITE, f)))}` : undefined; };
     mkdirSync(join(OUT, "benchmarks"), { recursive: true });
-    const hub = hubHtml(pub, { origin: ORIGIN, styles, image: image("hub"), foot });
+    const hub = hubHtml(pub, { origin: ORIGIN, styles, image: image("hub"), foot, blog: posts.published.length > 0 });
     writeFileSync(join(OUT, "benchmarks.html"), hub);
     writeFileSync(join(OUT, "benchmarks", "index.html"), hub);
     writeFileSync(join(OUT, "benchmarks.md"), hubMarkdown(pub, { origin: ORIGIN }));
     for (const v of benchmarkViews(pub)) {
-      writeFileSync(join(OUT, "benchmarks", `${v.c.slug}.html`), benchmarkHtml(v.key, pub, { origin: ORIGIN, styles, image: image(v.c.slug), foot }));
+      writeFileSync(join(OUT, "benchmarks", `${v.c.slug}.html`), benchmarkHtml(v.key, pub, { origin: ORIGIN, styles, image: image(v.c.slug), foot, blog: posts.published.length > 0 }));
       writeFileSync(join(OUT, "benchmarks", `${v.c.slug}.md`), benchmarkMarkdown(v.key, pub, { origin: ORIGIN }));
     }
   }
@@ -607,7 +610,7 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
       cpSync(fig.path, join(OUT, "blog", "figures", name));
     }
   }
-  for (const [f, text] of Object.entries(blogFiles(posts, { origin: ORIGIN, styles, drafts, foot }))) {
+  for (const [f, text] of Object.entries(blogFiles(posts, { origin: ORIGIN, styles, script: `/blog.js?v=${hash(readFileSync(join(OUT, "blog.js")))}`, drafts, foot }))) {
     mkdirSync(dirname(join(OUT, f)), { recursive: true });
     writeFileSync(join(OUT, f), text);
   }
@@ -619,11 +622,34 @@ export async function buildSite({ out = join(SITE, "dist"), engine, blogDir = jo
     writeFileSync(join(OUT, f), text);
   }
 
-  // The rail goes on every rendered page here, so no page template can miss it.
+  // The hub: one template, three real pages (site/news.mjs).
+  {
+    const script = `/hub.js?v=${hash(readFileSync(join(OUT, "hub.js")))}`;
+    const bench = pub?.benchmarks ? benchmarkViews(pub).map((v) => ({ date: pub.date, type: "Benchmark", title: v.c.label || v.c.slug, summary: "Every tool, every interval, on the sealed half.", href: `/benchmarks/${v.c.slug}` })) : [];
+    const all = [...research, ...bench, ...releases(ROOT)].sort((a, z) => (z.date || "").localeCompare(a.date || ""));
+    const hub = (k) => newsHub(k, all, { origin: ORIGIN, styles, foot, script, posts: posts.published, feature: featured(pub) });
+    writeFileSync(join(OUT, "news.html"), hub("all"));
+    writeFileSync(join(OUT, "news.md"), newsMarkdown(all, { origin: ORIGIN }));
+    mkdirSync(join(OUT, "news"), { recursive: true });
+    writeFileSync(join(OUT, "news", "feed.xml"), newsFeed(all, { origin: ORIGIN }));
+    writeFileSync(join(OUT, "news", "index.html"), hub("all"));
+    writeFileSync(join(OUT, "research.html"), hub("research"));
+    if (posts.published.length) {
+      writeFileSync(join(OUT, "blog.html"), hub("articles"));
+      writeFileSync(join(OUT, "blog", "index.html"), hub("articles"));
+    }
+  }
+
+  // /type: the type system, drawn with itself (site/type.mjs).
+  writeFileSync(join(OUT, "type.html"), typeHtml({ origin: ORIGIN, styles, foot }));
+  writeFileSync(join(OUT, "type.md"), typeMarkdown({ origin: ORIGIN }));
+
+  // The rail goes on every rendered page here, so no page template can miss it,
+  // and so do the real quotes and apostrophes.
   for (const f of readdirSync(OUT, { recursive: true }).map(String).filter((n) => n.endsWith(".html"))) {
     const url = "/" + f.replace(/\\/g, "/").replace(/(^|\/)index\.html$/, "").replace(/\.html$/, "");
     const html = readFileSync(join(OUT, f), "utf8");
-    writeFileSync(join(OUT, f), html.replace(/<main\b/, `${siteRail({ url: url === "/" ? "/" : url.replace(/\/$/, ""), stars: values.STARS, blog: posts.published.length > 0 })}\n$&`));
+    writeFileSync(join(OUT, f), stickers(smart(html), url).replace(/<main\b/, `${siteRail({ url: url === "/" ? "/" : url.replace(/\/$/, ""), stars: values.STARS, blog: posts.published.length > 0 })}\n$&`));
   }
 
   const total = readdirSync(OUT, { recursive: true }).map((f) => join(OUT, f)).filter((f) => statSync(f).isFile()).reduce((n, f) => n + statSync(f).size, 0);

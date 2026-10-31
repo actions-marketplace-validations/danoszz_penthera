@@ -99,7 +99,7 @@ describe("site build", () => {
   });
 
   it("writes the page, the check and its media, with measured numbers filled in", () => {
-    for (const f of ["index.html", "check.js", "styles.css", "theme.js", "logo.svg", "favicon.svg", "fonts/DepartureMono-Regular.woff2", "media/hero.mp4", "media/field.png", "media/walkthrough.mp4"]) {
+    for (const f of ["index.html", "check.js", "styles.css", "theme.js", "logo.svg", "favicon.svg", "fonts/DepartureMono-Regular.woff2", "media/field.png", "media/walkthrough.mp4"]) {
       expect(existsSync(join(out, f)), f).toBe(true);
     }
     const html = readFileSync(join(out, "index.html"), "utf8");
@@ -107,13 +107,32 @@ describe("site build", () => {
     expect(html).toMatch(/src="\/check\.js\?v=[0-9a-f]{10}"/);
   });
 
+  it("keeps the check's tracking function reachable, and says no before asking consent for an address it can't check", () => {
+    const ui = readFileSync(join(ROOT, "site", "check", "ui.js"), "utf8");
+    // A local named count hid this function once, so a working copy read "Copy failed".
+    expect(ui.match(/\b(?:const|let|var) count\b/g)).toBeNull();
+    expect(ui.indexOf("notCheckable(url)")).toBeLessThan(ui.indexOf("await askConsent(host)"));
+  });
+
+  it("gives every page a share image that exists, and an icon for the iPhone", () => {
+    for (const f of ["news.html", "blog.html", "research.html", "blog/sealed-half-benchmark.html", "trust.html", "terms.html", "type.html"]) {
+      const html = readFileSync(join(out, f), "utf8");
+      const img = html.match(/property="og:image" content="https:\/\/penthera\.org\/([^"?]+)/)?.[1];
+      expect(img, f).toBeTruthy();
+      expect(existsSync(join(out, img)), f).toBe(true);
+      expect(html, f).toContain('name="twitter:card" content="summary_large_image"');
+      expect(html, f).toContain('href="/apple-touch-icon.png"');
+    }
+    expect(existsSync(join(out, "apple-touch-icon.png"))).toBe(true);
+  });
+
   it("has share cards for Open Graph and X, with images that exist", () => {
     const html = readFileSync(join(out, "index.html"), "utf8");
     for (const tag of ['property="og:image"', 'name="twitter:card" content="summary_large_image"', 'property="og:image:width" content="1200"']) {
       expect(html, tag).toContain(tag);
     }
-    expect(html).toContain('property="og:title" content="Penthera: your open-source cyber security agent"');
-    expect(html).toContain('name="twitter:title" content="Penthera: your open-source cyber security agent"');
+    expect(html).toContain('property="og:title" content="Penthera: make your app more secure for free"');
+    expect(html).toContain('name="twitter:title" content="Penthera: make your app more secure for free"');
     for (const tag of ["og:description", "twitter:description"]) {
       const d = html.match(new RegExp(`(?:property|name)="${tag}" content="([^"]+)"`))[1];
       expect(d.length, tag).toBeLessThanOrEqual(155);
@@ -278,7 +297,7 @@ describe("site before and after", () => {
     const sec = html.slice(html.indexOf('class="ba"'), html.indexOf('id="check"'));
     const e = JSON.parse(readFileSync(join(ROOT, "site", "example.json"), "utf8"));
     expect(sec).not.toMatch(/\{\{\w+\}\}/);
-    expect(sec).toContain("yo, is my app safe?");
+    expect(sec).toContain("yo is my app secure?");
     for (const s of ["high", "medium", "low"]) if (e.counts[s]) expect(sec).toContain(`${e.counts[s]} ${s}`);
     expect(sec).toContain(`${e.checks} checks, ${e.requests} requests, all to 127.0.0.1.`);
     expect(sec).toContain(`${e.finding.title} <span class="ba-conf">${e.finding.confidence}</span>`);
@@ -286,7 +305,7 @@ describe("site before and after", () => {
     const packRules = activePacks().reduce((n, p) => n + p.count, 0);
     const rules = COUNTS.urlTemplates + COUNTS.secretPatterns + COUNTS.capabilities + COUNTS.agentRules + packRules;
     // The totals sit under the four areas in "What it checks".
-    expect(sec).toContain(`Counts from this release's rules: ${rules} readable rules, citing ${COUNTS.references} sources.`);
+    expect(sec).toContain(`Counts from this release’s rules: ${rules} readable rules, citing ${COUNTS.references} sources.`);
     expect(sec).toContain(`<p class="map-n">${(COUNTS.popularNpm + COUNTS.popularPypi).toLocaleString("en-US")}<span> package names</span></p>`);
     expect(rules).toBeLessThan(1000); // the count is what it is; never round it up
     expect(sec).not.toMatch(/1,?000\+/);
@@ -449,8 +468,8 @@ describe("site story", () => {
     for (const [i, m] of order.entries()) expect(at[i], m).toBeGreaterThan(0);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
     expect(h).toContain("AI coding tools ship faster than anyone can check.");
-    expect(h).toContain('<h1 class="ask-sub" id="hero-title">Penthera: your <span class="nowrap">open-source</span> cyber security agent.</h1>');
-    expect(h).toContain('<p class="bubble">yo, is my app safe?</p>');
+    expect(h).toContain('<h1 class="ask-sub" id="hero-title">Make your app more secure for free</h1>');
+    expect(h).toContain('<p class="bubble">yo is my app secure?</p>');
     expect(h).toMatch(/<h2 id="faq-title">Before you install\.<\/h2>/);
     // Merged away: no section repeats another.
     for (const gone of ['class="walk', 'class="eu"', 'class="vision', 'class="ba-counts"', "data-check", 'class="desk"', 'class="spec"']) expect(h, gone).not.toContain(gone);
@@ -514,7 +533,7 @@ describe("site story", () => {
     const h = html();
     const hero = h.slice(h.indexOf('class="hero"'), h.indexOf('id="answer"'));
     expect(h.match(/<h1[ >]/g)).toHaveLength(1);
-    expect(hero.indexOf('<p class="ask">Is your site/app safe?</p>')).toBeLessThan(hero.indexOf('id="hero-title"'));
+    expect(hero.indexOf('<p class="ask">Check it before they wreck it</p>')).toBeLessThan(hero.indexOf('id="hero-title"'));
     expect(hero.indexOf('id="hero-title"')).toBeLessThan(hero.indexOf('id="scan"'));
     // The example is the live check's own report of the test server, made at build time.
     const r = await exampleCheck();
@@ -550,7 +569,7 @@ describe("site story", () => {
   it("shows the four areas with counts from the rules, and the tour as three dashboard steps", () => {
     const h = html();
     const map = h.slice(h.indexOf('id="checks"'), h.indexOf('id="trust"'));
-    for (const [n, what] of [[COUNTS.secretPatterns, "secret and AI-key patterns"], [COUNTS.agentRules, "AI-tooling rules"], [COUNTS.urlTemplates, "URL scan templates"], [(COUNTS.popularNpm + COUNTS.popularPypi).toLocaleString("en-US"), "package names"]]) {
+    for (const [n, what] of [[COUNTS.secretPatterns, "secret and AI-key patterns"], [COUNTS.agentRules, "AI setup rules"], [COUNTS.urlTemplates, "URL scan templates"], [(COUNTS.popularNpm + COUNTS.popularPypi).toLocaleString("en-US"), "package names"]]) {
       expect(map).toContain(`<p class="map-n">${n}<span> ${what}</span></p>`);
     }
     expect(map.match(/<li class="map-cell /g)).toHaveLength(4);
@@ -620,17 +639,14 @@ describe("site story", () => {
     expect(existsSync(join(out, "upkeep.html"))).toBe(false);
   });
 
-  it("the landing page's Go Pro plate links to /pro, with its motion in /gopro.js", () => {
-    const page = readFileSync(join(out, "index.html"), "utf8");
-    const plate = page.slice(page.indexOf('id="go-pro"'), page.indexOf("</section>", page.indexOf('id="go-pro"')));
-    expect(plate).toContain('<h2 id="gopro-title">Go Pro</h2>');
-    expect(plate).toContain("What you shipped, checked again every day.");
-    expect(plate).toMatch(/<a class="gopro-btn" href="\/pro" data-track="gopro-waitlist">Join the experiment/);
-    expect(plate).toContain("An experiment, not a sale");
-    expect(plate).not.toMatch(/\$\d/); // no price on the plate
-    expect(page).toContain('<script defer src="/gopro.js"></script>');
-    expect(existsSync(join(out, "gopro.js"))).toBe(true);
-    expect(readFileSync(join(out, "gopro.js"), "utf8")).toContain("prefers-reduced-motion");
+  it("keeps Pro on ice: /pro still works, unlisted and noindex, and nothing links it", () => {
+    const pro = readFileSync(join(out, "pro.html"), "utf8");
+    expect(pro).toContain('<meta name="robots" content="noindex, nofollow">');
+    expect(readFileSync(join(out, "pro.md"), "utf8")).toContain("Penthera Pro");
+    const pages = readdirSync(out, { recursive: true }).map(String).filter((f) => /\.(html|txt|xml)$/.test(f) && f !== "pro.html");
+    for (const f of pages) expect(readFileSync(join(out, f), "utf8"), f).not.toMatch(/href="\/pro"|penthera\.org\/pro(\.md)?\b/);
+    expect(readFileSync(join(out, "index.html"), "utf8")).not.toMatch(/go-pro|gopro/);
+    expect(existsSync(join(ROOT, "site", "gopro.js"))).toBe(true); // the code stays for later
   });
 
   it("counts checks and installs without the URL, host or score", () => {
@@ -690,7 +706,7 @@ describe("site landing pages", () => {
   it("answers once, with the live check as the call to action and the CLI for the code", () => {
     for (const p of checkPages) {
       const h = read(`${p.slug}.html`);
-      expect(h, p.slug).toContain('<a class="btn" data-variant="default" href="/#scan">Check your site</a>');
+      expect(h, p.slug).toContain('<a class="btn" data-variant="default" href="/#scan">Check my site</a>');
       expect(h, p.slug).toContain("<code>npx penthera");
       expect(h, p.slug).toContain('<a href="/terms">');
       expect(h, p.slug).not.toMatch(/\{\{|\u0000/);
@@ -722,7 +738,7 @@ describe("site landing pages", () => {
 
   it("lists each page in the sitemap and llms.txt, serves its Markdown, and links it from the homepage", () => {
     const locs = [...read("sitemap.xml").matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
-    for (const p of pages) {
+    for (const p of pages.filter((x) => !x.unlisted)) {
       expect(locs, p.slug).toContain(`${ORIGIN}/${p.slug}`);
       expect(read("llms.txt"), p.slug).toContain(`(${ORIGIN}/${p.slug}.md)`);
       expect(read(`${p.slug}.md`), p.slug).not.toMatch(/\]\(\/(?!\/)/);

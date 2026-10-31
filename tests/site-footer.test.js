@@ -54,6 +54,10 @@ describe("site rail", () => {
     expect(current(siteRail({ url: "/terms" }))).toBeUndefined();
   });
 
+  it("carries no data-h: /pro's horizontal page looks for that attribute", () => {
+    expect(siteRail({ url: "/pro" })).not.toMatch(/\sdata-h[=\s>]/);
+  });
+
   it("holds the download back only on the homepage and drops Blog without a post", () => {
     expect(siteRail({ url: "/" })).toContain("data-hero");
     expect(siteRail({ url: "/" })).toContain('class="rail-download" href="#get"');
@@ -83,7 +87,8 @@ describe("site footer", () => {
   });
 
   it("links every built page from every page's footer", () => {
-    const urls = [...new Set(pages.map(urlOf))].map((u) => (u === "/" ? "/" : u.replace(/\/$/, "")));
+    // /pro is unlisted on purpose (site/pages/pro.md): it works, and nothing links it.
+    const urls = [...new Set(pages.map(urlOf))].map((u) => (u === "/" ? "/" : u.replace(/\/$/, ""))).filter((u) => u !== "/pro");
     for (const f of pages) {
       const links = hrefs(footerOf(readFileSync(join(out, f), "utf8")));
       // The homepage is linked as the live check (/#scan) and by the wordmark.

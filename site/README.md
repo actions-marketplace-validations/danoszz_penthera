@@ -18,6 +18,8 @@ node site/serve.mjs     # http://127.0.0.1:4173/ with the production headers
 | `news.json` | The ticker at the top: dated, one-line items, each with an https source. The build renders it (and refuses an item without a source); edit it to change the news. A daily workflow proposes new items as a PR; see [The news feed](#the-news-feed). |
 | `styles.css` | System 1-bit, as in `penthera ui`. Tokens and contrast measurements are in its header. |
 | `theme.js` | Sets the theme before paint. A choice is kept in localStorage, never a cookie. |
+| `blog.mjs` | `/blog` and each post, from `blog/`: a teletext newspaper, always light (`data-paper` on `<html>`, respected by `theme.js`). |
+| `type.mjs` | `/type`: the type system, drawn from the tokens in `styles.css`. `tests/site-type.test.js` keeps every size on those tokens. |
 | `frame.mjs` | What every page shares: the footer, and the steel dock (the bottom navigation), which `build.mjs` puts before `<main>` on each rendered page. |
 | `check/` | The browser check. `engine.js` calls `lib/`; `ui.js` is the page script; `copy.js` holds its strings; `field.js` is the hero's live field (a dithered cloud, a pointer lens with a soft glow, and a click shockwave on a canvas; off under reduced motion, where `media/field.png` stays). |
 | `check/shims/` | The Node built-ins `lib/` uses, for the browser: an in-memory `fs`, POSIX `path`, a synchronous SHA-256, and `gunzipSync` fed by DecompressionStream. |
@@ -31,8 +33,8 @@ node site/serve.mjs     # http://127.0.0.1:4173/ with the production headers
 | `stars.json` | The last GitHub star count the build read, used when the API is rate-limited or offline. Set `GITHUB_TOKEN` in Vercel to avoid the anonymous limit. |
 | `tools/tour-shots.mjs` | Renders the three "See it work" shots in `media/tour/` (1200 × 750 JPEGs at device scale 2, light theme, each cropped to the part that matters) from `penthera ui --demo` on 127.0.0.1 with a local Chrome: the Check my app window, the verdict with the first problem, and a fix waiting with its diff. Re-run it when the dashboard changes. |
 | `tools/social.mjs` | Renders `media/social/og.png` (1200 × 630, the share card for LinkedIn, X and Facebook) and `square.png` (1080 × 1080, Instagram) with a local Chrome. Re-run it when the headline changes. |
-| `tools/reel.mjs` | Renders `media/social/reel.mp4`, the 14-second muted loop that iMessage and other apps play for a shared link (`og:video`, with `og.png` as poster and fallback): setup, a scan, the verdict, the PHP advisory of 21 Oct 2026 and the share card. Cut from `assets/walkthrough.mp4` plus `scripts/media/tapes/advisory.tape`; needs Chrome, vhs and ffmpeg. Re-run it after the walkthrough or the card changes. X shows the image card only. |
-| `media/` | The tour's dashboard shots are copied from `assets/dashboard/` at build time. `field.png` (the hero's 1-bit cloud), `hero.mp4` and its poster, regenerated with `tools/media.sh`; `dvdzwaag.svg`, the maker's wordmark traced with potrace from Daan's own artwork, used as a mask so it takes the ink. |
+| `tools/reel.mjs` | Renders `media/social/reel.mp4`, the 12-second muted loop that iMessage and other apps play for a shared link (`og:video`, with `og.png` as poster and fallback): the opening line, the verdict, a fix applied and checked, the rules deciding and the share card. Cut from `media/film.mp4`; needs Chrome and ffmpeg. Re-run it after the film or the card changes. X shows the image card only. |
+| `media/` | The tour's dashboard shots are copied from `assets/dashboard/` at build time. `field.png` (the hero's 1-bit cloud), regenerated with `tools/media.sh`; `dvdzwaag.svg`, the maker's wordmark traced with potrace from Daan's own artwork, used as a mask so it takes the ink. |
 
 ## The browser check
 

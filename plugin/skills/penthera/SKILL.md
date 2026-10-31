@@ -105,7 +105,7 @@ penthera brief reports/repo.json reports/deps.json reports/agents.json
 
 Then reply to the user:
 
-1. Pass the brief on in its order. Keep the verdict line and the section names.
+1. Pass the brief on in its order. Keep the verdict line, the reason line under it when there is one, and the section names.
 2. Do not move a finding between sections, change a severity or drop a group. The full list is in the `.md` reports.
 3. If you checked something yourself (opened the file, saw the "password" is a CSS class map), add it under a last section **My read** and say what you looked at. That section is your judgment, not Penthera's.
 4. End with the one change you would make first, and ask before changing files.

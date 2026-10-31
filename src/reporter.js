@@ -10,6 +10,7 @@ import { referencesFor } from "../lib/references.js";
 import { formatDepsTerminal, uncheckedDeps } from "../lib/deps/report.js";
 import { describeCoverage } from "../lib/coverage.js";
 import { giantsTerminalLines, foundByText } from "./report/giants.js";
+import { exitCodeOf, exitReason } from "./report/exit.js";
 import { toolById } from "../lib/giants/tools.js";
 
 const PKG_VERSION = JSON.parse(
@@ -374,6 +375,7 @@ export function printReport(result, opts = {}) {
     w(`  ${c.dim(line())}`);
     const un = uncheckedDeps(result.deps);
     if (un?.none) w(`  ${c.yellow("Not checked")}: no package code was read. See "Not read" above.`);
+    else if (exitReason(result)) w(`  ${c.red(printable(exitReason(result)))}`);
     else if (un) w(`  ${c.green("No findings")} in the ${un.total - un.missing} packages read; ${c.yellow(`${un.missing} were not read`)} (see above).`);
     else if (nothingToAssess(result)) w(`  ${c.yellow("Not checked")}: no agent config was read. See "Not read" above.`);
     else w(`  ${c.green("No findings")}.`);
@@ -525,7 +527,9 @@ function printSummaryLine(result, w) {
   if (counts.info)     parts.push(c.dim(`${counts.info} info`));
 
   const un = uncheckedDeps(result.deps);
-  if (parts.length === 0 && un) {
+  if (parts.length === 0 && exitReason(result)) {
+    w(`  ${c.red(printable(exitReason(result)))}`);
+  } else if (parts.length === 0 && un) {
     w(`  ${c.yellow(un.none ? `Not checked: 0 of ${un.total} packages read` : `No issues in what was read; ${un.missing} of ${un.total} packages not read`)}`);
   } else if (parts.length === 0 && nothingToAssess(result)) {
     w(`  ${c.yellow("Nothing to assess, which is not a clean result")}`);
@@ -725,11 +729,13 @@ export function formatSarif(result) {
       },
       results,
       invocations: [{
-        executionSuccessful: true,
+        executionSuccessful: exitCodeOf(result) !== 2,
         startTimeUtc: result.timestamp,
         endTimeUtc: new Date().toISOString(),
-        // No result, so no alert: an empty run must still say it read nothing.
-        ...(nothingToAssess(result) ? { toolExecutionNotifications: [{ level: "warning", message: { text: result.agents.notChecked?.[0] || "Nothing to assess. This is not a clean result." } }] } : {}),
+        // No result, so no alert: an empty run must still say it read nothing,
+        // and a run with a required tool missing must say so.
+        ...(exitCodeOf(result) === 2 ? { toolExecutionNotifications: [{ level: "error", message: { text: exitReason(result) } }] } : {}),
+        ...(exitCodeOf(result) !== 2 && nothingToAssess(result) ? { toolExecutionNotifications: [{ level: "warning", message: { text: result.agents.notChecked?.[0] || "Nothing to assess. This is not a clean result." } }] } : {}),
       }],
     }, ...(aiRun ? [aiRun] : []), ...toolRuns],
   };

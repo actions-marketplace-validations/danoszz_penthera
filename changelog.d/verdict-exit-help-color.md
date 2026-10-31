@@ -1,10 +1,14 @@
 section: Fixed
 
-- **The brief no longer says "Nothing to fix" on a run that fails.** A critical
-  or high finding in a test fixture, build output or a file git ignores printed
-  "Nothing to fix" and exited 1. The exit code stays 1, so a live-format key in
-  a fixture still fails CI. The finding stays under Likely noise, and the
-  verdict is now `Review`, with a line that says why the run fails. The same
-  holds for other tools' findings and for a required tool that did not run.
-- **`--help` no longer prints escape codes to a pipe.** It now honors `NO_COLOR`
-  and uses bold and dim only on a terminal.
+- **Reports no longer read as clean on a run that fails.** A critical or high
+  finding in a test fixture or build output printed "Nothing to fix" and exited
+  1. Another tool's finding or a required tool that did not run printed "Clean
+  scan" in the terminal and "No security findings detected" in Markdown. The
+  exit codes stay the same, so a live-format key in a fixture still fails CI.
+  The brief says `Review`, with a line that says why the run fails, and names
+  the tool and file for another tool's finding. Terminal and Markdown show the
+  same line, and SARIF carries a notification when a required tool did not run.
+- **`--help` no longer prints escape codes to a pipe.** Every command now honors
+  `NO_COLOR` and uses color only on a terminal.
+- **`dist/` and `build/` in a skill you name are no longer likely noise.** They
+  are the skill's own code.

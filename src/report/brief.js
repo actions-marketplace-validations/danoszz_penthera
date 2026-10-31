@@ -16,25 +16,12 @@
 import { cleanText } from "../mcp/results.js";
 import { mdInline } from "./md-escape.js";
 import { footerLines } from "./footer.js";
-import { giantsGate } from "../../lib/giants/index.js";
+import { exitCodeOf, exitReason, isSevere } from "./exit.js";
 
 export const BRIEF_SCHEMA = "penthera.brief/1";
 // Exit 0 is not "safe to publish". Penthera tests these from outside; a pass shows
 // only that no rule matched, with or without a session cookie.
 export const NOT_PROVEN_NOTE = "This run does not prove login, access rules or payments are right.";
-
-const isSevere = (f) => f.severity === "critical" || f.severity === "high";
-
-/**
- * The scan's exit code. 2: a tool the policy requires did not run. 1: a critical
- * or high finding, wherever it sits, or other tools' unless the policy says
- * giants.failOn: never. A bucket says how likely a finding is to matter; it does
- * not pass a run, so a live-format key in a fixture still fails.
- */
-export function exitCodeOf(result) {
-  if (result.giants?.requiredNotRun?.length) return 2;
-  return (result.findings || []).some(isSevere) || giantsGate(result) ? 1 : 0;
-}
 
 export const VERDICTS = { fix: "Fix now", review: "Review", clean: "Nothing to fix", none: "Nothing to assess" };
 
@@ -78,10 +65,11 @@ function whereOf(f) {
 }
 
 /** Which bucket a finding goes in, and for noise, why. First match wins. */
-export function bucketOf(f) {
+export function bucketOf(f, { skillTarget = false } = {}) {
   const p = pathOf(f) || "";
   if (f.localOnly) return { bucket: "noise", reason: "local-only" };
-  if (GENERATED.test(p)) return { bucket: "noise", reason: "generated" };
+  // A skill ships its dist/ and build/, so in a named skill those are real code.
+  if (!skillTarget && GENERATED.test(p)) return { bucket: "noise", reason: "generated" };
   if (FIXTURE.test(p)) return { bucket: "noise", reason: "fixture" };
   if (f.severity === "info") return { bucket: "info" };
   if (["potential", "needs-human-review"].includes(f.confidence)) return { bucket: "check" };
@@ -209,8 +197,8 @@ export function buildBrief(results, { reports = [], notRunCommand = (n) => Strin
 
   const by = { act: [], check: [], noise: [], info: [] };
   const noiseReason = new Map();
-  for (const f of findings) {
-    const b = bucketOf(f);
+  for (const r of list) for (const f of r.findings || []) {
+    const b = bucketOf(f, { skillTarget: !!r.agents?.skillTarget });
     by[b.bucket].push(f);
     if (b.reason) noiseReason.set(f, b.reason);
   }
@@ -245,13 +233,12 @@ export function buildBrief(results, { reports = [], notRunCommand = (n) => Strin
   // The verdict never reads as clean on a run that fails: it and the exit code agree.
   const exitCode = Math.max(0, ...list.map(exitCodeOf));
   const verdict = actHigh ? VERDICTS.fix : act.length || check.length || exitCode ? VERDICTS.review : nothingRead ? VERDICTS.none : VERDICTS.clean;
-  const others = list.flatMap((r) => (giantsGate(r) ? r.giants.findings.filter(isSevere) : []));
 
   return {
     schema: BRIEF_SCHEMA,
     verdict,
     exit_code: exitCode,
-    exit_reason: exitReason(exitCode, actHigh, findings.filter(isSevere).length + others.length, list),
+    exit_reason: exitCode === 2 || !actHigh ? exitReason(list) : null,
     target: text(targets.join(", "), 500),
     scanned: modes,
     counts: {
@@ -268,17 +255,6 @@ export function buildBrief(results, { reports = [], notRunCommand = (n) => Strin
     next: dedupeNext(next).slice(0, MAX_NEXT),
     reports: reports.map((p) => text(p, 300)),
   };
-}
-
-/** Why the run fails, when Act on does not already show it. */
-function exitReason(exitCode, actHigh, severe, list) {
-  if (exitCode === 2) {
-    const tools = [...new Set(list.flatMap((r) => r.giants?.requiredNotRun || []))].map((t) => text(t, 60));
-    return `The CLI exits 2 on this: the policy requires ${tools.join(", ")}, which did not run.`;
-  }
-  if (exitCode === 0 || actHigh) return null;
-  const n = severe === 1 ? "1 critical or high finding sits" : `${severe} critical or high findings sit`;
-  return `The CLI exits 1 on this: ${n} outside Act on. Fix ${severe === 1 ? "it" : "them"}, or write down why you accept ${severe === 1 ? "it" : "them"}.`;
 }
 
 function dedupeNext(list) {

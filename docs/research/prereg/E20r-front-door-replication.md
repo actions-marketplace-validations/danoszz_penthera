@@ -12,7 +12,7 @@
 | Vantage point | Pass 1: rented server: Hetzner Cloud, Falkenstein, `research.penthera.org`, 2.31.141.178, IPv4 only. Pass 2: the Source address row, Amendment 2. The address is published. The maintainer's home connection is not used |
 | Runs | Pass 1 no earlier than 12 hours after the updated study page is live, pass 2 seven days later |
 | Amendment | **One pass only.** Amendment 1 (30 Oct 2026, before any data) replaces every mention of pass 2 below. See the end of this file |
-| Amendment 2 | **Draft.** Not adopted. E20-R2, a prospective corrected remeasurement after the pass 1 data was seen. See the end of this file. The runner refuses a pilot or pass 2 until this row says Adopted |
+| Amendment 2 | **Adopted.** 31 Oct 2026, effective through the commit that merges this row to `main`. E20-R2, a prospective corrected remeasurement after the pass 1 data was seen. See the end of this file. The runner refuses a pilot or pass 2 unless this row says Adopted |
 | Source address | `178.104.243.225` |
 | Prior opt-outs SHA-256 | `e25d88b24aa1d4122cd78e65af9c8febfd9f7309959ae1ae89446ccc90b07126` (`prior-optouts.txt`, 95 sites) |
 | Pass 1 raw SHA-256 | `ef791bee6c9598880af6da7f11db023e96e6d75b219670e45317ee9575e453dd` |
@@ -384,11 +384,11 @@ was decided before any E20-R data existed, and it does not change a check, a lis
 an analysis. The run stays a registered, one-pass snapshot, and this deviation is
 reported with the results.
 
-## Amendment 2: E20-R2 (draft, 30 Oct 2026, after the pass 1 data was seen)
+## Amendment 2: E20-R2 (adopted 31 Oct 2026, after the pass 1 data was seen)
 
-**Status: draft.** No request has been sent under this amendment. Adoption changes this
-line and the Amendment 2 row to adopted, and takes effect through the commit that merges
-them to `main`. The runner reads both. It registers
+**Status: adopted.** 31 October 2026. No request had been sent under this amendment at
+adoption. It takes effect through the commit that merges this line and the Amendment 2 row
+to `main`. The runner reads both. It registers
 **E20-R2**, a second run under this file. It overrides every section above where they
 differ.
 

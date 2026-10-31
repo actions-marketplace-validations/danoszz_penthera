@@ -1,6 +1,6 @@
 section: Docs
 
-- **E20-R2 (draft).** Amendment 2 and the study page describe a corrected
+- **E20-R2 (adopted 31 Oct 2026).** Amendment 2 and the study page describe a corrected
   replication of E20-R, a low-interaction active measurement: robots.txt at every
   origin under RFC 9309, the exclusion list on every hop, no app page, DNS read
   whether or not a site answers, a frozen classifier, CSP directive names, a

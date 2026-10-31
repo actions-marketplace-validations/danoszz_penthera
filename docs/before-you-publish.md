@@ -72,6 +72,11 @@ Read the Penthera exit code before you publish:
 | `1` | Critical or high findings | Fix them first, or write down why you accept them |
 | `2` | The scan did not run | Fix the setup and run it again |
 
+A critical or high finding counts toward exit `1` wherever it is, also in test
+fixtures or build output. The agent brief lists those under Likely noise, says
+`Review` and tells you why the run fails. A key in a file git ignores is
+reported at low, so it does not fail the run.
+
 Penthera tests login and access rules from outside, with rules for known
 problems. It does not log in to your app unless you pass a session with
 `--auth-cookie` or `--auth-bearer`, and it has no rule for how your payments

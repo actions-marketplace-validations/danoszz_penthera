@@ -88,7 +88,7 @@ Every tool is read-only. None writes a file, applies a fix, or runs a shell.
 |---|---|---|
 | `scan_repo` | Secrets, code-execution sinks, API routes, runtime version pins in a project folder, plus a coverage ledger of what ran and what was skipped | none |
 | `check_dependencies` | What each npm or Python package can do (install scripts, shell, network, eval, credential access), known-malicious packages, typosquats | none |
-| `audit_ai_tooling` | The project's skills, MCP servers, hooks, permissions and rule files, graded A to F, or no grade if it finds no agent config | none |
+| `audit_ai_tooling` | The project's skills, MCP servers, hooks, permissions and rule files, graded A to F, or no grade if it finds no agent config. A `path` other than the workspace root can also be a skill folder or its `SKILL.md` | none |
 | `runtime_advisories` | Advisories and end of life for the PHP, nginx, Apache, Node.js, Python or OpenSSL a project pins or a `Server` header shows | none |
 | `explain_finding` | What a finding's rule checks, why it matters, how to fix it, references and OWASP ids | none |
 | `scan_url` | A passive scan of a running app: TLS, headers, cookies, CORS, exposed files, OpenAPI and auth smoke checks | the target only (see below) |

@@ -75,10 +75,5 @@ export function siteKey(host) {
   return publicSuffix(rest) === (domainToASCII(rest) || rest) ? name : rest;
 }
 
-/** A site's organization. `www.` on a host that is itself a suffix is that host, not a second organization. */
-export function siteOrg(host) {
-  const org = orgDomain(host);
-  if (!org.startsWith("www.")) return org;
-  const rest = org.slice(4);
-  return publicSuffix(rest) === rest ? rest : org;
-}
+/** A site's organization. `www.github.io` is a tenant of a shared suffix, not the suffix: only `github.io` itself is that. */
+export const siteOrg = orgDomain;

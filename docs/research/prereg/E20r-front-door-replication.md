@@ -15,7 +15,7 @@
 | Amendment 2 | **Draft.** Not adopted. E20-R2, a corrected replication after the pass 1 data was seen. See the end of this file. The runner refuses a pilot or pass 2 until this row says Adopted |
 | Source address | `178.104.243.225` |
 | Prior opt-outs SHA-256 | `e25d88b24aa1d4122cd78e65af9c8febfd9f7309959ae1ae89446ccc90b07126` (`prior-optouts.txt`, 95 sites) |
-| Frozen classifier SHA-256 | `b2067ad4307dbf4d79726f71d76d318b23a06a0f2eb763460e0ea81213ef06e8` (`bench/front-door/classify.mjs`) |
+| Frozen classifier SHA-256 | `7023106f7bd73c1e4122d80e9479f63a4a04091f1426327be70621951fe71d3b` (`bench/front-door/classify.mjs`) |
 | Public Suffix List SHA-256 | `d3e6243b51695327984abb3e2a5aa7077096867f75121e031e6a5a3840ca8bcd` (commit `9dfbe81931367b3f0af21035c36ae7eeb830dd88`, fetched 30 Oct 2026, private suffixes included) |
 | Registration commit | The commit that merges this file to `main` |
 | T1k list SHA-256 | `d670a3c1910fe7baa4883dcb8320b1ec99d7d29f9d22954b9288ae678540674e` (`tranco-ZJ8PG-top1000.csv`) |
@@ -608,8 +608,8 @@ These order the reporting. They add no test.
   bounds cover graded sites. HTTP claims make no statement about ungraded sites, and nothing here
   can say what a browser would have seen. DNS values with a resolver failure are unknown, are left
   out, and are counted.
-- **Analysis.** `analyze-r.mjs` holds the claims, the bounds and the standardization, C3 and C4
-  included, and reports traits per cohort. C12 and C13 pair with their own E20 file. In it, `--pass1`
+- **Analysis.** `analyze-r.mjs` holds the claims, the bounds and the standardization on both
+  views, C3 and C4 included, the secondary cohorts, and reports traits per cohort. C12 and C13 pair with their own E20 file. In it, `--pass1`
   takes pass 2 and `--pass2` takes pass 1.
 
 ### Single-human audit with model comparison
@@ -630,6 +630,13 @@ a third adjudicator.** The figures are reported as checked by one person.
   a missing, duplicate, unknown or invalid row.
 - **Disagreement.** The agent never settles a label. The human's label stands, and every
   disagreement is counted.
+- **Header checks.** This amendment removes the inherited requirement that labelers judge whether
+  the grader's outcome on three header checks matches the stored headers. Those outcomes are fixed
+  rules reading the same stored values, so a label would repeat a deterministic read and say little
+  about the study's real risk, the response class. The audit covers the class alone. The grader's
+  header outcomes rest on its tests, and no human audits them.
+- **`body-unavailable`.** A compressed answer's body isn't read. It takes this label, not
+  `candidate-page`, so it counts in S and not in R, and it isn't sampled.
 - **Weighted metrics.** Each row carries stratum size over rows drawn. Precision and recall use
   these weights, with intervals from a stratified bootstrap, seed 2021, 20,000 resamples. Kappa
   is reported unweighted. `validation-sample.mjs` draws the sample, writes the blind sheet and
@@ -641,17 +648,21 @@ a third adjudicator.** The figures are reported as checked by one person.
 
 ### Pilot
 
-- 40 to 50 sites from the claim lists, seed 2026, at the same rate and under the same rules. Each
-  round has a higher number than the last, and the rounds' order is the order they started.
+- Exactly 50 sites from the claim lists, seed 2026, at the same rate and under the same rules. Two
+  live rounds at most. Each round has a higher number than the last, and the rounds' order is the
+  order they started.
 - Pilot sites are dropped for good from pass 2 visits and analyses, and counted.
 - **Stop rules.** The run does not go on while any of these holds, and `pilot-report.mjs` prints
   them: a privacy scrub miss, an internal error, under 90% of 2xx responses with an excerpt, an
   eligible site without a DNS read, any site over 20 requests, any hop to a host on any of the
   four skip lists, under half of eligible sites graded, over 20% of eligible sites with a
-  resolver failure on any query, over 20% of SPF or DMARC reads unanswered, no 2xx response at all,
-  no eligible site, or under 30 eligible or 20 graded sites.
+  resolver failure on any exact query of the listed or final name, over 20% of SPF or DMARC reads
+  unanswered, no eligible site, or under 30 eligible sites, 25 graded sites or 10 2xx responses. The
+  report also gives coverage per claim cohort. Scrub misses, internal errors, excluded hops and
+  request-cap violations have zero tolerance.
   Also stop on a complaint from a site owner or the provider, or if the source address isn't the
-  registered one.
+  registered one. A stop file is checked between sites, and so is the source address, which is
+  read again at the end.
 - **Gate.** After the pilot, `pilot-report.mjs --seal` writes its result, bound to the pilot's manifest
   and raw hash, and to the exclusion, removal, prior opt-out and earlier pilot lists that run used. Then
   `validation-sample.mjs prune` deletes its text. Pass 2 refuses unless the last round passed under the
@@ -664,8 +675,17 @@ a third adjudicator.** The figures are reported as checked by one person.
   round can start once pass 2 has. A removal list over 5% of the sites is refused.
 - **Analysis gate.** `analyze-r.mjs` and the audit draw refuse any run that didn't finish, stopped,
   changed under itself or doesn't match its raw hash. So a stopped pass 2 can't decide a claim.
+  Analysis reads only the `raw.jsonl` the gate checked. Both also refuse without a clean privacy
+  report: `pilot-report.mjs --privacy` runs the pilot's scan over the headers, cookies, DNS, checks
+  and excerpts of the finished pass, before the draw.
+- **Immutability.** At the end the runner rehashes the code, protocol and lists, the exclusion,
+  homepage-only, removal, prior opt-out and pilot-dropped files, and reads the source address. It
+  keeps the git state from the start and the end and compares them.
 - **Deletion's limit.** Pruning covers the raw file in the run's folder. It can't reach a copy made
   before it ran, so none is made, and deleted text can't be audited later.
+- **Signals.** SIGINT or SIGTERM ends a run between sites, with a manifest, as a partial run. Every
+  exit other than success is followed by `validation-sample.mjs prune`, which reads the file back
+  to prove the text is gone. A kill leaves no end manifest and takes the same prune.
 - **An interrupted pilot.** Its sites count as used, by the list hash its manifest recorded at the
   start. Its text is deleted, and the next round runs on other sites.
 - **An interrupted pass 2.** It isn't resumed or restarted, because a restart would visit sites

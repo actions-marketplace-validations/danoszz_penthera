@@ -514,7 +514,8 @@ describe("E20-R run records", () => {
     expect(m.lockfileSha256).toMatch(/^[0-9a-f]{64}$/);
     expect(m.classifierSha256).toMatch(/^[0-9a-f]{64}$/);
     expect(m.psl).toMatchObject({ commit: PSL_VERSION.commit, sha256: pslSha256() });
-    expect(m.git).toHaveProperty("remoteTip");
+    expect(m.gitAtStart).toHaveProperty("remoteTip");
+    expect(m.gitAtFinish).toHaveProperty("commit");
     for (const k of ["protocolSha256", "amendmentSha256", "studyPageSha256", "codeSha256", "runtimeSha256", "rawSha256", "aggregateSha256"]) expect(m[k], k).toMatch(/^[0-9a-f]{64}$/);
     expect(m.immutableAtFinish).toEqual({ ok: true, changed: [] });
     expect(m.totals).toHaveProperty("requests");

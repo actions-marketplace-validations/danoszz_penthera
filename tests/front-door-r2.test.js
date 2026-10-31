@@ -8,21 +8,23 @@ import { createHash } from "node:crypto";
 import http from "node:http";
 import https from "node:https";
 import { EventEmitter } from "node:events";
+import { createServer } from "node:http";
 import { mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
 import { gzipSync } from "node:zlib";
 import { classify, classifyRegistered, cookieNames, cspEvidence, evidenceOf, looksIpv6, pageExcerpt, scrub, scrubMisses, signatureMatches, traitsOf, SOFT_MAX_CHARS } from "../bench/front-door/classify.mjs";
-import { authorize, exclusionFor, percentDecoded, globMatch, ipv4Lookup, percentForm, platformOf, readExclusions, robotsAccess, robotsBinary, robotsVerdict, strictRobots, visit } from "../bench/front-door/run.mjs";
+import { authorize, exclusionFor, percentDecoded, globMatch, ipv4Lookup, percentForm, platformOf, readExclusions, robotsAccess, robotsBinary, robotsVerdict, strictRobots, visit, wholeSiteStop } from "../bench/front-door/run.mjs";
 import { optedOut } from "../api/_lib/page.mjs";
 import { CheckError, resolvePublic } from "../api/_lib/guard.mjs";
-import { caaTree, checkPilotDropped, codeFiles, codeHash, dmarcReading, mergeCohorts, PILOT_MIN, ROLLING_WINDOW, siteDns, normalizeHost, pilotRounds, readDomain, readHostList, readRemovals, runPass, NO_DNS, unmatchedHosts, V2_LIMITS, visitInWorker } from "../bench/front-door/replicate.mjs";
+import { MAX_LIVE_ROUNDS, caaTree, checkPilotDropped, codeFiles, codeHash, dmarcReading, mergeCohorts, PILOT_MIN, ROLLING_WINDOW, siteDns, normalizeHost, pilotRounds, readDomain, readHostList, readRemovals, runPass, NO_DNS, unmatchedHosts, V2_LIMITS, visitInWorker } from "../bench/front-door/replicate.mjs";
 import { orgDomain, publicSuffix, PSL_VERSION, pslSha256, siteKey, siteOrg } from "../bench/front-door/psl.mjs";
 import { claims, clusterDiff, combine, coverageBounds, decide, diffClaim, dnsCoverage, e20Index, fisherExact, intervalOutcomes, isEligible, standardizedDiff, traitsByCohort } from "../bench/front-door/analyze-r.mjs";
-import { pilotReport, sealPilot, stopRules } from "../bench/front-door/pilot-report.mjs";
-import { pageTextMissed, resolverFailed, unfinishedRun } from "../bench/front-door/record-checks.mjs";
-import { blindSheet, drawSample, parseLabels, pruneExcerpt, prunePilot, rewriteRun, scoreLabels, stratumOf, weightedMetrics } from "../bench/front-door/validation-sample.mjs";
+import { pilotReport, sealPilot, stopRules, privacyReport } from "../bench/front-door/pilot-report.mjs";
+import { MIN_ELIGIBLE, MIN_GRADED, NO_PRIVACY, pageTextMissed, resolverFailed, unfinishedRun } from "../bench/front-door/record-checks.mjs";
+import { main as analyzeMain, secondaryCohorts } from "../bench/front-door/analyze-r.mjs";
+import { main as validationMain, blindSheet, drawSample, parseLabels, pruneExcerpt, prunePilot, rewriteRun, scoreLabels, stratumOf, weightedMetrics } from "../bench/front-door/validation-sample.mjs";
 import { runAcceptance } from "../bench/front-door/acceptance.mjs";
 import { passiveReport } from "../api/_lib/tier1.mjs";
 import { scoreOf } from "../api/_lib/grade.mjs";
@@ -547,9 +549,9 @@ describe("what reaches the disk", () => {
   it("B5: a pilot needs a size, and a run with nothing eligible stops", () => {
     expect(stopRules(pilotReport([{ status: "opted_out", counters: { requests: 1 } }]))).toContain("no eligible site");
     expect(stopRules(pilotReport(Array.from({ length: 29 }, () => rec)))).toContain("under 30 eligible sites");
-    expect(stopRules(pilotReport([...Array.from({ length: 19 }, () => rec), ...dead(11, { error: "timeout" })]))).toContain("under 20 graded sites");
+    expect(stopRules(pilotReport([...Array.from({ length: 19 }, () => rec), ...dead(11, { error: "timeout" })]))).toContain("under 25 graded sites");
     expect(stopRules(pilotReport(Array.from({ length: 40 }, () => rec)))).toEqual([]);
-    expect(PILOT_MIN).toBe(40);
+    expect(PILOT_MIN).toBe(50);
   });
   it("B2: a run that reached nothing stops", () => {
     expect(rules(pilotReport(dead(50, { error: "not_found", netCode: "ESERVFAIL" })))).toEqual(expect.arrayContaining(["under half of the eligible sites were graded", "over 20% of sites hit a resolver failure", "no site answered with a 2xx"]));
@@ -570,7 +572,7 @@ describe("what reaches the disk", () => {
     const ex = Buffer.from("gov government\n");
     const sum = (b) => createHash("sha256").update(b).digest("hex");
     writeFileSync(join(dir, "manifest.json"), JSON.stringify({ finishedAt: "x", rawSha256: sum(raw), immutableAtFinish: { ok: true }, exclusionSha256: sum(ex) }));
-    expect(sealPilot(dir, { exclusionBytes: ex }).stop).toEqual(["under 30 eligible sites", "under 20 graded sites"]);
+    expect(sealPilot(dir, { exclusionBytes: ex }).stop).toEqual(["under 10 2xx responses", "under 30 eligible sites", "under 25 graded sites"]);
     expect(JSON.parse(readFileSync(join(dir, "pilot-result.json"), "utf8")).sealSha256).toMatch(/^[0-9a-f]{64}$/);
     writeFileSync(join(dir, "prune-manifest.json"), "{}");
     expect(sealPilot(dir, { exclusionBytes: ex }).stop).toContain("sealed after pruning: seal first, while the excerpts exist");
@@ -720,7 +722,7 @@ describe("hosts and lists", () => {
     expect(siteKey("www.example.co.uk")).toBe("example.co.uk");
     expect(siteKey("www.github.io")).toBe("www.github.io");
     expect(siteKey("www.co.uk")).toBe("www.co.uk");
-    expect(siteOrg("www.github.io")).toBe("github.io");
+    expect(siteOrg("www.github.io")).toBe("www.github.io");
     expect(siteOrg("github.io")).toBe("github.io");
     const rows = mergeCohorts({ T1k: [{ host: "www.example.com", rank: 1, group: "x" }, { host: "www.co.uk", rank: 2, group: "x" }], "YC-new": [{ host: "example.com", rank: 1, group: "y" }, { host: "co.uk", rank: 2, group: "y" }] });
     expect(rows.map((r) => r.host).sort()).toEqual(["co.uk", "www.co.uk", "www.example.com"]);
@@ -880,6 +882,8 @@ describe("the analysis", () => {
     const analyze = () => execFileSync(process.execPath, [join(import.meta.dirname, "..", "bench", "front-door", "analyze-r.mjs"), "--pass1", join(dir, "raw.jsonl"), "--e20", join(dir, "t.jsonl"), join(dir, "y.jsonl"), "--out", join(dir, "o.json")], { stdio: "pipe" });
     expect(analyze).toThrow();
     writeFileSync(join(dir, "manifest.json"), JSON.stringify({ kind: "pass", finishedAt: "x", immutableAtFinish: { ok: true }, rawSha256: createHash("sha256").update(lines(rows)).digest("hex") }));
+    expect(analyze).toThrow();
+    expect(privacyReport(dir).clean).toBe(true);
     analyze();
     const o = JSON.parse(readFileSync(join(dir, "o.json"), "utf8"));
     expect(o.bounds.C1.low).toBeDefined();
@@ -1057,8 +1061,8 @@ describe("acceptance", () => {
   it("every stop condition refuses pass 2, for its own reason, and a clean pilot is allowed", async () => {
     const rows = await runAcceptance();
     expect(rows.filter((r) => !r.pass)).toEqual([]);
-    expect(rows.length).toBeGreaterThanOrEqual(65);
-  }, 60_000);
+    expect(rows.length).toBeGreaterThanOrEqual(100);
+  }, 180_000);
 });
 
 describe("limits", () => {
@@ -1071,5 +1075,169 @@ describe("limits", () => {
   it("keeps the vendored list out of the npm package", () => {
     const pkg = JSON.parse(readFileSync(join(import.meta.dirname, "..", "package.json"), "utf8"));
     expect(pkg.files.some((f) => f.startsWith("bench"))).toBe(false);
+  });
+});
+
+describe("the outside reviewer's conditions", () => {
+  const sum = (b) => createHash("sha256").update(b).digest("hex");
+  const folder = () => mkdtempSync(join(tmpdir(), "e20r2-cond-"));
+  const stoppers = { opted: "User-agent: Penthera-Research\nDisallow: /\n", all: "User-agent: *\nDisallow: /\n" };
+
+  it("a compressed answer with no read body is body-unavailable, not a page", () => {
+    expect(classify({ status: 200, headers: { "Content-Encoding": "gzip" }, body: "" })).toMatchObject({ label: "body-unavailable", rule: "content-encoding" });
+    expect(classify({ status: 200, headers: { "content-encoding": "identity" }, body: "" }).label).toBe("candidate-page");
+    expect(classify({ status: 200, body: "" }).label).toBe("candidate-page");
+    expect(classify({ status: 403, headers: { "content-encoding": "br" }, body: "" }).label).toBe("block");
+    expect(stratumOf({ evidence: { class: { label: "body-unavailable" } } })).toBeNull();
+  });
+
+  it("the study's early opt-out agrees with the matcher on longest match and ties", () => {
+    expect(wholeSiteStop(stoppers.opted)).toBe(true);
+    expect(wholeSiteStop(stoppers.all)).toBe(false);
+    expect(wholeSiteStop(stoppers.all, undefined, true)).toBe(true);
+    for (const allowed of ["User-agent: Penthera-Research\nDisallow: /\nAllow: /\n", "User-agent: Penthera-Research\nDisallow: /\nAllow: /$\n"]) {
+      expect(wholeSiteStop(allowed), allowed).toBe(false);
+      expect(robotsVerdict(allowed, "/"), allowed).toBe("allowed");
+    }
+    // A group naming us overrides the `*` group, in the early check too.
+    const ours = "User-agent: Penthera-Research\nAllow: /\n\nUser-agent: *\nDisallow: /\n";
+    expect(wholeSiteStop(ours, undefined, true)).toBe(false);
+    expect(robotsVerdict("User-agent: Penthera-Research\nDisallow: /\nAllow: /$\n", "/x")).toBe("disallowed");
+    expect(robotsVerdict(stoppers.opted, "/x")).toBe("opted_out");
+  });
+
+  it("the live check's reading did not change", () => {
+    expect(optedOut("User-agent: penthera\nDisallow: /\nAllow: /\n", ["penthera"])).toBe(true);
+  });
+
+  it("analysis reads only the file the gate checked", () => {
+    const dir = folder();
+    const raw = "{}\n";
+    writeFileSync(join(dir, "raw.jsonl"), raw);
+    writeFileSync(join(dir, "sibling.jsonl"), raw);
+    writeFileSync(join(dir, "manifest.json"), JSON.stringify({ kind: "pass", finishedAt: "x", immutableAtFinish: { ok: true }, rawSha256: sum(raw) }));
+    privacyReport(dir);
+    const said = [];
+    expect(analyzeMain(["--pass1", join(dir, "sibling.jsonl"), "--e20", "a", "b"], { fail: (m) => said.push(m) })).toBe(3);
+    expect(said.join()).toMatch(/raw\.jsonl/);
+  });
+
+  it("condition 1: a tenant of a shared suffix is its own organization", () => {
+    expect(siteOrg("www.github.io")).toBe("www.github.io");
+    expect(siteOrg("a.www.github.io")).toBe("www.github.io");
+    expect(siteOrg("github.io")).toBe("github.io");
+    expect(siteOrg("www.example.com")).toBe("example.com");
+    expect(siteKey("www.github.io")).toBe("www.github.io");
+  });
+
+  it("condition 1: DNS asks the tenant, never the shared suffix, and a move to the suffix is another organization", async () => {
+    const asked = [];
+    const none = (n) => { asked.push(n); return Promise.reject(Object.assign(new Error("x"), { code: "ENODATA" })); };
+    const dns = { resolveTxt: none, resolveCaa: () => Promise.resolve([]), mx: none, ns: none };
+    const read = await siteDns("www.github.io", "github.io", dns);
+    expect(read.listed.domain).toBe("www.github.io");
+    expect(read.finalOtherOrg).toBe(true);
+    expect(mergeCohorts({ T1k: [{ host: "www.github.io", rank: 1 }, { host: "github.io", rank: 2 }] })).toHaveLength(2);
+  });
+
+  it("condition 2: any exact query fails a site, for the listed or the final name", () => {
+    const fine = { outcomes: { txt: "answer" }, queries: [{ outcome: "answer" }] };
+    expect(resolverFailed({ dns: { listed: fine } })).toBe(false);
+    expect(resolverFailed({ dns: { listed: { ...fine, queries: [{ name: "_dmarc.www.a.org", outcome: "resolver-failure:servfail" }] } } })).toBe(true);
+    expect(resolverFailed({ dns: { listed: { ...fine, outcomes: { other: "resolver-failure:timeout" } } } })).toBe(true);
+    expect(resolverFailed({ dns: { listed: fine, final: { outcomes: { dmarc: "resolver-failure:timeout" } } } })).toBe(true);
+    expect(resolverFailed({ dns: { listed: fine, final: { queries: [{ outcome: "resolver-failure:refused" }] } } })).toBe(true);
+    expect(resolverFailed({ dns: { listed: { outcomes: { txt: "nxdomain" }, queries: [{ outcome: "nxdomain" }] } } })).toBe(false);
+  });
+
+  it("condition 3: the git state is kept from both ends and compared", async () => {
+    const out = join(folder(), "run");
+    const server = createServer((_q, res) => res.end("x"));
+    await new Promise((r) => server.listen(0, "127.0.0.1", r));
+    let calls = 0;
+    await runPass([{ host: "a.example.com", cohorts: { T1k: { rank: 1 } } }], { pass: 2, out, loopbackPort: server.address().port, delayMs: 0, gitNow: () => ({ commit: `c${calls++}`, dirty: false, hidden: false }) });
+    await new Promise((r) => server.close(r));
+    const m = JSON.parse(readFileSync(join(out, "manifest.json"), "utf8"));
+    expect(m.gitAtStart).toBeDefined();
+    expect(m.gitAtFinish.commit).toBe("c0");
+    expect(m.immutableAtFinish).toEqual({ ok: false, changed: ["git"] });
+  });
+
+  it("condition 4: prune reads the file back, and a whole pass isn't pruned by hand", () => {
+    const dir = folder();
+    const raw = `${JSON.stringify({ host: "a.org", evidence: { excerpt: "text", pageExcerpt: { text: "t" } } })}\n`;
+    writeFileSync(join(dir, "raw.jsonl"), raw);
+    writeFileSync(join(dir, "manifest.json"), JSON.stringify({ kind: "pass", startedAt: "x" }));
+    expect(prunePilot(dir)).toMatchObject({ kind: "stopped", verified: true });
+    const whole = folder();
+    writeFileSync(join(whole, "raw.jsonl"), raw);
+    writeFileSync(join(whole, "manifest.json"), JSON.stringify({ kind: "pass", finishedAt: "x", immutableAtFinish: { ok: true }, rawSha256: sum(raw) }));
+    expect(unfinishedRun(whole)).toBe(NO_PRIVACY);
+    const said = [];
+    expect(validationMain(["prune", whole], { log: () => undefined, fail: (m) => said.push(m) })).toBe(3);
+    expect(readFileSync(join(whole, "raw.jsonl"), "utf8")).toBe(raw);
+  });
+
+  it("condition 5: the privacy report covers every field, and only a clean one for this raw file counts", () => {
+    const dir = folder();
+    const write = (rows) => {
+      const raw = rows.map((r) => JSON.stringify(r)).join("\n") + "\n";
+      writeFileSync(join(dir, "raw.jsonl"), raw);
+      writeFileSync(join(dir, "manifest.json"), JSON.stringify({ kind: "pass", finishedAt: "x", immutableAtFinish: { ok: true }, rawSha256: sum(raw) }));
+    };
+    for (const dirty of [{ evidence: { values: { server: "you are 203.0.113.7" } } }, { evidence: { cookieNames: ["jan@example.nl"] } }, { dns: { listed: { dmarcRecord: "rua=jan@example.nl" } } }, { checks: [{ evidence: "jan@example.nl" }] }, { evidence: { excerpt: "jan@example.nl" } }]) {
+      write([{ status: "ok", ...dirty }]);
+      expect(privacyReport(dir).clean, JSON.stringify(dirty)).toBe(false);
+      expect(unfinishedRun(dir)).toBe(NO_PRIVACY);
+    }
+    write([{ status: "ok" }]);
+    privacyReport(dir);
+    expect(unfinishedRun(dir)).toBeNull();
+    write([{ status: "ok", order: 1 }]);
+    expect(unfinishedRun(dir)).toBe(NO_PRIVACY);
+  });
+
+  it("condition 8: the floors, and coverage per claim cohort", () => {
+    const rec = { status: "ok", httpStatus: 200, cohorts: { T1k: { rank: 1 } }, checks: [], counters: { requests: 3, bytes: 1, redirects: 0 }, hops: [], dns: { listed: { spf: true, dmarc: true, caa: true, exists: true, outcomes: {} } }, evidence: { bodySha256: "x", pageExcerpt: { text: "t" }, others: [] } };
+    const blocked = { ...rec, httpStatus: 403, evidence: { ...rec.evidence, pageExcerpt: undefined, excerpt: "no" } };
+    const report = pilotReport([...Array.from({ length: 9 }, () => rec), ...Array.from({ length: 41 }, () => blocked)]);
+    expect(report.coverage.T1k).toEqual({ sites: 50, graded: 50, twoxx: 9 });
+    expect(stopRules(report)).toContain("under 10 2xx responses");
+    expect(stopRules(pilotReport([...Array.from({ length: 10 }, () => rec), ...Array.from({ length: 40 }, () => blocked)]))).toEqual([]);
+    expect(MIN_GRADED).toBe(25);
+    expect(MIN_ELIGIBLE).toBe(30);
+    expect(MAX_LIVE_ROUNDS).toBe(2);
+  });
+
+  it("the prune proof needs the draw's kind and this manifest", () => {
+    const dir = folder();
+    const raw = "{}\n", pruned = "{ }\n";
+    const manifest = JSON.stringify({ kind: "pass", finishedAt: "x", immutableAtFinish: { ok: true }, rawSha256: sum(raw) });
+    writeFileSync(join(dir, "manifest.json"), manifest);
+    writeFileSync(join(dir, "raw.jsonl"), pruned);
+    writeFileSync(join(dir, "privacy-report.json"), JSON.stringify({ clean: true, rawSha256: sum(raw), manifestSha256: sum(manifest) }));
+    const proof = { kind: "validation-draw", manifestSha256: sum(manifest), rawSha256Before: sum(raw), rawSha256After: sum(pruned) };
+    const check = (p) => { writeFileSync(join(dir, "prune-manifest.json"), JSON.stringify(p)); return unfinishedRun(dir); };
+    expect(check(proof)).toBeNull();
+    expect(check({ ...proof, kind: "stopped" })).toMatch(/not the one/);
+    expect(check({ ...proof, manifestSha256: "x" })).toMatch(/not the one/);
+  });
+
+  it("the score refuses a key this run's draw didn't write", () => {
+    const dir = folder();
+    writeFileSync(join(dir, "validation-key.json"), "[]");
+    writeFileSync(join(dir, "prune-manifest.json"), JSON.stringify({ keySha256: sum("[ ]") }));
+    const said = [];
+    expect(validationMain(["score", join(dir, "validation-key.json"), "h", "a"], { log: () => undefined, fail: (m) => said.push(m) })).toBe(3);
+    expect(said.join()).toMatch(/not the one/);
+  });
+
+  it("secondary cohorts are reported per check, and a thin side is not estimable", () => {
+    const row = (i, cohort, passed) => ({ host: `h${i}.org`, finalHost: `h${i}.org`, cohorts: { [cohort]: { rank: 1 } }, status: "ok", checks: [{ id: "csp", passed, weight: 1 }] });
+    const rows = [...Array.from({ length: 25 }, (_, i) => row(i, "SP500", true)), ...Array.from({ length: 25 }, (_, i) => row(100 + i, "T1k", false)), row(200, "ShowHN", true)];
+    const out = secondaryCohorts(rows);
+    expect(out.find((c) => c.cohort === "SP500" && c.against === "T1k")).toMatchObject({ check: "csp", judgedA: 25, judgedB: 25 });
+    expect(out.find((c) => c.cohort === "SP500" && c.against === "T1k").exactP).toBeLessThan(0.001);
+    expect(out.find((c) => c.cohort === "ShowHN" && c.against === "T1k").decision).toBe("not estimable");
   });
 });

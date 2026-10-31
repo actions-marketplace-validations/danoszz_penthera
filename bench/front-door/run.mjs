@@ -46,7 +46,7 @@ import { parseTarget, fetchBody, CheckError } from "../../api/_lib/guard.mjs";
 import { scrub } from "./classify.mjs";
 import { siteOrg } from "./psl.mjs";
 import { grade } from "../../api/_lib/grade.mjs";
-import { makeBudget, optedOut } from "../../api/_lib/page.mjs";
+import { makeBudget } from "../../api/_lib/page.mjs";
 import { registrableDomain } from "../../src/utils/url.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -243,6 +243,8 @@ export function strictRobots({ exclude = new Map(), outcomes = [], listedHost } 
   return {
     robotsRedirects: ROBOTS_REDIRECTS,
     robotsMaxBytes: ROBOTS_MAX_BYTES,
+    // The early check asks the real matcher, so an Allow that beats `Disallow: /` counts here too.
+    optedOut: (body, tokens) => wholeSiteStop(body, OPT_OUT_TOKENS, tokens.includes("*")),
     robotsHop: refuseHost,
     onAnswered() { answered = true; },
     onRobots({ origin, status, error, body, headers, truncated, cause }) {
@@ -468,15 +470,11 @@ export function globMatch(rule, path) {
   return path.length - last.length >= at && path.endsWith(last);
 }
 
-/**
- * What robots.txt says about one path for us (RFC 9309): the groups naming
- * one of our tokens or, when none does, the `*` group. The longest matching
- * rule wins; on a tie, Allow wins. "opted_out" when a group naming us
- * disallows "/", "disallowed" when the winning rule is a Disallow, else
- * "allowed". `*` and a trailing `$` in rules are supported.
- */
-export function robotsVerdict(robots, path, tokens = OPT_OUT_TOKENS) {
-  if (optedOut(robots, tokens)) return "opted_out";
+// The rules that take out a whole site.
+const WHOLE_SITE = new Set(["/", "/*"]);
+
+/** The rule that decides one path (RFC 9309), and whether a group names us. The longest match wins; on a tie, Allow. */
+function robotsRule(robots, path, tokens) {
   const names = tokens.map((t) => t.toLowerCase());
   const groups = [];
   let cur = null;
@@ -501,7 +499,27 @@ export function robotsVerdict(robots, path, tokens = OPT_OUT_TOKENS) {
     if (!globMatch(value, target) && (r.allow || !globMatch(percentDecoded(value), plain))) continue;
     if (!best || value.length > best.value.length || (value.length === best.value.length && r.allow)) best = { allow: r.allow, value };
   }
-  return best && !best.allow ? "disallowed" : "allowed";
+  return { ours: ours.length > 0, best };
+}
+
+/**
+ * Does the rule that decides the homepage take the whole site out? It asks of a
+ * group naming us or, with `star`, of the `*` group that stands in when none does.
+ */
+export function wholeSiteStop(robots, tokens = OPT_OUT_TOKENS, star = false) {
+  const { ours, best } = robotsRule(robots, "/", tokens);
+  return Boolean(best && !best.allow && WHOLE_SITE.has(best.value)) && ours === !star;
+}
+
+/**
+ * What robots.txt says about one path for us: "opted_out" when a Disallow wins and
+ * a group naming us takes out the whole site, "disallowed" for any other winning
+ * Disallow, else "allowed". `*` and a trailing `$` in rules are supported.
+ */
+export function robotsVerdict(robots, path, tokens = OPT_OUT_TOKENS) {
+  const { best } = robotsRule(robots, path, tokens);
+  if (!best || best.allow) return "allowed";
+  return wholeSiteStop(robots, tokens) ? "opted_out" : "disallowed";
 }
 
 /**

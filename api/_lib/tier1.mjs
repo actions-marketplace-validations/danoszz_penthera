@@ -56,7 +56,7 @@ export const SCOPE = "Only what a browser loads: /robots.txt first (a site can o
  */
 export async function passiveReport(target, opts = {}) {
   const budget = opts.budget ?? makeBudget({ budgetMs: opts.budgetMs ?? LIMITS.budgetMs });
-  const guard = { lookup: opts.lookup, allowPrivate: opts.allowPrivate, anyPort: opts.anyPort, userAgent: opts.userAgent, optOutTokens: opts.optOutTokens, optOutAll: opts.optOutAll, onResponse: opts.onResponse, onRobots: opts.onRobots, robotsHop: opts.robotsHop, onAnswered: opts.onAnswered, meter: opts.meter, robotsRedirects: opts.robotsRedirects, robotsMaxBytes: opts.robotsMaxBytes };
+  const guard = { lookup: opts.lookup, allowPrivate: opts.allowPrivate, anyPort: opts.anyPort, userAgent: opts.userAgent, optOutTokens: opts.optOutTokens, optOutAll: opts.optOutAll, optedOut: opts.optedOut, onResponse: opts.onResponse, onRobots: opts.onRobots, robotsHop: opts.robotsHop, onAnswered: opts.onAnswered, meter: opts.meter, robotsRedirects: opts.robotsRedirects, robotsMaxBytes: opts.robotsMaxBytes };
   // Study only: every hop goes past onHopUrl, and a new origin's robots.txt is read first.
   const seen = new Set([target.origin]);
   guard.gate = opts.onHopUrl && (async (u) => {

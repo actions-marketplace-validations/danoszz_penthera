@@ -16,11 +16,11 @@
  *       weighted precision and recall, kappa, disagreement and the unsure count.
  */
 import { createHash } from "node:crypto";
-import { readFileSync, renameSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { unfinishedRun } from "./record-checks.mjs";
-import { PASS_SEED, seeded, shuffled } from "./replicate.mjs";
+import { NO_PRIVACY, unfinishedRun } from "./record-checks.mjs";
+import { holdsText, PASS_SEED, seeded, shuffled } from "./replicate.mjs";
 
 // Rows per stratum, frozen in the amendment.
 export const STRATA = Object.freeze({
@@ -180,7 +180,7 @@ const readRaw = (file) => readFileSync(file, "utf8").split("\n").filter(Boolean)
  * Rewrites the raw file and leaves a second manifest. The run's own manifest is not
  * touched, so its raw hash stays true of what was recorded; this one links the two.
  */
-export function rewriteRun(dir, records, kind) {
+export function rewriteRun(dir, records, kind, extra = {}) {
   const raw = join(dir, "raw.jsonl");
   const manifestBytes = readFileSync(join(dir, "manifest.json"));
   const manifest = JSON.parse(manifestBytes);
@@ -190,32 +190,45 @@ export function rewriteRun(dir, records, kind) {
   const after = records.map((r) => JSON.stringify(r)).join("\n") + "\n";
   writeFileSync(`${raw}.tmp`, after, PRIVATE);
   renameSync(`${raw}.tmp`, raw);
-  const proof = { kind, manifestSha256: hash(manifestBytes), rawSha256Before: before, rawSha256After: hash(after), records: records.length, prunedAt: new Date().toISOString() };
+  const proof = { kind, manifestSha256: hash(manifestBytes), rawSha256Before: before, rawSha256After: hash(after), records: records.length, prunedAt: new Date().toISOString(), ...extra };
   writeFileSync(join(dir, "prune-manifest.json"), JSON.stringify(proof, null, 2) + "\n", PRIVATE);
   return proof;
 }
 
-/** All text out, for a pilot or for a pass that stopped. */
-export const prunePilot = (dir) => rewriteRun(dir, readRaw(join(dir, "raw.jsonl")).map((r) => pruneExcerpt(r, new Set(), { all: true })), "pilot");
+/** All text out, for a pilot or for a pass that stopped, and read back to prove it. */
+export function prunePilot(dir) {
+  const { kind } = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
+  const proof = rewriteRun(dir, readRaw(join(dir, "raw.jsonl")).map((r) => pruneExcerpt(r, new Set(), { all: true })), kind === "pass" ? "stopped" : "pilot");
+  if (holdsText(join(dir, "raw.jsonl"))) throw new Error("The raw file still holds text after pruning.");
+  return { ...proof, verified: true };
+}
 
 export function main([mode, target, a, b], { log = console.log, fail = console.error } = {}) {
   if (mode === "draw" && target) {
     const problem = unfinishedRun(target);
-    if (problem) { fail(`Refused: ${problem}. Use prune to delete its text.`); return 3; }
+    if (problem) { fail(`Refused: ${problem}. ${problem === NO_PRIVACY ? "Run pilot-report.mjs --privacy first." : "Use prune to delete its text."}`); return 3; }
+    if (existsSync(join(target, "prune-manifest.json"))) { fail("Refused: this run was drawn already. A second draw would change the sample."); return 3; }
     const records = readRaw(join(target, "raw.jsonl"));
     const sample = drawSample(records);
     const { sheet, key } = blindSheet(sample, records);
     writeFileSync(join(target, "validation-sheet.json"), JSON.stringify(sheet, null, 2) + "\n", PRIVATE);
-    writeFileSync(join(target, "validation-key.json"), JSON.stringify(key, null, 2) + "\n", PRIVATE);
+    const keyText = JSON.stringify(key, null, 2) + "\n";
+    writeFileSync(join(target, "validation-key.json"), keyText, PRIVATE);
     const sampled = new Set(sample.map((s) => s.host));
-    log(JSON.stringify({ sampled: sample.length, ...rewriteRun(target, records.map((r) => pruneExcerpt(r, sampled)), "validation-draw") }));
+    log(JSON.stringify({ sampled: sample.length, ...rewriteRun(target, records.map((r) => pruneExcerpt(r, sampled)), "validation-draw", { keySha256: hash(keyText) }) }));
     return 0;
   }
   if (mode === "prune" && target) {
+    const problem = unfinishedRun(target);
+    const { kind } = JSON.parse(readFileSync(join(target, "manifest.json"), "utf8"));
+    if (kind === "pass" && (!problem || problem === NO_PRIVACY)) { fail("Refused: this pass finished whole, so the audit draw prunes it."); return 3; }
     log(JSON.stringify(prunePilot(target)));
     return 0;
   }
   if (mode === "score" && target && a && b) {
+    const proofFile = join(dirname(target), "prune-manifest.json");
+    const proof = existsSync(proofFile) ? JSON.parse(readFileSync(proofFile, "utf8")) : null;
+    if (proof?.keySha256 !== hash(readFileSync(target))) { fail("Refused: this key is not the one this run's draw wrote."); return 3; }
     console.log(JSON.stringify(scoreLabels(JSON.parse(readFileSync(target, "utf8")), readFileSync(a, "utf8"), readFileSync(b, "utf8")), null, 2));
     return 0;
   }

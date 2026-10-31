@@ -4,7 +4,10 @@
  * named, so the output can be read and pasted anywhere.
  *
  *   node bench/front-door/pilot-report.mjs <raw.jsonl> --exclude <exclusion list> --skip <host list>... [--seal]
+ *   node bench/front-door/pilot-report.mjs --privacy <run folder>
  *
+ * --privacy runs the pilot's scan over every stored field of a finished pass and writes
+ * privacy-report.json, which analysis and the audit draw require. Run it before the draw.
  * Pass the removal, prior opt-out and earlier pilot lists as --skip, so every hop meets all
  * four. Sealing checks each against the run's manifest. This round's own list is not one.
  * --seal writes pilot-result.json next to the raw file, which pass 2 requires. Seal
@@ -16,8 +19,8 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { recordMisses, resolverFailed, sealHash, stopRules, MAX_RESOLVER_FAILURES, MIN_ELIGIBLE, MIN_GRADED, MIN_GRADED_SHARE } from "./record-checks.mjs";
-import { readRemovals } from "./replicate.mjs";
+import { recordMisses, resolverFailed, sealHash, stopRules, MAX_RESOLVER_FAILURES, MIN_ELIGIBLE, MIN_GRADED, MIN_GRADED_SHARE, MIN_TWOXX } from "./record-checks.mjs";
+import { CLAIM_COHORTS, readRemovals } from "./replicate.mjs";
 import { exclusionFor, readExclusions } from "./run.mjs";
 
 const tally = (items) => {
@@ -40,6 +43,10 @@ export function pilotReport(records, { exclude = new Map(), pruned = false } = {
   const twoxx = ok.filter((r) => r.httpStatus >= 200 && r.httpStatus < 300);
   return {
     sites: records.length, pruned,
+    coverage: Object.fromEntries(CLAIM_COHORTS.map((c) => {
+      const rows = records.filter((r) => r.cohorts?.[c]);
+      return [c, { sites: rows.length, graded: rows.filter((r) => r.status === "ok").length, twoxx: rows.filter((r) => r.httpStatus >= 200 && r.httpStatus < 300).length }];
+    })),
     resolverFailures: records.filter(resolverFailed).length,
     outcomes: tally(records.map((r) => (r.status === "error" ? `error:${r.error}` : r.reason ? `${r.status}:${r.reason}` : r.status))),
     labels: tally(ok.map((r) => r.evidence?.class?.label ?? "none")),
@@ -78,7 +85,7 @@ export function pilotReport(records, { exclude = new Map(), pruned = false } = {
   };
 }
 
-export { stopRules, MAX_RESOLVER_FAILURES, MIN_ELIGIBLE, MIN_GRADED, MIN_GRADED_SHARE };
+export { stopRules, MAX_RESOLVER_FAILURES, MIN_ELIGIBLE, MIN_GRADED, MIN_GRADED_SHARE, MIN_TWOXX };
 
 const hash = (b) => createHash("sha256").update(b).digest("hex");
 
@@ -96,6 +103,7 @@ export function sealPilot(dir, { exclude = new Map(), exclusionBytes, skipBytes 
   if (existsSync(join(dir, "prune-manifest.json"))) stop.push("sealed after pruning: seal first, while the excerpts exist");
   else if (hash(rawBytes) !== manifest.rawSha256) stop.push("the raw file is not the one the manifest hashed");
   if (!manifest.finishedAt) stop.push("the run did not finish");
+  if (manifest.partial) stop.push(`the run stopped: ${manifest.stoppedFor}`);
   if (!manifest.immutableAtFinish?.ok) stop.push("something changed while it ran");
   // The hop check is only as good as its lists, so they must be this run's own.
   const lists = { exclusionSha256: manifest.exclusionSha256 ?? null, removals: manifest.removals?.sha256 ?? null, priorOptOuts: manifest.priorOptOuts?.sha256 ?? null, pilotDropped: manifest.pilotDropped?.sha256 ?? null };
@@ -111,7 +119,30 @@ export function sealPilot(dir, { exclude = new Map(), exclusionBytes, skipBytes 
   return { ...result, report };
 }
 
+/** The pilot's scan over a finished pass, bound to its manifest and raw file. */
+export function privacyReport(dir) {
+  const manifestBytes = readFileSync(join(dir, "manifest.json"));
+  const manifest = JSON.parse(manifestBytes);
+  const rawBytes = readFileSync(join(dir, "raw.jsonl"));
+  if (hash(rawBytes) !== manifest.rawSha256) throw new Error("Refused: the raw file is not the one the manifest hashed. Run this before the audit draw.");
+  const { sites: records, scrubMisses } = pilotReport(rawBytes.toString("utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)));
+  const report = { manifestSha256: hash(manifestBytes), rawSha256: manifest.rawSha256, records, scrubMisses, clean: !Object.values(scrubMisses).some(Boolean), writtenAt: new Date().toISOString() };
+  writeFileSync(join(dir, "privacy-report.json"), `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
+  return report;
+}
+
 export function main(args, { log = console.log, fail = console.error } = {}) {
+  if (args[0] === "--privacy") {
+    if (!args[1]) { fail("Usage: pilot-report.mjs --privacy <run folder>"); return 2; }
+    try {
+      const report = privacyReport(args[1]);
+      log(JSON.stringify(report, null, 2));
+      return report.clean ? 0 : 1;
+    } catch (e) {
+      fail(e.message);
+      return 3;
+    }
+  }
   const i = args.indexOf("--exclude");
   const file = args.find((a, k) => !a.startsWith("--") && !["--exclude", "--skip"].includes(args[k - 1]));
   if (!file || i < 0) { fail("Usage: pilot-report.mjs <raw.jsonl> --exclude <exclusion list> --skip <host list>... [--seal]"); return 2; }

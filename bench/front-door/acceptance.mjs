@@ -15,13 +15,15 @@
 import { createServer } from "node:http";
 import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { sha256 } from "./run.mjs";
+import { classify } from "./classify.mjs";
+import { siteOrg } from "./psl.mjs";
+import { robotsVerdict, sha256, wholeSiteStop } from "./run.mjs";
 import { main as analyze } from "./analyze-r.mjs";
 import { main as reportMain } from "./pilot-report.mjs";
-import { sealHash } from "./record-checks.mjs";
-import { CLAIM_COHORTS, main as replicate, R_COHORTS } from "./replicate.mjs";
+import { resolverFailed, sealHash } from "./record-checks.mjs";
+import { CLAIM_COHORTS, main as replicate, PREREG_R, R_COHORTS } from "./replicate.mjs";
 import { main as validation, scoreLabels } from "./validation-sample.mjs";
 
 const IP = "178.104.243.225";
@@ -33,6 +35,8 @@ const stub = () => Promise.reject(Object.assign(new Error("x"), { code: "ENODATA
 const DNS = { mx: stub, ns: stub, resolveTxt: stub, resolveCaa: stub };
 const rawOf = (dir) => readFileSync(join(dir, "raw.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
 const quiet = () => undefined;
+const truth = (holds, said) => ({ code: holds ? 0 : 3, said });
+const SHEET = join(dirname(fileURLToPath(import.meta.url)), "run-sheet.md");
 
 /** Lists, a protocol that hashes them, and the flags a run takes. */
 function fixture(root) {
@@ -68,7 +72,7 @@ ${Object.entries(hashes).map(([c, h]) => `| ${c} list SHA-256 | \`${h}\` |`).joi
 `;
   const common = ["--registered", "E20R", "--lists", lists, "--exclude", exclude, "--homepage-only", homepage, "--removals", removals, "--prior-optouts", prior];
   const state = { classifierSha256: CLASSIFIER, protocolSha256: hashOf(prereg), studyPageSha256: hashOf("page"), codeSha256: hashOf("code"), lockfileSha256: hashOf("lock"), runtimeSha256: hashOf("node"), pslSha256: PSL };
-  return { common, prereg, state, exclude, otherExclude, removals, prior, manyRemovals, roundsLog: join(root, "rounds.log") };
+  return { common, prereg, state, exclude, otherExclude, removals, prior, manyRemovals, roundsLog: join(root, "rounds.log"), stopFile: join(root, "stop") };
 }
 
 /** One `main()` call, with its exit code and what it said. */
@@ -76,7 +80,7 @@ async function run(fx, args, over = {}) {
   const said = [];
   const code = await replicate(args, {
     say: (m) => said.push(m), results: fx.results, preregText: fx.prereg, pageText: `Study page, from ${IP}.`, tree: { commit: COMMIT, dirty: false, hidden: false, remoteTip: COMMIT },
-    sourceIps: [IP], state: fx.state, classifierHash: CLASSIFIER, pslHash: PSL, fixture: true, loopbackPort: fx.port, dns: DNS, roundsLog: fx.roundsLog, ...over,
+    sourceIps: [IP], state: fx.state, classifierHash: CLASSIFIER, pslHash: PSL, fixture: true, loopbackPort: fx.port, dns: DNS, roundsLog: fx.roundsLog, stopFile: fx.stopFile, ...over,
   });
   return { code, said: said.join(" ") };
 }
@@ -200,13 +204,15 @@ export async function runAcceptance() {
     await stops("every site blocked, zero 2xx", /no site answered/, (r) => ({ ...r, httpStatus: 403 }));
     await stops("B4: DMARC reads unanswered", /DMARC reads/, (r) => ({ ...r, dns: { ...r.dns, listed: { ...r.dns.listed, dmarc: null } } }));
     await stops("under 30 eligible sites", /under 30 eligible/, ({ evidence: _e, checks: _c, finalHost: _f, dns: _d, ...r }) => (r.order < 25 ? { ...r, status: "opted_out" } : { ...r, evidence: _e, checks: _c, finalHost: _f, dns: _d }));
-    await stops("under 20 graded sites", /under 20 graded/, ({ evidence: _e, checks: _c, finalHost: _f, ...r }) => (r.order < 20 ? { ...r, status: "opted_out" } : r.order < 31 ? { ...r, status: "error", error: "timeout" } : { ...r, evidence: _e, checks: _c, finalHost: _f }));
+    await stops("C8: under 25 graded sites", /under 25 graded/, ({ evidence: _e, checks: _c, finalHost: _f, ...r }) => (r.order < 20 ? { ...r, status: "opted_out" } : r.order < 31 ? { ...r, status: "error", error: "timeout" } : { ...r, evidence: _e, checks: _c, finalHost: _f }));
+    await stops("C8: under 10 2xx responses", /under 10 2xx/, (r) => (r.order >= 9 ? { ...r, httpStatus: 403 } : r));
+    await stops("C2: a failed query on the final name alone", /resolver failure/, (r) => ({ ...r, dns: { ...r.dns, final: { outcomes: {}, queries: [{ type: "TXT", name: "_dmarc.www.x.example", outcome: "resolver-failure:servfail" }] } } }));
     await stops("graded share under the floor", /graded/, ({ evidence: _e, checks: _c, finalHost: _f, ...r }) => ({ ...r, status: "error", error: "timeout" }));
     await stops("B5: every site opted out", /no eligible site/, ({ evidence: _e, checks: _c, finalHost: _f, dns: _d, ...r }) => ({ ...r, status: "opted_out" }));
     await stops("changed while the pilot ran", /changed while/, (r) => r, (m) => ({ ...m, immutableAtFinish: { ok: false, changed: ["codeSha256"] } }));
 
-    add("B5: --pilot 1", "refused", await run(fx, pilotArgs(1, 2)), /takes 40 to 50/);
-    await stops("B5: a pilot under the floor", /floor is 40/, (r) => r, (m) => ({ ...m, sites: 39 }));
+    add("B5: --pilot 1", "refused", await run(fx, pilotArgs(1, 2)), /exactly 50/);
+    await stops("B5: a pilot under the floor", /floor is 50/, (r) => r, (m) => ({ ...m, sites: 49 }));
 
     const lowerFailed = variant(fx);
     close(fx, lowerFailed.runDir);
@@ -310,10 +316,52 @@ export async function runAcceptance() {
     add("analysis of a stopped pass 2", "refused", analysis(stoppedRun), /stopped/);
     add("audit draw of a stopped pass 2", "refused", draw(stoppedRun), /stopped/);
     add("no pilot round after pass 2 started", "refused", await run(stopped, pilotArgs(50, 2)), /pass 2 has started/);
+    const pruned = (dir) => { const said = []; const code = validation(["prune", dir], { log: (m) => said.push(m), fail: (m) => said.push(m) }); return { code, said: said.join(" ") }; };
+    add("C4: a stopped pass is pruned, and read back", "allowed", pruned(stoppedRun), /"verified":true/);
+
+    const signaled = clean();
+    add("C4: SIGTERM ends a run with a partial manifest", "refused", await run(signaled, pass2(signaled), { afterRecord: (k) => { if (k === 1) process.emit("SIGTERM", "SIGTERM"); } }), /STOP: interrupted by SIGTERM.*partial.*prune/);
+    const signaledRun = join(signaled.results, "e20r-pass2");
+    add("C4: its manifest is final, and analysis refuses it", "refused", analysis(signaledRun), /interrupted by SIGTERM/);
+    add("C4: its text is pruned", "allowed", pruned(signaledRun), /"verified":true/);
+
+    const toStop = clean();
+    add("C6: the stop file stops a run between sites", "refused", await run(toStop, pass2(toStop), { afterRecord: (k) => { if (k === 1) writeFileSync(fx.stopFile, ""); } }), /STOP: the stop file exists.*partial/);
+    add("C6: no run starts while the stop file exists", "refused", await gate(clean()), /stop file/);
+    rmSync(fx.stopFile);
+    const moved = clean();
+    let reads = 0;
+    add("C6: a changed source address stops a run", "refused", await run(moved, pass2(moved), { sourceNow: () => (reads++ > 3 ? ["203.0.113.9"] : [IP]) }), /STOP: the source address changed.*partial/);
+
+    const shifted = clean();
+    const kept2 = readFileSync(fx.exclude);
+    add("C3: an input file changed during the run", "refused", await run(shifted, pass2(shifted), { afterRecord: (k) => { if (k === 1) writeFileSync(fx.exclude, Buffer.concat([kept2, Buffer.from("#\n")])); } }), /changed during the run: inputFiles/);
+    writeFileSync(fx.exclude, kept2);
+    add("C3: that run decides nothing", "refused", analysis(join(shifted.results, "e20r-pass2")), /something changed/);
+    const addressEnd = clean();
+    let calls = 0;
+    const late = await run(addressEnd, pass2(addressEnd), { sourceNow: () => (calls++ > 40 ? ["203.0.113.9"] : [IP]), rollingWindow: 1000 });
+    add("C6: the address is read again at the end", "refused", late, /source address changed|changed during the run: sourceIps/);
 
     const whole = clean();
     add("pass 2 runs to its end", "allowed", await run(whole, pass2(whole)));
     const wholeRun = join(whole.results, "e20r-pass2");
+    add("C5: analysis with no privacy report", "refused", analysis(wholeRun), /privacy report/);
+    add("C5: audit draw with no privacy report", "refused", draw(wholeRun), /privacy report/);
+    add("C4: a whole pass is not pruned by hand", "refused", (() => { const said = []; const code = validation(["prune", wholeRun], { log: quiet, fail: (m) => said.push(m) }); return { code, said: said.join(" ") }; })(), /finished whole/);
+    const privacy = (dir) => { const said = []; const code = reportMain(["--privacy", dir], { log: quiet, fail: (m) => said.push(m) }); return { code, said: said.join(" ") || "clean" }; };
+    const leaky = join(whole.results, "leaky");
+    cpSync(wholeRun, leaky, { recursive: true });
+    const leakRaw = `${readFileSync(join(leaky, "raw.jsonl"), "utf8")}${JSON.stringify({ status: "ok", evidence: { cookieNames: ["jan@example.nl"] } })}\n`;
+    writeFileSync(join(leaky, "raw.jsonl"), leakRaw);
+    writeFileSync(join(leaky, "manifest.json"), JSON.stringify({ ...JSON.parse(readFileSync(join(leaky, "manifest.json"), "utf8")), rawSha256: hashOf(leakRaw) }));
+    add("C5: a miss in a cookie name fails the report", "refused", privacy(leaky));
+    add("C5: analysis after a failed report", "refused", analysis(leaky), /privacy report/);
+    add("C5: a clean pass 2 writes its report", "allowed", privacy(wholeRun));
+    const sibling = join(wholeRun, "other.jsonl");
+    cpSync(join(wholeRun, "raw.jsonl"), sibling);
+    const siblingSaid = [];
+    add("analysis of a sibling file", "refused", { code: analyze(["--pass1", sibling, "--e20", sibling, sibling], { fail: (m) => siblingSaid.push(m) }), said: siblingSaid.join(" ") }, /raw\.jsonl/);
     add("analysis of a whole pass 2", "allowed", analysis(wholeRun), /analyzed/);
     add("a second start of pass 2", "refused", await catching(() => run(whole, pass2(whole))), /already holds a run/);
     const rawFile = join(wholeRun, "raw.jsonl");
@@ -324,6 +372,45 @@ export async function runAcceptance() {
     writeFileSync(rawFile, kept);
     add("audit draw of a whole pass 2", "allowed", draw(wholeRun), /drawn/);
     add("analysis after the draw pruned it", "allowed", analysis(wholeRun), /analyzed/);
+    add("a second draw", "refused", draw(wholeRun), /drawn already/);
+    const proofFile = join(wholeRun, "prune-manifest.json");
+    const proof = readFileSync(proofFile);
+    // Every row was sampled here, so the draw changed nothing. A pruned file stands in.
+    const prunedRaw = Buffer.concat([kept, Buffer.from("\n")]);
+    writeFileSync(rawFile, prunedRaw);
+    writeFileSync(proofFile, JSON.stringify({ ...JSON.parse(proof), rawSha256After: sha256(prunedRaw), kind: "stopped" }));
+    add("prune proof of the wrong kind", "refused", analysis(wholeRun), /not the one the manifest hashed/);
+    writeFileSync(proofFile, JSON.stringify({ ...JSON.parse(proof), rawSha256After: sha256(prunedRaw) }));
+    add("prune proof of the draw", "allowed", analysis(wholeRun), /analyzed/);
+    writeFileSync(rawFile, kept);
+    writeFileSync(proofFile, proof);
+    const keyFile = join(wholeRun, "validation-key.json");
+    writeFileSync(keyFile, `${readFileSync(keyFile, "utf8")} `);
+    const keySaid = [];
+    add("validation key not this run's", "refused", { code: validation(["score", keyFile, "h.csv", "a.csv"], { fail: (m) => keySaid.push(m) }), said: keySaid.join(" ") }, /not the one/);
+
+    const wrongKind = clean();
+    const pilotProof = join(wrongKind.runDir, "prune-manifest.json");
+    writeFileSync(pilotProof, JSON.stringify({ ...JSON.parse(readFileSync(pilotProof, "utf8")), kind: "validation-draw" }));
+    add("pilot prune proof of the wrong kind", "refused", await gate(wrongKind), /another run/);
+    const earlier = clean();
+    secondRound(earlier);
+    reseal(earlier.runDir, (seal) => ({ ...seal, rawSha256: "x" }));
+    add("an earlier round's seal is for another run", "refused", await gate(earlier), /e20r-pilot-1: its sealed report is for another run/);
+    const twoLive = variant(fx, (r) => r, (m) => ({ ...m, loopback: false }));
+    close(fx, twoLive.runDir);
+    const third = secondRound(twoLive);
+    if (!existsSync(third)) throw new Error("fixture lost a round");
+    add("C8: a third live pilot round", "refused", await run(twoLive, pilotArgs(50, 3)), /2 live pilot rounds/);
+
+    add("C1: a tenant of a shared suffix is its own organization", "allowed", truth(siteOrg("www.github.io") === "www.github.io" && siteOrg("github.io") === "github.io", "siteOrg"));
+    add("C2: a host-specific DMARC failure counts", "allowed", truth(resolverFailed({ dns: { listed: { outcomes: {}, queries: [{ outcome: "resolver-failure:timeout" }] } } }), "resolverFailed"));
+    add("C7: the amendment removes the header-check labels", "allowed", truth(/removes the inherited requirement that labelers judge/.test(readFileSync(PREREG_R, "utf8")), "amendment"));
+    const sheet = existsSync(SHEET) ? readFileSync(SHEET, "utf8") : "";
+    add("C9: the run sheet holds acceptance and recovery", "allowed", truth(["npm run e20r:acceptance", "validation-sample.mjs prune", "pilot-report.mjs --privacy", "Failure recovery"].every((t) => sheet.includes(t)), "run sheet"));
+    add("a compressed answer is no candidate page", "allowed", truth(classify({ status: 200, headers: { "content-encoding": "gzip" }, body: "" }).label === "body-unavailable", "classify"));
+    const beaten = "User-agent: Penthera-Research\nDisallow: /\nAllow: /\n";
+    add("the early opt-out agrees with the matcher", "allowed", truth(!wholeSiteStop(beaten) && robotsVerdict(beaten, "/") === "allowed", "robots"));
 
     add("audit labels complete", "allowed", scored(labels(3)));
     add("audit labels incomplete", "refused", scored(labels(2)), /no label/);

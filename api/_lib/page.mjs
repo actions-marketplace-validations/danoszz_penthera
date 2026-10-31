@@ -467,14 +467,16 @@ export async function checkOptOut(origin, budget, opts = {}) {
   opts.onResponse?.("robots", res);
   opts.onRobots?.({ origin, status: res.status, body: res.body, headers: res.headers, truncated: res.truncated });
   const readable = opts.onRobots ? res.status >= 200 && res.status < 300 : res.status === 200;
-  if (readable && optedOut(res.body, opts.optOutTokens)) {
+  // The study hands in its own reading. The live check keeps the plain one.
+  const refuses = opts.optedOut ?? optedOut;
+  if (readable && refuses(res.body, opts.optOutTokens)) {
     throw new CheckError("opted_out", "This site's owner opted out of Penthera's online check.", 403, "Ask the owner, or, if it's your site, run npx penthera on your own machine.");
   }
   // The E20 study (bench/front-door) also honors `User-agent: *` with
   // `Disallow: /`, because a survey is closer to a crawler. The live check
   // never sets optOutAll, so the API never sends this. Same code, marked
   // `all`, so the study can count it apart from an opt-out naming us.
-  if (readable && opts.optOutAll && optedOut(res.body, ["*"])) {
+  if (readable && opts.optOutAll && refuses(res.body, ["*"])) {
     throw Object.assign(new CheckError("opted_out", "This site's robots.txt disallows every user agent.", 403, ""), { all: true });
   }
 }

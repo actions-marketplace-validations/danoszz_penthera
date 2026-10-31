@@ -8,6 +8,7 @@
  *   block                         an edge network or firewall refuses the client
  *   unrecognized-error-response   an error no rule recognized (pass 1: origin-error)
  *   candidate-page                no marker found; not proof of a page (pass 1: page)
+ *   body-unavailable              a compressed answer, whose body was never read, so nothing can be said of it
  *
  * Header markers come first: Cloudflare documents that the status code alone
  * does not identify a challenge. `classify` is the V2 rule set, written after
@@ -113,6 +114,7 @@ export function classify({ status, headers = {}, body = "" }) {
   // of signature-backed refusals alone drops this rule.
   if (status === 403) return { label: "block", vendor: edge, rule: "unrecognized-403" };
   if (status >= 400) return { label: "unrecognized-error-response", vendor: null, rule: "status" };
+  if (h["content-encoding"] && !/^identity$/i.test(h["content-encoding"]) && !text.trim()) return { label: "body-unavailable", vendor: null, rule: "content-encoding" };
   return { label: "candidate-page", vendor: null, rule: "status" };
 }
 

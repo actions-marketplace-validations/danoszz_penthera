@@ -34,11 +34,11 @@ export function recordMisses(r) {
 
 // A name that doesn't exist is a finding. A resolver that didn't answer says nothing about the site.
 const NO_NAME = new Set(["ENOTFOUND", "ENODATA", "NXDOMAIN"]);
-const QUERIES = Object.freeze(["txt", "dmarc", "mx", "ns", "caa"]);
+const failedOutcome = (o) => Boolean(o?.startsWith("resolver-failure"));
 
-/** The site's address lookup failed, or any of its five DNS queries did. */
+/** The site's address lookup failed, or any exact DNS query did, for the listed name or the final one. */
 export const resolverFailed = (r) => (r.error === "not_found" && r.netCode !== undefined && !NO_NAME.has(r.netCode))
-  || QUERIES.some((q) => r.dns?.listed?.outcomes?.[q]?.startsWith("resolver-failure"));
+  || [r.dns?.listed, r.dns?.final].filter(Boolean).some((d) => Object.values(d.outcomes ?? {}).some(failedOutcome) || (d.queries ?? []).some((q) => failedOutcome(q.outcome)));
 
 export const MAX_RESOLVER_FAILURES = 0.2;
 
@@ -58,7 +58,8 @@ const MAX_REQUESTS_PER_SITE = 20;
 export const MIN_GRADED_SHARE = 0.5;
 // A pilot too small to see these rates can't pass them.
 export const MIN_ELIGIBLE = 30;
-export const MIN_GRADED = 20;
+export const MIN_GRADED = 25;
+export const MIN_TWOXX = 10;
 
 /** Amendment 2's stop rules, as counts. Any entry stops the run until it is explained. */
 export function stopRules(report, { floors = true } = {}) {
@@ -73,6 +74,7 @@ export function stopRules(report, { floors = true } = {}) {
   if (eligible && report.evidence.graded / eligible < MIN_GRADED_SHARE) stop.push("under half of the eligible sites were graded");
   if (eligible && report.resolverFailures / eligible > MAX_RESOLVER_FAILURES) stop.push("over 20% of sites hit a resolver failure");
   if (eligible && report.evidence.twoxx === 0) stop.push("no site answered with a 2xx");
+  else if (floors && eligible && report.evidence.twoxx < MIN_TWOXX) stop.push(`under ${MIN_TWOXX} 2xx responses`);
   if (report.dns.read && report.dns.answered.spf / report.dns.read < 1 - MAX_RESOLVER_FAILURES) stop.push("over 20% of SPF reads got no answer");
   if (report.dns.read && report.dns.answered.dmarc / report.dns.read < 1 - MAX_RESOLVER_FAILURES) stop.push("over 20% of DMARC reads got no answer");
   if (floors && eligible === 0) stop.push("no eligible site");
@@ -82,6 +84,8 @@ export function stopRules(report, { floors = true } = {}) {
 }
 
 const hash = (b) => createHash("sha256").update(b).digest("hex");
+
+export const NO_PRIVACY = "no clean privacy report";
 
 /** The hash a seal carries over its own fields, `passed` among them. */
 export const sealHash = ({ sealSha256: _own, ...fields }) => hash(JSON.stringify(fields));
@@ -93,16 +97,21 @@ export const sealHash = ({ sealSha256: _own, ...fields }) => hash(JSON.stringify
 export function unfinishedRun(dir) {
   const file = join(dir, "manifest.json");
   if (!existsSync(file)) return "no run manifest";
-  const m = JSON.parse(readFileSync(file, "utf8"));
+  const manifestBytes = readFileSync(file);
+  const m = JSON.parse(manifestBytes);
   if (m.kind !== "pass") return "not a pass";
   if (!m.finishedAt) return "the run did not finish";
   if (m.partial) return `the run stopped: ${m.stoppedFor}`;
   if (!m.immutableAtFinish?.ok) return "something changed while it ran";
   const raw = join(dir, "raw.jsonl");
   if (!existsSync(raw)) return "no raw file";
+  const read = (name) => (existsSync(join(dir, name)) ? JSON.parse(readFileSync(join(dir, name), "utf8")) : null);
   const now = hash(readFileSync(raw));
-  if (now === m.rawSha256) return null;
-  const proofFile = join(dir, "prune-manifest.json");
-  const proof = existsSync(proofFile) ? JSON.parse(readFileSync(proofFile, "utf8")) : null;
-  return proof?.rawSha256Before === m.rawSha256 && proof.rawSha256After === now ? null : "the raw file is not the one the manifest hashed";
+  if (now !== m.rawSha256) {
+    const proof = read("prune-manifest.json");
+    const drawn = proof?.kind === "validation-draw" && proof.manifestSha256 === hash(manifestBytes) && proof.rawSha256Before === m.rawSha256 && proof.rawSha256After === now;
+    if (!drawn) return "the raw file is not the one the manifest hashed";
+  }
+  const privacy = read("privacy-report.json");
+  return privacy?.clean && privacy.rawSha256 === m.rawSha256 && privacy.manifestSha256 === hash(manifestBytes) ? null : NO_PRIVACY;
 }

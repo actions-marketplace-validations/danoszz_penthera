@@ -13,7 +13,7 @@
  * Otherwise they are view-dependent.
  */
 import { readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { siteKey, siteOrg } from "./psl.mjs";
 import { unfinishedRun } from "./record-checks.mjs";
@@ -293,6 +293,7 @@ export function coverageBounds(a, b, id) {
   return { low: y.k / y.N - (x.k + x.N - x.n) / x.N, high: (y.k + y.N - y.n) / y.N - x.k / x.N, coverageA: x.n / x.N, coverageB: y.n / y.N };
 }
 
+const SECONDARY_COHORTS = Object.freeze(["T10k", "Europe", "SP500", "YC-scale", "ShowHN", "NL-Cbw"]);
 const EDGE_STRATA = new Set(["cloudflare", "akamai", "cloudfront", "vercel"]);
 const edgeStratum = (r) => (EDGE_STRATA.has(r.platform?.edge) ? r.platform.edge : "other");
 
@@ -319,6 +320,16 @@ export function standardizedDiff(a, b, id, { level = 0.95, resamples = RESAMPLES
   for (let i = 0; i < resamples; i++) { const [x, y] = jointDraw(patterns, size, rng); const d = value(x, y); if (!Number.isNaN(d)) out.push(d); }
   const sorted = out.sort((x, y) => x - y), tail = (1 - level) / 2;
   return { diff: value(totalA, totalB), ci: sorted.length ? [pct(sorted, tail), pct(sorted, 1 - tail)] : [NaN, NaN], supported, dropped };
+}
+
+/** § 6, secondary: each secondary cohort against YC-new and T1k on every check. Reported, never decided. Under the organization floor it is not estimable. */
+export function secondaryCohorts(rows) {
+  const checks = [...new Set(rows.flatMap((r) => (r.checks ?? []).map((c) => c.id)))].sort();
+  return SECONDARY_COHORTS.flatMap((cohort) => ["YC-new", "T1k"].flatMap((against) => checks.map((check) => {
+    const a = inCohort(rows, against), b = inCohort(rows, cohort);
+    const base = { cohort, against, check, judgedA: judged(a, check), judgedB: judged(b, check), orgsA: orgsJudged(a, check), orgsB: orgsJudged(b, check) };
+    return base.orgsA >= MIN_SUPPORT && base.orgsB >= MIN_SUPPORT ? { ...base, ...rowLevel(a, b, check) } : { ...base, decision: "not estimable" };
+  })));
 }
 
 /** Amendment 2: refusal share among graded sites. Signature-backed is the primary endpoint. */
@@ -381,6 +392,8 @@ export function main(args, { fail = console.error } = {}) {
   if (!args.includes("--pass1")) { fail("Usage: analyze-r.mjs --pass1 <raw> [--pass2 <raw>] --e20 <tranco raw> <yc raw> [--out file]"); return 2; }
   const problem = unfinishedRun(dirname(at("--pass1")));
   if (problem) { fail(`Refused: this run can't decide claims: ${problem}.`); return 3; }
+  // The gate read raw.jsonl, so nothing else in the folder may stand in for it.
+  if (basename(at("--pass1")) !== "raw.jsonl") { fail("Refused: --pass1 takes the run's raw.jsonl, the file the gate checked."); return 3; }
   const i = args.indexOf("--e20");
   const e20 = { T1k: e20Index(load(args[i + 1])), "YC-new": e20Index(load(args[i + 2])) };
   const p1 = load(at("--pass1"));
@@ -397,6 +410,11 @@ export function main(args, { fail = console.error } = {}) {
   out.standardized = Object.fromEntries(Object.entries(pairs).map(([id, [a, b, check]]) => [id, standardizedDiff(inCohort(p1, a), inCohort(p1, ...b), check)]));
   out.standardized.C3 = standardizedDiff(edge(inCohort(p1, "T1k"), true), edge(inCohort(p1, "YC-new"), true), "https+hsts");
   out.standardized.C4 = standardizedDiff(edge(inCohort(p1, "T1k"), false), edge(inCohort(p1, "YC-new"), false), "https+hsts");
+  // The R view: the same differences among `candidate-page` responses.
+  out.standardizedR = Object.fromEntries(Object.entries(pairs).map(([id, [a, b, check]]) => [id, standardizedDiff(inCohort(p1, a).filter(isPage), inCohort(p1, ...b).filter(isPage), check)]));
+  out.standardizedR.C3 = standardizedDiff(edge(inCohort(p1, "T1k"), true).filter(isPage), edge(inCohort(p1, "YC-new"), true).filter(isPage), "https+hsts");
+  out.standardizedR.C4 = standardizedDiff(edge(inCohort(p1, "T1k"), false).filter(isPage), edge(inCohort(p1, "YC-new"), false).filter(isPage), "https+hsts");
+  out.secondaryCohorts = secondaryCohorts(p1);
   out.cspControlsScripts = cspValueClaims(p1);
   if (all.some((r) => r.dns?.listed)) {
     const decided = dnsClaims(all);

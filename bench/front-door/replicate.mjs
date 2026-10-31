@@ -525,6 +525,7 @@ export function pilotEvidence(dropped, { results = RESULTS, current, allowFixtur
   if (!result.passed) return no(`Pilot ${last} failed: ${result.stop.join("; ")}.`);
   const decision = JSON.parse(read(last, "pilot-decision.json") ?? "null");
   if (decision?.decision !== "go") return no(`Pilot ${last}: no recorded go decision.`);
+  if (!String(decision.reviewer ?? "").trim() || Number.isNaN(Date.parse(decision.decidedAt))) return no(`Pilot ${last}: its decision names no reviewer or no valid time.`);
   if (decision.reportSha256 !== sha256(read(last, "pilot-report.json")) || decision.sealSha256 !== result.sealSha256) return no(`Pilot ${last}: its decision is for another report.`);
   if (!manifest.immutableAtFinish?.ok) return no(`Pilot ${last}: something changed while it ran.`);
   for (const [name, now] of Object.entries(current ?? {})) {
@@ -782,8 +783,8 @@ export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map
   stoppedFor ??= stopCheck();
   writeFinal();
   await letSignalsIn();
-  // The commit boundary. Nothing yields from this check to the rename, so a signal
-  // lands before it, and the run is partial, or after it, and is post-run.
+  // The semantic boundary is this last check. Nothing yields from here to the rename, so a
+  // signal handled before it makes the run partial, and any later one is post-run.
   if (!stoppedFor) {
     stoppedFor = stopCheck();
     if (stoppedFor) writeFinal();

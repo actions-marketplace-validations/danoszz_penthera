@@ -733,8 +733,9 @@ a third adjudicator.** The figures are reported as checked by one person.
   exit other than success is followed by `validation-sample.mjs prune`, which reads the file back
   to prove the text is gone. A kill leaves no end manifest and takes the same prune. A stop that
   lands during the last site still makes the run partial. The final manifest is written to a temp
-  file and renamed. That rename is the commit boundary: a signal before it makes the run partial,
-  and a signal after it is post-run and changes nothing.
+  file and renamed. The semantic boundary is the last stop check, just before that rename, and
+  nothing yields between them. A signal handled by that check makes the run partial. Any later
+  signal is post-run and changes nothing.
 - **An interrupted pilot.** Its sites count as used, by the list hash its manifest recorded at the
   start. Its text is deleted, and the next round runs on other sites.
 - **An interrupted pass 2.** It isn't resumed or restarted, because a restart would visit sites
@@ -756,6 +757,8 @@ a third adjudicator.** The figures are reported as checked by one person.
   This departs from the 12 hours of § 5, and owners get almost no notice. Notice means the public
   study page and this amendment. No email goes to site owners.
 - **The seven-day spacing of § 5 is not kept.**
+- **Outside review.** An outside reviewer gave a technical go on 31 October 2026. That is not an
+  ethics endorsement.
 - **No independent human ethics board reviewed this study.** AI and external technical reviews have
   occurred.
 - **Provider notice.** One advance notice was sent on 30 October 2026, naming the first server. It

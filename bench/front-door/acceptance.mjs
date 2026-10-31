@@ -447,6 +447,12 @@ export async function runAcceptance() {
     const decisionFile = join(staleDecision.runDir, "pilot-decision.json");
     writeFileSync(decisionFile, JSON.stringify({ ...JSON.parse(readFileSync(decisionFile, "utf8")), reportSha256: "x" }));
     add("6: a decision for another report", "refused", await gate(staleDecision), /decision is for another report/);
+    for (const [name, wrong] of [["no reviewer", { reviewer: "  " }], ["no time", { decidedAt: undefined }], ["an unparseable time", { decidedAt: "soon" }]]) {
+      const thin = clean();
+      const file = join(thin.runDir, "pilot-decision.json");
+      writeFileSync(file, JSON.stringify({ ...JSON.parse(readFileSync(file, "utf8")), ...wrong }));
+      add(`6: a decision with ${name}`, "refused", await gate(thin), /no reviewer or no valid time/);
+    }
     const failedGo = variant(fx, leakedFields.header);
     close(fx, failedGo.runDir, { prune: false });
     const goSaid = [];

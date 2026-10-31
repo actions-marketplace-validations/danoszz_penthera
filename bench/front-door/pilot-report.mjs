@@ -4,10 +4,13 @@
  * named, so the output can be read and pasted anywhere.
  *
  *   node bench/front-door/pilot-report.mjs <raw.jsonl> --exclude <exclusion list> --skip <host list>... [--seal]
- *   node bench/front-door/pilot-report.mjs --privacy <run folder>
+ *   node bench/front-door/pilot-report.mjs --privacy <run folder> [--false-fire <note file>]
  *
  * --privacy runs the pilot's scan over every stored field of a finished pass and writes
  * privacy-report.json, which analysis and the audit draw require. Run it before the draw.
+ * It prints counts and the code `purge` asks for. Which fields were flagged goes only to
+ * that private file. --false-fire records a person's review that every miss was false,
+ * as a note whose hash the analysis reports as a deviation.
  * Pass the removal, prior opt-out and earlier pilot lists as --skip, so every hop meets all
  * four. Sealing checks each against the run's manifest. This round's own list is not one.
  * --seal writes pilot-result.json next to the raw file, which pass 2 requires. Seal
@@ -19,7 +22,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { isEligible, recordMisses, resolverFailed, sealHash, stopRules, MAX_RESOLVER_FAILURES, MIN_ELIGIBLE, MIN_GRADED, MIN_GRADED_SHARE, MIN_TWOXX } from "./record-checks.mjs";
+import { isEligible, missedFields, recordMisses, resolverFailed, sealHash, stopRules, MAX_RESOLVER_FAILURES, MIN_ELIGIBLE, MIN_GRADED, MIN_GRADED_SHARE, MIN_TWOXX } from "./record-checks.mjs";
 import { CLAIM_COHORTS, readRemovals } from "./replicate.mjs";
 import { exclusionFor, readExclusions } from "./run.mjs";
 
@@ -124,24 +127,30 @@ export function sealPilot(dir, { exclude = new Map(), exclusionBytes, skipBytes 
 }
 
 /** The pilot's scan over a finished pass, bound to its manifest and raw file. */
-export function privacyReport(dir) {
+export function privacyReport(dir, { falseFire } = {}) {
   const manifestBytes = readFileSync(join(dir, "manifest.json"));
   const manifest = JSON.parse(manifestBytes);
   const rawBytes = readFileSync(join(dir, "raw.jsonl"));
   if (hash(rawBytes) !== manifest.rawSha256) throw new Error("Refused: the raw file is not the one the manifest hashed. Run this before the audit draw.");
-  const { sites: records, scrubMisses } = pilotReport(rawBytes.toString("utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)));
-  const report = { manifestSha256: hash(manifestBytes), rawSha256: manifest.rawSha256, records, scrubMisses, clean: !Object.values(scrubMisses).some(Boolean), writtenAt: new Date().toISOString() };
+  const rows = rawBytes.toString("utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+  const { sites: records, scrubMisses } = pilotReport(rows);
+  const clean = !Object.values(scrubMisses).some(Boolean);
+  if (falseFire?.length === 0) throw new Error("Refused: the false-fire note is empty.");
+  const report = {
+    manifestSha256: hash(manifestBytes), rawSha256: manifest.rawSha256, purgeConfirm: manifest.rawSha256.slice(0, 12), records, scrubMisses, clean, flaggedFields: missedFields(rows),
+    ...(falseFire && !clean ? { reviewed: { noteSha256: hash(falseFire) } } : {}), writtenAt: new Date().toISOString(),
+  };
   writeFileSync(join(dir, "privacy-report.json"), `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
   return report;
 }
 
 export function main(args, { log = console.log, fail = console.error } = {}) {
   if (args[0] === "--privacy") {
-    if (!args[1]) { fail("Usage: pilot-report.mjs --privacy <run folder>"); return 2; }
+    if (!args[1]) { fail("Usage: pilot-report.mjs --privacy <run folder> [--false-fire <note file>]"); return 2; }
     try {
-      const report = privacyReport(args[1]);
+      const { flaggedFields: _private, ...report } = privacyReport(args[1], args[2] === "--false-fire" ? { falseFire: readFileSync(args[3]) } : {});
       log(JSON.stringify(report, null, 2));
-      return report.clean ? 0 : 1;
+      return report.clean || report.reviewed ? 0 : 1;
     } catch (e) {
       fail(e.message);
       return 3;

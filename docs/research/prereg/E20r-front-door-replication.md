@@ -711,9 +711,13 @@ a third adjudicator.** The figures are reported as checked by one person.
   keeps the git state from the start and the end and compares them.
 - **Deletion's limit.** Pruning covers the raw file in the run's folder. It can't reach a copy made
   before it ran, so none is made, and deleted text can't be audited later.
-- **Purge.** After a failed privacy report, or for any run that must go, `validation-sample.mjs
-  purge` deletes the whole per-site raw file, with no field-level cleaning, and writes a proof with
-  the original hash and the run's disposition. A purged run decides nothing.
+- **A failed privacy report on pass 2.** The run stops, and a person reviews the flagged fields
+  first, on the server, printing them to no shared place, so a false fire doesn't cost the run. A
+  confirmed false fire is recorded with a note and reported as a deviation. A real miss goes to
+  purge.
+- **Purge.** `validation-sample.mjs purge` deletes the whole per-site raw file, with no field-level
+  cleaning, and writes a proof with the original hash and the run's disposition. It refuses without
+  `--confirm` and the first 12 characters of the raw hash. A purged run decides nothing.
 - **Signals.** SIGINT or SIGTERM ends a run between sites, with a manifest, as a partial run. Every
   exit other than success is followed by `validation-sample.mjs prune`, which reads the file back
   to prove the text is gone. A kill leaves no end manifest and takes the same prune. A stop that

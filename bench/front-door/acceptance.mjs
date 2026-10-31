@@ -322,7 +322,8 @@ export async function runAcceptance() {
       return { code, said: said.join(" ") || "analyzed" };
     };
     const onLast = (act) => { let n = 0; return (_k, total) => { if (++n === total) act(); }; };
-    const purge = (dir) => { const said = []; const code = validation(["purge", dir], { log: (m) => said.push(m), fail: (m) => said.push(m) }); return { code, said: said.join(" ") }; };
+    const purgeWith = (dir, ...flags) => { const said = []; const code = validation(["purge", dir, ...flags], { log: (m) => said.push(m), fail: (m) => said.push(m) }); return { code, said: said.join(" ") }; };
+    const purge = (dir) => purgeWith(dir, "--confirm", sha256(readFileSync(join(dir, "raw.jsonl"))).slice(0, 12));
     const draw = (dir) => { const said = []; const code = validation(["draw", dir], { log: quiet, fail: (m) => said.push(m) }); return { code, said: said.join(" ") || "drawn" }; };
     add("analysis of a stopped pass 2", "refused", analysis(stoppedRun), /stopped/);
     add("audit draw of a stopped pass 2", "refused", draw(stoppedRun), /stopped/);
@@ -383,9 +384,25 @@ export async function runAcceptance() {
       writeFileSync(join(leaky, "manifest.json"), JSON.stringify({ ...JSON.parse(readFileSync(join(leaky, "manifest.json"), "utf8")), rawSha256: hashOf(leakRaw) }));
       add(`2: a miss in ${field} fails the privacy report`, "refused", privacy(leaky));
       add(`3: analysis after that failure, ${field}`, "refused", analysis(leaky), /privacy report/);
+      add(`purge with no code, ${field}`, "refused", purgeWith(leaky), /--confirm/);
+      add(`purge with a wrong code, ${field}`, "refused", purgeWith(leaky, "--confirm", "0".repeat(12)), /--confirm/);
       add(`3: purge after that failure, ${field}`, "allowed", purge(leaky), /"disposition":"privacy-failed"/);
       add(`3: no analysis after the purge, ${field}`, "refused", analysis(leaky), /purged/);
     }
+    const reviewedDir = join(whole.results, "false-fire");
+    cpSync(wholeRun, reviewedDir, { recursive: true });
+    const flaggedRaw = `${readFileSync(join(reviewedDir, "raw.jsonl"), "utf8")}${JSON.stringify({ status: "ok", evidence: { values: { server: "(AT) Wien" } } })}\n`;
+    writeFileSync(join(reviewedDir, "raw.jsonl"), flaggedRaw);
+    writeFileSync(join(reviewedDir, "manifest.json"), JSON.stringify({ ...JSON.parse(readFileSync(join(reviewedDir, "manifest.json"), "utf8")), rawSha256: hashOf(flaggedRaw) }));
+    const printed = [];
+    reportMain(["--privacy", reviewedDir], { log: (m) => printed.push(m), fail: quiet });
+    add("a failed report prints the code and no field or text", "allowed", truth(printed.join("").includes(hashOf(flaggedRaw).slice(0, 12)) && !/Wien|flaggedFields/.test(printed.join("")), "privacy output"));
+    add("a false fire has no run until it is reviewed", "refused", analysis(reviewedDir), /privacy report/);
+    const note = join(fx.root, "false-fire.txt");
+    writeFileSync(note, "Checked by hand: a place name, not an address.\n");
+    add("a reviewed false fire keeps the run", "allowed", (() => { const code = reportMain(["--privacy", reviewedDir, "--false-fire", note], { log: quiet, fail: quiet }); return { code, said: "reviewed" }; })());
+    add("and the analysis reports it as a deviation", "allowed", (() => { const got = analysis(reviewedDir); return { code: got.code || (JSON.parse(readFileSync(join(reviewedDir, "analysis.json"), "utf8")).privacyDeviation?.noteSha256 ? 0 : 3), said: got.said }; })(), /analyzed/);
+
     const crashed = join(whole.results, "crashed");
     cpSync(wholeRun, crashed, { recursive: true });
     const { finishedAt: _gone, ...unfinished } = JSON.parse(readFileSync(join(crashed, "manifest.json"), "utf8"));

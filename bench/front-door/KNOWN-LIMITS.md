@@ -54,7 +54,7 @@ The audit sheet goes to one labeler and to a hosted model. The 12-month deletion
 
 - A signal or the stop file takes effect between sites, so visits in flight finish, up to the 30-second hard cap each.
 - SIGKILL, a crash or a full disk leave no end manifest. The run counts as interrupted, and the prune is a step on the run sheet that nothing enforces for pass 2.
-- The privacy report scans every stored string, with the same detector as the scrub limits above. Its exceptions are hashes, and addresses in SPF records. After a miss the only recovery is `purge`, which ends the run's data.
+- The privacy report scans every stored string, with the same detector as the scrub limits above. Its exceptions are hashes, and addresses in SPF records. After a miss a person reviews it. A false fire is a recorded deviation that rests on that one person's note, and a real miss ends in `purge`, which ends the run's data.
 - The source-address check reads local interfaces between sites, so it shares the address check's limit.
 
 ## Audit and analysis

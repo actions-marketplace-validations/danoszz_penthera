@@ -11,10 +11,11 @@
  *   node bench/front-door/validation-sample.mjs prune <run folder>
  *       Deletes all text of a pilot, or of a pass that stopped, and writes
  *       prune-manifest.json. Seal a pilot first.
- *   node bench/front-door/validation-sample.mjs purge <run folder>
+ *   node bench/front-door/validation-sample.mjs purge <run folder> --confirm <first 12 characters of the raw hash>
  *       Deletes the whole per-site raw file, and the audit sheet and key, and writes
  *       purge-manifest.json with the original hash and the run's disposition. For a
- *       failed privacy report above all. It can't be undone, and the run decides nothing.
+ *       real privacy miss above all. It can't be undone, and the run decides nothing.
+ *       The privacy report prints the code; for a crashed run, take it from sha256sum.
  *   node bench/front-door/validation-sample.mjs score <validation-key.json> <human.csv> <agent.csv>
  *       Each csv: id,label. Refuses a missing, duplicate, unknown or invalid row. Prints
  *       weighted precision and recall, kappa, disagreement and the unsure count.
@@ -217,9 +218,10 @@ export function prunePilot(dir) {
 }
 
 /** The whole raw file gone, for any run. Nothing field by field: a miss's neighbours can't be trusted either. */
-export function purgeRun(dir) {
+export function purgeRun(dir, confirm) {
   const raw = join(dir, "raw.jsonl");
   if (!existsSync(raw)) throw new Error("Refused: this run has no raw file to purge.");
+  if (confirm !== hash(readFileSync(raw)).slice(0, 12)) throw new Error("Refused: purge needs --confirm with the first 12 characters of this raw file's hash.");
   const manifestBytes = readFileSync(join(dir, "manifest.json"));
   const manifest = JSON.parse(manifestBytes);
   const privacyFile = join(dir, "privacy-report.json");
@@ -256,7 +258,7 @@ export function main([mode, target, a, b], { log = console.log, fail = console.e
   }
   if (mode === "purge" && target) {
     try {
-      log(JSON.stringify(purgeRun(target)));
+      log(JSON.stringify(purgeRun(target, a === "--confirm" ? b : undefined)));
       return 0;
     } catch (e) {
       fail(e.message);
@@ -270,7 +272,7 @@ export function main([mode, target, a, b], { log = console.log, fail = console.e
     console.log(JSON.stringify(scoreLabels(JSON.parse(readFileSync(target, "utf8")), readFileSync(a, "utf8"), readFileSync(b, "utf8")), null, 2));
     return 0;
   }
-  console.error("Usage: validation-sample.mjs draw <run folder> | prune <run folder> | purge <run folder> | score <validation-key.json> <human.csv> <agent.csv>");
+  console.error("Usage: validation-sample.mjs draw <run folder> | prune <run folder> | purge <run folder> --confirm <code> | score <validation-key.json> <human.csv> <agent.csv>");
   return 2;
 }
 

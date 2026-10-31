@@ -14,7 +14,7 @@
  */
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, dirname, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { siteKey, siteOrg } from "./psl.mjs";
 import { isEligible, unfinishedRun } from "./record-checks.mjs";
@@ -426,6 +426,8 @@ export function main(args, { fail = console.error, preregText } = {}) {
   const p1 = load(at("--pass1"));
   const all = loadAll(at("--pass1"));
   const out = { experiment: "E20-R", level: LEVEL, resamples: RESAMPLES, claims: claims(p1, args.includes("--pass2") ? load(at("--pass2")) : null, e20), traits: traitTable(p1), traitsByCohort: traitsByCohort(p1), refusals: refusalShares(p1) };
+  const { reviewed, scrubMisses } = JSON.parse(readFileSync(join(dirname(at("--pass1")), "privacy-report.json"), "utf8"));
+  if (reviewed) out.privacyDeviation = { ...reviewed, scrubMisses };
   out.primaryRefusal = primaryRefusal(p1);
   const eligible = all.filter(isEligible);
   const edge = (rows, inA) => rows.filter((r) => STRATUM_A.has(r.platform?.edge) === inA);

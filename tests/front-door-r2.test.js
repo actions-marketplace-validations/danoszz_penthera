@@ -20,7 +20,7 @@ import { CheckError, resolvePublic } from "../api/_lib/guard.mjs";
 import { MAX_LIVE_ROUNDS, PREREG_R, recordedHashR, STUDY_PAGE, caaTree, checkPilotDropped, codeFiles, codeHash, dmarcReading, mergeCohorts, PILOT_MIN, ROLLING_WINDOW, siteDns, normalizeHost, pilotRounds, readDomain, readHostList, readRemovals, runPass, NO_DNS, unmatchedHosts, V2_LIMITS, visitInWorker } from "../bench/front-door/replicate.mjs";
 import { orgDomain, publicSuffix, PSL_VERSION, pslSha256, siteKey, siteOrg } from "../bench/front-door/psl.mjs";
 import { claims, clusterDiff, combine, coverageBounds, decide, diffClaim, dnsCoverage, e20Index, fisherExact, intervalOutcomes, isEligible, standardizedDiff, traitsByCohort } from "../bench/front-door/analyze-r.mjs";
-import { pilotReport, sealPilot, stopRules, privacyReport } from "../bench/front-door/pilot-report.mjs";
+import { main as reportMain, pilotReport, sealPilot, stopRules, privacyReport } from "../bench/front-door/pilot-report.mjs";
 import { MIN_ELIGIBLE, MIN_GRADED, NO_PRIVACY, pageTextMissed, recordMisses, resolverFailed, unfinishedRun } from "../bench/front-door/record-checks.mjs";
 import { main as analyzeMain, challengeByEdge, secondaryCohorts } from "../bench/front-door/analyze-r.mjs";
 import { main as validationMain, purgeRun, blindSheet, drawSample, parseLabels, pruneExcerpt, prunePilot, rewriteRun, scoreLabels, stratumOf, weightedMetrics } from "../bench/front-door/validation-sample.mjs";
@@ -1289,7 +1289,11 @@ describe("package 3 criteria", () => {
       writeFileSync(join(dir, "manifest.json"), JSON.stringify({ kind: "pass", finishedAt: "x", immutableAtFinish: { ok: true }, rawSha256: sum(raw) }));
       writeFileSync(join(dir, "validation-key.json"), "[]");
       expect(privacyReport(dir).clean).toBe(false);
-      expect(purgeRun(dir)).toMatchObject({ disposition: "privacy-failed", rawSha256: sum(raw), verified: true });
+      expect(() => purgeRun(dir)).toThrow(/--confirm/);
+      expect(() => purgeRun(dir, "0".repeat(12))).toThrow(/--confirm/);
+      expect(existsSync(join(dir, "raw.jsonl"))).toBe(true);
+      expect(privacyReport(dir).purgeConfirm).toBe(sum(raw).slice(0, 12));
+      expect(purgeRun(dir, sum(raw).slice(0, 12))).toMatchObject({ disposition: "privacy-failed", rawSha256: sum(raw), verified: true });
       expect(existsSync(join(dir, "raw.jsonl"))).toBe(false);
       expect(existsSync(join(dir, "validation-key.json"))).toBe(false);
       expect(unfinishedRun(dir)).toBe("the raw file was purged");
@@ -1297,12 +1301,28 @@ describe("package 3 criteria", () => {
     }
   });
 
+  it("the report names flagged fields only in its private file, and a reviewed false fire keeps the run", () => {
+    const dir = folder();
+    const raw = `${JSON.stringify({ status: "ok", evidence: { values: { server: "(AT) Wien" } }, "jan@example.nl": 1 })}\n`;
+    writeFileSync(join(dir, "raw.jsonl"), raw);
+    writeFileSync(join(dir, "manifest.json"), JSON.stringify({ kind: "pass", finishedAt: "x", immutableAtFinish: { ok: true }, rawSha256: sum(raw) }));
+    const printed = [];
+    expect(reportMain(["--privacy", dir], { log: (m) => printed.push(m) })).toBe(1);
+    expect(printed.join()).not.toMatch(/flaggedFields|Wien|jan@/);
+    const stored = readFileSync(join(dir, "privacy-report.json"), "utf8");
+    expect(JSON.parse(stored).flaggedFields).toEqual({ "server email": 1, "(a key) email": 1 });
+    expect(stored).not.toMatch(/Wien|jan@/);
+    expect(unfinishedRun(dir)).toBe(NO_PRIVACY);
+    expect(() => privacyReport(dir, { falseFire: Buffer.alloc(0) })).toThrow(/empty/);
+    expect(privacyReport(dir, { falseFire: Buffer.from("checked") }).reviewed.noteSha256).toBe(sum("checked"));
+    expect(unfinishedRun(dir)).toBeNull();
+  });
   it("3: the disposition says what the run was", () => {
     const go = (manifest) => {
       const dir = folder();
       writeFileSync(join(dir, "raw.jsonl"), "{}\n");
       writeFileSync(join(dir, "manifest.json"), JSON.stringify(manifest));
-      return purgeRun(dir).disposition;
+      return purgeRun(dir, sum("{}\n").slice(0, 12)).disposition;
     };
     expect(go({ kind: "pilot" })).toBe("crashed");
     expect(go({ kind: "pass", finishedAt: "x", partial: true })).toBe("partial");
@@ -1362,7 +1382,7 @@ describe("package 3 criteria", () => {
     const { scripts } = JSON.parse(readFileSync(join(import.meta.dirname, "..", "package.json"), "utf8"));
     for (const step of ["npm test", "e20r:acceptance", "--self-test"]) expect(scripts["e20r:preflight"]).toContain(step);
     const sheet = readFileSync(join(import.meta.dirname, "..", "bench", "front-door", "run-sheet.md"), "utf8");
-    for (const step of ["npm run e20r:preflight", "uniq -d", "pilot-sites-all.txt", "--skip", "validation-sample.mjs purge"]) expect(sheet).toContain(step);
+    for (const step of ["npm run e20r:preflight", "uniq -d", "pilot-sites-all.txt", "--skip", "validation-sample.mjs purge", "--confirm", "--false-fire", "flaggedFields"]) expect(sheet).toContain(step);
   });
 
   it("the public page makes no absolute privacy claim", () => {

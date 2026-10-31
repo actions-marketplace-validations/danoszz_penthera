@@ -24,13 +24,24 @@ function* storedStrings(value, key = "") {
   }
 }
 
+function eachMiss(r, visit) {
+  for (const [key, text] of storedStrings(r)) {
+    if (IS_HASH.test(key)) continue;
+    for (const [kind, n] of Object.entries(scrubMisses(text))) if (n && (key !== "spfRecord" || !ADDRESS_KINDS.has(kind))) visit(key, text, kind, n);
+  }
+}
+
 /** Every miss in one record, by kind, over all it stores. */
 export function recordMisses(r) {
   const out = { ipv4: 0, ipv6: 0, email: 0, query: 0, fragment: 0, jwt: 0, longHex: 0, longNumber: 0 };
-  for (const [key, text] of storedStrings(r)) {
-    if (IS_HASH.test(key)) continue;
-    for (const [k, v] of Object.entries(scrubMisses(text))) if (key !== "spfRecord" || !ADDRESS_KINDS.has(k)) out[k] += v;
-  }
+  eachMiss(r, (_key, _text, kind, n) => { out[kind] += n; });
+  return out;
+}
+
+/** Where the misses sit, by field and kind, for a person to review. Never the text. A key can be the miss itself, so it isn't named then. */
+export function missedFields(records) {
+  const out = {};
+  for (const r of records) eachMiss(r, (key, text, kind, n) => { const at = `${key === text ? "(a key)" : key} ${kind}`; out[at] = (out[at] ?? 0) + n; });
   return out;
 }
 
@@ -121,5 +132,5 @@ export function unfinishedRun(dir) {
     if (!drawn) return "the raw file is not the one the manifest hashed";
   }
   const privacy = read("privacy-report.json");
-  return privacy?.clean && privacy.rawSha256 === m.rawSha256 && privacy.manifestSha256 === hash(manifestBytes) ? null : NO_PRIVACY;
+  return (privacy?.clean || privacy?.reviewed) && privacy.rawSha256 === m.rawSha256 && privacy.manifestSha256 === hash(manifestBytes) ? null : NO_PRIVACY;
 }

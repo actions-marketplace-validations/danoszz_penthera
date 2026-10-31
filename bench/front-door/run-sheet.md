@@ -125,14 +125,34 @@ Every failed run ends in a prune or a purge. A prune reads the file back and pri
 | Something changed during the run | 4 | Pilot: seal, then prune. Pass 2: prune. The run decides nothing. |
 | Stopped: scrub miss, resolver failures, stop file, source address, signal | 5 | Pilot: seal, then prune. Pass 2: prune, and report what ran as partial. |
 | Hard kill, crash or full disk | none | Prune only. The run counts as interrupted. |
-| Privacy report not clean | 1 | Purge. Report the run as partial. |
+| Privacy report not clean | 1 | Stop. A person reviews the flagged fields first (below). |
 
 ```bash
 node bench/front-door/validation-sample.mjs prune $R/e20r-pass2
 ```
 
+### A failed privacy report on pass 2
+
+A false fire must not cost the run, so nobody purges yet.
+
+1. A person reads `flaggedFields` in `$R/e20r-pass2/privacy-report.json`. It names fields and counts, never text.
+2. That person opens the flagged records on the server only. Nothing goes to a chat, a ticket, a shared log, the terminal scrollback of a shared session, or a hosted model.
+3. A confirmed false fire: write what was checked in a private note, with no flagged text in it, then record it. The analysis reports it as a deviation.
+
 ```bash
-node bench/front-door/validation-sample.mjs purge $R/e20r-pass2
+node bench/front-door/pilot-report.mjs --privacy $R/e20r-pass2 --false-fire /srv/e20/false-fire-note.txt
+```
+
+4. A real miss: purge, with the `purgeConfirm` code the report printed, and report the run as partial.
+
+```bash
+node bench/front-door/validation-sample.mjs purge $R/e20r-pass2 --confirm <purgeConfirm>
+```
+
+- `purge` refuses without that code, the first 12 characters of the raw file's hash. The report's code holds until the file changes. After a prune, or for a crashed run with no report, take it from the file:
+
+```bash
+sha256sum $R/e20r-pass2/raw.jsonl | cut -c1-12
 ```
 
 - `purge` deletes the whole per-site raw file and writes `purge-manifest.json` with the original hash and the disposition. It works on finished, partial, crashed and privacy-failed runs, and it can't be undone. The run can't be analyzed afterward. There is no field-level cleaning.

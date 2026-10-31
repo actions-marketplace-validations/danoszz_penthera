@@ -27,6 +27,15 @@ function namedFinding(f) {
   return cleanText(`${f.foundBy?.[0] || f.sources?.[0]?.tool || "other tool"}: ${f.title || "finding"}${place}`, 200);
 }
 
+/**
+ * The reason, for reports that list Penthera's own findings: only when those do
+ * not explain the exit code already.
+ */
+export function exitNote(result) {
+  const explained = exitCodeOf(result) === 1 && (result.findings || []).some(isSevere);
+  return explained ? null : exitReason(result);
+}
+
 /** Why a result fails, in one line, or null when it does not. Takes one result or several. */
 export function exitReason(results) {
   const list = [results].flat().filter(Boolean);

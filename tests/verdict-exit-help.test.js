@@ -5,12 +5,13 @@
  */
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { spawn } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { bucketOf, buildBrief, formatBrief, VERDICTS } from "../src/report/brief.js";
-import { exitCodeOf, exitReason } from "../src/report/exit.js";
+import { exitCodeOf, exitNote, exitReason } from "../src/report/exit.js";
+import { formatAudienceReport } from "../src/report/audience.js";
 import { executeScan } from "../src/cli/run-scan.js";
 import { formatMarkdownReport as formatMarkdown } from "../src/report/markdown.js";
 import { REPLY_CONTRACT } from "../src/mcp/results.js";
@@ -22,7 +23,10 @@ const KEY = ["sk", "live", "a1B2c3D4".repeat(3)].join("_");
 const f = (over) => ({ severity: "high", confidence: "likely", category: "secrets", title: "Secret", url: "src/a.js", ...over });
 
 let dirs = [];
+let locked = [];
 afterEach(() => {
+  for (const p of locked) chmodSync(p, 0o755);
+  locked = [];
   for (const d of dirs) rmSync(d, { recursive: true, force: true });
   dirs = [];
 });
@@ -281,6 +285,168 @@ describe("the reason line reaches the reader", () => {
   it("the MCP reply contract says to keep it", () => {
     expect(REPLY_CONTRACT).toContain("the reason line under it when there is one");
   });
+});
+
+describe("the reason next to findings", () => {
+  const medium = f({ severity: "medium" });
+  const withTool = { ...toolOnly({}), findings: [medium] };
+
+  it("shows when other tools fail the run and Penthera's findings do not explain it", () => {
+    expect(exitNote(withTool)).toContain("gitleaks: AWS key in src/a.js:3");
+    expect(exitNote(toolOnly({}))).toContain("gitleaks");
+  });
+
+  it("stays out when Penthera's own finding explains the exit code", () => {
+    expect(exitNote({ ...toolOnly({}), findings: [f()] })).toBeNull();
+    expect(exitNote({ findings: [f()] })).toBeNull();
+  });
+
+  it("stays out on exit 0", () => {
+    expect(exitNote({ findings: [medium] })).toBeNull();
+    expect(exitNote(clean)).toBeNull();
+  });
+
+  it("always shows for a required tool that did not run", () => {
+    expect(exitNote(missing([f()]))).toContain("the policy requires gitleaks");
+  });
+
+  it("prints next to findings on the terminal and in Markdown", () => {
+    const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    try {
+      printReport(withTool);
+      expect(write.mock.calls.map((c) => c[0]).join("")).toContain("gitleaks: AWS key in src/a.js:3");
+    } finally {
+      write.mockRestore();
+    }
+    expect(formatMarkdown(withTool)).toContain("gitleaks: AWS key in src/a.js:3");
+  });
+});
+
+describe("audience reports on a failing run", () => {
+  const report = (result, audience) => formatAudienceReport({ timestamp: "2026-10-31T00:00:00Z", ...result }, audience, { version: "0" });
+  const withTool = { ...toolOnly({}), findings: [f({ severity: "medium" })] };
+
+  it.each(["owner", "developer", "auditor"])("%s gives the reason on another tool's finding", (audience) => {
+    expect(report(withTool, audience)).toContain("gitleaks: AWS key in src/a.js:3");
+    expect(report(toolOnly({}), audience)).toContain("gitleaks: AWS key in src/a.js:3");
+  });
+
+  it.each(["owner", "developer", "auditor"])("%s gives the reason when a required tool did not run", (audience) => {
+    expect(report(missing(), audience)).toContain("the policy requires gitleaks");
+  });
+
+  it("does not call a failing run fine", () => {
+    expect(report(withTool, "owner")).not.toContain("Nothing here needs an emergency response");
+    expect(report(missing([f({ severity: "medium" })]), "owner")).not.toContain("Nothing here needs an emergency response");
+    expect(report(toolOnly({}), "owner")).not.toContain("found no problems");
+  });
+
+  it("keeps the calm lines on a run that passes", () => {
+    expect(report({ ...clean, findings: [f({ severity: "medium" })] }, "owner")).toContain("Nothing here needs an emergency response");
+    expect(report(clean, "owner")).toContain("found no problems");
+  });
+
+  it("points to the serious findings when Penthera has them", () => {
+    const out = report({ ...clean, findings: [f()] }, "owner");
+    expect(out).toContain("Look at the serious ones first");
+    expect(out).not.toContain("The CLI exits");
+  });
+});
+
+describe("--repo with a path that is not there", () => {
+  it("exits 2 with a clear error and no clean line", async () => {
+    const path = join(tmp("pk-verdict-gone-"), "nope");
+    const { code, out, err } = await run(["--repo", path, "--offline"], { PENTHERA_BRIEF: "0" });
+    expect(code).toBe(2);
+    expect(err).toContain(`Path not found: ${path}`);
+    expect(out + err).not.toMatch(/Clean scan|Nothing to fix|No findings/);
+  }, 30_000);
+
+  it("fails the wizard's scan the same way", async () => {
+    await expect(executeScan({ repo: join(tmp("pk-verdict-gone-"), "nope"), quiet: true, offline: true })).rejects.toThrow("Path not found");
+  });
+});
+
+const asRoot = process.getuid?.() === 0;
+
+describe.skipIf(asRoot)("a named skill Penthera could not read in full", () => {
+  const SKILL = "---\nname: demo\ndescription: A demo skill.\n---\n\n# Demo\n";
+  const scan = async (dir) => JSON.parse((await run(["agents", dir, "--json"])).out);
+  const shut = (p, mode) => { chmodSync(p, mode); locked.push(p); };
+  const expectHigh = (r, path) => {
+    expect(r.findings.filter((x) => x.severity === "high" && x.url.includes(path))).toHaveLength(1);
+    expect(r.agents.grade).not.toBe("A");
+    expect(r.agents.skillTarget).toBe(true);
+  };
+
+  it("reports an unreadable file", async () => {
+    const dir = repoWith({ "SKILL.md": SKILL, "scripts/run.sh": "echo hi\n" });
+    shut(join(dir, "scripts/run.sh"), 0o000);
+    expectHigh(await scan(dir), "scripts/run.sh");
+  }, 30_000);
+
+  it("reports an unreadable media file", async () => {
+    const dir = repoWith({ "SKILL.md": SKILL, "logo.png": "not really" });
+    shut(join(dir, "logo.png"), 0o000);
+    expectHigh(await scan(dir), "logo.png");
+  }, 30_000);
+
+  it("reports a file in a folder with no x bit", async () => {
+    const dir = repoWith({ "SKILL.md": SKILL, "lib/a.sh": "echo hi\n" });
+    shut(join(dir, "lib"), 0o600);
+    expectHigh(await scan(dir), "lib/a.sh");
+  }, 30_000);
+
+  it("reports a folder it cannot list", async () => {
+    const dir = repoWith({ "SKILL.md": SKILL, "lib/a.sh": "echo hi\n" });
+    shut(join(dir, "lib"), 0o000);
+    const r = await scan(dir);
+    expect(r.findings.some((x) => x.severity === "high" && x.title === "Skill folder not read in full")).toBe(true);
+    expect(r.agents.grade).not.toBe("A");
+  }, 30_000);
+
+  it("reports a file over the size limit", async () => {
+    expectHigh(await scan(repoWith({ "SKILL.md": SKILL, "big.md": "a".repeat(11 * 1024 * 1024) })), "big.md");
+  }, 60_000);
+
+  it("reports an unreadable SKILL.md once", async () => {
+    const dir = repoWith({ "SKILL.md": SKILL });
+    shut(join(dir, "SKILL.md"), 0o000);
+    expectHigh(await scan(dir), "SKILL.md");
+  }, 30_000);
+
+  it("reports a linked SKILL.md it cannot follow into a shut folder", async () => {
+    const dir = repoWith({ "real/SKILL.md": SKILL });
+    symlinkSync("real/SKILL.md", join(dir, "SKILL.md"));
+    shut(join(dir, "real"), 0o600);
+    const r = await scan(dir);
+    expect(r.findings.filter((x) => x.severity === "high" && x.url === "SKILL.md")).toHaveLength(1);
+    expect(r.agents.grade).not.toBe("A");
+  }, 30_000);
+
+  it("reports an unreadable script in a virtual environment", async () => {
+    const dir = repoWith({
+      "SKILL.md": SKILL, "venv/pyvenv.cfg": "home = /usr/bin\n", "venv/bin/python": "\u007fELF",
+      "venv/bin/tool": "#!/bin/sh\necho hi\n", "venv/lib/python3.12/site-packages/x.py": "x = 1\n",
+    });
+    shut(join(dir, "venv/bin/tool"), 0o000);
+    expectHigh(await scan(dir), "venv/bin/tool");
+  }, 30_000);
+
+  it("keeps a project scan as it was", async () => {
+    const dir = repoWith({ ".claude/skills/demo/SKILL.md": SKILL, ".claude/skills/demo/run.sh": "echo hi\n", ".claude/skills/demo/big.md": "a".repeat(11 * 1024 * 1024) });
+    shut(join(dir, ".claude/skills/demo/run.sh"), 0o000);
+    const r = await scan(dir);
+    expect(r.agents.skillTarget).toBe(false);
+    expect(r.findings.filter((x) => x.url.includes("run.sh"))).toEqual([]);
+    expect(r.findings.find((x) => x.url.includes("big.md")).severity).toBe("medium");
+  }, 60_000);
+
+  it("lists node_modules under Not read and leaves the grade alone, as the docs say", async () => {
+    const r = await scan(repoWith({ "SKILL.md": SKILL, "node_modules/x/index.js": "module.exports = 1;\n" }));
+    expect(r.agents.notChecked.join(" ")).toContain("node_modules: dependency folder inside a skill");
+    expect(r.agents.grade).toBe("A");
+  }, 30_000);
 });
 
 describe("a skill folder you name", () => {

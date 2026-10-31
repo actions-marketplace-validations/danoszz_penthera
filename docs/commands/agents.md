@@ -23,7 +23,11 @@ penthera agents --pin           # write penthera.lock; later runs flag anything 
 
 A folder you name with `SKILL.md` at its root, in any casing, is read as one
 skill. Its scripts and other files get the same rules as a skill under
-`skills/<name>/`, and a skill Penthera could not read in full never grades A.
+`skills/<name>/`. A file or folder Penthera could not read, or a file over the
+size limit, gets a high finding, so such a skill never grades A. `node_modules`
+and virtual environment packages are not read: they are listed under Not read
+and do not lower the grade, so check them with `penthera deps`. In `--json`,
+`agents.skillTarget` is true when the run read the folder as one named skill.
 You can also pass the `SKILL.md` itself, and Penthera reads its folder. Any
 other file is an error.
 

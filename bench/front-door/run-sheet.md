@@ -30,61 +30,81 @@ This runs the tests, `npm run e20r:acceptance` and the self-test on this checkou
 
 ## 2. Pilot
 
-One live round, or two at most. Each round takes exactly 50 sites.
+One live round, or two at most. Each round takes exactly 50 sites. Pick the block that matches what happened, and run it in order.
 
-Round 1:
+### Round 1, every time
 
 ```bash
 node bench/front-door/replicate.mjs --pilot 50 --pilot-round 1 $COMMON
 ```
 
-If its manifest has `finishedAt`, stopped or not, seal it, then prune it. Exit 1 from the seal means it failed; prune it anyway:
+If its manifest has `finishedAt`, stopped or not, seal it. Exit 1 means the round failed, and the next steps still follow:
 
 ```bash
 node bench/front-door/pilot-report.mjs $R/e20r-pilot-1/raw.jsonl --exclude $EXCLUDE --skip $REMOVALS --skip $PRIOR --seal
 ```
 
+After a hard kill the manifest has no `finishedAt`: skip the seal. Then prune:
+
 ```bash
 node bench/front-door/validation-sample.mjs prune $R/e20r-pilot-1
 ```
 
-After a hard kill the manifest has no `finishedAt`: prune only. Its sites go on the dropped list either way.
-
-A person reads `pilot-report.json` and records go or no-go. It gives selected, eligible, graded, 2xx, DNS-complete and each class per claim cohort. A claim cohort with no graded site or no complete DNS read means no-go.
-
-Round 2, only if needed. A failed round needs changed code, a changed protocol, or a `pilot-explanation.txt` in its folder.
+If prune refuses, the run stores a privacy miss: go to [A privacy miss](#a-privacy-miss). A person reads `pilot-report.json`. It gives selected, eligible, graded, 2xx, DNS-complete and each class per claim cohort. The automatic rule catches only a cohort with nothing usable, so the reviewer must also reject severe attrition in a cohort. Record the decision on a sealed round:
 
 ```bash
-sort -u $R/e20r-pilot-1/pilot-sites.txt > /srv/e20/pilot-sites-all.txt
+node bench/front-door/pilot-report.mjs --decide $R/e20r-pilot-1 --decision go --reviewer <who>
+```
+
+### One round: it was a go
+
+```bash
+cp $R/e20r-pilot-1/pilot-sites.txt /srv/e20/pilot-sites-all.txt
+```
+
+Then go to pass 2.
+
+### Two rounds: round 1 failed or was a no-go
+
+A failed round needs changed code, a changed protocol, or a note in its folder:
+
+```bash
+echo "<what went wrong and why it can't repeat>" > $R/e20r-pilot-1/pilot-explanation.txt
+```
+
+Its sites go on the dropped list whatever happened to it:
+
+```bash
+sort -u $R/e20r-pilot-1/pilot-sites.txt > /srv/e20/pilot-sites-round1.txt
 ```
 
 ```bash
-node bench/front-door/replicate.mjs --pilot 50 --pilot-round 2 --pilot-dropped /srv/e20/pilot-sites-all.txt $COMMON
+node bench/front-door/replicate.mjs --pilot 50 --pilot-round 2 --pilot-dropped /srv/e20/pilot-sites-round1.txt $COMMON
 ```
 
 ```bash
-node bench/front-door/pilot-report.mjs $R/e20r-pilot-2/raw.jsonl --exclude $EXCLUDE --skip $REMOVALS --skip $PRIOR --skip /srv/e20/pilot-sites-all.txt --seal
+node bench/front-door/pilot-report.mjs $R/e20r-pilot-2/raw.jsonl --exclude $EXCLUDE --skip $REMOVALS --skip $PRIOR --skip /srv/e20/pilot-sites-round1.txt --seal
 ```
 
 ```bash
 node bench/front-door/validation-sample.mjs prune $R/e20r-pilot-2
 ```
 
-## 3. The dropped list for pass 2
+```bash
+node bench/front-door/pilot-report.mjs --decide $R/e20r-pilot-2 --decision go --reviewer <who>
+```
 
-Build it from every round that started. With one round, use only that round's file.
+Build the dropped list from both rounds. Then check that no site ran twice, which must print 0:
 
 ```bash
 cat $R/e20r-pilot-1/pilot-sites.txt $R/e20r-pilot-2/pilot-sites.txt | sort -u > /srv/e20/pilot-sites-all.txt
 ```
 
-Check that no site ran twice. This must print 0:
-
 ```bash
 cat $R/e20r-pilot-1/pilot-sites.txt $R/e20r-pilot-2/pilot-sites.txt | sort | uniq -d | wc -l
 ```
 
-## 4. Pass 2
+## 3. Pass 2
 
 ```bash
 node bench/front-door/replicate.mjs --pass 2 --pilot-dropped /srv/e20/pilot-sites-all.txt $COMMON
@@ -96,7 +116,7 @@ To stop it between sites, for a complaint or anything else that can't wait:
 touch ~/.penthera-e20r2-stop
 ```
 
-## 5. After a whole pass 2
+## 4. After a whole pass 2
 
 The order matters: the privacy report reads text the draw deletes.
 
@@ -122,18 +142,22 @@ Every failed run ends in a prune or a purge. A prune reads the file back and pri
 |---|---|---|
 | Usage error | 2 | Fix the command. Nothing ran. |
 | Refused by the gate | 3 | Read the reason. Nothing ran. |
-| Something changed during the run | 4 | Pilot: seal, then prune. Pass 2: prune. The run decides nothing. |
-| Stopped: scrub miss, resolver failures, stop file, source address, signal | 5 | Pilot: seal, then prune. Pass 2: prune, and report what ran as partial. |
+| Something changed during the run | 4 | Do what the runner printed. Pilot: seal, then prune. Pass 2: prune. The run decides nothing. |
+| Stopped: scrub miss, resolver failures, stop file, source address, signal | 5 | Do what the runner printed. Pilot: seal, then prune. Pass 2: prune, and report what ran as partial. |
 | Hard kill, crash or full disk | none | Prune only. The run counts as interrupted. |
-| Privacy report not clean | 1 | Stop. A person reviews the flagged fields first (below). |
+| Prune refuses, or the privacy report isn't clean | 3 or 1 | Stop. A person reviews the flagged fields first (below). |
 
 ```bash
 node bench/front-door/validation-sample.mjs prune $R/e20r-pass2
 ```
 
-### A failed privacy report on pass 2
+### A privacy miss
 
-A false fire must not cost the run, so nobody purges yet.
+This holds for a pilot round and for pass 2. Write the run's folder for `$R/e20r-pass2`. A false fire must not cost the run, so nobody purges yet. If there is no privacy report yet, write it:
+
+```bash
+node bench/front-door/pilot-report.mjs --privacy $R/e20r-pass2
+```
 
 1. A person reads `flaggedFields` in `$R/e20r-pass2/privacy-report.json`. It names fields and counts, never text.
 2. That person opens the flagged records on the server only. Nothing goes to a chat, a ticket, a shared log, the terminal scrollback of a shared session, or a hosted model.
@@ -143,7 +167,7 @@ A false fire must not cost the run, so nobody purges yet.
 node bench/front-door/pilot-report.mjs --privacy $R/e20r-pass2 --false-fire /srv/e20/false-fire-note.txt
 ```
 
-4. A real miss: purge, with the `purgeConfirm` code the report printed, and report the run as partial.
+4. A real miss: purge, with the `purgeConfirm` code the report printed. Report a pass 2 as partial. A pilot round needs a seal first if it has a finished manifest, and pass 2 refuses it without a verified purge or a recorded false fire.
 
 ```bash
 node bench/front-door/validation-sample.mjs purge $R/e20r-pass2 --confirm <purgeConfirm>

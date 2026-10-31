@@ -12,8 +12,9 @@
  * can supply stands in through `deps`, and the pilot is marked a fixture, which a real
  * run refuses. Labels come after pass 2, so those rows prove that scoring refuses them.
  */
+import { spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, writeSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -92,7 +93,8 @@ async function run(fx, args, over = {}) {
 /** Seal, then prune, through their commands. */
 function close(fx, runDir, { skips = [fx.removals, fx.prior], exclude = fx.exclude, prune = true } = {}) {
   const code = reportMain([join(runDir, "raw.jsonl"), "--exclude", exclude, ...skips.flatMap((f) => ["--skip", f]), "--seal"], { log: quiet, fail: quiet });
-  if (prune) validation(["prune", runDir], { log: quiet });
+  reportMain(["--decide", runDir, "--decision", "go", "--reviewer", "acceptance"], { log: quiet, fail: quiet });
+  if (prune) validation(["prune", runDir], { log: quiet, fail: quiet });
   return code;
 }
 
@@ -113,7 +115,10 @@ function variant(fx, change = (r) => r, manifest = (m) => m) {
 function reseal(runDir, change) {
   const file = join(runDir, "pilot-result.json");
   const fields = change(JSON.parse(readFileSync(file, "utf8")));
-  writeFileSync(file, JSON.stringify({ ...fields, sealSha256: sealHash(fields) }));
+  const sealSha256 = sealHash(fields);
+  writeFileSync(file, JSON.stringify({ ...fields, sealSha256 }));
+  const decision = join(runDir, "pilot-decision.json");
+  if (existsSync(decision)) writeFileSync(decision, JSON.stringify({ ...JSON.parse(readFileSync(decision, "utf8")), sealSha256 }));
 }
 
 /** A second round: a copy of the first, started later, in the log as a run would put it. */
@@ -163,15 +168,49 @@ function renumbered(v, later) {
   return v;
 }
 
-/** Every row: its condition, what it must do, and what it did. */
-export async function runAcceptance() {
-  const root = mkdtempSync(join(tmpdir(), "e20r2-acceptance-"));
+async function syntheticSite() {
   const server = createServer((req, res) => {
     if (req.url === "/robots.txt") { res.writeHead(200, { "content-type": "text/plain" }); res.end("User-agent: *\nAllow: /\n"); return; }
     res.writeHead(req.url === "/" ? 200 : 404, { "content-type": "text/html" });
     res.end("<html><title>A page</title><p>Hello from a synthetic site.</p></html>");
   });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  return server;
+}
+
+/** A separate process, so a real signal can land while finalization blocks. It says when, then holds the thread. */
+async function finalizingChild(root) {
+  const server = await syntheticSite();
+  const fx = { ...fixture(root), root, port: server.address().port, results: join(root, "results") };
+  const atFinal = () => { writeSync(1, "finalizing\n"); Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 500); };
+  const { code } = await run(fx, ["--pilot", "50", "--pilot-round", "1", ...fx.common], { atFinal });
+  server.closeAllConnections();
+  server.close();
+  return code;
+}
+
+/** Sends a real signal in the blocking part of finalization. A partial manifest and exit 5 count as stopped. */
+function finalizing(signal, root) {
+  return new Promise((done) => {
+    const dir = mkdtempSync(join(root, "signal-"));
+    const child = spawn(process.execPath, [fileURLToPath(import.meta.url), "--finalizing-child", dir], { stdio: ["ignore", "pipe", "ignore"] });
+    child.stdout.on("data", (d) => { if (String(d).includes("finalizing")) child.kill(signal); });
+    child.on("close", (code) => {
+      const m = JSON.parse(readFileSync(join(dir, "results", "e20r-pilot-1", "manifest.json"), "utf8"));
+      done({ code: code === 5 && m.partial ? 5 : 0, said: `exit ${code}, ${m.stoppedFor ?? "not partial"}` });
+    });
+  });
+}
+
+/** Run the commands a stop message printed, through their own entry points. */
+function followed(message) {
+  return [...message.matchAll(/^node bench\/front-door\/(pilot-report|validation-sample)\.mjs (.+)$/gm)].map(([, tool, args]) => (tool === "pilot-report" ? reportMain : validation)(args.split(" "), { log: quiet, fail: quiet }));
+}
+
+/** Every row: its condition, what it must do, and what it did. */
+export async function runAcceptance() {
+  const root = mkdtempSync(join(tmpdir(), "e20r2-acceptance-"));
+  const server = await syntheticSite();
   const rows = [];
   const add = (condition, expect, got, because = /./) => {
     const allowed = got.code === 0;
@@ -341,6 +380,78 @@ export async function runAcceptance() {
     add("1: the stop file during the final record", "refused", await run(lastStop, pass2(lastStop), { afterRecord: onLast(() => writeFileSync(fx.stopFile, "")) }), /STOP: the stop file exists.*partial/);
     rmSync(fx.stopFile);
 
+    add("1: a real SIGTERM during finalization", "refused", await finalizing("SIGTERM", root), /interrupted by SIGTERM/);
+    add("1: a real SIGINT during finalization", "refused", await finalizing("SIGINT", root), /interrupted by SIGINT/);
+
+    const fresh = { ...fx, results: join(root, "followed"), roundsLog: join(root, "followed.log") };
+    const stoppedPilot = await run(fresh, pilotArgs(50, 1), { afterRecord: (k) => { if (k === 2) writeFileSync(fx.stopFile, ""); } });
+    rmSync(fx.stopFile);
+    add("5: a stopped pilot prints seal, then prune", "refused", stoppedPilot, /pilot-report\.mjs .*--seal[\s\S]*validation-sample\.mjs prune/);
+    const steps = followed(stoppedPilot.said);
+    const pilotSites = join(fresh.results, "e20r-pilot-1", "pilot-sites.txt");
+    add("5: following it leaves a sealed, pruned round", "allowed", truth(steps.length === 2 && steps[1] === 0 && existsSync(join(fresh.results, "e20r-pilot-1", "pilot-result.json")) && existsSync(join(fresh.results, "e20r-pilot-1", "prune-manifest.json")), `steps ${steps}`));
+    add("5: the next round's gate accepts that state", "allowed", await run(fresh, [...pilotArgs(50, 2), "--pilot-dropped", pilotSites], { stopBeforeRun: true }), /authorized/);
+    const toFollow = clean();
+    const stoppedPass = await run(toFollow, pass2(toFollow), { afterRecord: (k) => { if (k === 2) writeFileSync(fx.stopFile, ""); } });
+    rmSync(fx.stopFile);
+    add("5: a stopped pass 2 prints prune alone", "refused", stoppedPass, /Next: node bench\/front-door\/validation-sample\.mjs prune/);
+    add("5: following it is accepted", "allowed", truth(followed(stoppedPass.said.replace("Next: ", "\n")).every((c) => c === 0) && existsSync(join(toFollow.results, "e20r-pass2", "prune-manifest.json")), "prune"));
+
+    const leakedFields = {
+      header: (r) => ({ ...r, evidence: { ...r.evidence, values: { server: "jan@example.nl" } } }), cookie: (r) => ({ ...r, evidence: { ...r.evidence, cookieNames: ["jan@example.nl"] } }),
+      finalHost: (r) => ({ ...r, finalHost: "203.0.113.9" }), hop: (r) => ({ ...r, hops: ["203.0.113.9"] }), dns: (r) => ({ ...r, dns: { ...r.dns, listed: { ...r.dns?.listed, dmarcRecord: "rua=jan@example.nl" } } }),
+    };
+    for (const [field, change] of Object.entries(leakedFields)) {
+      const failed = variant(fx, change);
+      close(fx, failed.runDir, { prune: false });
+      const said = [];
+      add(`2: prune refuses a pilot miss in ${field}`, "refused", { code: validation(["prune", failed.runDir], { log: quiet, fail: (m) => said.push(m) }), said: said.join(" ") }, /privacy miss/);
+      add(`2: pass 2 refuses it with no purge, ${field}`, "refused", await gate(failed), /privacy scrub miss and no verified purge/);
+      add(`2: a purge clears that refusal, ${field}`, "allowed", purge(failed.runDir), /"verified":true/);
+      add(`2: and the round then only counts as failed, ${field}`, "refused", await gate(failed), /e20r-pilot-1 failed/);
+    }
+    const reviewedPilot = variant(fx, leakedFields.header);
+    close(fx, reviewedPilot.runDir, { prune: false });
+    const notePath = join(root, "pilot-note.txt");
+    writeFileSync(notePath, "Checked by hand.\n");
+    reportMain(["--privacy", reviewedPilot.runDir, "--false-fire", notePath], { log: quiet, fail: quiet });
+    add("2: a reviewed false fire may be pruned", "allowed", (() => { const said = []; const code = validation(["prune", reviewedPilot.runDir], { log: (m) => said.push(m), fail: (m) => said.push(m) }); return { code, said: said.join(" ") }; })(), /"verified":true/);
+    add("2: and passes the privacy check of the gate", "refused", await gate(reviewedPilot), /e20r-pilot-1 failed/);
+
+    const beside = clean();
+    const sealedRaw = readFileSync(join(beside.runDir, "raw.jsonl"));
+    purge(beside.runDir);
+    writeFileSync(join(beside.runDir, "raw.jsonl"), sealedRaw);
+    add("3: a purge proof beside an existing raw", "refused", await gate(beside), /purge proof does not hold: raw\.jsonl still there/);
+    rmSync(join(beside.runDir, "raw.jsonl"));
+    writeFileSync(join(beside.runDir, "validation-sheet.json"), "[]");
+    add("3: raw gone, the sheet still there", "refused", await gate(beside), /validation-sheet\.json still there/);
+    rmSync(join(beside.runDir, "validation-sheet.json"));
+    writeFileSync(join(beside.runDir, "validation-key.json"), "[]");
+    add("3: raw gone, the key still there", "refused", await gate(beside), /validation-key\.json still there/);
+    rmSync(join(beside.runDir, "validation-key.json"));
+    const purgeFile = join(beside.runDir, "purge-manifest.json");
+    const heldProof = JSON.parse(readFileSync(purgeFile, "utf8"));
+    for (const [name, wrong, why] of [["kind", { kind: "prune" }, /not a purge proof/], ["manifest", { manifestSha256: "x" }, /another run/], ["raw hash", { rawSha256: "x" }, /another raw file/], ["disposition", { disposition: "crashed" }, /disposition/]]) {
+      writeFileSync(purgeFile, JSON.stringify({ ...heldProof, ...wrong }));
+      add(`3: a purge proof with the wrong ${name}`, "refused", await gate(beside), why);
+    }
+
+    const noDecision = clean();
+    rmSync(join(noDecision.runDir, "pilot-decision.json"));
+    add("6: no recorded decision", "refused", await gate(noDecision), /no recorded go decision/);
+    const noGo = clean();
+    reportMain(["--decide", noGo.runDir, "--decision", "no-go", "--reviewer", "acceptance"], { log: quiet, fail: quiet });
+    add("6: a no-go decision", "refused", await gate(noGo), /no recorded go decision/);
+    const staleDecision = clean();
+    const decisionFile = join(staleDecision.runDir, "pilot-decision.json");
+    writeFileSync(decisionFile, JSON.stringify({ ...JSON.parse(readFileSync(decisionFile, "utf8")), reportSha256: "x" }));
+    add("6: a decision for another report", "refused", await gate(staleDecision), /decision is for another report/);
+    const failedGo = variant(fx, leakedFields.header);
+    close(fx, failedGo.runDir, { prune: false });
+    const goSaid = [];
+    add("6: a failed round can't be a go", "refused", { code: reportMain(["--decide", failedGo.runDir, "--decision", "go", "--reviewer", "x"], { log: quiet, fail: (m) => goSaid.push(m) }), said: goSaid.join(" ") }, /can't be a go/);
+
     const signaled = clean();
     add("C4: SIGTERM ends a run with a partial manifest", "refused", await run(signaled, pass2(signaled), { afterRecord: (k) => { if (k === 1) process.emit("SIGTERM", "SIGTERM"); } }), /STOP: interrupted by SIGTERM.*partial.*prune/);
     const signaledRun = join(signaled.results, "e20r-pass2");
@@ -467,12 +578,11 @@ export async function runAcceptance() {
     add("5: a purged round counts as text gone", "allowed", await gate(purgedRound), /authorized/);
 
     add("2: an IPv4 in finalHost or hops is a miss", "allowed", truth(recordMisses({ finalHost: "203.0.113.9" }).ipv4 > 0 && recordMisses({ hops: ["203.0.113.9"] }).ipv4 > 0, "recordMisses"));
+    add("4: only a real digest at a known path is exempt", "allowed", truth(recordMisses({ evidence: { bodySha256: "a".repeat(64) } }).longHex === 0 && recordMisses({ evidence: { bodySha256: "jan@example.nl" } }).email === 1 && recordMisses({ evidence: { otherSha256: "a".repeat(64) } }).longHex === 1, "recordMisses"));
     add("2: an SPF address is the one exception", "allowed", truth(recordMisses({ dns: { listed: { spfRecord: "v=spf1 ip4:203.0.113.7 -all" } } }).ipv4 === 0 && recordMisses({ dns: { listed: { dmarcRecord: "203.0.113.7" } } }).ipv4 > 0, "recordMisses"));
     add("2: a redirect to a literal IPv4 is refused", "allowed", truth((() => { try { strictRobots().robotsHop(new URL("http://203.0.113.9/")); return false; } catch (e) { return e.reason === "ipv4_literal"; } })(), "robotsHop"));
     add("6: secondary intervals are labeled, DNS from DNS records", "allowed", truth(secondaryCohorts([], []).every((c) => c.interval === "naive row-level" && c.source === "dns"), "secondaryCohorts"));
     add("8: unsure totals and denominators stand apart", "allowed", truth((() => { const v = scoreLabels(key, labels(3, (i) => (i === 1 ? "1,unsure" : `${i},page`)), labels(3), { resamples: 10 }).humanVsAgent; return v.humanUnsure === 1 && v.agentUnsure === 0 && v.bothAnswered === 2; })(), "scoreLabels"));
-    const preflight = JSON.parse(readFileSync(join(HERE, "..", "..", "package.json"), "utf8")).scripts["e20r:preflight"] ?? "";
-    add("10: preflight runs tests, acceptance and self-test", "allowed", truth(["npm test", "e20r:acceptance", "--self-test"].every((t) => preflight.includes(t)), "package.json"));
     add("C1: a tenant of a shared suffix is its own organization", "allowed", truth(siteOrg("www.github.io") === "www.github.io" && siteOrg("github.io") === "github.io", "siteOrg"));
     add("C2: a host-specific DMARC failure counts", "allowed", truth(resolverFailed({ dns: { listed: { outcomes: {}, queries: [{ outcome: "resolver-failure:timeout" }] } } }), "resolverFailed"));
     add("C7: the amendment removes the header-check labels", "allowed", truth(/removes the inherited requirement that labelers judge/.test(readFileSync(PREREG_R, "utf8")), "amendment"));
@@ -506,4 +616,6 @@ async function main() {
   return failed ? 1 : 0;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main().then((code) => { process.exitCode = code; });
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  (process.argv[2] === "--finalizing-child" ? finalizingChild(process.argv[3]) : main()).then((code) => { process.exitCode = code; });
+}

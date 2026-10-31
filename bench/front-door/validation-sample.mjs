@@ -24,7 +24,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { NO_PRIVACY, unfinishedRun } from "./record-checks.mjs";
+import { dispositionOf, falseFireReviewed, NO_PRIVACY, PURGED_FILES, recordMisses, unfinishedRun } from "./record-checks.mjs";
 import { holdsText, PASS_SEED, seeded, shuffled } from "./replicate.mjs";
 
 // Rows per stratum, frozen in the amendment.
@@ -212,7 +212,10 @@ export function rewriteRun(dir, records, kind, extra = {}) {
 /** All text out, for a pilot or for a pass that stopped, and read back to prove it. */
 export function prunePilot(dir) {
   const { kind } = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
-  const proof = rewriteRun(dir, readRaw(join(dir, "raw.jsonl")).map((r) => pruneExcerpt(r, new Set(), { all: true })), kind === "pass" ? "stopped" : "pilot");
+  const records = readRaw(join(dir, "raw.jsonl"));
+  // Pruning takes excerpts. A miss can sit in a field it leaves, so it needs a person, then a purge.
+  if (records.some((r) => Object.values(recordMisses(r)).some(Boolean)) && !falseFireReviewed(dir)) throw new Error("Refused: this run stores a privacy miss, which prune can't clear. A person reviews it. A real miss goes to purge; a false fire is recorded with --false-fire.");
+  const proof = rewriteRun(dir, records.map((r) => pruneExcerpt(r, new Set(), { all: true })), kind === "pass" ? "stopped" : "pilot");
   if (holdsText(join(dir, "raw.jsonl"))) throw new Error("The raw file still holds text after pruning.");
   return { ...proof, verified: true };
 }
@@ -226,11 +229,13 @@ export function purgeRun(dir, confirm) {
   const manifest = JSON.parse(manifestBytes);
   const privacyFile = join(dir, "privacy-report.json");
   const privacy = existsSync(privacyFile) ? JSON.parse(readFileSync(privacyFile, "utf8")) : null;
-  const disposition = !manifest.finishedAt ? "crashed" : manifest.partial ? "partial" : privacy && !privacy.clean ? "privacy-failed" : "finished";
-  const proof = { kind: "purge", disposition, manifestSha256: hash(manifestBytes), rawSha256: hash(readFileSync(raw)), records: readRaw(raw).length, purgedAt: new Date().toISOString() };
-  writeFileSync(join(dir, "purge-manifest.json"), JSON.stringify(proof, null, 2) + "\n", PRIVATE);
-  for (const f of ["raw.jsonl", "raw.jsonl.tmp", "validation-sheet.json", "validation-key.json"]) rmSync(join(dir, f), { force: true });
-  if (existsSync(raw)) throw new Error("The raw file is still there after the purge.");
+  const proof = { kind: "purge", disposition: dispositionOf(manifest, privacy), manifestSha256: hash(manifestBytes), rawSha256: hash(readFileSync(raw)), records: readRaw(raw).length, purgedAt: new Date().toISOString() };
+  // The proof comes last and whole, so it never claims a deletion that didn't happen.
+  for (const f of PURGED_FILES) rmSync(join(dir, f), { force: true });
+  const left = PURGED_FILES.filter((f) => existsSync(join(dir, f)));
+  if (left.length) throw new Error(`The purge left ${left.join(", ")}.`);
+  writeFileSync(join(dir, "purge-manifest.json.tmp"), JSON.stringify(proof, null, 2) + "\n", PRIVATE);
+  renameSync(join(dir, "purge-manifest.json.tmp"), join(dir, "purge-manifest.json"));
   return { ...proof, verified: true };
 }
 
@@ -253,8 +258,13 @@ export function main([mode, target, a, b], { log = console.log, fail = console.e
     const problem = unfinishedRun(target);
     const { kind } = JSON.parse(readFileSync(join(target, "manifest.json"), "utf8"));
     if (kind === "pass" && (!problem || problem === NO_PRIVACY)) { fail("Refused: this pass finished whole, so the audit draw prunes it."); return 3; }
-    log(JSON.stringify(prunePilot(target)));
-    return 0;
+    try {
+      log(JSON.stringify(prunePilot(target)));
+      return 0;
+    } catch (e) {
+      fail(e.message);
+      return 3;
+    }
   }
   if (mode === "purge" && target) {
     try {

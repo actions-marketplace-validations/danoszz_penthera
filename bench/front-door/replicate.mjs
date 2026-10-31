@@ -33,7 +33,7 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { isIP } from "node:net";
-import { chmodSync, readFileSync, readdirSync, writeFileSync, mkdirSync, appendFileSync, existsSync, statSync } from "node:fs";
+import { chmodSync, readFileSync, readdirSync, renameSync, writeFileSync, mkdirSync, appendFileSync, existsSync, statSync } from "node:fs";
 import { Resolver } from "node:dns/promises";
 import { homedir, networkInterfaces, platform, release } from "node:os";
 import { join, dirname, resolve } from "node:path";
@@ -44,7 +44,7 @@ import {
 } from "./run.mjs";
 import { EXCERPT_BYTES, INPUT_CAP_CHARS, PAGE_TEXT_CHARS, scrub, SOFT_MAX_CHARS } from "./classify.mjs";
 import { pslSha256, PSL_VERSION, siteKey, siteOrg } from "./psl.mjs";
-import { MAX_RESOLVER_FAILURES, pageTextMissed, resolverFailed, sealHash, stopRules } from "./record-checks.mjs";
+import { falseFireReviewed, MAX_RESOLVER_FAILURES, pageTextMissed, purgeState, resolverFailed, sealHash, stopRules } from "./record-checks.mjs";
 import { scoreOf } from "../../api/_lib/grade.mjs";
 import { dnsChecks } from "../../api/_lib/dns.mjs";
 import { isPublicIp } from "../../api/_lib/guard.mjs";
@@ -473,18 +473,7 @@ export function pilotEvidence(dropped, { results = RESULTS, current, allowFixtur
   if (!listed.ok) return listed;
   const no = (why) => ({ ok: false, why });
   const read = (dir, f) => { const p = join(results, dir, f); return existsSync(p) ? readFileSync(p) : null; };
-  const purged = (dir) => JSON.parse(read(dir, "purge-manifest.json") ?? "null")?.manifestSha256 === sha256(read(dir, "manifest.json"));
-  for (const { dir } of rounds) {
-    if (purged(dir)) continue;
-    const manifest = read(dir, "manifest.json");
-    const proof = JSON.parse(read(dir, "prune-manifest.json") ?? "null");
-    const raw = join(results, dir, "raw.jsonl");
-    if (!proof) return no(`Pilot ${dir} has no proof that its text was deleted.`);
-    const recorded = JSON.parse(manifest);
-    if (proof.kind !== "pilot" || proof.manifestSha256 !== sha256(manifest) || (recorded.finishedAt && proof.rawSha256Before !== recorded.rawSha256)) return no(`Pilot ${dir}: its prune proof is for another run.`);
-    if (!existsSync(raw) || proof.rawSha256After !== sha256(readFileSync(raw))) return no(`Pilot ${dir}: the raw file is not the pruned one.`);
-    if (holdsText(raw)) return no(`Pilot ${dir} still holds excerpt text.`);
-  }
+  const purged = (dir) => purgeState(join(results, dir)) === "proved";
   // S1: every finished round has a seal, and a failed round isn't simply run again.
   const proofs = [];
   for (const [i, { dir }] of rounds.entries()) {
@@ -510,6 +499,21 @@ export function pilotEvidence(dropped, { results = RESULTS, current, allowFixtur
       return no(`Pilot ${dir} failed, and the next round changed nothing and explains nothing.`);
     }
   }
+  for (const { dir } of rounds) {
+    const state = purgeState(join(results, dir));
+    if (state === "proved") continue;
+    if (state !== "none") return no(`Pilot ${dir}: its purge proof does not hold: ${state}.`);
+    const missed = Object.values(JSON.parse(read(dir, "pilot-report.json") ?? "{}").scrubMisses ?? {}).some(Boolean);
+    if (missed && !falseFireReviewed(join(results, dir))) return no(`Pilot ${dir} has a privacy scrub miss and no verified purge or reviewed false fire.`);
+    const manifest = read(dir, "manifest.json");
+    const proof = JSON.parse(read(dir, "prune-manifest.json") ?? "null");
+    const raw = join(results, dir, "raw.jsonl");
+    if (!proof) return no(`Pilot ${dir} has no proof that its text was deleted.`);
+    const recorded = JSON.parse(manifest);
+    if (proof.kind !== "pilot" || proof.manifestSha256 !== sha256(manifest) || (recorded.finishedAt && proof.rawSha256Before !== recorded.rawSha256)) return no(`Pilot ${dir}: its prune proof is for another run.`);
+    if (!existsSync(raw) || proof.rawSha256After !== sha256(readFileSync(raw))) return no(`Pilot ${dir}: the raw file is not the pruned one.`);
+    if (holdsText(raw)) return no(`Pilot ${dir} still holds excerpt text.`);
+  }
   const last = rounds.at(-1).dir;
   const manifest = JSON.parse(read(last, "manifest.json"));
   if (manifest.kind !== "pilot") return no(`Pilot ${last}: its manifest is not a pilot's.`);
@@ -519,6 +523,9 @@ export function pilotEvidence(dropped, { results = RESULTS, current, allowFixtur
   const result = JSON.parse(read(last, "pilot-result.json") ?? "null");
   if (!result) return no(`Pilot ${last} has no sealed report.`);
   if (!result.passed) return no(`Pilot ${last} failed: ${result.stop.join("; ")}.`);
+  const decision = JSON.parse(read(last, "pilot-decision.json") ?? "null");
+  if (decision?.decision !== "go") return no(`Pilot ${last}: no recorded go decision.`);
+  if (decision.reportSha256 !== sha256(read(last, "pilot-report.json")) || decision.sealSha256 !== result.sealSha256) return no(`Pilot ${last}: its decision is for another report.`);
   if (!manifest.immutableAtFinish?.ok) return no(`Pilot ${last}: something changed while it ran.`);
   for (const [name, now] of Object.entries(current ?? {})) {
     if (JSON.stringify(manifest[name]) !== JSON.stringify(now)) return no(`Pilot ${last} ran under another ${name}.`);
@@ -679,6 +686,9 @@ export function visitInWorker(row, { loopbackPort, exclude = new Map(), budgetMs
   });
 }
 
+// A signal reaches its handler in the loop's poll phase. Two turns make sure one has passed.
+const letSignalsIn = async () => { for (let i = 0; i < 2; i++) await new Promise((r) => { setImmediate(r); }); };
+
 /** One pass. `rows` come from mergeCohorts. Appends each record to raw.jsonl. */
 export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map(), delayMs = LIMITS.delayMs, concurrency = LIMITS.concurrency, dns = {}, meta = {}, manifest = {}, onRecord, onStart, workerFile, recheck = () => ({}), stopCheck = () => null, gitNow = () => gitState(ROOT, execFileSync, { remote: !loopbackPort }), rollingWindow = ROLLING_WINDOW } = {}) {
   if (!loopbackPort) { concurrency = LIMITS.concurrency; delayMs = LIMITS.delayMs; }
@@ -747,26 +757,39 @@ export async function runPass(rows, { pass, out, loopbackPort, exclude = new Map
       if (next < order.length && delayMs) await sleep(delayMs);
     }
   }));
-  stoppedFor ??= stopCheck();
   const done = records.filter(Boolean);
   const sum = (k) => done.reduce((n, r) => n + (r.counters?.[k] ?? 0), 0);
+  // The steps below block, so a signal waits in the event loop until something yields.
   const end = { ...studyState(), ...recheck() };
   const gitAtFinish = gitNow();
   const { git: gitAtStart, ...begun } = started;
   // A loopback run may share its checkout with other work, so only the commit counts there.
   const gitChanged = (loopbackPort ? ["commit"] : ["commit", "dirty", "hidden"]).some((k) => gitAtFinish[k] !== gitAtStart[k]);
   const changed = [...Object.keys(end).filter((k) => JSON.stringify(end[k]) !== JSON.stringify(started[k])), ...(gitChanged ? ["git"] : [])];
-  // Nothing below yields, so no signal lands between this check and the manifest.
+  let agg;
+  const writeFinal = () => {
+    agg = aggregateR(done, { pass, partial: Boolean(stoppedFor), ...meta, concurrency, delayMs, appPage: false, userAgent: USER_AGENT, order: "seeded shuffle", seed: PASS_SEED[pass] });
+    writeFileSync(join(out, "aggregate.json.tmp"), JSON.stringify(agg, null, 2) + "\n", SECRET);
+    writeFileSync(join(out, "manifest.json.tmp"), JSON.stringify({
+      ...begun, gitAtStart, gitAtFinish, finishedAt: new Date().toISOString(), records: done.length,
+      ...(stoppedFor ? { partial: true, stoppedFor } : {}),
+      totals: { requests: sum("requests"), bytes: sum("bytes"), redirects: sum("redirects") },
+      immutableAtFinish: { ok: changed.length === 0, changed },
+      rawSha256: fileHash(raw), aggregateSha256: fileHash(join(out, "aggregate.json.tmp")),
+    }, null, 2) + "\n", SECRET);
+  };
+  await letSignalsIn();
   stoppedFor ??= stopCheck();
-  const agg = aggregateR(done, { pass, partial: Boolean(stoppedFor), ...meta, concurrency, delayMs, appPage: false, userAgent: USER_AGENT, order: "seeded shuffle", seed: PASS_SEED[pass] });
-  writeFileSync(join(out, "aggregate.json"), JSON.stringify(agg, null, 2) + "\n", SECRET);
-  writeFileSync(join(out, "manifest.json"), JSON.stringify({
-    ...begun, gitAtStart, gitAtFinish, finishedAt: new Date().toISOString(), records: done.length,
-    ...(stoppedFor ? { partial: true, stoppedFor } : {}),
-    totals: { requests: sum("requests"), bytes: sum("bytes"), redirects: sum("redirects") },
-    immutableAtFinish: { ok: changed.length === 0, changed },
-    rawSha256: fileHash(raw), aggregateSha256: fileHash(join(out, "aggregate.json")),
-  }, null, 2) + "\n", SECRET);
+  writeFinal();
+  await letSignalsIn();
+  // The commit boundary. Nothing yields from this check to the rename, so a signal
+  // lands before it, and the run is partial, or after it, and is post-run.
+  if (!stoppedFor) {
+    stoppedFor = stopCheck();
+    if (stoppedFor) writeFinal();
+  }
+  renameSync(join(out, "aggregate.json.tmp"), join(out, "aggregate.json"));
+  renameSync(join(out, "manifest.json.tmp"), join(out, "manifest.json"));
   return { records: done, aggregate: agg, stoppedFor };
 }
 
@@ -898,7 +921,7 @@ export async function main(args, deps = {}) {
   };
   const { aggregate: agg, stoppedFor } = await runPass(rows, {
     pass, out, exclude, stopCheck,
-    recheck: () => ({ ...listNow(), ...deps.state, sourceIps: sourceNow(), inputFiles: Object.fromEntries(Object.entries(inputs).map(([k, f]) => [k, f ? fileHash(f) : null])) }),
+    recheck: () => ({ ...(deps.atFinal?.(), listNow()), ...deps.state, sourceIps: sourceNow(), inputFiles: Object.fromEntries(Object.entries(inputs).map(([k, f]) => [k, f ? fileHash(f) : null])) }),
     onStart: (m) => { if (pilot !== null) appendFileSync(roundsLog, `${JSON.stringify({ dir: `e20r-pilot-${round}`, pilotSitesSha256: m.pilotSitesSha256, startedAt: m.startedAt, live: !m.loopback })}\n`, SECRET); },
     ...(deps.loopbackPort ? { loopbackPort: deps.loopbackPort, dns: deps.dns, delayMs: 0, rollingWindow: deps.rollingWindow } : {}),
     manifest: {
@@ -917,9 +940,13 @@ export async function main(args, deps = {}) {
   process.off("SIGTERM", onSignal);
   if (!deps.say) process.stderr.write("\n");
   const finished = JSON.parse(readFileSync(join(out, "manifest.json"), "utf8"));
-  const prune = `Now delete its text: node bench/front-door/validation-sample.mjs prune ${out}`;
-  if (stoppedFor) { say(`STOP: ${stoppedFor}. This run is partial: ${finished.records} of ${rows.length} sites. It decides no claim. ${prune}`); return 5; }
-  if (!finished.immutableAtFinish.ok) { say(`STOP: changed during the run: ${finished.immutableAtFinish.changed.join(", ")}. ${prune}`); return 4; }
+  const prune = `node bench/front-door/validation-sample.mjs prune ${out}`;
+  const skips = [flag(args, "--removals"), flag(args, "--prior-optouts"), flag(args, "--pilot-dropped")].filter(Boolean).map((f) => `--skip ${f}`).join(" ");
+  const recovery = pilot === null
+    ? `Next: ${prune}`
+    : `Next, in order, then see Failure recovery in run-sheet.md:\nnode bench/front-door/pilot-report.mjs ${join(out, "raw.jsonl")} --exclude ${flag(args, "--exclude")} ${skips} --seal\n${prune}`;
+  if (stoppedFor) { say(`STOP: ${stoppedFor}. This run is partial: ${finished.records} of ${rows.length} sites. It decides no claim. ${recovery}`); return 5; }
+  if (!finished.immutableAtFinish.ok) { say(`STOP: changed during the run: ${finished.immutableAtFinish.changed.join(", ")}. ${recovery}`); return 4; }
   (deps.say ?? console.log)(`E20-R ${pilot === null ? `pass ${pass}` : "pilot"}: ${Object.entries(agg.cohorts).map(([c, a]) => `${c} ${a.sites.visited}/${a.sites.listed}`).join(", ")}. Raw (private): ${join(out, "raw.jsonl")}`);
   return 0;
 }

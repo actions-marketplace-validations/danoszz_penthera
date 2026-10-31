@@ -20,8 +20,8 @@ import { CheckError, resolvePublic } from "../api/_lib/guard.mjs";
 import { MAX_LIVE_ROUNDS, PREREG_R, recordedHashR, STUDY_PAGE, caaTree, checkPilotDropped, codeFiles, codeHash, dmarcReading, mergeCohorts, PILOT_MIN, ROLLING_WINDOW, siteDns, normalizeHost, pilotRounds, readDomain, readHostList, readRemovals, runPass, NO_DNS, unmatchedHosts, V2_LIMITS, visitInWorker } from "../bench/front-door/replicate.mjs";
 import { orgDomain, publicSuffix, PSL_VERSION, pslSha256, siteKey, siteOrg } from "../bench/front-door/psl.mjs";
 import { claims, clusterDiff, combine, coverageBounds, decide, diffClaim, dnsCoverage, e20Index, fisherExact, intervalOutcomes, isEligible, standardizedDiff, traitsByCohort } from "../bench/front-door/analyze-r.mjs";
-import { main as reportMain, pilotReport, sealPilot, stopRules, privacyReport } from "../bench/front-door/pilot-report.mjs";
-import { MIN_ELIGIBLE, MIN_GRADED, NO_PRIVACY, pageTextMissed, recordMisses, resolverFailed, unfinishedRun } from "../bench/front-door/record-checks.mjs";
+import { decidePilot, main as reportMain, pilotReport, sealPilot, stopRules, privacyReport } from "../bench/front-door/pilot-report.mjs";
+import { MIN_ELIGIBLE, MIN_GRADED, NO_PRIVACY, pageTextMissed, purgeState, recordMisses, resolverFailed, unfinishedRun } from "../bench/front-door/record-checks.mjs";
 import { main as analyzeMain, challengeByEdge, secondaryCohorts } from "../bench/front-door/analyze-r.mjs";
 import { main as validationMain, purgeRun, blindSheet, drawSample, parseLabels, pruneExcerpt, prunePilot, rewriteRun, scoreLabels, stratumOf, weightedMetrics } from "../bench/front-door/validation-sample.mjs";
 import { runAcceptance } from "../bench/front-door/acceptance.mjs";
@@ -1070,7 +1070,7 @@ describe("acceptance", () => {
   it("every stop condition refuses pass 2, for its own reason, and a clean pilot is allowed", async () => {
     const rows = await runAcceptance();
     expect(rows.filter((r) => !r.pass)).toEqual([]);
-    expect(rows.length).toBeGreaterThanOrEqual(100);
+    expect(rows.length).toBeGreaterThanOrEqual(150);
   }, 180_000);
 });
 
@@ -1277,6 +1277,10 @@ describe("package 3 criteria", () => {
     expect(recordMisses({ finalHost: "203.0.113.9", hops: ["203.0.113.9"] }).ipv4).toBe(2);
     expect(recordMisses({ evidence: { bodySha256: "a".repeat(64), others: [{ bodySha256: "b".repeat(64) }] } }).longHex).toBe(0);
     expect(recordMisses({ evidence: { etag: "a".repeat(64) } }).longHex).toBe(1);
+    expect(recordMisses({ evidence: { otherSha256: "a".repeat(64) } }).longHex).toBe(1);
+    expect(recordMisses({ bodySha256: "a".repeat(64) }).longHex).toBe(1);
+    expect(recordMisses({ evidence: { bodySha256: "jan@example.nl" } }).email).toBe(1);
+    expect(recordMisses({ spfRecord: "203.0.113.7" }).ipv4).toBe(1);
     expect(recordMisses({ dns: { listed: { spfRecord: "v=spf1 ip4:203.0.113.7 -all" } } }).ipv4).toBe(0);
     expect(recordMisses({ dns: { listed: { spfRecord: "v=spf1 jan@example.nl" } } }).email).toBe(1);
   });
@@ -1310,12 +1314,43 @@ describe("package 3 criteria", () => {
     expect(reportMain(["--privacy", dir], { log: (m) => printed.push(m) })).toBe(1);
     expect(printed.join()).not.toMatch(/flaggedFields|Wien|jan@/);
     const stored = readFileSync(join(dir, "privacy-report.json"), "utf8");
-    expect(JSON.parse(stored).flaggedFields).toEqual({ "server email": 1, "(a key) email": 1 });
+    expect(JSON.parse(stored).flaggedFields).toEqual({ "evidence.values.server email": 1, "record (a key) email": 1 });
     expect(stored).not.toMatch(/Wien|jan@/);
     expect(unfinishedRun(dir)).toBe(NO_PRIVACY);
     expect(() => privacyReport(dir, { falseFire: Buffer.alloc(0) })).toThrow(/empty/);
     expect(privacyReport(dir, { falseFire: Buffer.from("checked") }).reviewed.noteSha256).toBe(sum("checked"));
     expect(unfinishedRun(dir)).toBeNull();
+  });
+  it("prune refuses a stored miss, in any field, unless a person reviewed it as false", () => {
+    for (const leak of [{ evidence: { values: { server: "jan@example.nl" } } }, { evidence: { cookieNames: ["jan@example.nl"] } }, { finalHost: "203.0.113.9" }, { hops: ["203.0.113.9"] }, { dns: { listed: { dmarcRecord: "rua=jan@example.nl" } } }]) {
+      const dir = folder();
+      writeFileSync(join(dir, "raw.jsonl"), `${JSON.stringify({ status: "ok", ...leak })}\n`);
+      writeFileSync(join(dir, "manifest.json"), JSON.stringify({ kind: "pilot", startedAt: "x" }));
+      expect(() => prunePilot(dir)).toThrow(/privacy miss/);
+      privacyReport(dir, { falseFire: Buffer.from("checked") });
+      expect(prunePilot(dir).verified).toBe(true);
+    }
+  });
+  it("purge writes its proof last, and a proof holds only while everything stays gone", () => {
+    const dir = folder();
+    const raw = "{}\n";
+    writeFileSync(join(dir, "raw.jsonl"), raw);
+    writeFileSync(join(dir, "manifest.json"), JSON.stringify({ kind: "pilot", finishedAt: "x", rawSha256: sum(raw) }));
+    purgeRun(dir, sum(raw).slice(0, 12));
+    expect(existsSync(join(dir, "purge-manifest.json.tmp"))).toBe(false);
+    expect(purgeState(dir)).toBe("proved");
+    writeFileSync(join(dir, "validation-key.json"), "[]");
+    expect(purgeState(dir)).toBe("validation-key.json still there");
+    expect(unfinishedRun(dir)).toMatch(/purge proof does not hold/);
+  });
+  it("a decision binds to its report and seal, and a failed round can't be a go", () => {
+    const dir = folder();
+    writeFileSync(join(dir, "pilot-report.json"), "{}\n");
+    writeFileSync(join(dir, "pilot-result.json"), JSON.stringify({ passed: false, sealSha256: "s" }));
+    expect(() => decidePilot(dir, { decision: "go", reviewer: "a" })).toThrow(/can't be a go/);
+    expect(() => decidePilot(dir, { decision: "maybe", reviewer: "a" })).toThrow(/--decision/);
+    expect(() => decidePilot(dir, { decision: "no-go" })).toThrow(/--reviewer/);
+    expect(decidePilot(dir, { decision: "no-go", reviewer: "a" })).toMatchObject({ decision: "no-go", reportSha256: sum("{}\n"), sealSha256: "s", reviewer: "a" });
   });
   it("3: the disposition says what the run was", () => {
     const go = (manifest) => {
@@ -1339,7 +1374,10 @@ describe("package 3 criteria", () => {
 
   it("6: the challenge share by edge keeps edges of at least 20 sites", () => {
     const rows = Array.from({ length: 20 }, (_, i) => ({ platform: { edge: "cloudflare" }, evidence: { class: { label: i < 5 ? "challenge" : "candidate-page" } } }));
-    expect(challengeByEdge(rows)).toEqual({ cloudflare: { n: 20, share: 0.25 } });
+    const edge = challengeByEdge(rows).cloudflare;
+    expect(edge).toMatchObject({ n: 20, share: 0.25, interval: "naive row-level" });
+    expect(edge.ci95[0]).toBeCloseTo(0.112, 2);
+    expect(edge.ci95[1]).toBeCloseTo(0.469, 2);
     expect(challengeByEdge(rows.slice(0, 19))).toEqual({});
   });
 

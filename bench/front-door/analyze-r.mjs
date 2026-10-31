@@ -342,12 +342,19 @@ export function secondaryCohorts(graded, all = graded) {
   })));
 }
 
-/** The challenge share by edge, among graded responses, for edges with at least 20 sites. */
+/** A Wilson 95% interval, row-level like the table it sits in. */
+function wilson(k, n, z = 1.96) {
+  const p = k / n, d = 1 + z * z / n, mid = (p + z * z / (2 * n)) / d, half = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d;
+  return [Math.max(0, mid - half), Math.min(1, mid + half)];
+}
+
+/** The challenge share by edge, among graded responses, for edges with at least 20 sites, with a naive row-level 95% interval. */
 export function challengeByEdge(rows) {
   const out = {};
   for (const stratum of new Set(rows.map(edgeStratum))) {
     const here = rows.filter((r) => edgeStratum(r) === stratum);
-    if (here.length >= MIN_SUPPORT) out[stratum] = { n: here.length, share: here.filter((r) => r.evidence?.class?.label === "challenge").length / here.length };
+    const k = here.filter((r) => r.evidence?.class?.label === "challenge").length;
+    if (here.length >= MIN_SUPPORT) out[stratum] = { n: here.length, share: k / here.length, ci95: wilson(k, here.length), interval: "naive row-level" };
   }
   return out;
 }

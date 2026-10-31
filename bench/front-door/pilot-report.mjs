@@ -5,7 +5,9 @@
  *
  *   node bench/front-door/pilot-report.mjs <raw.jsonl> --exclude <exclusion list> --skip <host list>... [--seal]
  *   node bench/front-door/pilot-report.mjs --privacy <run folder> [--false-fire <note file>]
+ *   node bench/front-door/pilot-report.mjs --decide <run folder> --decision go|no-go --reviewer <who>
  *
+ * --decide records the person's decision on a sealed round, bound to its report and seal.
  * --privacy runs the pilot's scan over every stored field of a finished pass and writes
  * privacy-report.json, which analysis and the audit draw require. Run it before the draw.
  * It prints counts and the code `purge` asks for. Which fields were flagged goes only to
@@ -131,20 +133,42 @@ export function privacyReport(dir, { falseFire } = {}) {
   const manifestBytes = readFileSync(join(dir, "manifest.json"));
   const manifest = JSON.parse(manifestBytes);
   const rawBytes = readFileSync(join(dir, "raw.jsonl"));
-  if (hash(rawBytes) !== manifest.rawSha256) throw new Error("Refused: the raw file is not the one the manifest hashed. Run this before the audit draw.");
+  const rawSha256 = manifest.rawSha256 ?? hash(rawBytes);
+  if (hash(rawBytes) !== rawSha256) throw new Error("Refused: the raw file is not the one the manifest hashed. Run this before the audit draw.");
   const rows = rawBytes.toString("utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
   const { sites: records, scrubMisses } = pilotReport(rows);
   const clean = !Object.values(scrubMisses).some(Boolean);
   if (falseFire?.length === 0) throw new Error("Refused: the false-fire note is empty.");
   const report = {
-    manifestSha256: hash(manifestBytes), rawSha256: manifest.rawSha256, purgeConfirm: manifest.rawSha256.slice(0, 12), records, scrubMisses, clean, flaggedFields: missedFields(rows),
+    manifestSha256: hash(manifestBytes), rawSha256, purgeConfirm: rawSha256.slice(0, 12), records, scrubMisses, clean, flaggedFields: missedFields(rows),
     ...(falseFire && !clean ? { reviewed: { noteSha256: hash(falseFire) } } : {}), writtenAt: new Date().toISOString(),
   };
   writeFileSync(join(dir, "privacy-report.json"), `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
   return report;
 }
 
+/** The person's go or no-go on a sealed round. A failed round can't be a go. */
+export function decidePilot(dir, { decision, reviewer }) {
+  if (!["go", "no-go"].includes(decision) || !reviewer) throw new Error("Refused: --decide needs --decision go|no-go and --reviewer.");
+  if (!existsSync(join(dir, "pilot-result.json"))) throw new Error("Refused: seal the round first.");
+  const seal = JSON.parse(readFileSync(join(dir, "pilot-result.json"), "utf8"));
+  if (decision === "go" && !seal.passed) throw new Error("Refused: a failed round can't be a go.");
+  const record = { decision, reportSha256: hash(readFileSync(join(dir, "pilot-report.json"))), sealSha256: seal.sealSha256, reviewer, decidedAt: new Date().toISOString() };
+  writeFileSync(join(dir, "pilot-decision.json"), `${JSON.stringify(record, null, 2)}\n`, { mode: 0o600 });
+  return record;
+}
+
 export function main(args, { log = console.log, fail = console.error } = {}) {
+  if (args[0] === "--decide") {
+    try {
+      const value = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
+      log(JSON.stringify(decidePilot(args[1], { decision: value("--decision"), reviewer: value("--reviewer") })));
+      return 0;
+    } catch (e) {
+      fail(e.message);
+      return 3;
+    }
+  }
   if (args[0] === "--privacy") {
     if (!args[1]) { fail("Usage: pilot-report.mjs --privacy <run folder> [--false-fire <note file>]"); return 2; }
     try {

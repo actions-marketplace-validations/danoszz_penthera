@@ -550,7 +550,8 @@ of a block. Sites that refused in pass 1 are visited once more on that basis.
     is reported next to "CSP present", for C1, C5, C9 and C11.
 15. **Run record.** Each record counts requests and redirects. Its byte count is a lower bound: a
     redirect's body counts as far as it arrives while the visit goes on, and a response cut off at
-    the hard cap as far as it was reported. A manifest
+    the hard cap as far as it was reported. Bytes are observed response-body bytes. They exclude
+    request bytes, headers, TLS overhead and DNS. A manifest
     holds the commit, whether the tree is clean, the protocol,
     amendment and study page hashes, lockfile, classifier, study code and runtime hashes,
     Node and OS, the suffix list's version and hash, the complete configuration, list and
@@ -598,8 +599,8 @@ These order the reporting. They add no test.
   Bonferroni over 11: 99.55% two-sided, 20,000 resamples, seed 2020. This replaces the 15 of § 7.
 - **C12 to C15 are descriptive reproducibility.** They get intervals and no decision. C12 and C13
   use the original labels, and stay a difference between runs. C14 and C15 compare pass 1 and pass
-  2 on all sites graded in both, the original labels for C15, with 2,000 resamples, 95% lower
-  bound. Time, address and limits differ between the passes, so agreement says less than § 6 hoped.
+  2 on all sites graded in both, the original labels for C15, with 2,000 resamples. Their lower bound
+  is the 2.5th percentile of the percentile bootstrap, the lower limit of a two-sided 95% interval. Time, address and limits differ between the passes, so agreement says less than § 6 hoped.
 - **Margin.** The ±10 points is kept because it was registered, not because it is substantively
   justified.
 - **Common-support floor.** A difference needs at least 20 organizations with a judged response on
@@ -618,10 +619,12 @@ These order the reporting. They add no test.
   exclusion file stay private and local. Their hashes are frozen above, and `analyze-r.mjs` refuses
   any other file.
 - **Secondary analyses, narrowed.** This replaces the secondary lists of § 6 and § 7. Built: the six
-  secondary cohorts against YC-new (the "YC-recent" of § 6) and T1k on every check, HTTP checks on
+  secondary cohorts against YC-new and T1k on every check, HTTP checks on
   graded responses, and SPF, DMARC and CAA from the DNS records of every site whose domain exists;
-  checks by site trait and by industry; the challenge share by edge; MX and NS counts in the
-  aggregates. Their intervals are labeled naive row-level, Newcombe with no clustering. They
+  checks by site trait and by industry, on graded responses, for `https+hsts`, `csp`, `framing`,
+  `nosniff`, `referrer`, `permissions`, `spf+dmarc`, `caa` and `security-txt`; the challenge share by
+  edge, with a Wilson 95% interval; MX and NS counts in the aggregates. Their intervals are labeled
+  naive row-level, with no clustering: Newcombe for differences, Wilson for one share. They
   corroborate nothing. Sub-measure B isn't run, because Amendment 2 has no app page.
 - **Post hoc, if reported at all, and marked so.** Providers as an explanation of the DMARC and CAA
   gaps, the trend across YC batches, origin headers on robots.txt and security.txt responses of
@@ -686,9 +689,12 @@ a third adjudicator.** The figures are reported as checked by one person.
   Also stop on a complaint from a site owner or the provider, or if the source address isn't the
   registered one. A stop file is checked between sites, and so is the source address, which is
   read again at the end.
-- **Manual decision.** A person reads the report and records go or no-go before pass 2. For each
-  claim cohort it gives selected, eligible, graded, 2xx and DNS-complete sites and each class. A
-  pilot where a claim cohort has no graded site or no complete DNS read is rejected.
+- **Manual decision.** A person reads the report and records go or no-go before pass 2, with
+  `pilot-report.mjs --decide`, in `pilot-decision.json`: the decision, the report and seal hashes,
+  the reviewer and the time. Pass 2 needs `go` for the final round. For each claim cohort the report
+  gives selected, eligible, graded, 2xx and DNS-complete sites and each class. The automatic rule
+  rejects a cohort with no graded site or no complete DNS read, so it detects only total cohort
+  failure. The reviewer must also reject severe attrition in a cohort.
 - **Gate.** After the pilot, `pilot-report.mjs --seal` writes its result, bound to the pilot's manifest
   and raw hash, and to the exclusion, removal, prior opt-out and earlier pilot lists that run used. Then
   `validation-sample.mjs prune` deletes its text. A round with a finished manifest, stopped or not,
@@ -715,13 +721,20 @@ a third adjudicator.** The figures are reported as checked by one person.
   first, on the server, printing them to no shared place, so a false fire doesn't cost the run. A
   confirmed false fire is recorded with a note and reported as a deviation. A real miss goes to
   purge.
-- **Purge.** `validation-sample.mjs purge` deletes the whole per-site raw file, with no field-level
-  cleaning, and writes a proof with the original hash and the run's disposition. It refuses without
-  `--confirm` and the first 12 characters of the raw hash. A purged run decides nothing.
+- **Purge.** `validation-sample.mjs purge` deletes the whole per-site raw file, the audit sheet and
+  the key, with no field-level cleaning. It then checks they are gone, and only then writes a proof
+  with the original hash and the run's disposition, by atomic rename. It refuses without `--confirm`
+  and the first 12 characters of the raw hash. Every reader of a proof checks its kind, manifest,
+  raw hash, disposition, and that all those files are absent. A purged run decides nothing.
+- **Privacy-failed rounds.** `prune` refuses a run that stores a privacy miss, because it can't clear
+  one outside the excerpts. Pass 2 refuses a pilot round with a miss unless it has a verified purge
+  or a recorded human-reviewed false fire.
 - **Signals.** SIGINT or SIGTERM ends a run between sites, with a manifest, as a partial run. Every
   exit other than success is followed by `validation-sample.mjs prune`, which reads the file back
   to prove the text is gone. A kill leaves no end manifest and takes the same prune. A stop that
-  lands during the last site still makes the run partial.
+  lands during the last site still makes the run partial. The final manifest is written to a temp
+  file and renamed. That rename is the commit boundary: a signal before it makes the run partial,
+  and a signal after it is post-run and changes nothing.
 - **An interrupted pilot.** Its sites count as used, by the list hash its manifest recorded at the
   start. Its text is deleted, and the next round runs on other sites.
 - **An interrupted pass 2.** It isn't resumed or restarted, because a restart would visit sites

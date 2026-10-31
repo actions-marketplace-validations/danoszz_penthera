@@ -7,41 +7,44 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { scrubMisses } from "./classify.mjs";
 
-// Two narrow exceptions. A hash is hex by design. An SPF record lists mail servers by
-// address on purpose, so addresses don't count there, and anything else does.
-const IS_HASH = /sha256$/i;
+// Two narrow exceptions, by exact path. A hash is hex by design, and only a real digest
+// counts as one. An SPF record lists mail servers by address on purpose, so addresses
+// don't count there, and anything else does.
+const HASH_PATHS = new Set(["evidence.bodySha256", "evidence.others.bodySha256"]);
+const DIGEST = /^[0-9a-f]{64}$/;
+const SPF_PATHS = new Set(["dns.listed.spfRecord", "dns.final.spfRecord"]);
 const ADDRESS_KINDS = new Set(["ipv4", "ipv6"]);
 
-/** Every string one record stores, object keys too, each with the key it sits under. */
-function* storedStrings(value, key = "") {
-  if (typeof value === "string") yield [key, value];
-  else if (Array.isArray(value)) for (const v of value) yield* storedStrings(v, key);
+/** Every string one record stores, object keys too, each with its path. */
+function* storedStrings(value, path = "") {
+  if (typeof value === "string") yield [path, value, false];
+  else if (Array.isArray(value)) for (const v of value) yield* storedStrings(v, path);
   else if (value && typeof value === "object") {
     for (const [k, v] of Object.entries(value)) {
-      yield [k, k];
-      yield* storedStrings(v, k);
+      yield [path, k, true];
+      yield* storedStrings(v, path ? `${path}.${k}` : k);
     }
   }
 }
 
 function eachMiss(r, visit) {
-  for (const [key, text] of storedStrings(r)) {
-    if (IS_HASH.test(key)) continue;
-    for (const [kind, n] of Object.entries(scrubMisses(text))) if (n && (key !== "spfRecord" || !ADDRESS_KINDS.has(kind))) visit(key, text, kind, n);
+  for (const [path, text, isKey] of storedStrings(r)) {
+    if (!isKey && HASH_PATHS.has(path) && DIGEST.test(text)) continue;
+    for (const [kind, n] of Object.entries(scrubMisses(text))) if (n && (isKey || !SPF_PATHS.has(path) || !ADDRESS_KINDS.has(kind))) visit(path, isKey, kind, n);
   }
 }
 
 /** Every miss in one record, by kind, over all it stores. */
 export function recordMisses(r) {
   const out = { ipv4: 0, ipv6: 0, email: 0, query: 0, fragment: 0, jwt: 0, longHex: 0, longNumber: 0 };
-  eachMiss(r, (_key, _text, kind, n) => { out[kind] += n; });
+  eachMiss(r, (_path, _isKey, kind, n) => { out[kind] += n; });
   return out;
 }
 
 /** Where the misses sit, by field and kind, for a person to review. Never the text. A key can be the miss itself, so it isn't named then. */
 export function missedFields(records) {
   const out = {};
-  for (const r of records) eachMiss(r, (key, text, kind, n) => { const at = `${key === text ? "(a key)" : key} ${kind}`; out[at] = (out[at] ?? 0) + n; });
+  for (const r of records) eachMiss(r, (path, isKey, kind, n) => { const at = `${isKey ? `${path || "record"} (a key)` : path} ${kind}`; out[at] = (out[at] ?? 0) + n; });
   return out;
 }
 
@@ -108,6 +111,34 @@ export const NO_PRIVACY = "no clean privacy report";
 /** The hash a seal carries over its own fields, `passed` among them. */
 export const sealHash = ({ sealSha256: _own, ...fields }) => hash(JSON.stringify(fields));
 
+// What a purge deletes. The proof holds only while all of it stays gone.
+export const PURGED_FILES = Object.freeze(["raw.jsonl", "raw.jsonl.tmp", "validation-sheet.json", "validation-key.json"]);
+
+const readJson = (file) => (existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : null);
+
+export const dispositionOf = (manifest, privacy) => (!manifest.finishedAt ? "crashed" : manifest.partial ? "partial" : privacy && !privacy.clean ? "privacy-failed" : "finished");
+
+/** "none" with no proof, "proved" when it holds in every part, or what's wrong with it. */
+export function purgeState(dir) {
+  const proof = readJson(join(dir, "purge-manifest.json"));
+  if (!proof) return "none";
+  const manifestBytes = readFileSync(join(dir, "manifest.json"));
+  const m = JSON.parse(manifestBytes);
+  const pruned = readJson(join(dir, "prune-manifest.json"));
+  if (proof.kind !== "purge") return "it is not a purge proof";
+  if (proof.manifestSha256 !== hash(manifestBytes)) return "it is for another run";
+  if (!DIGEST.test(proof.rawSha256 ?? "") || (m.rawSha256 && ![m.rawSha256, pruned?.rawSha256After].includes(proof.rawSha256))) return "it names another raw file";
+  if (proof.disposition !== dispositionOf(m, readJson(join(dir, "privacy-report.json")))) return "its disposition does not match the run";
+  const left = PURGED_FILES.filter((f) => existsSync(join(dir, f)));
+  return left.length ? `${left.join(", ")} still there` : "proved";
+}
+
+/** A person recorded that every miss in this run was false, for this manifest. */
+export function falseFireReviewed(dir) {
+  const privacy = readJson(join(dir, "privacy-report.json"));
+  return Boolean(privacy?.reviewed) && privacy.manifestSha256 === hash(readFileSync(join(dir, "manifest.json")));
+}
+
 /**
  * Why a run can't decide claims, or null: it needs to be a finished, whole pass with
  * nothing changed under it, and the raw file it recorded, pruned or not.
@@ -117,7 +148,8 @@ export function unfinishedRun(dir) {
   if (!existsSync(file)) return "no run manifest";
   const manifestBytes = readFileSync(file);
   const m = JSON.parse(manifestBytes);
-  if (existsSync(join(dir, "purge-manifest.json"))) return "the raw file was purged";
+  const purged = purgeState(dir);
+  if (purged !== "none") return purged === "proved" ? "the raw file was purged" : `its purge proof does not hold: ${purged}`;
   if (m.kind !== "pass") return "not a pass";
   if (!m.finishedAt) return "the run did not finish";
   if (m.partial) return `the run stopped: ${m.stoppedFor}`;

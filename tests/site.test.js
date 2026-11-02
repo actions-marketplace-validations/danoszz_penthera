@@ -13,7 +13,7 @@ import { docPages, absoluteLinks, pinTo } from "../site/agents.mjs";
 import { landingPages } from "../site/landing.mjs";
 import { readKey } from "../scripts/indexnow.mjs";
 import { scanExample } from "../site/tools/example.mjs";
-import { COUNTS } from "../scripts/docs-numbers.mjs";
+import { COUNTS, totalRules } from "../scripts/docs-numbers.mjs";
 import { activePacks } from "../lib/rules/index.js";
 import { serve, headersFor } from "../site/serve.mjs";
 import { buildFixtures } from "./fixtures/deps/build.js";
@@ -296,8 +296,7 @@ describe("site before and after", () => {
     const html = readFileSync(join(out, "index.html"), "utf8");
     const sec = html.slice(html.indexOf('class="ba"'), html.indexOf('id="trust"'));
     expect(sec).not.toMatch(/\{\{\w+\}\}/);
-    const packRules = activePacks().reduce((n, p) => n + p.count, 0);
-    const rules = COUNTS.urlTemplates + COUNTS.secretPatterns + COUNTS.capabilities + COUNTS.agentRules + packRules;
+    const rules = totalRules(activePacks());
     // The totals sit under the four areas in "What it checks".
     expect(sec).toContain(`Counts from this release’s rules: ${rules} readable rules, citing ${COUNTS.references} sources.`);
     expect(sec).toContain(`<p class="map-n">${(COUNTS.popularNpm + COUNTS.popularPypi).toLocaleString("en-US")}<span> package names</span></p>`);
@@ -464,9 +463,18 @@ describe("site story", () => {
     expect(h).toContain('<h1 class="ask-sub" id="hero-title">Make your app more secure for free</h1>');
     expect(h).toMatch(/<h2 id="faq-title">Before you install\.<\/h2>/);
     // Merged away: no section repeats another.
-    for (const gone of ['class="walk', 'class="eu"', 'class="vision', 'class="ba-counts"', "data-check", 'class="desk"', 'class="spec"']) expect(h, gone).not.toContain(gone);
+    for (const gone of ['class="walk', 'class="vision', 'class="ba-counts"', "data-check", 'class="desk"', 'class="spec"']) expect(h, gone).not.toContain(gone);
     // Each question is answered once: the FAQ no longer repeats the about and limits chapters.
     for (const q of ["What is Penthera, and why does it exist?", "What can't it do?"]) expect(h, q).not.toContain(q);
+  });
+
+  it("brings the EU flag back on its own blue ground, with the disclaimer", () => {
+    const h = html();
+    const eu = h.slice(h.indexOf('id="eu"'), h.indexOf('id="faq"'));
+    expect(h.indexOf('id="trust"')).toBeLessThan(h.indexOf('id="eu"'));
+    expect(h).toContain('class="eu band band-blue"');
+    expect(eu).toContain('class="eu-stars"');
+    expect(eu).toContain("Penthera does not make you compliant and does not certify anything. It is not affiliated with or endorsed by the European Union");
   });
 
   it("gives the problem its own grey section after the poster, hidden with the poster in fix mode", () => {

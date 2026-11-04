@@ -10,10 +10,12 @@ import { referencesFor } from "../lib/references.js";
 import { formatDepsTerminal, uncheckedDeps } from "../lib/deps/report.js";
 import { describeCoverage } from "../lib/coverage.js";
 import { nothingClaim, notRead, siteUnread, SITE_NOT_READ } from "./report/unread.js";
+import { firstScreen } from "./report/first-screen.js";
 import { hintCommand } from "./utils/invocation.js";
 import { giantsTerminalLines, foundByText } from "./report/giants.js";
 import { exitCodeOf, exitNote, exitReason } from "./report/exit.js";
 import { toolById } from "../lib/giants/tools.js";
+import { colorOff } from "./cli/ansi.js";
 
 const PKG_VERSION = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf-8"),
@@ -21,10 +23,8 @@ const PKG_VERSION = JSON.parse(
 
 // ── ANSI helpers ─────────────────────────────────────────────────────────
 
-// TODO(good-first-issue): also drop colors when stdout is not a TTY (piped output gets escape codes); let FORCE_COLOR=1 override.
-const NO_COLOR = !!process.env.NO_COLOR;
-
-const ansi = (code) => (s) => NO_COLOR ? s : `\x1b[${code}m${s}\x1b[0m`;
+// The same rule as src/cli/ansi.js: no colors in a pipe or with NO_COLOR; FORCE_COLOR=1 brings them back to a pipe.
+const ansi = (code) => (s) => colorOff ? s : `\x1b[${code}m${s}\x1b[0m`;
 
 const c = {
   bold:    ansi("1"),
@@ -34,8 +34,8 @@ const c = {
   yellow:  ansi("33"),
   cyan:    ansi("36"),
   magenta: ansi("35"),
-  bgRed:   (s) => NO_COLOR ? s : `\x1b[41;37;1m${s}\x1b[0m`,
-  bgYellow:(s) => NO_COLOR ? s : `\x1b[43;30;1m${s}\x1b[0m`,
+  bgRed:   (s) => colorOff ? s : `\x1b[41;37;1m${s}\x1b[0m`,
+  bgYellow:(s) => colorOff ? s : `\x1b[43;30;1m${s}\x1b[0m`,
 };
 
 const SEV_COLOR = {
@@ -62,6 +62,13 @@ function line(char = "\u2500", len = 58) { return char.repeat(len); }
 export function printReport(result, opts = {}) {
   const out = process.stdout;
   const w = (s) => out.write(s + "\n");
+
+  // A repo scan opens with its verdict: what was checked, what to act on, what wasn't, one next step.
+  const repoScan = (result.modes || [result.mode]).some((m) => String(m).split("+").includes("repo"));
+  if (repoScan) {
+    for (const l of firstScreen(result)) w(/^ {2}(Fix now|Review|Nothing to fix)/.test(l) ? c.bold(l) : l);
+    if (result.brief) w(`  ${c.dim("Details")}`);
+  }
 
   w("");
   w(`  ${c.bold("penthera")} ${c.dim("security scanner")}`);
@@ -542,7 +549,7 @@ function printSummaryLine(result, w, opts = {}) {
   } else if (parts.length === 0 && result.suppressed?.length) {
     w(`  ${c.yellow(`${result.suppressed.length} suppressed, not counted. Nothing else found`)}`);
   } else if (parts.length === 0) {
-    w(`  ${c.green("\u2713")} Clean scan, no issues found`);
+    w("  Nothing found in what Penthera checked.");
   } else {
     w(`  ${[...parts, ...(result.suppressed?.length ? [c.yellow(`${result.suppressed.length} suppressed`)] : [])].join(c.dim(" \u00b7 "))}`);
   }
@@ -556,13 +563,16 @@ function printSummaryLine(result, w, opts = {}) {
     w("");
     w(`  ${c.bold("Fix first:")} ${printable(first.title)}`);
     if (first.remediation) w(`  ${printable(first.remediation)}`);
-    w(`  ${c.dim("Next:")} npx penthera ui --open, then Check my app ${c.dim("to go through every problem")}`);
+    // The same next step as the first screen and the brief.
+    const next = result.brief?.next?.[0];
+    if (next) w(`  ${c.dim("Next:")} ${printable(next.command)}`);
+    else w(`  ${c.dim("Next:")} npx penthera ui --open, then Check my app ${c.dim("to go through every problem")}`);
   }
   if (opts.fixes) {
     const { count, command } = opts.fixes;
     w("");
     w(`  ${c.bold(count ? `${count} may be fixable:` : "Fixes:")} ${printable(hintCommand(command))}`);
-    w(`  ${c.dim("It also checks cookie flags, CORS and rate limits in your code, which this scan does not list.")}`);
+    w(`  ${c.dim("The fix plan also checks cookie flags, CORS and rate limits in your code, which this scan does not list.")}`);
   }
   const other = result.giants?.findings || [];
   if (other.length) {

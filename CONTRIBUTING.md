@@ -44,7 +44,13 @@ Node 22+ is required (see `.nvmrc` for the pinned version).
 
 CI runs `npm run lint` and the full `npm test` suite on Node 22 and 24, checks that every version
 string is in sync, and self-scans the mock server (`.github/workflows/ci.yml`).
-CodeQL and OpenSSF Scorecard run on their own workflows. Keep new tests offline:
+CodeQL and OpenSSF Scorecard run on their own workflows.
+
+A pull request from a fork gets checked by Penthera first (`.github/workflows/pr-triage.yml`). It reads
+the changed files as data, without installing or running anything from the PR, and comments
+what it found, as the Penthera GitHub App with a "Penthera triage" check when the app is set up. It labels the PR `standard-paths`, or `needs-maintainer-review` when the PR changes
+CI, install or agent files (`.github/`, `package.json`, the lockfile, `scripts/`, `bin/`,
+agent config). A maintainer reads that, then approves the full CI run. Each commit then gets two checks from the Penthera app: **Penthera: security** (the triage, Penthera's scan of itself, the dependency diff and CodeQL) and **Penthera: safe build** (tests, lint, provenance, the install matrix and the site), each with a table of the jobs behind it. Pull requests run the install matrix on Ubuntu only; macOS, Windows and Node 24 run on `main`. Keep new tests offline:
 no test may reach the public internet, so CI stays deterministic.
 
 ### Release checks: the package as users install it

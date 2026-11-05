@@ -11,7 +11,7 @@ This folder is the plugin for Claude Code and Cowork. It holds two things:
   with your approval.
 - **The Penthera MCP server** (`.mcp.json`): read-only tools that scan inside your
   project. They never apply fixes and run no shell. It starts locally with
-  `npx -y penthera@2.3.0 mcp`, so it works in Claude Code and Cowork, not in chat
+  `npx -y penthera@2.3.1 mcp`, so it works in Claude Code and Cowork, not in chat
   on claude.ai.
 
 ## Install
@@ -28,9 +28,8 @@ from npm; after that it runs offline.
 
 ## What it may do without asking
 
-The skill pre-approves only Penthera's own commands (`penthera`, `npx -y penthera`,
-`npx --no-install penthera`) and reading files. Claude asks you before it edits a
-file or runs any other command.
+The skill pre-approves only reading files. Claude asks you before it runs any
+command, Penthera's own included, and before it edits a file.
 
 ## Data
 

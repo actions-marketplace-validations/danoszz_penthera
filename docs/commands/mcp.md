@@ -9,27 +9,38 @@ description: "penthera mcp runs Penthera as an MCP server."
 ## Add it to your agent
 
 `penthera mcp` runs Penthera as an [MCP](https://modelcontextprotocol.io)
-server. Your agent (Claude Code, Cursor, Codex, VS Code, Windsurf) starts it
+server. Your agent (Claude Code, Codex, GitHub Copilot, Cursor, Windsurf, Gemini CLI) starts it
 and calls its tools. It needs Node.js 22 or later.
 
-The commands below pin 2.2.0, so an update never reaches you unless you change the pin.
+The commands below pin 2.3.0, so an update never reaches you unless you change the pin.
 
 Always pin the version. An unpinned `npx penthera` runs whatever version is
 newest on npm each time your agent starts, which is the risk that
 `penthera agents` reports as `mcp-unpinned`.
 
-**Claude Code**
+### Claude Code
 
 ```bash
-claude mcp add penthera -- npx -y penthera@2.2.0 mcp
+claude mcp add penthera -- npx -y penthera@2.3.0 mcp
 ```
 
-Add `--scope project` to write it to `.mcp.json` for the whole team.
-
-**Codex**
+Add `--scope project` to write it to `.mcp.json` for the whole team. To get the
+skill and the MCP server together, install the plugin instead:
 
 ```bash
-codex mcp add penthera -- npx -y penthera@2.2.0 mcp
+claude plugin marketplace add danoszz/penthera
+claude plugin install penthera@penthera
+```
+
+Inside a session, the same is `/plugin marketplace add danoszz/penthera` and
+`/plugin install penthera@penthera`. Checked against Claude Code's
+[MCP](https://code.claude.com/docs/en/mcp) and
+[plugin](https://code.claude.com/docs/en/plugins/publish.md) docs.
+
+### Codex
+
+```bash
+codex mcp add penthera -- npx -y penthera@2.3.0 mcp
 ```
 
 Or add it to `~/.codex/config.toml`:
@@ -37,21 +48,47 @@ Or add it to `~/.codex/config.toml`:
 ```toml
 [mcp_servers.penthera]
 command = "npx"
-args = ["-y", "penthera@2.2.0", "mcp"]
+args = ["-y", "penthera@2.3.0", "mcp"]
 ```
 
-**Cursor** (`.cursor/mcp.json`) and **Windsurf** (`~/.codeium/windsurf/mcp_config.json`):
+Checked against [Codex's MCP docs](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+
+### GitHub Copilot
+
+In Copilot CLI, install the plugin. It holds the skill and the MCP server, and
+Copilot reads the same marketplace file as Claude Code:
+
+```bash
+copilot plugin marketplace add danoszz/penthera
+copilot plugin install penthera@penthera
+```
+
+In VS Code, add the server to your user profile:
+
+```bash
+code --add-mcp '{"name":"penthera","type":"stdio","command":"npx","args":["-y","penthera@2.3.0","mcp"]}'
+```
+
+Or put the JSON under **VS Code** below in `.vscode/mcp.json`. Checked against
+GitHub's [Copilot CLI plugin reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-plugin-reference)
+and VS Code's [MCP configuration reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration).
+
+### Cursor and Windsurf
+
+Cursor reads `.cursor/mcp.json`, and Windsurf `~/.codeium/windsurf/mcp_config.json`:
 
 ```json
 {
   "mcpServers": {
     "penthera": {
       "command": "npx",
-      "args": ["-y", "penthera@2.2.0", "mcp"]
+      "args": ["-y", "penthera@2.3.0", "mcp"]
     }
   }
 }
 ```
+
+Checked against [Cursor's MCP docs](https://cursor.com/docs/context/mcp).
 
 **VS Code** (`.vscode/mcp.json`):
 
@@ -61,18 +98,32 @@ args = ["-y", "penthera@2.2.0", "mcp"]
     "penthera": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "penthera@2.2.0", "mcp"]
+      "args": ["-y", "penthera@2.3.0", "mcp"]
     }
   }
 }
 ```
 
-**Gemini CLI**, as an extension (it reads `gemini-extension.json` at the root of
-this repository, with the same pinned server):
+### Gemini CLI
+
+As an extension. It reads `gemini-extension.json` at the root of this repository,
+with the same pinned server:
 
 ```bash
 gemini extensions install https://github.com/danoszz/penthera
 ```
+
+Checked against [Gemini CLI's extension docs](https://geminicli.com/docs/extensions/).
+Their page says Gemini CLI gave way to Antigravity CLI for unpaid and Google One
+accounts on 18 June 2026; this route is for accounts that still have Gemini CLI.
+
+### Any agent that reads skills
+
+```bash
+npx skills add danoszz/penthera
+```
+
+It installs the skill, which runs the CLI; see [skill.md](skill.md).
 
 The same files are in [docs/mcp-clients/](https://github.com/danoszz/penthera/tree/main/docs/mcp-clients). The test suite
 checks each one with Penthera's own MCP rules.
@@ -98,7 +149,7 @@ Each scan tool's result has the findings as structured JSON, and as text the
 is likely noise, what was not checked, and what to run next. The text asks the
 assistant to pass the brief on as it is and to put its own view under "My
 read". Every
-finding has a `rule` (such as `openapi-exposed` or `agents/mcp-unpinned`, or
+finding has a `rule` (such as `openapi-exposed`, `gha-pwn-request` or `agents/mcp-unpinned`, or
 its category when no narrower rule applies), a severity, a confidence label (`confirmed`, `likely`,
 `potential`, `needs-human-review`), and evidence at `file:line` or a URL. Each
 result also lists what the tool did not check. By default a tool returns the 50
@@ -123,7 +174,7 @@ true.
   you write, not the model:
 
 ```bash
-npx -y penthera@2.2.0 mcp --allow-host staging.example.com
+npx -y penthera@2.3.0 mcp --allow-host staging.example.com
 ```
 
   Only list hosts you are authorized to test. The same limit holds on every
@@ -142,8 +193,8 @@ npx -y penthera@2.2.0 mcp --allow-host staging.example.com
 ## Options
 
 ```bash
-npx -y penthera@2.2.0 mcp --offline
-npx -y penthera@2.2.0 mcp --help
+npx -y penthera@2.3.0 mcp --offline
+npx -y penthera@2.3.0 mcp --help
 ```
 
 | Flag | Meaning |

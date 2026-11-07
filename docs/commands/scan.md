@@ -137,7 +137,7 @@ baseline after the upgrade.
 |------|---------|
 | `0` | No critical or high rule fired. This run does not prove login, access rules or payments are right |
 | `1` | Critical or high findings detected (other tools' too, with `--giants`) |
-| `2` | Scan failed or is incomplete (unreachable target, missing path, bad config, a tool the policy requires did not run, a dependency input `penthera deps` refused to read) |
+| `2` | Scan failed or is incomplete (unreachable target, missing path, bad config, a tool the policy requires did not run, a dependency input `penthera deps` or a route or server file `--repo` refused to read) |
 
 A firewall that refuses the scan isn't a failed scan. The verdict is `Site not read`,
 with no grade, and the exit code follows the findings Penthera could still make, such
@@ -257,7 +257,7 @@ means.
 
 ```yaml
 # Scan a staging URL on a schedule and upload results to GitHub Security.
-- run: npx penthera@2.3.1 "$PENTEST_URL" --profile standard --sarif reports/scan.sarif
+- run: npx penthera@2.3.2 "$PENTEST_URL" --profile standard --sarif reports/scan.sarif
 - uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
   with:
     sarif_file: reports/scan.sarif

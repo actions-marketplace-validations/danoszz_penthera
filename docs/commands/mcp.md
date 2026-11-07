@@ -12,7 +12,7 @@ description: "penthera mcp runs Penthera as an MCP server."
 server. Your agent (Claude Code, Codex, GitHub Copilot, Cursor, Windsurf, Gemini CLI) starts it
 and calls its tools. It needs Node.js 22 or later.
 
-The commands below pin 2.3.1, so an update never reaches you unless you change the pin.
+The commands below pin 2.3.2, so an update never reaches you unless you change the pin.
 
 Always pin the version. An unpinned `npx penthera` runs whatever version is
 newest on npm each time your agent starts, which is the risk that
@@ -21,11 +21,12 @@ newest on npm each time your agent starts, which is the risk that
 ### Claude Code
 
 ```bash
-claude mcp add penthera -- npx -y penthera@2.3.1 mcp
+claude mcp add penthera -- npx -y penthera@2.3.2 mcp
 ```
 
-Add `--scope project` to write it to `.mcp.json` for the whole team. To get the
-skill and the MCP server together, install the plugin instead:
+Add `--scope project` to write it to `.mcp.json` for the whole team. The
+Penthera plugin holds only the skill, which runs the CLI, and starts no MCP
+server. Install it as well if you want the skill:
 
 ```bash
 claude plugin marketplace add danoszz/penthera
@@ -40,7 +41,7 @@ Inside a session, the same is `/plugin marketplace add danoszz/penthera` and
 ### Codex
 
 ```bash
-codex mcp add penthera -- npx -y penthera@2.3.1 mcp
+codex mcp add penthera -- npx -y penthera@2.3.2 mcp
 ```
 
 Or add it to `~/.codex/config.toml`:
@@ -48,25 +49,28 @@ Or add it to `~/.codex/config.toml`:
 ```toml
 [mcp_servers.penthera]
 command = "npx"
-args = ["-y", "penthera@2.3.1", "mcp"]
+args = ["-y", "penthera@2.3.2", "mcp"]
 ```
 
 Checked against [Codex's MCP docs](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
 
 ### GitHub Copilot
 
-In Copilot CLI, install the plugin. It holds the skill and the MCP server, and
-Copilot reads the same marketplace file as Claude Code:
+In Copilot CLI, the plugin gives you the skill, which runs the CLI. It starts no
+MCP server. Copilot reads the same marketplace file as Claude Code:
 
 ```bash
 copilot plugin marketplace add danoszz/penthera
 copilot plugin install penthera@penthera
 ```
 
+For the MCP tools in Copilot CLI, add the server in its MCP settings with the
+same `npx -y penthera@2.3.2 mcp` launch line.
+
 In VS Code, add the server to your user profile:
 
 ```bash
-code --add-mcp '{"name":"penthera","type":"stdio","command":"npx","args":["-y","penthera@2.3.1","mcp"]}'
+code --add-mcp '{"name":"penthera","type":"stdio","command":"npx","args":["-y","penthera@2.3.2","mcp"]}'
 ```
 
 Or put the JSON under **VS Code** below in `.vscode/mcp.json`. Checked against
@@ -82,7 +86,7 @@ Cursor reads `.cursor/mcp.json`, and Windsurf `~/.codeium/windsurf/mcp_config.js
   "mcpServers": {
     "penthera": {
       "command": "npx",
-      "args": ["-y", "penthera@2.3.1", "mcp"]
+      "args": ["-y", "penthera@2.3.2", "mcp"]
     }
   }
 }
@@ -98,7 +102,7 @@ Checked against [Cursor's MCP docs](https://cursor.com/docs/context/mcp).
     "penthera": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "penthera@2.3.1", "mcp"]
+      "args": ["-y", "penthera@2.3.2", "mcp"]
     }
   }
 }
@@ -158,9 +162,12 @@ most severe findings; ask for up to 200 with `max_findings`.
 The brief's `exit_code` is the code the CLI would exit with. A
 `check_dependencies` result is incomplete when a lockfile or requirements file
 could not be read (a FIFO, a device, a link out of the project, over the 64 MiB
-cap, or an `-r` include like that). Its brief then has `exit_code` 2, a verdict
-of Review, and an `exit_reason` that names the file, and the findings list it
-as `File not read: <file>`. Never read that as clean.
+cap, or an `-r` include like that), or when a venv's `METADATA` or `PKG-INFO`
+could not be read. A `scan_repo` result is incomplete when a route or server
+file was not read (over the 5 MiB cap, a FIFO, a link out of the project). Its
+brief then has `exit_code` 2, a verdict of Review, and an `exit_reason` that
+names the file, and the findings list it as `File not read: <file>`. Never read
+that as clean.
 
 Arguments: `path` and `max_findings` on the file tools, `prod` on
 `check_dependencies`, `url` and `profile` (`quick` or `standard`) on `scan_url`,
@@ -181,7 +188,7 @@ true.
   you write, not the model:
 
 ```bash
-npx -y penthera@2.3.1 mcp --allow-host staging.example.com
+npx -y penthera@2.3.2 mcp --allow-host staging.example.com
 ```
 
   Only list hosts you are authorized to test. The same limit holds on every
@@ -204,8 +211,8 @@ npx -y penthera@2.3.1 mcp --allow-host staging.example.com
 ## Options
 
 ```bash
-npx -y penthera@2.3.1 mcp --offline
-npx -y penthera@2.3.1 mcp --help
+npx -y penthera@2.3.2 mcp --offline
+npx -y penthera@2.3.2 mcp --help
 ```
 
 | Flag | Meaning |

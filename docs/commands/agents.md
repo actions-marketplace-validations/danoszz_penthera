@@ -26,6 +26,7 @@ penthera agents                 # this repo: .mcp.json, .claude/, .cursor/, AGEN
 penthera agents --home          # + ~/.claude (hooks, permissions, plugins, skills), ~/.cursor/mcp.json, Claude Desktop, Cline and Roo Code
 penthera agents ./some-skill    # vet a downloaded skill before you install it
 penthera agents --pin           # write penthera.lock; later runs flag anything that changed
+penthera agents . --card        # a share card: the grade and score, what was not read, the fix first
 ```
 
 A folder you name with `SKILL.md` at its root, in any casing, is read as one
@@ -33,7 +34,11 @@ skill. Its scripts and other files get the same rules as a skill under
 `skills/<name>/`. A file or folder Penthera could not read, or a file over the
 size limit, gets a high finding, so such a skill never grades A. `node_modules`
 and virtual environment packages are not read: they are listed under Not read
-and do not lower the grade, so check them with `penthera deps`. In `--json`,
+and do not lower the grade, so check them with `penthera deps`. Findings to act on
+lower the grade, and so does any critical or high finding, wherever it is,
+since it fails the run. A medium or low finding to check first, or likely noise
+in test or example files, does not, and the card says how many there are to
+check. In `--json`,
 `agents.skillTarget` is true when the run read the folder as one named skill.
 You can also pass the `SKILL.md` itself, and Penthera reads its folder. Any
 other file is an error.
@@ -117,7 +122,7 @@ npx penthera hook install
     mode: agents
 ```
 
-Or copy one file that runs `npx --yes penthera@2.3.2 agents` on every pull request and uploads SARIF: [`github-actions-agents.yml`](https://github.com/danoszz/penthera/blob/main/docs/examples/github-actions-agents.yml) ([details](action.md#the-agent-config-check-in-one-file)).
+Or copy one file that runs `npx --yes penthera@2.4.0 agents` on every pull request and uploads SARIF: [`github-actions-agents.yml`](https://github.com/danoszz/penthera/blob/main/docs/examples/github-actions-agents.yml) ([details](action.md#the-agent-config-check-in-one-file)).
 
 The rules in [Rules for auto-run, registries and environment](#rules-for-auto-run-registries-and-environment), the Not checked line and the skill-folder changes shipped in 2.1.0. Penthera 2.0.0 does not have them. They run once you pin 2.1.0 or later.
 

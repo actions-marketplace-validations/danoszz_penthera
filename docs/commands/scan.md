@@ -125,6 +125,9 @@ still gets 401 or 403 on the home page records it as `httpStatus`; treat that
 as a scan that read nothing. The [Vercel integration](https://docs.penthera.org/vercel#deployment-protection)
 and the [Action](action.md) pass it for you.
 
+To compare with the merge-base of your branch instead of a saved report, use
+[`penthera diff`](diff.md).
+
 ### What `--baseline` counts as new
 
 A finding is new when the baseline report has no finding with the same
@@ -291,6 +294,72 @@ A `--repo` scan reads the workflows GitHub runs, in `.github/workflows/`. It par
 Each finding points to the file and line. `explain_finding` knows all four ids. Every spelling YAML allows means the same thing here: quoted keys, escapes, block scalars, flow style, anchors. Expressions are compared without case, with `['x']` read as `.x`.
 
 **Limits.** It doesn't follow reusable workflows or composite actions into their own files, and it doesn't trace a value through `env:` or a step output into a script. A clean result means none of these patterns was found in what it read. It doesn't prove the workflow is safe.
+
+### Framework versions with a published vulnerability
+
+A `--repo` scan reads the installed version of `next` and the React Server Components packages (`react-server-dom-webpack`, `-turbopack`, `-parcel`) from the lockfile and compares it with a short table that ships with Penthera. Lockfiles read: `package-lock.json`, `npm-shrinkwrap.json`, `pnpm-lock.yaml`, `yarn.lock` (classic and berry) and `bun.lock`. With no lockfile, an exact pin in `package.json` counts; a range such as `^15.5.0` says nothing about what is installed and is not guessed. Every copy in the tree is checked, nested ones too. Pre-release and canary builds are not compared.
+
+| Rule | Severity | What it means |
+|------|----------|---------------|
+| `framework-advisory` | critical, high or low | The installed version is in a published advisory's affected range. Critical for CVE-2025-55182 (React Server Components deserialisation, remote code execution, fixed in Next.js 15.0.5, 15.1.9, 15.2.6, 15.3.6, 15.4.8, 15.5.7 and 16.0.7). High for CVE-2025-29927 (the middleware bypass, fixed in 12.3.5, 13.5.9, 14.2.25 and 15.2.3) when the project has a middleware file, low when it has none. The finding names the lockfile line, the advisory and the fixed versions. |
+
+A lockfile that cannot be read or parsed is named and makes the scan incomplete (exit 2), never a silent pass.
+
+### Server secrets behind a public env prefix
+
+Next.js writes every `NEXT_PUBLIC_*` variable into the browser bundle at build time; Vite does the same for `VITE_*`, Expo for `EXPO_PUBLIC_*`, Create React App for `REACT_APP_*`, Nuxt for `NUXT_PUBLIC_*`, SvelteKit and Astro for `PUBLIC_*`, Gatsby for `GATSBY_*`. The rule reads names, not values, so a placeholder in `.env.example` or a `process.env.NEXT_PUBLIC_RESEND_API_KEY` read in a component is enough. It reads `.env*` files, `next.config.*`, `turbo.json`, `vercel.json`, `netlify.toml`, Expo's `app.json` and `app.config.*`, and `process.env.X` or `import.meta.env.X` reads in code (comments blanked).
+
+| Rule | Severity | What it means |
+|------|----------|---------------|
+| `public-env-secret` | high; critical when a committed value matches a provider key shape | The part after the prefix names a secret (`API_KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `SERVICE_ROLE`, `DATABASE_URL`, ...) and nothing in the name says the value is public by design (`PUBLISHABLE`, `ANON`, `SITE_KEY`, `CLIENT_ID`, `DSN`, ...). Keys providers issue for the browser, such as `FIREBASE_API_KEY`, `GOOGLE_MAPS_API_KEY`, `MAPBOX_TOKEN`, `STRIPE_PUBLISHABLE_KEY` and `SUPABASE_ANON_KEY`, are not reported. One finding per variable name, pointing at the first place it is defined. |
+
+Rename the variable without the prefix, read it in server code only, and rotate the value if it was ever deployed. If the value is meant for the browser, say so in its name.
+
+### Server Actions without an auth check
+
+Every exported async function in a file that starts with `"use server"`, and every function whose body starts with it, is a public POST endpoint: the client bundle carries its id, and anyone can call it with any arguments. A `--repo` scan reads these files on lexed source (comments blanked, strings masked) and reports an action that writes data without checking who is calling.
+
+| Rule | Severity | What it means |
+|------|----------|---------------|
+| `server-action-no-auth` | high (medium when a root `middleware` file calls an auth function) | An action's body calls a database write (Prisma, Drizzle, Supabase, Mongoose, Kysely, Knex, Firestore, or raw `INSERT`, `UPDATE`, `DELETE`), sends mail or calls a payment API, and neither the body nor the wrapper it is passed to calls an auth function: `auth()`, `getServerSession`, `getUser`, `currentUser`, `verifySession`, `requireUser`, a name that starts with `require`, `verify`, `assert`, `ensure` or `check` and names auth, a session, a user, an admin or a permission, or anything imported from an auth module (next-auth, `@clerk/*`, `@supabase/ssr`, lucia, Kinde, WorkOS, Auth0, iron-session, better-auth, or a local file whose path names auth or a session). One finding per file, at `potential` confidence, listing the actions and what they write. |
+
+**Limits.** A check in a helper this rule does not know by name, or in middleware whose matcher covers the page, is not seen, which is why the confidence is `potential`. Actions in `test`, `fixtures` and `public` folders are not read. A read-only action is never reported.
+
+`jwtVerify` and `jwt.verify` count as auth calls, and a re-export from an auth module (`export { auth as middleware } from "@/auth"`) counts as an auth import, so an Auth.js middleware lowers these findings to medium.
+
+### Missing checks: webhooks, tokens and client-chosen values
+
+Five places where server code skips the one standard check that makes it safe. A `--repo` scan reads every server code file on lexed source (comments blanked, strings masked), so a call named in a comment or a string does not count. Each rule looks for the check, and stays quiet when anything in the file could be it: a verify call, a webhook secret, an expiry word, an admin check. Browser code (`"use client"` files), test folders and `*.test.*` files are not read.
+
+| Rule | Severity | What it means |
+|------|----------|---------------|
+| `webhook-signature-missing` | high; `likely`, or `potential` when the file reads a signature header | A webhook handler takes the request body and writes data, sends mail or calls a payment API, and nothing in the file verifies the provider's signature. A handler is a file whose path names a webhook, a route registered on a path with `webhook` or `/hooks`, or a file that handles Stripe events (`checkout.session.completed`, `invoice.paid`, ...). It also needs a provider import (stripe, svix, Clerk, Octokit, Lemon Squeezy, Paddle, Polar, Shopify, ...) or an event read (`event.type`). The check can be `constructEvent`, `createHmac`, `timingSafeEqual`, any verify or validate call, `stripe.events.retrieve`, or a webhook or signing secret by name. A file that reads a user session (`auth()`, `getServerSession`) is a settings route, not a provider's webhook. |
+| `jwt-decode-unverified` | high, `likely` | A file reads a token from the request (an `Authorization` header, a cookie, a `token` query) and decodes it with `jwt.decode`, `decodeJwt` or `jwtDecode`, and nothing in the file verifies a token (`jwt.verify`, `jwtVerify`, any verify call, `getToken`, `getServerSession`). A decode with a secret (jwt-simple, next-auth's `decode`) verifies, so it is not reported. |
+| `secret-compare-not-constant-time` | medium for an HMAC or a signature, low otherwise; `likely` | `===`, `!==`, `==` or `!=` with an HMAC on one side (`createHmac`, or a name assigned from it), or a value from the request (a header, the query, the body, a cookie) on one side and a secret on the other: an env secret (`process.env.CRON_SECRET`, also inside a template), a constant such as `API_KEY`, or a name such as `apiKey`, `signature`, `csrfToken`, `resetToken`. Lengths, types, literals, `typeof` and flags (`isSecret`) are not compared secrets. One finding per file, at the worst hit, listing the lines. |
+| `reset-token-no-expiry` | medium, `potential` | A file looks up a password-reset token (`resetToken`, `reset_password_token`, `password_reset_tokens`, ...) and writes a password, and has no expiry check anywhere: no expiry field or word, no date filter (`gt:`, `$gt`), no time comparison, no `now()`, no verify call. A token kept in Redis or another key-value store expires by its TTL there, so those files are not reported. |
+| `client-trusted-value` | high for an amount sent to a payment API (`likely`) or a role, plan or credit field from the request (`potential`); medium for the whole body written to a user record (`potential`) | A value from the request body, the query or a form goes, as the client sent it, into `amount` or `unit_amount` of a Stripe, PayPal, Razorpay, Mollie, Paddle or Lemon Squeezy create call, or into `role`, `plan`, `tier`, `credits`, `isAdmin`, `permissions` or `emailVerified` of a write to a user, account, profile, member, team or tenant record. Or the whole body is the data (`data: body`, `{ ...body }`, `User.findByIdAndUpdate(id, req.body)`, `new User(req.body)`). A body passed through a schema parse (`Schema.parse`) is not whole, since the parse keeps only the keys it names. Admin routes (an admin check by name, a role comparison, an `admin` path), refunds, `metadata`, and donations, tips and top-ups, where the payer picks the amount, are not reported. |
+
+**How we checked it.** On 10 open-source projects (Polar, Umami, Uptime Kuma, SonicJS and six more), four known-vulnerable apps (Juice Shop, DVNA, NodeGoat, crAPI) and Penthera itself, the five rules report 5 findings, all from the timing rule: a bridge token and a CSRF token compared with `!==`, and three HMAC compares, one of them in Penthera's own offline check of the public Supabase demo key. All five are true by the rule; none is a practical risk except the two tokens. On the 150 benign npm packages of the benchmark's dev half (6,063 files, `dist` included) they report none. Recall is measured only on the crafted cases in `tests/missing-checks.test.js`: those apps hold few webhook, checkout or reset handlers.
+
+**Limits.** Each rule reads one file. A check in an imported helper whose name says nothing (`await handle(sig)`) is not seen, and a check anywhere in the file counts, even in another function: so the rules miss more than they invent. The body read is recognised by the request's usual names (`req`, `request`, `event`, `c.req`, `ctx.request`), not by a handler parameter with another name. Server Action parameters other than `formData.get(...)` are not followed. Every file is read whole under a 4 MiB cap; a larger file, a file Penthera may not read, or more work than 16 times the file's length is named and makes the scan incomplete (exit 2), keeping the findings made so far. `explain_finding` knows all five ids.
+
+### Middleware, sessions, passwords and OAuth callbacks
+
+Five checks on lexed source (comments blanked, strings masked), in every code file outside `test`, `fixtures` and `public` folders. Each is one finding per file, with file:line evidence and a CWE.
+
+| Rule | Severity | What it means |
+|------|----------|---------------|
+| `next-middleware-no-auth` | medium, potential | A Next.js `middleware` or `proxy` file (it imports `next/server`, has a `matcher`, or sits next to a `next.config` file) names a protected area in a string, such as `/admin`, `/dashboard`, `/account`, `/settings`, `/billing`, `/workspace` or `/internal`. It also checks nothing: no auth call by name (the Server Actions check's list), nothing imported or re-exported from an auth module, no read of a cookie or of the `Authorization` header, and no redirect to a path such as `/login`. CWE-306. |
+| `credential-in-url` | medium, likely (a password); low, potential (a secret) | Code reads a password, API key, access or refresh token, client secret or `secret` from the query string: `req.query.password`, `req.query["api_key"]`, `searchParams.get("password")`, `c.req.query("api_key")`, a Next.js page's `searchParams.password`, `getQuery(event).password`, or `const { password } = req.query`. A URL ends up in history, logs and the Referer header. CWE-598. |
+| `password-encrypted-not-hashed` | high, likely (decrypted to compare); high, potential (encrypted) | A password is decrypted and compared at login (`decrypt(user.password) !== password`, `createDecipheriv(...).update(row.password)`), or a user's password goes to `encrypt()`, crypto-js `AES.encrypt()` or a `createCipheriv` cipher's `update()` in a file that never hashes one. CWE-257. |
+| `session-cookie-insecure` | medium, likely (turned off); medium, potential (left at the default) | A file that imports a session library (express-session, cookie-session, koa-session, `@fastify/session`, iron-session, next-auth, `@auth/*`, better-auth, Lucia, or Remix and React Router's cookie sessions) sets `secure: false` or `httpOnly: false` in its cookie options (`cookie`, `cookieOptions`, `cookies.sessionToken.options`, `sessionCookie.attributes`, ...), or `useSecureCookies: false`. Or express-session gets options, inline or from a `const` in the same file, with no `cookie.secure`. It then sends the cookie without Secure. CWE-614. |
+| `oauth-callback-no-state` | medium, potential | A file reads `code` from the URL and exchanges it: an `authorization_code` grant, arctic's `validateAuthorizationCode`, or an OAuth client's `getToken(code)`. Nothing in the file mentions `state`, a PKCE `code_verifier` or a `nonce`, and nothing in it comes from a library that checks state for you (Auth.js, Passport, openid-client, oauth4webapi, `@fastify/oauth2`, Supabase, better-auth, Clerk, Auth0, WorkOS, Kinde). CWE-352. |
+
+The cookie calls themselves (`res.cookie`, `cookies().set`) are the cookie-flag check's, under `fix`; this rule reads only a session library's options.
+
+**Limits.** These rules are built for precision. Anything that may hide a check makes them stay quiet: a spread (`...base`) in the options, options imported from another file, a `sess.cookie.secure = true` assignment anywhere in the file, a check in a helper with an unknown name, or a callback that reads `state` but never compares it. A one-time `token` or `code` in a link, Stripe's `session_id` and `key` are not credentials here. A password for another system (`smtp.password`, `config.db.password`) may be encrypted, and is not reported. Middleware for public paths (`/app`, `/team`, `/user/:name`) is not reported. On the four known-vulnerable apps Penthera benchmarks (Juice Shop, DVNA, NodeGoat, WebGoat: 910 files) and on 11,390 files of the maintainer's own apps, the checks reported 3 findings, all real. One was NodeGoat's documented "session cookie lacks the Secure flag". The same sets were used to tune the rules (`session_id` was taken out after two false alarms there), so the count is not independent. The middleware, password and OAuth rules had no hit in either set, so their precision is not measured yet.
+
+Work per file is bounded: the reads that depend on the code's shape are charged to a budget of 16 times the file's length. Past it, what was found is kept, the file is named as not fully checked, and the scan is incomplete (exit 2). So is a file it could not read. `explain_finding` knows all five ids.
 
 ### Supabase: the service-role key and row-level security
 
